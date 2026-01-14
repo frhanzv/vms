@@ -1,52 +1,299 @@
-# CodeIgniter 4 Application Starter
+# Visitor Management System (VMS)
 
-## What is CodeIgniter?
+A modern Visitor Management System built with CodeIgniter 4 framework for tracking and managing visitors efficiently.
 
-CodeIgniter is a PHP full-stack web framework that is light, fast, flexible and secure.
-More information can be found at the [official site](https://codeigniter.com).
+## Features
 
-This repository holds a composer-installable app starter.
-It has been built from the
-[development repository](https://github.com/codeigniter4/CodeIgniter4).
+- User Authentication (Login/Register)
+- Dashboard for visitor statistics
+- Visitor invitation
+- Visitor logbook management
+- Visitor list tracking
+- Visitor security briefing
+- Facial Verification
+- Secure session management
 
-More information about the plans for version 4 can be found in [CodeIgniter 4](https://forum.codeigniter.com/forumdisplay.php?fid=28) on the forums.
+## Requirements
 
-You can read the [user guide](https://codeigniter.com/user_guide/)
-corresponding to the latest version of the framework.
+- [Laragon](https://laragon.org/) (includes PHP 8.1+, Apache, MySQL)
+- Composer (included in Laragon)
+- PHP Extensions (already configured in Laragon):
+  - intl
+  - mbstring
+  - mysqli/pdo_mysql
+  - json
+  - xml
 
-## Installation & updates
+## Installation Guide (Laragon)
 
-`composer create-project codeigniter4/appstarter` then `composer update` whenever
-there is a new release of the framework.
+### Step 1: Setup Project in Laragon
 
-When updating, check the release notes to see if there are any changes you might need to apply
-to your `app` folder. The affected files can be copied or merged from
-`vendor/codeigniter4/framework/app`.
+1. Ensure Laragon is installed and running
+2. Clone or copy this project to Laragon's www directory:
 
-## Setup
+```bash
+cd C:\laragon\www
+git clone <repository-url> vms
+```
 
-Copy `env` to `.env` and tailor for your app, specifically the baseURL
-and any database settings.
+Or simply extract/copy the project folder to `C:\laragon\www\vms`
 
-## Important Change with index.php
+### Step 2: Install Dependencies
 
-`index.php` is no longer in the root of the project! It has been moved inside the *public* folder,
-for better security and separation of components.
+1. Open Laragon
+2. Right-click on Laragon → Terminal
+3. Navigate to project and install dependencies:
 
-This means that you should configure your web server to "point" to your project's *public* folder, and
-not to the project root. A better practice would be to configure a virtual host to point there. A poor practice would be to point your web server to the project root and expect to enter *public/...*, as the rest of your logic and the
-framework are exposed.
+```bash
+cd vms
+composer install
+```
 
-**Please** read the user guide for a better explanation of how CI4 works!
+### Step 3: Environment Configuration
 
-## Repository Management
+1. Copy the `env` file to `.env`:
 
-We use GitHub issues, in our main repository, to track **BUGS** and to track approved **DEVELOPMENT** work packages.
-We use our [forum](http://forum.codeigniter.com) to provide SUPPORT and to discuss
-FEATURE REQUESTS.
+```bash
+copy env .env
+```
 
-This repository is a "distribution" one, built by our release preparation script.
-Problems with it can be raised on our forum, or as issues in the main repository.
+2. Open `.env` file and configure for Laragon:
+
+```ini
+# Application Settings
+CI_ENVIRONMENT = development
+app.baseURL = 'http://localhost/vms/'
+
+# Database Configuration (Laragon defaults)
+database.default.hostname = localhost
+database.default.database = vms
+database.default.username = root
+database.default.password = 
+database.default.DBDriver = MySQLi
+database.default.DBPrefix = 
+database.default.port = 3306
+
+# Security
+encryption.key = hex2bin:your-32-char-hex-key-here
+```
+
+### Step 4: Generate Encryption Key
+
+Generate a secure 32-character hex key:
+
+1. Visit an online generator or use this PHP command:
+
+```bash
+php -r "echo bin2hex(random_bytes(32));"
+```
+
+2. Copy the generated key and add it to `.env`:
+
+```ini
+encryption.key = hex2bin:your_generated_key_here
+```
+
+### Step 5: Database Setup
+
+1. Open HeidiSQL from Laragon (Right-click Laragon → HeidiSQL)
+2. Create a new database:
+   - Right-click on server → Create new → Database
+   - Name: `vms`
+   - Collation: `utf8mb4_unicode_ci`
+
+3. Import your SQL file if you have one, or create tables manually
+
+4. If you have migration files, you can run them via terminal:
+
+```bash
+php vendor/codeigniter4/framework/spark migrate
+```
+
+### Step 6: Set File Permissions
+
+In Laragon, the `writable` directory should already have proper permissions. If you encounter permission issues:
+
+1. Right-click on `writable` folder → Properties → Security
+2. Edit permissions to allow full control for your user
+
+Or run in terminal as Administrator:
+
+```bash
+icacls writable /grant Everyone:F /T
+```
+
+### Step 7: Configure Apache for Laragon
+
+**Important:** Configure Apache to point to the `public` folder instead of project root.
+
+1. Open Apache configuration:
+   - Laragon → Apache → httpd.conf
+
+2. Find the `DocumentRoot` section and verify it points to Laragon's www directory:
+
+```apache
+DocumentRoot "C:/laragon/www"
+<Directory "C:/laragon/www">
+    AllowOverride All
+    Require all granted
+</Directory>
+```
+
+3. Create an `.htaccess` file in `C:/laragon/www/vms/` (project root, not public) with:
+
+```apache
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+```
+
+This redirects all requests to the `public` folder.
+
+4. Restart Laragon (Stop All → Start All)
+
+5. Access the application at: `http://localhost/vms`
+
+## Project Structure
+
+```
+vms/
+├── app/
+│   ├── Config/         # Configuration files
+│   ├── Controllers/    # Application controllers
+│   │   ├── Auth.php
+│   │   ├── Dashboard.php
+│   │   ├── VisitorList.php
+│   │   └── VisitorLogbook.php
+│   ├── Models/         # Database models
+│   ├── Views/          # View templates
+│   ├── Filters/        # Request filters
+│   └── Database/       # Migrations and seeds
+├── public/             # Public web root (point your server here)
+│   ├── index.php
+│   └── assets/         # CSS, JS, images
+├── writable/           # Writable directory (logs, cache, sessions)
+├── tests/              # Unit and integration tests
+└── vendor/             # Composer dependencies
+```
+
+## Usage
+
+### Default Access
+
+1. Ensure Laragon is running (Start All)
+2. Open browser and navigate to: `http://localhost/vms`
+3. Register a new account or login with existing credentials
+4. Access the dashboard to manage visitors
+
+### Running Tests
+
+Open Laragon Terminal and execute:
+
+```bash
+cd C:\laragon\www\vms
+vendor\bin\phpunit
+```
+
+## Common Issues & Troubleshooting (Laragon)
+
+### Issue: "404 Page Not Found" or Homepage loads but links don't work
+
+**Solution:** 
+- Verify your virtual host points to the `public` folder, not project root
+- Check `.htaccess` file exists in `public/` folder
+- Ensure `mod_rewrite` is enabled in Apache (Laragon has it by default)
+
+### Issue: Database connection failed
+
+**Solution:** 
+- Verify database credentials in `.env` file
+- Ensure MySQL is running in Laragon (check status indicator)
+- Verify database `vms` exists in HeidiSQL
+- Default Laragon MySQL password is empty
+
+### Issue: "Writable directory not writable"
+
+**Solution:** 
+- Check file permissions on `writable` folder
+- Run Laragon as Administrator
+- Manually set permissions (see Step 6)
+
+### Issue: Virtual host not working
+
+**Solution:**
+- Check if virtual host is properly configured in Apache
+- Restart Laragon completely
+- Verify hosts file has entry (Laragon usually manages this)
+- Clear browser cache
+
+### Issue: Session not working
+
+**Solution:** 
+- Check `writable/session/` directory exists and is writable
+- Verify session configuration in `app/Config/App.php`
+- Ensure Laragon has write permissions
+
+## Development
+
+### Running in Development Mode
+
+Ensure your `.env` file has:
+
+```ini
+CI_ENVIRONMENT = development
+```
+
+This enables:
+- Detailed error messages
+- Debug toolbar
+- Query logging
+
+### Working with Laragon
+
+- **Start/Stop Services:** Right-click Laragon tray icon
+- **Access Database:** Right-click Laragon → HeidiSQL
+- **Terminal Access:** Right-click Laragon → Terminal (Cmder)
+- **Quick Switch PHP Version:** Laragon → PHP → Select version
+- **View Logs:** Check `writable/logs/` folder
+
+## Security Considerations
+
+- Never commit `.env` file to version control
+- Change default encryption key
+- Use strong passwords for database users
+- Keep CodeIgniter framework updated
+- Enable CSRF protection in production
+- Use HTTPS in production environment
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Built With
+
+- [CodeIgniter 4](https://codeigniter.com/) - PHP Framework
+- [Composer](https://getcomposer.org/) - Dependency Management
+
+## Support
+
+For issues and questions:
+- Create an issue in the repository
+- Check [CodeIgniter 4 User Guide](https://codeigniter.com/user_guide/)
+- Visit [CodeIgniter Forum](https://forum.codeigniter.com/)
+
+## Acknowledgments
+
+- CodeIgniter 4 framework and community
+- All contributors to this project
 
 ## Server Requirements
 
