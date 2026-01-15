@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title><?= esc($pageTitle) ?></title>
+    <link rel="icon" type="image/png" href="<?= base_url('assets/images/vms-icon.png') ?>"/>
+    <link href="https://fonts.googleapis.com" rel="preconnect"/>
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#111827",
+                    },
+                    fontFamily: {
+                        "display": ["Montserrat", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+    <style>
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-gray-800 dark:text-white font-display h-screen flex overflow-hidden">
+<div class="flex h-screen w-full">
+    <!-- Sidebar -->
+    <aside class="w-64 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col justify-between p-4 hidden md:flex h-full">
+        <div class="flex flex-col gap-8">
+            <div class="flex items-center gap-3 px-2">
+                <div class="bg-center bg-no-repeat bg-cover rounded-lg size-10 bg-primary/10 flex items-center justify-center text-primary" data-alt="SafeG Logo abstract blue square">
+                    <span class="material-symbols-outlined text-3xl">shield_person</span>
+                </div>
+                <h1 class="text-lg font-bold tracking-tight text-slate-900 dark:text-white">SafeG</h1>
+            </div>
+            <nav class="flex flex-col gap-2">
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('dashboard') ?>">
+                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">dashboard</span>
+                    <p class="text-sm font-medium">Dashboard</p>
+                </a>
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('invitations') ?>">
+                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">mail</span>
+                    <p class="text-sm font-medium">Invitations</p>
+                </a>
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary group transition-colors" href="<?= base_url('requests') ?>">
+                    <span class="material-symbols-outlined text-[22px] font-medium fill-1 group-hover:scale-110 transition-transform">assignment</span>
+                    <p class="text-sm font-semibold">Request List</p>
+                </a>
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('visitors') ?>">
+                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">group</span>
+                    <p class="text-sm font-medium">Visitors List</p>
+                </a>
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('logbook') ?>">
+                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">menu_book</span>
+                    <p class="text-sm font-medium">Visitor Logbook</p>
+                </a>
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="#">
+                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">settings</span>
+                    <p class="text-sm font-medium">Settings</p>
+                </a>
+            </nav>
+        </div>
+        <div class="border-t border-slate-200 dark:border-slate-700 pt-4 px-2">
+            <div class="flex items-center gap-3">
+                <div class="size-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shadow-sm ring-2 ring-white dark:ring-slate-900">
+                    <?= strtoupper(substr(session()->get('full_name') ?? 'U', 0, 2)) ?>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-semibold text-slate-900 dark:text-white truncate"><?= esc(session()->get('full_name') ?? 'User') ?></p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 truncate"><?= esc(ucfirst(session()->get('role') ?? 'User')) ?></p>
+                </div>
+                <a href="<?= base_url('auth/logout') ?>" class="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <span class="material-symbols-outlined text-xl">logout</span>
+                </a>
+            </div>
+        </div>
+    </aside>
+
+    <div class="flex-1 flex flex-col h-full overflow-hidden">
+        <!-- Request Queue Sidebar -->
+        <aside class="w-80 flex flex-col border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-slate-900 shrink-0 z-10 hidden lg:flex">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-800">
+            <div class="flex items-center justify-between mb-2">
+                <h3 class="font-bold text-sm uppercase tracking-wider text-gray-400">Request Queue</h3>
+                <span class="bg-primary/10 text-primary text-xs font-bold px-2 py-0.5 rounded-full"><?= $stats['pending'] ?> Pending</span>
+            </div>
+            <div class="flex gap-2 text-xs">
+                <button class="bg-primary text-white px-3 py-1.5 rounded-full font-medium shadow-sm shadow-primary/30">All</button>
+                <button class="bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 px-3 py-1.5 rounded-full font-medium transition-colors">VIP</button>
+                <button class="bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 px-3 py-1.5 rounded-full font-medium transition-colors">Flagged</button>
+            </div>
+        </div>
+        <div class="flex-1 overflow-y-auto scrollbar-hide p-2 space-y-2">
+            <?php foreach ($queueRequests as $index => $request): ?>
+            <div class="group flex items-start gap-3 p-3 rounded-lg <?= $index === 0 ? 'bg-primary/5 border border-primary/20' : 'hover:bg-gray-50 dark:hover:bg-slate-800 border border-transparent' ?> cursor-pointer relative overflow-hidden transition-colors">
+                <?php if ($index === 0): ?>
+                <div class="absolute left-0 top-0 bottom-0 w-1 bg-primary"></div>
+                <?php endif; ?>
+                <div class="relative size-10 rounded-full overflow-hidden shrink-0">
+                    <?php if (!empty($request['photo'])): ?>
+                    <img alt="<?= esc($request['name']) ?> Portrait" class="w-full h-full object-cover" src="<?= esc($request['photo']) ?>"/>
+                    <?php else: ?>
+                    <div class="w-full h-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-indigo-600 dark:text-indigo-300 font-bold text-sm"><?= esc($request['initials']) ?></div>
+                    <?php endif; ?>
+                    <?php if ($request['status'] === 'warning'): ?>
+                    <div class="absolute bottom-0 right-0 size-3 bg-red-500 border-2 border-white dark:border-slate-900 rounded-full"></div>
+                    <?php endif; ?>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex justify-between items-start">
+                        <h4 class="text-sm <?= $index === 0 ? 'font-bold' : 'font-semibold' ?> truncate text-gray-900 dark:text-white"><?= esc($request['name']) ?></h4>
+                        <span class="text-xs font-medium <?= $request['time'] === '15m' ? 'text-orange-600 bg-orange-100 dark:bg-orange-900/30 dark:text-orange-400 px-1.5 rounded' : 'text-gray-400' ?>"><?= esc($request['time']) ?></span>
+                    </div>
+                    <p class="text-xs text-gray-400 truncate"><?= esc($request['company']) ?></p>
+                    <?php if ($request['is_flagged']): ?>
+                    <p class="text-xs text-red-600 dark:text-red-400 font-medium truncate mt-0.5 flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[14px] fill-current">warning</span> Flagged ID
+                    </p>
+                    <?php elseif (!empty($request['host'])): ?>
+                    <p class="text-xs text-gray-400 truncate mt-0.5 flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[14px]"><?= $request['icon'] ?? 'person' ?></span> <?= esc($request['host']) ?>
+                    </p>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+    </aside>
+        <main class="flex-1 flex flex-col h-full overflow-hidden relative">
+            <div class="bg-background-light dark:bg-background-dark p-6 pb-2 shrink-0">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="flex flex-col gap-1 rounded-lg p-4 bg-white dark:bg-slate-900 border border-gray-200 dark:border-gray-800 shadow-sm">
+                    <div class="flex justify-between items-start">
+                        <p class="text-gray-400 text-xs font-semibold uppercase tracking-wider">Pending Requests</p>
+                        <span class="material-symbols-outlined text-orange-500 text-lg">pending</span>
+                    </div>
+                    <div class="flex items-baseline gap-2">
+                        <p class="text-gray-900 dark:text-white text-2xl font-bold leading-tight"><?= $stats['pending'] ?></p>
+                        <span class="text-green-600 bg-green-100 dark:bg-green-900/30 text-[10px] font-bold px-1.5 py-0.5 rounded">+2%</span>
+                    </div>
+                </div>
+                <div class="flex flex-col gap-1 rounded-lg p-4 bg-white dark:bg-slate-900 border border-gray-200 dark:border-gray-800 shadow-sm relative overflow-hidden">
+                    <div class="absolute right-0 top-0 p-1">
+                        <span class="flex size-2">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full size-2 bg-red-500"></span>
+                        </span>
+                    </div>
+                    <div class="flex justify-between items-start">
+                        <p class="text-gray-400 text-xs font-semibold uppercase tracking-wider">Flagged for Review</p>
+                        <span class="material-symbols-outlined text-red-500 text-lg">flag</span>
+                    </div>
+                    <div class="flex items-baseline gap-2">
+                        <p class="text-gray-900 dark:text-white text-2xl font-bold leading-tight"><?= $stats['flagged'] ?></p>
+                        <span class="text-red-600 dark:text-red-400 text-xs font-medium">Action Required</span>
+                    </div>
+                </div>
+                <div class="flex flex-col gap-1 rounded-lg p-4 bg-white dark:bg-slate-900 border border-gray-200 dark:border-gray-800 shadow-sm">
+                    <div class="flex justify-between items-start">
+                        <p class="text-gray-400 text-xs font-semibold uppercase tracking-wider">Expected Today</p>
+                        <span class="material-symbols-outlined text-primary text-lg">calendar_today</span>
+                    </div>
+                    <div class="flex items-baseline gap-2">
+                        <p class="text-gray-900 dark:text-white text-2xl font-bold leading-tight"><?= $stats['expected'] ?></p>
+                        <span class="text-gray-400 text-xs font-medium">On Track</span>
+                    </div>
+                </div>
+                <div class="flex flex-col gap-1 rounded-lg p-4 bg-white dark:bg-slate-900 border border-gray-200 dark:border-gray-800 shadow-sm">
+                    <div class="flex justify-between items-start">
+                        <p class="text-gray-400 text-xs font-semibold uppercase tracking-wider">Rejected</p>
+                        <span class="material-symbols-outlined text-gray-400 text-lg">block</span>
+                    </div>
+                    <div class="flex items-baseline gap-2">
+                        <p class="text-gray-900 dark:text-white text-2xl font-bold leading-tight"><?= $stats['rejected'] ?></p>
+                        <span class="text-gray-400 text-xs font-medium">Last 24h</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="flex-1 overflow-y-auto p-6 pt-2">
+            <div class="max-w-5xl mx-auto flex flex-col gap-6">
+                <div class="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-800">
+                    <div class="flex flex-col md:flex-row gap-6 items-start">
+                        <div class="relative group">
+                            <div class="w-32 h-32 rounded-lg bg-cover bg-center shadow-inner" data-alt="<?= esc($currentRequest['name']) ?> Portrait" style='background-image: url("<?= esc($currentRequest['photo']) ?>");'></div>
+                            <div class="absolute -bottom-2 -right-2 bg-green-500 text-white rounded-full p-1 border-4 border-white dark:border-slate-900">
+                                <span class="material-symbols-outlined text-sm font-bold">check</span>
+                            </div>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+                                <div>
+                                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight"><?= esc($currentRequest['name']) ?></h1>
+                                    <div class="flex items-center gap-2 mt-1 text-gray-400">
+                                        <span class="material-symbols-outlined text-lg">business</span>
+                                        <span class="text-base"><?= esc($currentRequest['company']) ?></span>
+                                        <span class="mx-1">•</span>
+                                        <span class="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-0.5 rounded text-xs font-medium border border-gray-200 dark:border-gray-600">ID: <?= esc($currentRequest['id']) ?></span>
+                                    </div>
+                                </div>
+                                <div class="flex items-start gap-4">
+                                    <div class="flex gap-2">
+                                        <button class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
+                                            <span class="material-symbols-outlined text-lg">history</span>
+                                            Past Visits
+                                        </button>
+                                        <button class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
+                                            <span class="material-symbols-outlined text-lg">mail</span>
+                                            Contact Host
+                                        </button>
+                                    </div>
+                                    <div class="hidden sm:flex flex-col items-center bg-white p-2 rounded-lg border border-gray-200 shadow-sm shrink-0">
+                                        <span class="material-symbols-outlined text-4xl text-black">qr_code_2</span>
+                                        <span class="text-[10px] font-mono font-bold text-black mt-0.5"><?= esc($currentRequest['id']) ?></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                                <div class="bg-background-light dark:bg-slate-800 p-3 rounded-lg flex items-center gap-3">
+                                    <div class="bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 p-2 rounded-md">
+                                        <span class="material-symbols-outlined">person</span>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-gray-400 font-medium">Host</p>
+                                        <p class="text-sm font-bold text-gray-900 dark:text-white"><?= esc($currentRequest['host']) ?></p>
+                                    </div>
+                                </div>
+                                <div class="bg-background-light dark:bg-slate-800 p-3 rounded-lg flex items-center gap-3">
+                                    <div class="bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 p-2 rounded-md">
+                                        <span class="material-symbols-outlined">schedule</span>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-gray-400 font-medium">Arrival</p>
+                                        <p class="text-sm font-bold text-gray-900 dark:text-white"><?= esc($currentRequest['arrival']) ?></p>
+                                    </div>
+                                </div>
+                                <div class="bg-background-light dark:bg-slate-800 p-3 rounded-lg flex items-center gap-3">
+                                    <div class="bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 p-2 rounded-md">
+                                        <span class="material-symbols-outlined">meeting_room</span>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-gray-400 font-medium">Purpose</p>
+                                        <p class="text-sm font-bold text-gray-900 dark:text-white"><?= esc($currentRequest['purpose']) ?></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                    <div class="xl:col-span-1 bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-800 flex flex-col h-full">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-base font-bold text-gray-900 dark:text-white">Watchlist Screening</h3>
+                            <button class="text-primary text-xs font-semibold hover:underline">Re-run Check</button>
+                        </div>
+                        <div class="flex flex-col gap-4 flex-1 justify-center">
+                            <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900 rounded-lg p-4 flex items-center gap-4">
+                                <div class="bg-green-100 dark:bg-green-800 text-green-700 dark:text-green-300 p-3 rounded-full shrink-0">
+                                    <span class="material-symbols-outlined text-2xl">check_circle</span>
+                                </div>
+                                <div>
+                                    <p class="text-green-800 dark:text-green-400 font-bold text-lg">Cleared</p>
+                                    <p class="text-green-700 dark:text-green-500 text-sm">No matches found in global database.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="xl:col-span-2 bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-800">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                ID Verification 
+                                <span class="bg-primary text-white text-xs font-bold px-2 py-0.5 rounded-full">AI Match <?= $currentRequest['ai_match'] ?>%</span>
+                            </h3>
+                            <div class="flex gap-2">
+                                <button class="text-gray-400 hover:text-primary transition-colors">
+                                    <span class="material-symbols-outlined">zoom_in</span>
+                                </button>
+                                <button class="text-gray-400 hover:text-primary transition-colors">
+                                    <span class="material-symbols-outlined">download</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="flex flex-col sm:flex-row gap-6 items-stretch">
+                            <div class="flex-1 space-y-2">
+                                <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Uploaded ID Document</p>
+                                <div class="bg-gray-100 dark:bg-gray-800 rounded-lg p-2 border border-dashed border-gray-300 dark:border-gray-600 relative group h-48 flex items-center justify-center overflow-hidden">
+                                    <img class="max-w-full max-h-full object-contain opacity-90 transition-opacity group-hover:opacity-100" data-alt="Malaysian MyKad" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDzhLnExUEY_zoQ1CzJUtVge8vXZUcb8_u4t2QS76DyzObDM8wmwQoSowQqZw9sIQKbrTFEBrcl6WPiQFXwmiEpgBZzp_GO7JjDXzD1TdMdnfklzCoFw-ZTMbp0AuynE83nHYsWqAA10taNSKS5lURSoC9OUDwXDVg_LX77jbicGI5loaN60e1JrLfhxuDgUy9sxvoEQW161B-X-gz-ZdwSYiLBYyLrHZrjNOlvQCFtwxans8o9Y6gJMkkijoJc7NXqWK8G4pQg8Q"/>
+                                    <div class="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded shadow-sm flex items-center gap-1">
+                                        <span class="material-symbols-outlined text-xs">verified</span> Valid
+                                    </div>
+                                </div>
+                                <div class="flex justify-between text-xs text-gray-400">
+                                    <span>Type: MyKad</span>
+                                    <span>Exp: 12/2026</span>
+                                </div>
+                            </div>
+                            <div class="flex-1 space-y-2">
+                                <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Documents Uploaded</p>
+                                <div class="h-48 flex flex-col gap-3 justify-center">
+                                    <div class="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                                        <div class="flex items-center gap-3">
+                                            <div class="bg-blue-100 dark:bg-blue-900/30 text-primary p-2 rounded-md">
+                                                <span class="material-symbols-outlined text-xl">badge</span>
+                                            </div>
+                                            <span class="text-sm font-medium text-gray-900 dark:text-white">Driver License</span>
+                                        </div>
+                                        <button class="text-gray-400 hover:text-primary transition-colors">
+                                            <span class="material-symbols-outlined">download</span>
+                                        </button>
+                                    </div>
+                                    <div class="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                                        <div class="flex items-center gap-3">
+                                            <div class="bg-blue-100 dark:bg-blue-900/30 text-primary p-2 rounded-md">
+                                                <span class="material-symbols-outlined text-xl">description</span>
+                                            </div>
+                                            <span class="text-sm font-medium text-gray-900 dark:text-white">Letter of Invitation</span>
+                                        </div>
+                                        <button class="text-gray-400 hover:text-primary transition-colors">
+                                            <span class="material-symbols-outlined">download</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="flex justify-between text-xs text-gray-400">
+                                    <span>Source: Pre-registration</span>
+                                    <span>Date: Today</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-800 mb-20">
+                    <h3 class="text-base font-bold text-gray-900 dark:text-white mb-4">Access Control &amp; Assets</h3>
+                    <div class="flex flex-col md:flex-row gap-6">
+                        <div class="flex-1">
+                            <label class="text-xs font-medium text-gray-400 mb-2 block">Requested Access Zones</label>
+                            <div class="flex flex-wrap gap-2">
+                                <?php foreach ($currentRequest['access_zones'] as $zone): ?>
+                                <div class="px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-md text-sm font-semibold border border-blue-200 dark:border-blue-800 flex items-center gap-1">
+                                    <?= esc($zone) ?>
+                                </div>
+                                <?php endforeach; ?>
+                                <div class="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-md text-sm font-medium border border-gray-200 dark:border-gray-600 flex items-center gap-1 opacity-50 cursor-not-allowed" title="Not requested">
+                                    Server Room
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex-1">
+                            <label class="text-xs font-medium text-gray-400 mb-2 block">Assets Declared</label>
+                            <ul class="text-sm text-gray-900 dark:text-white space-y-2">
+                                <?php foreach ($currentRequest['assets'] as $asset): ?>
+                                <li class="flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-gray-400"><?= esc($asset['type']) ?></span>
+                                    <?= esc($asset['name']) ?>
+                                </li>
+                                <?php endforeach; ?>
+                            </ul>
+                        </div>
+                        <div class="flex-1">
+                            <label class="text-xs font-medium text-gray-400 mb-2 block">Notes</label>
+                            <p class="text-sm text-gray-600 dark:text-gray-400 italic">"<?= esc($currentRequest['notes']) ?>"</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="absolute bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-gray-800 p-4 px-6 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20">
+            <div class="max-w-5xl mx-auto flex items-center justify-between">
+                <div class="hidden sm:flex items-center gap-2 text-sm text-gray-400">
+                    <span class="material-symbols-outlined text-base">info</span>
+                    <span>This request was submitted 45 minutes ago.</span>
+                </div>
+                <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+                    <button class="flex-1 sm:flex-none px-5 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white font-semibold hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors focus:ring-2 focus:ring-offset-2 focus:ring-gray-200 text-sm">
+                        More Info
+                    </button>
+                    <button class="flex-1 sm:flex-none px-5 py-2.5 rounded-lg border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-semibold hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors focus:ring-2 focus:ring-offset-2 focus:ring-red-200 text-sm flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-lg">block</span> Reject
+                    </button>
+                    <button class="flex-1 sm:flex-none px-8 py-2.5 rounded-lg bg-primary text-white font-bold shadow-md shadow-primary/30 hover:bg-blue-600 transition-all focus:ring-2 focus:ring-offset-2 focus:ring-primary text-sm flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-lg">check_circle</span> Approve Entry
+                    </button>
+                </div>
+            </div>
+        </div>
+        </main>
+    </div>
+</div>
+</body>
+</html>

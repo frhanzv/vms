@@ -14,5 +14,9 @@ $routes->get('auth/logout', 'Auth::logout');
 // Protected Routes
 $routes->get('/', 'Dashboard::index');
 $routes->get('dashboard', 'Dashboard::index');
+$routes->get('invitations', 'InvitationList::index');
+$routes->get('invitations/create', 'InvitationList::create');
+$routes->post('invitations/store', 'InvitationList::store');
+$routes->get('requests', 'RequestList::index');
 $routes->get('visitors', 'VisitorList::index');
 $routes->get('logbook', 'VisitorLogbook::index');

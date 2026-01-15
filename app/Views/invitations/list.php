@@ -55,17 +55,17 @@
                     <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">dashboard</span>
                     <p class="text-sm font-medium">Dashboard</p>
                 </a>
-                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('invitations') ?>">
-                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">mail</span>
-                    <p class="text-sm font-medium">Invitations</p>
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary group transition-colors" href="<?= base_url('invitations') ?>">
+                    <span class="material-symbols-outlined text-[22px] font-medium fill-1 group-hover:scale-110 transition-transform">mail</span>
+                    <p class="text-sm font-semibold">Invitations</p>
                 </a>
                 <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('requests') ?>">
                     <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">assignment</span>
                     <p class="text-sm font-medium">Request List</p>
                 </a>
-                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary group transition-colors" href="<?= base_url('visitors') ?>">
-                    <span class="material-symbols-outlined text-[22px] font-medium fill-1 group-hover:scale-110 transition-transform">group</span>
-                    <p class="text-sm font-semibold">Visitors List</p>
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('visitors') ?>">
+                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">group</span>
+                    <p class="text-sm font-medium">Visitors List</p>
                 </a>
                 <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('logbook') ?>">
                     <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">menu_book</span>
@@ -99,50 +99,60 @@
             <!-- Header -->
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                 <h1 class="text-xl md:text-2xl font-bold tracking-tight text-gray-800 dark:text-white uppercase">
-                    Visitor Pass List
+                    Invitation List
                 </h1>
                 <div class="flex gap-2">
                     <button class="bg-secondary hover:bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
                         <span class="material-icons text-sm mr-1">file_download</span>
                         Export
                     </button>
-                    <button class="bg-primary hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
+                    <a href="<?= base_url('invitations/create') ?>" class="bg-primary hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
                         <span class="material-icons text-sm mr-1">add</span>
-                        Request
-                    </button>
+                        New Invitation
+                    </a>
                 </div>
             </div>
 
             <!-- Stats Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
                 <div class="bg-white dark:bg-gray-800 rounded-lg p-5 border-l-4 border-indigo-500 shadow-sm border-t border-r border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
                     <div>
-                        <p class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Total Visitors</p>
+                        <p class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Total Invitations</p>
                         <p class="text-2xl font-bold text-gray-800 dark:text-white mt-1"><?= number_format($stats['total']) ?></p>
-                        <p class="text-[10px] text-gray-400 mt-1">Total recorded entries</p>
+                        <p class="text-[10px] text-gray-400 mt-1">All invitation records</p>
                     </div>
                     <div class="p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-full text-indigo-600 dark:text-indigo-400">
-                        <span class="material-symbols-outlined text-2xl">groups</span>
-                    </div>
-                </div>
-                <div class="bg-white dark:bg-gray-800 rounded-lg p-5 border-l-4 border-emerald-500 shadow-sm border-t border-r border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
-                    <div>
-                        <p class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Checked In</p>
-                        <p class="text-2xl font-bold text-gray-800 dark:text-white mt-1"><?= number_format($stats['checkedIn']) ?></p>
-                        <p class="text-[10px] text-emerald-600 mt-1 font-medium">Currently on site</p>
-                    </div>
-                    <div class="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-full text-emerald-600 dark:text-emerald-400">
-                        <span class="material-symbols-outlined text-2xl">how_to_reg</span>
+                        <span class="material-symbols-outlined text-2xl">mail</span>
                     </div>
                 </div>
                 <div class="bg-white dark:bg-gray-800 rounded-lg p-5 border-l-4 border-orange-500 shadow-sm border-t border-r border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
                     <div>
-                        <p class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Pending Approval</p>
+                        <p class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Pending</p>
                         <p class="text-2xl font-bold text-gray-800 dark:text-white mt-1"><?= number_format($stats['pending']) ?></p>
-                        <p class="text-[10px] text-orange-500 mt-1 font-medium">Action required</p>
+                        <p class="text-[10px] text-orange-500 mt-1 font-medium">Awaiting approval</p>
                     </div>
                     <div class="p-3 bg-orange-50 dark:bg-orange-900/20 rounded-full text-orange-600 dark:text-orange-400">
                         <span class="material-symbols-outlined text-2xl">pending_actions</span>
+                    </div>
+                </div>
+                <div class="bg-white dark:bg-gray-800 rounded-lg p-5 border-l-4 border-emerald-500 shadow-sm border-t border-r border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Approved</p>
+                        <p class="text-2xl font-bold text-gray-800 dark:text-white mt-1"><?= number_format($stats['approved']) ?></p>
+                        <p class="text-[10px] text-emerald-600 mt-1 font-medium">Ready for visit</p>
+                    </div>
+                    <div class="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-full text-emerald-600 dark:text-emerald-400">
+                        <span class="material-symbols-outlined text-2xl">check_circle</span>
+                    </div>
+                </div>
+                <div class="bg-white dark:bg-gray-800 rounded-lg p-5 border-l-4 border-red-500 shadow-sm border-t border-r border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Rejected</p>
+                        <p class="text-2xl font-bold text-gray-800 dark:text-white mt-1"><?= number_format($stats['rejected']) ?></p>
+                        <p class="text-[10px] text-red-500 mt-1 font-medium">Declined requests</p>
+                    </div>
+                    <div class="p-3 bg-red-50 dark:bg-red-900/20 rounded-full text-red-600 dark:text-red-400">
+                        <span class="material-symbols-outlined text-2xl">cancel</span>
                     </div>
                 </div>
             </div>
@@ -150,58 +160,63 @@
             <!-- Filters -->
             <div class="flex flex-col gap-4 mb-6">
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
-                    <div class="lg:col-span-5 flex shadow-sm">
-                        <input class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-xs focus:ring-primary focus:border-primary outline-none" placeholder="IC / PASSPORT / VISITOR PASS NO / FULL NAME / VEHICLE REGISTRATION NO" type="text"/>
+                    <div class="lg:col-span-6 flex shadow-sm">
+                        <input class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-xs focus:ring-primary focus:border-primary outline-none" placeholder="IC / PASSPORT / FULL NAME / CONTACT / COMPANY NAME" type="text"/>
                         <button class="bg-primary hover:bg-indigo-700 text-white px-4 py-2 rounded-r flex items-center justify-center transition-colors">
                             <span class="material-icons text-white">search</span>
                         </button>
                     </div>
-                    <div class="lg:col-span-4 flex gap-2">
-                        <button class="bg-success hover:bg-emerald-600 text-white px-4 py-2.5 rounded text-xs font-semibold uppercase shadow transition-colors flex-1 text-center whitespace-nowrap">
-                            Read MyKad
-                        </button>
-                        <button class="bg-success hover:bg-emerald-600 text-white px-4 py-2.5 rounded text-xs font-semibold uppercase shadow transition-colors flex-1 text-center whitespace-nowrap">
-                            Return Card
-                        </button>
+                    <div class="lg:col-span-3">
+                        <input class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs focus:ring-primary focus:border-primary uppercase placeholder-gray-500 dark:placeholder-gray-400" placeholder="DATE FROM" type="text"/>
                     </div>
                     <div class="lg:col-span-3">
-                        <input class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs focus:ring-primary focus:border-primary uppercase placeholder-gray-500 dark:placeholder-gray-400" placeholder="DATE OF VISIT TO" type="text"/>
+                        <input class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs focus:ring-primary focus:border-primary uppercase placeholder-gray-500 dark:placeholder-gray-400" placeholder="DATE TO" type="text"/>
                     </div>
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                     <div class="relative">
                         <select class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs appearance-none focus:ring-primary focus:border-primary text-gray-500 dark:text-gray-300">
-                            <option>VISIT TYPE</option>
-                            <option>Walk-In</option>
-                            <option>Invitation</option>
+                            <option>STATUS</option>
+                            <option>Pending</option>
+                            <option>Approved</option>
+                            <option>Rejected</option>
                         </select>
                         <span class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-icons text-sm">expand_more</span>
                     </div>
                     <div class="relative">
                         <select class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs appearance-none focus:ring-primary focus:border-primary text-gray-500 dark:text-gray-300">
-                            <option>APP DATE</option>
-                        </select>
-                        <span class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-icons text-sm">expand_more</span>
-                    </div>
-                    <div>
-                        <input class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs focus:ring-primary focus:border-primary uppercase text-gray-500 dark:text-gray-300" placeholder="DATE FROM" type="text"/>
-                    </div>
-                    <div>
-                        <input class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs focus:ring-primary focus:border-primary uppercase text-gray-500 dark:text-gray-300" placeholder="DATE TO" type="text"/>
-                    </div>
-                    <div class="relative">
-                        <select class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs appearance-none focus:ring-primary focus:border-primary text-gray-500 dark:text-gray-300">
-                            <option>DATE TIME DESC</option>
+                            <option>REASON</option>
+                            <option>SITE VISIT</option>
+                            <option>DELIVERY</option>
+                            <option>MAINTENANCE</option>
+                            <option>CATERING</option>
+                            <option>OTHER</option>
                         </select>
                         <span class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-icons text-sm">expand_more</span>
                     </div>
                     <div class="relative">
                         <select class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs appearance-none focus:ring-primary focus:border-primary text-gray-500 dark:text-gray-300">
-                            <option>KSB</option>
-                            <option>Other Locations</option>
+                            <option>LOCATION</option>
+                            <option>PHASE 1</option>
+                            <option>PHASE 2</option>
+                            <option>WORKSHOP PHASE 2</option>
+                            <option>KSB PHASE 2 GATE</option>
                         </select>
                         <span class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-icons text-sm">expand_more</span>
                     </div>
+                    <div class="relative">
+                        <select class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs appearance-none focus:ring-primary focus:border-primary text-gray-500 dark:text-gray-300">
+                            <option>DATE DESC</option>
+                            <option>DATE ASC</option>
+                            <option>NAME A-Z</option>
+                            <option>NAME Z-A</option>
+                        </select>
+                        <span class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-icons text-sm">expand_more</span>
+                    </div>
+                    <button class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-4 py-2.5 rounded text-xs font-semibold uppercase shadow transition-colors">
+                        <span class="material-icons text-sm mr-1 align-middle">filter_alt_off</span>
+                        Clear Filters
+                    </button>
                 </div>
             </div>
 
@@ -215,34 +230,57 @@
                             <th class="p-4 border-b dark:border-gray-600">Full Name</th>
                             <th class="p-4 border-b dark:border-gray-600">IC / Passport No</th>
                             <th class="p-4 border-b dark:border-gray-600">Contact No</th>
-                            <th class="p-4 border-b dark:border-gray-600">Vehicle Registration Number</th>
+                            <th class="p-4 border-b dark:border-gray-600">Company</th>
+                            <th class="p-4 border-b dark:border-gray-600">Vehicle Registration</th>
                             <th class="p-4 border-b dark:border-gray-600">Location</th>
-                            <th class="p-4 border-b dark:border-gray-600">Type</th>
-                            <th class="p-4 border-b dark:border-gray-600">Card Status</th>
-                            <th class="p-4 border-b dark:border-gray-600">Visitor Pass No</th>
+                            <th class="p-4 border-b dark:border-gray-600">Invited By</th>
+                            <th class="p-4 border-b dark:border-gray-600">Status</th>
                             <th class="p-4 border-b dark:border-gray-600">Reason</th>
+                            <th class="p-4 border-b dark:border-gray-600">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="text-xs text-gray-600 dark:text-gray-300 font-medium">
-                        <?php foreach ($visitors as $visitor): ?>
+                        <?php foreach ($invitations as $invitation): ?>
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-b border-gray-100 dark:border-gray-700">
-                            <td class="p-4"><?= $visitor['no'] ?></td>
-                            <td class="p-4"><?= esc($visitor['date']) ?></td>
-                            <td class="p-4 font-semibold text-gray-800 dark:text-white"><?= esc($visitor['full_name']) ?></td>
-                            <td class="p-4"><?= esc($visitor['ic_passport']) ?></td>
-                            <td class="p-4"><?= esc($visitor['contact']) ?></td>
-                            <td class="p-4 <?= empty($visitor['vehicle_reg']) ? 'text-gray-400' : '' ?>">
-                                <?= empty($visitor['vehicle_reg']) ? 'NULL' : esc($visitor['vehicle_reg']) ?>
+                            <td class="p-4"><?= $invitation['no'] ?></td>
+                            <td class="p-4"><?= esc($invitation['date']) ?></td>
+                            <td class="p-4 font-semibold text-gray-800 dark:text-white"><?= esc($invitation['full_name']) ?></td>
+                            <td class="p-4"><?= esc($invitation['ic_passport']) ?></td>
+                            <td class="p-4"><?= esc($invitation['contact']) ?></td>
+                            <td class="p-4"><?= esc($invitation['company']) ?></td>
+                            <td class="p-4 <?= empty($invitation['vehicle_reg']) ? 'text-gray-400' : '' ?>">
+                                <?= empty($invitation['vehicle_reg']) ? 'NULL' : esc($invitation['vehicle_reg']) ?>
                             </td>
-                            <td class="p-4"><?= esc($visitor['location']) ?></td>
-                            <td class="p-4"><?= esc($visitor['type']) ?></td>
+                            <td class="p-4"><?= esc($invitation['location']) ?></td>
+                            <td class="p-4"><?= esc($invitation['invited_by']) ?></td>
                             <td class="p-4">
-                                <?php if ($visitor['card_status'] === 'Active'): ?>
-                                <span class="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Active</span>
+                                <?php if ($invitation['status'] === 'Approved'): ?>
+                                <span class="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Approved</span>
+                                <?php elseif ($invitation['status'] === 'Pending'): ?>
+                                <span class="bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Pending</span>
+                                <?php elseif ($invitation['status'] === 'Rejected'): ?>
+                                <span class="bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Rejected</span>
                                 <?php endif; ?>
                             </td>
-                            <td class="p-4"><?= esc($visitor['pass_no'] ?? '') ?></td>
-                            <td class="p-4"><?= esc($visitor['reason']) ?></td>
+                            <td class="p-4"><?= esc($invitation['reason']) ?></td>
+                            <td class="p-4">
+                                <div class="flex gap-1">
+                                    <button class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 p-1" title="View Details">
+                                        <span class="material-icons text-sm">visibility</span>
+                                    </button>
+                                    <button class="text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-300 p-1" title="Edit">
+                                        <span class="material-icons text-sm">edit</span>
+                                    </button>
+                                    <?php if ($invitation['status'] === 'Pending'): ?>
+                                    <button class="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 p-1" title="Approve">
+                                        <span class="material-icons text-sm">check_circle</span>
+                                    </button>
+                                    <button class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 p-1" title="Reject">
+                                        <span class="material-icons text-sm">cancel</span>
+                                    </button>
+                                    <?php endif; ?>
+                                </div>
+                            </td>
                         </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -257,7 +295,7 @@
                     <button class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">2</button>
                     <button class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">3</button>
                     <span class="w-8 h-8 flex items-center justify-center">...</span>
-                    <button class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">1392</button>
+                    <button class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">53</button>
                     <button class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">»</button>
                 </div>
                 <div class="relative">

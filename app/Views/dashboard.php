@@ -4,6 +4,7 @@
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
     <title><?= esc($pageTitle) ?></title>
+    <link rel="icon" type="image/png" href="<?= base_url('assets/images/vms-icon.png') ?>"/>
     <link href="https://fonts.googleapis.com" rel="preconnect"/>
     <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
@@ -57,38 +58,43 @@
             </div>
             <nav class="flex flex-col gap-2">
                 <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary group transition-colors" href="<?= base_url('dashboard') ?>">
-                    <span class="material-symbols-outlined text-[22px] font-medium fill-1">dashboard</span>
+                    <span class="material-symbols-outlined text-[22px] font-medium fill-1 group-hover:scale-110 transition-transform">dashboard</span>
                     <p class="text-sm font-semibold">Dashboard</p>
                 </a>
-                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" href="#">
-                    <span class="material-symbols-outlined text-[22px]">mail</span>
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('invitations') ?>">
+                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">mail</span>
                     <p class="text-sm font-medium">Invitations</p>
                 </a>
-                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" href="<?= base_url('visitors') ?>">
-                    <span class="material-symbols-outlined text-[22px]">group</span>
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('requests') ?>">
+                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">assignment</span>
+                    <p class="text-sm font-medium">Request List</p>
+                </a>
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('visitors') ?>">
+                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">group</span>
                     <p class="text-sm font-medium">Visitors List</p>
                 </a>
-                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" href="<?= base_url('logbook') ?>">
-                    <span class="material-symbols-outlined text-[22px]">menu_book</span>
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('logbook') ?>">
+                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">menu_book</span>
                     <p class="text-sm font-medium">Visitor Logbook</p>
                 </a>
-                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" href="#">
-                    <span class="material-symbols-outlined text-[22px]">settings</span>
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="#">
+                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">settings</span>
                     <p class="text-sm font-medium">Settings</p>
-                </a>
-                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-red-100 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-colors" href="<?= base_url('auth/logout') ?>">
-                    <span class="material-symbols-outlined text-[22px]">logout</span>
-                    <p class="text-sm font-medium">Logout</p>
                 </a>
             </nav>
         </div>
         <div class="border-t border-slate-200 dark:border-slate-700 pt-4 px-2">
             <div class="flex items-center gap-3">
-                <div class="size-9 rounded-full bg-cover bg-center" data-alt="Profile picture of the current logged in user" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuD8yb67cCam2KHoW9i58QaygBgPf-s30lOagCzdCHcKEUUTyC5l158zfEp88G_WuV4QM8_RS8HqOCablRMYP0neVpkVrRk9JPNSpwGLTi7bpG-eKCvGNatR8ltE16b_07tn8Elv2gH2ZY4wnvdqXbsS4Knrs5sZIYLFztl1V1K5g20Hl7EFb9fb4phNOTTub2zr1RCvHYhDCLZ3bWeiZgYuJZVvK64Y44zcR5p8gDG6xvmTfO3t-PX3jQ6KYInZJhUHepxhHKSHJw');"></div>
-                <div class="flex flex-col">
-                    <p class="text-sm font-semibold text-slate-900 dark:text-white"><?= esc(session()->get('full_name') ?? $userName) ?></p>
-                    <p class="text-xs text-slate-500 dark:text-slate-400"><?= esc(ucfirst(session()->get('role') ?? $userRole)) ?></p>
+                <div class="size-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shadow-sm ring-2 ring-white dark:ring-slate-900">
+                    <?= strtoupper(substr(session()->get('full_name') ?? $userName ?? 'U', 0, 2)) ?>
                 </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-semibold text-slate-900 dark:text-white truncate"><?= esc(session()->get('full_name') ?? $userName) ?></p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 truncate"><?= esc(ucfirst(session()->get('role') ?? $userRole)) ?></p>
+                </div>
+                <a href="<?= base_url('auth/logout') ?>" class="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <span class="material-symbols-outlined text-xl">logout</span>
+                </a>
             </div>
         </div>
     </aside>
@@ -120,10 +126,10 @@
                     <span class="absolute top-2 right-2 size-2 bg-red-500 rounded-full border border-white dark:border-slate-900"></span>
                 </button>
                 <div class="flex flex-col gap-2 items-end">
-                    <button class="flex items-center justify-center h-10 px-4 bg-primary hover:bg-primary-dark text-white text-sm font-bold rounded-lg shadow-sm transition-colors gap-2 w-full sm:w-48">
+                    <a href="<?= base_url('invitations/create') ?>" class="flex items-center justify-center h-10 px-4 bg-primary hover:bg-primary-dark text-white text-sm font-bold rounded-lg shadow-sm transition-colors gap-2 w-full sm:w-48">
                         <span class="material-symbols-outlined text-[20px]">add</span>
                         <span class="hidden sm:inline">New Invitation</span>
-                    </button>
+                    </a>
                     <button class="flex items-center justify-center h-10 px-4 bg-surface-light dark:bg-surface-dark border border-primary text-primary hover:bg-slate-50 dark:hover:bg-slate-800 text-sm font-bold rounded-lg shadow-sm transition-colors gap-2 w-full sm:w-48">
                         <span class="material-symbols-outlined text-[20px]">person_add</span>
                         <span class="hidden sm:inline">Walk-in Visitor</span>
