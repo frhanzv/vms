@@ -71,7 +71,11 @@
                     <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">menu_book</span>
                     <p class="text-sm font-medium">Visitor Logbook</p>
                 </a>
-                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="#">
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('config') ?>">
+                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">tune</span>
+                    <p class="text-sm font-medium">Config</p>
+                </a>
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('settings') ?>">
                     <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">settings</span>
                     <p class="text-sm font-medium">Settings</p>
                 </a>
@@ -106,10 +110,10 @@
                         <span class="material-icons text-sm mr-1">file_download</span>
                         Export
                     </button>
-                    <button class="bg-primary hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
+                    <a href="<?= base_url('visitor-pass-request') ?>" class="bg-primary hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
                         <span class="material-icons text-sm mr-1">add</span>
                         Request
-                    </button>
+                    </a>
                 </div>
             </div>
 
@@ -125,13 +129,13 @@
                         <span class="material-symbols-outlined text-2xl">groups</span>
                     </div>
                 </div>
-                <div class="bg-white dark:bg-gray-800 rounded-lg p-5 border-l-4 border-emerald-500 shadow-sm border-t border-r border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                <div class="bg-white dark:bg-gray-800 rounded-lg p-5 border-l-4 border-green-500 shadow-sm border-t border-r border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
                     <div>
                         <p class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Checked In</p>
                         <p class="text-2xl font-bold text-gray-800 dark:text-white mt-1"><?= number_format($stats['checkedIn']) ?></p>
-                        <p class="text-[10px] text-emerald-600 mt-1 font-medium">Currently on site</p>
+                        <p class="text-[10px] text-green-600 mt-1 font-medium">Currently on site</p>
                     </div>
-                    <div class="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-full text-emerald-600 dark:text-emerald-400">
+                    <div class="p-3 bg-green-50 dark:bg-green-900/20 rounded-full text-green-600 dark:text-green-400">
                         <span class="material-symbols-outlined text-2xl">how_to_reg</span>
                     </div>
                 </div>
@@ -225,7 +229,7 @@
                     </thead>
                     <tbody class="text-xs text-gray-600 dark:text-gray-300 font-medium">
                         <?php foreach ($visitors as $visitor): ?>
-                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-b border-gray-100 dark:border-gray-700">
+                        <tr onclick='openDetailModal(<?= json_encode($visitor) ?>)' class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-b border-gray-100 dark:border-gray-700 cursor-pointer">
                             <td class="p-4"><?= $visitor['no'] ?></td>
                             <td class="p-4"><?= esc($visitor['date']) ?></td>
                             <td class="p-4 font-semibold text-gray-800 dark:text-white"><?= esc($visitor['full_name']) ?></td>
@@ -271,5 +275,180 @@
             </div>
         </div>
     </main>
+
+    <!-- Detail Modal -->
+    <div id="detailModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div class="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <!-- Modal Header -->
+            <div class="sticky top-0 bg-gradient-to-r from-primary to-blue-600 text-white px-6 py-4 flex justify-between items-center shadow-md z-10">
+                <div class="flex items-center gap-3">
+                    <div class="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
+                        <span class="material-symbols-outlined text-2xl">person</span>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-bold">Visitor Details</h2>
+                        <p class="text-sm text-blue-100">Complete visitor information</p>
+                    </div>
+                </div>
+                <button onclick="closeDetailModal()" class="hover:bg-white/20 p-2 rounded-lg transition-colors">
+                    <span class="material-symbols-outlined text-2xl">close</span>
+                </button>
+            </div>
+
+            <!-- Modal Content -->
+            <div class="flex-1 overflow-y-auto px-6 py-6">
+                <!-- Status Badge -->
+                <div id="statusBadge" class="mb-6"></div>
+
+                <!-- Visitor Information -->
+                <div class="mb-6">
+                    <h3 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-lg">badge</span>
+                        Visitor Information
+                    </h3>
+                    <div class="bg-gray-50 dark:bg-slate-800 rounded-lg p-4 grid grid-cols-1 md:grid-cols-2 gap-4 border border-gray-200 dark:border-gray-700">
+                        <div>
+                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Full Name</p>
+                            <p id="detailFullName" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">IC / Passport No</p>
+                            <p id="detailIcPassport" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Contact Number</p>
+                            <p id="detailContact" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Vehicle Registration</p>
+                            <p id="detailVehicle" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Visit Details -->
+                <div class="mb-6">
+                    <h3 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-lg">event</span>
+                        Visit Details
+                    </h3>
+                    <div class="bg-gray-50 dark:bg-slate-800 rounded-lg p-4 grid grid-cols-1 md:grid-cols-2 gap-4 border border-gray-200 dark:border-gray-700">
+                        <div>
+                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Date of Visit</p>
+                            <p id="detailDate" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Visit Type</p>
+                            <p id="detailType" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Location</p>
+                            <p id="detailLocation" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Reason</p>
+                            <p id="detailReason" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pass Information -->
+                <div>
+                    <h3 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-lg">credit_card</span>
+                        Pass Information
+                    </h3>
+                    <div class="bg-gray-50 dark:bg-slate-800 rounded-lg p-4 grid grid-cols-1 md:grid-cols-2 gap-4 border border-gray-200 dark:border-gray-700">
+                        <div>
+                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Visitor Pass No</p>
+                            <p id="detailPassNo" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Card Status</p>
+                            <p id="detailCardStatus" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="sticky bottom-0 bg-gray-50 dark:bg-slate-900 border-t border-gray-200 dark:border-gray-700 px-6 py-4 flex gap-3 justify-between items-center">
+                <button onclick="closeDetailModal()" class="px-4 py-2.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg transition-colors duration-200">
+                    Close
+                </button>
+                <div class="flex gap-3">
+                    <button class="px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-lg">badge</span>
+                        i Card Details
+                    </button>
+                    <button class="px-4 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-lg">qr_code</span>
+                        QR Code
+                    </button>
+                    <button class="px-4 py-2.5 bg-primary hover:bg-primary-dark text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-lg">print</span>
+                        Print Slip
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openDetailModal(visitor) {
+            const modal = document.getElementById('detailModal');
+            
+            // Populate visitor information
+            document.getElementById('detailFullName').textContent = visitor.full_name || 'N/A';
+            document.getElementById('detailIcPassport').textContent = visitor.ic_passport || 'N/A';
+            document.getElementById('detailContact').textContent = visitor.contact || 'N/A';
+            document.getElementById('detailVehicle').textContent = visitor.vehicle_reg || 'N/A';
+            
+            // Populate visit details
+            document.getElementById('detailDate').textContent = visitor.date || 'N/A';
+            document.getElementById('detailType').textContent = visitor.type || 'N/A';
+            document.getElementById('detailLocation').textContent = visitor.location || 'N/A';
+            document.getElementById('detailReason').textContent = visitor.reason || 'N/A';
+            
+            // Populate pass information
+            document.getElementById('detailPassNo').textContent = visitor.pass_no || 'N/A';
+            
+            // Card status badge
+            const statusBadge = document.getElementById('statusBadge');
+            if (visitor.card_status === 'Active') {
+                statusBadge.innerHTML = '<span class="inline-flex items-center gap-2 px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg text-sm font-semibold border border-green-200 dark:border-green-800"><span class="material-symbols-outlined text-base">check_circle</span>Card Active</span>';
+            } else {
+                statusBadge.innerHTML = '<span class="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-lg text-sm font-semibold border border-gray-200 dark:border-gray-700"><span class="material-symbols-outlined text-base">info</span>No Card Issued</span>';
+            }
+            
+            document.getElementById('detailCardStatus').textContent = visitor.card_status || 'N/A';
+            
+            // Show modal
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeDetailModal() {
+            const modal = document.getElementById('detailModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.style.overflow = 'auto';
+        }
+
+        // Close modal on backdrop click
+        document.getElementById('detailModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeDetailModal();
+            }
+        });
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeDetailModal();
+            }
+        });
+    </script>
 </body>
 </html>
