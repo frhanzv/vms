@@ -108,96 +108,90 @@
 
 <form action="<?= base_url('invitations/store') ?>" method="post">
 <?= csrf_field() ?>
+
+<!-- Visit Context Section -->
 <section class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
 <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
 <h3 class="text-lg font-bold text-slate-900 dark:text-white">Visit Context</h3>
 <span class="material-symbols-outlined text-slate-400">info</span>
 </div>
 <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- Staff ID (Auto-filled, Read-only) -->
 <div class="flex flex-col gap-2">
-<label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Staff ID</label>
-<input name="staff_id" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white" placeholder="Enter staff ID" type="text" required/>
+<label class="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+Staff ID
+<span class="text-xs font-normal text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">Auto-filled</span>
+</label>
+<div class="relative">
+<input name="staff_id" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white cursor-not-allowed" value="<?= esc($staff_id ?? '') ?>" type="text" readonly/>
+<span class="material-symbols-outlined absolute right-3 top-3 text-slate-400 text-[20px]">lock</span>
 </div>
+</div>
+
+<!-- Name of Company Visited -->
 <div class="flex flex-col gap-2">
 <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Name of Company Visited</label>
-<input name="company_visited" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white" placeholder="e.g. SafeG Global" type="text" required/>
+<input name="company_visited" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white" placeholder="e.g. SafeG Global, ABC Construction" type="text" required/>
 </div>
+
+<!-- Contact No Of Person Visited (Auto-filled, Read-only) -->
 <div class="flex flex-col gap-2">
-<label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Contact No Of Person Visited</label>
-<input name="contact_person" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white" placeholder="+60 12-345 6789" type="tel" required/>
+<label class="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+Contact No Of Person Visited
+<span class="text-xs font-normal text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">Auto-filled</span>
+</label>
+<div class="relative">
+<input name="contact_person" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white cursor-not-allowed" value="<?= esc($contact_number ?? '') ?>" type="tel" readonly/>
+<span class="material-symbols-outlined absolute right-3 top-3 text-slate-400 text-[20px]">lock</span>
 </div>
+</div>
+
+<!-- Link Expiry -->
 <div class="flex flex-col gap-2">
 <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Link Expiry</label>
 <div class="relative">
 <input name="link_expiry" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white" type="date" required/>
 </div>
 </div>
+
+<!-- Reason for Visit -->
 <div class="flex flex-col gap-2">
 <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Reason for Visit</label>
 <select name="reason" id="visit-reason" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white" required>
+<option value="">Select reason...</option>
 <option value="Meeting">Meeting</option>
 <option value="Interview">Interview</option>
 <option value="Maintenance">Maintenance</option>
 <option value="Delivery">Delivery</option>
+<option value="Site Visit">Site Visit</option>
+<option value="Catering">Catering</option>
+<option value="Audit">Audit</option>
 <option value="OTHER">OTHER</option>
 </select>
 </div>
+
+<!-- Other Reason -->
 <div class="flex flex-col gap-2">
 <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Other Reason</label>
-<input name="other_reason" id="other-reason" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white placeholder:text-slate-400" placeholder="Please specify if 'OTHER' selected" type="text"/>
-</div>
-<div class="md:col-span-2 flex flex-col gap-2">
-<label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Company Visiting</label>
-<div class="relative group">
-<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-<span class="material-symbols-outlined text-slate-400 text-[20px]">search</span>
-</div>
-<input name="company_visiting" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 pl-10 pr-10 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white placeholder:text-slate-400 transition-colors" list="company-locations" placeholder="Search or select company..." type="text" required/>
-<div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-<span class="material-symbols-outlined text-slate-400 text-[20px] group-hover:text-primary transition-colors">expand_more</span>
-</div>
-<datalist id="company-locations">
-<option value="ADMIN B"></option>
-<option value="CFS"></option>
-<option value="KPK GATE"></option>
-<option value="LCB"></option>
-<option value="PHASE 4"></option>
-<option value="WHSET WHARF"></option>
-<option value="ADMIN D"></option>
-<option value="COMMON WAREHOUSE"></option>
-<option value="KSB PHASE 2 GATE"></option>
-<option value="OPERATION PHASE 1"></option>
-<option value="SUKMA SAMUDERA"></option>
-<option value="WORKSHOP MAINTENANCE"></option>
-<option value="AMPANG KL"></option>
-<option value="EAST WHARF"></option>
-<option value="KTSB K.TRG"></option>
-<option value="PHASE 1"></option>
-<option value="TELUK KALONG"></option>
-<option value="WORKSHOP PHASE 2"></option>
-<option value="ANNEXE BUILDING"></option>
-<option value="EPIC SOLAR"></option>
-<option value="KUALA TERENGGANU"></option>
-<option value="PHASE 3"></option>
-<option value="WH27"></option>
-</datalist>
-</div>
+<input name="other_reason" id="other-reason" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white placeholder:text-slate-400" placeholder="Please specify if 'OTHER' selected" type="text" disabled/>
 </div>
 </div>
 </section>
+
+<!-- Visitor Details Section -->
 <section class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden mt-8">
 <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
 <div class="flex items-center gap-4">
 <h3 class="text-lg font-bold text-slate-900 dark:text-white">Visitor Details</h3>
 <div class="flex items-center gap-2 text-sm text-slate-500 bg-white dark:bg-slate-900 px-2 py-1 rounded border border-slate-200 dark:border-slate-700">
 <span>Count:</span>
-<input id="visitor-count" class="w-16 p-0 border-none text-right font-bold text-slate-900 focus:ring-0 h-auto bg-transparent" min="1" type="number" value="1"/>
+<input id="visitor-count" class="w-16 p-0 border-none text-right font-bold text-slate-900 dark:text-white focus:ring-0 h-auto bg-transparent" min="1" type="number" value="1"/>
 </div>
 </div>
 <button type="button" id="add-visitor" class="text-primary hover:text-primary/80 flex items-center gap-1 text-sm font-semibold">
 <span class="material-symbols-outlined text-[20px]">add_circle</span>
-                        Add Visitor
-                    </button>
+Add Visitor
+</button>
 </div>
 <div id="visitors-container" class="p-6 flex flex-col gap-6">
 <div class="visitor-item relative p-5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/20 group hover:border-primary/30 transition-colors">
@@ -208,8 +202,8 @@
 </div>
 <h4 class="text-sm font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
 <span class="visitor-number flex items-center justify-center size-6 rounded-full bg-primary/10 text-primary text-xs">1</span>
-                            Visitor Information
-                        </h4>
+Visitor Information
+</h4>
 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 <div class="flex flex-col gap-2">
 <label class="text-xs font-semibold text-slate-600 dark:text-slate-400">Full Name</label>
@@ -227,13 +221,15 @@
 </div>
 </div>
 </section>
+
+<!-- Visit Schedule Section -->
 <section class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden mt-8">
 <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
 <h3 class="text-lg font-bold text-slate-900 dark:text-white">Visit Schedule</h3>
 <button type="button" id="add-schedule" class="text-primary hover:text-primary/80 flex items-center gap-1 text-sm font-semibold">
 <span class="material-symbols-outlined text-[20px]">calendar_add_on</span>
-                        Add Date Slot
-                    </button>
+Add Date Slot
+</button>
 </div>
 <div id="schedule-container" class="p-6 flex flex-col gap-4">
 <div class="schedule-item grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
@@ -260,10 +256,12 @@
 </div>
 </div>
 </section>
+
+<!-- Form Actions -->
 <div class="flex items-center justify-end gap-4 py-6 border-t border-slate-200 dark:border-slate-800 mt-8">
 <button type="button" onclick="window.history.back()" class="px-6 py-3 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
-                    Back
-                </button>
+Back
+</button>
 <button type="submit" class="px-8 py-3 rounded-lg bg-primary text-white font-bold hover:bg-blue-600 shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2">
 <span>Send Invitation</span>
 <span class="material-symbols-outlined text-sm">send</span>
@@ -274,6 +272,23 @@
     </main>
 
 <script>
+// Enable/Disable "Other Reason" field based on "Reason for Visit" selection
+const visitReasonSelect = document.getElementById('visit-reason');
+const otherReasonInput = document.getElementById('other-reason');
+
+visitReasonSelect.addEventListener('change', function() {
+    if (this.value === 'OTHER') {
+        otherReasonInput.disabled = false;
+        otherReasonInput.required = true;
+        otherReasonInput.classList.remove('bg-slate-50', 'dark:bg-slate-800/50', 'cursor-not-allowed');
+    } else {
+        otherReasonInput.disabled = true;
+        otherReasonInput.required = false;
+        otherReasonInput.value = '';
+        otherReasonInput.classList.add('bg-slate-50', 'dark:bg-slate-800/50');
+    }
+});
+
 // Dynamic visitor addition
 let visitorCount = 1;
 document.getElementById('add-visitor').addEventListener('click', function() {
@@ -371,61 +386,4 @@ document.getElementById('add-schedule').addEventListener('click', function() {
             </div>
             <div class="md:col-span-1 flex items-center justify-center pb-2">
                 <button type="button" class="remove-schedule text-slate-400 hover:text-red-500 transition-colors p-2 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20" title="Remove Slot">
-                    <span class="material-symbols-outlined">remove_circle_outline</span>
-                </button>
-            </div>
-        </div>
-    `;
-    
-    container.insertAdjacentHTML('beforeend', scheduleHTML);
-    updateScheduleNames();
-});
-
-// Remove schedule
-document.addEventListener('click', function(e) {
-    if (e.target.closest('.remove-schedule')) {
-        const scheduleItems = document.querySelectorAll('.schedule-item');
-        if (scheduleItems.length > 1) {
-            e.target.closest('.schedule-item').remove();
-            scheduleCount--;
-            updateScheduleNames();
-        }
-    }
-});
-
-// Update schedule input names
-function updateScheduleNames() {
-    const scheduleItems = document.querySelectorAll('.schedule-item');
-    scheduleItems.forEach((item, index) => {
-        const inputs = item.querySelectorAll('input');
-        inputs.forEach(input => {
-            const name = input.getAttribute('name');
-            if (name && name.startsWith('schedules[')) {
-                const fieldName = name.split('][')[1].replace(']', '');
-                input.setAttribute('name', `schedules[${index}][${fieldName}]`);
-            }
-        });
-    });
-}
-
-// Update visitor count input
-document.getElementById('visitor-count').addEventListener('change', function() {
-    const targetCount = parseInt(this.value);
-    const currentCount = document.querySelectorAll('.visitor-item').length;
-    
-    if (targetCount > currentCount) {
-        for (let i = currentCount; i < targetCount; i++) {
-            document.getElementById('add-visitor').click();
-        }
-    } else if (targetCount < currentCount && targetCount >= 1) {
-        const visitorItems = document.querySelectorAll('.visitor-item');
-        for (let i = currentCount - 1; i >= targetCount; i--) {
-            visitorItems[i].remove();
-        }
-        visitorCount = targetCount;
-        updateVisitorNumbers();
-    }
-});
-</script>
-    </main>
-</body></html>
+                    <span class="material-symbols-outlined">remove_circle_outline

@@ -128,8 +128,19 @@ class InvitationList extends BaseController
 
     public function create()
     {
+        // Get logged-in user data from session
+        $session = session();
+
+        // Debug: Check what session data is available
+        // Uncomment the line below to see all session data
+        // log_message('debug', 'Session data: ' . print_r($session->get(), true));
+
         $data = [
-            'pageTitle' => 'New Invitation - SafeG'
+            'pageTitle' => 'New Invitation - SafeG',
+            // Try multiple possible session key names
+            'staff_id' => $session->get('staff_id') ?? $session->get('id') ?? $session->get('user_id') ?? '',
+            'contact_number' => $session->get('contact_number') ?? $session->get('contact') ?? $session->get('phone') ?? '',
+            'full_name' => $session->get('full_name') ?? $session->get('name') ?? 'User',
         ];
 
         return view('invitations/create', $data);
