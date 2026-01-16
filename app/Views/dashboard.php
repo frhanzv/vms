@@ -77,7 +77,11 @@
                     <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">menu_book</span>
                     <p class="text-sm font-medium">Visitor Logbook</p>
                 </a>
-                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="#">
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('config') ?>">
+                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">tune</span>
+                    <p class="text-sm font-medium">Config</p>
+                </a>
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('settings') ?>">
                     <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">settings</span>
                     <p class="text-sm font-medium">Settings</p>
                 </a>
@@ -85,9 +89,15 @@
         </div>
         <div class="border-t border-slate-200 dark:border-slate-700 pt-4 px-2">
             <div class="flex items-center gap-3">
-                <div class="size-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shadow-sm ring-2 ring-white dark:ring-slate-900">
-                    <?= strtoupper(substr(session()->get('full_name') ?? $userName ?? 'U', 0, 2)) ?>
-                </div>
+                <?php if (!empty($userPhoto)): ?>
+                    <img src="<?= base_url('assets/uploads/profiles/' . $userPhoto) ?>" 
+                         alt="Profile" 
+                         class="size-9 rounded-full object-cover shadow-sm ring-2 ring-white dark:ring-slate-900"/>
+                <?php else: ?>
+                    <div class="size-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shadow-sm ring-2 ring-white dark:ring-slate-900">
+                        <?= strtoupper(substr(session()->get('full_name') ?? $userName ?? 'U', 0, 2)) ?>
+                    </div>
+                <?php endif; ?>
                 <div class="flex-1 min-w-0">
                     <p class="text-sm font-semibold text-slate-900 dark:text-white truncate"><?= esc(session()->get('full_name') ?? $userName) ?></p>
                     <p class="text-xs text-slate-500 dark:text-slate-400 truncate"><?= esc(ucfirst(session()->get('role') ?? $userRole)) ?></p>

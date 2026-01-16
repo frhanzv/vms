@@ -71,7 +71,11 @@
                     <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">menu_book</span>
                     <p class="text-sm font-medium">Visitor Logbook</p>
                 </a>
-                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="#">
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('config') ?>">
+                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">tune</span>
+                    <p class="text-sm font-medium">Config</p>
+                </a>
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('settings') ?>">
                     <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">settings</span>
                     <p class="text-sm font-medium">Settings</p>
                 </a>
@@ -135,13 +139,13 @@
                         <span class="material-symbols-outlined text-2xl">pending_actions</span>
                     </div>
                 </div>
-                <div class="bg-white dark:bg-gray-800 rounded-lg p-5 border-l-4 border-emerald-500 shadow-sm border-t border-r border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                <div class="bg-white dark:bg-gray-800 rounded-lg p-5 border-l-4 border-green-500 shadow-sm border-t border-r border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
                     <div>
                         <p class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Approved</p>
                         <p class="text-2xl font-bold text-gray-800 dark:text-white mt-1"><?= number_format($stats['approved']) ?></p>
-                        <p class="text-[10px] text-emerald-600 mt-1 font-medium">Ready for visit</p>
+                        <p class="text-[10px] text-green-600 mt-1 font-medium">Ready for visit</p>
                     </div>
-                    <div class="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-full text-emerald-600 dark:text-emerald-400">
+                    <div class="p-3 bg-green-50 dark:bg-green-900/20 rounded-full text-green-600 dark:text-green-400">
                         <span class="material-symbols-outlined text-2xl">check_circle</span>
                     </div>
                 </div>
@@ -236,12 +240,11 @@
                             <th class="p-4 border-b dark:border-gray-600">Invited By</th>
                             <th class="p-4 border-b dark:border-gray-600">Status</th>
                             <th class="p-4 border-b dark:border-gray-600">Reason</th>
-                            <th class="p-4 border-b dark:border-gray-600">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="text-xs text-gray-600 dark:text-gray-300 font-medium">
                         <?php foreach ($invitations as $invitation): ?>
-                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-b border-gray-100 dark:border-gray-700">
+                        <tr onclick='openDetailModal(<?= json_encode($invitation) ?>)' class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-b border-gray-100 dark:border-gray-700 cursor-pointer">
                             <td class="p-4"><?= $invitation['no'] ?></td>
                             <td class="p-4"><?= esc($invitation['date']) ?></td>
                             <td class="p-4 font-semibold text-gray-800 dark:text-white"><?= esc($invitation['full_name']) ?></td>
@@ -263,24 +266,6 @@
                                 <?php endif; ?>
                             </td>
                             <td class="p-4"><?= esc($invitation['reason']) ?></td>
-                            <td class="p-4">
-                                <div class="flex gap-1">
-                                    <button class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 p-1" title="View Details">
-                                        <span class="material-icons text-sm">visibility</span>
-                                    </button>
-                                    <button class="text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-300 p-1" title="Edit">
-                                        <span class="material-icons text-sm">edit</span>
-                                    </button>
-                                    <?php if ($invitation['status'] === 'Pending'): ?>
-                                    <button class="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 p-1" title="Approve">
-                                        <span class="material-icons text-sm">check_circle</span>
-                                    </button>
-                                    <button class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 p-1" title="Reject">
-                                        <span class="material-icons text-sm">cancel</span>
-                                    </button>
-                                    <?php endif; ?>
-                                </div>
-                            </td>
                         </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -309,5 +294,153 @@
             </div>
         </div>
     </main>
+
+    <!-- Detail Modal -->
+    <div id="detailModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto transform transition-all">
+            <!-- Modal Header -->
+            <div class="sticky top-0 bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between z-10">
+                <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">description</span>
+                    Invitation Details
+                </h3>
+                <button onclick="closeDetailModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-white p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                    <span class="material-symbols-outlined text-2xl">close</span>
+                </button>
+            </div>
+            
+            <!-- Modal Body -->
+            <div class="px-6 py-6 space-y-6">
+                <!-- Status Badge -->
+                <div class="flex items-center justify-center">
+                    <span id="modalStatus" class="px-4 py-2 rounded-full text-sm font-bold"></span>
+                </div>
+
+                <!-- Visitor Information -->
+                <div>
+                    <h4 class="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase mb-3 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary">person</span>
+                        Visitor Information
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4">
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium mb-1">Full Name</p>
+                            <p id="modalFullName" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium mb-1">IC / Passport No</p>
+                            <p id="modalIcPassport" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium mb-1">Contact No</p>
+                            <p id="modalContact" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium mb-1">Company</p>
+                            <p id="modalCompany" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Visit Details -->
+                <div>
+                    <h4 class="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase mb-3 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary">event</span>
+                        Visit Details
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4">
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium mb-1">Visit Date</p>
+                            <p id="modalDate" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium mb-1">Location</p>
+                            <p id="modalLocation" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium mb-1">Reason for Visit</p>
+                            <p id="modalReason" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium mb-1">Vehicle Registration</p>
+                            <p id="modalVehicle" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Host Information -->
+                <div>
+                    <h4 class="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase mb-3 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary">badge</span>
+                        Host Information
+                    </h4>
+                    <div class="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium mb-1">Invited By</p>
+                        <p id="modalInvitedBy" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="sticky bottom-0 bg-gray-50 dark:bg-slate-900 border-t border-gray-200 dark:border-gray-700 px-6 py-4 flex gap-3 justify-end">
+                <button onclick="closeDetailModal()" class="px-4 py-2.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg transition-colors duration-200">
+                    Close
+                </button>
+                <button class="px-4 py-2.5 bg-primary hover:bg-primary-dark text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-lg">send</span>
+                    Send
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openDetailModal(invitation) {
+            // Set status with appropriate styling
+            const statusEl = document.getElementById('modalStatus');
+            if (invitation.status === 'Approved') {
+                statusEl.className = 'px-4 py-2 rounded-full text-sm font-bold bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300';
+                statusEl.textContent = 'Approved';
+            } else if (invitation.status === 'Pending') {
+                statusEl.className = 'px-4 py-2 rounded-full text-sm font-bold bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300';
+                statusEl.textContent = 'Pending';
+            } else if (invitation.status === 'Rejected') {
+                statusEl.className = 'px-4 py-2 rounded-full text-sm font-bold bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300';
+                statusEl.textContent = 'Rejected';
+            }
+
+            // Fill in the details
+            document.getElementById('modalFullName').textContent = invitation.full_name;
+            document.getElementById('modalIcPassport').textContent = invitation.ic_passport;
+            document.getElementById('modalContact').textContent = invitation.contact;
+            document.getElementById('modalCompany').textContent = invitation.company;
+            document.getElementById('modalDate').textContent = invitation.date;
+            document.getElementById('modalLocation').textContent = invitation.location;
+            document.getElementById('modalReason').textContent = invitation.reason;
+            document.getElementById('modalVehicle').textContent = invitation.vehicle_reg || 'Not Provided';
+            document.getElementById('modalInvitedBy').textContent = invitation.invited_by;
+
+            // Show modal
+            document.getElementById('detailModal').classList.remove('hidden');
+        }
+
+        function closeDetailModal() {
+            document.getElementById('detailModal').classList.add('hidden');
+        }
+
+        // Close modal on backdrop click
+        document.getElementById('detailModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeDetailModal();
+            }
+        });
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeDetailModal();
+            }
+        });
+    </script>
 </body>
 </html>
