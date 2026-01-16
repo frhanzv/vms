@@ -22,6 +22,13 @@ $routes->get('visitors', 'VisitorList::index');
 $routes->get('visitor-pass-request', 'VisitorPassRequest::index');
 $routes->post('visitor-pass-request/store', 'VisitorPassRequest::store');
 $routes->get('logbook', 'VisitorLogbook::index');
+
+// Security Briefing Routes (Public - accessed via email link)
+$routes->get('security/briefing', 'SecurityBriefing::index');
+$routes->post('security/validateCompletion', 'SecurityBriefing::validateCompletion');
+$routes->get('security/facial-verification', 'SecurityBriefing::facialVerification');
+$routes->get('security/checkin', 'SecurityBriefing::checkin');
+$routes->post('security/confirmCheckin', 'SecurityBriefing::confirmCheckin');
 $routes->get('config', 'Config::index');
 $routes->get('settings', 'Settings::index');
 $routes->post('settings/updateProfile', 'Settings::updateProfile');
