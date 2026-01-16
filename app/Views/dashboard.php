@@ -140,10 +140,10 @@
                         <span class="material-symbols-outlined text-[20px]">add</span>
                         <span class="hidden sm:inline">New Invitation</span>
                     </a>
-                    <button class="flex items-center justify-center h-10 px-4 bg-surface-light dark:bg-surface-dark border border-primary text-primary hover:bg-slate-50 dark:hover:bg-slate-800 text-sm font-bold rounded-lg shadow-sm transition-colors gap-2 w-full sm:w-48">
+                    <a href="<?= base_url('visitor-pass-request') ?>" class="flex items-center justify-center h-10 px-4 bg-surface-light dark:bg-surface-dark border border-primary text-primary hover:bg-slate-50 dark:hover:bg-slate-800 text-sm font-bold rounded-lg shadow-sm transition-colors gap-2 w-full sm:w-48">
                         <span class="material-symbols-outlined text-[20px]">person_add</span>
                         <span class="hidden sm:inline">Walk-in Visitor</span>
-                    </button>
+                    </a>
                 </div>
             </div>
         </header>
