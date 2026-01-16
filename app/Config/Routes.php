@@ -20,3 +20,10 @@ $routes->post('invitations/store', 'InvitationList::store');
 $routes->get('requests', 'RequestList::index');
 $routes->get('visitors', 'VisitorList::index');
 $routes->get('logbook', 'VisitorLogbook::index');
+
+// Security Briefing Routes (Public - accessed via email link)
+$routes->get('security/briefing', 'SecurityBriefing::index');
+$routes->post('security/validateCompletion', 'SecurityBriefing::validateCompletion');
+$routes->get('security/facial-verification', 'SecurityBriefing::facialVerification');
+$routes->get('security/checkin', 'SecurityBriefing::checkin');
+$routes->post('security/confirmCheckin', 'SecurityBriefing::confirmCheckin');
