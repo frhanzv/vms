@@ -39,6 +39,23 @@
             },
         };
     </script>
+    <style>
+        /* Remove default select arrow */
+        select {
+            -webkit-appearance: none !important;
+            -moz-appearance: none !important;
+            appearance: none !important;
+            background-image: none !important;
+            padding-right: 2.5rem !important;
+        }
+        select::-ms-expand {
+            display: none;
+        }
+        /* Ensure no background arrow */
+        select:not([size]):not([multiple]) {
+            background-image: none !important;
+        }
+    </style>
 </head>
 <body class="bg-background-light dark:bg-background-dark font-sans text-gray-800 dark:text-gray-200 antialiased h-screen flex overflow-hidden transition-colors duration-200">
     <!-- Sidebar -->
@@ -70,6 +87,10 @@
                 <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('logbook') ?>">
                     <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">menu_book</span>
                     <p class="text-sm font-medium">Visitor Logbook</p>
+                </a>
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('workflow') ?>">
+                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">account_tree</span>
+                    <p class="text-sm font-medium">Visitor Workflow</p>
                 </a>
                 <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary group transition-colors" href="<?= base_url('config') ?>">
                     <span class="material-symbols-outlined text-[22px] font-medium fill-1 group-hover:scale-110 transition-transform">tune</span>
@@ -3411,24 +3432,28 @@
                         <div class="p-6 bg-gray-50 dark:bg-slate-800/50">
                             <div class="flex items-center justify-between mb-4">
                                 <div class="flex gap-2">
-                                    <button class="px-4 py-2 rounded-lg bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-300 dark:hover:bg-slate-600 transition-colors text-sm">All Logs</button>
-                                    <button class="px-4 py-2 rounded-lg text-gray-600 dark:text-slate-400 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">Errors Only</button>
-                                    <button class="px-4 py-2 rounded-lg text-gray-600 dark:text-slate-400 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">Warnings</button>
+                                    <button onclick="filterLogs('all')" id="filter-all" class="px-4 py-2 rounded-lg bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-300 dark:hover:bg-slate-600 transition-colors text-sm">All Logs</button>
+                                    <button onclick="filterLogs('error')" id="filter-error" class="px-4 py-2 rounded-lg text-gray-600 dark:text-slate-400 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">Errors Only</button>
+                                    <button onclick="filterLogs('warning')" id="filter-warning" class="px-4 py-2 rounded-lg text-gray-600 dark:text-slate-400 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">Warnings</button>
+                                    <button onclick="filterLogs('info')" id="filter-info" class="px-4 py-2 rounded-lg text-gray-600 dark:text-slate-400 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">Info</button>
+                                    <button onclick="filterLogs('debug')" id="filter-debug" class="px-4 py-2 rounded-lg text-gray-600 dark:text-slate-400 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">Debug</button>
                                 </div>
-                                <button class="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-base">download</span>
-                                    Export Logs
-                                </button>
+                                <div class="flex gap-2">
+                                    <button onclick="refreshLogs()" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-base">refresh</span>
+                                        Refresh
+                                    </button>
+                                    <button onclick="exportLogs()" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-base">download</span>
+                                        Export Logs
+                                    </button>
+                                </div>
                             </div>
-                            <div class="bg-white dark:bg-slate-900 rounded-lg p-4 font-mono text-xs text-gray-700 dark:text-slate-300 max-h-64 overflow-y-auto border border-gray-200 dark:border-slate-700">
-                                <div class="mb-2"><span class="text-green-600 dark:text-green-400">[INFO]</span> 2026-01-16 10:30:15 - User login successful: admin@safeg.com</div>
-                                <div class="mb-2"><span class="text-blue-600 dark:text-blue-400">[DEBUG]</span> 2026-01-16 10:29:42 - Database connection established</div>
-                                <div class="mb-2"><span class="text-green-600 dark:text-green-400">[INFO]</span> 2026-01-16 10:28:33 - Visitor check-in processed: VIS-2345</div>
-                                <div class="mb-2"><span class="text-yellow-600 dark:text-yellow-400">[WARN]</span> 2026-01-16 10:27:18 - Session timeout extended for user: john.doe</div>
-                                <div class="mb-2"><span class="text-green-600 dark:text-green-400">[INFO]</span> 2026-01-16 10:25:52 - Email notification sent successfully</div>
-                                <div class="mb-2"><span class="text-red-600 dark:text-red-400">[ERROR]</span> 2026-01-16 10:24:10 - Failed to upload document: timeout exceeded</div>
-                                <div class="mb-2"><span class="text-green-600 dark:text-green-400">[INFO]</span> 2026-01-16 10:22:45 - New invitation created: INV-7892</div>
-                                <div><span class="text-blue-600 dark:text-blue-400">[DEBUG]</span> 2026-01-16 10:20:33 - Cache cleared successfully</div>
+                            <div id="logs-container" class="bg-white dark:bg-slate-900 rounded-lg p-4 font-mono text-xs text-gray-700 dark:text-slate-300 max-h-96 overflow-y-auto border border-gray-200 dark:border-slate-700">
+                                <div class="text-gray-500 dark:text-slate-400 text-center py-8">
+                                    <span class="material-symbols-outlined text-4xl mb-2 animate-spin">progress_activity</span>
+                                    <div>Loading logs...</div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -3438,6 +3463,8 @@
     </main>
 
     <script>
+        let currentFilter = 'all';
+        
         function toggleSection(section) {
             const content = document.getElementById(`${section}-content`);
             const icon = document.getElementById(`${section}-icon`);
@@ -3445,10 +3472,90 @@
             if (content.classList.contains('hidden')) {
                 content.classList.remove('hidden');
                 icon.style.transform = 'rotate(180deg)';
+                
+                // Load logs when System Logs section is opened
+                if (section === 'logs') {
+                    loadLogs();
+                }
             } else {
                 content.classList.add('hidden');
                 icon.style.transform = 'rotate(0deg)';
             }
+        }
+        
+        function filterLogs(level) {
+            currentFilter = level;
+            loadLogs(level);
+            
+            // Update button states
+            const buttons = {
+                'all': document.getElementById('filter-all'),
+                'error': document.getElementById('filter-error'),
+                'warning': document.getElementById('filter-warning'),
+                'info': document.getElementById('filter-info'),
+                'debug': document.getElementById('filter-debug')
+            };
+            
+            // Reset all buttons
+            Object.values(buttons).forEach(btn => {
+                btn.className = 'px-4 py-2 rounded-lg text-gray-600 dark:text-slate-400 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm';
+            });
+            
+            // Highlight active button
+            if (buttons[level]) {
+                buttons[level].className = 'px-4 py-2 rounded-lg bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-300 dark:hover:bg-slate-600 transition-colors text-sm';
+            }
+        }
+        
+        function loadLogs(level = 'all') {
+            const container = document.getElementById('logs-container');
+            
+            // Show loading state
+            container.innerHTML = `
+                <div class="text-gray-500 dark:text-slate-400 text-center py-8">
+                    <span class="material-symbols-outlined text-4xl mb-2 animate-spin">progress_activity</span>
+                    <div>Loading logs...</div>
+                </div>
+            `;
+            
+            const filterParam = level === 'all' ? '' : level;
+            fetch(`<?= base_url('config/getLogs') ?>?level=${filterParam}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        if (data.logs.length === 0) {
+                            container.innerHTML = '<div class="text-gray-500 dark:text-slate-400 text-center py-4">No logs available</div>';
+                        } else {
+                            container.innerHTML = data.logs.map(log => `
+                                <div class="mb-2 log-entry" data-level="${log.level.toLowerCase()}">
+                                    <span class="text-${log.color}-600 dark:text-${log.color}-400">[${log.level}]</span> 
+                                    ${log.timestamp} - ${escapeHtml(log.message)}
+                                </div>
+                            `).join('');
+                        }
+                    } else {
+                        container.innerHTML = '<div class="text-red-500 dark:text-red-400 text-center py-4">Error loading logs</div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading logs:', error);
+                    container.innerHTML = '<div class="text-red-500 dark:text-red-400 text-center py-4">Failed to load logs</div>';
+                });
+        }
+        
+        function refreshLogs() {
+            loadLogs(currentFilter);
+        }
+        
+        function exportLogs() {
+            const level = currentFilter === 'all' ? '' : currentFilter;
+            window.location.href = `<?= base_url('config/exportLogs') ?>?level=${level}`;
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
     </script>
 </body>
