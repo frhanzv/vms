@@ -31,6 +31,7 @@ $routes->post('security/validateCompletion', 'SecurityBriefing::validateCompleti
 $routes->get('security/facial-verification', 'SecurityBriefing::facialVerification');
 $routes->get('security/checkin', 'SecurityBriefing::checkin');
 $routes->post('security/confirmCheckin', 'SecurityBriefing::confirmCheckin');
+$routes->post('security/confirmCheckin', 'SecurityBriefing::confirmCheckin');
 $routes->get('config', 'Config::index');
 $routes->get('config/getLogs', 'Config::getLogs');
 $routes->get('config/exportLogs', 'Config::exportLogs');
