@@ -93,6 +93,27 @@ $routes->post('config/createCity', 'Config::createCity');
 $routes->put('config/updateCity/(:num)', 'Config::updateCity/$1');
 $routes->delete('config/deleteCity/(:num)', 'Config::deleteCity/$1');
 
+// Department Management Routes
+$routes->get('config/getDepartments', 'Config::getDepartments');
+$routes->get('config/getDepartment/(:num)', 'Config::getDepartment/$1');
+$routes->post('config/createDepartment', 'Config::createDepartment');
+$routes->put('config/updateDepartment/(:num)', 'Config::updateDepartment/$1');
+$routes->delete('config/deleteDepartment/(:num)', 'Config::deleteDepartment/$1');
+
+// Designation Management Routes
+$routes->get('config/getDesignations', 'Config::getDesignations');
+$routes->get('config/getDesignation/(:num)', 'Config::getDesignation/$1');
+$routes->post('config/createDesignation', 'Config::createDesignation');
+$routes->put('config/updateDesignation/(:num)', 'Config::updateDesignation/$1');
+$routes->delete('config/deleteDesignation/(:num)', 'Config::deleteDesignation/$1');
+
+// Location Management Routes
+$routes->get('config/getLocations', 'Config::getLocations');
+$routes->get('config/getLocation/(:num)', 'Config::getLocation/$1');
+$routes->post('config/createLocation', 'Config::createLocation');
+$routes->put('config/updateLocation/(:num)', 'Config::updateLocation/$1');
+$routes->delete('config/deleteLocation/(:num)', 'Config::deleteLocation/$1');
+
 $routes->get('settings', 'Settings::index');
 $routes->post('settings/updateProfile', 'Settings::updateProfile');
 $routes->post('settings/updatePassword', 'Settings::updatePassword');

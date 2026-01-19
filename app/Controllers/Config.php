@@ -9,6 +9,9 @@ use App\Models\SubCompanyModel;
 use App\Models\CountryModel;
 use App\Models\StateModel;
 use App\Models\CityModel;
+use App\Models\DepartmentModel;
+use App\Models\DesignationModel;
+use App\Models\LocationModel;
 
 class Config extends BaseController
 {
@@ -19,6 +22,9 @@ class Config extends BaseController
     protected $countryModel;
     protected $stateModel;
     protected $cityModel;
+    protected $departmentModel;
+    protected $designationModel;
+    protected $locationModel;
 
     public function initController(\CodeIgniter\HTTP\RequestInterface $request, \CodeIgniter\HTTP\ResponseInterface $response, \Psr\Log\LoggerInterface $logger)
     {
@@ -31,6 +37,9 @@ class Config extends BaseController
         $this->countryModel = new CountryModel();
         $this->stateModel = new StateModel();
         $this->cityModel = new CityModel();
+        $this->departmentModel = new DepartmentModel();
+        $this->designationModel = new DesignationModel();
+        $this->locationModel = new LocationModel();
     }
 
     public function index()
@@ -1538,6 +1547,420 @@ class Config extends BaseController
         return $this->response->setJSON([
             'success' => true,
             'states' => $states
+        ]);
+    }
+
+    // =============== Department Management ===============
+
+    /**
+     * Get departments list with pagination
+     */
+    public function getDepartments()
+    {
+        $page = $this->request->getGet('page') ?? 1;
+        $search = $this->request->getGet('search') ?? '';
+        $sortBy = $this->request->getGet('sort_by') ?? '';
+        $perPage = 10;
+        $offset = ($page - 1) * $perPage;
+
+        $departments = $this->departmentModel->getDepartmentsWithPagination($search, $sortBy, $perPage, $offset);
+        $total = $this->departmentModel->getTotalDepartments($search);
+
+        $pagination = [
+            'currentPage' => (int)$page,
+            'perPage' => $perPage,
+            'total' => $total,
+            'totalPages' => ceil($total / $perPage),
+            'from' => $offset + 1,
+            'to' => min($offset + $perPage, $total)
+        ];
+
+        return $this->response->setJSON([
+            'success' => true,
+            'departments' => $departments,
+            'pagination' => $pagination
+        ]);
+    }
+
+    /**
+     * Get single department
+     */
+    public function getDepartment($id)
+    {
+        $department = $this->departmentModel->find($id);
+
+        if (!$department) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Department not found'
+            ])->setStatusCode(404);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'department' => $department
+        ]);
+    }
+
+    /**
+     * Create new department
+     */
+    public function createDepartment()
+    {
+        $data = $this->request->getJSON(true);
+
+        // Uppercase the code if provided
+        if (!empty($data['code'])) {
+            $data['code'] = strtoupper($data['code']);
+        }
+
+        if (!$this->departmentModel->insert($data)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to create department',
+                'errors' => $this->departmentModel->errors()
+            ])->setStatusCode(400);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Department created successfully',
+            'department_id' => $this->departmentModel->getInsertID()
+        ]);
+    }
+
+    /**
+     * Update department
+     */
+    public function updateDepartment($id)
+    {
+        if (!$this->departmentModel->find($id)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Department not found'
+            ])->setStatusCode(404);
+        }
+
+        $data = $this->request->getJSON(true);
+
+        // Uppercase the code if provided
+        if (!empty($data['code'])) {
+            $data['code'] = strtoupper($data['code']);
+        }
+
+        if (!$this->departmentModel->update($id, $data)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to update department',
+                'errors' => $this->departmentModel->errors()
+            ])->setStatusCode(400);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Department updated successfully'
+        ]);
+    }
+
+    /**
+     * Delete department
+     */
+    public function deleteDepartment($id)
+    {
+        if (!$this->departmentModel->find($id)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Department not found'
+            ])->setStatusCode(404);
+        }
+
+        if (!$this->departmentModel->delete($id)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to delete department'
+            ])->setStatusCode(500);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Department deleted successfully'
+        ]);
+    }
+
+    // =============== Designation Management ===============
+
+    /**
+     * Get designations list with pagination
+     */
+    public function getDesignations()
+    {
+        $page = $this->request->getGet('page') ?? 1;
+        $search = $this->request->getGet('search') ?? '';
+        $sortBy = $this->request->getGet('sort_by') ?? '';
+        $perPage = 10;
+        $offset = ($page - 1) * $perPage;
+
+        $designations = $this->designationModel->getDesignationsWithPagination($search, $sortBy, $perPage, $offset);
+        $total = $this->designationModel->getTotalDesignations($search);
+
+        $pagination = [
+            'currentPage' => (int)$page,
+            'perPage' => $perPage,
+            'total' => $total,
+            'totalPages' => ceil($total / $perPage),
+            'from' => $offset + 1,
+            'to' => min($offset + $perPage, $total)
+        ];
+
+        return $this->response->setJSON([
+            'success' => true,
+            'designations' => $designations,
+            'pagination' => $pagination
+        ]);
+    }
+
+    /**
+     * Get single designation
+     */
+    public function getDesignation($id)
+    {
+        $designation = $this->designationModel->find($id);
+
+        if (!$designation) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Designation not found'
+            ])->setStatusCode(404);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'designation' => $designation
+        ]);
+    }
+
+    /**
+     * Create new designation
+     */
+    public function createDesignation()
+    {
+        $data = $this->request->getJSON(true);
+
+        // Uppercase the code if provided
+        if (!empty($data['code'])) {
+            $data['code'] = strtoupper($data['code']);
+        }
+
+        if (!$this->designationModel->insert($data)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to create designation',
+                'errors' => $this->designationModel->errors()
+            ])->setStatusCode(400);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Designation created successfully',
+            'designation_id' => $this->designationModel->getInsertID()
+        ]);
+    }
+
+    /**
+     * Update designation
+     */
+    public function updateDesignation($id)
+    {
+        if (!$this->designationModel->find($id)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Designation not found'
+            ])->setStatusCode(404);
+        }
+
+        $data = $this->request->getJSON(true);
+
+        // Uppercase the code if provided
+        if (!empty($data['code'])) {
+            $data['code'] = strtoupper($data['code']);
+        }
+
+        if (!$this->designationModel->update($id, $data)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to update designation',
+                'errors' => $this->designationModel->errors()
+            ])->setStatusCode(400);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Designation updated successfully'
+        ]);
+    }
+
+    /**
+     * Delete designation
+     */
+    public function deleteDesignation($id)
+    {
+        if (!$this->designationModel->find($id)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Designation not found'
+            ])->setStatusCode(404);
+        }
+
+        if (!$this->designationModel->delete($id)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to delete designation'
+            ])->setStatusCode(500);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Designation deleted successfully'
+        ]);
+    }
+
+    // ==================== LOCATION ACCESS MANAGEMENT ====================
+    
+    /**
+     * Get locations with pagination and search
+     */
+    public function getLocations()
+    {
+        $page = (int)($this->request->getGet('page') ?? 1);
+        $perPage = (int)($this->request->getGet('per_page') ?? 10);
+        $search = $this->request->getGet('search') ?? '';
+        $sortBy = $this->request->getGet('sort_by') ?? '';
+
+        $offset = ($page - 1) * $perPage;
+
+        $locations = $this->locationModel->getLocationsWithPagination($search, $sortBy, $perPage, $offset);
+        $total = $this->locationModel->getTotalLocations($search);
+        $totalPages = ceil($total / $perPage);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'locations' => $locations,
+            'pagination' => [
+                'currentPage' => $page,
+                'perPage' => $perPage,
+                'total' => $total,
+                'totalPages' => $totalPages,
+                'from' => $offset + 1,
+                'to' => min($offset + $perPage, $total)
+            ]
+        ]);
+    }
+
+    /**
+     * Get single location
+     */
+    public function getLocation($id)
+    {
+        $location = $this->locationModel->find($id);
+        
+        if (!$location) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Location not found'
+            ])->setStatusCode(404);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'location' => $location
+        ]);
+    }
+
+    /**
+     * Create location
+     */
+    public function createLocation()
+    {
+        $data = $this->request->getJSON(true);
+
+        // Hash password if provided
+        if (!empty($data['adam_password'])) {
+            $data['adam_password'] = password_hash($data['adam_password'], PASSWORD_DEFAULT);
+        }
+
+        if (!$this->locationModel->insert($data)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to create location',
+                'errors' => $this->locationModel->errors()
+            ])->setStatusCode(400);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Location created successfully',
+            'location_id' => $this->locationModel->getInsertID()
+        ]);
+    }
+
+    /**
+     * Update location
+     */
+    public function updateLocation($id)
+    {
+        if (!$this->locationModel->find($id)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Location not found'
+            ])->setStatusCode(404);
+        }
+
+        $data = $this->request->getJSON(true);
+
+        // Hash password if provided and not empty
+        if (!empty($data['adam_password'])) {
+            $data['adam_password'] = password_hash($data['adam_password'], PASSWORD_DEFAULT);
+        } else {
+            // Don't update password if empty
+            unset($data['adam_password']);
+        }
+
+        if (!$this->locationModel->update($id, $data)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to update location',
+                'errors' => $this->locationModel->errors()
+            ])->setStatusCode(400);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Location updated successfully'
+        ]);
+    }
+
+    /**
+     * Delete location
+     */
+    public function deleteLocation($id)
+    {
+        if (!$this->locationModel->find($id)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Location not found'
+            ])->setStatusCode(404);
+        }
+
+        if (!$this->locationModel->delete($id)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to delete location'
+            ])->setStatusCode(500);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Location deleted successfully'
         ]);
     }
 }

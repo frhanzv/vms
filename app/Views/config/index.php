@@ -782,25 +782,27 @@
                     <div id="department-content" class="hidden border-t border-gray-200 dark:border-slate-700">
                         <div class="p-6 bg-gray-50 dark:bg-slate-800/50">
                             <!-- Search, Sort and Create -->
-                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-                                <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                            <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 mb-4">
+                                <div class="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
                                     <div class="flex shadow-sm w-full sm:w-96">
-                                        <input class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Search department name..." type="text"/>
-                                        <button class="bg-primary hover:bg-blue-600 text-white px-6 py-2.5 rounded-r flex items-center justify-center transition-colors">
+                                        <input id="departmentSearchInput" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Search department name..." type="text"/>
+                                        <button onclick="searchDepartments()" class="bg-primary hover:bg-blue-600 text-white px-6 py-2.5 rounded-r flex items-center justify-center transition-colors">
                                             <span class="material-symbols-outlined text-white text-[20px]">search</span>
                                         </button>
                                     </div>
                                     <div class="relative w-full sm:w-48">
-                                        <select class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm appearance-none focus:ring-primary focus:border-primary text-gray-700 dark:text-gray-300">
+                                        <select id="departmentSortSelect" onchange="sortDepartments()" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm appearance-none focus:ring-primary focus:border-primary text-gray-700 dark:text-gray-300">
                                             <option value="">Sort By</option>
-                                            <option value="department_asc">Department (A-Z)</option>
-                                            <option value="department_desc">Department (Z-A)</option>
+                                            <option value="name_asc">Department (A-Z)</option>
+                                            <option value="name_desc">Department (Z-A)</option>
+                                            <option value="code_asc">Code (A-Z)</option>
+                                            <option value="code_desc">Code (Z-A)</option>
                                             <option value="status">Status</option>
                                         </select>
                                         <span class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-symbols-outlined text-[20px]">expand_more</span>
                                     </div>
                                 </div>
-                                <button class="px-4 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm flex items-center gap-2 w-full sm:w-auto">
+                                <button onclick="openCreateDepartmentModal()" class="px-4 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm flex items-center justify-center gap-2 w-full sm:w-auto whitespace-nowrap">
                                     <span class="material-symbols-outlined text-base">add</span>
                                     Create Department
                                 </button>
@@ -811,121 +813,19 @@
                                 <table class="w-full text-left text-sm">
                                     <thead class="text-xs text-gray-600 dark:text-slate-400 uppercase border-b border-gray-200 dark:border-slate-700">
                                         <tr>
-                                            <th class="px-4 py-3">Department</th>
+                                            <th class="px-4 py-3">Code</th>
+                                            <th class="px-4 py-3">Department Name</th>
+                                            <th class="px-4 py-3">Description</th>
                                             <th class="px-4 py-3">Status</th>
                                             <th class="px-4 py-3 w-32">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="text-gray-700 dark:text-slate-300">
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">Human Resources</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">Finance</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">Information Technology</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">Marketing</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">Operations</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">Sales</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">Customer Service</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">Legal</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">Inactive</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
+                                    <tbody id="departmentTableBody" class="text-gray-700 dark:text-slate-300">
+                                        <tr>
+                                            <td colspan="5" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
+                                                <div class="flex flex-col items-center justify-center">
+                                                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
+                                                    <span>Loading departments...</span>
                                                 </div>
                                             </td>
                                         </tr>
@@ -936,20 +836,10 @@
                             <!-- Pagination -->
                             <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6">
                                 <p class="text-sm text-gray-600 dark:text-slate-400">
-                                    Showing <span class="font-medium">1</span> to <span class="font-medium">8</span> of <span class="font-medium">42</span> departments
+                                    Showing <span id="departmentShowingFrom" class="font-medium">0</span> to <span id="departmentShowingTo" class="font-medium">0</span> of <span id="departmentTotalCount" class="font-medium">0</span> departments
                                 </p>
-                                <div class="flex items-center gap-2">
-                                    <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                                        <span class="material-symbols-outlined text-base">chevron_left</span>
-                                    </button>
-                                    <button class="px-3 py-2 rounded-lg bg-primary text-white font-medium text-sm min-w-[40px]">1</button>
-                                    <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors font-medium text-sm min-w-[40px]">2</button>
-                                    <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors font-medium text-sm min-w-[40px]">3</button>
-                                    <span class="px-2 text-gray-400">...</span>
-                                    <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors font-medium text-sm min-w-[40px]">6</button>
-                                    <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors">
-                                        <span class="material-symbols-outlined text-base">chevron_right</span>
-                                    </button>
+                                <div id="departmentPaginationButtons" class="flex items-center gap-2">
+                                    <!-- Pagination buttons will be inserted here -->
                                 </div>
                             </div>
                         </div>
@@ -973,26 +863,28 @@
                     <div id="designation-content" class="hidden border-t border-gray-200 dark:border-slate-700">
                         <div class="p-6 bg-gray-50 dark:bg-slate-800/50">
                             <!-- Search, Sort and Create -->
-                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-                                <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                            <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 mb-4">
+                                <div class="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
                                     <div class="flex shadow-sm w-full sm:w-96">
-                                        <input class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Search designation name..." type="text"/>
-                                        <button class="bg-primary hover:bg-blue-600 text-white px-6 py-2.5 rounded-r flex items-center justify-center transition-colors">
+                                        <input id="designationSearchInput" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Search designation name..." type="text"/>
+                                        <button onclick="searchDesignations()" class="bg-primary hover:bg-blue-600 text-white px-6 py-2.5 rounded-r flex items-center justify-center transition-colors">
                                             <span class="material-symbols-outlined text-white text-[20px]">search</span>
                                         </button>
                                     </div>
                                     <div class="relative w-full sm:w-48">
-                                        <select class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm appearance-none focus:ring-primary focus:border-primary text-gray-700 dark:text-gray-300">
+                                        <select id="designationSortSelect" onchange="sortDesignations()" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm appearance-none focus:ring-primary focus:border-primary text-gray-700 dark:text-gray-300">
                                             <option value="">Sort By</option>
                                             <option value="name_asc">Name (A-Z)</option>
                                             <option value="name_desc">Name (Z-A)</option>
+                                            <option value="code_asc">Code (A-Z)</option>
+                                            <option value="code_desc">Code (Z-A)</option>
                                             <option value="wo_flag">WO Flag</option>
                                             <option value="status">Status</option>
                                         </select>
                                         <span class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-symbols-outlined text-[20px]">expand_more</span>
                                     </div>
                                 </div>
-                                <button class="px-4 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm flex items-center gap-2 w-full sm:w-auto">
+                                <button onclick="openCreateDesignationModal()" class="px-4 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm flex items-center justify-center gap-2 w-full sm:w-auto whitespace-nowrap">
                                     <span class="material-symbols-outlined text-base">add</span>
                                     Create Designation
                                 </button>
@@ -1003,139 +895,20 @@
                                 <table class="w-full text-left text-sm">
                                     <thead class="text-xs text-gray-600 dark:text-slate-400 uppercase border-b border-gray-200 dark:border-slate-700">
                                         <tr>
-                                            <th class="px-4 py-3">Name</th>
+                                            <th class="px-4 py-3">Code</th>
+                                            <th class="px-4 py-3">Designation Name</th>
                                             <th class="px-4 py-3">Description</th>
                                             <th class="px-4 py-3">WO Flag</th>
                                             <th class="px-4 py-3">Status</th>
                                             <th class="px-4 py-3 w-32">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="text-gray-700 dark:text-slate-300">
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">Manager</td>
-                                            <td class="px-4 py-3">Manages team and operations</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs font-semibold">Yes</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">Senior Executive</td>
-                                            <td class="px-4 py-3">Senior level executive position</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs font-semibold">Yes</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">Executive</td>
-                                            <td class="px-4 py-3">Mid-level executive position</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">No</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">Supervisor</td>
-                                            <td class="px-4 py-3">Supervises daily operations</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs font-semibold">Yes</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">Officer</td>
-                                            <td class="px-4 py-3">General officer position</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">No</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">Assistant</td>
-                                            <td class="px-4 py-3">Provides administrative support</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">No</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">Technician</td>
-                                            <td class="px-4 py-3">Technical support specialist</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">No</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">Intern</td>
-                                            <td class="px-4 py-3">Temporary internship position</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">No</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">Inactive</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
+                                    <tbody id="designationTableBody" class="text-gray-700 dark:text-slate-300">
+                                        <tr>
+                                            <td colspan="6" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
+                                                <div class="flex flex-col items-center justify-center">
+                                                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
+                                                    <span>Loading designations...</span>
                                                 </div>
                                             </td>
                                         </tr>
@@ -1146,20 +919,10 @@
                             <!-- Pagination -->
                             <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6">
                                 <p class="text-sm text-gray-600 dark:text-slate-400">
-                                    Showing <span class="font-medium">1</span> to <span class="font-medium">8</span> of <span class="font-medium">68</span> designations
+                                    Showing <span id="designationShowingFrom" class="font-medium">0</span> to <span id="designationShowingTo" class="font-medium">0</span> of <span id="designationTotalCount" class="font-medium">0</span> designations
                                 </p>
-                                <div class="flex items-center gap-2">
-                                    <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                                        <span class="material-symbols-outlined text-base">chevron_left</span>
-                                    </button>
-                                    <button class="px-3 py-2 rounded-lg bg-primary text-white font-medium text-sm min-w-[40px]">1</button>
-                                    <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors font-medium text-sm min-w-[40px]">2</button>
-                                    <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors font-medium text-sm min-w-[40px]">3</button>
-                                    <span class="px-2 text-gray-400">...</span>
-                                    <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors font-medium text-sm min-w-[40px]">9</button>
-                                    <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors">
-                                        <span class="material-symbols-outlined text-base">chevron_right</span>
-                                    </button>
+                                <div id="designationPaginationButtons" class="flex items-center gap-2">
+                                    <!-- Pagination buttons will be inserted here -->
                                 </div>
                             </div>
                         </div>
@@ -1183,16 +946,16 @@
                     <div id="location-content" class="hidden border-t border-gray-200 dark:border-slate-700">
                         <div class="p-6 bg-gray-50 dark:bg-slate-800/50">
                             <!-- Search, Sort and Create -->
-                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-                                <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                            <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 mb-4">
+                                <div class="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
                                     <div class="flex shadow-sm w-full sm:w-96">
-                                        <input class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Search branch, location..." type="text"/>
-                                        <button class="bg-primary hover:bg-blue-600 text-white px-6 py-2.5 rounded-r flex items-center justify-center transition-colors">
+                                        <input id="locationSearchInput" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Search branch, location..." type="text"/>
+                                        <button onclick="searchLocations()" class="bg-primary hover:bg-blue-600 text-white px-6 py-2.5 rounded-r flex items-center justify-center transition-colors">
                                             <span class="material-symbols-outlined text-white text-[20px]">search</span>
                                         </button>
                                     </div>
                                     <div class="relative w-full sm:w-48">
-                                        <select class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm appearance-none focus:ring-primary focus:border-primary text-gray-700 dark:text-gray-300">
+                                        <select id="locationSortSelect" onchange="sortLocations()" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm appearance-none focus:ring-primary focus:border-primary text-gray-700 dark:text-gray-300">
                                             <option value="">Sort By</option>
                                             <option value="branch_asc">Branch (A-Z)</option>
                                             <option value="branch_desc">Branch (Z-A)</option>
@@ -1203,7 +966,7 @@
                                         <span class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-symbols-outlined text-[20px]">expand_more</span>
                                     </div>
                                 </div>
-                                <button class="px-4 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm flex items-center gap-2 w-full sm:w-auto">
+                                <button onclick="openCreateLocationModal()" class="px-4 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm flex items-center justify-center gap-2 w-full sm:w-auto whitespace-nowrap">
                                     <span class="material-symbols-outlined text-base">add</span>
                                     Create Location
                                 </button>
@@ -1217,7 +980,6 @@
                                             <th class="px-4 py-3">Branch</th>
                                             <th class="px-4 py-3">Location Access</th>
                                             <th class="px-4 py-3">Adam IP</th>
-                                            <th class="px-4 py-3">Adam Password</th>
                                             <th class="px-4 py-3">Mobile APP</th>
                                             <th class="px-4 py-3">Is Hold Area</th>
                                             <th class="px-4 py-3">Visitor Pass Print</th>
@@ -1227,136 +989,12 @@
                                             <th class="px-4 py-3 w-32">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="text-gray-700 dark:text-slate-300">
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">Main Office</td>
-                                            <td class="px-4 py-3">Reception Area</td>
-                                            <td class="px-4 py-3">192.168.1.100</td>
-                                            <td class="px-4 py-3">••••••••</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Enabled</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs font-semibold">Yes</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Enabled</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span></td>
-                                            <td class="px-4 py-3">Inbound</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">Main Office</td>
-                                            <td class="px-4 py-3">Security Gate</td>
-                                            <td class="px-4 py-3">192.168.1.101</td>
-                                            <td class="px-4 py-3">••••••••</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Enabled</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">No</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Enabled</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span></td>
-                                            <td class="px-4 py-3">Both</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">North Branch</td>
-                                            <td class="px-4 py-3">Lobby Entrance</td>
-                                            <td class="px-4 py-3">192.168.2.100</td>
-                                            <td class="px-4 py-3">••••••••</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Enabled</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs font-semibold">Yes</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Enabled</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">Inactive</span></td>
-                                            <td class="px-4 py-3">Inbound</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">South Branch</td>
-                                            <td class="px-4 py-3">Parking Entry</td>
-                                            <td class="px-4 py-3">192.168.3.100</td>
-                                            <td class="px-4 py-3">••••••••</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">Disabled</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">No</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">Disabled</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span></td>
-                                            <td class="px-4 py-3">Outbound</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">East Branch</td>
-                                            <td class="px-4 py-3">Main Gate</td>
-                                            <td class="px-4 py-3">192.168.4.100</td>
-                                            <td class="px-4 py-3">••••••••</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Enabled</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">No</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Enabled</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span></td>
-                                            <td class="px-4 py-3">Both</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">West Branch</td>
-                                            <td class="px-4 py-3">Service Entrance</td>
-                                            <td class="px-4 py-3">192.168.5.100</td>
-                                            <td class="px-4 py-3">••••••••</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">Disabled</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs font-semibold">Yes</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Enabled</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">Inactive</span></td>
-                                            <td class="px-4 py-3">Inbound</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">Inactive</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
+                                    <tbody id="locationTableBody" class="text-gray-700 dark:text-slate-300">
+                                        <tr>
+                                            <td colspan="10" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
+                                                <div class="flex flex-col items-center justify-center">
+                                                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
+                                                    <span>Loading locations...</span>
                                                 </div>
                                             </td>
                                         </tr>
@@ -1367,20 +1005,10 @@
                             <!-- Pagination -->
                             <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6">
                                 <p class="text-sm text-gray-600 dark:text-slate-400">
-                                    Showing <span class="font-medium">1</span> to <span class="font-medium">6</span> of <span class="font-medium">23</span> locations
+                                    Showing <span id="locationShowingFrom" class="font-medium">0</span> to <span id="locationShowingTo" class="font-medium">0</span> of <span id="locationTotalCount" class="font-medium">0</span> locations
                                 </p>
-                                <div class="flex items-center gap-2">
-                                    <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                                        <span class="material-symbols-outlined text-base">chevron_left</span>
-                                    </button>
-                                    <button class="px-3 py-2 rounded-lg bg-primary text-white font-medium text-sm min-w-[40px]">1</button>
-                                    <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors font-medium text-sm min-w-[40px]">2</button>
-                                    <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors font-medium text-sm min-w-[40px]">3</button>
-                                    <span class="px-2 text-gray-400">...</span>
-                                    <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors font-medium text-sm min-w-[40px]">4</button>
-                                    <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors">
-                                        <span class="material-symbols-outlined text-base">chevron_right</span>
-                                    </button>
+                                <div id="locationPaginationButtons" class="flex items-center gap-2">
+                                    <!-- Pagination buttons will be inserted here -->
                                 </div>
                             </div>
                         </div>
@@ -3017,6 +2645,18 @@
                     loadCities();
                     loadCountriesForCityFilter();
                     loadStatesForCityFilter();
+                }
+                // Load departments when Department Management section is opened
+                if (section === 'department') {
+                    loadDepartments();
+                }
+                // Load designations when Designation Management section is opened
+                if (section === 'designation') {
+                    loadDesignations();
+                }
+                // Load locations when Location Access Management section is opened
+                if (section === 'location') {
+                    loadLocations();
                 }
             } else {
                 content.classList.add('hidden');
@@ -6050,6 +5690,1360 @@
             if (e.target && e.target.id === 'citySearchInput' && e.key === 'Enter') {
                 e.preventDefault();
                 searchCities();
+            }
+        });
+
+        // =============== Department Management Functions ===============
+        let currentDepartmentPage = 1;
+        let currentDepartmentSearch = '';
+        let currentDepartmentSort = '';
+
+        function loadDepartments(page = 1, search = '', sortBy = '') {
+            currentDepartmentPage = page;
+            currentDepartmentSearch = search;
+            currentDepartmentSort = sortBy;
+
+            const tbody = document.getElementById('departmentTableBody');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
+                        <div class="flex flex-col items-center justify-center">
+                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
+                            <span>Loading departments...</span>
+                        </div>
+                    </td>
+                </tr>
+            `;
+
+            const params = new URLSearchParams({ page, search, sort_by: sortBy });
+
+            fetch(`<?= base_url('config/getDepartments') ?>?${params}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayDepartments(data.departments);
+                        updateDepartmentPagination(data.pagination);
+                    } else {
+                        tbody.innerHTML = `
+                            <tr>
+                                <td colspan="5" class="px-4 py-8 text-center text-red-500 dark:text-red-400">
+                                    ${data.message || 'Failed to load departments'}
+                                </td>
+                            </tr>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading departments:', error);
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="px-4 py-8 text-center text-red-500 dark:text-red-400">
+                                An error occurred while loading departments
+                            </td>
+                        </tr>
+                    `;
+                });
+        }
+
+        function displayDepartments(departments) {
+            const tbody = document.getElementById('departmentTableBody');
+            
+            if (departments.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
+                            No departments found
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = departments.map(dept => {
+                const statusBadge = dept.status === 'active' 
+                    ? '<span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span>'
+                    : '<span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">Inactive</span>';
+                
+                return `
+                    <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
+                        <td class="px-4 py-3 font-medium">${escapeHtml(dept.code || '-')}</td>
+                        <td class="px-4 py-3 font-medium">${escapeHtml(dept.name)}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600 dark:text-slate-400">${escapeHtml(dept.description || '-')}</td>
+                        <td class="px-4 py-3">${statusBadge}</td>
+                        <td class="px-4 py-3 w-32">
+                            <div class="flex gap-2">
+                                <button onclick="openEditDepartmentModal(${dept.id})" class="text-primary hover:text-primary/80">
+                                    <span class="material-symbols-outlined text-xl">edit</span>
+                                </button>
+                                <button onclick="openDeleteDepartmentModal(${dept.id}, '${escapeHtml(dept.name)}')" class="text-red-500 hover:text-red-400">
+                                    <span class="material-symbols-outlined text-xl">delete</span>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function updateDepartmentPagination(pagination) {
+            document.getElementById('departmentShowingFrom').textContent = pagination.from || 0;
+            document.getElementById('departmentShowingTo').textContent = pagination.to || 0;
+            document.getElementById('departmentTotalCount').textContent = pagination.total || 0;
+
+            const paginationContainer = document.getElementById('departmentPaginationButtons');
+            paginationContainer.innerHTML = '';
+
+            if (pagination.totalPages <= 1) return;
+
+            // Previous button
+            const prevBtn = document.createElement('button');
+            prevBtn.className = `px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors ${pagination.currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''}`;
+            prevBtn.innerHTML = '<span class="material-symbols-outlined text-base">chevron_left</span>';
+            prevBtn.disabled = pagination.currentPage === 1;
+            prevBtn.onclick = () => {
+                if (pagination.currentPage > 1) {
+                    loadDepartments(pagination.currentPage - 1, currentDepartmentSearch, currentDepartmentSort);
+                }
+            };
+            paginationContainer.appendChild(prevBtn);
+
+            // Page numbers
+            const startPage = Math.max(1, pagination.currentPage - 2);
+            const endPage = Math.min(pagination.totalPages, pagination.currentPage + 2);
+
+            for (let i = startPage; i <= endPage; i++) {
+                const pageBtn = document.createElement('button');
+                pageBtn.className = i === pagination.currentPage 
+                    ? 'px-3 py-2 rounded-lg bg-primary text-white font-medium text-sm min-w-[40px]'
+                    : 'px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors font-medium text-sm min-w-[40px]';
+                pageBtn.textContent = i;
+                pageBtn.onclick = () => loadDepartments(i, currentDepartmentSearch, currentDepartmentSort);
+                paginationContainer.appendChild(pageBtn);
+            }
+
+            // Next button
+            const nextBtn = document.createElement('button');
+            nextBtn.className = `px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors ${pagination.currentPage === pagination.totalPages ? 'opacity-50 cursor-not-allowed' : ''}`;
+            nextBtn.innerHTML = '<span class="material-symbols-outlined text-base">chevron_right</span>';
+            nextBtn.disabled = pagination.currentPage === pagination.totalPages;
+            nextBtn.onclick = () => {
+                if (pagination.currentPage < pagination.totalPages) {
+                    loadDepartments(pagination.currentPage + 1, currentDepartmentSearch, currentDepartmentSort);
+                }
+            };
+            paginationContainer.appendChild(nextBtn);
+        }
+
+        function searchDepartments() {
+            const search = document.getElementById('departmentSearchInput').value;
+            loadDepartments(1, search, currentDepartmentSort);
+        }
+
+        function sortDepartments() {
+            const sortBy = document.getElementById('departmentSortSelect').value;
+            loadDepartments(1, currentDepartmentSearch, sortBy);
+        }
+
+        function openCreateDepartmentModal() {
+            const modalHtml = `
+                <div id="departmentModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md overflow-hidden">
+                        <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-700">
+                            <h3 id="departmentModalTitle" class="text-xl font-bold text-gray-800 dark:text-white">Create New Department</h3>
+                            <button onclick="closeDepartmentModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <form id="departmentForm" class="p-6 space-y-4">
+                            <input type="hidden" id="departmentId" value="">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Department Name <span class="text-red-500">*</span></label>
+                                <input id="departmentName" type="text" class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2.5 focus:ring-primary focus:border-primary" placeholder="Enter department name"/>
+                                <span id="departmentNameError" class="text-red-500 text-xs mt-1 hidden"></span>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Department Code</label>
+                                <input id="departmentCode" type="text" class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2.5 focus:ring-primary focus:border-primary" placeholder="Enter department code (optional)"/>
+                                <span id="departmentCodeError" class="text-red-500 text-xs mt-1 hidden"></span>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Description</label>
+                                <textarea id="departmentDescription" rows="3" class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2.5 focus:ring-primary focus:border-primary" placeholder="Enter department description (optional)"></textarea>
+                                <span id="departmentDescriptionError" class="text-red-500 text-xs mt-1 hidden"></span>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Status <span class="text-red-500">*</span></label>
+                                <select id="departmentStatus" class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2.5 focus:ring-primary focus:border-primary">
+                                    <option value="active">Active</option>
+                                    <option value="inactive">Inactive</option>
+                                </select>
+                                <span id="departmentStatusError" class="text-red-500 text-xs mt-1 hidden"></span>
+                            </div>
+                            <div class="flex justify-end gap-3 pt-4">
+                                <button type="button" onclick="closeDepartmentModal()" class="px-5 py-2.5 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">
+                                    Cancel
+                                </button>
+                                <button type="submit" id="saveDepartmentBtn" class="px-5 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm">
+                                    Save Department
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            document.getElementById('departmentForm').addEventListener('submit', saveDepartment);
+        }
+
+        function openEditDepartmentModal(departmentId) {
+            fetch(`<?= base_url('config/getDepartment') ?>/${departmentId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const dept = data.department;
+                        
+                        const modalHtml = `
+                            <div id="departmentModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                                <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md overflow-hidden">
+                                    <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-700">
+                                        <h3 id="departmentModalTitle" class="text-xl font-bold text-gray-800 dark:text-white">Edit Department</h3>
+                                        <button onclick="closeDepartmentModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                            <span class="material-symbols-outlined">close</span>
+                                        </button>
+                                    </div>
+                                    <form id="departmentForm" class="p-6 space-y-4">
+                                        <input type="hidden" id="departmentId" value="${dept.id}">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Department Name <span class="text-red-500">*</span></label>
+                                            <input id="departmentName" type="text" value="${escapeHtml(dept.name)}" class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2.5 focus:ring-primary focus:border-primary" placeholder="Enter department name"/>
+                                            <span id="departmentNameError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Department Code</label>
+                                            <input id="departmentCode" type="text" value="${escapeHtml(dept.code || '')}" class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2.5 focus:ring-primary focus:border-primary" placeholder="Enter department code (optional)"/>
+                                            <span id="departmentCodeError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Description</label>
+                                            <textarea id="departmentDescription" rows="3" class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2.5 focus:ring-primary focus:border-primary" placeholder="Enter department description (optional)">${escapeHtml(dept.description || '')}</textarea>
+                                            <span id="departmentDescriptionError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Status <span class="text-red-500">*</span></label>
+                                            <select id="departmentStatus" class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2.5 focus:ring-primary focus:border-primary">
+                                                <option value="active" ${dept.status === 'active' ? 'selected' : ''}>Active</option>
+                                                <option value="inactive" ${dept.status === 'inactive' ? 'selected' : ''}>Inactive</option>
+                                            </select>
+                                            <span id="departmentStatusError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                        </div>
+                                        <div class="flex justify-end gap-3 pt-4">
+                                            <button type="button" onclick="closeDepartmentModal()" class="px-5 py-2.5 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">
+                                                Cancel
+                                            </button>
+                                            <button type="submit" id="saveDepartmentBtn" class="px-5 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm">
+                                                Save Department
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        `;
+                        document.body.insertAdjacentHTML('beforeend', modalHtml);
+                        document.getElementById('departmentForm').addEventListener('submit', saveDepartment);
+                    } else {
+                        showNotification(data.message || 'Failed to load department', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading department:', error);
+                    showNotification('An error occurred while loading the department', 'error');
+                });
+        }
+
+        function openDeleteDepartmentModal(departmentId, departmentName) {
+            const modalHTML = `
+                <div id="deleteDepartmentModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                    <div class="bg-white dark:bg-slate-800 rounded-lg max-w-md w-full">
+                        <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-700">
+                            <h3 class="text-xl font-bold text-gray-800 dark:text-white">Confirm Delete</h3>
+                            <button onclick="closeDeleteDepartmentModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <div class="p-6">
+                            <p class="text-gray-600 dark:text-slate-300">
+                                Are you sure you want to delete department "<strong>${escapeHtml(departmentName)}</strong>"? This action cannot be undone.
+                            </p>
+                        </div>
+                        <div class="flex justify-end gap-3 p-6 border-t border-gray-200 dark:border-slate-700">
+                            <button onclick="closeDeleteDepartmentModal()" class="px-5 py-2.5 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">
+                                Cancel
+                            </button>
+                            <button onclick="deleteDepartment(${departmentId})" id="departmentDeleteBtn" class="px-5 py-2.5 rounded-lg bg-red-500 text-white font-medium hover:bg-red-600 transition-colors text-sm flex items-center gap-2">
+                                <span class="material-symbols-outlined text-base">delete</span>
+                                Delete Department
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+        }
+
+        function closeDepartmentModal() {
+            const modal = document.getElementById('departmentModal');
+            if (modal) modal.remove();
+        }
+
+        function closeDeleteDepartmentModal() {
+            const modal = document.getElementById('deleteDepartmentModal');
+            if (modal) modal.remove();
+        }
+
+        function clearDepartmentErrors() {
+            ['departmentNameError', 'departmentCodeError', 'departmentDescriptionError', 'departmentStatusError'].forEach(errorId => {
+                const errorElement = document.getElementById(errorId);
+                if (errorElement) errorElement.classList.add('hidden');
+            });
+        }
+
+        function saveDepartment(e) {
+            e.preventDefault();
+            clearDepartmentErrors();
+
+            const departmentId = document.getElementById('departmentId').value;
+            const name = document.getElementById('departmentName').value;
+            const code = document.getElementById('departmentCode').value;
+            const description = document.getElementById('departmentDescription').value;
+            const status = document.getElementById('departmentStatus').value;
+
+            const saveBtn = document.getElementById('saveDepartmentBtn');
+            saveBtn.textContent = 'Saving...';
+            saveBtn.disabled = true;
+
+            const url = departmentId ? `<?= base_url('config/updateDepartment') ?>/${departmentId}` : `<?= base_url('config/createDepartment') ?>`;
+            const method = departmentId ? 'PUT' : 'POST';
+
+            fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, code, description, status })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification(data.message, 'success');
+                        closeDepartmentModal();
+                        loadDepartments(currentDepartmentPage, currentDepartmentSearch, currentDepartmentSort);
+                    } else {
+                        if (data.errors) {
+                            Object.keys(data.errors).forEach(field => {
+                                const errorId = 'department' + field.charAt(0).toUpperCase() + field.slice(1) + 'Error';
+                                const errorElement = document.getElementById(errorId);
+                                if (errorElement) {
+                                    errorElement.textContent = data.errors[field];
+                                    errorElement.classList.remove('hidden');
+                                }
+                            });
+                        }
+                        showNotification(data.message || 'Failed to save department', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error saving department:', error);
+                    showNotification('An error occurred while saving the department', 'error');
+                })
+                .finally(() => {
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = departmentId ? 'Save Department' : 'Save Department';
+                });
+        }
+
+        function deleteDepartment(departmentId) {
+            const deleteBtn = document.getElementById('departmentDeleteBtn');
+            deleteBtn.textContent = 'Deleting...';
+            deleteBtn.disabled = true;
+
+            fetch(`<?= base_url('config/deleteDepartment') ?>/${departmentId}`, { method: 'DELETE' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification(data.message, 'success');
+                        closeDeleteDepartmentModal();
+                        loadDepartments(currentDepartmentPage, currentDepartmentSearch, currentDepartmentSort);
+                    } else {
+                        showNotification(data.message || 'Failed to delete department', 'error');
+                        deleteBtn.textContent = 'Delete Department';
+                        deleteBtn.disabled = false;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting department:', error);
+                    showNotification('An error occurred while deleting the department', 'error');
+                    deleteBtn.textContent = 'Delete Department';
+                    deleteBtn.disabled = false;
+                });
+        }
+
+        // Department search Enter key
+        document.addEventListener('keypress', function(e) {
+            if (e.target && e.target.id === 'departmentSearchInput' && e.key === 'Enter') {
+                e.preventDefault();
+                searchDepartments();
+            }
+        });
+
+        // =============== Designation Management Functions ===============
+        let currentDesignationPage = 1;
+        let currentDesignationSearch = '';
+        let currentDesignationSort = '';
+
+        function loadDesignations(page = 1, search = '', sortBy = '') {
+            currentDesignationPage = page;
+            currentDesignationSearch = search;
+            currentDesignationSort = sortBy;
+
+            const tbody = document.getElementById('designationTableBody');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
+                        <div class="flex flex-col items-center justify-center">
+                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
+                            <span>Loading designations...</span>
+                        </div>
+                    </td>
+                </tr>
+            `;
+
+            const params = new URLSearchParams({ page, search, sort_by: sortBy });
+
+            fetch(`<?= base_url('config/getDesignations') ?>?${params}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayDesignations(data.designations);
+                        updateDesignationPagination(data.pagination);
+                    } else {
+                        tbody.innerHTML = `
+                            <tr>
+                                <td colspan="6" class="px-4 py-8 text-center text-red-500 dark:text-red-400">
+                                    ${data.message || 'Failed to load designations'}
+                                </td>
+                            </tr>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading designations:', error);
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="px-4 py-8 text-center text-red-500 dark:text-red-400">
+                                An error occurred while loading designations
+                            </td>
+                        </tr>
+                    `;
+                });
+        }
+
+        function displayDesignations(designations) {
+            const tbody = document.getElementById('designationTableBody');
+            
+            if (designations.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
+                            No designations found
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = designations.map(desig => {
+                const woFlagBadge = desig.wo_flag === 'yes'
+                    ? '<span class="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs font-semibold">Yes</span>'
+                    : '<span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">No</span>';
+                const statusBadge = desig.status === 'active' 
+                    ? '<span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span>'
+                    : '<span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">Inactive</span>';
+                
+                return `
+                    <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
+                        <td class="px-4 py-3 font-medium">${escapeHtml(desig.code || '-')}</td>
+                        <td class="px-4 py-3 font-medium">${escapeHtml(desig.name)}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600 dark:text-slate-400">${escapeHtml(desig.description || '-')}</td>
+                        <td class="px-4 py-3">${woFlagBadge}</td>
+                        <td class="px-4 py-3">${statusBadge}</td>
+                        <td class="px-4 py-3 w-32">
+                            <div class="flex gap-2">
+                                <button onclick="openEditDesignationModal(${desig.id})" class="text-primary hover:text-primary/80">
+                                    <span class="material-symbols-outlined text-xl">edit</span>
+                                </button>
+                                <button onclick="openDeleteDesignationModal(${desig.id}, '${escapeHtml(desig.name)}')" class="text-red-500 hover:text-red-400">
+                                    <span class="material-symbols-outlined text-xl">delete</span>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function updateDesignationPagination(pagination) {
+            document.getElementById('designationShowingFrom').textContent = pagination.from || 0;
+            document.getElementById('designationShowingTo').textContent = pagination.to || 0;
+            document.getElementById('designationTotalCount').textContent = pagination.total || 0;
+
+            const paginationContainer = document.getElementById('designationPaginationButtons');
+            paginationContainer.innerHTML = '';
+
+            if (pagination.totalPages <= 1) return;
+
+            // Previous button
+            const prevBtn = document.createElement('button');
+            prevBtn.className = `px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors ${pagination.currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''}`;
+            prevBtn.innerHTML = '<span class="material-symbols-outlined text-base">chevron_left</span>';
+            prevBtn.disabled = pagination.currentPage === 1;
+            prevBtn.onclick = () => {
+                if (pagination.currentPage > 1) {
+                    loadDesignations(pagination.currentPage - 1, currentDesignationSearch, currentDesignationSort);
+                }
+            };
+            paginationContainer.appendChild(prevBtn);
+
+            // Page numbers
+            const startPage = Math.max(1, pagination.currentPage - 2);
+            const endPage = Math.min(pagination.totalPages, pagination.currentPage + 2);
+
+            for (let i = startPage; i <= endPage; i++) {
+                const pageBtn = document.createElement('button');
+                pageBtn.className = i === pagination.currentPage 
+                    ? 'px-3 py-2 rounded-lg bg-primary text-white font-medium text-sm min-w-[40px]'
+                    : 'px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors font-medium text-sm min-w-[40px]';
+                pageBtn.textContent = i;
+                pageBtn.onclick = () => loadDesignations(i, currentDesignationSearch, currentDesignationSort);
+                paginationContainer.appendChild(pageBtn);
+            }
+
+            // Next button
+            const nextBtn = document.createElement('button');
+            nextBtn.className = `px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors ${pagination.currentPage === pagination.totalPages ? 'opacity-50 cursor-not-allowed' : ''}`;
+            nextBtn.innerHTML = '<span class="material-symbols-outlined text-base">chevron_right</span>';
+            nextBtn.disabled = pagination.currentPage === pagination.totalPages;
+            nextBtn.onclick = () => {
+                if (pagination.currentPage < pagination.totalPages) {
+                    loadDesignations(pagination.currentPage + 1, currentDesignationSearch, currentDesignationSort);
+                }
+            };
+            paginationContainer.appendChild(nextBtn);
+        }
+
+        function searchDesignations() {
+            const search = document.getElementById('designationSearchInput').value;
+            loadDesignations(1, search, currentDesignationSort);
+        }
+
+        function sortDesignations() {
+            const sortBy = document.getElementById('designationSortSelect').value;
+            loadDesignations(1, currentDesignationSearch, sortBy);
+        }
+
+        function openCreateDesignationModal() {
+            const modalHtml = `
+                <div id="designationModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md overflow-hidden">
+                        <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-700">
+                            <h3 class="text-xl font-bold text-gray-800 dark:text-white">Create New Designation</h3>
+                            <button onclick="closeDesignationModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <form id="designationForm" class="p-6 space-y-4">
+                            <input type="hidden" id="designationId" value="">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Designation Name <span class="text-red-500">*</span></label>
+                                <input id="designationName" type="text" class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2.5 focus:ring-primary focus:border-primary" placeholder="Enter designation name"/>
+                                <span id="designationNameError" class="text-red-500 text-xs mt-1 hidden"></span>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Designation Code</label>
+                                <input id="designationCode" type="text" class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2.5 focus:ring-primary focus:border-primary" placeholder="Enter designation code (optional)"/>
+                                <span id="designationCodeError" class="text-red-500 text-xs mt-1 hidden"></span>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Description</label>
+                                <textarea id="designationDescription" rows="3" class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2.5 focus:ring-primary focus:border-primary" placeholder="Enter designation description (optional)"></textarea>
+                                <span id="designationDescriptionError" class="text-red-500 text-xs mt-1 hidden"></span>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">WO Flag <span class="text-red-500">*</span></label>
+                                <select id="designationWoFlag" class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2.5 focus:ring-primary focus:border-primary">
+                                    <option value="no">No</option>
+                                    <option value="yes">Yes</option>
+                                </select>
+                                <span id="designationWoFlagError" class="text-red-500 text-xs mt-1 hidden"></span>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Status <span class="text-red-500">*</span></label>
+                                <select id="designationStatus" class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2.5 focus:ring-primary focus:border-primary">
+                                    <option value="active">Active</option>
+                                    <option value="inactive">Inactive</option>
+                                </select>
+                                <span id="designationStatusError" class="text-red-500 text-xs mt-1 hidden"></span>
+                            </div>
+                            <div class="flex justify-end gap-3 pt-4">
+                                <button type="button" onclick="closeDesignationModal()" class="px-5 py-2.5 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">
+                                    Cancel
+                                </button>
+                                <button type="submit" id="saveDesignationBtn" class="px-5 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm">
+                                    Save Designation
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            document.getElementById('designationForm').addEventListener('submit', saveDesignation);
+        }
+
+        function openEditDesignationModal(designationId) {
+            fetch(`<?= base_url('config/getDesignation') ?>/${designationId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const desig = data.designation;
+                        
+                        const modalHtml = `
+                            <div id="designationModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                                <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md overflow-hidden">
+                                    <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-700">
+                                        <h3 class="text-xl font-bold text-gray-800 dark:text-white">Edit Designation</h3>
+                                        <button onclick="closeDesignationModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                            <span class="material-symbols-outlined">close</span>
+                                        </button>
+                                    </div>
+                                    <form id="designationForm" class="p-6 space-y-4">
+                                        <input type="hidden" id="designationId" value="${desig.id}">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Designation Name <span class="text-red-500">*</span></label>
+                                            <input id="designationName" type="text" value="${escapeHtml(desig.name)}" class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2.5 focus:ring-primary focus:border-primary" placeholder="Enter designation name"/>
+                                            <span id="designationNameError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Designation Code</label>
+                                            <input id="designationCode" type="text" value="${escapeHtml(desig.code || '')}" class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2.5 focus:ring-primary focus:border-primary" placeholder="Enter designation code (optional)"/>
+                                            <span id="designationCodeError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Description</label>
+                                            <textarea id="designationDescription" rows="3" class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2.5 focus:ring-primary focus:border-primary" placeholder="Enter designation description (optional)">${escapeHtml(desig.description || '')}</textarea>
+                                            <span id="designationDescriptionError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">WO Flag <span class="text-red-500">*</span></label>
+                                            <select id="designationWoFlag" class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2.5 focus:ring-primary focus:border-primary">
+                                                <option value="no" ${desig.wo_flag === 'no' ? 'selected' : ''}>No</option>
+                                                <option value="yes" ${desig.wo_flag === 'yes' ? 'selected' : ''}>Yes</option>
+                                            </select>
+                                            <span id="designationWoFlagError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Status <span class="text-red-500">*</span></label>
+                                            <select id="designationStatus" class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2.5 focus:ring-primary focus:border-primary">
+                                                <option value="active" ${desig.status === 'active' ? 'selected' : ''}>Active</option>
+                                                <option value="inactive" ${desig.status === 'inactive' ? 'selected' : ''}>Inactive</option>
+                                            </select>
+                                            <span id="designationStatusError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                        </div>
+                                        <div class="flex justify-end gap-3 pt-4">
+                                            <button type="button" onclick="closeDesignationModal()" class="px-5 py-2.5 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">
+                                                Cancel
+                                            </button>
+                                            <button type="submit" id="saveDesignationBtn" class="px-5 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm">
+                                                Save Designation
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        `;
+                        document.body.insertAdjacentHTML('beforeend', modalHtml);
+                        document.getElementById('designationForm').addEventListener('submit', saveDesignation);
+                    } else {
+                        showNotification(data.message || 'Failed to load designation', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading designation:', error);
+                    showNotification('An error occurred while loading the designation', 'error');
+                });
+        }
+
+        function openDeleteDesignationModal(designationId, designationName) {
+            const modalHTML = `
+                <div id="deleteDesignationModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                    <div class="bg-white dark:bg-slate-800 rounded-lg max-w-md w-full">
+                        <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-700">
+                            <h3 class="text-xl font-bold text-gray-800 dark:text-white">Confirm Delete</h3>
+                            <button onclick="closeDeleteDesignationModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <div class="p-6">
+                            <p class="text-gray-600 dark:text-slate-300">
+                                Are you sure you want to delete designation "<strong>${escapeHtml(designationName)}</strong>"? This action cannot be undone.
+                            </p>
+                        </div>
+                        <div class="flex justify-end gap-3 p-6 border-t border-gray-200 dark:border-slate-700">
+                            <button onclick="closeDeleteDesignationModal()" class="px-5 py-2.5 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">
+                                Cancel
+                            </button>
+                            <button onclick="deleteDesignation(${designationId})" id="designationDeleteBtn" class="px-5 py-2.5 rounded-lg bg-red-500 text-white font-medium hover:bg-red-600 transition-colors text-sm flex items-center gap-2">
+                                <span class="material-symbols-outlined text-base">delete</span>
+                                Delete Designation
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+        }
+
+        function closeDesignationModal() {
+            const modal = document.getElementById('designationModal');
+            if (modal) modal.remove();
+        }
+
+        function closeDeleteDesignationModal() {
+            const modal = document.getElementById('deleteDesignationModal');
+            if (modal) modal.remove();
+        }
+
+        function clearDesignationErrors() {
+            ['designationNameError', 'designationCodeError', 'designationDescriptionError', 'designationWoFlagError', 'designationStatusError'].forEach(errorId => {
+                const errorElement = document.getElementById(errorId);
+                if (errorElement) errorElement.classList.add('hidden');
+            });
+        }
+
+        function saveDesignation(e) {
+            e.preventDefault();
+            clearDesignationErrors();
+
+            const designationId = document.getElementById('designationId').value;
+            const name = document.getElementById('designationName').value;
+            const code = document.getElementById('designationCode').value;
+            const description = document.getElementById('designationDescription').value;
+            const wo_flag = document.getElementById('designationWoFlag').value;
+            const status = document.getElementById('designationStatus').value;
+
+            const saveBtn = document.getElementById('saveDesignationBtn');
+            saveBtn.textContent = 'Saving...';
+            saveBtn.disabled = true;
+
+            const url = designationId ? `<?= base_url('config/updateDesignation') ?>/${designationId}` : `<?= base_url('config/createDesignation') ?>`;
+            const method = designationId ? 'PUT' : 'POST';
+
+            fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, code, description, wo_flag, status })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification(data.message, 'success');
+                        closeDesignationModal();
+                        loadDesignations(currentDesignationPage, currentDesignationSearch, currentDesignationSort);
+                    } else {
+                        if (data.errors) {
+                            Object.keys(data.errors).forEach(field => {
+                                const errorId = 'designation' + field.charAt(0).toUpperCase() + field.slice(1) + 'Error';
+                                const errorElement = document.getElementById(errorId);
+                                if (errorElement) {
+                                    errorElement.textContent = data.errors[field];
+                                    errorElement.classList.remove('hidden');
+                                }
+                            });
+                        }
+                        showNotification(data.message || 'Failed to save designation', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error saving designation:', error);
+                    showNotification('An error occurred while saving the designation', 'error');
+                })
+                .finally(() => {
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = designationId ? 'Save Designation' : 'Save Designation';
+                });
+        }
+
+        function deleteDesignation(designationId) {
+            const deleteBtn = document.getElementById('designationDeleteBtn');
+            deleteBtn.textContent = 'Deleting...';
+            deleteBtn.disabled = true;
+
+            fetch(`<?= base_url('config/deleteDesignation') ?>/${designationId}`, { method: 'DELETE' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification(data.message, 'success');
+                        closeDeleteDesignationModal();
+                        loadDesignations(currentDesignationPage, currentDesignationSearch, currentDesignationSort);
+                    } else {
+                        showNotification(data.message || 'Failed to delete designation', 'error');
+                        deleteBtn.textContent = 'Delete Designation';
+                        deleteBtn.disabled = false;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting designation:', error);
+                    showNotification('An error occurred while deleting the designation', 'error');
+                    deleteBtn.textContent = 'Delete Designation';
+                    deleteBtn.disabled = false;
+                });
+        }
+
+        // Designation search Enter key
+        document.addEventListener('keypress', function(e) {
+            if (e.target && e.target.id === 'designationSearchInput' && e.key === 'Enter') {
+                e.preventDefault();
+                searchDesignations();
+            }
+        });
+
+        // =============== Location Access Management Functions ===============
+        let currentLocationPage = 1;
+        let currentLocationSearch = '';
+        let currentLocationSort = '';
+
+        function loadLocations(page = 1, search = '', sortBy = '') {
+            currentLocationPage = page;
+            currentLocationSearch = search;
+            currentLocationSort = sortBy;
+
+            const tbody = document.getElementById('locationTableBody');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="10" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
+                        <div class="flex flex-col items-center justify-center">
+                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
+                            <span>Loading locations...</span>
+                        </div>
+                    </td>
+                </tr>
+            `;
+
+            const params = new URLSearchParams({ page, search, sort_by: sortBy });
+
+            fetch(`<?= base_url('config/getLocations') ?>?${params}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayLocations(data.locations);
+                        updateLocationPagination(data.pagination);
+                    } else {
+                        tbody.innerHTML = `
+                            <tr>
+                                <td colspan="10" class="px-4 py-8 text-center text-red-500 dark:text-red-400">
+                                    ${data.message || 'Failed to load locations'}
+                                </td>
+                            </tr>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading locations:', error);
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="10" class="px-4 py-8 text-center text-red-500 dark:text-red-400">
+                                An error occurred while loading locations
+                            </td>
+                        </tr>
+                    `;
+                });
+        }
+
+        function displayLocations(locations) {
+            const tbody = document.getElementById('locationTableBody');
+            
+            if (locations.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="10" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
+                            No locations found
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = locations.map(loc => {
+                const mobileAppBadge = loc.mobile_app === 'enabled'
+                    ? '<span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Enabled</span>'
+                    : '<span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">Disabled</span>';
+                
+                const holdAreaBadge = loc.is_hold_area === 'yes'
+                    ? '<span class="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs font-semibold">Yes</span>'
+                    : '<span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">No</span>';
+                
+                const passPrintBadge = loc.visitor_pass_print === 'enabled'
+                    ? '<span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Enabled</span>'
+                    : '<span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">Disabled</span>';
+                
+                const turnstileBadge = loc.turnstile === 'active'
+                    ? '<span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span>'
+                    : '<span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">Inactive</span>';
+                
+                const statusBadge = loc.status === 'active' 
+                    ? '<span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span>'
+                    : '<span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">Inactive</span>';
+                
+                const inOutBoundText = loc.in_out_bound.charAt(0).toUpperCase() + loc.in_out_bound.slice(1);
+                
+                return `
+                    <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
+                        <td class="px-4 py-3 font-medium">${escapeHtml(loc.branch)}</td>
+                        <td class="px-4 py-3">${escapeHtml(loc.location_access)}</td>
+                        <td class="px-4 py-3">${escapeHtml(loc.adam_ip || '-')}</td>
+                        <td class="px-4 py-3">${mobileAppBadge}</td>
+                        <td class="px-4 py-3">${holdAreaBadge}</td>
+                        <td class="px-4 py-3">${passPrintBadge}</td>
+                        <td class="px-4 py-3">${turnstileBadge}</td>
+                        <td class="px-4 py-3">${inOutBoundText}</td>
+                        <td class="px-4 py-3">${statusBadge}</td>
+                        <td class="px-4 py-3 w-32">
+                            <div class="flex gap-2">
+                                <button onclick="openEditLocationModal(${loc.id})" class="text-primary hover:text-primary/80">
+                                    <span class="material-symbols-outlined text-xl">edit</span>
+                                </button>
+                                <button onclick="openDeleteLocationModal(${loc.id}, '${escapeHtml(loc.branch)} - ${escapeHtml(loc.location_access)}')" class="text-red-500 hover:text-red-400">
+                                    <span class="material-symbols-outlined text-xl">delete</span>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function updateLocationPagination(pagination) {
+            document.getElementById('locationShowingFrom').textContent = pagination.from || 0;
+            document.getElementById('locationShowingTo').textContent = pagination.to || 0;
+            document.getElementById('locationTotalCount').textContent = pagination.total || 0;
+
+            const paginationContainer = document.getElementById('locationPaginationButtons');
+            paginationContainer.innerHTML = '';
+
+            if (pagination.totalPages <= 1) return;
+
+            // Previous button
+            const prevBtn = document.createElement('button');
+            prevBtn.className = `px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors ${pagination.currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''}`;
+            prevBtn.innerHTML = '<span class="material-symbols-outlined text-base">chevron_left</span>';
+            prevBtn.disabled = pagination.currentPage === 1;
+            prevBtn.onclick = () => {
+                if (pagination.currentPage > 1) {
+                    loadLocations(pagination.currentPage - 1, currentLocationSearch, currentLocationSort);
+                }
+            };
+            paginationContainer.appendChild(prevBtn);
+
+            // Page numbers
+            const startPage = Math.max(1, pagination.currentPage - 2);
+            const endPage = Math.min(pagination.totalPages, pagination.currentPage + 2);
+
+            for (let i = startPage; i <= endPage; i++) {
+                const pageBtn = document.createElement('button');
+                pageBtn.className = i === pagination.currentPage 
+                    ? 'px-3 py-2 rounded-lg bg-primary text-white font-medium text-sm min-w-[40px]'
+                    : 'px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors font-medium text-sm min-w-[40px]';
+                pageBtn.textContent = i;
+                pageBtn.onclick = () => loadLocations(i, currentLocationSearch, currentLocationSort);
+                paginationContainer.appendChild(pageBtn);
+            }
+
+            // Next button
+            const nextBtn = document.createElement('button');
+            nextBtn.className = `px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors ${pagination.currentPage === pagination.totalPages ? 'opacity-50 cursor-not-allowed' : ''}`;
+            nextBtn.innerHTML = '<span class="material-symbols-outlined text-base">chevron_right</span>';
+            nextBtn.disabled = pagination.currentPage === pagination.totalPages;
+            nextBtn.onclick = () => {
+                if (pagination.currentPage < pagination.totalPages) {
+                    loadLocations(pagination.currentPage + 1, currentLocationSearch, currentLocationSort);
+                }
+            };
+            paginationContainer.appendChild(nextBtn);
+        }
+
+        function searchLocations() {
+            const search = document.getElementById('locationSearchInput').value;
+            loadLocations(1, search, currentLocationSort);
+        }
+
+        function sortLocations() {
+            const sortBy = document.getElementById('locationSortSelect').value;
+            loadLocations(1, currentLocationSearch, sortBy);
+        }
+
+        function openCreateLocationModal() {
+            const modalHtml = `
+                <div id="locationModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                        <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 z-10">
+                            <h3 class="text-xl font-bold text-gray-800 dark:text-white">Create New Location</h3>
+                            <button onclick="closeLocationModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <form id="locationForm" class="p-6 space-y-4">
+                            <input type="hidden" id="locationId" value="">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Branch <span class="text-red-500">*</span></label>
+                                    <input id="locationBranch" type="text" class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2.5 focus:ring-primary focus:border-primary" placeholder="Enter branch name"/>
+                                    <span id="locationBranchError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Location Access <span class="text-red-500">*</span></label>
+                                    <input id="locationLocationAccess" type="text" class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2.5 focus:ring-primary focus:border-primary" placeholder="Enter location access"/>
+                                    <span id="locationLocationAccessError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Adam IP</label>
+                                    <input id="locationAdamIp" type="text" class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2.5 focus:ring-primary focus:border-primary" placeholder="Enter IP address (optional)"/>
+                                    <span id="locationAdamIpError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Adam Password</label>
+                                    <input id="locationAdamPassword" type="password" class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2.5 focus:ring-primary focus:border-primary" placeholder="Enter password (optional)"/>
+                                    <span id="locationAdamPasswordError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Mobile App <span class="text-red-500">*</span></label>
+                                    <select id="locationMobileApp" class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2.5 focus:ring-primary focus:border-primary">
+                                        <option value="enabled">Enabled</option>
+                                        <option value="disabled">Disabled</option>
+                                    </select>
+                                    <span id="locationMobileAppError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Is Hold Area <span class="text-red-500">*</span></label>
+                                    <select id="locationIsHoldArea" class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2.5 focus:ring-primary focus:border-primary">
+                                        <option value="no">No</option>
+                                        <option value="yes">Yes</option>
+                                    </select>
+                                    <span id="locationIsHoldAreaError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Visitor Pass Print <span class="text-red-500">*</span></label>
+                                    <select id="locationVisitorPassPrint" class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2.5 focus:ring-primary focus:border-primary">
+                                        <option value="enabled">Enabled</option>
+                                        <option value="disabled">Disabled</option>
+                                    </select>
+                                    <span id="locationVisitorPassPrintError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Turnstile <span class="text-red-500">*</span></label>
+                                    <select id="locationTurnstile" class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2.5 focus:ring-primary focus:border-primary">
+                                        <option value="active">Active</option>
+                                        <option value="inactive">Inactive</option>
+                                    </select>
+                                    <span id="locationTurnstileError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">In/Out Bound <span class="text-red-500">*</span></label>
+                                    <select id="locationInOutBound" class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2.5 focus:ring-primary focus:border-primary">
+                                        <option value="both">Both</option>
+                                        <option value="inbound">Inbound</option>
+                                        <option value="outbound">Outbound</option>
+                                    </select>
+                                    <span id="locationInOutBoundError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Status <span class="text-red-500">*</span></label>
+                                    <select id="locationStatus" class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2.5 focus:ring-primary focus:border-primary">
+                                        <option value="active">Active</option>
+                                        <option value="inactive">Inactive</option>
+                                    </select>
+                                    <span id="locationStatusError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                </div>
+                            </div>
+                            <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-slate-700">
+                                <button type="button" onclick="closeLocationModal()" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">
+                                    Cancel
+                                </button>
+                                <button type="submit" id="saveLocationBtn" class="px-4 py-2 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm">
+                                    Save Location
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            document.getElementById('locationForm').addEventListener('submit', saveLocation);
+        }
+
+        function openEditLocationModal(locationId) {
+            fetch(`<?= base_url('config/getLocation') ?>/${locationId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const loc = data.location;
+                        
+                        const modalHtml = `
+                            <div id="locationModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                                <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                                    <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 z-10">
+                                        <h3 class="text-xl font-bold text-gray-800 dark:text-white">Edit Location</h3>
+                                        <button onclick="closeLocationModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                            <span class="material-symbols-outlined">close</span>
+                                        </button>
+                                    </div>
+                                    <form id="locationForm" class="p-6 space-y-4">
+                                        <input type="hidden" id="locationId" value="${loc.id}">
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Branch <span class="text-red-500">*</span></label>
+                                                <input id="locationBranch" type="text" value="${escapeHtml(loc.branch)}" class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2.5 focus:ring-primary focus:border-primary" placeholder="Enter branch name"/>
+                                                <span id="locationBranchError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Location Access <span class="text-red-500">*</span></label>
+                                                <input id="locationLocationAccess" type="text" value="${escapeHtml(loc.location_access)}" class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2.5 focus:ring-primary focus:border-primary" placeholder="Enter location access"/>
+                                                <span id="locationLocationAccessError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Adam IP</label>
+                                                <input id="locationAdamIp" type="text" value="${escapeHtml(loc.adam_ip || '')}" class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2.5 focus:ring-primary focus:border-primary" placeholder="Enter IP address (optional)"/>
+                                                <span id="locationAdamIpError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Adam Password</label>
+                                                <input id="locationAdamPassword" type="password" class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2.5 focus:ring-primary focus:border-primary" placeholder="Leave blank to keep current password"/>
+                                                <span id="locationAdamPasswordError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Mobile App <span class="text-red-500">*</span></label>
+                                                <select id="locationMobileApp" class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2.5 focus:ring-primary focus:border-primary">
+                                                    <option value="enabled" ${loc.mobile_app === 'enabled' ? 'selected' : ''}>Enabled</option>
+                                                    <option value="disabled" ${loc.mobile_app === 'disabled' ? 'selected' : ''}>Disabled</option>
+                                                </select>
+                                                <span id="locationMobileAppError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Is Hold Area <span class="text-red-500">*</span></label>
+                                                <select id="locationIsHoldArea" class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2.5 focus:ring-primary focus:border-primary">
+                                                    <option value="no" ${loc.is_hold_area === 'no' ? 'selected' : ''}>No</option>
+                                                    <option value="yes" ${loc.is_hold_area === 'yes' ? 'selected' : ''}>Yes</option>
+                                                </select>
+                                                <span id="locationIsHoldAreaError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Visitor Pass Print <span class="text-red-500">*</span></label>
+                                                <select id="locationVisitorPassPrint" class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2.5 focus:ring-primary focus:border-primary">
+                                                    <option value="enabled" ${loc.visitor_pass_print === 'enabled' ? 'selected' : ''}>Enabled</option>
+                                                    <option value="disabled" ${loc.visitor_pass_print === 'disabled' ? 'selected' : ''}>Disabled</option>
+                                                </select>
+                                                <span id="locationVisitorPassPrintError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Turnstile <span class="text-red-500">*</span></label>
+                                                <select id="locationTurnstile" class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2.5 focus:ring-primary focus:border-primary">
+                                                    <option value="active" ${loc.turnstile === 'active' ? 'selected' : ''}>Active</option>
+                                                    <option value="inactive" ${loc.turnstile === 'inactive' ? 'selected' : ''}>Inactive</option>
+                                                </select>
+                                                <span id="locationTurnstileError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">In/Out Bound <span class="text-red-500">*</span></label>
+                                                <select id="locationInOutBound" class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2.5 focus:ring-primary focus:border-primary">
+                                                    <option value="both" ${loc.in_out_bound === 'both' ? 'selected' : ''}>Both</option>
+                                                    <option value="inbound" ${loc.in_out_bound === 'inbound' ? 'selected' : ''}>Inbound</option>
+                                                    <option value="outbound" ${loc.in_out_bound === 'outbound' ? 'selected' : ''}>Outbound</option>
+                                                </select>
+                                                <span id="locationInOutBoundError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Status <span class="text-red-500">*</span></label>
+                                                <select id="locationStatus" class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2.5 focus:ring-primary focus:border-primary">
+                                                    <option value="active" ${loc.status === 'active' ? 'selected' : ''}>Active</option>
+                                                    <option value="inactive" ${loc.status === 'inactive' ? 'selected' : ''}>Inactive</option>
+                                                </select>
+                                                <span id="locationStatusError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                            </div>
+                                        </div>
+                                        <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-slate-700">
+                                            <button type="button" onclick="closeLocationModal()" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">
+                                                Cancel
+                                            </button>
+                                            <button type="submit" id="saveLocationBtn" class="px-4 py-2 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm">
+                                                Save Location
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        `;
+                        document.body.insertAdjacentHTML('beforeend', modalHtml);
+                        document.getElementById('locationForm').addEventListener('submit', saveLocation);
+                    } else {
+                        showNotification(data.message || 'Failed to load location', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading location:', error);
+                    showNotification('An error occurred while loading the location', 'error');
+                });
+        }
+
+        function openDeleteLocationModal(locationId, locationName) {
+            const modalHTML = `
+                <div id="deleteLocationModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                    <div class="bg-white dark:bg-slate-800 rounded-lg max-w-md w-full">
+                        <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-700">
+                            <h3 class="text-xl font-bold text-gray-800 dark:text-white">Confirm Delete</h3>
+                            <button onclick="closeDeleteLocationModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <div class="p-6">
+                            <p class="text-gray-600 dark:text-slate-300">
+                                Are you sure you want to delete location "<strong>${escapeHtml(locationName)}</strong>"? This action cannot be undone.
+                            </p>
+                        </div>
+                        <div class="flex justify-end gap-3 p-6 border-t border-gray-200 dark:border-slate-700">
+                            <button onclick="closeDeleteLocationModal()" class="px-5 py-2.5 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">
+                                Cancel
+                            </button>
+                            <button onclick="deleteLocation(${locationId})" id="locationDeleteBtn" class="px-5 py-2.5 rounded-lg bg-red-500 text-white font-medium hover:bg-red-600 transition-colors text-sm flex items-center gap-2">
+                                <span class="material-symbols-outlined text-base">delete</span>
+                                Delete Location
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+        }
+
+        function closeLocationModal() {
+            const modal = document.getElementById('locationModal');
+            if (modal) modal.remove();
+        }
+
+        function closeDeleteLocationModal() {
+            const modal = document.getElementById('deleteLocationModal');
+            if (modal) modal.remove();
+        }
+
+        function clearLocationErrors() {
+            const errorFields = ['locationBranchError', 'locationLocationAccessError', 'locationAdamIpError', 'locationAdamPasswordError', 'locationMobileAppError', 'locationIsHoldAreaError', 'locationVisitorPassPrintError', 'locationTurnstileError', 'locationInOutBoundError', 'locationStatusError'];
+            errorFields.forEach(errorId => {
+                const errorElement = document.getElementById(errorId);
+                if (errorElement) errorElement.classList.add('hidden');
+            });
+        }
+
+        function saveLocation(e) {
+            e.preventDefault();
+            clearLocationErrors();
+
+            const locationId = document.getElementById('locationId').value;
+            const branch = document.getElementById('locationBranch').value;
+            const location_access = document.getElementById('locationLocationAccess').value;
+            const adam_ip = document.getElementById('locationAdamIp').value;
+            const adam_password = document.getElementById('locationAdamPassword').value;
+            const mobile_app = document.getElementById('locationMobileApp').value;
+            const is_hold_area = document.getElementById('locationIsHoldArea').value;
+            const visitor_pass_print = document.getElementById('locationVisitorPassPrint').value;
+            const turnstile = document.getElementById('locationTurnstile').value;
+            const in_out_bound = document.getElementById('locationInOutBound').value;
+            const status = document.getElementById('locationStatus').value;
+
+            const saveBtn = document.getElementById('saveLocationBtn');
+            saveBtn.textContent = 'Saving...';
+            saveBtn.disabled = true;
+
+            const url = locationId ? `<?= base_url('config/updateLocation') ?>/${locationId}` : `<?= base_url('config/createLocation') ?>`;
+            const method = locationId ? 'PUT' : 'POST';
+
+            const requestData = { branch, location_access, adam_ip, mobile_app, is_hold_area, visitor_pass_print, turnstile, in_out_bound, status };
+            
+            // Only include password if it's not empty (for updates)
+            if (adam_password || !locationId) {
+                requestData.adam_password = adam_password;
+            }
+
+            fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestData)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification(data.message, 'success');
+                        closeLocationModal();
+                        loadLocations(currentLocationPage, currentLocationSearch, currentLocationSort);
+                    } else {
+                        if (data.errors) {
+                            Object.keys(data.errors).forEach(field => {
+                                const errorId = 'location' + field.charAt(0).toUpperCase() + field.slice(1).replace('_', '') + 'Error';
+                                const errorElement = document.getElementById(errorId) || document.getElementById('location' + field.charAt(0).toUpperCase() + field.slice(1) + 'Error');
+                                if (errorElement) {
+                                    errorElement.textContent = data.errors[field];
+                                    errorElement.classList.remove('hidden');
+                                }
+                            });
+                        }
+                        showNotification(data.message || 'Failed to save location', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error saving location:', error);
+                    showNotification('An error occurred while saving the location', 'error');
+                })
+                .finally(() => {
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = 'Save Location';
+                });
+        }
+
+        function deleteLocation(locationId) {
+            const deleteBtn = document.getElementById('locationDeleteBtn');
+            deleteBtn.textContent = 'Deleting...';
+            deleteBtn.disabled = true;
+
+            fetch(`<?= base_url('config/deleteLocation') ?>/${locationId}`, { method: 'DELETE' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification(data.message, 'success');
+                        closeDeleteLocationModal();
+                        loadLocations(currentLocationPage, currentLocationSearch, currentLocationSort);
+                    } else {
+                        showNotification(data.message || 'Failed to delete location', 'error');
+                        deleteBtn.textContent = 'Delete Location';
+                        deleteBtn.disabled = false;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting location:', error);
+                    showNotification('An error occurred while deleting the location', 'error');
+                    deleteBtn.textContent = 'Delete Location';
+                    deleteBtn.disabled = false;
+                });
+        }
+
+        // Location search Enter key
+        document.addEventListener('keypress', function(e) {
+            if (e.target && e.target.id === 'locationSearchInput' && e.key === 'Enter') {
+                e.preventDefault();
+                searchLocations();
             }
         });
     </script>
