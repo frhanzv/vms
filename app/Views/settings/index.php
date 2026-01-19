@@ -108,129 +108,141 @@
             <p class="text-sm text-slate-600 dark:text-slate-400">Manage your account settings and preferences</p>
         </div>
 
-            <!-- Success/Error Messages -->
-            <?php if (session()->getFlashdata('success')): ?>
-                <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-200 px-4 py-3 rounded-lg mb-6 flex items-center gap-2">
-                    <span class="material-symbols-outlined text-xl">check_circle</span>
-                    <span><?= session()->getFlashdata('success') ?></span>
-                </div>
-            <?php endif; ?>
+        <!-- Success/Error Messages -->
+        <?php if (session()->getFlashdata('success')): ?>
+            <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-200 px-4 py-3 rounded-lg mb-6 flex items-center gap-2">
+                <span class="material-symbols-outlined text-xl">check_circle</span>
+                <span><?= session()->getFlashdata('success') ?></span>
+            </div>
+        <?php endif; ?>
 
-            <?php if (session()->getFlashdata('error')): ?>
-                <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 px-4 py-3 rounded-lg mb-6 flex items-center gap-2">
-                    <span class="material-symbols-outlined text-xl">error</span>
-                    <span><?= session()->getFlashdata('error') ?></span>
-                </div>
-            <?php endif; ?>
+        <?php if (session()->getFlashdata('error')): ?>
+            <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 px-4 py-3 rounded-lg mb-6 flex items-center gap-2">
+                <span class="material-symbols-outlined text-xl">error</span>
+                <span><?= session()->getFlashdata('error') ?></span>
+            </div>
+        <?php endif; ?>
 
-            <!-- Settings Content Grid -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- Profile Photo Section -->
-                <div class="bg-card-light dark:bg-card-dark rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                    <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-primary">account_circle</span>
-                        Profile Photo
-                    </h2>
-                    
-                    <div class="flex flex-col items-center gap-6">
-                        <!-- Photo Preview -->
-                        <div class="flex-shrink-0">
-                            <div id="photoPreview" class="relative group">
-                                <?php if (!empty($user['profile_photo'])): ?>
-                                    <img id="previewImage" 
-                                         src="<?= base_url('assets/uploads/profiles/' . $user['profile_photo']) ?>" 
-                                         alt="" 
-                                         class="w-32 h-32 rounded-full object-cover shadow-lg ring-4 ring-primary/20"
-                                         onerror="this.style.display='none'; document.getElementById('previewInitials').style.display='flex';"/>
-                                    <div id="previewInitials" class="w-32 h-32 rounded-full bg-primary/10 text-primary hidden items-center justify-center font-bold text-4xl shadow-lg ring-4 ring-primary/20">
-                                        <?= strtoupper(substr($user['full_name'] ?? 'U', 0, 2)) ?>
-                                    </div>
-                                    <!-- Remove Photo Button -->
-                                    <button type="button" id="removePhotoBtn" 
-                                            class="absolute -bottom-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-2 shadow-lg transition-all duration-200 hover:scale-110"
-                                            title="Remove photo">
-                                        <span class="material-symbols-outlined text-lg">delete</span>
-                                    </button>
-                                <?php else: ?>
-                                    <div id="previewInitials" class="w-32 h-32 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-4xl shadow-lg ring-4 ring-primary/20">
-                                        <?= strtoupper(substr($user['full_name'] ?? 'U', 0, 2)) ?>
-                                    </div>
-                                    <img id="previewImage" 
-                                         src="" 
-                                         alt="" 
-                                         class="w-32 h-32 rounded-full object-cover shadow-lg ring-4 ring-primary/20 hidden"/>
-                                    <!-- Remove Photo Button (hidden initially) -->
-                                    <button type="button" id="removePhotoBtn" 
-                                            class="hidden absolute -bottom-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-2 shadow-lg transition-all duration-200 hover:scale-110"
-                                            title="Remove photo">
-                                        <span class="material-symbols-outlined text-lg">delete</span>
-                                    </button>
-                                <?php endif; ?>
-                                <div id="uploadProgressOverlay" class="hidden absolute inset-0 bg-black/60 rounded-full flex flex-col items-center justify-center">
-                                    <div class="text-white text-2xl font-bold mb-1" id="progressPercent">0%</div>
-                                    <div class="text-white text-xs font-medium">Uploading...</div>
+        <!-- Settings Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Profile Photo Section -->
+            <div class="bg-card-light dark:bg-card-dark rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">account_circle</span>
+                    Profile Photo
+                </h2>
+                
+                <div class="flex flex-col items-center gap-6">
+                    <!-- Photo Preview -->
+                    <div class="flex-shrink-0">
+                        <div id="photoPreview" class="relative group">
+                            <?php if (!empty($user['profile_photo'])): ?>
+                                <img id="previewImage" 
+                                     src="<?= base_url('assets/uploads/profiles/' . $user['profile_photo']) ?>" 
+                                     alt="" 
+                                     class="w-32 h-32 rounded-full object-cover shadow-lg ring-4 ring-primary/20"
+                                     onerror="this.style.display='none'; document.getElementById('previewInitials').style.display='flex';"/>
+                                <div id="previewInitials" class="w-32 h-32 rounded-full bg-primary/10 text-primary hidden items-center justify-center font-bold text-4xl shadow-lg ring-4 ring-primary/20">
+                                    <?= strtoupper(substr($user['full_name'] ?? 'U', 0, 2)) ?>
                                 </div>
-                            </div>
-                        </div>
-
-                        <!-- Upload Area -->
-                        <div class="w-full">
-                            <div id="dropZone" 
-                                 class="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg p-6 text-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-all duration-200">
-                                <span class="material-symbols-outlined text-5xl text-slate-400 dark:text-slate-500 mb-2 block">cloud_upload</span>
-                                <p class="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                    Drop your photo here or click to browse
-                                </p>
-                                <p class="text-xs text-slate-500 dark:text-slate-400">
-                                    PNG, JPG, GIF up to 2MB
-                                </p>
-                                <input type="file" 
-                                       id="photoInput" 
-                                       name="profile_photo" 
-                                       accept="image/*" 
-                                       class="hidden"/>
-                            </div>
-                            
-                            <!-- Selected File Info and Upload Button -->
-                            <div id="selectedFileInfo" class="hidden mt-4">
-                                <div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
-                                    <div class="flex items-center gap-3 flex-1 min-w-0">
-                                        <span class="material-symbols-outlined text-primary">image</span>
-                                        <div class="flex-1 min-w-0">
-                                            <p class="text-sm font-medium text-slate-900 dark:text-white truncate" id="fileName">photo.jpg</p>
-                                            <p class="text-xs text-slate-500 dark:text-slate-400" id="fileSize">1.2 MB</p>
-                                        </div>
-                                    </div>
-                                    <div class="flex items-center gap-2 ml-3">
-                                        <button type="button" id="uploadBtn" 
-                                                class="px-4 py-2 bg-primary hover:bg-primary-dark text-white text-sm font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
-                                            <span class="material-symbols-outlined text-lg">upload</span>
-                                            Upload
-                                        </button>
-                                        <button type="button" id="cancelBtn" 
-                                                class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
-                                            <span class="material-symbols-outlined text-xl">close</span>
-                                        </button>
-                                    </div>
+                                <!-- Remove Photo Button -->
+                                <button type="button" id="removePhotoBtn" 
+                                        class="absolute -bottom-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-2 shadow-lg transition-all duration-200 hover:scale-110"
+                                        title="Remove photo">
+                                    <span class="material-symbols-outlined text-lg">delete</span>
+                                </button>
+                            <?php else: ?>
+                                <div id="previewInitials" class="w-32 h-32 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-4xl shadow-lg ring-4 ring-primary/20">
+                                    <?= strtoupper(substr($user['full_name'] ?? 'U', 0, 2)) ?>
                                 </div>
+                                <img id="previewImage" 
+                                     src="" 
+                                     alt="" 
+                                     class="w-32 h-32 rounded-full object-cover shadow-lg ring-4 ring-primary/20 hidden"/>
+                                <!-- Remove Photo Button (hidden initially) -->
+                                <button type="button" id="removePhotoBtn" 
+                                        class="hidden absolute -bottom-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-2 shadow-lg transition-all duration-200 hover:scale-110"
+                                        title="Remove photo">
+                                    <span class="material-symbols-outlined text-lg">delete</span>
+                                </button>
+                            <?php endif; ?>
+                            <div id="uploadProgressOverlay" class="hidden absolute inset-0 bg-black/60 rounded-full flex flex-col items-center justify-center">
+                                <div class="text-white text-2xl font-bold mb-1" id="progressPercent">0%</div>
+                                <div class="text-white text-xs font-medium">Uploading...</div>
                             </div>
-                            
-                            <div id="uploadMessage" class="mt-3 text-sm"></div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Profile Information Section -->
-                <div class="bg-card-light dark:bg-card-dark rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                    <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-primary">person</span>
-                        Profile Information
-                    </h2>
-                
+                    <!-- Upload Area -->
+                    <div class="w-full">
+                        <div id="dropZone" 
+                             class="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg p-6 text-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-all duration-200">
+                            <span class="material-symbols-outlined text-5xl text-slate-400 dark:text-slate-500 mb-2 block">cloud_upload</span>
+                            <p class="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                Drop your photo here or click to browse
+                            </p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">
+                                PNG, JPG, GIF up to 2MB
+                            </p>
+                            <input type="file" 
+                                   id="photoInput" 
+                                   name="profile_photo" 
+                                   accept="image/*" 
+                                   class="hidden"/>
+                        </div>
+                        
+                        <!-- Selected File Info and Upload Button -->
+                        <div id="selectedFileInfo" class="hidden mt-4">
+                            <div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                                <div class="flex items-center gap-3 flex-1 min-w-0">
+                                    <span class="material-symbols-outlined text-primary">image</span>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm font-medium text-slate-900 dark:text-white truncate" id="fileName">photo.jpg</p>
+                                        <p class="text-xs text-slate-500 dark:text-slate-400" id="fileSize">1.2 MB</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2 ml-3">
+                                    <button type="button" id="uploadBtn" 
+                                            class="px-4 py-2 bg-primary hover:bg-primary-dark text-white text-sm font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-lg">upload</span>
+                                        Upload
+                                    </button>
+                                    <button type="button" id="cancelBtn" 
+                                            class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
+                                        <span class="material-symbols-outlined text-xl">close</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="uploadMessage" class="mt-3 text-sm"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profile Information Section -->
+            <div class="bg-card-light dark:bg-card-dark rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">person</span>
+                    Profile Information
+                </h2>
+            
                 <form action="<?= base_url('settings/updateProfile') ?>" method="post">
                     <?= csrf_field() ?>
                     
                     <div class="space-y-4">
+                        <div>
+                            <label for="staff_id" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                Staff ID
+                            </label>
+                            <input type="text" 
+                                   id="staff_id" 
+                                   value="<?= esc($user['staff_id'] ?? 'N/A') ?>" 
+                                   disabled
+                                   class="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white cursor-not-allowed"/>
+                            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Staff ID cannot be changed</p>
+                        </div>
+
                         <div>
                             <label for="username" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                                 Username
@@ -277,6 +289,23 @@
                             <?php endif; ?>
                         </div>
 
+                        <div>
+                            <label for="contact_no" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                Contact Number <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" 
+                                   id="contact_no" 
+                                   name="contact_no" 
+                                   value="<?= esc(old('contact_no', $user['contact_no'])) ?>"
+                                   required
+                                   class="w-full px-4 py-2.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary transition-all"/>
+                            <?php if (session()->getFlashdata('errors')['contact_no'] ?? null): ?>
+                                <p class="mt-1 text-xs text-red-600 dark:text-red-400">
+                                    <?= session()->getFlashdata('errors')['contact_no'] ?>
+                                </p>
+                            <?php endif; ?>
+                        </div>
+
                         <div class="flex justify-end pt-2">
                             <button type="submit" 
                                     class="px-6 py-2.5 bg-primary hover:bg-primary-dark text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
@@ -287,86 +316,85 @@
                     </div>
                 </form>
             </div>
-            </div>
+        </div>
 
-            <!-- Change Password Section - Full Width -->
-            <div class="bg-card-light dark:bg-card-dark rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mt-6">
-                <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                    <span class="material-symbols-outlined text-primary">lock</span>
-                    Change Password
-                </h2>
+        <!-- Change Password Section - Full Width -->
+        <div class="bg-card-light dark:bg-card-dark rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mt-6">
+            <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary">lock</span>
+                Change Password
+            </h2>
 
-                <?php if (session()->getFlashdata('password_error')): ?>
-                    <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 px-4 py-3 rounded-lg mb-4 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-xl">error</span>
-                        <span><?= session()->getFlashdata('password_error') ?></span>
-                    </div>
-                <?php endif; ?>
+            <?php if (session()->getFlashdata('password_error')): ?>
+                <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 px-4 py-3 rounded-lg mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-xl">error</span>
+                    <span><?= session()->getFlashdata('password_error') ?></span>
+                </div>
+            <?php endif; ?>
+            
+            <form action="<?= base_url('settings/updatePassword') ?>" method="post">
+                <?= csrf_field() ?>
                 
-                <form action="<?= base_url('settings/updatePassword') ?>" method="post">
-                    <?= csrf_field() ?>
-                    
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                        <div>
-                            <label for="current_password" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                                Current Password <span class="text-red-500">*</span>
-                            </label>
-                            <input type="password" 
-                                   id="current_password" 
-                                   name="current_password"
-                                   required
-                                   class="w-full px-4 py-2.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary transition-all"/>
-                            <?php if (session()->getFlashdata('password_errors')['current_password'] ?? null): ?>
-                                <p class="mt-1 text-xs text-red-600 dark:text-red-400">
-                                    <?= session()->getFlashdata('password_errors')['current_password'] ?>
-                                </p>
-                            <?php endif; ?>
-                        </div>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <div>
+                        <label for="current_password" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            Current Password <span class="text-red-500">*</span>
+                        </label>
+                        <input type="password" 
+                               id="current_password" 
+                               name="current_password"
+                               required
+                               class="w-full px-4 py-2.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary transition-all"/>
+                        <?php if (session()->getFlashdata('password_errors')['current_password'] ?? null): ?>
+                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">
+                                <?= session()->getFlashdata('password_errors')['current_password'] ?>
+                            </p>
+                        <?php endif; ?>
+                    </div>
 
-                        <div>
-                            <label for="new_password" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                                New Password <span class="text-red-500">*</span>
-                            </label>
-                            <input type="password" 
-                                   id="new_password" 
-                                   name="new_password"
-                                   required
-                                   class="w-full px-4 py-2.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary transition-all"/>
-                            <?php if (session()->getFlashdata('password_errors')['new_password'] ?? null): ?>
-                                <p class="mt-1 text-xs text-red-600 dark:text-red-400">
-                                    <?= session()->getFlashdata('password_errors')['new_password'] ?>
-                                </p>
-                            <?php endif; ?>
-                            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Minimum 6 characters</p>
-                        </div>
+                    <div>
+                        <label for="new_password" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            New Password <span class="text-red-500">*</span>
+                        </label>
+                        <input type="password" 
+                               id="new_password" 
+                               name="new_password"
+                               required
+                               class="w-full px-4 py-2.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary transition-all"/>
+                        <?php if (session()->getFlashdata('password_errors')['new_password'] ?? null): ?>
+                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">
+                                <?= session()->getFlashdata('password_errors')['new_password'] ?>
+                            </p>
+                        <?php endif; ?>
+                        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Minimum 6 characters</p>
+                    </div>
 
-                        <div>
-                            <label for="confirm_password" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                                Confirm New Password <span class="text-red-500">*</span>
-                            </label>
-                            <input type="password" 
-                                   id="confirm_password" 
-                                   name="confirm_password"
-                                   required
-                                   class="w-full px-4 py-2.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary transition-all"/>
-                            <?php if (session()->getFlashdata('password_errors')['confirm_password'] ?? null): ?>
-                                <p class="mt-1 text-xs text-red-600 dark:text-red-400">
-                                    <?= session()->getFlashdata('password_errors')['confirm_password'] ?>
-                                </p>
-                            <?php endif; ?>
-                        </div>
+                    <div>
+                        <label for="confirm_password" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            Confirm New Password <span class="text-red-500">*</span>
+                        </label>
+                        <input type="password" 
+                               id="confirm_password" 
+                               name="confirm_password"
+                               required
+                               class="w-full px-4 py-2.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary transition-all"/>
+                        <?php if (session()->getFlashdata('password_errors')['confirm_password'] ?? null): ?>
+                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">
+                                <?= session()->getFlashdata('password_errors')['confirm_password'] ?>
+                            </p>
+                        <?php endif; ?>
                     </div>
-                    
-                    <div class="flex justify-end pt-4 mt-2 border-t border-slate-200 dark:border-slate-700">
-                        <button type="submit" 
-                                class="px-6 py-2.5 bg-primary hover:bg-primary-dark text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
-                            <span class="material-symbols-outlined text-xl">lock_reset</span>
-                            Change Password
-                        </button>
-                    </div>
-                    </div>
-                </form>
-            </div>
+                </div>
+                
+                <div class="flex justify-end pt-4 mt-2 border-t border-slate-200 dark:border-slate-700">
+                    <button type="submit" 
+                            class="px-6 py-2.5 bg-primary hover:bg-primary-dark text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-xl">lock_reset</span>
+                        Change Password
+                    </button>
+                </div>
+            </form>
+        </div>
     </main>
 
     <!-- Confirmation Modal -->
@@ -395,295 +423,3 @@
                         Remove Photo
                     </button>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // Photo upload functionality
-        const dropZone = document.getElementById('dropZone');
-        const photoInput = document.getElementById('photoInput');
-        const previewImage = document.getElementById('previewImage');
-        const previewInitials = document.getElementById('previewInitials');
-        const uploadProgressOverlay = document.getElementById('uploadProgressOverlay');
-        const progressPercent = document.getElementById('progressPercent');
-        const uploadMessage = document.getElementById('uploadMessage');
-        const selectedFileInfo = document.getElementById('selectedFileInfo');
-        const fileName = document.getElementById('fileName');
-        const fileSize = document.getElementById('fileSize');
-        const uploadBtn = document.getElementById('uploadBtn');
-        const cancelBtn = document.getElementById('cancelBtn');
-        const removePhotoBtn = document.getElementById('removePhotoBtn');
-        
-        // Modal elements
-        const confirmModal = document.getElementById('confirmModal');
-        const modalCancelBtn = document.getElementById('modalCancelBtn');
-        const modalConfirmBtn = document.getElementById('modalConfirmBtn');
-        
-        let selectedFile = null;
-
-        // Remove photo button click
-        removePhotoBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            showConfirmModal();
-        });
-
-        // Modal cancel button
-        modalCancelBtn.addEventListener('click', () => {
-            hideConfirmModal();
-        });
-
-        // Modal confirm button
-        modalConfirmBtn.addEventListener('click', () => {
-            hideConfirmModal();
-            removePhoto();
-        });
-
-        // Close modal on backdrop click
-        confirmModal.addEventListener('click', (e) => {
-            if (e.target === confirmModal) {
-                hideConfirmModal();
-            }
-        });
-
-        function showConfirmModal() {
-            confirmModal.classList.remove('hidden');
-            setTimeout(() => {
-                confirmModal.querySelector('.bg-white, .bg-slate-800').classList.add('scale-100');
-            }, 10);
-        }
-
-        function hideConfirmModal() {
-            confirmModal.classList.add('hidden');
-        }
-
-        // Click to select file
-        dropZone.addEventListener('click', () => {
-            photoInput.click();
-        });
-
-        // Drag and drop handlers
-        dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropZone.classList.add('border-primary', 'bg-primary/10');
-        });
-
-        dropZone.addEventListener('dragleave', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('border-primary', 'bg-primary/10');
-        });
-
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('border-primary', 'bg-primary/10');
-            
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                handleFileSelect(files[0]);
-            }
-        });
-
-        // File input change
-        photoInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                handleFileSelect(e.target.files[0]);
-            }
-        });
-
-        // Upload button click
-        uploadBtn.addEventListener('click', () => {
-            if (selectedFile) {
-                uploadFile(selectedFile);
-            }
-        });
-
-        // Cancel button click
-        cancelBtn.addEventListener('click', () => {
-            selectedFile = null;
-            selectedFileInfo.classList.add('hidden');
-            photoInput.value = '';
-            uploadMessage.innerHTML = '';
-            
-            // Restore original preview
-            <?php if (!empty($user['profile_photo'])): ?>
-                previewImage.src = '<?= base_url('assets/uploads/profiles/' . $user['profile_photo']) ?>';
-                previewImage.classList.remove('hidden');
-                previewInitials.classList.add('hidden');
-            <?php else: ?>
-                previewImage.classList.add('hidden');
-                previewInitials.classList.remove('hidden');
-            <?php endif; ?>
-        });
-
-        function handleFileSelect(file) {
-            // Validate file type
-            if (!file.type.startsWith('image/')) {
-                showMessage('Please select an image file', 'error');
-                return;
-            }
-
-            // Validate file size (2MB)
-            if (file.size > 2 * 1024 * 1024) {
-                showMessage('File size must be less than 2MB', 'error');
-                return;
-            }
-
-            selectedFile = file;
-            
-            // Show file info
-            fileName.textContent = file.name;
-            fileSize.textContent = formatFileSize(file.size);
-            selectedFileInfo.classList.remove('hidden');
-
-            // Show preview
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                previewImage.src = e.target.result;
-                previewImage.classList.remove('hidden');
-                if (previewInitials) {
-                    previewInitials.classList.add('hidden');
-                }
-                // Show remove button for preview
-                removePhotoBtn.classList.remove('hidden');
-            };
-            reader.readAsDataURL(file);
-            
-            uploadMessage.innerHTML = '';
-        }
-
-        function uploadFile(file) {
-            const formData = new FormData();
-            formData.append('profile_photo', file);
-
-            // Disable upload button
-            uploadBtn.disabled = true;
-            uploadBtn.classList.add('opacity-50', 'cursor-not-allowed');
-            
-            // Show progress overlay
-            uploadProgressOverlay.classList.remove('hidden');
-            progressPercent.textContent = '0%';
-            uploadMessage.innerHTML = '';
-
-            // Create XMLHttpRequest for progress tracking
-            const xhr = new XMLHttpRequest();
-            
-            // Track upload progress
-            xhr.upload.addEventListener('progress', (e) => {
-                if (e.lengthComputable) {
-                    const percent = Math.round((e.loaded / e.total) * 100);
-                    progressPercent.textContent = percent + '%';
-                }
-            });
-            
-            xhr.addEventListener('load', () => {
-                uploadProgressOverlay.classList.add('hidden');
-                uploadBtn.disabled = false;
-                uploadBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                
-                if (xhr.status === 200) {
-                    try {
-                        const data = JSON.parse(xhr.responseText);
-                        
-                        if (data.success) {
-                            showMessage(data.message, 'success');
-                            selectedFileInfo.classList.add('hidden');
-                            selectedFile = null;
-                            photoInput.value = '';
-                            
-                            // Update preview with new photo URL
-                            previewImage.src = data.photo_url + '?' + new Date().getTime();
-                            previewImage.classList.remove('hidden');
-                            if (previewInitials) {
-                                previewInitials.classList.add('hidden');
-                            }
-                            
-                            // Reload page after 1.5 seconds to update sidebar photo
-                            setTimeout(() => {
-                                window.location.reload();
-                            }, 1500);
-                        } else {
-                            showMessage(typeof data.message === 'object' ? Object.values(data.message).join(', ') : data.message, 'error');
-                        }
-                    } catch (e) {
-                        showMessage('Failed to upload photo. Please try again.', 'error');
-                    }
-                } else {
-                    showMessage('Failed to upload photo. Please try again.', 'error');
-                }
-            });
-            
-            xhr.addEventListener('error', () => {
-                uploadProgressOverlay.classList.add('hidden');
-                uploadBtn.disabled = false;
-                uploadBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                showMessage('Failed to upload photo. Please try again.', 'error');
-            });
-            
-            xhr.open('POST', '<?= base_url('settings/updatePhoto') ?>');
-            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-            xhr.send(formData);
-        }
-
-        function formatFileSize(bytes) {
-            if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
-        }
-
-        function removePhoto() {
-            fetch('<?= base_url('settings/removePhoto') ?>', {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showMessage(data.message, 'success');
-                    
-                    // Hide image, show initials
-                    previewImage.classList.add('hidden');
-                    previewImage.src = '';
-                    previewInitials.classList.remove('hidden');
-                    previewInitials.classList.add('flex');
-                    
-                    // Hide remove button
-                    removePhotoBtn.classList.add('hidden');
-                    
-                    // Reload page after 1 second to update sidebar
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1000);
-                } else {
-                    showMessage(data.message || 'Failed to remove photo', 'error');
-                }
-            })
-            .catch(error => {
-                showMessage('Failed to remove photo. Please try again.', 'error');
-                console.error('Error:', error);
-            });
-        }
-
-        function showMessage(message, type) {
-            const bgColor = type === 'success' ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200' : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-200';
-            const icon = type === 'success' ? 'check_circle' : 'error';
-            
-            uploadMessage.innerHTML = `
-                <div class="${bgColor} border px-4 py-2 rounded-lg flex items-center gap-2">
-                    <span class="material-symbols-outlined text-lg">${icon}</span>
-                    <span class="text-sm">${message}</span>
-                </div>
-            `;
-
-            // Clear message after 5 seconds
-            setTimeout(() => {
-                uploadMessage.innerHTML = '';
-            }, 5000);
-        }
-    </script>
-</body>
-</html>

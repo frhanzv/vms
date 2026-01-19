@@ -40,6 +40,7 @@ class Settings extends BaseController
         $rules = [
             'full_name' => 'required|min_length[3]|max_length[255]',
             'email' => 'required|valid_email',
+            'contact_no' => 'permit_empty|min_length[10]|max_length[15]|regex_match[/^[0-9+\-\s()]+$/]',
         ];
 
         // Only check email uniqueness if email has changed
@@ -54,7 +55,8 @@ class Settings extends BaseController
 
         $updateData = [
             'full_name' => $this->request->getPost('full_name'),
-            'email' => $newEmail
+            'email' => $newEmail,
+            'contact_no' => $this->request->getPost('contact_no')
         ];
 
         // Skip model validation since we already validated in controller
@@ -67,6 +69,7 @@ class Settings extends BaseController
             // Update session
             session()->set('full_name', $updateData['full_name']);
             session()->set('email', $updateData['email']);
+            session()->set('contact_no', $updateData['contact_no']);
             return redirect()->to('/settings')->with('success', 'Profile updated successfully!');
         }
 
