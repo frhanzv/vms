@@ -141,7 +141,7 @@ Contact No Of Person Visited
 <span class="text-xs font-normal text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">Auto-filled</span>
 </label>
 <div class="relative">
-<input name="contact_person" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white cursor-not-allowed" value="<?= esc($contact_number ?? '') ?>" type="tel" readonly/>
+<input name="contact_person" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white cursor-not-allowed" value="<?= esc($contact_no ?? '') ?>" type="tel" readonly/>
 <span class="material-symbols-outlined absolute right-3 top-3 text-slate-400 text-[20px]">lock</span>
 </div>
 </div>

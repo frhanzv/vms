@@ -131,16 +131,13 @@ class InvitationList extends BaseController
         // Get logged-in user data from session
         $session = session();
 
-        // Debug: Check what session data is available
-        // Uncomment the line below to see all session data
-        // log_message('debug', 'Session data: ' . print_r($session->get(), true));
-
         $data = [
             'pageTitle' => 'New Invitation - SafeG',
-            // Try multiple possible session key names
-            'staff_id' => $session->get('staff_id') ?? $session->get('id') ?? $session->get('user_id') ?? '',
-            'contact_number' => $session->get('contact_number') ?? $session->get('contact') ?? $session->get('phone') ?? '',
-            'full_name' => $session->get('full_name') ?? $session->get('name') ?? 'User',
+            // Match your database column names
+            'staff_id' => $session->get('staff_id') ?? '',
+            'contact_no' => $session->get('contact_no') ?? '',  
+            'full_name' => $session->get('full_name') ?? '',
+            'email' => $session->get('email') ?? '',
         ];
 
         return view('invitations/create', $data);
@@ -149,9 +146,6 @@ class InvitationList extends BaseController
     public function store()
     {
         // TODO: Implement invitation storage logic
-        // This will handle form submission
-        
-        // For now, redirect back to invitations list
         return redirect()->to(base_url('invitations'))->with('success', 'Invitation created successfully!');
     }
 }
