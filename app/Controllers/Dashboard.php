@@ -2,16 +2,24 @@
 
 namespace App\Controllers;
 
+use App\Models\UserModel;
+
 class Dashboard extends BaseController
 {
     public function index()
     {
+        // Get current user data
+        $userId = session()->get('user_id');
+        $userModel = new UserModel();
+        $currentUser = $userModel->find($userId);
+        
         // Sample data for the dashboard
         $data = [
             'pageTitle' => 'Host Dashboard - SafeG',
             'currentDate' => date('F jS, Y'),
-            'userName' => 'Ahmad',
-            'userRole' => 'Host Admin',
+            'userName' => $currentUser['full_name'] ?? session()->get('full_name') ?? 'Ahmad',
+            'userRole' => $currentUser['role'] ?? session()->get('role') ?? 'Host Admin',
+            'userPhoto' => $currentUser['profile_photo'] ?? null,
             'stats' => [
                 'expectedToday' => 12,
                 'currentlyOnSite' => 5,

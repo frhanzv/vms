@@ -19,7 +19,11 @@ $routes->get('invitations/create', 'InvitationList::create');
 $routes->post('invitations/store', 'InvitationList::store');
 $routes->get('requests', 'RequestList::index');
 $routes->get('visitors', 'VisitorList::index');
+$routes->get('visitor-pass-request', 'VisitorPassRequest::index');
+$routes->post('visitor-pass-request/store', 'VisitorPassRequest::store');
 $routes->get('logbook', 'VisitorLogbook::index');
+$routes->get('workflow', 'VisitorWorkflow::index');
+$routes->get('workflow/create', 'VisitorWorkflow::create');
 
 // Security Briefing Routes (Public - accessed via email link)
 $routes->get('security/briefing', 'SecurityBriefing::index');
@@ -27,3 +31,12 @@ $routes->post('security/validateCompletion', 'SecurityBriefing::validateCompleti
 $routes->get('security/facial-verification', 'SecurityBriefing::facialVerification');
 $routes->get('security/checkin', 'SecurityBriefing::checkin');
 $routes->post('security/confirmCheckin', 'SecurityBriefing::confirmCheckin');
+$routes->post('security/confirmCheckin', 'SecurityBriefing::confirmCheckin');
+$routes->get('config', 'Config::index');
+$routes->get('config/getLogs', 'Config::getLogs');
+$routes->get('config/exportLogs', 'Config::exportLogs');
+$routes->get('settings', 'Settings::index');
+$routes->post('settings/updateProfile', 'Settings::updateProfile');
+$routes->post('settings/updatePassword', 'Settings::updatePassword');
+$routes->post('settings/updatePhoto', 'Settings::updatePhoto');
+$routes->post('settings/removePhoto', 'Settings::removePhoto');
