@@ -25,6 +25,10 @@ $routes->get('logbook', 'VisitorLogbook::index');
 $routes->get('workflow', 'VisitorWorkflow::index');
 $routes->get('workflow/create', 'VisitorWorkflow::create');
 
+// Visitor Registration Routes (Public - no menu)
+$routes->get('visitor-registration', 'VisitorRegistration::index');
+$routes->post('visitor-registration/submit', 'VisitorRegistration::submit');
+
 // Security Briefing Routes (Public - accessed via email link)
 $routes->get('security/briefing', 'SecurityBriefing::index');
 $routes->post('security/validateCompletion', 'SecurityBriefing::validateCompletion');
@@ -35,6 +39,60 @@ $routes->post('security/confirmCheckin', 'SecurityBriefing::confirmCheckin');
 $routes->get('config', 'Config::index');
 $routes->get('config/getLogs', 'Config::getLogs');
 $routes->get('config/exportLogs', 'Config::exportLogs');
+
+// Role Management Routes
+$routes->get('config/getRoles', 'Config::getRoles');
+$routes->get('config/getRole/(:num)', 'Config::getRole/$1');
+$routes->post('config/createRole', 'Config::createRole');
+$routes->post('config/updateRole/(:num)', 'Config::updateRole/$1');
+$routes->delete('config/deleteRole/(:num)', 'Config::deleteRole/$1');
+
+// User Management Routes
+$routes->get('config/getUsers', 'Config::getUsers');
+$routes->get('config/getUser/(:num)', 'Config::getUser/$1');
+$routes->post('config/createUser', 'Config::createUser');
+$routes->post('config/updateUser/(:num)', 'Config::updateUser/$1');
+$routes->delete('config/deleteUser/(:num)', 'Config::deleteUser/$1');
+$routes->get('config/getAllRoles', 'Config::getAllRoles');
+
+// Company Management Routes
+$routes->get('config/getCompanies', 'Config::getCompanies');
+$routes->get('config/getCompany/(:num)', 'Config::getCompany/$1');
+$routes->post('config/createCompany', 'Config::createCompany');
+$routes->post('config/updateCompany/(:num)', 'Config::updateCompany/$1');
+$routes->delete('config/deleteCompany/(:num)', 'Config::deleteCompany/$1');
+$routes->get('config/getAllCompanies', 'Config::getAllCompanies');
+
+// Sub Company Management Routes
+$routes->get('config/getSubCompanies', 'Config::getSubCompanies');
+$routes->get('config/getSubCompany/(:num)', 'Config::getSubCompany/$1');
+$routes->post('config/createSubCompany', 'Config::createSubCompany');
+$routes->post('config/updateSubCompany/(:num)', 'Config::updateSubCompany/$1');
+$routes->delete('config/deleteSubCompany/(:num)', 'Config::deleteSubCompany/$1');
+
+// Country Management Routes
+$routes->get('config/getCountries', 'Config::getCountries');
+$routes->get('config/getCountry/(:num)', 'Config::getCountry/$1');
+$routes->post('config/createCountry', 'Config::createCountry');
+$routes->post('config/updateCountry/(:num)', 'Config::updateCountry/$1');
+$routes->delete('config/deleteCountry/(:num)', 'Config::deleteCountry/$1');
+$routes->get('config/getAllCountries', 'Config::getAllCountries');
+
+// State Management Routes
+$routes->get('config/getStates', 'Config::getStates');
+$routes->get('config/getState/(:num)', 'Config::getState/$1');
+$routes->post('config/createState', 'Config::createState');
+$routes->put('config/updateState/(:num)', 'Config::updateState/$1');
+$routes->delete('config/deleteState/(:num)', 'Config::deleteState/$1');
+$routes->get('config/getAllStates', 'Config::getAllStates');
+
+// City Management Routes
+$routes->get('config/getCities', 'Config::getCities');
+$routes->get('config/getCity/(:num)', 'Config::getCity/$1');
+$routes->post('config/createCity', 'Config::createCity');
+$routes->put('config/updateCity/(:num)', 'Config::updateCity/$1');
+$routes->delete('config/deleteCity/(:num)', 'Config::deleteCity/$1');
+
 $routes->get('settings', 'Settings::index');
 $routes->post('settings/updateProfile', 'Settings::updateProfile');
 $routes->post('settings/updatePassword', 'Settings::updatePassword');

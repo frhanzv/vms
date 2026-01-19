@@ -12,7 +12,7 @@ class UserModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['username', 'email', 'password', 'full_name', 'role', 'is_active', 'profile_photo'];
+    protected $allowedFields    = ['username', 'email', 'password', 'full_name', 'staff_id', 'contact_no', 'role', 'is_active', 'profile_photo'];
 
     // Dates
     protected $useTimestamps = true;
@@ -67,5 +67,72 @@ class UserModel extends Model
         }
 
         return false;
+    }
+
+    /**
+     * Get users with pagination, search and sorting
+     */
+    public function getUsersWithPagination($search = '', $sortBy = '', $limit = 10, $offset = 0)
+    {
+        $builder = $this->select('id, username, email, full_name, staff_id, contact_no, role, is_active, created_at');
+        
+        if (!empty($search)) {
+            $builder->groupStart()
+                    ->like('username', $search)
+                    ->orLike('full_name', $search)
+                    ->orLike('email', $search)
+                    ->orLike('staff_id', $search)
+                    ->orLike('contact_no', $search)
+                    ->groupEnd();
+        }
+        
+        // Apply sorting
+        switch ($sortBy) {
+            case 'username_asc':
+                $builder->orderBy('username', 'ASC');
+                break;
+            case 'username_desc':
+                $builder->orderBy('username', 'DESC');
+                break;
+            case 'name_asc':
+                $builder->orderBy('full_name', 'ASC');
+                break;
+            case 'name_desc':
+                $builder->orderBy('full_name', 'DESC');
+                break;
+            case 'email_asc':
+                $builder->orderBy('email', 'ASC');
+                break;
+            case 'email_desc':
+                $builder->orderBy('email', 'DESC');
+                break;
+            case 'status':
+                $builder->orderBy('is_active', 'DESC');
+                break;
+            default:
+                $builder->orderBy('created_at', 'DESC');
+        }
+        
+        $builder->limit($limit, $offset);
+        
+        return $builder->findAll();
+    }
+
+    /**
+     * Get total users count with search
+     */
+    public function getTotalUsers($search = '')
+    {
+        if (!empty($search)) {
+            $this->groupStart()
+                 ->like('username', $search)
+                 ->orLike('full_name', $search)
+                 ->orLike('email', $search)
+                 ->orLike('staff_id', $search)
+                 ->orLike('contact_no', $search)
+                 ->groupEnd();
+        }
+        
+        return $this->countAllResults();
     }
 }
