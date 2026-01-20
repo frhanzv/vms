@@ -12,6 +12,11 @@ use App\Models\CityModel;
 use App\Models\DepartmentModel;
 use App\Models\DesignationModel;
 use App\Models\LocationModel;
+use App\Models\LaneModel;
+use App\Models\RejectReasonModel;
+use App\Models\VisitorCardModel;
+use App\Models\VideoModel;
+use App\Models\VisitReasonModel;
 
 class Config extends BaseController
 {
@@ -25,6 +30,11 @@ class Config extends BaseController
     protected $departmentModel;
     protected $designationModel;
     protected $locationModel;
+    protected $laneModel;
+    protected $rejectReasonModel;
+    protected $visitorCardModel;
+    protected $videoModel;
+    protected $visitReasonModel;
 
     public function initController(\CodeIgniter\HTTP\RequestInterface $request, \CodeIgniter\HTTP\ResponseInterface $response, \Psr\Log\LoggerInterface $logger)
     {
@@ -40,6 +50,11 @@ class Config extends BaseController
         $this->departmentModel = new DepartmentModel();
         $this->designationModel = new DesignationModel();
         $this->locationModel = new LocationModel();
+        $this->laneModel = new LaneModel();
+        $this->rejectReasonModel = new RejectReasonModel();
+        $this->visitorCardModel = new VisitorCardModel();
+        $this->videoModel = new VideoModel();
+        $this->visitReasonModel = new VisitReasonModel();
     }
 
     public function index()
@@ -1963,6 +1978,754 @@ class Config extends BaseController
             'message' => 'Location deleted successfully'
         ]);
     }
+
+    // ============================================
+    // Lane Management
+    // ============================================
+
+    /**
+     * Get lanes with pagination, search and sorting
+     */
+    public function getLanes()
+    {
+        $page = (int) ($this->request->getGet('page') ?? 1);
+        $limit = (int) ($this->request->getGet('limit') ?? 10);
+        $search = $this->request->getGet('search') ?? '';
+        $sortBy = $this->request->getGet('sortBy') ?? '';
+
+        $offset = ($page - 1) * $limit;
+
+        $lanes = $this->laneModel->getLanesWithPagination($search, $sortBy, $limit, $offset);
+        $total = $this->laneModel->getTotalLanes($search);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => $lanes,
+            'pagination' => [
+                'page' => $page,
+                'limit' => $limit,
+                'total' => $total,
+                'totalPages' => ceil($total / $limit)
+            ]
+        ]);
+    }
+
+    /**
+     * Get single lane
+     */
+    public function getLane($id)
+    {
+        $lane = $this->laneModel->find($id);
+
+        if (!$lane) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Lane not found'
+            ])->setStatusCode(404);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => $lane
+        ]);
+    }
+
+    /**
+     * Create new lane
+     */
+    public function createLane()
+    {
+        $data = $this->request->getJSON(true);
+
+        if (!$this->laneModel->insert($data)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to create lane',
+                'errors' => $this->laneModel->errors()
+            ])->setStatusCode(400);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Lane created successfully',
+            'lane_id' => $this->laneModel->getInsertID()
+        ]);
+    }
+
+    /**
+     * Update lane
+     */
+    public function updateLane($id)
+    {
+        if (!$this->laneModel->find($id)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Lane not found'
+            ])->setStatusCode(404);
+        }
+
+        $data = $this->request->getJSON(true);
+
+        if (!$this->laneModel->update($id, $data)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to update lane',
+                'errors' => $this->laneModel->errors()
+            ])->setStatusCode(400);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Lane updated successfully'
+        ]);
+    }
+
+    /**
+     * Delete lane
+     */
+    public function deleteLane($id)
+    {
+        if (!$this->laneModel->find($id)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Lane not found'
+            ])->setStatusCode(404);
+        }
+
+        if (!$this->laneModel->delete($id)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to delete lane'
+            ])->setStatusCode(500);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Lane deleted successfully'
+        ]);
+    }
+
+    // ============================================
+    // Reject Reason Management
+    // ============================================
+
+    /**
+     * Get reject reasons with pagination, search and sorting
+     */
+    public function getRejectReasons()
+    {
+        $page = (int) ($this->request->getGet('page') ?? 1);
+        $limit = (int) ($this->request->getGet('limit') ?? 10);
+        $search = $this->request->getGet('search') ?? '';
+        $sortBy = $this->request->getGet('sortBy') ?? '';
+
+        $offset = ($page - 1) * $limit;
+
+        $reasons = $this->rejectReasonModel->getRejectReasonsWithPagination($search, $sortBy, $limit, $offset);
+        $total = $this->rejectReasonModel->getTotalRejectReasons($search);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => $reasons,
+            'pagination' => [
+                'page' => $page,
+                'limit' => $limit,
+                'total' => $total,
+                'totalPages' => ceil($total / $limit)
+            ]
+        ]);
+    }
+
+    /**
+     * Get single reject reason
+     */
+    public function getRejectReason($id)
+    {
+        $reason = $this->rejectReasonModel->find($id);
+
+        if (!$reason) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Reject reason not found'
+            ])->setStatusCode(404);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => $reason
+        ]);
+    }
+
+    /**
+     * Create new reject reason
+     */
+    public function createRejectReason()
+    {
+        $data = $this->request->getJSON(true);
+
+        if (!$this->rejectReasonModel->insert($data)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to create reject reason',
+                'errors' => $this->rejectReasonModel->errors()
+            ])->setStatusCode(400);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Reject reason created successfully',
+            'reason_id' => $this->rejectReasonModel->getInsertID()
+        ]);
+    }
+
+    /**
+     * Update reject reason
+     */
+    public function updateRejectReason($id)
+    {
+        if (!$this->rejectReasonModel->find($id)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Reject reason not found'
+            ])->setStatusCode(404);
+        }
+
+        $data = $this->request->getJSON(true);
+
+        if (!$this->rejectReasonModel->update($id, $data)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to update reject reason',
+                'errors' => $this->rejectReasonModel->errors()
+            ])->setStatusCode(400);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Reject reason updated successfully'
+        ]);
+    }
+
+    /**
+     * Delete reject reason
+     */
+    public function deleteRejectReason($id)
+    {
+        if (!$this->rejectReasonModel->find($id)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Reject reason not found'
+            ])->setStatusCode(404);
+        }
+
+        if (!$this->rejectReasonModel->delete($id)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to delete reject reason'
+            ])->setStatusCode(500);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Reject reason deleted successfully'
+        ]);
+    }
+
+    // ========================
+    // Visitor Card Methods
+    // ========================
+    
+    public function getVisitorCards()
+    {
+        $page = $this->request->getGet('page') ?? 1;
+        $search = $this->request->getGet('search') ?? '';
+        $sort = $this->request->getGet('sort') ?? 'card_asc';
+
+        $visitorCards = $this->visitorCardModel->getVisitorCardsWithPagination($page, $search, $sort);
+        $total = $this->visitorCardModel->getTotalVisitorCards($search);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => $visitorCards,
+            'pagination' => [
+                'current_page' => $page,
+                'per_page' => 10,
+                'total' => $total,
+                'total_pages' => ceil($total / 10)
+            ]
+        ]);
+    }
+
+    public function getVisitorCard($id)
+    {
+        $visitorCard = $this->visitorCardModel->find($id);
+        
+        if (!$visitorCard) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'success' => false,
+                'message' => 'Visitor card not found'
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => $visitorCard
+        ]);
+    }
+
+    public function createVisitorCard()
+    {
+        $data = [
+            'card_id' => $this->request->getPost('card_id'),
+            'serial_no' => $this->request->getPost('serial_no'),
+            'status' => $this->request->getPost('status')
+        ];
+
+        if (!$this->visitorCardModel->insert($data)) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false,
+                'message' => 'Failed to create visitor card',
+                'errors' => $this->visitorCardModel->errors()
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Visitor card created successfully'
+        ]);
+    }
+
+    public function updateVisitorCard($id)
+    {
+        $visitorCard = $this->visitorCardModel->find($id);
+        
+        if (!$visitorCard) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'success' => false,
+                'message' => 'Visitor card not found'
+            ]);
+        }
+
+        $data = [
+            'card_id' => $this->request->getPost('card_id'),
+            'serial_no' => $this->request->getPost('serial_no'),
+            'status' => $this->request->getPost('status')
+        ];
+
+        if (!$this->visitorCardModel->update($id, $data)) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false,
+                'message' => 'Failed to update visitor card',
+                'errors' => $this->visitorCardModel->errors()
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Visitor card updated successfully'
+        ]);
+    }
+
+    public function deleteVisitorCard($id)
+    {
+        $visitorCard = $this->visitorCardModel->find($id);
+        
+        if (!$visitorCard) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'success' => false,
+                'message' => 'Visitor card not found'
+            ]);
+        }
+
+        if (!$this->visitorCardModel->delete($id)) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'Failed to delete visitor card'
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Visitor card deleted successfully'
+        ]);
+    }
+
+    // ========================
+    // Video Management Methods
+    // ========================
+    
+    public function getVideos()
+    {
+        $page = $this->request->getGet('page') ?? 1;
+        $search = $this->request->getGet('search') ?? '';
+        $sort = $this->request->getGet('sort') ?? 'name_asc';
+
+        $videos = $this->videoModel->getVideosWithPagination($page, $search, $sort);
+        $total = $this->videoModel->getTotalVideos($search);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => $videos,
+            'pagination' => [
+                'current_page' => $page,
+                'per_page' => 10,
+                'total' => $total,
+                'total_pages' => ceil($total / 10)
+            ]
+        ]);
+    }
+
+    public function getVideo($id)
+    {
+        $video = $this->videoModel->find($id);
+        
+        if (!$video) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'success' => false,
+                'message' => 'Video not found'
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => $video
+        ]);
+    }
+
+    public function createVideo()
+    {
+        $validation = \Config\Services::validation();
+        
+        // Validate video file
+        $validationRules = [
+            'video_file' => [
+                'label' => 'Video File',
+                'rules' => 'uploaded[video_file]|max_size[video_file,51200]|ext_in[video_file,mp4,avi,mov,wmv,mkv]',
+                'errors' => [
+                    'uploaded' => 'Please select a video file',
+                    'max_size' => 'Video file size must not exceed 50MB',
+                    'ext_in' => 'Only mp4, avi, mov, wmv, mkv video formats are allowed'
+                ]
+            ]
+        ];
+
+        if (!$this->validate($validationRules)) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validation->getErrors()
+            ]);
+        }
+
+        $videoFile = $this->request->getFile('video_file');
+        
+        if ($videoFile->isValid() && !$videoFile->hasMoved()) {
+            // Generate unique filename
+            $newName = $videoFile->getRandomName();
+            
+            // Move file to public/assets/videos
+            $videoFile->move(FCPATH . 'assets/videos', $newName);
+            
+            $data = [
+                'name' => $this->request->getPost('name'),
+                'file_path' => 'assets/videos/' . $newName,
+                'status' => $this->request->getPost('status')
+            ];
+
+            if (!$this->videoModel->insert($data)) {
+                // Delete uploaded file if database insert fails
+                @unlink(FCPATH . 'assets/videos/' . $newName);
+                
+                return $this->response->setStatusCode(400)->setJSON([
+                    'success' => false,
+                    'message' => 'Failed to create video',
+                    'errors' => $this->videoModel->errors()
+                ]);
+            }
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Video uploaded successfully'
+            ]);
+        }
+
+        return $this->response->setStatusCode(400)->setJSON([
+            'success' => false,
+            'message' => 'Failed to upload video file'
+        ]);
+    }
+
+    public function updateVideo($id)
+    {
+        $video = $this->videoModel->find($id);
+        
+        if (!$video) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'success' => false,
+                'message' => 'Video not found'
+            ]);
+        }
+
+        // Validate video data manually with ID exclusion
+        $validation = \Config\Services::validation();
+        $validation->setRules([
+            'name' => [
+                'label' => 'Video Name',
+                'rules' => "required|max_length[255]|is_unique[videos.name,id,{$id}]",
+                'errors' => [
+                    'required' => 'Video name is required',
+                    'max_length' => 'Video name cannot exceed 255 characters',
+                    'is_unique' => 'This video name already exists'
+                ]
+            ],
+            'status' => [
+                'label' => 'Status',
+                'rules' => 'required|in_list[active,inactive]',
+                'errors' => [
+                    'required' => 'Status is required',
+                    'in_list' => 'Status must be active or inactive'
+                ]
+            ]
+        ]);
+
+        if (!$validation->run($this->request->getPost())) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validation->getErrors()
+            ]);
+        }
+
+        $data = [
+            'name' => $this->request->getPost('name'),
+            'status' => $this->request->getPost('status')
+        ];
+
+        // Check if new video file is uploaded
+        $videoFile = $this->request->getFile('video_file');
+        
+        if ($videoFile && $videoFile->isValid() && !$videoFile->hasMoved()) {
+            // Validate new video file
+            $fileValidation = \Config\Services::validation();
+            $fileValidation->setRules([
+                'video_file' => [
+                    'label' => 'Video File',
+                    'rules' => 'max_size[video_file,51200]|ext_in[video_file,mp4,avi,mov,wmv,mkv]',
+                    'errors' => [
+                        'max_size' => 'Video file size must not exceed 50MB',
+                        'ext_in' => 'Only mp4, avi, mov, wmv, mkv video formats are allowed'
+                    ]
+                ]
+            ]);
+
+            if (!$fileValidation->withRequest($this->request)->run()) {
+                return $this->response->setStatusCode(400)->setJSON([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $fileValidation->getErrors()
+                ]);
+            }
+
+            // Delete old video file
+            if (!empty($video['file_path'])) {
+                $oldFilePath = FCPATH . $video['file_path'];
+                if (file_exists($oldFilePath)) {
+                    @unlink($oldFilePath);
+                }
+            }
+
+            // Upload new video file
+            $newName = $videoFile->getRandomName();
+            $videoFile->move(FCPATH . 'assets/videos', $newName);
+            $data['file_path'] = 'assets/videos/' . $newName;
+        }
+
+        // Update without model validation since we already validated
+        $this->videoModel->skipValidation(true);
+        if (!$this->videoModel->update($id, $data)) {
+            $this->videoModel->skipValidation(false);
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false,
+                'message' => 'Failed to update video',
+                'errors' => $this->videoModel->errors()
+            ]);
+        }
+        $this->videoModel->skipValidation(false);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Video updated successfully'
+        ]);
+    }
+
+    public function deleteVideo($id)
+    {
+        $video = $this->videoModel->find($id);
+        
+        if (!$video) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'success' => false,
+                'message' => 'Video not found'
+            ]);
+        }
+
+        if (!$this->videoModel->deleteWithFile($id)) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'Failed to delete video'
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Video deleted successfully'
+        ]);
+    }
+
+    // Visit Reason Management
+    public function getVisitReasons()
+    {
+        $perPage = $this->request->getGet('per_page') ?? 10;
+        $page = $this->request->getGet('page') ?? 1;
+        $search = $this->request->getGet('search') ?? '';
+        $sortBy = $this->request->getGet('sort_by') ?? 'created_at';
+        $sortOrder = $this->request->getGet('sort_order') ?? 'DESC';
+
+        $offset = ($page - 1) * $perPage;
+        
+        $builder = $this->visitReasonModel->builder();
+        
+        if (!empty($search)) {
+            $builder->like('reason', $search);
+        }
+
+        $totalRecords = $builder->countAllResults(false);
+        
+        $visitReasons = $builder
+            ->orderBy($sortBy, $sortOrder)
+            ->limit($perPage, $offset)
+            ->get()
+            ->getResultArray();
+
+        $from = $totalRecords > 0 ? $offset + 1 : 0;
+        $to = min($offset + $perPage, $totalRecords);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => $visitReasons,
+            'pagination' => [
+                'total' => $totalRecords,
+                'per_page' => (int)$perPage,
+                'current_page' => (int)$page,
+                'last_page' => ceil($totalRecords / $perPage),
+                'from' => $from,
+                'to' => $to
+            ]
+        ]);
+    }
+
+    public function createVisitReason()
+    {
+        $rules = [
+            'reason' => 'required|min_length[3]|max_length[255]|is_unique[visit_reasons.reason]'
+        ];
+
+        if (!$this->validate($rules)) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $this->validator->getErrors()
+            ]);
+        }
+
+        $data = [
+            'reason' => $this->request->getPost('reason')
+        ];
+
+        if (!$this->visitReasonModel->insert($data)) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'Failed to create visit reason'
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Visit reason created successfully'
+        ]);
+    }
+
+    public function updateVisitReason($id)
+    {
+        $visitReason = $this->visitReasonModel->find($id);
+        
+        if (!$visitReason) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'success' => false,
+                'message' => 'Visit reason not found'
+            ]);
+        }
+
+        // Manual validation with ID exclusion for unique check
+        $rules = [
+            'reason' => "required|min_length[3]|max_length[255]|is_unique[visit_reasons.reason,id,{$id}]"
+        ];
+
+        $validation = \Config\Services::validation();
+        $validation->setRules($rules);
+
+        if (!$validation->run($this->request->getPost())) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validation->getErrors()
+            ]);
+        }
+
+        $data = [
+            'reason' => $this->request->getPost('reason')
+        ];
+
+        // Skip model validation since we did it manually
+        $this->visitReasonModel->skipValidation(true);
+        
+        if (!$this->visitReasonModel->update($id, $data)) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'Failed to update visit reason'
+            ]);
+        }
+
+        // Re-enable validation for future operations
+        $this->visitReasonModel->skipValidation(false);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Visit reason updated successfully'
+        ]);
+    }
+
+    public function deleteVisitReason($id)
+    {
+        $visitReason = $this->visitReasonModel->find($id);
+        
+        if (!$visitReason) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'success' => false,
+                'message' => 'Visit reason not found'
+            ]);
+        }
+
+        if (!$this->visitReasonModel->delete($id)) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'Failed to delete visit reason'
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Visit reason deleted successfully'
+        ]);
+    }
 }
-
-

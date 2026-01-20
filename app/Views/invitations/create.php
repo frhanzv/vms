@@ -117,6 +117,39 @@
 <form action="<?= base_url('invitations/store') ?>" method="post">
 <?= csrf_field() ?>
 
+<!-- Display Success/Error Messages -->
+<?php if (session()->getFlashdata('success')): ?>
+    <div class="bg-green-50 border border-green-200 text-green-800 px-6 py-4 rounded-lg mb-6">
+        <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-green-600">check_circle</span>
+            <span class="font-medium"><?= session()->getFlashdata('success') ?></span>
+        </div>
+    </div>
+<?php endif; ?>
+
+<?php if (session()->getFlashdata('error')): ?>
+    <div class="bg-red-50 border border-red-200 text-red-800 px-6 py-4 rounded-lg mb-6">
+        <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-red-600">error</span>
+            <span class="font-medium"><?= session()->getFlashdata('error') ?></span>
+        </div>
+    </div>
+<?php endif; ?>
+
+<?php if (session()->getFlashdata('errors')): ?>
+    <div class="bg-red-50 border border-red-200 text-red-800 px-6 py-4 rounded-lg mb-6">
+        <div class="flex items-center gap-2 mb-2">
+            <span class="material-symbols-outlined text-red-600">error</span>
+            <span class="font-medium">Please fix the following errors:</span>
+        </div>
+        <ul class="list-disc list-inside ml-6 space-y-1">
+            <?php foreach (session()->getFlashdata('errors') as $error): ?>
+                <li><?= esc($error) ?></li>
+            <?php endforeach; ?>
+        </ul>
+    </div>
+<?php endif; ?>
+
 <!-- Visit Context Section -->
 <section class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
 <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
@@ -139,7 +172,14 @@ Staff ID
 <!-- Name of Company Visited -->
 <div class="flex flex-col gap-2">
 <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Name of Company Visited</label>
-<input name="company_visited" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white" placeholder="e.g. SafeG Global, ABC Construction" type="text" required/>
+<select name="company_visited" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white" required>
+<option value="">Select company...</option>
+<?php if (isset($companies) && !empty($companies)): ?>
+    <?php foreach ($companies as $company): ?>
+        <option value="<?= esc($company['name']) ?>"><?= esc($company['name']) ?></option>
+    <?php endforeach; ?>
+<?php endif; ?>
+</select>
 </div>
 
 <!-- Contact No Of Person Visited (Auto-filled, Read-only) -->
@@ -167,13 +207,11 @@ Contact No Of Person Visited
 <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Reason for Visit</label>
 <select name="reason" id="visit-reason" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white" required>
 <option value="">Select reason...</option>
-<option value="Meeting">Meeting</option>
-<option value="Interview">Interview</option>
-<option value="Maintenance">Maintenance</option>
-<option value="Delivery">Delivery</option>
-<option value="Site Visit">Site Visit</option>
-<option value="Catering">Catering</option>
-<option value="Audit">Audit</option>
+<?php if (isset($visitReasons) && !empty($visitReasons)): ?>
+    <?php foreach ($visitReasons as $reason): ?>
+        <option value="<?= esc($reason['reason']) ?>"><?= esc($reason['reason']) ?></option>
+    <?php endforeach; ?>
+<?php endif; ?>
 <option value="OTHER">OTHER</option>
 </select>
 </div>
@@ -183,49 +221,38 @@ Contact No Of Person Visited
 <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Other Reason</label>
 <input name="other_reason" id="other-reason" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white placeholder:text-slate-400" placeholder="Please specify if 'OTHER' selected" type="text" disabled/>
 </div>
-</div>
+<!-- Location -->
+<div class="flex flex-col gap-2">
+<label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Location</label>
+<select name="location" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white">
+<option value="">Select location...</option>
+<?php if (isset($locations) && !empty($locations)): ?>
+    <?php foreach ($locations as $location): ?>
+        <option value="<?= esc($location['location_access']) ?>"><?= esc($location['branch']) ?> - <?= esc($location['location_access']) ?></option>
+    <?php endforeach; ?>
+<?php endif; ?>
+</select>
+</div></div>
 </section>
 
 <!-- Visitor Details Section -->
 <section class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden mt-8">
 <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
-<div class="flex items-center gap-4">
-<h3 class="text-lg font-bold text-slate-900 dark:text-white">Visitor Details</h3>
-<div class="flex items-center gap-2 text-sm text-slate-500 bg-white dark:bg-slate-900 px-2 py-1 rounded border border-slate-200 dark:border-slate-700">
-<span>Count:</span>
-<input id="visitor-count" class="w-16 p-0 border-none text-right font-bold text-slate-900 dark:text-white focus:ring-0 h-auto bg-transparent" min="1" type="number" value="1"/>
+<h3 class="text-lg font-bold text-slate-900 dark:text-white">Primary Visitor Details</h3>
+<span class="material-symbols-outlined text-slate-400">person</span>
 </div>
-</div>
-<button type="button" id="add-visitor" class="text-primary hover:text-primary/80 flex items-center gap-1 text-sm font-semibold">
-<span class="material-symbols-outlined text-[20px]">add_circle</span>
-Add Visitor
-</button>
-</div>
-<div id="visitors-container" class="p-6 flex flex-col gap-6">
-<div class="visitor-item relative p-5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/20 group hover:border-primary/30 transition-colors">
-<div class="absolute right-4 top-4">
-<button type="button" class="remove-visitor text-slate-400 hover:text-red-500 transition-colors p-1 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20" title="Remove Visitor">
-<span class="material-symbols-outlined text-[20px]">delete</span>
-</button>
-</div>
-<h4 class="text-sm font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-<span class="visitor-number flex items-center justify-center size-6 rounded-full bg-primary/10 text-primary text-xs">1</span>
-Visitor Information
-</h4>
-<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<div class="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
 <div class="flex flex-col gap-2">
-<label class="text-xs font-semibold text-slate-600 dark:text-slate-400">Full Name</label>
-<input name="visitors[0][name]" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm focus:border-primary focus:ring-primary dark:text-white" placeholder="Full name as per ID" type="text" required/>
+<label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Full Name <span class="text-red-500">*</span></label>
+<input name="full_name" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white" placeholder="Full name as per ID" type="text" required/>
 </div>
 <div class="flex flex-col gap-2">
-<label class="text-xs font-semibold text-slate-600 dark:text-slate-400">Contact Number</label>
-<input name="visitors[0][contact]" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm focus:border-primary focus:ring-primary dark:text-white" placeholder="+60 1x-xxx xxxx" type="tel" required/>
+<label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Contact Number <span class="text-red-500">*</span></label>
+<input name="contact" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white" placeholder="+60 1x-xxx xxxx" type="tel" required/>
 </div>
 <div class="flex flex-col gap-2">
-<label class="text-xs font-semibold text-slate-600 dark:text-slate-400">Email Address</label>
-<input name="visitors[0][email]" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm focus:border-primary focus:ring-primary dark:text-white" placeholder="visitor@example.com" type="email" required/>
-</div>
-</div>
+<label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Email Address <span class="text-red-500">*</span></label>
+<input name="visitor_email" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white" placeholder="visitor@example.com" type="email" required/>
 </div>
 </div>
 </section>
@@ -240,23 +267,16 @@ Add Date Slot
 </button>
 </div>
 <div id="schedule-container" class="p-6 flex flex-col gap-4">
-<div class="schedule-item grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-<div class="md:col-span-5 flex flex-col gap-2">
-<label class="text-xs font-semibold text-slate-600 dark:text-slate-400">Date Range</label>
-<div class="relative">
-<span class="material-symbols-outlined absolute left-3 top-2.5 text-slate-400 text-sm">calendar_month</span>
-<input name="schedules[0][date]" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 pl-9 pr-4 py-2.5 text-sm focus:border-primary focus:ring-primary dark:text-white" placeholder="Select dates" type="date" required/>
+<div class="schedule-item flex items-end gap-4 p-4 border border-slate-200 dark:border-slate-700 rounded-lg">
+<div class="flex-1 space-y-2">
+<label class="block text-sm font-semibold text-slate-600 dark:text-slate-400">Date From <span class="text-red-500">*</span></label>
+<input name="schedules[0][date_from]" class="w-full h-12 rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none" placeholder="dd/mm/yyyy --:-- --" type="datetime-local" required/>
 </div>
+<div class="flex-1 space-y-2">
+<label class="block text-sm font-semibold text-slate-600 dark:text-slate-400">Date To <span class="text-red-500">*</span></label>
+<input name="schedules[0][date_to]" class="w-full h-12 rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none" placeholder="dd/mm/yyyy --:-- --" type="datetime-local" required/>
 </div>
-<div class="md:col-span-3 flex flex-col gap-2">
-<label class="text-xs font-semibold text-slate-600 dark:text-slate-400">Time From</label>
-<input name="schedules[0][time_from]" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm focus:border-primary focus:ring-primary dark:text-white" type="time" required/>
-</div>
-<div class="md:col-span-3 flex flex-col gap-2">
-<label class="text-xs font-semibold text-slate-600 dark:text-slate-400">Time To</label>
-<input name="schedules[0][time_to]" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm focus:border-primary focus:ring-primary dark:text-white" type="time" required/>
-</div>
-<div class="md:col-span-1 flex items-center justify-center pb-2">
+<div class="flex items-center pb-2">
 <button type="button" class="remove-schedule text-slate-400 hover:text-red-500 transition-colors p-2 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20" title="Remove Slot">
 <span class="material-symbols-outlined">remove_circle_outline</span>
 </button>
@@ -376,22 +396,38 @@ document.getElementById('add-schedule').addEventListener('click', function() {
     scheduleCount++;
     
     const scheduleHTML = `
-        <div class="schedule-item grid grid-cols-1 md:grid-cols-12 gap-4 items-end pt-4 border-t border-dashed border-slate-200 dark:border-slate-700">
-            <div class="md:col-span-5 flex flex-col gap-2">
-                <label class="text-xs font-semibold text-slate-600 dark:text-slate-400">Date Range</label>
-                <div class="relative">
-                    <span class="material-symbols-outlined absolute left-3 top-2.5 text-slate-400 text-sm">calendar_month</span>
-                    <input name="schedules[${scheduleCount-1}][date]" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 pl-9 pr-4 py-2.5 text-sm focus:border-primary focus:ring-primary dark:text-white" placeholder="Select dates" type="date" required/>
-                </div>
+        <div class="schedule-item flex items-end gap-4 p-4 border border-slate-200 dark:border-slate-700 rounded-lg">
+            <div class="flex-1 space-y-2">
+                <label class="block text-sm font-semibold text-slate-600 dark:text-slate-400">Date From <span class="text-red-500">*</span></label>
+                <input name="schedules[${scheduleCount-1}][date_from]" class="w-full h-12 rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none" placeholder="dd/mm/yyyy --:-- --" type="datetime-local" required/>
             </div>
-            <div class="md:col-span-3 flex flex-col gap-2">
-                <label class="text-xs font-semibold text-slate-600 dark:text-slate-400">Time From</label>
-                <input name="schedules[${scheduleCount-1}][time_from]" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm focus:border-primary focus:ring-primary dark:text-white" type="time" required/>
+            <div class="flex-1 space-y-2">
+                <label class="block text-sm font-semibold text-slate-600 dark:text-slate-400">Date To <span class="text-red-500">*</span></label>
+                <input name="schedules[${scheduleCount-1}][date_to]" class="w-full h-12 rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none" placeholder="dd/mm/yyyy --:-- --" type="datetime-local" required/>
             </div>
-            <div class="md:col-span-3 flex flex-col gap-2">
-                <label class="text-xs font-semibold text-slate-600 dark:text-slate-400">Time To</label>
-                <input name="schedules[${scheduleCount-1}][time_to]" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm focus:border-primary focus:ring-primary dark:text-white" type="time" required/>
-            </div>
-            <div class="md:col-span-1 flex items-center justify-center pb-2">
+            <div class="flex items-center pb-2">
                 <button type="button" class="remove-schedule text-slate-400 hover:text-red-500 transition-colors p-2 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20" title="Remove Slot">
-                    <span class="material-symbols-outlined">remove_circle_outline
+                    <span class="material-symbols-outlined">remove_circle_outline</span>
+                </button>
+            </div>
+        </div>
+    `;
+    
+    container.insertAdjacentHTML('beforeend', scheduleHTML);
+});
+
+// Remove schedule slot
+document.addEventListener('click', function(e) {
+    if (e.target.closest('.remove-schedule')) {
+        const scheduleItems = document.querySelectorAll('.schedule-item');
+        if (scheduleItems.length > 1) {
+            e.target.closest('.schedule-item').remove();
+            scheduleCount--;
+        }
+    }
+});
+
+</script>
+
+</body>
+</html>

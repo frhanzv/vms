@@ -16,9 +16,50 @@
             background: #f5f7fa;
             color: #1e293b;
             line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: white;
+            padding: 20px 40px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 24px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .time-display {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #64748b;
+            font-size: 14px;
         }
 
         .container {
+            flex: 1;
             max-width: 900px;
             margin: 0 auto;
             padding: 40px 20px;
@@ -201,6 +242,36 @@
             color: #78350f;
         }
 
+        .skip-warning {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 20px;
+            background: #ef4444;
+            color: white;
+            border-radius: 8px;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+            z-index: 1000;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+
+        .skip-warning.show {
+            display: block;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
         .arrow-icon {
             width: 20px;
             height: 20px;
@@ -230,6 +301,19 @@
         }
 
         @media (max-width: 768px) {
+            .header {
+                padding: 15px 20px;
+            }
+
+            .logo {
+                font-size: 20px;
+            }
+
+            .logo-icon {
+                width: 32px;
+                height: 32px;
+            }
+
             .container {
                 padding: 20px 15px;
             }
@@ -247,6 +331,30 @@
     </style>
 </head>
 <body>
+    <!-- Header -->
+    <div class="header">
+        <div class="logo">
+            <div class="logo-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+            </div>
+            <span>SafeG</span>
+        </div>
+        <div class="time-display">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            <span id="currentTime"></span>
+        </div>
+    </div>
+
+    <!-- Skip Warning Alert -->
+    <div class="skip-warning" id="skipWarning">
+        ⚠️ You cannot skip the video. Please watch from start to finish.
+    </div>
+
     <div class="container">
         <div class="briefing-card">
             <div class="card-header">
@@ -255,12 +363,22 @@
             </div>
 
             <div class="video-section">
-                <div class="video-wrapper">
-                    <video id="briefingVideo" controls controlsList="nodownload">
-                        <source src="<?= esc($briefing_video_url) ?>" type="video/mp4">
-                        Your browser does not support the video tag.
-                    </video>
-                </div>
+                <?php if ($video_available): ?>
+                    <div class="video-wrapper">
+                        <video id="briefingVideo" controls controlsList="nodownload">
+                            <source src="<?= esc($briefing_video_url) ?>" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                    </div>
+                <?php else: ?>
+                    <div style="text-align: center; padding: 60px 20px; background: white; border-radius: 8px;">
+                        <svg style="width: 64px; height: 64px; color: #94a3b8; margin: 0 auto 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                        </svg>
+                        <h3 style="color: #64748b; font-size: 18px; margin-bottom: 10px;">No Video Available</h3>
+                        <p style="color: #94a3b8; font-size: 14px;">Please contact the administrator.</p>
+                    </div>
+                <?php endif; ?>
             </div>
 
             <div class="progress-section">
@@ -304,38 +422,96 @@
     </div>
 
     <script>
+        // Update time display
+        function updateTime() {
+            const now = new Date();
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            const displayHours = hours % 12 || 12;
+            const displayMinutes = minutes < 10 ? '0' + minutes : minutes;
+            document.getElementById('currentTime').textContent = `${displayHours}:${displayMinutes} ${ampm}`;
+        }
+        
+        updateTime();
+        setInterval(updateTime, 1000);
+
         const video = document.getElementById('briefingVideo');
         const progressBar = document.getElementById('progressBar');
         const progressPercentage = document.getElementById('progressPercentage');
         const acknowledgmentCheckbox = document.getElementById('acknowledgment');
         const checkboxWrapper = document.getElementById('checkboxWrapper');
         const submitButton = document.getElementById('submitButton');
+        const skipWarning = document.getElementById('skipWarning');
         
         let maxWatchedTime = 0;
         let videoCompleted = false;
+        let lastValidTime = 0;
 
-        // Track video progress
-        video.addEventListener('timeupdate', function() {
-            const currentTime = video.currentTime;
-            const duration = video.duration;
-            
-            // Update max watched time
-            if (currentTime > maxWatchedTime) {
-                maxWatchedTime = currentTime;
+        // Only add video event listeners if video element exists
+        if (video) {
+            // Disable right-click on video to prevent download options
+            video.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+            });
+
+            // Track video progress - only allow sequential watching
+            video.addEventListener('timeupdate', function() {
+                const currentTime = video.currentTime;
+                const duration = video.duration;
+                
+                // Check if user is trying to skip ahead
+                if (currentTime > maxWatchedTime + 0.5) {
+                    // User tried to skip - reset to last valid position
+                    video.currentTime = maxWatchedTime;
+                    showSkipWarning();
+                    return;
+                }
+                
+                // Update max watched time only if playing sequentially
+                if (currentTime > maxWatchedTime) {
+                    maxWatchedTime = currentTime;
+                }
+                
+                lastValidTime = currentTime;
+                
+                // Calculate progress based on sequential watching
+                const progress = (maxWatchedTime / duration) * 100;
+                progressBar.style.width = progress + '%';
+                progressPercentage.textContent = Math.round(progress) + '%';
+                
+                // Enable checkbox when video is 95% complete
+                if (progress >= 95 && !videoCompleted) {
+                    videoCompleted = true;
+                    acknowledgmentCheckbox.disabled = false;
+                    checkboxWrapper.style.cursor = 'pointer';
+                }
+            });
+
+            // Prevent seeking beyond watched point
+            video.addEventListener('seeking', function() {
+                if (video.currentTime > maxWatchedTime + 0.5) {
+                    video.currentTime = maxWatchedTime;
+                    showSkipWarning();
+                }
+            });
+
+            // Prevent playback rate changes (2x speed, etc)
+            video.addEventListener('ratechange', function() {
+                if (video.playbackRate !== 1) {
+                    video.playbackRate = 1;
+                    showSkipWarning();
+                }
+            });
+
+            // Show warning when user tries to skip
+            function showSkipWarning() {
+                skipWarning.classList.add('show');
+                setTimeout(() => {
+                    skipWarning.classList.remove('show');
+                }, 3000);
             }
-            
-            // Calculate progress based on maximum time watched
-            const progress = (maxWatchedTime / duration) * 100;
-            progressBar.style.width = progress + '%';
-            progressPercentage.textContent = Math.round(progress) + '%';
-            
-            // Enable checkbox when video is 90% complete
-            if (progress >= 90 && !videoCompleted) {
-                videoCompleted = true;
-                acknowledgmentCheckbox.disabled = false;
-                checkboxWrapper.style.cursor = 'pointer';
-            }
-        });
+        }
 
         // Handle checkbox click
         checkboxWrapper.addEventListener('click', function() {
@@ -378,7 +554,7 @@
                     body: JSON.stringify({
                         token: '<?= esc($token) ?>',
                         watched_duration: maxWatchedTime,
-                        video_duration: video.duration,
+                        video_duration: video ? video.duration : 0,
                         acknowledged: true
                     })
                 })
@@ -402,12 +578,22 @@
             }
         });
 
-        // Prevent video seeking beyond watched point
-        video.addEventListener('seeking', function() {
-            if (video.currentTime > maxWatchedTime + 1) {
-                video.currentTime = maxWatchedTime;
-            }
-        });
+        // Disable keyboard shortcuts that could skip video
+        if (video) {
+            document.addEventListener('keydown', function(e) {
+                // Prevent arrow keys, space, and other video control keys
+                if (video && !video.paused) {
+                    const videoBounds = video.getBoundingClientRect();
+                    const isVideoFocused = document.activeElement === video;
+                    
+                    // Block arrow keys (left/right for seeking)
+                    if (e.keyCode === 37 || e.keyCode === 39) { // Left/Right arrows
+                        e.preventDefault();
+                        showSkipWarning();
+                    }
+                }
+            });
+        }
     </script>
 </body>
 </html>

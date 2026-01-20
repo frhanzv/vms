@@ -2,12 +2,24 @@
 
 namespace App\Controllers;
 
+use App\Models\VideoModel;
+
 class SecurityBriefing extends BaseController
 {
+    protected $videoModel;
+
+    public function __construct()
+    {
+        $this->videoModel = new VideoModel();
+    }
+
     public function index()
     {
         // Get invitation token from URL parameter
         $token = $this->request->getGet('token');
+        
+        // Get active video from database
+        $activeVideo = $this->videoModel->getActiveVideo();
         
         // TODO: Validate token and fetch invitation details from database
         // For now, using sample data
@@ -18,8 +30,9 @@ class SecurityBriefing extends BaseController
             'visitor_name' => 'John Doe', // This would come from database
             'company' => 'ABC Construction Sdn Bhd',
             'visit_date' => date('d/m/Y'),
-            'briefing_video_url' => base_url('assets/videos/safety-briefing.mp4'), // Update with actual video path
-            'video_duration' => 300 // Duration in seconds (5 minutes)
+            'briefing_video_url' => $activeVideo ? base_url($activeVideo['file_path']) : null,
+            'video_duration' => 300, // Duration in seconds (5 minutes)
+            'video_available' => !empty($activeVideo)
         ];
 
         return view('security/briefing', $data);

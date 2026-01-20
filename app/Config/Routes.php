@@ -17,6 +17,7 @@ $routes->get('dashboard', 'Dashboard::index');
 $routes->get('invitations', 'InvitationList::index');
 $routes->get('invitations/create', 'InvitationList::create');
 $routes->post('invitations/store', 'InvitationList::store');
+$routes->post('invitations/resend/(:num)', 'InvitationList::resend/$1');
 $routes->get('requests', 'RequestList::index');
 $routes->get('visitors', 'VisitorList::index');
 $routes->get('visitor-pass-request', 'VisitorPassRequest::index');
@@ -113,6 +114,40 @@ $routes->get('config/getLocation/(:num)', 'Config::getLocation/$1');
 $routes->post('config/createLocation', 'Config::createLocation');
 $routes->put('config/updateLocation/(:num)', 'Config::updateLocation/$1');
 $routes->delete('config/deleteLocation/(:num)', 'Config::deleteLocation/$1');
+
+// Lane Management Routes
+$routes->get('config/getLanes', 'Config::getLanes');
+$routes->get('config/getLane/(:num)', 'Config::getLane/$1');
+$routes->post('config/createLane', 'Config::createLane');
+$routes->put('config/updateLane/(:num)', 'Config::updateLane/$1');
+$routes->delete('config/deleteLane/(:num)', 'Config::deleteLane/$1');
+
+// Reject Reason Management Routes
+$routes->get('config/getRejectReasons', 'Config::getRejectReasons');
+$routes->get('config/getRejectReason/(:num)', 'Config::getRejectReason/$1');
+$routes->post('config/createRejectReason', 'Config::createRejectReason');
+$routes->put('config/updateRejectReason/(:num)', 'Config::updateRejectReason/$1');
+$routes->delete('config/deleteRejectReason/(:num)', 'Config::deleteRejectReason/$1');
+
+// Visitor Card Management Routes
+$routes->get('config/getVisitorCards', 'Config::getVisitorCards');
+$routes->get('config/getVisitorCard/(:num)', 'Config::getVisitorCard/$1');
+$routes->post('config/createVisitorCard', 'Config::createVisitorCard');
+$routes->put('config/updateVisitorCard/(:num)', 'Config::updateVisitorCard/$1');
+$routes->delete('config/deleteVisitorCard/(:num)', 'Config::deleteVisitorCard/$1');
+
+// Video Management Routes
+$routes->get('config/getVideos', 'Config::getVideos');
+$routes->get('config/getVideo/(:num)', 'Config::getVideo/$1');
+$routes->post('config/createVideo', 'Config::createVideo');
+$routes->post('config/updateVideo/(:num)', 'Config::updateVideo/$1');
+$routes->delete('config/deleteVideo/(:num)', 'Config::deleteVideo/$1');
+
+// Visit Reason Management Routes
+$routes->get('config/getVisitReasons', 'Config::getVisitReasons');
+$routes->post('config/createVisitReason', 'Config::createVisitReason');
+$routes->post('config/updateVisitReason/(:num)', 'Config::updateVisitReason/$1');
+$routes->delete('config/deleteVisitReason/(:num)', 'Config::deleteVisitReason/$1');
 
 $routes->get('settings', 'Settings::index');
 $routes->post('settings/updateProfile', 'Settings::updateProfile');

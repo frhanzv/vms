@@ -1035,13 +1035,13 @@
                             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                                 <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                                     <div class="flex shadow-sm w-full sm:w-96">
-                                        <input class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Search lane, location..." type="text"/>
-                                        <button class="bg-primary hover:bg-blue-600 text-white px-6 py-2.5 rounded-r flex items-center justify-center transition-colors">
+                                        <input id="laneSearchInput" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Search lane, location..." type="text"/>
+                                        <button onclick="searchLanes()" class="bg-primary hover:bg-blue-600 text-white px-6 py-2.5 rounded-r flex items-center justify-center transition-colors">
                                             <span class="material-symbols-outlined text-white text-[20px]">search</span>
                                         </button>
                                     </div>
                                     <div class="relative w-full sm:w-48">
-                                        <select class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm appearance-none focus:ring-primary focus:border-primary text-gray-700 dark:text-gray-300">
+                                        <select id="laneSortSelect" onchange="sortLanes()" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm appearance-none focus:ring-primary focus:border-primary text-gray-700 dark:text-gray-300">
                                             <option value="">Sort By</option>
                                             <option value="lane_asc">Lane (A-Z)</option>
                                             <option value="lane_desc">Lane (Z-A)</option>
@@ -1052,7 +1052,7 @@
                                         <span class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-symbols-outlined text-[20px]">expand_more</span>
                                     </div>
                                 </div>
-                                <button class="px-4 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm flex items-center gap-2 w-full sm:w-auto">
+                                <button onclick="openCreateLaneModal()" class="px-4 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm flex items-center gap-2 w-full sm:w-auto">
                                     <span class="material-symbols-outlined text-base">add</span>
                                     Create Lane
                                 </button>
@@ -1084,124 +1084,11 @@
                                             <th class="px-4 py-3 w-32">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="text-gray-700 dark:text-slate-300">
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">Lane 1</td>
-                                            <td class="px-4 py-3">Reception Area</td>
-                                            <td class="px-4 py-3">BR-001</td>
-                                            <td class="px-4 py-3">WG-101</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Enabled</span></td>
-                                            <td class="px-4 py-3">192.168.1.50</td>
-                                            <td class="px-4 py-3">192.168.1.51</td>
-                                            <td class="px-4 py-3">CAM-001</td>
-                                            <td class="px-4 py-3">CAM-002</td>
-                                            <td class="px-4 py-3">CAM-003</td>
-                                            <td class="px-4 py-3">192.168.1.60</td>
-                                            <td class="px-4 py-3">192.168.1.61</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs font-semibold">Yes</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">No</span></td>
-                                            <td class="px-4 py-3">admin</td>
-                                            <td class="px-4 py-3">2026-01-15 14:30</td>
-                                            <td class="px-4 py-3">2026-01-10 09:00</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">Lane 2</td>
-                                            <td class="px-4 py-3">Security Gate</td>
-                                            <td class="px-4 py-3">BR-002</td>
-                                            <td class="px-4 py-3">WG-102</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Enabled</span></td>
-                                            <td class="px-4 py-3">192.168.1.52</td>
-                                            <td class="px-4 py-3">192.168.1.53</td>
-                                            <td class="px-4 py-3">CAM-004</td>
-                                            <td class="px-4 py-3">CAM-005</td>
-                                            <td class="px-4 py-3">CAM-006</td>
-                                            <td class="px-4 py-3">192.168.1.62</td>
-                                            <td class="px-4 py-3">192.168.1.63</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">No</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs font-semibold">Yes</span></td>
-                                            <td class="px-4 py-3">security1</td>
-                                            <td class="px-4 py-3">2026-01-16 08:15</td>
-                                            <td class="px-4 py-3">2026-01-12 11:30</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">Lane 3</td>
-                                            <td class="px-4 py-3">Lobby Entrance</td>
-                                            <td class="px-4 py-3">BR-003</td>
-                                            <td class="px-4 py-3">WG-103</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">Disabled</span></td>
-                                            <td class="px-4 py-3">192.168.2.50</td>
-                                            <td class="px-4 py-3">192.168.2.51</td>
-                                            <td class="px-4 py-3">CAM-007</td>
-                                            <td class="px-4 py-3">CAM-008</td>
-                                            <td class="px-4 py-3">-</td>
-                                            <td class="px-4 py-3">192.168.2.60</td>
-                                            <td class="px-4 py-3">-</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs font-semibold">Yes</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">No</span></td>
-                                            <td class="px-4 py-3">operator1</td>
-                                            <td class="px-4 py-3">2026-01-14 16:45</td>
-                                            <td class="px-4 py-3">2026-01-08 13:20</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">Lane 4</td>
-                                            <td class="px-4 py-3">Parking Entry</td>
-                                            <td class="px-4 py-3">BR-004</td>
-                                            <td class="px-4 py-3">WG-104</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Enabled</span></td>
-                                            <td class="px-4 py-3">192.168.3.50</td>
-                                            <td class="px-4 py-3">192.168.3.51</td>
-                                            <td class="px-4 py-3">CAM-009</td>
-                                            <td class="px-4 py-3">CAM-010</td>
-                                            <td class="px-4 py-3">CAM-011</td>
-                                            <td class="px-4 py-3">192.168.3.60</td>
-                                            <td class="px-4 py-3">192.168.3.61</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">No</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs font-semibold">Yes</span></td>
-                                            <td class="px-4 py-3">parking_staff</td>
-                                            <td class="px-4 py-3">2026-01-15 10:20</td>
-                                            <td class="px-4 py-3">2026-01-11 14:15</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">Inactive</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
+                                    <tbody id="laneTableBody" class="text-gray-700 dark:text-slate-300">
+                                        <tr>
+                                            <td colspan="19" class="px-4 py-8 text-center">
+                                                <div class="flex justify-center items-center">
+                                                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                                                 </div>
                                             </td>
                                         </tr>
@@ -1212,20 +1099,10 @@
                             <!-- Pagination -->
                             <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6">
                                 <p class="text-sm text-gray-600 dark:text-slate-400">
-                                    Showing <span class="font-medium">1</span> to <span class="font-medium">4</span> of <span class="font-medium">15</span> lanes
+                                    Showing <span id="laneShowingFrom" class="font-medium">0</span> to <span id="laneShowingTo" class="font-medium">0</span> of <span id="laneTotalCount" class="font-medium">0</span> lanes
                                 </p>
-                                <div class="flex items-center gap-2">
-                                    <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                                        <span class="material-symbols-outlined text-base">chevron_left</span>
-                                    </button>
-                                    <button class="px-3 py-2 rounded-lg bg-primary text-white font-medium text-sm min-w-[40px]">1</button>
-                                    <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors font-medium text-sm min-w-[40px]">2</button>
-                                    <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors font-medium text-sm min-w-[40px]">3</button>
-                                    <span class="px-2 text-gray-400">...</span>
-                                    <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors font-medium text-sm min-w-[40px]">4</button>
-                                    <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors">
-                                        <span class="material-symbols-outlined text-base">chevron_right</span>
-                                    </button>
+                                <div id="lanePaginationButtons" class="flex items-center gap-2">
+                                    <!-- Pagination buttons will be inserted here -->
                                 </div>
                             </div>
                         </div>
@@ -1252,13 +1129,13 @@
                             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                                 <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                                     <div class="flex shadow-sm w-full sm:w-96">
-                                        <input class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Search reject reason..." type="text"/>
-                                        <button class="bg-primary hover:bg-blue-600 text-white px-6 py-2.5 rounded-r flex items-center justify-center transition-colors">
+                                        <input id="rejectReasonSearchInput" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Search reject reason..." type="text"/>
+                                        <button onclick="searchRejectReasons()" class="bg-primary hover:bg-blue-600 text-white px-6 py-2.5 rounded-r flex items-center justify-center transition-colors">
                                             <span class="material-symbols-outlined text-white text-[20px]">search</span>
                                         </button>
                                     </div>
                                     <div class="relative w-full sm:w-48">
-                                        <select class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm appearance-none focus:ring-primary focus:border-primary text-gray-700 dark:text-gray-300">
+                                        <select id="rejectReasonSortSelect" onchange="sortRejectReasons()" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm appearance-none focus:ring-primary focus:border-primary text-gray-700 dark:text-gray-300">
                                             <option value="">Sort By</option>
                                             <option value="reason_asc">Reason (A-Z)</option>
                                             <option value="reason_desc">Reason (Z-A)</option>
@@ -1267,7 +1144,7 @@
                                         <span class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-symbols-outlined text-[20px]">expand_more</span>
                                     </div>
                                 </div>
-                                <button class="px-4 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm flex items-center gap-2 w-full sm:w-auto">
+                                <button onclick="openCreateRejectReasonModal()" class="px-4 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm flex items-center gap-2 w-full sm:w-auto">
                                     <span class="material-symbols-outlined text-base">add</span>
                                     Create Reject Reason
                                 </button>
@@ -1285,116 +1162,11 @@
                                             <th class="px-4 py-3 w-32">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="text-gray-700 dark:text-slate-300">
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">Incomplete Documentation</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Enabled</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs font-semibold">Yes</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">Invalid Information</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Enabled</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs font-semibold">Yes</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">Security Concerns</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Enabled</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">No</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">Unauthorized Access</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">Disabled</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">No</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">Blacklisted Visitor</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Enabled</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs font-semibold">Yes</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">Host Not Available</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Enabled</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">No</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">No Show</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Enabled</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs font-semibold">Yes</span></td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">Inactive</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
+                                    <tbody id="rejectReasonTableBody" class="text-gray-700 dark:text-slate-300">
+                                        <tr>
+                                            <td colspan="5" class="px-4 py-8 text-center">
+                                                <div class="flex justify-center items-center">
+                                                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                                                 </div>
                                             </td>
                                         </tr>
@@ -1405,18 +1177,10 @@
                             <!-- Pagination -->
                             <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6">
                                 <p class="text-sm text-gray-600 dark:text-slate-400">
-                                    Showing <span class="font-medium">1</span> to <span class="font-medium">7</span> of <span class="font-medium">18</span> reject reasons
+                                    Showing <span id="rejectReasonShowingFrom" class="font-medium">0</span> to <span id="rejectReasonShowingTo" class="font-medium">0</span> of <span id="rejectReasonTotalCount" class="font-medium">0</span> reject reasons
                                 </p>
-                                <div class="flex items-center gap-2">
-                                    <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                                        <span class="material-symbols-outlined text-base">chevron_left</span>
-                                    </button>
-                                    <button class="px-3 py-2 rounded-lg bg-primary text-white font-medium text-sm min-w-[40px]">1</button>
-                                    <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors font-medium text-sm min-w-[40px]">2</button>
-                                    <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors font-medium text-sm min-w-[40px]">3</button>
-                                    <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors">
-                                        <span class="material-symbols-outlined text-base">chevron_right</span>
-                                    </button>
+                                <div id="rejectReasonPaginationButtons" class="flex items-center gap-2">
+                                    <!-- Pagination buttons will be inserted here -->
                                 </div>
                             </div>
                         </div>
@@ -1443,13 +1207,13 @@
                             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                                 <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                                     <div class="flex shadow-sm w-full sm:w-96">
-                                        <input class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Search card ID, serial number..." type="text"/>
-                                        <button class="bg-primary hover:bg-blue-600 text-white px-6 py-2.5 rounded-r flex items-center justify-center transition-colors">
+                                        <input id="visitorCardSearchInput" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Search card ID, serial number..." type="text"/>
+                                        <button onclick="searchVisitorCards()" class="bg-primary hover:bg-blue-600 text-white px-6 py-2.5 rounded-r flex items-center justify-center transition-colors">
                                             <span class="material-symbols-outlined text-white text-[20px]">search</span>
                                         </button>
                                     </div>
                                     <div class="relative w-full sm:w-48">
-                                        <select class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm appearance-none focus:ring-primary focus:border-primary text-gray-700 dark:text-gray-300">
+                                        <select id="visitorCardSortSelect" onchange="sortVisitorCards()" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm appearance-none focus:ring-primary focus:border-primary text-gray-700 dark:text-gray-300">
                                             <option value="">Sort By</option>
                                             <option value="card_asc">Card ID (A-Z)</option>
                                             <option value="card_desc">Card ID (Z-A)</option>
@@ -1460,7 +1224,7 @@
                                         <span class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-symbols-outlined text-[20px]">expand_more</span>
                                     </div>
                                 </div>
-                                <button class="px-4 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm flex items-center gap-2 w-full sm:w-auto">
+                                <button onclick="openCreateVisitorCardModal()" class="px-4 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm flex items-center gap-2 w-full sm:w-auto">
                                     <span class="material-symbols-outlined text-base">add</span>
                                     Create Card
                                 </button>
@@ -1477,124 +1241,12 @@
                                             <th class="px-4 py-3 w-32">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="text-gray-700 dark:text-slate-300">
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">VC-001</td>
-                                            <td class="px-4 py-3">SN-2024-001</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">VC-002</td>
-                                            <td class="px-4 py-3">SN-2024-002</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">VC-003</td>
-                                            <td class="px-4 py-3">SN-2024-003</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded text-xs font-semibold">In Use</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">VC-004</td>
-                                            <td class="px-4 py-3">SN-2024-004</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded text-xs font-semibold">In Use</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">VC-005</td>
-                                            <td class="px-4 py-3">SN-2024-005</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">VC-006</td>
-                                            <td class="px-4 py-3">SN-2024-006</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-red-500/20 text-red-400 rounded text-xs font-semibold">Lost</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">VC-007</td>
-                                            <td class="px-4 py-3">SN-2024-007</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">Inactive</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">VC-008</td>
-                                            <td class="px-4 py-3">SN-2024-008</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
+                                    <tbody id="visitorCardTableBody" class="text-gray-700 dark:text-slate-300">
+                                        <tr>
+                                            <td colspan="4" class="px-4 py-12 text-center">
+                                                <div class="flex flex-col items-center justify-center">
+                                                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+                                                    <p class="text-gray-500 dark:text-slate-400">Loading visitor cards...</p>
                                                 </div>
                                             </td>
                                         </tr>
@@ -1605,20 +1257,10 @@
                             <!-- Pagination -->
                             <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6">
                                 <p class="text-sm text-gray-600 dark:text-slate-400">
-                                    Showing <span class="font-medium">1</span> to <span class="font-medium">8</span> of <span class="font-medium">52</span> cards
+                                    Showing <span id="visitorCardShowingFrom" class="font-medium">0</span> to <span id="visitorCardShowingTo" class="font-medium">0</span> of <span id="visitorCardTotalCount" class="font-medium">0</span> cards
                                 </p>
-                                <div class="flex items-center gap-2">
-                                    <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                                        <span class="material-symbols-outlined text-base">chevron_left</span>
-                                    </button>
-                                    <button class="px-3 py-2 rounded-lg bg-primary text-white font-medium text-sm min-w-[40px]">1</button>
-                                    <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors font-medium text-sm min-w-[40px]">2</button>
-                                    <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors font-medium text-sm min-w-[40px]">3</button>
-                                    <span class="px-2 text-gray-400">...</span>
-                                    <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors font-medium text-sm min-w-[40px]">7</button>
-                                    <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors">
-                                        <span class="material-symbols-outlined text-base">chevron_right</span>
-                                    </button>
+                                <div id="visitorCardPaginationButtons" class="flex items-center gap-2">
+                                    <!-- Pagination buttons will be dynamically generated -->
                                 </div>
                             </div>
                         </div>
@@ -1645,13 +1287,13 @@
                             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                                 <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                                     <div class="flex shadow-sm w-full sm:w-96">
-                                        <input class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Search video name..." type="text"/>
-                                        <button class="bg-primary hover:bg-blue-600 text-white px-6 py-2.5 rounded-r flex items-center justify-center transition-colors">
+                                        <input id="videoSearchInput" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Search video name..." type="text"/>
+                                        <button onclick="searchVideos()" class="bg-primary hover:bg-blue-600 text-white px-6 py-2.5 rounded-r flex items-center justify-center transition-colors">
                                             <span class="material-symbols-outlined text-white text-[20px]">search</span>
                                         </button>
                                     </div>
                                     <div class="relative w-full sm:w-48">
-                                        <select class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm appearance-none focus:ring-primary focus:border-primary text-gray-700 dark:text-gray-300">
+                                        <select id="videoSortSelect" onchange="sortVideos()" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm appearance-none focus:ring-primary focus:border-primary text-gray-700 dark:text-gray-300">
                                             <option value="">Sort By</option>
                                             <option value="name_asc">Name (A-Z)</option>
                                             <option value="name_desc">Name (Z-A)</option>
@@ -1660,7 +1302,7 @@
                                         <span class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-symbols-outlined text-[20px]">expand_more</span>
                                     </div>
                                 </div>
-                                <button class="px-4 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm flex items-center gap-2 w-full sm:w-auto">
+                                <button onclick="openCreateVideoModal()" class="px-4 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm flex items-center gap-2 w-full sm:w-auto">
                                     <span class="material-symbols-outlined text-base">add</span>
                                     Upload Video
                                 </button>
@@ -1676,74 +1318,12 @@
                                             <th class="px-4 py-3 w-32">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="text-gray-700 dark:text-slate-300">
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">Safety Orientation Video</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">Visitor Guidelines</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">Emergency Procedures</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">Company Introduction</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">Security Training</td>
-                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">Inactive</span></td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
+                                    <tbody id="videoTableBody" class="text-gray-700 dark:text-slate-300">
+                                        <tr>
+                                            <td colspan="3" class="px-4 py-12 text-center">
+                                                <div class="flex flex-col items-center justify-center">
+                                                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+                                                    <p class="text-gray-500 dark:text-slate-400">Loading videos...</p>
                                                 </div>
                                             </td>
                                         </tr>
@@ -1754,18 +1334,10 @@
                             <!-- Pagination -->
                             <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6">
                                 <p class="text-sm text-gray-600 dark:text-slate-400">
-                                    Showing <span class="font-medium">1</span> to <span class="font-medium">5</span> of <span class="font-medium">12</span> videos
+                                    Showing <span id="videoShowingFrom" class="font-medium">0</span> to <span id="videoShowingTo" class="font-medium">0</span> of <span id="videoTotalCount" class="font-medium">0</span> videos
                                 </p>
-                                <div class="flex items-center gap-2">
-                                    <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                                        <span class="material-symbols-outlined text-base">chevron_left</span>
-                                    </button>
-                                    <button class="px-3 py-2 rounded-lg bg-primary text-white font-medium text-sm min-w-[40px]">1</button>
-                                    <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors font-medium text-sm min-w-[40px]">2</button>
-                                    <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors font-medium text-sm min-w-[40px]">3</button>
-                                    <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors">
-                                        <span class="material-symbols-outlined text-base">chevron_right</span>
-                                    </button>
+                                <div id="videoPaginationButtons" class="flex items-center gap-2">
+                                    <!-- Pagination buttons will be dynamically generated -->
                                 </div>
                             </div>
                         </div>
@@ -1792,23 +1364,22 @@
                             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                                 <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                                     <div class="flex shadow-sm w-full sm:w-96">
-                                        <input class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Search visit reason..." type="text"/>
-                                        <button class="bg-primary hover:bg-blue-600 text-white px-6 py-2.5 rounded-r flex items-center justify-center transition-colors">
+                                        <input id="visitReasonSearchInput" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Search visit reason..." type="text" onkeyup="searchVisitReasons()"/>
+                                        <button onclick="searchVisitReasons()" class="bg-primary hover:bg-blue-600 text-white px-6 py-2.5 rounded-r flex items-center justify-center transition-colors">
                                             <span class="material-symbols-outlined text-white text-[20px]">search</span>
                                         </button>
                                     </div>
                                     <div class="relative w-full sm:w-48">
-                                        <select class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm appearance-none focus:ring-primary focus:border-primary text-gray-700 dark:text-gray-300">
-                                            <option value="">Sort By</option>
-                                            <option value="no_asc">No (Ascending)</option>
-                                            <option value="no_desc">No (Descending)</option>
+                                        <select id="visitReasonSortSelect" onchange="sortVisitReasons()" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm appearance-none focus:ring-primary focus:border-primary text-gray-700 dark:text-gray-300">
+                                            <option value="created_at_desc">Newest First</option>
+                                            <option value="created_at_asc">Oldest First</option>
                                             <option value="reason_asc">Reason (A-Z)</option>
                                             <option value="reason_desc">Reason (Z-A)</option>
                                         </select>
                                         <span class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-symbols-outlined text-[20px]">expand_more</span>
                                     </div>
                                 </div>
-                                <button class="px-4 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm flex items-center gap-2 w-full sm:w-auto">
+                                <button onclick="openCreateVisitReasonModal()" class="px-4 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm flex items-center gap-2 w-full sm:w-auto">
                                     <span class="material-symbols-outlined text-base">add</span>
                                     Create Visit Reason
                                 </button>
@@ -1824,116 +1395,12 @@
                                             <th class="px-4 py-3 w-32">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="text-gray-700 dark:text-slate-300">
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">1</td>
-                                            <td class="px-4 py-3">Business Meeting</td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">2</td>
-                                            <td class="px-4 py-3">Delivery</td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">3</td>
-                                            <td class="px-4 py-3">Interview</td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">4</td>
-                                            <td class="px-4 py-3">Maintenance</td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">5</td>
-                                            <td class="px-4 py-3">Consultation</td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">6</td>
-                                            <td class="px-4 py-3">Training</td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">7</td>
-                                            <td class="px-4 py-3">Site Inspection</td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                                            <td class="px-4 py-3 font-medium">8</td>
-                                            <td class="px-4 py-3">Personal Visit</td>
-                                            <td class="px-4 py-3 w-32">
-                                                <div class="flex gap-2">
-                                                    <button class="text-primary hover:text-primary/80">
-                                                        <span class="material-symbols-outlined text-xl">edit</span>
-                                                    </button>
-                                                    <button class="text-red-500 hover:text-red-400">
-                                                        <span class="material-symbols-outlined text-xl">delete</span>
-                                                    </button>
+                                    <tbody id="visitReasonTableBody" class="text-gray-700 dark:text-slate-300">
+                                        <tr>
+                                            <td colspan="3" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
+                                                <div class="flex flex-col items-center justify-center">
+                                                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
+                                                    <span>Loading visit reasons...</span>
                                                 </div>
                                             </td>
                                         </tr>
@@ -1942,20 +1409,12 @@
                             </div>
 
                             <!-- Pagination -->
-                            <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6">
+                            <div id="visitReasonPagination" class="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6">
                                 <p class="text-sm text-gray-600 dark:text-slate-400">
-                                    Showing <span class="font-medium">1</span> to <span class="font-medium">8</span> of <span class="font-medium">24</span> visit reasons
+                                    Showing <span id="visitReasonFrom">0</span> to <span id="visitReasonTo">0</span> of <span id="visitReasonTotal">0</span> visit reasons
                                 </p>
-                                <div class="flex items-center gap-2">
-                                    <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                                        <span class="material-symbols-outlined text-base">chevron_left</span>
-                                    </button>
-                                    <button class="px-3 py-2 rounded-lg bg-primary text-white font-medium text-sm min-w-[40px]">1</button>
-                                    <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors font-medium text-sm min-w-[40px]">2</button>
-                                    <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors font-medium text-sm min-w-[40px]">3</button>
-                                    <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors">
-                                        <span class="material-symbols-outlined text-base">chevron_right</span>
-                                    </button>
+                                <div id="visitReasonPaginationButtons" class="flex items-center gap-2">
+                                    <!-- Pagination buttons will be inserted here -->
                                 </div>
                             </div>
                         </div>
@@ -2358,6 +1817,7 @@
                             <div class="flex items-center justify-between mb-4">
                                 <div class="flex gap-2">
                                     <button onclick="filterLogs('all')" id="filter-all" class="px-4 py-2 rounded-lg bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-300 dark:hover:bg-slate-600 transition-colors text-sm">All Logs</button>
+                                    <button onclick="filterLogs('critical')" id="filter-critical" class="px-4 py-2 rounded-lg text-gray-600 dark:text-slate-400 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">Critical</button>
                                     <button onclick="filterLogs('error')" id="filter-error" class="px-4 py-2 rounded-lg text-gray-600 dark:text-slate-400 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">Errors Only</button>
                                     <button onclick="filterLogs('warning')" id="filter-warning" class="px-4 py-2 rounded-lg text-gray-600 dark:text-slate-400 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">Warnings</button>
                                     <button onclick="filterLogs('info')" id="filter-info" class="px-4 py-2 rounded-lg text-gray-600 dark:text-slate-400 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">Info</button>
@@ -2657,6 +2117,26 @@
                 // Load locations when Location Access Management section is opened
                 if (section === 'location') {
                     loadLocations();
+                }
+                // Load lanes when Lane Management section is opened
+                if (section === 'lane') {
+                    loadLanes();
+                }
+                // Load reject reasons when Reject Reason Management section is opened
+                if (section === 'reject') {
+                    loadRejectReasons();
+                }
+                // Load visitor cards when Visitor Card Management section is opened
+                if (section === 'card') {
+                    loadVisitorCards();
+                }
+                // Load videos when Video Management section is opened
+                if (section === 'video') {
+                    loadVideos();
+                }
+                // Load visit reasons when Visit Reason Management section is opened
+                if (section === 'reason') {
+                    loadVisitReasons();
                 }
             } else {
                 content.classList.add('hidden');
@@ -3337,6 +2817,7 @@
             // Update button states
             const buttons = {
                 'all': document.getElementById('filter-all'),
+                'critical': document.getElementById('filter-critical'),
                 'error': document.getElementById('filter-error'),
                 'warning': document.getElementById('filter-warning'),
                 'info': document.getElementById('filter-info'),
@@ -4318,6 +3799,21 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        function formatDateTime(dateTimeString) {
+            if (!dateTimeString) return '-';
+            try {
+                const date = new Date(dateTimeString);
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                const hours = String(date.getHours()).padStart(2, '0');
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+                return `${year}-${month}-${day} ${hours}:${minutes}`;
+            } catch (e) {
+                return dateTimeString;
+            }
         }
 
         // ============== COUNTRY MANAGEMENT FUNCTIONS ==============
@@ -5793,27 +5289,29 @@
             const paginationContainer = document.getElementById('departmentPaginationButtons');
             paginationContainer.innerHTML = '';
 
-            if (pagination.totalPages <= 1) return;
+            // Always show pagination buttons for consistency
+            const totalPages = pagination.totalPages || 1;
+            const currentPage = pagination.currentPage || 1;
 
             // Previous button
             const prevBtn = document.createElement('button');
-            prevBtn.className = `px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors ${pagination.currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''}`;
+            prevBtn.className = `px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''}`;
             prevBtn.innerHTML = '<span class="material-symbols-outlined text-base">chevron_left</span>';
-            prevBtn.disabled = pagination.currentPage === 1;
+            prevBtn.disabled = currentPage === 1;
             prevBtn.onclick = () => {
-                if (pagination.currentPage > 1) {
-                    loadDepartments(pagination.currentPage - 1, currentDepartmentSearch, currentDepartmentSort);
+                if (currentPage > 1) {
+                    loadDepartments(currentPage - 1, currentDepartmentSearch, currentDepartmentSort);
                 }
             };
             paginationContainer.appendChild(prevBtn);
 
             // Page numbers
-            const startPage = Math.max(1, pagination.currentPage - 2);
-            const endPage = Math.min(pagination.totalPages, pagination.currentPage + 2);
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(totalPages, currentPage + 2);
 
             for (let i = startPage; i <= endPage; i++) {
                 const pageBtn = document.createElement('button');
-                pageBtn.className = i === pagination.currentPage 
+                pageBtn.className = i === currentPage 
                     ? 'px-3 py-2 rounded-lg bg-primary text-white font-medium text-sm min-w-[40px]'
                     : 'px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors font-medium text-sm min-w-[40px]';
                 pageBtn.textContent = i;
@@ -5823,12 +5321,12 @@
 
             // Next button
             const nextBtn = document.createElement('button');
-            nextBtn.className = `px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors ${pagination.currentPage === pagination.totalPages ? 'opacity-50 cursor-not-allowed' : ''}`;
+            nextBtn.className = `px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : ''}`;
             nextBtn.innerHTML = '<span class="material-symbols-outlined text-base">chevron_right</span>';
-            nextBtn.disabled = pagination.currentPage === pagination.totalPages;
+            nextBtn.disabled = currentPage === totalPages;
             nextBtn.onclick = () => {
-                if (pagination.currentPage < pagination.totalPages) {
-                    loadDepartments(pagination.currentPage + 1, currentDepartmentSearch, currentDepartmentSort);
+                if (currentPage < totalPages) {
+                    loadDepartments(currentPage + 1, currentDepartmentSearch, currentDepartmentSort);
                 }
             };
             paginationContainer.appendChild(nextBtn);
@@ -6637,27 +6135,29 @@
             const paginationContainer = document.getElementById('locationPaginationButtons');
             paginationContainer.innerHTML = '';
 
-            if (pagination.totalPages <= 1) return;
+            // Always show pagination buttons for consistency
+            const totalPages = pagination.totalPages || 1;
+            const currentPage = pagination.currentPage || 1;
 
             // Previous button
             const prevBtn = document.createElement('button');
-            prevBtn.className = `px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors ${pagination.currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''}`;
+            prevBtn.className = `px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''}`;
             prevBtn.innerHTML = '<span class="material-symbols-outlined text-base">chevron_left</span>';
-            prevBtn.disabled = pagination.currentPage === 1;
+            prevBtn.disabled = currentPage === 1;
             prevBtn.onclick = () => {
-                if (pagination.currentPage > 1) {
-                    loadLocations(pagination.currentPage - 1, currentLocationSearch, currentLocationSort);
+                if (currentPage > 1) {
+                    loadLocations(currentPage - 1, currentLocationSearch, currentLocationSort);
                 }
             };
             paginationContainer.appendChild(prevBtn);
 
             // Page numbers
-            const startPage = Math.max(1, pagination.currentPage - 2);
-            const endPage = Math.min(pagination.totalPages, pagination.currentPage + 2);
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(totalPages, currentPage + 2);
 
             for (let i = startPage; i <= endPage; i++) {
                 const pageBtn = document.createElement('button');
-                pageBtn.className = i === pagination.currentPage 
+                pageBtn.className = i === currentPage 
                     ? 'px-3 py-2 rounded-lg bg-primary text-white font-medium text-sm min-w-[40px]'
                     : 'px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors font-medium text-sm min-w-[40px]';
                 pageBtn.textContent = i;
@@ -6667,12 +6167,12 @@
 
             // Next button
             const nextBtn = document.createElement('button');
-            nextBtn.className = `px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors ${pagination.currentPage === pagination.totalPages ? 'opacity-50 cursor-not-allowed' : ''}`;
+            nextBtn.className = `px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : ''}`;
             nextBtn.innerHTML = '<span class="material-symbols-outlined text-base">chevron_right</span>';
-            nextBtn.disabled = pagination.currentPage === pagination.totalPages;
+            nextBtn.disabled = currentPage === totalPages;
             nextBtn.onclick = () => {
-                if (pagination.currentPage < pagination.totalPages) {
-                    loadLocations(pagination.currentPage + 1, currentLocationSearch, currentLocationSort);
+                if (currentPage < totalPages) {
+                    loadLocations(currentPage + 1, currentLocationSearch, currentLocationSort);
                 }
             };
             paginationContainer.appendChild(nextBtn);
@@ -7044,6 +6544,2340 @@
             if (e.target && e.target.id === 'locationSearchInput' && e.key === 'Enter') {
                 e.preventDefault();
                 searchLocations();
+            }
+        });
+
+        // ============================================
+        // Lane Management Functions
+        // ============================================
+
+        let currentLanePage = 1;
+        let currentLaneSearch = '';
+        let currentLaneSort = '';
+        let currentLaneId = null;
+
+        function loadLanes(page = 1, search = '', sortBy = '') {
+            currentLanePage = page;
+            currentLaneSearch = search;
+            currentLaneSort = sortBy;
+
+            const tbody = document.getElementById('laneTableBody');
+            tbody.innerHTML = '<tr><td colspan="19" class="px-4 py-8 text-center"><div class="flex justify-center items-center"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div></td></tr>';
+
+            const params = new URLSearchParams({ page, limit: 10, search, sortBy });
+
+            fetch(`<?= base_url('config/getLanes') ?>?${params}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayLanes(data.data);
+                        updateLanePagination(data.pagination);
+                    } else {
+                        tbody.innerHTML = '<tr><td colspan="19" class="px-4 py-8 text-center text-red-500">Failed to load lanes</td></tr>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading lanes:', error);
+                    tbody.innerHTML = '<tr><td colspan="19" class="px-4 py-8 text-center text-red-500">An error occurred while loading lanes</td></tr>';
+                });
+        }
+
+        function displayLanes(lanes) {
+            const tbody = document.getElementById('laneTableBody');
+            
+            if (lanes.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="19" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">No lanes found</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = lanes.map(lane => {
+                const slipPrintBadge = lane.slip_print === 'enabled' 
+                    ? '<span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Enabled</span>'
+                    : '<span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">Disabled</span>';
+                
+                const inBoundBadge = lane.in_bound === 'yes'
+                    ? '<span class="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs font-semibold">Yes</span>'
+                    : '<span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">No</span>';
+                
+                const outBoundBadge = lane.out_bound === 'yes'
+                    ? '<span class="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs font-semibold">Yes</span>'
+                    : '<span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">No</span>';
+                
+                const statusBadge = lane.status === 'active'
+                    ? '<span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span>'
+                    : '<span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">Inactive</span>';
+
+                return `
+                    <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
+                        <td class="px-4 py-3 font-medium">${escapeHtml(lane.lane)}</td>
+                        <td class="px-4 py-3">${escapeHtml(lane.location_access || '-')}</td>
+                        <td class="px-4 py-3">${escapeHtml(lane.barrier_no || '-')}</td>
+                        <td class="px-4 py-3">${escapeHtml(lane.weight_id || '-')}</td>
+                        <td class="px-4 py-3">${slipPrintBadge}</td>
+                        <td class="px-4 py-3">${escapeHtml(lane.antena_ip || '-')}</td>
+                        <td class="px-4 py-3">${escapeHtml(lane.kiosk_ip || '-')}</td>
+                        <td class="px-4 py-3">${escapeHtml(lane.cam_id_1 || '-')}</td>
+                        <td class="px-4 py-3">${escapeHtml(lane.cam_id_2 || '-')}</td>
+                        <td class="px-4 py-3">${escapeHtml(lane.cam_id_3 || '-')}</td>
+                        <td class="px-4 py-3">${escapeHtml(lane.cam_photo_ip_1 || '-')}</td>
+                        <td class="px-4 py-3">${escapeHtml(lane.cam_photo_ip_2 || '-')}</td>
+                        <td class="px-4 py-3">${inBoundBadge}</td>
+                        <td class="px-4 py-3">${outBoundBadge}</td>
+                        <td class="px-4 py-3">${escapeHtml(lane.last_logged_in_by || '-')}</td>
+                        <td class="px-4 py-3">${lane.last_logged_in_datetime ? formatDateTime(lane.last_logged_in_datetime) : '-'}</td>
+                        <td class="px-4 py-3">${lane.last_changed_on_printer_paper ? formatDateTime(lane.last_changed_on_printer_paper) : '-'}</td>
+                        <td class="px-4 py-3">${statusBadge}</td>
+                        <td class="px-4 py-3 w-32">
+                            <div class="flex gap-2">
+                                <button onclick="openEditLaneModal(${lane.id})" class="text-primary hover:text-primary/80">
+                                    <span class="material-symbols-outlined text-xl">edit</span>
+                                </button>
+                                <button onclick="openDeleteLaneModal(${lane.id}, '${escapeHtml(lane.lane)}')" class="text-red-500 hover:text-red-400">
+                                    <span class="material-symbols-outlined text-xl">delete</span>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function updateLanePagination(pagination) {
+            const showingFrom = pagination.total === 0 ? 0 : ((pagination.page - 1) * pagination.limit) + 1;
+            const showingTo = Math.min(pagination.page * pagination.limit, pagination.total);
+
+            document.getElementById('laneShowingFrom').textContent = showingFrom;
+            document.getElementById('laneShowingTo').textContent = showingTo;
+            document.getElementById('laneTotalCount').textContent = pagination.total;
+
+            const paginationButtons = document.getElementById('lanePaginationButtons');
+            let buttonsHTML = '';
+
+            // Previous button
+            buttonsHTML += `
+                <button onclick="loadLanes(${pagination.page - 1}, currentLaneSearch, currentLaneSort)" 
+                        class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
+                        ${pagination.page === 1 ? 'disabled' : ''}>
+                    <span class="material-symbols-outlined text-base">chevron_left</span>
+                </button>
+            `;
+
+            // Page numbers
+            for (let i = 1; i <= pagination.totalPages; i++) {
+                if (i === pagination.page) {
+                    buttonsHTML += `
+                        <button class="px-3 py-2 rounded-lg bg-primary text-white font-medium text-sm min-w-[40px]">${i}</button>
+                    `;
+                } else {
+                    buttonsHTML += `
+                        <button onclick="loadLanes(${i}, currentLaneSearch, currentLaneSort)" 
+                                class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors font-medium text-sm min-w-[40px]">${i}</button>
+                    `;
+                }
+            }
+
+            // Next button
+            buttonsHTML += `
+                <button onclick="loadLanes(${pagination.page + 1}, currentLaneSearch, currentLaneSort)" 
+                        class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
+                        ${pagination.page === pagination.totalPages ? 'disabled' : ''}>
+                    <span class="material-symbols-outlined text-base">chevron_right</span>
+                </button>
+            `;
+
+            paginationButtons.innerHTML = buttonsHTML;
+        }
+
+        function searchLanes() {
+            const searchInput = document.getElementById('laneSearchInput');
+            const sortSelect = document.getElementById('laneSortSelect');
+            loadLanes(1, searchInput.value, sortSelect.value);
+        }
+
+        function sortLanes() {
+            const searchInput = document.getElementById('laneSearchInput');
+            const sortSelect = document.getElementById('laneSortSelect');
+            loadLanes(1, searchInput.value, sortSelect.value);
+        }
+
+        function openCreateLaneModal() {
+            // Load locations for dropdown
+            fetch(`<?= base_url('config/getLocations') ?>?limit=100`)
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        showNotification('Failed to load locations', 'error');
+                        return;
+                    }
+
+                    const locationOptions = data.locations.map(loc => 
+                        `<option value="${loc.id}">${escapeHtml(loc.branch)} - ${escapeHtml(loc.location_access)}</option>`
+                    ).join('');
+
+                    const modalHTML = `
+                        <div id="laneModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                            <div class="bg-white dark:bg-slate-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                                <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-700">
+                                    <h3 class="text-lg font-bold text-gray-800 dark:text-white">Create New Lane</h3>
+                                    <button onclick="closeLaneModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                        <span class="material-symbols-outlined">close</span>
+                                    </button>
+                                </div>
+                                <form onsubmit="saveLane(event)" class="p-6">
+                                    <div id="laneErrorContainer" class="hidden mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-300 rounded-lg text-sm"></div>
+                                    
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Lane Name <span class="text-red-500">*</span></label>
+                                            <input type="text" id="laneName" name="lane" required class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Location <span class="text-red-500">*</span></label>
+                                            <select id="laneLocation" name="location_id" required class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                                <option value="">Select Location</option>
+                                                ${locationOptions}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Barrier No</label>
+                                            <input type="text" id="laneBarrierNo" name="barrier_no" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Weight ID</label>
+                                            <input type="text" id="laneWeightId" name="weight_id" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Slip Print <span class="text-red-500">*</span></label>
+                                            <select id="laneSlipPrint" name="slip_print" required class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                                <option value="enabled">Enabled</option>
+                                                <option value="disabled">Disabled</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Antena IP</label>
+                                            <input type="text" id="laneAntenaIp" name="antena_ip" placeholder="e.g., 192.168.1.50" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">KIOSK IP</label>
+                                            <input type="text" id="laneKioskIp" name="kiosk_ip" placeholder="e.g., 192.168.1.51" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Camera ID 1</label>
+                                            <input type="text" id="laneCamId1" name="cam_id_1" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Camera ID 2</label>
+                                            <input type="text" id="laneCamId2" name="cam_id_2" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Camera ID 3</label>
+                                            <input type="text" id="laneCamId3" name="cam_id_3" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Camera Photo IP 1</label>
+                                            <input type="text" id="laneCamPhotoIp1" name="cam_photo_ip_1" placeholder="e.g., 192.168.1.60" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Camera Photo IP 2</label>
+                                            <input type="text" id="laneCamPhotoIp2" name="cam_photo_ip_2" placeholder="e.g., 192.168.1.61" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">In Bound <span class="text-red-500">*</span></label>
+                                            <select id="laneInBound" name="in_bound" required class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                                <option value="yes">Yes</option>
+                                                <option value="no">No</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Out Bound <span class="text-red-500">*</span></label>
+                                            <select id="laneOutBound" name="out_bound" required class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                                <option value="yes">Yes</option>
+                                                <option value="no">No</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Status <span class="text-red-500">*</span></label>
+                                            <select id="laneStatus" name="status" required class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                                <option value="active">Active</option>
+                                                <option value="inactive">Inactive</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex gap-3 justify-end pt-4 border-t border-gray-200 dark:border-slate-700">
+                                        <button type="button" onclick="closeLaneModal()" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">
+                                            Cancel
+                                        </button>
+                                        <button type="submit" class="px-4 py-2 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm">
+                                            Create Lane
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    `;
+
+                    document.body.insertAdjacentHTML('beforeend', modalHTML);
+                })
+                .catch(error => {
+                    console.error('Error loading locations:', error);
+                    showNotification('Failed to load locations', 'error');
+                });
+        }
+
+        function openEditLaneModal(laneId) {
+            currentLaneId = laneId;
+
+            // Load locations and lane data in parallel
+            Promise.all([
+                fetch(`<?= base_url('config/getLocations') ?>?limit=100`).then(r => r.json()),
+                fetch(`<?= base_url('config/getLane') ?>/${laneId}`).then(r => r.json())
+            ])
+            .then(([locationsData, laneData]) => {
+                if (!locationsData.success || !laneData.success) {
+                    showNotification('Failed to load data', 'error');
+                    return;
+                }
+
+                const locationOptions = locationsData.locations.map(loc => 
+                    `<option value="${loc.id}" ${loc.id === laneData.data.location_id ? 'selected' : ''}>${escapeHtml(loc.branch)} - ${escapeHtml(loc.location_access)}</option>`
+                ).join('');
+
+                const lane = laneData.data;
+
+                const modalHTML = `
+                    <div id="laneModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                        <div class="bg-white dark:bg-slate-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                            <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-700">
+                                <h3 class="text-lg font-bold text-gray-800 dark:text-white">Edit Lane</h3>
+                                <button onclick="closeLaneModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                    <span class="material-symbols-outlined">close</span>
+                                </button>
+                            </div>
+                            <form onsubmit="saveLane(event)" class="p-6">
+                                <div id="laneErrorContainer" class="hidden mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-300 rounded-lg text-sm"></div>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Lane Name <span class="text-red-500">*</span></label>
+                                        <input type="text" id="laneName" name="lane" value="${escapeHtml(lane.lane)}" required class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Location <span class="text-red-500">*</span></label>
+                                        <select id="laneLocation" name="location_id" required class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                            <option value="">Select Location</option>
+                                            ${locationOptions}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Barrier No</label>
+                                        <input type="text" id="laneBarrierNo" name="barrier_no" value="${escapeHtml(lane.barrier_no || '')}" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Weight ID</label>
+                                        <input type="text" id="laneWeightId" name="weight_id" value="${escapeHtml(lane.weight_id || '')}" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Slip Print <span class="text-red-500">*</span></label>
+                                        <select id="laneSlipPrint" name="slip_print" required class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                            <option value="enabled" ${lane.slip_print === 'enabled' ? 'selected' : ''}>Enabled</option>
+                                            <option value="disabled" ${lane.slip_print === 'disabled' ? 'selected' : ''}>Disabled</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Antena IP</label>
+                                        <input type="text" id="laneAntenaIp" name="antena_ip" value="${escapeHtml(lane.antena_ip || '')}" placeholder="e.g., 192.168.1.50" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">KIOSK IP</label>
+                                        <input type="text" id="laneKioskIp" name="kiosk_ip" value="${escapeHtml(lane.kiosk_ip || '')}" placeholder="e.g., 192.168.1.51" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Camera ID 1</label>
+                                        <input type="text" id="laneCamId1" name="cam_id_1" value="${escapeHtml(lane.cam_id_1 || '')}" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Camera ID 2</label>
+                                        <input type="text" id="laneCamId2" name="cam_id_2" value="${escapeHtml(lane.cam_id_2 || '')}" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Camera ID 3</label>
+                                        <input type="text" id="laneCamId3" name="cam_id_3" value="${escapeHtml(lane.cam_id_3 || '')}" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Camera Photo IP 1</label>
+                                        <input type="text" id="laneCamPhotoIp1" name="cam_photo_ip_1" value="${escapeHtml(lane.cam_photo_ip_1 || '')}" placeholder="e.g., 192.168.1.60" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Camera Photo IP 2</label>
+                                        <input type="text" id="laneCamPhotoIp2" name="cam_photo_ip_2" value="${escapeHtml(lane.cam_photo_ip_2 || '')}" placeholder="e.g., 192.168.1.61" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">In Bound <span class="text-red-500">*</span></label>
+                                        <select id="laneInBound" name="in_bound" required class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                            <option value="yes" ${lane.in_bound === 'yes' ? 'selected' : ''}>Yes</option>
+                                            <option value="no" ${lane.in_bound === 'no' ? 'selected' : ''}>No</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Out Bound <span class="text-red-500">*</span></label>
+                                        <select id="laneOutBound" name="out_bound" required class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                            <option value="yes" ${lane.out_bound === 'yes' ? 'selected' : ''}>Yes</option>
+                                            <option value="no" ${lane.out_bound === 'no' ? 'selected' : ''}>No</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Status <span class="text-red-500">*</span></label>
+                                        <select id="laneStatus" name="status" required class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                            <option value="active" ${lane.status === 'active' ? 'selected' : ''}>Active</option>
+                                            <option value="inactive" ${lane.status === 'inactive' ? 'selected' : ''}>Inactive</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex gap-3 justify-end pt-4 border-t border-gray-200 dark:border-slate-700">
+                                    <button type="button" onclick="closeLaneModal()" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">
+                                        Cancel
+                                    </button>
+                                    <button type="submit" class="px-4 py-2 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm">
+                                        Update Lane
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                `;
+
+                document.body.insertAdjacentHTML('beforeend', modalHTML);
+            })
+            .catch(error => {
+                console.error('Error loading data:', error);
+                showNotification('Failed to load data', 'error');
+            });
+        }
+
+        function openDeleteLaneModal(laneId, laneName) {
+            currentLaneId = laneId;
+            
+            const modalHTML = `
+                <div id="deleteLaneModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                    <div class="bg-white dark:bg-slate-800 rounded-lg max-w-md w-full">
+                        <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-700">
+                            <h3 class="text-lg font-bold text-gray-800 dark:text-white">Delete Lane</h3>
+                            <button onclick="closeDeleteLaneModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <div class="p-6">
+                            <p class="text-gray-700 dark:text-slate-300 mb-6">
+                                Are you sure you want to delete <strong>${laneName}</strong>? This action cannot be undone.
+                            </p>
+                            <div class="flex gap-3 justify-end">
+                                <button onclick="closeDeleteLaneModal()" class="px-5 py-2.5 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">
+                                    Cancel
+                                </button>
+                                <button onclick="deleteLane()" class="px-5 py-2.5 rounded-lg bg-red-500 text-white font-medium hover:bg-red-600 transition-colors text-sm">
+                                    Delete Lane
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+        }
+
+        function closeLaneModal() {
+            const modal = document.getElementById('laneModal');
+            if (modal) modal.remove();
+            currentLaneId = null;
+        }
+
+        function closeDeleteLaneModal() {
+            const modal = document.getElementById('deleteLaneModal');
+            if (modal) modal.remove();
+            currentLaneId = null;
+        }
+
+        function clearLaneErrors() {
+            const errorContainer = document.getElementById('laneErrorContainer');
+            if (errorContainer) {
+                errorContainer.classList.add('hidden');
+                errorContainer.innerHTML = '';
+            }
+        }
+
+        function saveLane(e) {
+            e.preventDefault();
+            clearLaneErrors();
+
+            const formData = {
+                lane: document.getElementById('laneName').value,
+                location_id: document.getElementById('laneLocation').value,
+                barrier_no: document.getElementById('laneBarrierNo').value || null,
+                weight_id: document.getElementById('laneWeightId').value || null,
+                slip_print: document.getElementById('laneSlipPrint').value,
+                antena_ip: document.getElementById('laneAntenaIp').value || null,
+                kiosk_ip: document.getElementById('laneKioskIp').value || null,
+                cam_id_1: document.getElementById('laneCamId1').value || null,
+                cam_id_2: document.getElementById('laneCamId2').value || null,
+                cam_id_3: document.getElementById('laneCamId3').value || null,
+                cam_photo_ip_1: document.getElementById('laneCamPhotoIp1').value || null,
+                cam_photo_ip_2: document.getElementById('laneCamPhotoIp2').value || null,
+                in_bound: document.getElementById('laneInBound').value,
+                out_bound: document.getElementById('laneOutBound').value,
+                status: document.getElementById('laneStatus').value
+            };
+
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.textContent = currentLaneId ? 'Updating...' : 'Creating...';
+
+            const url = currentLaneId ? `<?= base_url('config/updateLane') ?>/${currentLaneId}` : `<?= base_url('config/createLane') ?>`;
+            const method = currentLaneId ? 'PUT' : 'POST';
+
+            fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification(data.message, 'success');
+                        closeLaneModal();
+                        loadLanes(currentLanePage, currentLaneSearch, currentLaneSort);
+                    } else {
+                        const errorContainer = document.getElementById('laneErrorContainer');
+                        if (data.errors) {
+                            const errorMessages = Object.values(data.errors).flat();
+                            errorContainer.innerHTML = errorMessages.map(msg => `<div>• ${msg}</div>`).join('');
+                        } else {
+                            errorContainer.innerHTML = data.message || 'Failed to save lane';
+                        }
+                        errorContainer.classList.remove('hidden');
+                        submitBtn.textContent = currentLaneId ? 'Update Lane' : 'Create Lane';
+                        submitBtn.disabled = false;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error saving lane:', error);
+                    showNotification('An error occurred while saving the lane', 'error');
+                    submitBtn.textContent = currentLaneId ? 'Update Lane' : 'Create Lane';
+                    submitBtn.disabled = false;
+                });
+        }
+
+        function deleteLane() {
+            const deleteBtn = event.target;
+            deleteBtn.textContent = 'Deleting...';
+            deleteBtn.disabled = true;
+
+            fetch(`<?= base_url('config/deleteLane') ?>/${currentLaneId}`, {
+                method: 'DELETE'
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification(data.message, 'success');
+                        closeDeleteLaneModal();
+                        loadLanes(currentLanePage, currentLaneSearch, currentLaneSort);
+                    } else {
+                        showNotification(data.message || 'Failed to delete lane', 'error');
+                        deleteBtn.textContent = 'Delete Lane';
+                        deleteBtn.disabled = false;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting lane:', error);
+                    showNotification('An error occurred while deleting the lane', 'error');
+                    deleteBtn.textContent = 'Delete Lane';
+                    deleteBtn.disabled = false;
+                });
+        }
+
+        // Lane search Enter key
+        document.addEventListener('keypress', function(e) {
+            if (e.target && e.target.id === 'laneSearchInput' && e.key === 'Enter') {
+                e.preventDefault();
+                searchLanes();
+            }
+        });
+
+        // ============================================
+        // Reject Reason Management Functions
+        // ============================================
+
+        let currentRejectReasonPage = 1;
+        let currentRejectReasonSearch = '';
+        let currentRejectReasonSort = '';
+        let currentRejectReasonId = null;
+
+        function loadRejectReasons(page = 1, search = '', sortBy = '') {
+            currentRejectReasonPage = page;
+            currentRejectReasonSearch = search;
+            currentRejectReasonSort = sortBy;
+
+            const tbody = document.getElementById('rejectReasonTableBody');
+            tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center"><div class="flex justify-center items-center"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div></td></tr>';
+
+            const params = new URLSearchParams({ page, limit: 10, search, sortBy });
+
+            fetch(`<?= base_url('config/getRejectReasons') ?>?${params}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayRejectReasons(data.data);
+                        updateRejectReasonPagination(data.pagination);
+                    } else {
+                        tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-red-500">Failed to load reject reasons</td></tr>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading reject reasons:', error);
+                    tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-red-500">An error occurred while loading reject reasons</td></tr>';
+                });
+        }
+
+        function displayRejectReasons(reasons) {
+            const tbody = document.getElementById('rejectReasonTableBody');
+            
+            if (reasons.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">No reject reasons found</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = reasons.map(reason => {
+                const mobileAppBadge = reason.mobile_app === 'enabled' 
+                    ? '<span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Enabled</span>'
+                    : '<span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">Disabled</span>';
+                
+                const commercialBadge = reason.commercial === 'yes'
+                    ? '<span class="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs font-semibold">Yes</span>'
+                    : '<span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">No</span>';
+                
+                const statusBadge = reason.status === 'active'
+                    ? '<span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span>'
+                    : '<span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">Inactive</span>';
+
+                return `
+                    <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
+                        <td class="px-4 py-3 font-medium">${escapeHtml(reason.reason)}</td>
+                        <td class="px-4 py-3">${mobileAppBadge}</td>
+                        <td class="px-4 py-3">${commercialBadge}</td>
+                        <td class="px-4 py-3">${statusBadge}</td>
+                        <td class="px-4 py-3 w-32">
+                            <div class="flex gap-2">
+                                <button onclick="openEditRejectReasonModal(${reason.id})" class="text-primary hover:text-primary/80">
+                                    <span class="material-symbols-outlined text-xl">edit</span>
+                                </button>
+                                <button onclick="openDeleteRejectReasonModal(${reason.id}, '${escapeHtml(reason.reason)}')" class="text-red-500 hover:text-red-400">
+                                    <span class="material-symbols-outlined text-xl">delete</span>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function updateRejectReasonPagination(pagination) {
+            const showingFrom = pagination.total === 0 ? 0 : ((pagination.page - 1) * pagination.limit) + 1;
+            const showingTo = Math.min(pagination.page * pagination.limit, pagination.total);
+
+            document.getElementById('rejectReasonShowingFrom').textContent = showingFrom;
+            document.getElementById('rejectReasonShowingTo').textContent = showingTo;
+            document.getElementById('rejectReasonTotalCount').textContent = pagination.total;
+
+            const paginationButtons = document.getElementById('rejectReasonPaginationButtons');
+            let buttonsHTML = '';
+
+            // Previous button
+            buttonsHTML += `
+                <button onclick="loadRejectReasons(${pagination.page - 1}, currentRejectReasonSearch, currentRejectReasonSort)" 
+                        class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
+                        ${pagination.page === 1 ? 'disabled' : ''}>
+                    <span class="material-symbols-outlined text-base">chevron_left</span>
+                </button>
+            `;
+
+            // Page numbers
+            for (let i = 1; i <= pagination.totalPages; i++) {
+                if (i === pagination.page) {
+                    buttonsHTML += `
+                        <button class="px-3 py-2 rounded-lg bg-primary text-white font-medium text-sm min-w-[40px]">${i}</button>
+                    `;
+                } else {
+                    buttonsHTML += `
+                        <button onclick="loadRejectReasons(${i}, currentRejectReasonSearch, currentRejectReasonSort)" 
+                                class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors font-medium text-sm min-w-[40px]">${i}</button>
+                    `;
+                }
+            }
+
+            // Next button
+            buttonsHTML += `
+                <button onclick="loadRejectReasons(${pagination.page + 1}, currentRejectReasonSearch, currentRejectReasonSort)" 
+                        class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
+                        ${pagination.page === pagination.totalPages ? 'disabled' : ''}>
+                    <span class="material-symbols-outlined text-base">chevron_right</span>
+                </button>
+            `;
+
+            paginationButtons.innerHTML = buttonsHTML;
+        }
+
+        function searchRejectReasons() {
+            const searchInput = document.getElementById('rejectReasonSearchInput');
+            const sortSelect = document.getElementById('rejectReasonSortSelect');
+            loadRejectReasons(1, searchInput.value, sortSelect.value);
+        }
+
+        function sortRejectReasons() {
+            const searchInput = document.getElementById('rejectReasonSearchInput');
+            const sortSelect = document.getElementById('rejectReasonSortSelect');
+            loadRejectReasons(1, searchInput.value, sortSelect.value);
+        }
+
+        function openCreateRejectReasonModal() {
+            const modalHTML = `
+                <div id="rejectReasonModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                    <div class="bg-white dark:bg-slate-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                        <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-700">
+                            <h3 class="text-lg font-bold text-gray-800 dark:text-white">Create New Reject Reason</h3>
+                            <button onclick="closeRejectReasonModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <form onsubmit="saveRejectReason(event)" class="p-6">
+                            <div id="rejectReasonErrorContainer" class="hidden mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-300 rounded-lg text-sm"></div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                <div class="md:col-span-2">
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Reject Reason <span class="text-red-500">*</span></label>
+                                    <input type="text" id="rejectReasonName" name="reason" required class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Mobile App <span class="text-red-500">*</span></label>
+                                    <select id="rejectReasonMobileApp" name="mobile_app" required class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                        <option value="enabled">Enabled</option>
+                                        <option value="disabled">Disabled</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Commercial <span class="text-red-500">*</span></label>
+                                    <select id="rejectReasonCommercial" name="commercial" required class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                        <option value="yes">Yes</option>
+                                        <option value="no">No</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Status <span class="text-red-500">*</span></label>
+                                    <select id="rejectReasonStatus" name="status" required class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                        <option value="active">Active</option>
+                                        <option value="inactive">Inactive</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="flex gap-3 justify-end pt-4 border-t border-gray-200 dark:border-slate-700">
+                                <button type="button" onclick="closeRejectReasonModal()" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">
+                                    Cancel
+                                </button>
+                                <button type="submit" class="px-4 py-2 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm">
+                                    Create Reject Reason
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+        }
+
+        function openEditRejectReasonModal(reasonId) {
+            currentRejectReasonId = reasonId;
+
+            fetch(`<?= base_url('config/getRejectReason') ?>/${reasonId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        showNotification('Failed to load reject reason', 'error');
+                        return;
+                    }
+
+                    const reason = data.data;
+
+                    const modalHTML = `
+                        <div id="rejectReasonModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                            <div class="bg-white dark:bg-slate-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                                <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-700">
+                                    <h3 class="text-lg font-bold text-gray-800 dark:text-white">Edit Reject Reason</h3>
+                                    <button onclick="closeRejectReasonModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                        <span class="material-symbols-outlined">close</span>
+                                    </button>
+                                </div>
+                                <form onsubmit="saveRejectReason(event)" class="p-6">
+                                    <div id="rejectReasonErrorContainer" class="hidden mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-300 rounded-lg text-sm"></div>
+                                    
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                        <div class="md:col-span-2">
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Reject Reason <span class="text-red-500">*</span></label>
+                                            <input type="text" id="rejectReasonName" name="reason" value="${escapeHtml(reason.reason)}" required class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Mobile App <span class="text-red-500">*</span></label>
+                                            <select id="rejectReasonMobileApp" name="mobile_app" required class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                                <option value="enabled" ${reason.mobile_app === 'enabled' ? 'selected' : ''}>Enabled</option>
+                                                <option value="disabled" ${reason.mobile_app === 'disabled' ? 'selected' : ''}>Disabled</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Commercial <span class="text-red-500">*</span></label>
+                                            <select id="rejectReasonCommercial" name="commercial" required class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                                <option value="yes" ${reason.commercial === 'yes' ? 'selected' : ''}>Yes</option>
+                                                <option value="no" ${reason.commercial === 'no' ? 'selected' : ''}>No</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Status <span class="text-red-500">*</span></label>
+                                            <select id="rejectReasonStatus" name="status" required class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                                <option value="active" ${reason.status === 'active' ? 'selected' : ''}>Active</option>
+                                                <option value="inactive" ${reason.status === 'inactive' ? 'selected' : ''}>Inactive</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex gap-3 justify-end pt-4 border-t border-gray-200 dark:border-slate-700">
+                                        <button type="button" onclick="closeRejectReasonModal()" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">
+                                            Cancel
+                                        </button>
+                                        <button type="submit" class="px-4 py-2 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm">
+                                            Update Reject Reason
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    `;
+
+                    document.body.insertAdjacentHTML('beforeend', modalHTML);
+                })
+                .catch(error => {
+                    console.error('Error loading reject reason:', error);
+                    showNotification('Failed to load reject reason', 'error');
+                });
+        }
+
+        function openDeleteRejectReasonModal(reasonId, reasonName) {
+            currentRejectReasonId = reasonId;
+            
+            const modalHTML = `
+                <div id="deleteRejectReasonModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                    <div class="bg-white dark:bg-slate-800 rounded-lg max-w-md w-full">
+                        <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-700">
+                            <h3 class="text-lg font-bold text-gray-800 dark:text-white">Delete Reject Reason</h3>
+                            <button onclick="closeDeleteRejectReasonModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <div class="p-6">
+                            <p class="text-gray-700 dark:text-slate-300 mb-6">
+                                Are you sure you want to delete <strong>${reasonName}</strong>? This action cannot be undone.
+                            </p>
+                            <div class="flex gap-3 justify-end">
+                                <button onclick="closeDeleteRejectReasonModal()" class="px-5 py-2.5 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">
+                                    Cancel
+                                </button>
+                                <button onclick="deleteRejectReason()" class="px-5 py-2.5 rounded-lg bg-red-500 text-white font-medium hover:bg-red-600 transition-colors text-sm">
+                                    Delete Reject Reason
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+        }
+
+        function closeRejectReasonModal() {
+            const modal = document.getElementById('rejectReasonModal');
+            if (modal) modal.remove();
+            currentRejectReasonId = null;
+        }
+
+        function closeDeleteRejectReasonModal() {
+            const modal = document.getElementById('deleteRejectReasonModal');
+            if (modal) modal.remove();
+            currentRejectReasonId = null;
+        }
+
+        function clearRejectReasonErrors() {
+            const errorContainer = document.getElementById('rejectReasonErrorContainer');
+            if (errorContainer) {
+                errorContainer.classList.add('hidden');
+                errorContainer.innerHTML = '';
+            }
+        }
+
+        function saveRejectReason(e) {
+            e.preventDefault();
+            clearRejectReasonErrors();
+
+            const formData = {
+                reason: document.getElementById('rejectReasonName').value,
+                mobile_app: document.getElementById('rejectReasonMobileApp').value,
+                commercial: document.getElementById('rejectReasonCommercial').value,
+                status: document.getElementById('rejectReasonStatus').value
+            };
+
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.textContent = currentRejectReasonId ? 'Updating...' : 'Creating...';
+
+            const url = currentRejectReasonId ? `<?= base_url('config/updateRejectReason') ?>/${currentRejectReasonId}` : `<?= base_url('config/createRejectReason') ?>`;
+            const method = currentRejectReasonId ? 'PUT' : 'POST';
+
+            fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification(data.message, 'success');
+                        closeRejectReasonModal();
+                        loadRejectReasons(currentRejectReasonPage, currentRejectReasonSearch, currentRejectReasonSort);
+                    } else {
+                        const errorContainer = document.getElementById('rejectReasonErrorContainer');
+                        if (data.errors) {
+                            const errorMessages = Object.values(data.errors).flat();
+                            errorContainer.innerHTML = errorMessages.map(msg => `<div>• ${msg}</div>`).join('');
+                        } else {
+                            errorContainer.innerHTML = data.message || 'Failed to save reject reason';
+                        }
+                        errorContainer.classList.remove('hidden');
+                        submitBtn.textContent = currentRejectReasonId ? 'Update Reject Reason' : 'Create Reject Reason';
+                        submitBtn.disabled = false;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error saving reject reason:', error);
+                    showNotification('An error occurred while saving the reject reason', 'error');
+                    submitBtn.textContent = currentRejectReasonId ? 'Update Reject Reason' : 'Create Reject Reason';
+                    submitBtn.disabled = false;
+                });
+        }
+
+        function deleteRejectReason() {
+            const deleteBtn = event.target;
+            deleteBtn.textContent = 'Deleting...';
+            deleteBtn.disabled = true;
+
+            fetch(`<?= base_url('config/deleteRejectReason') ?>/${currentRejectReasonId}`, {
+                method: 'DELETE'
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification(data.message, 'success');
+                        closeDeleteRejectReasonModal();
+                        loadRejectReasons(currentRejectReasonPage, currentRejectReasonSearch, currentRejectReasonSort);
+                    } else {
+                        showNotification(data.message || 'Failed to delete reject reason', 'error');
+                        deleteBtn.textContent = 'Delete Reject Reason';
+                        deleteBtn.disabled = false;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting reject reason:', error);
+                    showNotification('An error occurred while deleting the reject reason', 'error');
+                    deleteBtn.textContent = 'Delete Reject Reason';
+                    deleteBtn.disabled = false;
+                });
+        }
+
+        // Reject reason search Enter key
+        document.addEventListener('keypress', function(e) {
+            if (e.target && e.target.id === 'rejectReasonSearchInput' && e.key === 'Enter') {
+                e.preventDefault();
+                searchRejectReasons();
+            }
+        });
+
+        // ========================
+        // Visitor Card Management Functions
+        // ========================
+        
+        let currentVisitorCardPage = 1;
+        let currentVisitorCardSearch = '';
+        let currentVisitorCardSort = '';
+        let currentVisitorCardId = null;
+
+        function loadVisitorCards(page = 1) {
+            currentVisitorCardPage = page;
+            
+            fetch(`<?= base_url('config/getVisitorCards') ?>?page=${page}&search=${encodeURIComponent(currentVisitorCardSearch)}&sort=${currentVisitorCardSort}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayVisitorCards(data.data, data.pagination);
+                    } else {
+                        document.getElementById('visitorCardTableBody').innerHTML = `
+                            <tr>
+                                <td colspan="4" class="px-4 py-12 text-center">
+                                    <div class="flex flex-col items-center justify-center">
+                                        <span class="material-symbols-outlined text-red-500 text-5xl mb-2">error</span>
+                                        <p class="text-gray-500 dark:text-slate-400">${data.message || 'Error loading visitor cards'}</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading visitor cards:', error);
+                    document.getElementById('visitorCardTableBody').innerHTML = `
+                        <tr>
+                            <td colspan="4" class="px-4 py-12 text-center">
+                                <div class="flex flex-col items-center justify-center">
+                                    <span class="material-symbols-outlined text-red-500 text-5xl mb-2">error</span>
+                                    <p class="text-gray-500 dark:text-slate-400">An error occurred while loading visitor cards</p>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
+        }
+
+        function displayVisitorCards(visitorCards, pagination) {
+            const tbody = document.getElementById('visitorCardTableBody');
+            
+            if (visitorCards.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="px-4 py-12 text-center">
+                            <div class="flex flex-col items-center justify-center">
+                                <span class="material-symbols-outlined text-gray-400 text-5xl mb-2">inventory_2</span>
+                                <p class="text-gray-500 dark:text-slate-400">No visitor cards found</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = visitorCards.map(card => {
+                let statusBadge = '';
+                const status = card.status.toLowerCase();
+                
+                if (status === 'active') {
+                    statusBadge = '<span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span>';
+                } else if (status === 'in_use') {
+                    statusBadge = '<span class="px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded text-xs font-semibold">In Use</span>';
+                } else if (status === 'lost') {
+                    statusBadge = '<span class="px-2 py-1 bg-red-500/20 text-red-400 rounded text-xs font-semibold">Lost</span>';
+                } else if (status === 'inactive') {
+                    statusBadge = '<span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">Inactive</span>';
+                }
+
+                return `
+                    <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
+                        <td class="px-4 py-3 font-medium">${escapeHtml(card.card_id)}</td>
+                        <td class="px-4 py-3">${escapeHtml(card.serial_no)}</td>
+                        <td class="px-4 py-3">${statusBadge}</td>
+                        <td class="px-4 py-3 w-32">
+                            <div class="flex gap-2">
+                                <button onclick="openEditVisitorCardModal(${card.id})" class="text-primary hover:text-primary/80">
+                                    <span class="material-symbols-outlined text-xl">edit</span>
+                                </button>
+                                <button onclick="openDeleteVisitorCardModal(${card.id}, '${escapeHtml(card.card_id)}')" class="text-red-500 hover:text-red-400">
+                                    <span class="material-symbols-outlined text-xl">delete</span>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            updateVisitorCardPagination(pagination);
+        }
+
+        function updateVisitorCardPagination(pagination) {
+            const from = pagination.total === 0 ? 0 : ((pagination.current_page - 1) * pagination.per_page) + 1;
+            const to = Math.min(pagination.current_page * pagination.per_page, pagination.total);
+            
+            document.getElementById('visitorCardShowingFrom').textContent = from;
+            document.getElementById('visitorCardShowingTo').textContent = to;
+            document.getElementById('visitorCardTotalCount').textContent = pagination.total;
+
+            const paginationContainer = document.getElementById('visitorCardPaginationButtons');
+            const totalPages = parseInt(pagination.total_pages) || 1;
+            const currentPage = parseInt(pagination.current_page) || 1;
+
+            let buttonsHTML = `
+                <button onclick="if(${currentPage} > 1) loadVisitorCards(${currentPage - 1})" 
+                    class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    ${currentPage === 1 ? 'disabled' : ''}>
+                    <span class="material-symbols-outlined text-base">chevron_left</span>
+                </button>
+            `;
+
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
+                    const activeClass = i === currentPage 
+                        ? 'bg-primary text-white' 
+                        : 'border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700';
+                    
+                    buttonsHTML += `
+                        <button onclick="loadVisitorCards(${i})" 
+                            class="px-3 py-2 rounded-lg ${activeClass} transition-colors font-medium text-sm min-w-[40px]">
+                            ${i}
+                        </button>
+                    `;
+                } else if (i === currentPage - 2 || i === currentPage + 2) {
+                    buttonsHTML += `<span class="px-2 text-gray-400">...</span>`;
+                }
+            }
+
+            buttonsHTML += `
+                <button onclick="if(${currentPage} < ${totalPages}) loadVisitorCards(${currentPage + 1})" 
+                    class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    ${currentPage === totalPages ? 'disabled' : ''}>
+                    <span class="material-symbols-outlined text-base">chevron_right</span>
+                </button>
+            `;
+
+            paginationContainer.innerHTML = buttonsHTML;
+        }
+
+        function searchVisitorCards() {
+            currentVisitorCardSearch = document.getElementById('visitorCardSearchInput').value;
+            loadVisitorCards(1);
+        }
+
+        function sortVisitorCards() {
+            currentVisitorCardSort = document.getElementById('visitorCardSortSelect').value;
+            loadVisitorCards(1);
+        }
+
+        function openCreateVisitorCardModal() {
+            document.body.insertAdjacentHTML('beforeend', `
+                <div id="visitorCardModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                        <div class="sticky top-0 bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between">
+                            <h3 class="text-lg font-bold text-gray-800 dark:text-white">Create New Visitor Card</h3>
+                            <button onclick="closeVisitorCardModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <form id="visitorCardForm" class="p-6">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Card ID <span class="text-red-500">*</span></label>
+                                    <input type="text" id="cardId" name="card_id" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Enter card ID" required>
+                                    <span id="cardIdError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Serial Number <span class="text-red-500">*</span></label>
+                                    <input type="text" id="serialNo" name="serial_no" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Enter serial number" required>
+                                    <span id="serialNoError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                </div>
+                                <div class="col-span-2">
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Status <span class="text-red-500">*</span></label>
+                                    <select id="cardStatus" name="status" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" required>
+                                        <option value="">Select Status</option>
+                                        <option value="active">Active</option>
+                                        <option value="in_use">In Use</option>
+                                        <option value="lost">Lost</option>
+                                        <option value="inactive">Inactive</option>
+                                    </select>
+                                    <span id="cardStatusError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                </div>
+                            </div>
+                            <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200 dark:border-slate-700">
+                                <button type="button" onclick="closeVisitorCardModal()" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">
+                                    Cancel
+                                </button>
+                                <button type="submit" class="px-4 py-2 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm">
+                                    Create Card
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `);
+
+            document.getElementById('visitorCardForm').addEventListener('submit', saveVisitorCard);
+            currentVisitorCardId = null;
+        }
+
+        function openEditVisitorCardModal(cardId) {
+            fetch(`<?= base_url('config/getVisitorCard') ?>/${cardId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const card = data.data;
+                        document.body.insertAdjacentHTML('beforeend', `
+                        <div id="visitorCardModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                            <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                                <div class="sticky top-0 bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between">
+                                    <h3 class="text-lg font-bold text-gray-800 dark:text-white">Edit Visitor Card</h3>
+                                    <button onclick="closeVisitorCardModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                        <span class="material-symbols-outlined">close</span>
+                                    </button>
+                                </div>
+                                <form id="visitorCardForm" class="p-6">
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Card ID <span class="text-red-500">*</span></label>
+                                            <input type="text" id="cardId" name="card_id" value="${escapeHtml(card.card_id)}" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Enter card ID" required>
+                                            <span id="cardIdError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Serial Number <span class="text-red-500">*</span></label>
+                                            <input type="text" id="serialNo" name="serial_no" value="${escapeHtml(card.serial_no)}" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Enter serial number" required>
+                                            <span id="serialNoError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                        </div>
+                                        <div class="col-span-2">
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Status <span class="text-red-500">*</span></label>
+                                            <select id="cardStatus" name="status" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" required>
+                                                <option value="">Select Status</option>
+                                                <option value="active" ${card.status === 'active' ? 'selected' : ''}>Active</option>
+                                                <option value="in_use" ${card.status === 'in_use' ? 'selected' : ''}>In Use</option>
+                                                <option value="lost" ${card.status === 'lost' ? 'selected' : ''}>Lost</option>
+                                                <option value="inactive" ${card.status === 'inactive' ? 'selected' : ''}>Inactive</option>
+                                            </select>
+                                            <span id="cardStatusError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                        </div>
+                                    </div>
+                                    <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200 dark:border-slate-700">
+                                        <button type="button" onclick="closeVisitorCardModal()" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">
+                                            Cancel
+                                        </button>
+                                        <button type="submit" class="px-4 py-2 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm">
+                                            Update Card
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    `);
+
+                        document.getElementById('visitorCardForm').addEventListener('submit', saveVisitorCard);
+                        currentVisitorCardId = cardId;
+                    } else {
+                        showNotification('Failed to load visitor card details', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading visitor card:', error);
+                    showNotification('An error occurred while loading visitor card details', 'error');
+                });
+        }
+
+        function openDeleteVisitorCardModal(cardId, cardName) {
+            currentVisitorCardId = cardId;
+            
+            document.body.insertAdjacentHTML('beforeend', `
+                <div id="deleteVisitorCardModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md">
+                        <div class="border-b border-gray-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between">
+                            <h3 class="text-lg font-bold text-gray-800 dark:text-white">Delete Visitor Card</h3>
+                            <button onclick="closeDeleteVisitorCardModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <div class="p-6">
+                            <p class="text-gray-700 dark:text-slate-300 mb-4">Are you sure you want to delete the visitor card "<strong>${cardName}</strong>"?</p>
+                            <p class="text-sm text-gray-500 dark:text-slate-400">This action cannot be undone.</p>
+                        </div>
+                        <div class="px-6 py-4 bg-gray-50 dark:bg-slate-700/50 flex justify-end gap-3">
+                            <button onclick="closeDeleteVisitorCardModal()" class="px-5 py-2.5 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">
+                                Cancel
+                            </button>
+                            <button onclick="deleteVisitorCard()" class="px-5 py-2.5 rounded-lg bg-red-500 text-white font-medium hover:bg-red-600 transition-colors text-sm">
+                                Delete Card
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `);
+        }
+
+        function closeVisitorCardModal() {
+            const modal = document.getElementById('visitorCardModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        function closeDeleteVisitorCardModal() {
+            const modal = document.getElementById('deleteVisitorCardModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        function clearVisitorCardErrors() {
+            document.getElementById('cardIdError').classList.add('hidden');
+            document.getElementById('serialNoError').classList.add('hidden');
+            document.getElementById('cardStatusError').classList.add('hidden');
+        }
+
+        function saveVisitorCard(e) {
+            e.preventDefault();
+            clearVisitorCardErrors();
+
+            const formData = new FormData();
+            formData.append('card_id', document.getElementById('cardId').value.trim());
+            formData.append('serial_no', document.getElementById('serialNo').value.trim());
+            formData.append('status', document.getElementById('cardStatus').value);
+
+            const url = currentVisitorCardId 
+                ? `<?= base_url('config/updateVisitorCard') ?>/${currentVisitorCardId}`
+                : `<?= base_url('config/createVisitorCard') ?>`;
+            
+            const method = currentVisitorCardId ? 'PUT' : 'POST';
+
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            const originalButtonText = submitButton.textContent;
+            submitButton.disabled = true;
+            submitButton.textContent = currentVisitorCardId ? 'Updating...' : 'Creating...';
+
+            fetch(url, {
+                method: method,
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification(data.message, 'success');
+                        closeVisitorCardModal();
+                        loadVisitorCards(currentVisitorCardPage);
+                    } else {
+                        if (data.errors) {
+                            if (data.errors.card_id) {
+                                document.getElementById('cardIdError').textContent = data.errors.card_id;
+                                document.getElementById('cardIdError').classList.remove('hidden');
+                            }
+                            if (data.errors.serial_no) {
+                                document.getElementById('serialNoError').textContent = data.errors.serial_no;
+                                document.getElementById('serialNoError').classList.remove('hidden');
+                            }
+                            if (data.errors.status) {
+                                document.getElementById('cardStatusError').textContent = data.errors.status;
+                                document.getElementById('cardStatusError').classList.remove('hidden');
+                            }
+                        }
+                        showNotification(data.message || 'Failed to save visitor card', 'error');
+                        submitButton.textContent = originalButtonText;
+                        submitButton.disabled = false;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error saving visitor card:', error);
+                    showNotification('An error occurred while saving the visitor card', 'error');
+                    submitButton.textContent = originalButtonText;
+                    submitButton.disabled = false;
+                });
+        }
+
+        function deleteVisitorCard() {
+            const deleteBtn = event.target;
+            deleteBtn.disabled = true;
+            deleteBtn.textContent = 'Deleting...';
+
+            fetch(`<?= base_url('config/deleteVisitorCard') ?>/${currentVisitorCardId}`, {
+                method: 'DELETE'
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification(data.message, 'success');
+                        closeDeleteVisitorCardModal();
+                        loadVisitorCards(currentVisitorCardPage);
+                    } else {
+                        showNotification(data.message || 'Failed to delete visitor card', 'error');
+                        deleteBtn.textContent = 'Delete Card';
+                        deleteBtn.disabled = false;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting visitor card:', error);
+                    showNotification('An error occurred while deleting the visitor card', 'error');
+                    deleteBtn.textContent = 'Delete Card';
+                    deleteBtn.disabled = false;
+                });
+        }
+
+        // Visitor card search Enter key
+        document.addEventListener('keypress', function(e) {
+            if (e.target && e.target.id === 'visitorCardSearchInput' && e.key === 'Enter') {
+                e.preventDefault();
+                searchVisitorCards();
+            }
+        });
+
+        // ========================
+        // Video Management Functions
+        // ========================
+        
+        let currentVideoPage = 1;
+        let currentVideoSearch = '';
+        let currentVideoSort = '';
+        let currentVideoId = null;
+
+        function loadVideos(page = 1) {
+            currentVideoPage = page;
+            
+            fetch(`<?= base_url('config/getVideos') ?>?page=${page}&search=${encodeURIComponent(currentVideoSearch)}&sort=${currentVideoSort}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayVideos(data.data, data.pagination);
+                    } else {
+                        document.getElementById('videoTableBody').innerHTML = `
+                            <tr>
+                                <td colspan="3" class="px-4 py-12 text-center">
+                                    <div class="flex flex-col items-center justify-center">
+                                        <span class="material-symbols-outlined text-red-500 text-5xl mb-2">error</span>
+                                        <p class="text-gray-500 dark:text-slate-400">${data.message || 'Error loading videos'}</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading videos:', error);
+                    document.getElementById('videoTableBody').innerHTML = `
+                        <tr>
+                            <td colspan="3" class="px-4 py-12 text-center">
+                                <div class="flex flex-col items-center justify-center">
+                                    <span class="material-symbols-outlined text-red-500 text-5xl mb-2">error</span>
+                                    <p class="text-gray-500 dark:text-slate-400">An error occurred while loading videos</p>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
+        }
+
+        function displayVideos(videos, pagination) {
+            const tbody = document.getElementById('videoTableBody');
+            
+            if (videos.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="3" class="px-4 py-12 text-center">
+                            <div class="flex flex-col items-center justify-center">
+                                <span class="material-symbols-outlined text-gray-400 text-5xl mb-2">videocam</span>
+                                <p class="text-gray-500 dark:text-slate-400">No videos found</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = videos.map(video => {
+                const statusBadge = video.status === 'active'
+                    ? '<span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span>'
+                    : '<span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">Inactive</span>';
+
+                return `
+                    <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
+                        <td class="px-4 py-3 font-medium cursor-pointer hover:text-primary" onclick="openVideoPreviewModal(${video.id}, '${escapeHtml(video.name)}', '${video.file_path}')">
+                            <div class="flex items-center gap-2">
+                                <span class="material-symbols-outlined text-xl text-gray-400">play_circle</span>
+                                ${escapeHtml(video.name)}
+                            </div>
+                        </td>
+                        <td class="px-4 py-3">${statusBadge}</td>
+                        <td class="px-4 py-3 w-32">
+                            <div class="flex gap-2">
+                                <button onclick="openVideoPreviewModal(${video.id}, '${escapeHtml(video.name)}', '${video.file_path}')" class="text-blue-500 hover:text-blue-400" title="Preview Video">
+                                    <span class="material-symbols-outlined text-xl">visibility</span>
+                                </button>
+                                <button onclick="openEditVideoModal(${video.id})" class="text-primary hover:text-primary/80">
+                                    <span class="material-symbols-outlined text-xl">edit</span>
+                                </button>
+                                <button onclick="openDeleteVideoModal(${video.id}, '${escapeHtml(video.name)}')" class="text-red-500 hover:text-red-400">
+                                    <span class="material-symbols-outlined text-xl">delete</span>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            updateVideoPagination(pagination);
+        }
+
+        function openVideoPreviewModal(videoId, videoName, filePath) {
+            document.body.insertAdjacentHTML('beforeend', `
+                <div id="videoPreviewModal" class="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
+                    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+                        <div class="sticky top-0 bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between rounded-t-lg">
+                            <h3 class="text-lg font-bold text-gray-800 dark:text-white">${videoName}</h3>
+                            <button onclick="closeVideoPreviewModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <div class="p-6">
+                            <div class="bg-black rounded-lg overflow-hidden">
+                                <video id="previewVideoPlayer" class="w-full" controls controlsList="nodownload">
+                                    <source src="<?= base_url() ?>${filePath}" type="video/mp4">
+                                    Your browser does not support the video tag.
+                                </video>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `);
+        }
+
+        function closeVideoPreviewModal() {
+            const modal = document.getElementById('videoPreviewModal');
+            if (modal) {
+                const video = document.getElementById('previewVideoPlayer');
+                if (video) {
+                    video.pause();
+                }
+                modal.remove();
+            }
+        }
+
+        function updateVideoPagination(pagination) {
+            const from = pagination.total === 0 ? 0 : ((pagination.current_page - 1) * pagination.per_page) + 1;
+            const to = Math.min(pagination.current_page * pagination.per_page, pagination.total);
+            
+            document.getElementById('videoShowingFrom').textContent = from;
+            document.getElementById('videoShowingTo').textContent = to;
+            document.getElementById('videoTotalCount').textContent = pagination.total;
+
+            const paginationContainer = document.getElementById('videoPaginationButtons');
+            const totalPages = parseInt(pagination.total_pages) || 1;
+            const currentPage = parseInt(pagination.current_page) || 1;
+
+            let buttonsHTML = `
+                <button onclick="if(${currentPage} > 1) loadVideos(${currentPage - 1})" 
+                    class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    ${currentPage === 1 ? 'disabled' : ''}>
+                    <span class="material-symbols-outlined text-base">chevron_left</span>
+                </button>
+            `;
+
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
+                    const activeClass = i === currentPage 
+                        ? 'bg-primary text-white' 
+                        : 'border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700';
+                    
+                    buttonsHTML += `
+                        <button onclick="loadVideos(${i})" 
+                            class="px-3 py-2 rounded-lg ${activeClass} transition-colors font-medium text-sm min-w-[40px]">
+                            ${i}
+                        </button>
+                    `;
+                } else if (i === currentPage - 2 || i === currentPage + 2) {
+                    buttonsHTML += `<span class="px-2 text-gray-400">...</span>`;
+                }
+            }
+
+            buttonsHTML += `
+                <button onclick="if(${currentPage} < ${totalPages}) loadVisitorCards(${currentPage + 1})" 
+                    class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    ${currentPage === totalPages ? 'disabled' : ''}>
+                    <span class="material-symbols-outlined text-base">chevron_right</span>
+                </button>
+            `;
+
+            paginationContainer.innerHTML = buttonsHTML;
+        }
+
+        function searchVideos() {
+            currentVideoSearch = document.getElementById('videoSearchInput').value;
+            loadVideos(1);
+        }
+
+        function sortVideos() {
+            currentVideoSort = document.getElementById('videoSortSelect').value;
+            loadVideos(1);
+        }
+
+        function openCreateVideoModal() {
+            document.body.insertAdjacentHTML('beforeend', `
+                <div id="videoModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                        <div class="sticky top-0 bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between">
+                            <h3 class="text-lg font-bold text-gray-800 dark:text-white">Upload Video</h3>
+                            <button onclick="closeVideoModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <form id="videoForm" class="p-6" enctype="multipart/form-data">
+                            <div class="grid grid-cols-1 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Video Name <span class="text-red-500">*</span></label>
+                                    <input type="text" id="videoName" name="name" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Enter video name" required>
+                                    <span id="videoNameError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Video File <span class="text-red-500">*</span></label>
+                                    <div id="videoDropZone" 
+                                         class="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg p-6 text-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-all duration-200">
+                                        <span class="material-symbols-outlined text-5xl text-slate-400 dark:text-slate-500 mb-2 block">cloud_upload</span>
+                                        <p class="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                            Drop your video here or click to browse
+                                        </p>
+                                        <p class="text-xs text-slate-500 dark:text-slate-400">
+                                            MP4, AVI, MOV, WMV, MKV up to 50MB
+                                        </p>
+                                        <input type="file" id="videoFile" name="video_file" accept="video/mp4,video/avi,video/mov,video/wmv,video/x-matroska" class="hidden" required>
+                                    </div>
+                                    <span id="videoFileError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                    
+                                    <!-- Selected File Info -->
+                                    <div id="videoFileInfo" class="hidden mt-3">
+                                        <div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                                            <div class="flex items-center gap-3 flex-1 min-w-0">
+                                                <span class="material-symbols-outlined text-primary">videocam</span>
+                                                <div class="flex-1 min-w-0">
+                                                    <p class="text-sm font-medium text-slate-900 dark:text-white truncate" id="videoFileName">video.mp4</p>
+                                                    <p class="text-xs text-slate-500 dark:text-slate-400" id="videoFileSize">0 MB</p>
+                                                </div>
+                                            </div>
+                                            <button type="button" id="videoCancelBtn" 
+                                                    class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
+                                                <span class="material-symbols-outlined text-xl">close</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Status <span class="text-red-500">*</span></label>
+                                    <select id="videoStatus" name="status" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" required>
+                                        <option value="">Select Status</option>
+                                        <option value="active">Active</option>
+                                        <option value="inactive">Inactive</option>
+                                    </select>
+                                    <span id="videoStatusError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                </div>
+                            </div>
+                            <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200 dark:border-slate-700">
+                                <button type="button" onclick="closeVideoModal()" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">
+                                    Cancel
+                                </button>
+                                <button type="submit" class="px-4 py-2 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm">
+                                    Upload Video
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `);
+
+            // Setup drag and drop functionality
+            const dropZone = document.getElementById('videoDropZone');
+            const fileInput = document.getElementById('videoFile');
+            const fileInfo = document.getElementById('videoFileInfo');
+            const fileName = document.getElementById('videoFileName');
+            const fileSize = document.getElementById('videoFileSize');
+            const cancelBtn = document.getElementById('videoCancelBtn');
+
+            // Click to browse
+            dropZone.addEventListener('click', () => fileInput.click());
+
+            // Drag and drop events
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('border-primary', 'bg-primary/10');
+            });
+
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('border-primary', 'bg-primary/10');
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('border-primary', 'bg-primary/10');
+                
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    fileInput.files = files;
+                    displayVideoFileInfo(files[0]);
+                }
+            });
+
+            // File input change
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    displayVideoFileInfo(e.target.files[0]);
+                }
+            });
+
+            // Cancel file selection
+            cancelBtn.addEventListener('click', () => {
+                fileInput.value = '';
+                fileInfo.classList.add('hidden');
+                dropZone.classList.remove('hidden');
+            });
+
+            function displayVideoFileInfo(file) {
+                fileName.textContent = file.name;
+                fileSize.textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+                fileInfo.classList.remove('hidden');
+                dropZone.classList.add('hidden');
+            }
+
+            document.getElementById('videoForm').addEventListener('submit', saveVideo);
+            currentVideoId = null;
+        }
+
+        function openEditVideoModal(videoId) {
+            fetch(`<?= base_url('config/getVideo') ?>/${videoId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const video = data.data;
+                        document.body.insertAdjacentHTML('beforeend', `
+                        <div id="videoModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                            <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                                <div class="sticky top-0 bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between">
+                                    <h3 class="text-lg font-bold text-gray-800 dark:text-white">Edit Video</h3>
+                                    <button onclick="closeVideoModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                        <span class="material-symbols-outlined">close</span>
+                                    </button>
+                                </div>
+                                <form id="videoForm" class="p-6" enctype="multipart/form-data">
+                                    <div class="grid grid-cols-1 gap-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Video Name <span class="text-red-500">*</span></label>
+                                            <input type="text" id="videoName" name="name" value="${escapeHtml(video.name)}" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Enter video name" required>
+                                            <span id="videoNameError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Video File <span class="text-gray-500">(Optional - leave empty to keep current)</span></label>
+                                            <div id="videoDropZone" 
+                                                 class="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg p-6 text-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-all duration-200">
+                                                <span class="material-symbols-outlined text-5xl text-slate-400 dark:text-slate-500 mb-2 block">cloud_upload</span>
+                                                <p class="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                                    Drop new video here or click to browse
+                                                </p>
+                                                <p class="text-xs text-slate-500 dark:text-slate-400">
+                                                    MP4, AVI, MOV, WMV, MKV up to 50MB
+                                                </p>
+                                                <input type="file" id="videoFile" name="video_file" accept="video/mp4,video/avi,video/mov,video/wmv,video/x-matroska" class="hidden">
+                                            </div>
+                                            <span id="videoFileError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-2">Current: ${escapeHtml(video.file_path.split('/').pop())}</p>
+                                            
+                                            <!-- Selected File Info -->
+                                            <div id="videoFileInfo" class="hidden mt-3">
+                                                <div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                                                    <div class="flex items-center gap-3 flex-1 min-w-0">
+                                                        <span class="material-symbols-outlined text-primary">videocam</span>
+                                                        <div class="flex-1 min-w-0">
+                                                            <p class="text-sm font-medium text-slate-900 dark:text-white truncate" id="videoFileName">video.mp4</p>
+                                                            <p class="text-xs text-slate-500 dark:text-slate-400" id="videoFileSize">0 MB</p>
+                                                        </div>
+                                                    </div>
+                                                    <button type="button" id="videoCancelBtn" 
+                                                            class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
+                                                        <span class="material-symbols-outlined text-xl">close</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Status <span class="text-red-500">*</span></label>
+                                            <select id="videoStatus" name="status" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" required>
+                                                <option value="">Select Status</option>
+                                                <option value="active" ${video.status === 'active' ? 'selected' : ''}>Active</option>
+                                                <option value="inactive" ${video.status === 'inactive' ? 'selected' : ''}>Inactive</option>
+                                            </select>
+                                            <span id="videoStatusError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                        </div>
+                                    </div>
+                                    <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200 dark:border-slate-700">
+                                        <button type="button" onclick="closeVideoModal()" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">
+                                            Cancel
+                                        </button>
+                                        <button type="submit" class="px-4 py-2 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm">
+                                            Update Video
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    `);
+
+                        // Setup drag and drop functionality
+                        const dropZone = document.getElementById('videoDropZone');
+                        const fileInput = document.getElementById('videoFile');
+                        const fileInfo = document.getElementById('videoFileInfo');
+                        const fileName = document.getElementById('videoFileName');
+                        const fileSize = document.getElementById('videoFileSize');
+                        const cancelBtn = document.getElementById('videoCancelBtn');
+
+                        // Click to browse
+                        dropZone.addEventListener('click', () => fileInput.click());
+
+                        // Drag and drop events
+                        dropZone.addEventListener('dragover', (e) => {
+                            e.preventDefault();
+                            dropZone.classList.add('border-primary', 'bg-primary/10');
+                        });
+
+                        dropZone.addEventListener('dragleave', () => {
+                            dropZone.classList.remove('border-primary', 'bg-primary/10');
+                        });
+
+                        dropZone.addEventListener('drop', (e) => {
+                            e.preventDefault();
+                            dropZone.classList.remove('border-primary', 'bg-primary/10');
+                            
+                            const files = e.dataTransfer.files;
+                            if (files.length > 0) {
+                                fileInput.files = files;
+                                displayVideoFileInfo(files[0]);
+                            }
+                        });
+
+                        // File input change
+                        fileInput.addEventListener('change', (e) => {
+                            if (e.target.files.length > 0) {
+                                displayVideoFileInfo(e.target.files[0]);
+                            }
+                        });
+
+                        // Cancel file selection
+                        cancelBtn.addEventListener('click', () => {
+                            fileInput.value = '';
+                            fileInfo.classList.add('hidden');
+                            dropZone.classList.remove('hidden');
+                        });
+
+                        function displayVideoFileInfo(file) {
+                            fileName.textContent = file.name;
+                            fileSize.textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+                            fileInfo.classList.remove('hidden');
+                            dropZone.classList.add('hidden');
+                        }
+
+                        document.getElementById('videoForm').addEventListener('submit', saveVideo);
+                        currentVideoId = videoId;
+                    } else {
+                        showNotification('Failed to load video details', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading video:', error);
+                    showNotification('An error occurred while loading video details', 'error');
+                });
+        }
+
+        function openDeleteVideoModal(videoId, videoName) {
+            currentVideoId = videoId;
+            
+            document.body.insertAdjacentHTML('beforeend', `
+                <div id="deleteVideoModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md">
+                        <div class="border-b border-gray-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between">
+                            <h3 class="text-lg font-bold text-gray-800 dark:text-white">Delete Video</h3>
+                            <button onclick="closeDeleteVideoModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <div class="p-6">
+                            <p class="text-gray-700 dark:text-slate-300 mb-4">Are you sure you want to delete the video "<strong>${videoName}</strong>"?</p>
+                            <p class="text-sm text-gray-500 dark:text-slate-400">This action cannot be undone and will permanently delete the video file.</p>
+                        </div>
+                        <div class="px-6 py-4 bg-gray-50 dark:bg-slate-700/50 flex justify-end gap-3">
+                            <button onclick="closeDeleteVideoModal()" class="px-5 py-2.5 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">
+                                Cancel
+                            </button>
+                            <button onclick="deleteVideo()" class="px-5 py-2.5 rounded-lg bg-red-500 text-white font-medium hover:bg-red-600 transition-colors text-sm">
+                                Delete Video
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `);
+        }
+
+        function closeVideoModal() {
+            const modal = document.getElementById('videoModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        function closeDeleteVideoModal() {
+            const modal = document.getElementById('deleteVideoModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        function clearVideoErrors() {
+            document.getElementById('videoNameError').classList.add('hidden');
+            const fileError = document.getElementById('videoFileError');
+            if (fileError) fileError.classList.add('hidden');
+            document.getElementById('videoStatusError').classList.add('hidden');
+        }
+
+        function saveVideo(e) {
+            e.preventDefault();
+            clearVideoErrors();
+
+            const formData = new FormData();
+            formData.append('name', document.getElementById('videoName').value.trim());
+            formData.append('status', document.getElementById('videoStatus').value);
+            
+            const videoFileInput = document.getElementById('videoFile');
+            if (videoFileInput.files.length > 0) {
+                formData.append('video_file', videoFileInput.files[0]);
+            }
+
+            const url = currentVideoId 
+                ? `<?= base_url('config/updateVideo') ?>/${currentVideoId}`
+                : `<?= base_url('config/createVideo') ?>`;
+
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            const originalButtonText = submitButton.textContent;
+            submitButton.disabled = true;
+            submitButton.textContent = currentVideoId ? 'Updating...' : 'Uploading...';
+
+            fetch(url, {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification(data.message, 'success');
+                        closeVideoModal();
+                        loadVideos(currentVideoPage);
+                    } else {
+                        if (data.errors) {
+                            if (data.errors.name) {
+                                document.getElementById('videoNameError').textContent = data.errors.name;
+                                document.getElementById('videoNameError').classList.remove('hidden');
+                            }
+                            if (data.errors.video_file) {
+                                document.getElementById('videoFileError').textContent = data.errors.video_file;
+                                document.getElementById('videoFileError').classList.remove('hidden');
+                            }
+                            if (data.errors.status) {
+                                document.getElementById('videoStatusError').textContent = data.errors.status;
+                                document.getElementById('videoStatusError').classList.remove('hidden');
+                            }
+                        }
+                        showNotification(data.message || 'Failed to save video', 'error');
+                        submitButton.textContent = originalButtonText;
+                        submitButton.disabled = false;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error saving video:', error);
+                    showNotification('An error occurred while saving the video', 'error');
+                    submitButton.textContent = originalButtonText;
+                    submitButton.disabled = false;
+                });
+        }
+
+        function deleteVideo() {
+            const deleteBtn = event.target;
+            deleteBtn.disabled = true;
+            deleteBtn.textContent = 'Deleting...';
+
+            fetch(`<?= base_url('config/deleteVideo') ?>/${currentVideoId}`, {
+                method: 'DELETE'
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification(data.message, 'success');
+                        closeDeleteVideoModal();
+                        loadVideos(currentVideoPage);
+                    } else {
+                        showNotification(data.message || 'Failed to delete video', 'error');
+                        deleteBtn.textContent = 'Delete Video';
+                        deleteBtn.disabled = false;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting video:', error);
+                    showNotification('An error occurred while deleting the video', 'error');
+                    deleteBtn.textContent = 'Delete Video';
+                    deleteBtn.disabled = false;
+                });
+        }
+
+        // Video search Enter key
+        document.addEventListener('keypress', function(e) {
+            if (e.target && e.target.id === 'videoSearchInput' && e.key === 'Enter') {
+                e.preventDefault();
+                searchVideos();
+            }
+        });
+
+        // ====================================================================================
+        // Visit Reason Management
+        // ====================================================================================
+        let currentVisitReasonPage = 1;
+        let visitReasonPerPage = 10;
+        let currentVisitReasonSearch = '';
+        let currentVisitReasonSort = 'created_at_desc';
+
+        function loadVisitReasons(page = 1) {
+            currentVisitReasonPage = page;
+            
+            // Parse sort - handle 'created_at' specially
+            let sortBy = 'created_at';
+            let sortOrder = 'DESC';
+            
+            if (currentVisitReasonSort === 'created_at_desc') {
+                sortBy = 'created_at';
+                sortOrder = 'DESC';
+            } else if (currentVisitReasonSort === 'created_at_asc') {
+                sortBy = 'created_at';
+                sortOrder = 'ASC';
+            } else if (currentVisitReasonSort === 'reason_asc') {
+                sortBy = 'reason';
+                sortOrder = 'ASC';
+            } else if (currentVisitReasonSort === 'reason_desc') {
+                sortBy = 'reason';
+                sortOrder = 'DESC';
+            }
+
+            fetch(`<?= base_url('config/getVisitReasons') ?>?page=${page}&per_page=${visitReasonPerPage}&search=${encodeURIComponent(currentVisitReasonSearch)}&sort_by=${sortBy}&sort_order=${sortOrder}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayVisitReasons(data.data, data.pagination);
+                    } else {
+                        console.error('Error loading visit reasons:', data.message);
+                        showNoData();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNoData();
+                });
+        }
+
+        function showNoData() {
+            const tbody = document.getElementById('visitReasonTableBody');
+            if (!tbody) return;
+            
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="3" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
+                        <div class="flex flex-col items-center gap-2">
+                            <span class="material-symbols-outlined text-4xl">error</span>
+                            <p>Failed to load visit reasons</p>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+
+        function displayVisitReasons(reasons, pagination) {
+            const tbody = document.getElementById('visitReasonTableBody');
+            if (!tbody) return;
+
+            if (reasons.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="3" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
+                            <div class="flex flex-col items-center gap-2">
+                                <span class="material-symbols-outlined text-4xl">search_off</span>
+                                <p>No visit reasons found</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = reasons.map((reason, index) => `
+                <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
+                    <td class="px-4 py-3 font-medium">${pagination.from + index}</td>
+                    <td class="px-4 py-3">${escapeHtml(reason.reason)}</td>
+                    <td class="px-4 py-3 w-32">
+                        <div class="flex gap-2">
+                            <button onclick="openEditVisitReasonModal(${reason.id}, '${escapeHtml(reason.reason)}')" class="text-primary hover:text-primary/80">
+                                <span class="material-symbols-outlined text-xl">edit</span>
+                            </button>
+                            <button onclick="deleteVisitReason(${reason.id})" class="text-red-500 hover:text-red-400">
+                                <span class="material-symbols-outlined text-xl">delete</span>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+
+            // Update pagination info
+            document.getElementById('visitReasonFrom').textContent = pagination.from;
+            document.getElementById('visitReasonTo').textContent = pagination.to;
+            document.getElementById('visitReasonTotal').textContent = pagination.total;
+
+            // Update pagination buttons
+            updateVisitReasonPaginationButtons(pagination);
+        }
+
+        function updateVisitReasonPaginationButtons(pagination) {
+            const container = document.getElementById('visitReasonPaginationButtons');
+            if (!container) return;
+
+            let buttons = '';
+            
+            // Previous button
+            buttons += `
+                <button onclick="loadVisitReasons(${pagination.current_page - 1})" 
+                        class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors ${pagination.current_page === 1 ? 'opacity-50 cursor-not-allowed' : ''}" 
+                        ${pagination.current_page === 1 ? 'disabled' : ''}>
+                    <span class="material-symbols-outlined text-base">chevron_left</span>
+                </button>
+            `;
+
+            // Always show first page
+            buttons += `
+                <button onclick="loadVisitReasons(1)" 
+                        class="px-3 py-2 rounded-lg ${1 === pagination.current_page ? 'bg-primary text-white' : 'border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700'} font-medium text-sm min-w-[40px] transition-colors">
+                    1
+                </button>
+            `;
+
+            // Show ellipsis if needed
+            if (pagination.current_page > 3) {
+                buttons += `<span class="px-2 text-gray-400">...</span>`;
+            }
+
+            // Show pages around current page
+            for (let i = Math.max(2, pagination.current_page - 1); i <= Math.min(pagination.last_page - 1, pagination.current_page + 1); i++) {
+                buttons += `
+                    <button onclick="loadVisitReasons(${i})" 
+                            class="px-3 py-2 rounded-lg ${i === pagination.current_page ? 'bg-primary text-white' : 'border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700'} font-medium text-sm min-w-[40px] transition-colors">
+                        ${i}
+                    </button>
+                `;
+            }
+
+            // Show ellipsis if needed
+            if (pagination.current_page < pagination.last_page - 2) {
+                buttons += `<span class="px-2 text-gray-400">...</span>`;
+            }
+
+            // Always show last page if there's more than 1 page
+            if (pagination.last_page > 1) {
+                buttons += `
+                    <button onclick="loadVisitReasons(${pagination.last_page})" 
+                            class="px-3 py-2 rounded-lg ${pagination.last_page === pagination.current_page ? 'bg-primary text-white' : 'border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700'} font-medium text-sm min-w-[40px] transition-colors">
+                        ${pagination.last_page}
+                    </button>
+                `;
+            }
+
+            // Next button
+            buttons += `
+                <button onclick="loadVisitReasons(${pagination.current_page + 1})" 
+                        class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors ${pagination.current_page === pagination.last_page ? 'opacity-50 cursor-not-allowed' : ''}" 
+                        ${pagination.current_page === pagination.last_page ? 'disabled' : ''}>
+                    <span class="material-symbols-outlined text-base">chevron_right</span>
+                </button>
+            `;
+
+            container.innerHTML = buttons;
+        }
+
+        function searchVisitReasons() {
+            currentVisitReasonSearch = document.getElementById('visitReasonSearchInput').value;
+            loadVisitReasons(1);
+        }
+
+        function sortVisitReasons() {
+            currentVisitReasonSort = document.getElementById('visitReasonSortSelect').value;
+            loadVisitReasons(1);
+        }
+
+        function openCreateVisitReasonModal() {
+            document.body.insertAdjacentHTML('beforeend', `
+                <div id="visitReasonModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md overflow-hidden">
+                        <div class="sticky top-0 bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between rounded-t-lg">
+                            <h3 class="text-lg font-bold text-gray-800 dark:text-white">Create Visit Reason</h3>
+                            <button onclick="closeVisitReasonModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <form id="visitReasonForm" class="p-6">
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Visit Reason <span class="text-red-500">*</span></label>
+                                <input type="text" id="visitReasonName" name="reason" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Enter visit reason" required>
+                                <span id="visitReasonError" class="text-red-500 text-xs mt-1 hidden"></span>
+                            </div>
+                            <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-slate-700">
+                                <button type="button" onclick="closeVisitReasonModal()" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">
+                                    Cancel
+                                </button>
+                                <button type="submit" class="px-4 py-2 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm">
+                                    Create Reason
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `);
+
+            document.getElementById('visitReasonForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                createVisitReason();
+            });
+        }
+
+        function createVisitReason() {
+            const formData = new FormData();
+            formData.append('reason', document.getElementById('visitReasonName').value);
+
+            fetch('<?= base_url('config/createVisitReason') ?>', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    closeVisitReasonModal();
+                    loadVisitReasons(currentVisitReasonPage);
+                    showToast('Visit reason created successfully', 'success');
+                } else {
+                    if (data.errors) {
+                        document.getElementById('visitReasonError').textContent = data.errors.reason || data.message;
+                        document.getElementById('visitReasonError').classList.remove('hidden');
+                    } else {
+                        showToast(data.message, 'error');
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('An error occurred. Please try again.', 'error');
+            });
+        }
+
+        function openEditVisitReasonModal(id, reason) {
+            document.body.insertAdjacentHTML('beforeend', `
+                <div id="visitReasonModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md overflow-hidden">
+                        <div class="sticky top-0 bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between rounded-t-lg">
+                            <h3 class="text-lg font-bold text-gray-800 dark:text-white">Edit Visit Reason</h3>
+                            <button onclick="closeVisitReasonModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <form id="visitReasonForm" class="p-6">
+                            <input type="hidden" id="visitReasonId" value="${id}">
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Visit Reason <span class="text-red-500">*</span></label>
+                                <input type="text" id="visitReasonName" name="reason" value="${reason}" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Enter visit reason" required>
+                                <span id="visitReasonError" class="text-red-500 text-xs mt-1 hidden"></span>
+                            </div>
+                            <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-slate-700">
+                                <button type="button" onclick="closeVisitReasonModal()" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">
+                                    Cancel
+                                </button>
+                                <button type="submit" class="px-4 py-2 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm">
+                                    Update Reason
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `);
+
+            document.getElementById('visitReasonForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                updateVisitReason();
+            });
+        }
+
+        function updateVisitReason() {
+            const id = document.getElementById('visitReasonId').value;
+            const formData = new FormData();
+            formData.append('reason', document.getElementById('visitReasonName').value);
+
+            fetch(`<?= base_url('config/updateVisitReason/') ?>${id}`, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    closeVisitReasonModal();
+                    loadVisitReasons(currentVisitReasonPage);
+                    showToast('Visit reason updated successfully', 'success');
+                } else {
+                    if (data.errors) {
+                        document.getElementById('visitReasonError').textContent = data.errors.reason || data.message;
+                        document.getElementById('visitReasonError').classList.remove('hidden');
+                    } else {
+                        showToast(data.message, 'error');
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('An error occurred. Please try again.', 'error');
+            });
+        }
+
+        function deleteVisitReason(id) {
+            if (!confirm('Are you sure you want to delete this visit reason?')) {
+                return;
+            }
+
+            fetch(`<?= base_url('config/deleteVisitReason/') ?>${id}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loadVisitReasons(currentVisitReasonPage);
+                    showToast('Visit reason deleted successfully', 'success');
+                } else {
+                    showToast(data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('An error occurred. Please try again.', 'error');
+            });
+        }
+
+        function closeVisitReasonModal() {
+            const modal = document.getElementById('visitReasonModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        // Visit Reason search Enter key
+        document.addEventListener('keypress', function(e) {
+            if (e.target && e.target.id === 'visitReasonSearchInput' && e.key === 'Enter') {
+                e.preventDefault();
+                searchVisitReasons();
             }
         });
     </script>

@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= esc($pageTitle) ?></title>
+    <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -98,7 +99,7 @@
             width: 100%;
             max-width: 700px;
             margin: 0 auto 30px;
-            background: #3d4f51;
+            background: #f8fafc;
             border-radius: 16px;
             overflow: hidden;
             aspect-ratio: 4/3;
@@ -107,11 +108,92 @@
         .camera-placeholder {
             width: 100%;
             height: 100%;
-            background: linear-gradient(135deg, #475569 0%, #334155 100%);
+            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
             display: flex;
             align-items: center;
             justify-content: center;
             position: relative;
+        }
+
+        #video, #capturedImage {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        #capturedImage {
+            display: none;
+        }
+
+        .countdown-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            font-size: 120px;
+            font-weight: 700;
+            color: white;
+            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+            display: none;
+        }
+
+        .face-detection-box {
+            position: absolute;
+            border: 3px solid #10b981;
+            border-radius: 8px;
+            z-index: 5;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+        }
+
+        .no-face-warning {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(239, 68, 68, 0.95);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            z-index: 10;
+            display: none;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .camera-access-prompt {
+            text-align: center;
+            padding: 40px;
+            color: #64748b;
+        }
+
+        .camera-access-prompt svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0.6;
+            color: #94a3b8;
+        }
+
+        .camera-access-prompt h3 {
+            font-size: 20px;
+            margin-bottom: 10px;
+            color: #475569;
+        }
+
+        .camera-access-prompt p {
+            font-size: 14px;
+            opacity: 0.8;
+            color: #64748b;
         }
 
         .camera-status {
@@ -142,6 +224,27 @@
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
+        }
+
+        .face-status-indicator {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(239, 68, 68, 0.95);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 15px;
+            z-index: 10;
+            display: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .face-status-indicator.detected {
+            background: rgba(16, 185, 129, 0.95);
         }
 
 
@@ -335,25 +438,34 @@
                 <!-- Camera Display -->
                 <div class="camera-wrapper">
                     <div class="camera-placeholder">
-                        <div class="camera-status">
+                        <div class="camera-status" id="cameraStatus" style="display: none;">
                             <span class="live-indicator"></span>
                             LIVE CAMERA
                         </div>
-                        <img src="<?= base_url('assets/images/facialRecognition.jpg') ?>" alt="Face" style="width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; z-index: 1;">
+                        <div class="countdown-overlay" id="countdownOverlay"></div>
+                        <video id="video" autoplay playsinline></video>
+                        <img id="capturedImage" alt="Captured Face">
+                        <canvas id="canvas" style="display: none;"></canvas>
+                        
+                        <!-- Camera Access Prompt -->
+                        <div class="camera-access-prompt" id="cameraPrompt">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                                <circle cx="12" cy="13" r="4"></circle>
+                            </svg>
+                            <h3>Camera Access Required</h3>
+                            <p>Please allow camera access to continue with facial verification</p>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Progress Section (Outside camera wrapper) -->
-                <div class="progress-section">
+                <div class="progress-section" id="progressSection" style="display: none;">
                     <div class="progress-header">
                         <svg class="progress-icon" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2">
                             <circle cx="12" cy="12" r="10"></circle>
                         </svg>
-                        <span class="progress-text">Scanning face...</span>
-                        <span class="progress-percentage" id="scanProgress">0%</span>
-                    </div>
-                    <div class="progress-bar-container">
-                        <div class="progress-bar" id="progressBar"></div>
+                        <span class="progress-text" id="progressText">Loading face detection...</span>
                     </div>
 
                     <div class="disclaimer">
@@ -364,11 +476,11 @@
 
             <!-- Action Buttons (Outside camera section) -->
             <div class="action-buttons" id="actionButtons" style="display: none;">
-                <button type="button" class="btn btn-secondary" onclick="retryScan()">
+                <button type="button" class="btn btn-secondary" onclick="retakePhoto()">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
                     </svg>
-                    Retry Scan
+                    Retake Photo
                 </button>
                 <button type="button" class="btn btn-primary" onclick="proceedToNextStep()">
                     Continue
@@ -395,50 +507,232 @@
         updateTime();
         setInterval(updateTime, 1000);
 
-        // Simulate facial scanning progress
-        let progress = 0;
-        const progressBar = document.getElementById('progressBar');
-        const progressText = document.getElementById('scanProgress');
+        // Camera and Face Detection
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const capturedImage = document.getElementById('capturedImage');
+        const cameraPrompt = document.getElementById('cameraPrompt');
+        const cameraStatus = document.getElementById('cameraStatus');
+        const countdownOverlay = document.getElementById('countdownOverlay');
+        const progressSection = document.getElementById('progressSection');
+        const progressText = document.getElementById('progressText');
         const actionButtons = document.getElementById('actionButtons');
+        
+        let stream = null;
+        let capturedPhotoData = null;
+        let countdownTimer = null;
+        let detectionInterval = null;
+        let faceDetected = false;
+        let modelsLoaded = false;
 
-        function startScanning() {
-            const interval = setInterval(() => {
-                if (progress >= 100) {
-                    clearInterval(interval);
-                    setTimeout(() => {
-                        actionButtons.style.display = 'flex';
-                    }, 500);
+        // Load face-api.js models
+        async function loadFaceDetectionModels() {
+            try {
+                progressText.textContent = 'Loading face detection models...';
+                const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
+                
+                await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+                modelsLoaded = true;
+                progressText.textContent = 'Face detection ready!';
+                return true;
+            } catch (error) {
+                console.error('Error loading models:', error);
+                progressText.textContent = 'Error loading face detection';
+                return false;
+            }
+        }
+
+        // Detect face in video stream
+        async function detectFace() {
+            if (!video.videoWidth || !modelsLoaded) return;
+
+            try {
+                const detections = await faceapi.detectAllFaces(
+                    video, 
+                    new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 })
+                );
+
+                if (detections && detections.length > 0) {
+                    // Face detected
+                    if (!faceDetected) {
+                        faceDetected = true;
+                        progressText.textContent = 'Face detected! Hold still...';
+                        
+                        // Start countdown after stable detection
+                        setTimeout(() => {
+                            if (faceDetected) {
+                                startCountdown();
+                            }
+                        }, 500);
+                    }
+                } else {
+                    // No face detected
+                    if (faceDetected) {
+                        faceDetected = false;
+                        progressText.textContent = 'Looking for face...';
+                        
+                        // Cancel countdown if running
+                        if (countdownTimer) {
+                            clearInterval(countdownTimer);
+                            countdownTimer = null;
+                            countdownOverlay.style.display = 'none';
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Detection error:', error);
+            }
+        }
+
+        // Request camera access
+        async function requestCameraAccess() {
+            try {
+                // Load models first
+                progressSection.style.display = 'block';
+                const loaded = await loadFaceDetectionModels();
+                
+                if (!loaded) {
+                    throw new Error('Failed to load face detection models');
+                }
+
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        facingMode: 'user',
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    } 
+                });
+                
+                video.srcObject = stream;
+                cameraPrompt.style.display = 'none';
+                cameraStatus.style.display = 'flex';
+                progressText.textContent = 'Looking for face...';
+                
+                // Wait for video to be ready
+                video.onloadedmetadata = () => {
+                    // Start face detection
+                    detectionInterval = setInterval(detectFace, 300);
+                };
+                
+            } catch (error) {
+                console.error('Camera access error:', error);
+                cameraPrompt.innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <h3>Camera Access Denied</h3>
+                    <p>Please allow camera access in your browser settings and refresh the page</p>
+                `;
+            }
+        }
+
+        // Countdown before capture
+        function startCountdown() {
+            if (countdownTimer) return; // Prevent multiple countdowns
+            
+            let count = 5;
+            countdownOverlay.style.display = 'block';
+            countdownOverlay.textContent = count;
+            
+            countdownTimer = setInterval(() => {
+                // Check if face is still detected
+                if (!faceDetected) {
+                    clearInterval(countdownTimer);
+                    countdownTimer = null;
+                    countdownOverlay.style.display = 'none';
                     return;
                 }
                 
-                progress += 2;
-                progressBar.style.width = progress + '%';
-                progressText.textContent = progress + '%';
-            }, 100);
+                count--;
+                if (count > 0) {
+                    countdownOverlay.textContent = count;
+                } else {
+                    clearInterval(countdownTimer);
+                    countdownTimer = null;
+                    countdownOverlay.style.display = 'none';
+                    capturePhoto();
+                }
+            }, 1000);
         }
 
-        // Start scanning after page loads
-        window.addEventListener('load', () => {
-            setTimeout(startScanning, 1000);
-        });
+        // Capture photo from video stream
+        function capturePhoto() {
+            // Stop detection
+            if (detectionInterval) {
+                clearInterval(detectionInterval);
+                detectionInterval = null;
+            }
+            
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Get image data
+            capturedPhotoData = canvas.toDataURL('image/jpeg', 0.9);
+            
+            // Display captured image
+            capturedImage.src = capturedPhotoData;
+            capturedImage.style.display = 'block';
+            video.style.display = 'none';
+            
+            // Stop camera stream
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            
+            // Update UI
+            cameraStatus.style.display = 'none';
+            progressText.textContent = 'Photo captured successfully!';
+            actionButtons.style.display = 'flex';
+        }
 
-        function retryScan() {
-            progress = 0;
-            progressBar.style.width = '0%';
-            progressText.textContent = '0%';
+        // Retake photo
+        function retakePhoto() {
+            // Reset UI
+            capturedImage.style.display = 'none';
+            video.style.display = 'block';
             actionButtons.style.display = 'none';
-            setTimeout(startScanning, 500);
+            countdownOverlay.style.display = 'none';
+            faceDetected = false;
+            
+            // Clear any existing timers
+            if (countdownTimer) {
+                clearInterval(countdownTimer);
+                countdownTimer = null;
+            }
+            if (detectionInterval) {
+                clearInterval(detectionInterval);
+                detectionInterval = null;
+            }
+            
+            // Restart camera
+            requestCameraAccess();
         }
 
+        // Proceed to next step
         function proceedToNextStep() {
+            if (!capturedPhotoData) {
+                alert('No photo captured. Please try again.');
+                return;
+            }
+            
             const token = new URLSearchParams(window.location.search).get('token');
             
-            // TODO: Send verification data to backend
-            alert('Facial verification completed! Proceeding to check-in confirmation...');
+            // TODO: Send captured photo to backend for verification
+            // You can send capturedPhotoData (base64 image) to server
             
-            // Redirect to next step (check-in confirmation)
+            // For now, just proceed
+            alert('Facial verification completed! Proceeding to check-in confirmation...');
             window.location.href = '<?= base_url('security/checkin?token=') ?>' + token;
         }
+
+        // Start camera when page loads
+        window.addEventListener('load', () => {
+            setTimeout(requestCameraAccess, 500);
+        });
     </script>
 </body>
 </html>

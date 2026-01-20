@@ -39,6 +39,9 @@
             },
         };
     </script>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="fixed top-20 right-4 z-[9999] space-y-2 max-w-sm"></div>
 </head>
 <body class="bg-background-light dark:bg-background-dark font-sans text-gray-800 dark:text-gray-200 antialiased h-screen flex overflow-hidden transition-colors duration-200">
     <!-- Sidebar -->
@@ -247,12 +250,27 @@
                         </tr>
                     </thead>
                     <tbody class="text-xs text-gray-600 dark:text-gray-300 font-medium">
+                        <?php if (empty($invitations)): ?>
+                        <tr>
+                            <td colspan="11" class="p-12 text-center">
+                                <div class="flex flex-col items-center gap-3">
+                                    <span class="material-symbols-outlined text-gray-300 dark:text-gray-600 text-5xl">inbox</span>
+                                    <div>
+                                        <h3 class="text-gray-500 dark:text-gray-400 font-semibold">No Data Available</h3>
+                                        <p class="text-gray-400 dark:text-gray-500 text-xs mt-1">No invitation records found. Create your first invitation to get started.</p>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        <?php else: ?>
                         <?php foreach ($invitations as $invitation): ?>
                         <tr onclick='openDetailModal(<?= json_encode($invitation) ?>)' class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-b border-gray-100 dark:border-gray-700 cursor-pointer">
                             <td class="p-4"><?= $invitation['no'] ?></td>
                             <td class="p-4"><?= esc($invitation['date']) ?></td>
                             <td class="p-4 font-semibold text-gray-800 dark:text-white"><?= esc($invitation['full_name']) ?></td>
-                            <td class="p-4"><?= esc($invitation['ic_passport']) ?></td>
+                            <td class="p-4 <?= empty($invitation['ic_passport']) ? 'text-gray-400' : '' ?>">
+                                <?= empty($invitation['ic_passport']) ? 'NULL' : esc($invitation['ic_passport']) ?>
+                            </td>
                             <td class="p-4"><?= esc($invitation['contact']) ?></td>
                             <td class="p-4"><?= esc($invitation['company']) ?></td>
                             <td class="p-4 <?= empty($invitation['vehicle_reg']) ? 'text-gray-400' : '' ?>">
@@ -272,6 +290,7 @@
                             <td class="p-4"><?= esc($invitation['reason']) ?></td>
                         </tr>
                         <?php endforeach; ?>
+                        <?php endif; ?>
                     </tbody>
                 </table>
             </div>
@@ -390,7 +409,7 @@
                 <button onclick="closeDetailModal()" class="px-4 py-2.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg transition-colors duration-200">
                     Close
                 </button>
-                <button class="px-4 py-2.5 bg-primary hover:bg-primary-dark text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
+                <button id="sendInvitationBtn" onclick="sendInvitation()" class="px-4 py-2.5 bg-primary hover:bg-primary-dark text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                     <span class="material-symbols-outlined text-lg">send</span>
                     Send
                 </button>
@@ -399,7 +418,78 @@
     </div>
 
     <script>
+        let currentInvitationId = null;
+
+        // Toast notification functions
+        function showToast(message, type = 'info') {
+            const toastContainer = document.getElementById('toastContainer');
+            const toastId = 'toast_' + Date.now();
+            const toast = document.createElement('div');
+            toast.id = toastId;
+            
+            let bgClass, iconColor, icon;
+            if (type === 'success') {
+                bgClass = 'bg-green-500';
+                iconColor = 'text-white';
+                icon = 'check_circle';
+            } else if (type === 'error') {
+                bgClass = 'bg-red-500';
+                iconColor = 'text-white';
+                icon = 'error';
+            } else if (type === 'warning') {
+                bgClass = 'bg-yellow-500';
+                iconColor = 'text-white';
+                icon = 'warning';
+            } else {
+                bgClass = 'bg-blue-500';
+                iconColor = 'text-white';
+                icon = 'info';
+            }
+            
+            toast.className = `transform transition-all duration-300 ease-in-out translate-x-full opacity-0 ${bgClass} text-white shadow-2xl rounded-lg mb-3 min-w-[320px]`;
+            
+            toast.innerHTML = `
+                <div class="p-4 flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                        <span class="material-symbols-outlined ${iconColor} text-2xl flex-shrink-0">${icon}</span>
+                        <p class="text-base font-semibold text-white">${message}</p>
+                    </div>
+                    <button onclick="closeToast('${toastId}')" class="text-white hover:text-gray-200 flex-shrink-0">
+                        <span class="material-symbols-outlined text-xl">close</span>
+                    </button>
+                </div>
+            `;
+            
+            toastContainer.appendChild(toast);
+            
+            // Animate in
+            setTimeout(() => {
+                toast.classList.remove('translate-x-full', 'opacity-0');
+                toast.classList.add('translate-x-0', 'opacity-100');
+            }, 100);
+            
+            // Auto remove after 4 seconds
+            setTimeout(() => {
+                closeToast(toastId);
+            }, 4000);
+        }
+
+        function closeToast(toastId) {
+            const toast = document.getElementById(toastId);
+            if (toast) {
+                toast.classList.add('translate-x-full', 'opacity-0');
+                setTimeout(() => {
+                    if (toast && toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                }, 300);
+            }
+        }
+
         function openDetailModal(invitation) {
+            // Store current invitation ID for sending
+            currentInvitationId = invitation.id;
+            
             // Set status with appropriate styling
             const statusEl = document.getElementById('modalStatus');
             if (invitation.status === 'Approved') {
@@ -415,7 +505,7 @@
 
             // Fill in the details
             document.getElementById('modalFullName').textContent = invitation.full_name;
-            document.getElementById('modalIcPassport').textContent = invitation.ic_passport;
+            document.getElementById('modalIcPassport').textContent = invitation.ic_passport || 'NULL';
             document.getElementById('modalContact').textContent = invitation.contact;
             document.getElementById('modalCompany').textContent = invitation.company;
             document.getElementById('modalDate').textContent = invitation.date;
@@ -430,6 +520,47 @@
 
         function closeDetailModal() {
             document.getElementById('detailModal').classList.add('hidden');
+            currentInvitationId = null;
+        }
+
+        async function sendInvitation() {
+            if (!currentInvitationId) {
+                showToast('No invitation selected', 'error');
+                return;
+            }
+
+            const sendBtn = document.getElementById('sendInvitationBtn');
+            const originalText = sendBtn.innerHTML;
+            
+            // Disable button and show loading
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = '<span class="material-symbols-outlined text-lg animate-spin">refresh</span> Sending...';
+
+            try {
+                const response = await fetch(`<?= base_url('invitations/resend') ?>/${currentInvitationId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('Invitation email sent successfully!', 'success');
+                    closeDetailModal();
+                } else {
+                    showToast('Failed to send invitation: ' + result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error sending invitation:', error);
+                showToast('An error occurred while sending the invitation', 'error');
+            } finally {
+                // Re-enable button
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = originalText;
+            }
         }
 
         // Close modal on backdrop click
