@@ -99,13 +99,16 @@ class InvitationList extends BaseController
         // Get current user information from session
         $currentUser = session()->get();
         
+        // Debug: log session data
+        log_message('info', 'Session data in create invitation: ' . print_r($currentUser, true));
+        
         $data = [
             'pageTitle' => 'Create Invitation - SafeG',
             'visitReasons' => $visitReasons,
             'locations' => $locations,
             'companies' => $companies,
-            'staff_id' => $currentUser['staff_id'] ?? 'STAFF001',  // Use staff_id from session
-            'contact_no' => $currentUser['contact'] ?? '+60123456789'  // Default contact if not available
+            'staff_id' => $currentUser['staff_id'] ?? $currentUser['user_id'] ?? 'STAFF001',  // Try user_id as fallback
+            'contact_no' => $currentUser['contact'] ?? $currentUser['phone'] ?? '+60123456789'  // Try phone as fallback
         ];
 
         return view('invitations/create', $data);
@@ -138,6 +141,9 @@ class InvitationList extends BaseController
             // Get current user from session
             $currentUser = session()->get('full_name') ?? session()->get('user_name') ?? 'System';
             
+            // Debug: Log POST data
+            log_message('info', 'Invitation POST data: ' . print_r($this->request->getPost(), true));
+            
             // Prepare main invitation data (admin provides basic visitor details)
             $invitationData = [
                 'full_name' => $this->request->getPost('full_name'),  // Admin provides
@@ -151,8 +157,14 @@ class InvitationList extends BaseController
                 'reason' => $this->request->getPost('reason'),
                 'other_reason' => $this->request->getPost('other_reason'),
                 'link_expiry' => $this->request->getPost('link_expiry'),
-                'status' => 'Pending'
+                'status' => 'Pending',
+                'staff_id' => $this->request->getPost('staff_id'),
+                'company_visited' => $this->request->getPost('company_visited'),
+                'host_contact' => $this->request->getPost('contact_person')  // Correct field name
             ];
+            
+            // Debug: Log prepared data
+            log_message('info', 'Prepared invitation data: ' . print_r($invitationData, true));
 
             // Insert main invitation
             $invitationId = $this->invitationModel->insert($invitationData);

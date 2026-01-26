@@ -50,6 +50,14 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #4c739a;
         }
+        /* Hide native calendar picker icon */
+        input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            display: none;
+            -webkit-appearance: none;
+            opacity: 0;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body class="bg-background-light dark:bg-background-dark text-text-main dark:text-white font-brand antialiased h-screen flex overflow-hidden transition-colors duration-200">
@@ -66,6 +74,10 @@
                 <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('dashboard') ?>">
                     <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">dashboard</span>
                     <p class="text-sm font-medium">Dashboard</p>
+                </a>
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('compliance') ?>">
+                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">health_and_safety</span>
+                    <p class="text-sm font-medium">Compliance</p>
                 </a>
                 <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('invitations') ?>">
                     <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">mail</span>
@@ -187,21 +199,60 @@
                         </div>
                     </div>
                     <div id="dateVisitContainer" class="p-6 sm:p-8 flex flex-col gap-6">
-                        <div class="date-visit-item grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div class="space-y-2">
-                                <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Date From <span class="text-red-500">*</span></label>
-                                <div class="relative">
-                                    <input name="dates[0][date_from]" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="dd/mm/yyyy hh:mm" type="datetime-local" required/>
-                                    <span class="material-symbols-outlined absolute right-4 top-3 text-text-sub pointer-events-none">calendar_month</span>
+                        <div class="date-visit-item bg-background-light dark:bg-background-dark/50 rounded-lg p-4 border border-border-color dark:border-gray-700">
+                            <div class="flex items-center justify-between mb-4">
+                                <h4 class="font-semibold text-text-main dark:text-white font-brand">Date Visit 1</h4>
+                                <button type="button" onclick="removeSpecificDateVisit(this)" class="text-red-600 hover:text-red-700 transition-colors p-1 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20" title="Delete this date visit">
+                                    <span class="material-symbols-outlined text-xl">delete</span>
+                                </button>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Date From <span class="text-red-500">*</span></label>
+                                    <div class="relative">
+                                        <input name="dates[0][date_from]" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 pr-12 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="dd/mm/yyyy hh:mm" type="datetime-local" required/>
+                                        <span class="material-symbols-outlined absolute right-4 top-3 text-text-sub cursor-pointer" onclick="this.previousElementSibling.showPicker()">calendar_month</span>
+                                    </div>
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Date To <span class="text-red-500">*</span></label>
+                                    <div class="relative">
+                                        <input name="dates[0][date_to]" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 pr-12 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="dd/mm/yyyy hh:mm" type="datetime-local" required/>
+                                        <span class="material-symbols-outlined absolute right-4 top-3 text-text-sub cursor-pointer" onclick="this.previousElementSibling.showPicker()">event</span>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="space-y-2">
-                                <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Date To <span class="text-red-500">*</span></label>
-                                <div class="relative">
-                                    <input name="dates[0][date_to]" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="dd/mm/yyyy hh:mm" type="datetime-local" required/>
-                                    <span class="material-symbols-outlined absolute right-4 top-3 text-text-sub pointer-events-none">event</span>
-                                </div>
-                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Details of Visit -->
+                <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8">
+                    <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
+                        <div class="size-10 rounded-full bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center text-purple-600 dark:text-purple-400">
+                            <span class="material-symbols-outlined">badge</span>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-bold font-brand text-text-main dark:text-white">Details of Visit</h2>
+                            <p class="text-sm text-text-sub dark:text-gray-400 font-brand">Host and purpose details.</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Staff ID Of Person Visited</label>
+                            <input name="staff_id" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Contact No Of Person Visited</label>
+                            <input name="host_contact" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
+                        </div>
+                        <div class="space-y-2 md:col-span-2">
+                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Name Of Company Visited</label>
+                            <input name="company_visited" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
+                        </div>
+                        <div class="space-y-2 md:col-span-2">
+                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Reason</label>
+                            <input name="visit_reason" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
                         </div>
                     </div>
                 </section>
@@ -273,11 +324,8 @@
                             <input name="address_3" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
                         </div>
                         <div class="space-y-2">
-                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Country</label>
-                            <select name="country" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
-                                <option value="MALAYSIA">MALAYSIA</option>
-                                <option value="OTHER">OTHER</option>
-                            </select>
+                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">City</label>
+                            <input name="city" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
                         </div>
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">State</label>
@@ -299,29 +347,32 @@
                             </select>
                         </div>
                         <div class="space-y-2">
-                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">City</label>
-                            <input name="city" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
-                        </div>
-                        <div class="space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Postal Code</label>
                             <input name="postal_code" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
                         </div>
                         <div class="space-y-2">
+                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Country</label>
+                            <select name="country" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
+                                <option value="MALAYSIA">MALAYSIA</option>
+                                <option value="OTHER">OTHER</option>
+                            </select>
+                        </div>
+                        <div class="space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Category</label>
-                            <select name="category" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
-                                <option value="PUBLIC">PUBLIC</option>
-                                <option value="PRIVATE">PRIVATE</option>
-                                <option value="GOVERNMENT">GOVERNMENT</option>
+                            <select name="category" id="vehicleCategory" onchange="updateVehicleType()" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
+                                <option value="">SELECT</option>
+                                <option value="CAR">Car</option>
+                                <option value="MOTORCYCLE">Motorcycle</option>
+                                <option value="TRUCK">Truck</option>
+                                <option value="BUS">Bus</option>
+                                <option value="VAN">Van</option>
+                                <option value="HEAVY_MACHINERY">Heavy Machinery</option>
                             </select>
                         </div>
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Type Of Vehicle</label>
-                            <select name="vehicle_type" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
-                                <option value="">SELECT</option>
-                                <option value="CAR">CAR</option>
-                                <option value="MOTORCYCLE">MOTORCYCLE</option>
-                                <option value="VAN">VAN</option>
-                                <option value="TRUCK">TRUCK</option>
+                            <select name="vehicle_type" id="vehicleType" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
+                                <option value="">SELECT CATEGORY FIRST</option>
                             </select>
                         </div>
                         <div class="md:col-span-2 space-y-2">
@@ -362,15 +413,15 @@
                     </div>
                 </section>
 
-                <!-- Company Section -->
-                <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8 mt-8">
+                <!-- Company Details -->
+                <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8">
                     <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
-                        <div class="size-10 rounded-full bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-                            <span class="material-symbols-outlined">business</span>
+                        <div class="size-10 rounded-full bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center text-orange-600 dark:text-orange-400">
+                            <span class="material-symbols-outlined">apartment</span>
                         </div>
                         <div>
                             <h2 class="text-lg font-bold font-brand text-text-main dark:text-white">Company Details</h2>
-                            <p class="text-sm text-text-sub dark:text-gray-400 font-brand">Host and company information.</p>
+                            <p class="text-sm text-text-sub dark:text-gray-400 font-brand">Your company information.</p>
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -382,31 +433,8 @@
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Company Name</label>
                             <input name="company_name" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
                         </div>
-                        <div class="space-y-2">
-                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Staff ID Of Person Visited</label>
-                            <input name="staff_id" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
-                        </div>
-                        <div class="space-y-2">
-                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Name Of Person Visited <span class="text-red-500">*</span></label>
-                            <input name="person_visited" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text" required/>
-                        </div>
-                        <div class="space-y-2">
-                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Contact No Of Person Visited <span class="text-red-500">*</span></label>
-                            <input name="contact_person_visited" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="+60 1x-xxx xxxx" type="tel" required/>
-                        </div>
-                        <div class="space-y-2">
-                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Reason <span class="text-red-500">*</span></label>
-                            <select name="reason" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" required>
-                                <option value="">SELECT</option>
-                                <option value="MEETING">MEETING</option>
-                                <option value="DELIVERY">DELIVERY</option>
-                                <option value="MAINTENANCE">MAINTENANCE</option>
-                                <option value="SITE VISIT">SITE VISIT</option>
-                                <option value="CATERING">CATERING</option>
-                                <option value="OTHER">OTHER</option>
-                            </select>
-                        </div>
                     </div>
+                </section>
                 </section>
 
                 <!-- Asset/Equipment Details Section -->
@@ -440,29 +468,79 @@
                     </div>
                 </section>
 
-                <!-- Upload Section -->
+                <!-- Document Upload -->
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8 mt-8">
                     <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
-                        <div class="size-10 rounded-full bg-pink-50 dark:bg-pink-900/20 flex items-center justify-center text-pink-600 dark:text-pink-400">
-                            <span class="material-symbols-outlined">upload_file</span>
+                        <div class="size-10 rounded-full bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                            <span class="material-symbols-outlined">folder_open</span>
                         </div>
                         <div>
-                            <h2 class="text-lg font-bold font-brand text-text-main dark:text-white">Upload Documents</h2>
-                            <p class="text-sm text-text-sub dark:text-gray-400 font-brand">Supporting documents for your visit.</p>
+                            <h2 class="text-lg font-bold font-brand text-text-main dark:text-white">Document Upload</h2>
+                            <p class="text-sm text-text-sub dark:text-gray-400 font-brand">Required for identity verification.</p>
                         </div>
                     </div>
-                    <div>
-                        <div class="border-2 border-dashed border-border-color dark:border-gray-700 rounded-lg p-8 text-center hover:border-primary hover:bg-primary/5 transition-all cursor-pointer">
-                            <input type="file" name="documents[]" multiple class="hidden" id="fileUpload"/>
-                            <label for="fileUpload" class="cursor-pointer flex flex-col items-center gap-3">
-                                <span class="material-symbols-outlined text-5xl text-text-sub">cloud_upload</span>
-                                <div>
-                                    <p class="text-sm font-semibold text-text-main dark:text-gray-200 font-brand">Click or drag file to upload</p>
-                                    <p class="text-xs text-text-sub dark:text-gray-400 mt-1">Other Documents (PDF, JPG, PNG - Max 10MB)</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="flex flex-col gap-3">
+                            <p class="text-sm font-medium text-text-main dark:text-gray-200 font-brand">Government ID <span class="text-red-500">*</span></p>
+                            <div class="group relative flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer">
+                                <input name="government_id" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" type="file"/>
+                                <div class="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4">
+                                    <span class="material-symbols-outlined text-4xl text-gray-400 group-hover:text-primary mb-3 transition-colors">id_card</span>
+                                    <p class="mb-1 text-sm text-text-main dark:text-gray-300 font-brand"><span class="font-semibold text-primary">Click to upload</span> or drag and drop</p>
+                                    <p class="text-xs text-text-sub dark:text-gray-500 font-brand">SVG, PNG, JPG or PDF (MAX. 5MB)</p>
                                 </div>
-                            </label>
+                            </div>
                         </div>
-                        <div id="fileList" class="mt-4 space-y-2"></div>
+                        <div class="flex flex-col gap-3">
+                            <p class="text-sm font-medium text-text-main dark:text-gray-200 font-brand">Invitation Letter (Optional)</p>
+                            <div class="group relative flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer">
+                                <input name="invitation_letter" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" type="file"/>
+                                <div class="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4">
+                                    <span class="material-symbols-outlined text-4xl text-gray-400 group-hover:text-primary mb-3 transition-colors">upload_file</span>
+                                    <p class="mb-1 text-sm text-text-main dark:text-gray-300 font-brand"><span class="font-semibold text-primary">Click to upload</span> or drag and drop</p>
+                                    <p class="text-xs text-text-sub dark:text-gray-500 font-brand">PDF or Images</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Profile Photo -->
+                <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8 mt-8">
+                    <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
+                        <div class="size-10 rounded-full bg-teal-50 dark:bg-teal-900/20 flex items-center justify-center text-teal-600 dark:text-teal-400">
+                            <span class="material-symbols-outlined">photo_camera</span>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-bold font-brand text-text-main dark:text-white">Profile Photo</h2>
+                            <p class="text-sm text-text-sub dark:text-gray-400 font-brand">This will be used for your visitor badge.</p>
+                        </div>
+                    </div>
+                    <div class="flex flex-col sm:flex-row items-center gap-8">
+                        <div class="relative group">
+                            <div class="size-32 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden border-4 border-white dark:border-gray-700 shadow-lg">
+                                <span class="material-symbols-outlined text-6xl text-gray-300 dark:text-gray-600">account_circle</span>
+                            </div>
+                            <button class="absolute bottom-0 right-0 p-2 bg-white dark:bg-gray-700 rounded-full shadow-md text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary transition-colors border border-gray-200 dark:border-gray-600" type="button">
+                                <span class="material-symbols-outlined text-xl">edit</span>
+                            </button>
+                        </div>
+                        <div class="flex-1 space-y-4 text-center sm:text-left">
+                            <div>
+                                <h3 class="font-medium text-text-main dark:text-white font-brand">Upload or Capture</h3>
+                                <p class="text-sm text-text-sub dark:text-gray-400 mt-1 font-brand">Please ensure your face is clearly visible. No sunglasses or hats.</p>
+                            </div>
+                            <div class="flex flex-wrap justify-center sm:justify-start gap-3">
+                                <button class="px-5 py-2.5 rounded-lg bg-primary hover:bg-primary-hover text-white font-medium text-sm flex items-center gap-2 transition-all shadow-lg shadow-primary/25 font-brand" type="button">
+                                    <span class="material-symbols-outlined text-lg">upload</span>
+                                    Upload Photo
+                                </button>
+                                <button class="px-5 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-text-main dark:text-white font-medium text-sm flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all font-brand" type="button">
+                                    <span class="material-symbols-outlined text-lg">camera_alt</span>
+                                    Take Photo
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </section>
 
@@ -485,20 +563,31 @@
         let dateVisitCount = 1;
         function addDateVisit() {
             const container = document.getElementById('dateVisitContainer');
+            const items = container.querySelectorAll('.date-visit-item');
+            const newIndex = items.length;
+            
             const html = `
-                <div class="date-visit-item grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="space-y-2">
-                        <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Date From <span class="text-red-500">*</span></label>
-                        <div class="relative">
-                            <input name="dates[${dateVisitCount}][date_from]" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="dd/mm/yyyy hh:mm" type="datetime-local" required/>
-                            <span class="material-symbols-outlined absolute right-4 top-3 text-text-sub pointer-events-none">calendar_month</span>
-                        </div>
+                <div class="date-visit-item bg-background-light dark:bg-background-dark/50 rounded-lg p-4 border border-border-color dark:border-gray-700">
+                    <div class="flex items-center justify-between mb-4">
+                        <h4 class="font-semibold text-text-main dark:text-white font-brand">Date Visit ${newIndex + 1}</h4>
+                        <button type="button" onclick="removeSpecificDateVisit(this)" class="text-red-600 hover:text-red-700 transition-colors p-1 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20" title="Delete this date visit">
+                            <span class="material-symbols-outlined text-xl">delete</span>
+                        </button>
                     </div>
-                    <div class="space-y-2">
-                        <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Date To <span class="text-red-500">*</span></label>
-                        <div class="relative">
-                            <input name="dates[${dateVisitCount}][date_to]" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="dd/mm/yyyy hh:mm" type="datetime-local" required/>
-                            <span class="material-symbols-outlined absolute right-4 top-3 text-text-sub pointer-events-none">event</span>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Date From <span class="text-red-500">*</span></label>
+                            <div class="relative">
+                                <input name="dates[${dateVisitCount}][date_from]" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 pr-12 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="dd/mm/yyyy hh:mm" type="datetime-local" required/>
+                                <span class="material-symbols-outlined absolute right-4 top-3 text-text-sub cursor-pointer" onclick="this.previousElementSibling.showPicker()">calendar_month</span>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Date To <span class="text-red-500">*</span></label>
+                            <div class="relative">
+                                <input name="dates[${dateVisitCount}][date_to]" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 pr-12 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="dd/mm/yyyy hh:mm" type="datetime-local" required/>
+                                <span class="material-symbols-outlined absolute right-4 top-3 text-text-sub cursor-pointer" onclick="this.previousElementSibling.showPicker()">event</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -513,7 +602,32 @@
             if (items.length > 1) {
                 items[items.length - 1].remove();
                 dateVisitCount--;
+                updateDateVisitNumbers();
             }
+        }
+
+        function removeSpecificDateVisit(button) {
+            const container = document.getElementById('dateVisitContainer');
+            const items = container.querySelectorAll('.date-visit-item');
+            
+            if (items.length > 1) {
+                const item = button.closest('.date-visit-item');
+                item.remove();
+                updateDateVisitNumbers();
+            } else {
+                alert('At least one date visit entry is required.');
+            }
+        }
+
+        function updateDateVisitNumbers() {
+            const container = document.getElementById('dateVisitContainer');
+            const items = container.querySelectorAll('.date-visit-item');
+            items.forEach((item, index) => {
+                const header = item.querySelector('h4');
+                if (header) {
+                    header.textContent = `Date Visit ${index + 1}`;
+                }
+            });
         }
 
         // License dynamic addition
@@ -527,10 +641,18 @@
                 emptyState.remove();
             }
             
+            const items = container.querySelectorAll('.license-item');
+            const newIndex = items.length;
+            
             const html = `
-                <div class="license-item flex items-start gap-4">
-                    <span class="license-number text-sm font-bold text-text-sub dark:text-gray-400 mt-3">${licenseCount + 1}.</span>
-                    <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="license-item bg-background-light dark:bg-background-dark/50 rounded-lg p-4 border border-border-color dark:border-gray-700">
+                    <div class="flex items-center justify-between mb-4">
+                        <h4 class="font-semibold text-text-main dark:text-white font-brand">License ${newIndex + 1}</h4>
+                        <button type="button" onclick="removeSpecificLicense(this)" class="text-red-600 hover:text-red-700 transition-colors p-1 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20" title="Delete this license">
+                            <span class="material-symbols-outlined text-xl">delete</span>
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">License Class</label>
                             <select name="licenses[${licenseCount}][class]" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
@@ -554,7 +676,6 @@
             `;
             container.insertAdjacentHTML('beforeend', html);
             licenseCount++;
-            updateLicenseNumbers();
         }
 
         function removeLicense() {
@@ -577,10 +698,34 @@
             }
         }
 
+        function removeSpecificLicense(button) {
+            const container = document.getElementById('licenseContainer');
+            const item = button.closest('.license-item');
+            item.remove();
+            
+            updateLicenseNumbers();
+            
+            // Show empty state if no items left
+            const items = container.querySelectorAll('.license-item');
+            if (items.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-text-sub dark:text-gray-400">
+                        <span class="material-symbols-outlined text-5xl mb-3 block text-gray-300 dark:text-gray-600">badge</span>
+                        <p class="text-sm">No licenses added yet. Click <span class="text-primary font-semibold">+</span> to add driving license.</p>
+                    </div>
+                `;
+                licenseCount = 0;
+            }
+        }
+
         function updateLicenseNumbers() {
-            const numbers = document.querySelectorAll('.license-number');
-            numbers.forEach((num, index) => {
-                num.textContent = `${index + 1}.`;
+            const container = document.getElementById('licenseContainer');
+            const items = container.querySelectorAll('.license-item');
+            items.forEach((item, index) => {
+                const header = item.querySelector('h4');
+                if (header) {
+                    header.textContent = `License ${index + 1}`;
+                }
             });
         }
 
@@ -708,41 +853,69 @@
             });
         }
 
-        // File upload preview
-        document.getElementById('fileUpload').addEventListener('change', function(e) {
-            const fileList = document.getElementById('fileList');
-            fileList.innerHTML = '';
-            
-            Array.from(e.target.files).forEach((file, index) => {
-                const fileItem = document.createElement('div');
-                fileItem.className = 'flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700';
-                fileItem.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <span class="material-symbols-outlined text-primary">description</span>
-                        <div>
-                            <p class="text-sm font-medium text-slate-900 dark:text-white">${file.name}</p>
-                            <p class="text-xs text-slate-500">${(file.size / 1024 / 1024).toFixed(2)} MB</p>
-                        </div>
-                    </div>
-                    <button type="button" onclick="removeFile(${index})" class="text-slate-400 hover:text-red-500 transition-colors">
-                        <span class="material-symbols-outlined">close</span>
-                    </button>
-                `;
-                fileList.appendChild(fileItem);
-            });
-        });
+        // Vehicle type mapping
+        const vehicleTypes = {
+            'CAR': [
+                { value: 'SEDAN', label: 'Sedan' },
+                { value: 'HATCHBACK', label: 'Hatchback' },
+                { value: 'SUV', label: 'SUV' },
+                { value: 'COUPE', label: 'Coupe' }
+            ],
+            'TRUCK': [
+                { value: 'PICKUP', label: 'Pickup' },
+                { value: 'LORRY', label: 'Lorry' },
+                { value: 'TRAILER', label: 'Trailer' }
+            ],
+            'MOTORCYCLE': [
+                { value: 'SCOOTER', label: 'Scooter' },
+                { value: 'SPORT_BIKE', label: 'Sport bike' },
+                { value: 'CRUISER', label: 'Cruiser' }
+            ],
+            'BUS': [
+                { value: 'MINI_BUS', label: 'Mini Bus' },
+                { value: 'COACH', label: 'Coach' },
+                { value: 'SCHOOL_BUS', label: 'School Bus' }
+            ],
+            'VAN': [
+                { value: 'CARGO_VAN', label: 'Cargo Van' },
+                { value: 'PASSENGER_VAN', label: 'Passenger Van' },
+                { value: 'MINIVAN', label: 'Minivan' }
+            ],
+            'HEAVY_MACHINERY': [
+                { value: 'EXCAVATOR', label: 'Excavator' },
+                { value: 'BULLDOZER', label: 'Bulldozer' },
+                { value: 'CRANE', label: 'Crane' },
+                { value: 'FORKLIFT', label: 'Forklift' }
+            ]
+        };
 
-        function removeFile(index) {
-            const input = document.getElementById('fileUpload');
-            const dt = new DataTransfer();
-            const files = Array.from(input.files);
+        function updateVehicleType() {
+            const category = document.getElementById('vehicleCategory').value;
+            const vehicleTypeSelect = document.getElementById('vehicleType');
             
-            files.forEach((file, i) => {
-                if (i !== index) dt.items.add(file);
-            });
+            // Clear existing options
+            vehicleTypeSelect.innerHTML = '';
             
-            input.files = dt.files;
-            input.dispatchEvent(new Event('change'));
+            if (!category) {
+                vehicleTypeSelect.innerHTML = '<option value="">SELECT CATEGORY FIRST</option>';
+                return;
+            }
+            
+            // Add default option
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.textContent = 'SELECT TYPE';
+            vehicleTypeSelect.appendChild(defaultOption);
+            
+            // Add category-specific options
+            if (vehicleTypes[category]) {
+                vehicleTypes[category].forEach(type => {
+                    const option = document.createElement('option');
+                    option.value = type.value;
+                    option.textContent = type.label;
+                    vehicleTypeSelect.appendChild(option);
+                });
+            }
         }
     </script>
 </body>

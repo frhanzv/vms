@@ -14,7 +14,8 @@ class InvitationModel extends Model
     protected $protectFields = true;
     protected $allowedFields = [
         'full_name', 'ic_passport', 'contact', 'visitor_email', 'company', 'vehicle_registration', 
-        'location', 'invited_by', 'reason', 'other_reason', 'link_expiry', 'status'
+        'location', 'invited_by', 'reason', 'other_reason', 'link_expiry', 'status',
+        'staff_id', 'company_visited', 'host_contact'
     ];
 
     // Dates

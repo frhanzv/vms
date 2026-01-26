@@ -14,6 +14,7 @@ $routes->get('auth/logout', 'Auth::logout');
 // Protected Routes
 $routes->get('/', 'Dashboard::index');
 $routes->get('dashboard', 'Dashboard::index');
+$routes->get('compliance', 'Compliance::index');
 $routes->get('invitations', 'InvitationList::index');
 $routes->get('invitations/create', 'InvitationList::create');
 $routes->post('invitations/store', 'InvitationList::store');
@@ -29,13 +30,16 @@ $routes->get('workflow/create', 'VisitorWorkflow::create');
 // Visitor Registration Routes (Public - no menu)
 $routes->get('visitor-registration', 'VisitorRegistration::index');
 $routes->post('visitor-registration/submit', 'VisitorRegistration::submit');
+$routes->post('visitor-registration/processMyKad', 'VisitorRegistration::processMyKad');
+$routes->post('visitor-registration/updateEmail', 'VisitorRegistration::updateEmail');
 
 // Security Briefing Routes (Public - accessed via email link)
 $routes->get('security/briefing', 'SecurityBriefing::index');
 $routes->post('security/validateCompletion', 'SecurityBriefing::validateCompletion');
 $routes->get('security/facial-verification', 'SecurityBriefing::facialVerification');
+$routes->post('security/facialComplete', 'SecurityBriefing::facialComplete');
+$routes->get('security/completed', 'SecurityBriefing::completed');
 $routes->get('security/checkin', 'SecurityBriefing::checkin');
-$routes->post('security/confirmCheckin', 'SecurityBriefing::confirmCheckin');
 $routes->post('security/confirmCheckin', 'SecurityBriefing::confirmCheckin');
 $routes->get('config', 'Config::index');
 $routes->get('config/getLogs', 'Config::getLogs');

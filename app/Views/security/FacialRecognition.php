@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= esc($pageTitle) ?></title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
     <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <style>
         * {
@@ -13,7 +15,7 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #f5f7fa;
             color: #1e293b;
             min-height: 100vh;
@@ -23,8 +25,15 @@
 
         .header {
             background: white;
-            padding: 20px 40px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border-bottom: 1px solid #e7edf3;
+        }
+
+        .header-container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 0 32px;
+            height: 64px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -34,15 +43,16 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            font-size: 24px;
+            font-size: 20px;
             font-weight: 700;
-            color: #1e293b;
+            color: #0d141b;
+            font-family: 'Montserrat', sans-serif;
         }
 
         .logo-icon {
             width: 36px;
             height: 36px;
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            background: linear-gradient(135deg, #137fec 0%, #2563eb 100%);
             border-radius: 8px;
             display: flex;
             align-items: center;
@@ -50,12 +60,24 @@
             color: white;
         }
 
-        .time-display {
+        .header-links {
             display: flex;
             align-items: center;
-            gap: 8px;
-            color: #64748b;
+            gap: 16px;
+            color: #4c739a;
             font-size: 14px;
+            font-weight: 500;
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        .header-links span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .header-links .material-symbols-outlined {
+            font-size: 18px;
         }
 
         .container {
@@ -412,20 +434,34 @@
 </head>
 <body>
     <div class="header">
-        <div class="logo">
-            <div class="logo-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                </svg>
+        <div class="header-container">
+            <div class="logo">
+                <div class="logo-icon">
+                    <span class="material-symbols-outlined" style="font-size: 20px;">shield_person</span>
+                </div>
+                <span>SafeG</span>
             </div>
-            <span>SafeG</span>
+            <div class="header-links">
+                <span id="currentTime" style="display: flex; align-items: center; gap: 4px;">
+                    <span class="material-symbols-outlined">schedule</span>
+                    <span>--:-- --</span>
+                </span>
+                <span><span class="material-symbols-outlined">help</span> Help</span>
+                <span><span class="material-symbols-outlined">language</span> English</span>
+            </div>
         </div>
-        <div class="time-display">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"></circle>
-                <polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
-            <span id="currentTime">09:41 AM</span>
+    </div>
+
+    <!-- Progress Bar -->
+    <div style="max-width: 960px; margin: 0 auto; padding: 32px 32px 0;">
+        <div style="margin-bottom: 32px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 8px;">
+                <span style="font-size: 14px; font-weight: 600; color: #137fec; font-family: 'Montserrat', sans-serif; text-transform: uppercase; letter-spacing: 0.05em;">Step 3 of 3</span>
+                <span style="font-size: 12px; color: #4c739a; font-family: 'Montserrat', sans-serif;">Facial Verification</span>
+            </div>
+            <div style="height: 8px; width: 100%; background: #e5e7eb; border-radius: 9999px; overflow: hidden;">
+                <div style="height: 100%; background: #137fec; width: 100%; border-radius: 9999px; box-shadow: 0 0 10px rgba(19, 127, 236, 0.5);"></div>
+            </div>
         </div>
     </div>
 
@@ -501,7 +537,13 @@
             const ampm = hours >= 12 ? 'PM' : 'AM';
             const displayHours = hours % 12 || 12;
             const displayMinutes = minutes < 10 ? '0' + minutes : minutes;
-            document.getElementById('currentTime').textContent = `${displayHours}:${displayMinutes} ${ampm}`;
+            const timeElement = document.getElementById('currentTime');
+            if (timeElement) {
+                const timeSpan = timeElement.querySelector('span:last-child');
+                if (timeSpan) {
+                    timeSpan.textContent = `${displayHours}:${displayMinutes} ${ampm}`;
+                }
+            }
         }
         
         updateTime();
@@ -725,8 +767,8 @@
             // You can send capturedPhotoData (base64 image) to server
             
             // For now, just proceed
-            alert('Facial verification completed! Proceeding to check-in confirmation...');
-            window.location.href = '<?= base_url('security/checkin?token=') ?>' + token;
+            alert('Facial verification completed! All steps are now complete.');
+            window.location.href = '<?= base_url('security/completed?token=') ?>' + token;
         }
 
         // Start camera when page loads

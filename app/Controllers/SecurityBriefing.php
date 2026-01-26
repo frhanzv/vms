@@ -83,16 +83,44 @@ class SecurityBriefing extends BaseController
     }
 
     public function facialVerification()
- {
-      $token = $this->request->getGet('token');
-     
-      $data = [
-        'pageTitle' => 'Facial Verification - SafeG',
-        'token' => $token
-    ];
+    {
+        $token = $this->request->getGet('token');
+        
+        $data = [
+            'pageTitle' => 'Facial Verification - SafeG',
+            'token' => $token
+        ];
 
-    return view('security/FacialRecognition', $data); // Changed to match your filename
-}
+        return view('security/FacialRecognition', $data);
+    }
+
+    public function facialComplete()
+    {
+        // Handle facial verification completion
+        $json = $this->request->getJSON();
+        $token = $json->token ?? '';
+        
+        // TODO: Save facial verification data to database
+        
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Facial verification completed successfully',
+            'redirect_url' => base_url('security/completed?token=' . $token)
+        ]);
+    }
+
+    public function completed()
+    {
+        // Final completion page
+        $token = $this->request->getGet('token');
+        
+        $data = [
+            'pageTitle' => 'Registration Complete - SafeG',
+            'token' => $token
+        ];
+
+        return view('security/completed', $data);
+    }
 
     public function checkin()
     {
