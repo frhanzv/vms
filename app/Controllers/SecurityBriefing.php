@@ -3,14 +3,17 @@
 namespace App\Controllers;
 
 use App\Models\VideoModel;
+use App\Models\InvitationModel;
 
 class SecurityBriefing extends BaseController
 {
     protected $videoModel;
+    protected $invitationModel;
 
     public function __construct()
     {
         $this->videoModel = new VideoModel();
+        $this->invitationModel = new InvitationModel();
     }
 
     public function index()
@@ -60,7 +63,15 @@ class SecurityBriefing extends BaseController
             
             // Require at least 90% completion
             if ($completionPercentage >= 90) {
-                // TODO: Update database to mark briefing as completed
+                // Update database to mark briefing as completed
+                if ($token) {
+                    $invitationId = base64_decode($token);
+                    $this->invitationModel->update($invitationId, [
+                        'video_watched' => true,
+                        'video_watched_at' => date('Y-m-d H:i:s'),
+                        'video_completion_percentage' => round($completionPercentage, 2)
+                    ]);
+                }
                 
                 return $this->response->setJSON([
                     'success' => true,
@@ -99,14 +110,48 @@ class SecurityBriefing extends BaseController
         // Handle facial verification completion
         $json = $this->request->getJSON();
         $token = $json->token ?? '';
+        $imageData = $json->image ?? '';
         
-        // TODO: Save facial verification data to database
-        
-        return $this->response->setJSON([
-            'success' => true,
-            'message' => 'Facial verification completed successfully',
-            'redirect_url' => base_url('security/completed?token=' . $token)
-        ]);
+        try {
+            if ($token && $imageData) {
+                // Decode base64 image
+                $imageData = str_replace('data:image/png;base64,', '', $imageData);
+                $imageData = str_replace(' ', '+', $imageData);
+                $decodedImage = base64_decode($imageData);
+                
+                // Create upload directory if it doesn't exist
+                $uploadPath = WRITEPATH . 'uploads/facial/';
+                if (!is_dir($uploadPath)) {
+                    mkdir($uploadPath, 0777, true);
+                }
+                
+                // Generate unique filename
+                $invitationId = base64_decode($token);
+                $filename = 'facial_' . $invitationId . '_' . time() . '.png';
+                $filePath = $uploadPath . $filename;
+                
+                // Save image file
+                file_put_contents($filePath, $decodedImage);
+                
+                // Update database
+                $this->invitationModel->update($invitationId, [
+                    'facial_verification_image' => 'facial/' . $filename,
+                    'facial_verified_at' => date('Y-m-d H:i:s')
+                ]);
+            }
+            
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Facial verification completed successfully',
+                'redirect_url' => base_url('security/completed?token=' . $token)
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Facial verification error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to save facial verification: ' . $e->getMessage()
+            ]);
+        }
     }
 
     public function completed()

@@ -9,6 +9,8 @@ use App\Models\CountryModel;
 use App\Models\StateModel;
 use App\Models\CityModel;
 use App\Models\CompanyModel;
+use App\Models\VisitorLicenseModel;
+use App\Models\VisitorEquipmentModel;
 
 class VisitorRegistration extends BaseController
 {
@@ -19,6 +21,8 @@ class VisitorRegistration extends BaseController
     protected $stateModel;
     protected $cityModel;
     protected $companyModel;
+    protected $licenseModel;
+    protected $equipmentModel;
 
     public function initController(\CodeIgniter\HTTP\RequestInterface $request, \CodeIgniter\HTTP\ResponseInterface $response, \Psr\Log\LoggerInterface $logger)
     {
@@ -31,6 +35,8 @@ class VisitorRegistration extends BaseController
         $this->stateModel = new StateModel();
         $this->cityModel = new CityModel();
         $this->companyModel = new CompanyModel();
+        $this->licenseModel = new VisitorLicenseModel();
+        $this->equipmentModel = new VisitorEquipmentModel();
     }
 
     public function index()
@@ -117,9 +123,59 @@ class VisitorRegistration extends BaseController
         $db->transStart();
 
         try {
+            // Check if this is an update (invitation exists from token)
+            $token = $this->request->getPost('token');
+            $invitationId = null;
+            
+            if ($token) {
+                $invitationId = base64_decode($token);
+            }
+
+            // Handle file uploads
+            $uploadPath = WRITEPATH . 'uploads/visitors/';
+            if (!is_dir($uploadPath)) {
+                mkdir($uploadPath, 0777, true);
+            }
+
+            $governmentIdPath = null;
+            $invitationLetterPath = null;
+            $profilePhotoPath = null;
+
+            // Upload Government ID
+            $governmentId = $this->request->getFile('government_id');
+            if ($governmentId && $governmentId->isValid() && !$governmentId->hasMoved()) {
+                $newName = 'gov_id_' . time() . '_' . $governmentId->getRandomName();
+                $governmentId->move($uploadPath, $newName);
+                $governmentIdPath = 'visitors/' . $newName;
+            }
+
+            // Upload Invitation Letter
+            $invitationLetter = $this->request->getFile('invitation_letter');
+            if ($invitationLetter && $invitationLetter->isValid() && !$invitationLetter->hasMoved()) {
+                $newName = 'invitation_' . time() . '_' . $invitationLetter->getRandomName();
+                $invitationLetter->move($uploadPath, $newName);
+                $invitationLetterPath = 'visitors/' . $newName;
+            }
+
+            // Upload Profile Photo
+            $profilePhoto = $this->request->getFile('profile_photo');
+            if ($profilePhoto && $profilePhoto->isValid() && !$profilePhoto->hasMoved()) {
+                $newName = 'profile_' . time() . '_' . $profilePhoto->getRandomName();
+                $profilePhoto->move($uploadPath, $newName);
+                $profilePhotoPath = 'visitors/' . $newName;
+            }
+
             // Get company visiting (could be multiple)
             $companyVisiting = $this->request->getPost('company_visiting');
             $companyVisitingStr = is_array($companyVisiting) ? implode(', ', $companyVisiting) : $companyVisiting;
+
+            // Combine address fields
+            $addressParts = array_filter([
+                $this->request->getPost('address_1'),
+                $this->request->getPost('address_2'),
+                $this->request->getPost('address_3')
+            ]);
+            $fullAddress = implode(', ', $addressParts);
 
             // Prepare visitor data - save ALL fields
             $visitorData = [
@@ -130,27 +186,46 @@ class VisitorRegistration extends BaseController
                 'date_of_birth' => $this->request->getPost('date_of_birth'),
                 'sex' => $this->request->getPost('sex'),
                 'resident' => $this->request->getPost('resident'),
-                'address' => $this->request->getPost('address') ?? '',
-                'postcode' => $this->request->getPost('postcode') ?? '',
+                'address' => $fullAddress,
+                'postcode' => $this->request->getPost('postal_code') ?? '',
                 'city' => $this->request->getPost('city') ?? '',
                 'state' => $this->request->getPost('state') ?? '',
                 'country' => $this->request->getPost('country') ?? '',
                 'company' => $this->request->getPost('company_name') ?? '',
-                'registration_no' => $this->request->getPost('company_registration') ?? '',
+                'registration_no' => $this->request->getPost('company_reg_id') ?? '',
                 'vehicle_registration' => $this->request->getPost('vehicle_registration') ?? '',
+                'vehicle_category' => $this->request->getPost('category') ?? '',
+                'vehicle_type' => $this->request->getPost('vehicle_type') ?? '',
                 'staff_id' => $this->request->getPost('staff_id') ?? '',
                 'host_contact' => $this->request->getPost('host_contact') ?? '',
                 'company_visited' => $this->request->getPost('company_visited') ?? '',
                 'location' => $companyVisitingStr,
                 'reason' => $this->request->getPost('visit_reason') ?? '',
-                'status' => 'Approved'
+                'status' => 'Submitted',
+                'government_id_path' => $governmentIdPath,
+                'invitation_letter_path' => $invitationLetterPath,
+                'profile_photo_path' => $profilePhotoPath
             ];
 
             // Insert or update invitation record
-            $invitationId = $this->invitationModel->insert($visitorData);
-
-            if (!$invitationId) {
-                throw new \Exception('Failed to create invitation record');
+            if ($invitationId && $this->invitationModel->find($invitationId)) {
+                // Update existing invitation
+                $this->invitationModel->update($invitationId, $visitorData);
+                
+                // Check for database errors
+                if ($this->invitationModel->errors()) {
+                    throw new \Exception('Failed to update invitation record: ' . json_encode($this->invitationModel->errors()));
+                }
+                
+                // Delete old schedules before inserting new ones
+                $this->scheduleModel->where('invitation_id', $invitationId)->delete();
+            } else {
+                // Insert new invitation
+                $invitationId = $this->invitationModel->insert($visitorData);
+                if (!$invitationId) {
+                    $errors = $this->invitationModel->errors();
+                    throw new \Exception('Failed to create invitation record: ' . ($errors ? json_encode($errors) : 'Unknown error'));
+                }
             }
 
             // Save visit schedules
@@ -164,6 +239,52 @@ class VisitorRegistration extends BaseController
                             'date_to' => $dateEntry['date_to']
                         ];
                         $this->scheduleModel->insert($scheduleData);
+                    }
+                }
+            }
+
+            // Save driving licenses
+            if ($invitationId && $this->invitationModel->find($invitationId)) {
+                // Delete old licenses if updating
+                $this->licenseModel->where('invitation_id', $invitationId)->delete();
+            }
+            
+            $licenses = $this->request->getPost('licenses');
+            if (is_array($licenses) && count($licenses) > 0) {
+                foreach ($licenses as $license) {
+                    if (!empty($license['class'])) {
+                        $licenseData = [
+                            'invitation_id' => $invitationId,
+                            'license_class' => $license['class'] ?? '',
+                            'expiry_date' => $license['expiry'] ?? null
+                        ];
+                        $this->licenseModel->insert($licenseData);
+                    }
+                }
+            }
+
+            // Save equipment/assets
+            if ($invitationId && $this->invitationModel->find($invitationId)) {
+                // Delete old equipment if updating
+                $this->equipmentModel->where('invitation_id', $invitationId)->delete();
+            }
+            
+            $equipment = $this->request->getPost('equipment');
+            if (is_array($equipment) && count($equipment) > 0) {
+                foreach ($equipment as $item) {
+                    if (!empty($item['category']) || !empty($item['type'])) {
+                        $equipmentData = [
+                            'invitation_id' => $invitationId,
+                            'category' => $item['category'] ?? '',
+                            'equipment_type' => $item['type'] ?? '',
+                            'size' => $item['size'] ?? '',
+                            'transport' => $item['transport'] ?? '',
+                            'purpose' => $item['purpose'] ?? '',
+                            'voltage' => $item['voltage'] ?? '',
+                            'quantity' => $item['quantity'] ?? 1,
+                            'serial_number' => $item['serial'] ?? ''
+                        ];
+                        $this->equipmentModel->insert($equipmentData);
                     }
                 }
             }
@@ -247,29 +368,37 @@ class VisitorRegistration extends BaseController
     private function extractMyKadData($imagePath)
     {
         try {
-            // Use EasyOCR Python script for better accuracy
-            $pythonPath = ROOTPATH . '.venv/Scripts/python.exe';
-            $scriptPath = ROOTPATH . 'ocr_mykad.py';
+            // Use Google Cloud Vision OCR Python script for better accuracy
+            $pythonPath = str_replace('/', DIRECTORY_SEPARATOR, ROOTPATH . '.venv/Scripts/python.exe');
+            $scriptPath = str_replace('/', DIRECTORY_SEPARATOR, ROOTPATH . 'ocr_mykad.py');
+            $credentialsPath = str_replace('/', DIRECTORY_SEPARATOR, ROOTPATH . 'credentials/vms-mykad-ocr-13799932dbd4.json');
             
             // Check if Python and script exist
             if (!file_exists($pythonPath)) {
                 log_message('error', 'Python not found at: ' . $pythonPath);
-                throw new \Exception('EasyOCR Python environment not configured');
+                throw new \Exception('Python environment not configured');
             }
             
             if (!file_exists($scriptPath)) {
                 log_message('error', 'OCR script not found at: ' . $scriptPath);
-                throw new \Exception('EasyOCR script not found');
+                throw new \Exception('OCR script not found');
             }
             
-            // Execute Python EasyOCR script
-            $command = '"' . $pythonPath . '" "' . $scriptPath . '" "' . $imagePath . '" 2>nul';
+            if (!file_exists($credentialsPath)) {
+                log_message('error', 'Google Cloud credentials not found at: ' . $credentialsPath);
+                throw new \Exception('Google Cloud credentials not configured');
+            }
             
-            log_message('info', 'Executing EasyOCR: ' . $command);
+            // Execute Python Google Cloud Vision OCR script with credentials
+            // Set environment variable for Google Cloud authentication
+            // NOTE: Do NOT quote the credentials path in SET command, only quote the python paths
+            $command = 'set GOOGLE_APPLICATION_CREDENTIALS=' . $credentialsPath . ' && "' . $pythonPath . '" "' . $scriptPath . '" "' . $imagePath . '" 2>nul';
+            
+            log_message('info', 'Executing Google Cloud Vision OCR: ' . $command);
             
             $output = shell_exec($command);
             
-            // Find JSON in output (skip any progress bars)
+            // Find JSON in output
             $jsonStart = strpos($output, '{');
             $jsonEnd = strrpos($output, '}');
             
@@ -280,28 +409,35 @@ class VisitorRegistration extends BaseController
                 $result = null;
             }
             
-            log_message('info', 'EasyOCR Parsed Result: ' . json_encode($result));
+            log_message('info', 'Google Cloud Vision OCR Parsed Result: ' . json_encode($result));
             
             if (!$result || !isset($result['success'])) {
-                log_message('error', 'Invalid EasyOCR response: ' . $output);
-                throw new \Exception('Failed to parse EasyOCR output');
+                log_message('error', 'Invalid OCR response: ' . $output);
+                throw new \Exception('Failed to parse OCR output');
             }
             
             if (!$result['success']) {
-                log_message('error', 'EasyOCR error: ' . ($result['error'] ?? 'Unknown error'));
-                throw new \Exception('EasyOCR failed: ' . ($result['error'] ?? 'Unknown error'));
+                log_message('error', 'OCR error: ' . ($result['error'] ?? 'Unknown error'));
+                throw new \Exception('OCR failed: ' . ($result['error'] ?? 'Unknown error'));
             }
             
             $text = $result['text'] ?? '';
             
-            log_message('info', 'EasyOCR Text: ' . json_encode($text));
-            log_message('info', 'EasyOCR Confidence: ' . ($result['confidence'] ?? 'unknown'));
-            log_message('info', 'EasyOCR Text Lines: ' . json_encode($result['lines'] ?? []));
+            log_message('info', 'OCR Text: ' . json_encode($text));
+            log_message('info', 'OCR Confidence: ' . ($result['confidence'] ?? 'unknown'));
+            log_message('info', 'OCR Avg Confidence: ' . ($result['avg_confidence'] ?? 'N/A'));
+            log_message('info', 'OCR Text Lines: ' . json_encode($result['lines'] ?? []));
             
             $data = $this->parseMyKadText($text);
             
             // Log what was extracted
             log_message('info', 'Extracted Data: ' . json_encode($data));
+            
+            // Add warning if IC number not detected
+            if (!$data['ic_number']) {
+                $data['warning'] = 'IC number not detected from image. This usually happens when the IC number is not clearly visible due to lighting, glare, or image quality. Please enter it manually.';
+                log_message('warning', 'IC number not detected from MyKad image');
+            }
             
             // Return OCR text for debugging
             $data['raw_ocr_text'] = $text;
@@ -391,8 +527,13 @@ class VisitorRegistration extends BaseController
             'state' => null
         ];
 
-        // Keep original text for line-based parsing
+        // Keep original text for line-based parsing (preserve line breaks!)
         $originalText = $text;
+        
+        // Clean special characters from text but KEEP line structure
+        $originalText = preg_replace('/[„"*☐□■▪●○◦•]/u', '', $originalText);
+        $originalText = preg_replace('/\.{2,}/', '', $originalText); // Remove multiple dots
+        $originalText = trim($originalText);
         
         // Remove extra whitespace and clean text
         $cleanText = $this->cleanOcrDigits($text);
@@ -481,13 +622,51 @@ class VisitorRegistration extends BaseController
         foreach ($lines as $i => $line) {
             $line = trim($line);
             
-            // Skip IC number, postcode, religion, sex, state, citizenship, card type
-            if (preg_match('/\d{6}[\-\s]\d{2}[\-\s]\d{4}|\d{5}\s+[A-Z]+|^(ISLAM|LELAKI|PEREMPUAN|WARGANEGARA|KELANTAN|JOHOR|MALA|MKAD)$/i', $line)) continue;
+            // Skip empty lines
+            if (empty($line) || strlen($line) < 3) continue;
+            
+            // Skip IC number, postcode, religion, sex, state, citizenship, card type, card header
+            if (preg_match('/\d{6}[\-\s]\d{2}[\-\s]\d{4}|^(ISLAM|LELAKI|PEREMPUAN|WARGANEGARA|KELANTAN|JOHOR|MALA|MKAD|LELANG|MA|DEN|IDENTITY|CARD|KOLAM)$/i', $line)) continue;
+            
+            // Clean special characters from line
+            $cleanLine = preg_replace('/[^A-Z\s\/]/i', '', $line);
+            $cleanLine = trim($cleanLine);
+            
+            if (empty($cleanLine) || strlen($cleanLine) < 3) continue;
             
             // Pattern: "FIRSTNAME BIN/BINTI LASTNAME" in one line
-            if (preg_match('/^([A-Z\s]+?)\s+(BIN|BINTI)\s+([A-Z\s]+?)$/i', $line, $matches)) {
+            if (preg_match('/^([A-Z\s]+?)\s+(BIN|BINTI)\s+([A-Z\s]+?)$/i', $cleanLine, $matches)) {
                 $data['name'] = strtoupper(trim($matches[1] . ' ' . $matches[2] . ' ' . $matches[3]));
                 $foundBin = true;
+                log_message('info', 'Name found in one line: ' . $data['name']);
+                break;
+            }
+            
+            // Collect name parts if contains BIN/BINTI
+            if (preg_match('/\b(BIN|BINTI)\b/i', $cleanLine)) {
+                // Check ALL previous lines for potential first name (within 3 lines)
+                if ($i > 0 && !$foundBin) {
+                    for ($j = $i - 1; $j >= max(0, $i - 3); $j--) {
+                        $prevLine = trim($lines[$j]);
+                        // Skip IC number line
+                        if (preg_match('/\d{6}[\-\s]\d{2}[\-\s]\d{4}/', $prevLine)) continue;
+                        
+                        $prevLine = preg_replace('/[^A-Z\s]/i', '', $prevLine);
+                        $prevLine = trim($prevLine);
+                        
+                        // Must be 4+ chars, not keywords
+                        if (strlen($prevLine) >= 4 && 
+                            !preg_match('/^(KAMPUNG|JALAN|ISLAM|LELAKI|PEREMPUAN|WARGANEGARA|MA|DEN|IDENTITY|CARD|MKAD|MALA|KOLAM|KAD)$/i', $prevLine)) {
+                            // Add to front of name parts
+                            array_unshift($nameParts, $prevLine);
+                            log_message('info', 'Found name part from previous line: ' . $prevLine);
+                        }
+                    }
+                }
+                $nameParts[] = $cleanLine;
+                $data['name'] = strtoupper(implode(' ', $nameParts));
+                $foundBin = true;
+                log_message('info', 'Name assembled from parts: ' . $data['name']);
                 break;
             }
         }
@@ -496,44 +675,52 @@ class VisitorRegistration extends BaseController
         if (!$foundBin) {
             foreach ($lines as $i => $line) {
                 $line = trim($line);
+                $cleanLine = preg_replace('/[^A-Z\s]/i', '', $line);
+                $cleanLine = trim($cleanLine);
                 
                 // Found BIN/BINTI on its own line OR as start of line "BIN WAN KAR MIZI"
-                if (preg_match('/^(BIN|BINTI)\s+(.+)$/i', $line, $matches)) {
+                if (preg_match('/^(BIN|BINTI)\s+(.+)$/i', $cleanLine, $matches)) {
                     $foundBin = true;
                     
                     // Look for first name in previous line
                     if ($i > 0) {
                         $prevLine = trim($lines[$i-1]);
+                        $prevLine = preg_replace('/[^A-Z\s]/i', '', $prevLine);
+                        $prevLine = trim($prevLine);
                         // Must be 3+ chars, no digits, not keywords
                         if (strlen($prevLine) >= 3 && 
-                            !preg_match('/\d|KAMPUNG|JALAN|ISLAM|LELAKI|PEREMPUAN|WARGANEGARA|KELANTAN|JOHOR|MALA|MKAD/i', $prevLine)) {
+                            !preg_match('/KAMPUNG|JALAN|ISLAM|LELAKI|PEREMPUAN|WARGANEGARA|KELANTAN|JOHOR|MALA|MKAD|MA|DEN/i', $prevLine)) {
                             $nameParts[] = $prevLine;
                         }
                     }
                     
                     // Add "BIN/BINTI LASTNAME"
-                    $nameParts[] = $line;
+                    $nameParts[] = $cleanLine;
                     break;
                 }
                 
                 // Found standalone BIN/BINTI
-                if (preg_match('/^(BIN|BINTI)$/i', $line)) {
+                if (preg_match('/^(BIN|BINTI)$/i', $cleanLine)) {
                     $foundBin = true;
                     
                     // Look for first name in previous 1-2 lines
                     for ($j = $i - 1; $j >= max(0, $i - 2); $j--) {
                         $prevLine = trim($lines[$j]);
+                        $prevLine = preg_replace('/[^A-Z\s]/i', '', $prevLine);
+                        $prevLine = trim($prevLine);
                         if (strlen($prevLine) >= 3 && 
-                            !preg_match('/\d|KAMPUNG|JALAN|ISLAM|LELAKI|PEREMPUAN|WARGANEGARA|KELANTAN|JOHOR|MALA|MKAD/i', $prevLine)) {
+                            !preg_match('/KAMPUNG|JALAN|ISLAM|LELAKI|PEREMPUAN|WARGANEGARA|KELANTAN|JOHOR|MALA|MKAD|MA|DEN/i', $prevLine)) {
                             array_unshift($nameParts, $prevLine);
                         }
                     }
                     
-                    $nameParts[] = $line; // Add BIN/BINTI
+                    $nameParts[] = $cleanLine; // Add BIN/BINTI
                     
                     // Look for last name in next 1-2 lines
                     for ($j = $i + 1; $j <= min(count($lines) - 1, $i + 2); $j++) {
                         $nextLine = trim($lines[$j]);
+                        $nextLine = preg_replace('/[^A-Z\s]/i', '', $nextLine);
+                        $nextLine = trim($nextLine);
                         if (strlen($nextLine) >= 3 && 
                             !preg_match('/\d{5}|KAMPUNG|JALAN|ISLAM|LELAKI|PEREMPUAN|WARGANEGARA|KELANTAN|JOHOR|MALA|MKAD/i', $nextLine)) {
                             $nameParts[] = $nextLine;
@@ -549,15 +736,42 @@ class VisitorRegistration extends BaseController
             }
         }
 
-        // Extract postcode and city (format: "82010 PONTIAN" or "18500 MACHANG")
-        if (preg_match('/(\d{5})\s+([A-Z]+)/i', $originalText, $matches)) {
-            $data['postcode'] = $matches[1];
-            $data['city'] = strtoupper(trim($matches[2]));
+        // Extract postcode and city (format: "$ 3019 PONTIAN" or "82010 PONTIAN" or "18500 MACHANG")
+        // Google Cloud Vision may add $ or other symbols before postcodes
+        // IMPORTANT: Exclude IC number pattern (6-2-4 digits)
+        $lines_for_postcode = explode("\n", $originalText);
+        foreach ($lines_for_postcode as $line) {
+            $line = trim($line);
+            // Skip IC number lines
+            if (preg_match('/\d{6}[\-\s]\d{2}[\-\s]\d{4}/', $line)) continue;
+            
+            // Look for postcode + city pattern (5 digits followed by city name)
+            if (preg_match('/[\$\s]*(\d{5})\s+([A-Z]+)/i', $line, $matches)) {
+                $postcode = $matches[1];
+                $city = strtoupper(trim($matches[2]));
+                
+                // Basic validation: Malaysian postcodes should start with valid state codes
+                // First 2 digits indicate region/state
+                $firstTwo = substr($postcode, 0, 2);
+                if ($firstTwo >= '01' && $firstTwo <= '99') {
+                    $data['postcode'] = $postcode;
+                    $data['city'] = $city;
+                    log_message('info', 'Postcode and city extracted: ' . $postcode . ' ' . $city);
+                    break;
+                }
+            }
+            // Look for 4-digit postcode
+            if (!$data['postcode'] && preg_match('/[\$\s]*(\d{4})\s+([A-Z]+)/i', $line, $matches)) {
+                $data['postcode'] = str_pad($matches[1], 5, '0', STR_PAD_LEFT);
+                $data['city'] = strtoupper(trim($matches[2]));
+                log_message('info', 'Postcode (4-digit) and city extracted: ' . $data['postcode'] . ' ' . $data['city']);
+                break;
+            }
         }
         
-        // Alternative: just postcode without city
-        if (!$data['postcode'] && preg_match('/\b(\d{5})\b/', $originalText, $matches)) {
-            $data['postcode'] = $matches[1];
+        // Smart postcode correction based on state (fix common OCR errors)
+        if ($data['postcode'] && $data['state']) {
+            $data['postcode'] = $this->correctPostcodeByState($data['postcode'], $data['state']);
         }
 
         // Parse state from lines
@@ -600,38 +814,85 @@ class VisitorRegistration extends BaseController
             // Skip IC number line
             if (preg_match('/\d{6}[\-\s]\d{2}[\-\s]\d{4}/', $line)) continue;
             
-            // Skip name components
-            if (preg_match('/^(BIN|BINTI|MOHAMAD|AHMAD|MUHAMMAD|WAN|AHMAD|FARHAN)$/i', $line)) continue;
-            
-            // Skip religion, sex, citizenship, card header
-            if (preg_match('/^(ISLAM|LELAKI|PEREMPUAN|WARGANEGARA|MALA|MKAD|KAD|PENGENALAN)$/i', $line)) continue;
-            
-            // Extract address lines (KAMPUNG, JALAN, etc)
-            if (preg_match('/^(KAMPUNG|JALAN|JLN|TAMAN|TMN|KG|LORONG|LRG|NO|KAWASAN|BATU|BT|PARIT)/i', $line)) {
-                $addressLines[] = $line;
+            // Skip the entire name line (contains BIN/BINTI or matches extracted name)
+            if ($data['name'] && stripos($line, $data['name']) !== false) continue;
+            if (preg_match('/\b(BIN|BINTI)\b/i', $line) && !preg_match('/(KAMPUNG|JALAN|PARIT)/i', $line)) {
+                // Skip if it's a name line (has BIN/BINTI without address keywords)
                 continue;
             }
             
-            // Extract city and postcode from combined line "18500 MACHANG"
-            if (preg_match('/(\d{5})\s+([A-Z]+)/i', $line)) {
+            // Skip religion, sex, citizenship, card header
+            if (preg_match('/^(ISLAM|LELAKI|PEREMPUAN|WARGANEGARA|MALA|MKAD|KAD|PENGENALAN|LELANG)$/i', $line)) continue;
+            
+            // Extract address lines that start with KAMPUNG, JALAN, etc
+            if (preg_match('/^(KAMPUNG|JALAN|JLN|TAMAN|TMN|KG|LORONG|LRG|NO|KAWASAN|BATU|BT|PARIT)/i', $line)) {
+                // Clean the line
+                $cleanLine = preg_replace('/[^A-Z0-9\s]/i', ' ', $line);
+                $cleanLine = preg_replace('/\s+/', ' ', $cleanLine);
+                $cleanLine = trim($cleanLine);
+                
+                // This line contains address, might also have postcode/city/state
+                // Extract postcode and city if present in this line
+                if (preg_match('/(\d{4,5})\s+([A-Z\s]+)$/i', $cleanLine, $pc_matches)) {
+                    if (!$data['postcode']) {
+                        $data['postcode'] = str_pad($pc_matches[1], 5, '0', STR_PAD_LEFT);
+                        
+                        // Split city and state from the match
+                        $cityStatePart = trim($pc_matches[2]);
+                        $cityStateWords = explode(' ', $cityStatePart);
+                        
+                        // Last word might be state
+                        $lastWord = end($cityStateWords);
+                        if (preg_match('/^(JOHOR|KEDAH|KELANTAN|MELAKA|SELANGOR|PAHANG|PERAK|PENANG|PERLIS|SABAH|SARAWAK|TERENGGANU)$/i', $lastWord)) {
+                            $data['state'] = strtoupper($lastWord);
+                            array_pop($cityStateWords); // Remove state from city
+                        }
+                        
+                        // Remaining is city
+                        if (!empty($cityStateWords)) {
+                            $data['city'] = strtoupper(implode(' ', $cityStateWords));
+                        }
+                    }
+                    
+                    // Extract just the address part (before postcode)
+                    $addressPart = preg_replace('/\d{4,5}\s+[A-Z\s]+$/i', '', $cleanLine);
+                    $addressPart = trim($addressPart);
+                    if ($addressPart) {
+                        $addressLines[] = $addressPart;
+                    }
+                } else {
+                    // No postcode in this line, add entire line as address
+                    $addressLines[] = $cleanLine;
+                }
+                continue;
+            }
+            
+            // Extract city and postcode from standalone line "18500 MACHANG"
+            if (preg_match('/^(\d{4,5})\s+([A-Z\s]+)$/i', $line, $pc_matches)) {
                 if (!$data['postcode']) {
-                    preg_match('/(\d{5})\s+([A-Z]+)/i', $line, $pc_matches);
-                    $data['postcode'] = $pc_matches[1];
-                    $data['city'] = strtoupper($pc_matches[2]);
+                    $data['postcode'] = str_pad($pc_matches[1], 5, '0', STR_PAD_LEFT);
+                    
+                    // Split city and state
+                    $cityStatePart = trim($pc_matches[2]);
+                    $cityStateWords = explode(' ', $cityStatePart);
+                    
+                    // Last word might be state
+                    $lastWord = end($cityStateWords);
+                    if (preg_match('/^(JOHOR|KEDAH|KELANTAN|MELAKA|SELANGOR|PAHANG|PERAK|PENANG|PERLIS|SABAH|SARAWAK|TERENGGANU)$/i', $lastWord)) {
+                        $data['state'] = strtoupper($lastWord);
+                        array_pop($cityStateWords); // Remove state from city
+                    }
+                    
+                    // Remaining is city
+                    if (!empty($cityStateWords)) {
+                        $data['city'] = strtoupper(implode(' ', $cityStateWords));
+                    }
                 }
                 continue;
             }
             
             // Skip state line
             if (preg_match('/^(JOHOR|KEDAH|KELANTAN|MELAKA|SELANGOR|PAHANG|PERAK|PENANG|PERLIS|SABAH|SARAWAK|TERENGGANU)$/i', $line)) continue;
-            
-            // Collect other potential address lines (capitalized text before state)
-            if ($postcodeIndex > 0 && $index < $postcodeIndex) {
-                // Look for capitalized address lines
-                if (preg_match('/^[A-Z0-9\\s]{5,}$/i', $line)) {
-                    $addressLines[] = $line;
-                }
-            }
         }
         
         // Build address
@@ -658,6 +919,75 @@ class VisitorRegistration extends BaseController
         }
 
         return $data;
+    }
+    
+    private function correctPostcodeByState($postcode, $state)
+    {
+        // Malaysian postcode ranges by state
+        $statePostcodeRanges = [
+            'PERLIS' => ['01', '02'],
+            'KEDAH' => ['05', '06', '07', '08', '09'],
+            'PENANG' => ['10', '11', '12', '13', '14'],
+            'KELANTAN' => ['15', '16', '17', '18', '19'],
+            'TERENGGANU' => ['20', '21', '22', '23', '24'],
+            'PAHANG' => ['25', '26', '27', '28', '39'],
+            'PERAK' => ['30', '31', '32', '33', '34', '35', '36'],
+            'SELANGOR' => ['40', '41', '42', '43', '44', '45', '46', '47', '48', '63', '68'],
+            'KUALA LUMPUR' => ['50', '51', '52', '53', '54', '55', '56', '57', '58', '59', '60'],
+            'NEGERI SEMBILAN' => ['70', '71', '72', '73'],
+            'MELAKA' => ['75', '76', '77', '78'],
+            'JOHOR' => ['79', '80', '81', '82', '83', '84', '85', '86'],
+            'SABAH' => ['87', '88', '89', '90', '91'],
+            'SARAWAK' => ['93', '94', '95', '96', '97', '98'],
+            'PUTRAJAYA' => ['62'],
+            'LABUAN' => ['87']
+        ];
+        
+        $firstTwo = substr($postcode, 0, 2);
+        $validPrefixes = $statePostcodeRanges[strtoupper($state)] ?? [];
+        
+        // If postcode doesn't match state, try to correct OCR errors
+        if (!in_array($firstTwo, $validPrefixes)) {
+            log_message('warning', 'Postcode ' . $postcode . ' does not match state ' . $state);
+            
+            // Common OCR errors: 0/8, 1/7, 9/8, 6/8
+            $ocrErrorMap = [
+                '0' => ['8', '6'],
+                '1' => ['7', '4'],
+                '8' => ['0', '6', '9'],
+                '9' => ['8', '4'],
+                '6' => ['8', '0'],
+                '7' => ['1']
+            ];
+            
+            // Try correcting first digit
+            $firstDigit = $postcode[0];
+            if (isset($ocrErrorMap[$firstDigit])) {
+                foreach ($ocrErrorMap[$firstDigit] as $correction) {
+                    $correctedPostcode = $correction . substr($postcode, 1);
+                    $correctedFirstTwo = substr($correctedPostcode, 0, 2);
+                    if (in_array($correctedFirstTwo, $validPrefixes)) {
+                        log_message('info', 'Corrected postcode from ' . $postcode . ' to ' . $correctedPostcode . ' based on state ' . $state);
+                        return $correctedPostcode;
+                    }
+                }
+            }
+            
+            // Try correcting second digit
+            $secondDigit = $postcode[1];
+            if (isset($ocrErrorMap[$secondDigit])) {
+                foreach ($ocrErrorMap[$secondDigit] as $correction) {
+                    $correctedPostcode = $postcode[0] . $correction . substr($postcode, 2);
+                    $correctedFirstTwo = substr($correctedPostcode, 0, 2);
+                    if (in_array($correctedFirstTwo, $validPrefixes)) {
+                        log_message('info', 'Corrected postcode from ' . $postcode . ' to ' . $correctedPostcode . ' based on state ' . $state);
+                        return $correctedPostcode;
+                    }
+                }
+            }
+        }
+        
+        return $postcode;
     }
     
     private function cleanOcrDigits($text)

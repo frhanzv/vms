@@ -207,10 +207,17 @@
         </div>
         <div class="flex-1 overflow-y-auto p-6 pt-2">
             <div class="max-w-5xl mx-auto flex flex-col gap-6">
+                <?php if ($currentRequest): ?>
                 <div class="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-800">
                     <div class="flex flex-col md:flex-row gap-6 items-start">
                         <div class="relative group">
-                            <div class="w-32 h-32 rounded-lg bg-cover bg-center shadow-inner" data-alt="<?= esc($currentRequest['name']) ?> Portrait" style='background-image: url("<?= esc($currentRequest['photo']) ?>");'></div>
+                            <?php if (!empty($currentRequest['photo'])): ?>
+                            <div class="w-32 h-32 rounded-lg bg-cover bg-center shadow-inner" style='background-image: url("<?= esc($currentRequest['photo']) ?>");'></div>
+                            <?php else: ?>
+                            <div class="w-32 h-32 rounded-lg bg-gray-200 dark:bg-gray-700 shadow-inner flex items-center justify-center">
+                                <span class="material-symbols-outlined text-5xl text-gray-400">account_circle</span>
+                            </div>
+                            <?php endif; ?>
                             <div class="absolute -bottom-2 -right-2 bg-green-500 text-white rounded-full p-1 border-4 border-white dark:border-slate-900">
                                 <span class="material-symbols-outlined text-sm font-bold">check</span>
                             </div>
@@ -312,14 +319,21 @@
                             <div class="flex-1 space-y-2">
                                 <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Uploaded ID Document</p>
                                 <div class="bg-gray-100 dark:bg-gray-800 rounded-lg p-2 border border-dashed border-gray-300 dark:border-gray-600 relative group h-48 flex items-center justify-center overflow-hidden">
-                                    <img class="max-w-full max-h-full object-contain opacity-90 transition-opacity group-hover:opacity-100" data-alt="Malaysian MyKad" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDzhLnExUEY_zoQ1CzJUtVge8vXZUcb8_u4t2QS76DyzObDM8wmwQoSowQqZw9sIQKbrTFEBrcl6WPiQFXwmiEpgBZzp_GO7JjDXzD1TdMdnfklzCoFw-ZTMbp0AuynE83nHYsWqAA10taNSKS5lURSoC9OUDwXDVg_LX77jbicGI5loaN60e1JrLfhxuDgUy9sxvoEQW161B-X-gz-ZdwSYiLBYyLrHZrjNOlvQCFtwxans8o9Y6gJMkkijoJc7NXqWK8G4pQg8Q"/>
+                                    <?php if (!empty($currentRequest['government_id_image'])): ?>
+                                    <img class="max-w-full max-h-full object-contain opacity-90 transition-opacity group-hover:opacity-100" alt="Government ID" src="<?= esc($currentRequest['government_id_image']) ?>"/>
                                     <div class="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded shadow-sm flex items-center gap-1">
                                         <span class="material-symbols-outlined text-xs">verified</span> Valid
                                     </div>
+                                    <?php else: ?>
+                                    <div class="text-center text-gray-400">
+                                        <span class="material-symbols-outlined text-5xl mb-2">badge</span>
+                                        <p class="text-xs">No ID uploaded</p>
+                                    </div>
+                                    <?php endif; ?>
                                 </div>
                                 <div class="flex justify-between text-xs text-gray-400">
-                                    <span>Type: MyKad</span>
-                                    <span>Exp: 12/2026</span>
+                                    <span>Type: <?= !empty($currentRequest['ic_passport']) ? 'MyKad/Passport' : 'N/A' ?></span>
+                                    <span>IC: <?= esc($currentRequest['ic_passport']) ?></span>
                                 </div>
                             </div>
                             <div class="flex-1 space-y-2">
@@ -389,8 +403,23 @@
                         </div>
                     </div>
                 </div>
+                <?php else: ?>
+                <!-- No Current Request State -->
+                <div class="bg-white dark:bg-slate-900 rounded-xl p-12 shadow-sm border border-gray-200 dark:border-gray-800 text-center">
+                    <div class="flex flex-col items-center justify-center gap-4">
+                        <div class="bg-gray-100 dark:bg-gray-800 rounded-full p-6">
+                            <span class="material-symbols-outlined text-6xl text-gray-400 dark:text-gray-500">inbox</span>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">No Pending Requests</h3>
+                            <p class="text-gray-600 dark:text-gray-400">All visitor requests have been processed. New requests will appear here.</p>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
             </div>
         </div>
+        <?php if ($currentRequest): ?>
         <div class="absolute bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-gray-800 p-4 px-6 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20">
             <div class="max-w-5xl mx-auto flex items-center justify-between">
                 <div class="hidden sm:flex items-center gap-2 text-sm text-gray-400">
@@ -410,8 +439,511 @@
                 </div>
             </div>
         </div>
+        <?php endif; ?>
         </main>
     </div>
 </div>
+
+<!-- Image Zoom Modal -->
+<div id="imageZoomModal" class="hidden fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
+    <div class="relative max-w-6xl max-h-full">
+        <button onclick="closeImageZoom()" class="absolute top-4 right-4 bg-white dark:bg-gray-800 rounded-full p-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+            <span class="material-symbols-outlined">close</span>
+        </button>
+        <img id="zoomedImage" src="" alt="Zoomed Image" class="max-w-full max-h-screen object-contain rounded-lg">
+    </div>
+</div>
+
+<!-- Past Visits Modal -->
+<div id="pastVisitsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+        <div class="flex items-center justify-between p-6 border-b">
+            <h3 class="text-xl font-semibold text-gray-900">Past Visits History</h3>
+            <button onclick="closePastVisitsModal()" class="text-gray-400 hover:text-gray-600">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <div id="pastVisitsContent" class="p-6 overflow-y-auto max-h-[70vh]">
+            <div class="flex justify-center items-center py-8">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirm Modal -->
+<div id="confirmModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-xl shadow-2xl max-w-md w-full border border-gray-200 dark:border-gray-700 transform transition-all">
+        <div class="p-6">
+            <div class="flex items-center gap-4 mb-4">
+                <div id="confirmIcon" class="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-3 rounded-full">
+                    <span class="material-symbols-outlined text-3xl">help</span>
+                </div>
+                <div class="flex-1">
+                    <h3 id="confirmTitle" class="text-xl font-bold text-gray-900 dark:text-white">Confirm Action</h3>
+                </div>
+            </div>
+            <p id="confirmMessage" class="text-gray-600 dark:text-gray-300 text-base">Are you sure you want to proceed?</p>
+            <div id="rejectReasonContainer" class="hidden mt-4">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Reason for Rejection</label>
+                <textarea id="rejectReasonInput" rows="3" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-white" placeholder="Please provide a reason for rejection..."></textarea>
+            </div>
+        </div>
+        <div class="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-slate-800 flex gap-3 rounded-b-xl">
+            <button onclick="closeConfirmModal()" class="flex-1 px-4 py-2.5 bg-white dark:bg-slate-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors">
+                Cancel
+            </button>
+            <button id="confirmActionBtn" onclick="handleConfirmAction()" class="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2">
+                <span id="confirmActionText">Confirm</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Alert Modal -->
+<div id="alertModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-xl shadow-2xl max-w-md w-full border border-gray-200 dark:border-gray-700 transform transition-all">
+        <div class="p-6">
+            <div class="flex items-center gap-4 mb-4">
+                <div id="alertIcon" class="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-3 rounded-full">
+                    <span class="material-symbols-outlined text-3xl">info</span>
+                </div>
+                <div class="flex-1">
+                    <h3 id="alertTitle" class="text-xl font-bold text-gray-900 dark:text-white">Information</h3>
+                </div>
+            </div>
+            <p id="alertMessage" class="text-gray-600 dark:text-gray-300 text-base whitespace-pre-line"></p>
+        </div>
+        <div class="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-slate-800 flex gap-3 rounded-b-xl">
+            <button onclick="closeAlertModal()" class="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors">
+                OK
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Contact Host Modal -->
+<div id="contactHostModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div class="flex items-center justify-between p-6 border-b">
+            <h3 class="text-xl font-semibold text-gray-900">Contact Host</h3>
+            <button onclick="closeContactHostModal()" class="text-gray-400 hover:text-gray-600">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <div class="p-6 space-y-4">
+            <div class="flex items-center gap-4">
+                <div class="bg-blue-100 text-blue-600 p-3 rounded-full">
+                    <span class="material-symbols-outlined text-2xl">person</span>
+                </div>
+                <div class="flex-1">
+                    <p class="text-sm text-gray-500">Host Name</p>
+                    <p class="text-lg font-semibold text-gray-900"><?= esc($currentRequest['host'] ?? 'N/A') ?></p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <div class="bg-green-100 text-green-600 p-3 rounded-full">
+                    <span class="material-symbols-outlined text-2xl">phone</span>
+                </div>
+                <div class="flex-1">
+                    <p class="text-sm text-gray-500">Contact Number</p>
+                    <a href="tel:<?= esc($currentRequest['host_contact'] ?? '') ?>" class="text-lg font-semibold text-blue-600 hover:text-blue-800 hover:underline">
+                        <?= esc($currentRequest['host_contact'] ?? 'N/A') ?>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <div class="bg-purple-100 text-purple-600 p-3 rounded-full">
+                    <span class="material-symbols-outlined text-2xl">business</span>
+                </div>
+                <div class="flex-1">
+                    <p class="text-sm text-gray-500">Company</p>
+                    <p class="text-base font-medium text-gray-900"><?= esc($currentRequest['company_visited'] ?? 'N/A') ?></p>
+                </div>
+            </div>
+        </div>
+        <div class="p-6 border-t bg-gray-50 flex gap-3">
+            <button onclick="closeContactHostModal()" class="flex-1 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                Cancel
+            </button>
+            <a href="tel:<?= esc($currentRequest['host_contact'] ?? '') ?>" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium text-center hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
+                <span class="material-symbols-outlined text-lg">call</span>
+                Call Now
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+<?php if ($currentRequest): ?>
+// Zoom image functionality
+document.querySelectorAll('button').forEach(btn => {
+    if (btn.querySelector('.material-symbols-outlined')?.textContent === 'zoom_in') {
+        btn.addEventListener('click', function() {
+            const govIdImage = '<?= esc($currentRequest['government_id_image'] ?? '') ?>';
+            if (govIdImage) {
+                document.getElementById('zoomedImage').src = govIdImage;
+                document.getElementById('imageZoomModal').classList.remove('hidden');
+            }
+        });
+    }
+});
+
+function closeImageZoom() {
+    document.getElementById('imageZoomModal').classList.add('hidden');
+}
+
+// Close modal on background click
+document.getElementById('imageZoomModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeImageZoom();
+    }
+});
+
+// Past Visits button
+document.querySelectorAll('button').forEach(btn => {
+    const text = btn.textContent.trim();
+    if (text.includes('Past Visits')) {
+        btn.addEventListener('click', function() {
+            const icPassport = '<?= esc($currentRequest['ic_passport']) ?>';
+            showPastVisits(icPassport);
+        });
+    }
+});
+
+function showPastVisits(icPassport) {
+    if (!icPassport) {
+        showAlert('No Information', 'No visitor IC/Passport information available', 'error');
+        return;
+    }
+    
+    document.getElementById('pastVisitsModal').classList.remove('hidden');
+    document.getElementById('pastVisitsContent').innerHTML = '<div class="flex justify-center items-center py-8"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>';
+    
+    fetch('<?= base_url('requests/pastVisits') ?>', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ ic_passport: icPassport })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && data.visits.length > 0) {
+            let html = '<div class="space-y-4">';
+            data.visits.forEach(visit => {
+                html += `
+                    <div class="border rounded-lg p-4 hover:bg-gray-50">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-sm text-gray-500">Visit Date</p>
+                                <p class="font-medium">${visit.visit_date}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500">Status</p>
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full ${visit.status === 'Approved' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
+                                    ${visit.status}
+                                </span>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500">Purpose</p>
+                                <p class="font-medium">${visit.purpose || 'N/A'}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500">Host Name</p>
+                                <p class="font-medium">${visit.host_name || 'N/A'}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500">Company Visited</p>
+                                <p class="font-medium">${visit.company_visited || 'N/A'}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500">Check-in Time</p>
+                                <p class="font-medium">${visit.checked_in_at || 'Not checked in'}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            document.getElementById('pastVisitsContent').innerHTML = html;
+        } else {
+            document.getElementById('pastVisitsContent').innerHTML = '<div class="text-center py-8 text-gray-500">No past visits found for this visitor.</div>';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        document.getElementById('pastVisitsContent').innerHTML = '<div class="text-center py-8 text-red-500">Error loading past visits. Please try again.</div>';
+    });
+}
+
+function closePastVisitsModal() {
+    document.getElementById('pastVisitsModal').classList.add('hidden');
+}
+
+// Close modal on background click
+document.getElementById('pastVisitsModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closePastVisitsModal();
+    }
+});
+
+// Contact Host button
+document.querySelectorAll('button').forEach(btn => {
+    const text = btn.textContent.trim();
+    if (text.includes('Contact Host')) {
+        btn.addEventListener('click', function() {
+            const hostContact = '<?= esc($currentRequest['host_contact'] ?? '') ?>';
+            if (hostContact && hostContact !== 'N/A') {
+                document.getElementById('contactHostModal').classList.remove('hidden');
+            } else {
+                showAlert('No Information', 'No host contact information available', 'error');
+            }
+        });
+    }
+});
+
+function closeContactHostModal() {
+    document.getElementById('contactHostModal').classList.add('hidden');
+}
+
+// Close modal on background click
+document.getElementById('contactHostModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeContactHostModal();
+    }
+});
+
+// More Info button
+document.querySelectorAll('button').forEach(btn => {
+    const text = btn.textContent.trim();
+    if (text === 'More Info') {
+        btn.addEventListener('click', function() {
+            const info = 'IC/Passport: <?= esc($currentRequest['ic_passport']) ?>\nContact: <?= esc($currentRequest['contact']) ?>\nEmail: <?= esc($currentRequest['email']) ?>\nVehicle: <?= esc($currentRequest['vehicle']) ?>\nStaff ID: <?= esc($currentRequest['staff_id']) ?>\nCompany Visited: <?= esc($currentRequest['company_visited']) ?>';
+            showAlert('Detailed Information', info, 'info');
+        });
+    }
+});
+
+// Reject button
+document.querySelectorAll('button').forEach(btn => {
+    const text = btn.textContent.trim();
+    if (text.includes('Reject')) {
+        btn.addEventListener('click', function() {
+            showConfirm(
+                'Reject Request',
+                'Are you sure you want to reject this request?',
+                'reject',
+                function() {
+                    const reason = document.getElementById('rejectReasonInput').value.trim();
+                    if (reason) {
+                        rejectRequest(<?= $currentRequest ? explode('-', $currentRequest['id'])[1] : 0 ?>, reason);
+                    } else {
+                        showAlert('Required Field', 'Please provide a reason for rejection', 'error');
+                    }
+                },
+                true
+            );
+        });
+    }
+});
+
+// Approve button
+document.querySelectorAll('button').forEach(btn => {
+    const text = btn.textContent.trim();
+    if (text.includes('Approve Entry')) {
+        btn.addEventListener('click', function() {
+            showConfirm(
+                'Approve Request',
+                'Approve this visitor entry request?',
+                'approve',
+                function() {
+                    approveRequest(<?= $currentRequest ? explode('-', $currentRequest['id'])[1] : 0 ?>);
+                }
+            );
+        });
+    }
+});
+
+function rejectRequest(id, reason) {
+    fetch('<?= base_url('requests/reject') ?>', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ id: id, reason: reason })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('Success', 'Request rejected successfully', 'success');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('Error', data.message, 'error');
+        }
+    })
+    .catch(error => {
+        showAlert('Error', 'An error occurred: ' + error.message, 'error');
+    });
+}
+
+function approveRequest(id) {
+    fetch('<?= base_url('requests/approve') ?>', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ id: id })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('Success', 'Request approved successfully', 'success');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('Error', data.message, 'error');
+        }
+    })
+    .catch(error => {
+        showAlert('Error', 'An error occurred: ' + error.message, 'error');
+    });
+}
+
+// Download button for documents
+document.querySelectorAll('button').forEach(btn => {
+    if (btn.querySelector('.material-symbols-outlined')?.textContent === 'download') {
+        btn.addEventListener('click', function() {
+            const parent = this.closest('.flex');
+            if (parent && parent.textContent.includes('Driver License')) {
+                showAlert('Coming Soon', 'Driver license download feature coming soon', 'info');
+            } else {
+                const govIdImage = '<?= esc($currentRequest['government_id_image'] ?? '') ?>';
+                if (govIdImage) {
+                    window.open(govIdImage, '_blank');
+                }
+            }
+        });
+    }
+});
+
+// Modern Alert/Confirm Modal Functions
+let confirmCallback = null;
+
+function showAlert(title, message, type = 'info') {
+    const modal = document.getElementById('alertModal');
+    const iconEl = document.getElementById('alertIcon');
+    const titleEl = document.getElementById('alertTitle');
+    const messageEl = document.getElementById('alertMessage');
+    
+    // Set icon and colors based on type
+    if (type === 'success') {
+        iconEl.className = 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 p-3 rounded-full';
+        iconEl.querySelector('span').textContent = 'check_circle';
+    } else if (type === 'error') {
+        iconEl.className = 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-3 rounded-full';
+        iconEl.querySelector('span').textContent = 'error';
+    } else if (type === 'warning') {
+        iconEl.className = 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 p-3 rounded-full';
+        iconEl.querySelector('span').textContent = 'warning';
+    } else {
+        iconEl.className = 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-3 rounded-full';
+        iconEl.querySelector('span').textContent = 'info';
+    }
+    
+    titleEl.textContent = title;
+    messageEl.textContent = message;
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeAlertModal() {
+    document.getElementById('alertModal').classList.add('hidden');
+    document.body.style.overflow = 'auto';
+}
+
+function showConfirm(title, message, type = 'info', callback = null, showRejectReason = false) {
+    const modal = document.getElementById('confirmModal');
+    const iconEl = document.getElementById('confirmIcon');
+    const titleEl = document.getElementById('confirmTitle');
+    const messageEl = document.getElementById('confirmMessage');
+    const actionBtn = document.getElementById('confirmActionBtn');
+    const actionText = document.getElementById('confirmActionText');
+    const rejectContainer = document.getElementById('rejectReasonContainer');
+    const rejectInput = document.getElementById('rejectReasonInput');
+    
+    confirmCallback = callback;
+    
+    // Set icon and colors based on type
+    if (type === 'approve') {
+        iconEl.className = 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 p-3 rounded-full';
+        iconEl.querySelector('span').textContent = 'check_circle';
+        actionBtn.className = 'flex-1 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2';
+        actionText.textContent = 'Approve';
+    } else if (type === 'reject') {
+        iconEl.className = 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-3 rounded-full';
+        iconEl.querySelector('span').textContent = 'cancel';
+        actionBtn.className = 'flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2';
+        actionText.textContent = 'Reject';
+    } else {
+        iconEl.className = 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-3 rounded-full';
+        iconEl.querySelector('span').textContent = 'help';
+        actionBtn.className = 'flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2';
+        actionText.textContent = 'Confirm';
+    }
+    
+    titleEl.textContent = title;
+    messageEl.textContent = message;
+    
+    // Show/hide reject reason input
+    if (showRejectReason) {
+        rejectContainer.classList.remove('hidden');
+        rejectInput.value = '';
+    } else {
+        rejectContainer.classList.add('hidden');
+    }
+    
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeConfirmModal() {
+    document.getElementById('confirmModal').classList.add('hidden');
+    document.body.style.overflow = 'auto';
+    confirmCallback = null;
+}
+
+function handleConfirmAction() {
+    if (confirmCallback) {
+        confirmCallback();
+    }
+    closeConfirmModal();
+}
+
+// Close modals on Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeAlertModal();
+        closeConfirmModal();
+    }
+});
+
+// Close modals on backdrop click
+document.getElementById('alertModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeAlertModal();
+    }
+});
+
+document.getElementById('confirmModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeConfirmModal();
+    }
+});
+<?php endif; ?>
+</script>
 </body>
 </html>

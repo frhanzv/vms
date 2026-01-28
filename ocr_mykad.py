@@ -1,19 +1,20 @@
 """
-EasyOCR script for MyKad extraction
-More accurate than Tesseract for Malaysian IC cards
+Google Cloud Vision OCR script for MyKad extraction
+Provides superior accuracy for Malaysian IC cards
 """
 import sys
 import json
 import os
+import re
 
-# Suppress progress bars and warnings
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+# Suppress warnings
 import warnings
 warnings.filterwarnings('ignore')
 
-import easyocr
+from google.cloud import vision
 import cv2
 import numpy as np
+import io
 
 def preprocess_image(image_path):
     """Preprocess image to improve OCR accuracy - remove blue MyKad background"""
@@ -32,15 +33,23 @@ def preprocess_image(image_path):
     # Convert to grayscale
     gray = cv2.cvtColor(no_blue, cv2.COLOR_BGR2GRAY)
     
-    # Apply CLAHE (Contrast Limited Adaptive Histogram Equalization)
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+    # Apply CLAHE (Contrast Limited Adaptive Histogram Equalization) with stronger settings
+    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8,8))
     enhanced = clahe.apply(gray)
     
     # Apply bilateral filter to reduce noise while keeping edges
     denoised = cv2.bilateralFilter(enhanced, 9, 75, 75)
     
-    # Apply adaptive thresholding
-    binary = cv2.adaptiveThreshold(denoised, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
+    # Apply sharpening to improve digit clarity
+    kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
+    sharpened = cv2.filter2D(denoised, -1, kernel)
+    
+    # Apply adaptive thresholding with optimized parameters for digits
+    binary = cv2.adaptiveThreshold(sharpened, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
+    
+    # Apply morphological operations to clean up
+    kernel = np.ones((2,2), np.uint8)
+    binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
     
     # Save preprocessed image
     temp_path = image_path.replace('.', '_processed.')
@@ -49,61 +58,97 @@ def preprocess_image(image_path):
     return temp_path
 
 def extract_mykad_data(image_path):
-    """Extract data from MyKad using EasyOCR"""
+    """Extract data from MyKad using Google Cloud Vision OCR"""
     try:
-        # Initialize reader with better settings
-        reader = easyocr.Reader(['en'], gpu=False, verbose=False)
+        # Initialize the Vision API client
+        client = vision.ImageAnnotatorClient()
         
-        # Try multiple detection strategies
         all_results = []
         
-        # Strategy 1: Original with fine-tuned parameters
-        results1 = reader.readtext(image_path, detail=1, paragraph=False,
-                                   width_ths=0.7, height_ths=0.5,
-                                   mag_ratio=1.5, text_threshold=0.7)
-        all_results.extend(results1)
+        # Strategy 1: Try with preprocessed image first (removes blue background)
+        # This helps detect IC numbers which are often obscured by holographic background
+        preprocessed_path = preprocess_image(image_path)
+        if preprocessed_path != image_path:
+            with io.open(preprocessed_path, 'rb') as image_file:
+                content = image_file.read()
+            
+            image_preprocessed = vision.Image(content=content)
+            image_context = vision.ImageContext(language_hints=['en', 'ms'])
+            
+            # Try both text_detection and document_text_detection
+            response_text = client.text_detection(image=image_preprocessed, image_context=image_context)
+            response_doc = client.document_text_detection(image=image_preprocessed, image_context=image_context)
+            
+            if response_text.text_annotations:
+                all_results.append(('preprocessed_text', response_text.text_annotations[0].description if response_text.text_annotations else ''))
+            
+            if response_doc.full_text_annotation.text:
+                all_results.append(('preprocessed_doc', response_doc.full_text_annotation.text))
         
-        # Strategy 2: Lower thresholds for difficult text
-        results2 = reader.readtext(image_path, detail=1, paragraph=False,
-                                   width_ths=0.5, height_ths=0.5,
-                                   mag_ratio=1.0, text_threshold=0.5)
-        all_results.extend(results2)
+        # Strategy 2: Try with original image
+        with io.open(image_path, 'rb') as image_file:
+            content = image_file.read()
         
-        # Deduplicate by position (keep highest confidence)
-        unique_results = {}
-        for (bbox, text, confidence) in all_results:
-            # Use top-left corner as position key
-            pos_key = (int(bbox[0][0]/10), int(bbox[0][1]/10))  # Group by 10px grid
-            if pos_key not in unique_results or unique_results[pos_key][2] < confidence:
-                unique_results[pos_key] = (bbox, text, confidence)
+        image = vision.Image(content=content)
+        image_context = vision.ImageContext(language_hints=['en', 'ms'])
         
-        results = list(unique_results.values())
+        # Try both detection methods
+        response_text = client.text_detection(image=image, image_context=image_context)
+        response_doc = client.document_text_detection(image=image, image_context=image_context)
         
-        # Sort by vertical position (top to bottom)
-        results.sort(key=lambda x: x[0][0][1])
+        if response_text.text_annotations:
+            all_results.append(('original_text', response_text.text_annotations[0].description if response_text.text_annotations else ''))
         
-        # Extract text with confidence scores
+        if response_doc.full_text_annotation.text:
+            all_results.append(('original_doc', response_doc.full_text_annotation.text))
+        
+        # Check for errors
+        if response_doc.error.message:
+            raise Exception(f'{response_doc.error.message}')
+        
+        if not all_results:
+            return {
+                'success': False,
+                'error': 'No text detected in image'
+            }
+        
+        # Choose the best result - prioritize preprocessed text (better for IC numbers)
+        # Look for IC number pattern to determine best result
+        best_text = ''
+        best_source = ''
+        
+        for source, text in all_results:
+            if text and len(text) > len(best_text):
+                best_text = text
+                best_source = source
+            # Prioritize results that contain IC number pattern
+            if text and re.search(r'\d{6}[-\s]?\d{2}[-\s]?\d{4}', text):
+                best_text = text
+                best_source = source
+                break
+        
+        document_text = best_text
+        
+        # Extract text by lines
         text_lines = []
-        all_text = []  # Keep all for debugging
+        all_text = []
         
         # Keywords to exclude (card header text)
         exclude_keywords = ['KAD', 'PENGENALAN', 'IDENTITY', 'CARD', 'MYKAD', 'MKAD', 'MALAYSIA', 'MALA']
         
-        for (bbox, text, confidence) in results:
-            all_text.append(f"{text} ({confidence:.2f})")
+        # Split text into lines and process
+        for line in document_text.split('\n'):
+            line = line.strip()
+            if not line:
+                continue
+                
+            all_text.append(line)
             
-            if confidence > 0.2:  # Lower threshold to catch address
-                # Clean up text
-                text = text.strip()
-                
-                # Skip card header keywords
-                if any(keyword in text.upper() for keyword in exclude_keywords):
-                    continue
-                
-                # Remove common OCR artifacts
-                text = text.replace('|', 'I').replace('©', 'O')
-                
-                text_lines.append(text)
+            # Skip card header keywords
+            if any(keyword in line.upper() for keyword in exclude_keywords):
+                continue
+            
+            text_lines.append(line)
         
         # Join all text
         full_text = '\n'.join(text_lines)
@@ -114,7 +159,8 @@ def extract_mykad_data(image_path):
             'text': full_text,
             'lines': text_lines,
             'all_detections': all_text,  # For debugging
-            'confidence': 'high' if len([r for r in results if r[2] > 0.7]) > 5 else 'medium'
+            'confidence': 'high',
+            'image_source': best_source  # Which detection method worked best
         }
         
     except Exception as e:
@@ -124,10 +170,6 @@ def extract_mykad_data(image_path):
         }
 
 if __name__ == '__main__':
-    # Redirect stderr to suppress progress bars
-    import io
-    sys.stderr = io.StringIO()
-    
     if len(sys.argv) < 2:
         print(json.dumps({'success': False, 'error': 'No image path provided'}))
         sys.exit(1)

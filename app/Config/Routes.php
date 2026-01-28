@@ -20,6 +20,9 @@ $routes->get('invitations/create', 'InvitationList::create');
 $routes->post('invitations/store', 'InvitationList::store');
 $routes->post('invitations/resend/(:num)', 'InvitationList::resend/$1');
 $routes->get('requests', 'RequestList::index');
+$routes->post('requests/approve', 'RequestList::approve');
+$routes->post('requests/reject', 'RequestList::reject');
+$routes->post('requests/pastVisits', 'RequestList::pastVisits');
 $routes->get('visitors', 'VisitorList::index');
 $routes->get('visitor-pass-request', 'VisitorPassRequest::index');
 $routes->post('visitor-pass-request/store', 'VisitorPassRequest::store');
@@ -32,6 +35,9 @@ $routes->get('visitor-registration', 'VisitorRegistration::index');
 $routes->post('visitor-registration/submit', 'VisitorRegistration::submit');
 $routes->post('visitor-registration/processMyKad', 'VisitorRegistration::processMyKad');
 $routes->post('visitor-registration/updateEmail', 'VisitorRegistration::updateEmail');
+
+// File serving route (for uploaded files)
+$routes->get('uploads/(:segment)/(:segment)', 'FileServer::serve/$1/$2');
 
 // Security Briefing Routes (Public - accessed via email link)
 $routes->get('security/briefing', 'SecurityBriefing::index');

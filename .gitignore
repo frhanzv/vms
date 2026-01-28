@@ -124,3 +124,10 @@ _modules/*
 
 /results/
 /phpunit*.xml
+#-------------------------
+# Google Cloud Credentials
+#-------------------------
+# Never commit API keys or service account credentials
+credentials/
+*-key.json
+vms-mykad-ocr-*.json

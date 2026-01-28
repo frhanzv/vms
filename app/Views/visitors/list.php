@@ -236,6 +236,21 @@
                         </tr>
                     </thead>
                     <tbody class="text-xs text-gray-600 dark:text-gray-300 font-medium">
+                        <?php if (empty($visitors)): ?>
+                        <tr>
+                            <td colspan="11" class="p-8 text-center">
+                                <div class="flex flex-col items-center justify-center gap-3">
+                                    <div class="bg-gray-100 dark:bg-gray-800 rounded-full p-4">
+                                        <span class="material-symbols-outlined text-4xl text-gray-400 dark:text-gray-500">folder_off</span>
+                                    </div>
+                                    <div>
+                                        <p class="text-base font-semibold text-gray-700 dark:text-gray-300">No Data Available</p>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">There are no approved visitors at the moment.</p>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        <?php else: ?>
                         <?php foreach ($visitors as $visitor): ?>
                         <tr onclick='openDetailModal(<?= json_encode($visitor) ?>)' class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-b border-gray-100 dark:border-gray-700 cursor-pointer">
                             <td class="p-4"><?= $visitor['no'] ?></td>
@@ -257,6 +272,7 @@
                             <td class="p-4"><?= esc($visitor['reason']) ?></td>
                         </tr>
                         <?php endforeach; ?>
+                        <?php endif; ?>
                     </tbody>
                 </table>
             </div>

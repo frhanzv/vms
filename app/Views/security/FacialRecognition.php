@@ -1,532 +1,267 @@
 <!DOCTYPE html>
-<html lang="en">
+<html class="light" lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
     <title><?= esc($pageTitle) ?></title>
+    <link href="https://fonts.googleapis.com" rel="preconnect"/>
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
     <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "primary-hover": "#0f6ac6",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101922",
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#1a2632",
+                        "text-main": "#0d141b",
+                        "text-sub": "#4c739a",
+                        "border-color": "#e7edf3",
+                    },
+                    fontFamily: {
+                        "sans": ["Montserrat", "sans-serif"],
+                        "display": ["Montserrat", "sans-serif"],
+                        "brand": ["Montserrat", "sans-serif"],
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f5f7fa;
-            color: #1e293b;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .header {
-            background: white;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-            border-bottom: 1px solid #e7edf3;
-        }
-
-        .header-container {
-            max-width: 960px;
-            margin: 0 auto;
-            padding: 0 32px;
-            height: 64px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-size: 20px;
-            font-weight: 700;
-            color: #0d141b;
-            font-family: 'Montserrat', sans-serif;
-        }
-
-        .logo-icon {
-            width: 36px;
-            height: 36px;
-            background: linear-gradient(135deg, #137fec 0%, #2563eb 100%);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-        }
-
-        .header-links {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            color: #4c739a;
-            font-size: 14px;
-            font-weight: 500;
-            font-family: 'Montserrat', sans-serif;
-        }
-
-        .header-links span {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .header-links .material-symbols-outlined {
-            font-size: 18px;
-        }
-
-        .container {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 40px 20px;
-        }
-
-        .verification-card {
-            max-width: 900px;
-            width: 100%;
-            text-align: center;
-        }
-
-        h1 {
-            font-size: 36px;
-            font-weight: 700;
-            color: #0f172a;
-            margin-bottom: 10px;
-        }
-
-        .subtitle {
-            color: #64748b;
-            font-size: 16px;
-            margin-bottom: 40px;
-        }
-
-        .camera-section {
-            background: white;
-            border-radius: 16px;
-            padding: 40px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-            margin-bottom: 30px;
-        }
-
-        .camera-wrapper {
-            position: relative;
-            width: 100%;
-            max-width: 700px;
-            margin: 0 auto 30px;
-            background: #f8fafc;
-            border-radius: 16px;
-            overflow: hidden;
-            aspect-ratio: 4/3;
-        }
-
-        .camera-placeholder {
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-        }
-
-        #video, #capturedImage {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            position: absolute;
-            top: 0;
-            left: 0;
-            z-index: 1;
-        }
-
-        #capturedImage {
-            display: none;
-        }
-
-        .countdown-overlay {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 10;
-            font-size: 120px;
-            font-weight: 700;
-            color: white;
-            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
-            display: none;
-        }
-
-        .face-detection-box {
-            position: absolute;
-            border: 3px solid #10b981;
-            border-radius: 8px;
-            z-index: 5;
-            box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
-        }
-
-        .no-face-warning {
-            position: absolute;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(239, 68, 68, 0.95);
-            color: white;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-weight: 600;
-            z-index: 10;
-            display: none;
-            animation: pulse 1.5s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-
-        .camera-access-prompt {
-            text-align: center;
-            padding: 40px;
-            color: #64748b;
-        }
-
-        .camera-access-prompt svg {
-            width: 80px;
-            height: 80px;
-            margin-bottom: 20px;
-            opacity: 0.6;
-            color: #94a3b8;
-        }
-
-        .camera-access-prompt h3 {
-            font-size: 20px;
-            margin-bottom: 10px;
-            color: #475569;
-        }
-
-        .camera-access-prompt p {
-            font-size: 14px;
-            opacity: 0.8;
-            color: #64748b;
-        }
-
-        .camera-status {
-            position: absolute;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            z-index: 10;
-        }
-
-        .live-indicator {
+    <style>
+        ::-webkit-scrollbar {
             width: 8px;
-            height: 8px;
-            background: #10b981;
-            border-radius: 50%;
-            animation: pulse 2s infinite;
         }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+        ::-webkit-scrollbar-track {
+            background: transparent;
         }
-
-        .face-status-indicator {
-            position: absolute;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(239, 68, 68, 0.95);
-            color: white;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 15px;
-            z-index: 10;
-            display: none;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            border: 2px solid rgba(255, 255, 255, 0.3);
+        ::-webkit-scrollbar-thumb {
+            background: #cfdbe7;
+            border-radius: 4px;
         }
-
-        .face-status-indicator.detected {
-            background: rgba(16, 185, 129, 0.95);
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4c739a;
         }
-
-
-
-        .progress-section {
-            margin-top: 0;
-            padding: 0;
+        
+        @keyframes pulse-ring {
+            0%, 100% { 
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% { 
+                opacity: 0.7;
+                transform: scale(1.05);
+            }
         }
-
-        .progress-header {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            margin-bottom: 15px;
-        }
-
-        .progress-icon {
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
-        .progress-text {
-            font-size: 18px;
-            font-weight: 600;
-            color: #3b82f6;
-        }
-
-        .progress-percentage {
-            font-size: 24px;
-            font-weight: 700;
-            color: #3b82f6;
-            margin-left: 8px;
-        }
-
-        .progress-bar-container {
-            width: 100%;
-            max-width: 700px;
-            height: 10px;
-            background: #e2e8f0;
-            border-radius: 5px;
-            overflow: hidden;
-            margin: 0 auto 20px;
-        }
-
-        .progress-bar {
-            height: 100%;
-            background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
-            width: 0%;
-            transition: width 0.5s ease;
-            border-radius: 5px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .progress-bar::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(
-                90deg,
-                transparent,
-                rgba(255, 255, 255, 0.3),
-                transparent
-            );
-            animation: shimmer 1.5s infinite;
-        }
-
+        
         @keyframes shimmer {
             0% { transform: translateX(-100%); }
             100% { transform: translateX(100%); }
         }
-
-        .disclaimer {
-            padding: 16px;
-            background: #eff6ff;
-            border-left: 4px solid #3b82f6;
-            border-radius: 4px;
-            font-size: 13px;
-            color: #1e40af;
-            text-align: left;
-            max-width: 700px;
-            margin: 0 auto;
+        
+        .face-detection-box {
+            position: absolute;
+            border: 3px solid #10b981;
+            border-radius: 12px;
+            z-index: 5;
+            box-shadow: 0 0 30px rgba(16, 185, 129, 0.6);
+            animation: pulse-ring 2s ease-in-out infinite;
         }
-
-        .action-buttons {
-            margin-top: 30px;
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-        }
-
-        .btn {
-            padding: 14px 28px;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            border: none;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .btn-primary {
-            background: #3b82f6;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #2563eb;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
-        }
-
-        .btn-secondary {
-            background: white;
-            color: #64748b;
-            border: 2px solid #e2e8f0;
-        }
-
-        .btn-secondary:hover {
-            border-color: #cbd5e1;
-            background: #f8fafc;
-        }
-
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        @media (max-width: 768px) {
-            .header {
-                padding: 15px 20px;
-            }
-
-            h1 {
-                font-size: 28px;
-            }
-
-            .camera-section {
-                padding: 20px;
-            }
-
-            .action-buttons {
-                flex-direction: column;
-            }
-
-            .btn {
-                width: 100%;
-                justify-content: center;
-            }
+        @keyframes scaleIn {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
         }
     </style>
 </head>
-<body>
-    <div class="header">
-        <div class="header-container">
-            <div class="logo">
-                <div class="logo-icon">
-                    <span class="material-symbols-outlined" style="font-size: 20px;">shield_person</span>
+<body class="bg-background-light dark:bg-background-dark text-text-main dark:text-white font-brand antialiased min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 w-full bg-surface-light/95 dark:bg-surface-dark/95 backdrop-blur border-b border-border-color dark:border-gray-800">
+        <div class="max-w-[960px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 bg-gradient-to-br from-primary to-blue-600 rounded-lg flex items-center justify-center">
+                    <span class="material-symbols-outlined text-white text-xl">shield_person</span>
                 </div>
-                <span>SafeG</span>
+                <span class="text-xl font-bold text-text-main dark:text-white">SafeG</span>
             </div>
-            <div class="header-links">
-                <span id="currentTime" style="display: flex; align-items: center; gap: 4px;">
-                    <span class="material-symbols-outlined">schedule</span>
+            <div class="hidden sm:flex items-center gap-4 text-sm font-medium text-text-sub dark:text-gray-400">
+                <span class="flex items-center gap-1" id="currentTime">
+                    <span class="material-symbols-outlined text-[18px]">schedule</span>
                     <span>--:-- --</span>
                 </span>
-                <span><span class="material-symbols-outlined">help</span> Help</span>
-                <span><span class="material-symbols-outlined">language</span> English</span>
+                <button type="button" onclick="showHelp()" class="flex items-center gap-1 hover:text-primary transition-colors cursor-pointer">
+                    <span class="material-symbols-outlined text-[18px]">help</span> Help
+                </button>
+                <button type="button" onclick="showLanguageMenu()" class="flex items-center gap-1 hover:text-primary transition-colors cursor-pointer">
+                    <span class="material-symbols-outlined text-[18px]">language</span> <span id="currentLang">English</span>
+                </button>
             </div>
         </div>
-    </div>
+    </header>
 
-    <!-- Progress Bar -->
-    <div style="max-width: 960px; margin: 0 auto; padding: 32px 32px 0;">
-        <div style="margin-bottom: 32px;">
-            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 8px;">
-                <span style="font-size: 14px; font-weight: 600; color: #137fec; font-family: 'Montserrat', sans-serif; text-transform: uppercase; letter-spacing: 0.05em;">Step 3 of 3</span>
-                <span style="font-size: 12px; color: #4c739a; font-family: 'Montserrat', sans-serif;">Facial Verification</span>
-            </div>
-            <div style="height: 8px; width: 100%; background: #e5e7eb; border-radius: 9999px; overflow: hidden;">
-                <div style="height: 100%; background: #137fec; width: 100%; border-radius: 9999px; box-shadow: 0 0 10px rgba(19, 127, 236, 0.5);"></div>
-            </div>
-        </div>
-    </div>
-
-    <div class="container">
-        <div class="verification-card">
-            <h1>Facial Verification</h1>
-            <p class="subtitle">Please look directly at the camera and hold still for a moment.</p>
-
-            <div class="camera-section">
-                <!-- Camera Display -->
-                <div class="camera-wrapper">
-                    <div class="camera-placeholder">
-                        <div class="camera-status" id="cameraStatus" style="display: none;">
-                            <span class="live-indicator"></span>
-                            LIVE CAMERA
-                        </div>
-                        <div class="countdown-overlay" id="countdownOverlay"></div>
-                        <video id="video" autoplay playsinline></video>
-                        <img id="capturedImage" alt="Captured Face">
-                        <canvas id="canvas" style="display: none;"></canvas>
-                        
-                        <!-- Camera Access Prompt -->
-                        <div class="camera-access-prompt" id="cameraPrompt">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-                                <circle cx="12" cy="13" r="4"></circle>
-                            </svg>
-                            <h3>Camera Access Required</h3>
-                            <p>Please allow camera access to continue with facial verification</p>
-                        </div>
+    <!-- Help Modal -->
+    <div id="helpModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full" style="animation: scaleIn 0.2s ease-out;">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                        <span class="material-symbols-outlined text-2xl text-primary">help</span>
                     </div>
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">Need Help?</h3>
                 </div>
+            </div>
+            <div class="p-6">
+                <div class="space-y-4 text-gray-700 dark:text-gray-300">
+                    <p class="font-semibold">Facial Verification Tips:</p>
+                    <ul class="space-y-2 text-sm">
+                        <li class="flex items-start gap-2"><span class="material-symbols-outlined text-lg text-primary mt-0.5">check_circle</span><span>Ensure good lighting on your face</span></li>
+                        <li class="flex items-start gap-2"><span class="material-symbols-outlined text-lg text-primary mt-0.5">check_circle</span><span>Look directly at the camera</span></li>
+                        <li class="flex items-start gap-2"><span class="material-symbols-outlined text-lg text-primary mt-0.5">check_circle</span><span>Remove sunglasses</span></li>
+                        <li class="flex items-start gap-2"><span class="material-symbols-outlined text-lg text-primary mt-0.5">check_circle</span><span>Hold still during countdown</span></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="p-6 border-t border-gray-200 dark:border-gray-700">
+                <button onclick="closeHelpModal()" class="w-full px-4 py-3 bg-primary hover:bg-primary-hover text-white font-semibold rounded-xl transition-colors">Got it!</button>
+            </div>
+        </div>
+    </div>
 
-                <!-- Progress Section (Outside camera wrapper) -->
-                <div class="progress-section" id="progressSection" style="display: none;">
-                    <div class="progress-header">
-                        <svg class="progress-icon" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"></circle>
+    <!-- Language Modal -->
+    <div id="languageModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full" style="animation: scaleIn 0.2s ease-out;">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700"><div class="flex items-center gap-3"><div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center"><span class="material-symbols-outlined text-2xl text-primary">language</span></div><h3 class="text-xl font-bold text-gray-900 dark:text-white">Select Language</h3></div></div>
+            <div class="p-6 max-h-96 overflow-y-auto"><div class="space-y-2">
+                <button onclick="changeLanguage('en')" class="language-option w-full px-4 py-3 text-left rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center justify-between" data-lang="en"><span class="font-medium">🇬🇧 English</span><span class="material-symbols-outlined text-primary hidden">check_circle</span></button>
+                <button onclick="changeLanguage('ms')" class="language-option w-full px-4 py-3 text-left rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center justify-between" data-lang="ms"><span class="font-medium">🇲🇾 Bahasa Malaysia</span><span class="material-symbols-outlined text-primary hidden">check_circle</span></button>
+                <button onclick="changeLanguage('zh-CN')" class="language-option w-full px-4 py-3 text-left rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center justify-between" data-lang="zh-CN"><span class="font-medium">🇨🇳 中文 (简体)</span><span class="material-symbols-outlined text-primary hidden">check_circle</span></button>
+                <button onclick="changeLanguage('zh-TW')" class="language-option w-full px-4 py-3 text-left rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center justify-between" data-lang="zh-TW"><span class="font-medium">🇹🇼 繁體中文</span><span class="material-symbols-outlined text-primary hidden">check_circle</span></button>
+                <button onclick="changeLanguage('ta')" class="language-option w-full px-4 py-3 text-left rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center justify-between" data-lang="ta"><span class="font-medium">🇮🇳 தமிழ்</span><span class="material-symbols-outlined text-primary hidden">check_circle</span></button>
+                <button onclick="changeLanguage('hi')" class="language-option w-full px-4 py-3 text-left rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center justify-between" data-lang="hi"><span class="font-medium">🇮🇳 हिन्दी</span><span class="material-symbols-outlined text-primary hidden">check_circle</span></button>
+                <button onclick="changeLanguage('ja')" class="language-option w-full px-4 py-3 text-left rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center justify-between" data-lang="ja"><span class="font-medium">🇯🇵 日本語</span><span class="material-symbols-outlined text-primary hidden">check_circle</span></button>
+                <button onclick="changeLanguage('ko')" class="language-option w-full px-4 py-3 text-left rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center justify-between" data-lang="ko"><span class="font-medium">🇰🇷 한국어</span><span class="material-symbols-outlined text-primary hidden">check_circle</span></button>
+                <button onclick="changeLanguage('th')" class="language-option w-full px-4 py-3 text-left rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center justify-between" data-lang="th"><span class="font-medium">🇹🇭 ภาษาไทย</span><span class="material-symbols-outlined text-primary hidden">check_circle</span></button>
+                <button onclick="changeLanguage('vi')" class="language-option w-full px-4 py-3 text-left rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center justify-between" data-lang="vi"><span class="font-medium">🇻🇳 Tiếng Việt</span><span class="material-symbols-outlined text-primary hidden">check_circle</span></button>
+                <button onclick="changeLanguage('id')" class="language-option w-full px-4 py-3 text-left rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center justify-between" data-lang="id"><span class="font-medium">🇮🇩 Bahasa Indonesia</span><span class="material-symbols-outlined text-primary hidden">check_circle</span></button>
+            </div></div>
+            <div class="p-6 border-t border-gray-200 dark:border-gray-700"><button onclick="closeLanguageModal()" class="w-full px-4 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white font-semibold rounded-xl transition-colors">Close</button></div>
+        </div>
+    </div>
+
+    <main class="flex-1 w-full max-w-[960px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Progress Bar -->
+        <div class="mb-8">
+            <div class="flex justify-between items-end mb-2">
+                <span class="text-sm font-semibold text-primary font-brand uppercase tracking-wider">Step 3 of 3</span>
+                <span class="text-xs text-text-sub dark:text-gray-400">Facial Verification</span>
+            </div>
+            <div class="h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div class="h-full bg-primary rounded-full shadow-[0_0_10px_rgba(19,127,236,0.5)]" style="width: 100%;"></div>
+            </div>
+        </div>
+
+        <!-- Page Header -->
+        <div class="mb-8 space-y-2">
+            <h1 class="text-3xl sm:text-4xl font-black text-text-main dark:text-white font-brand tracking-tight" data-translate="Facial Verification">Facial Verification</h1>
+            <p class="text-text-sub dark:text-gray-400 text-lg max-w-2xl font-brand" data-translate="Please look directly at the camera and hold still for a moment.">
+                Please look directly at the camera and hold still for a moment.
+            </p>
+        </div>
+
+        <!-- Camera Section -->
+        <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 overflow-hidden mb-8">
+            <div class="p-6 sm:p-8">
+                <!-- Camera Wrapper -->
+                <div class="relative w-full aspect-[4/3] max-w-2xl mx-auto bg-gray-100 dark:bg-gray-800 rounded-xl overflow-hidden shadow-inner">
+                    <!-- Live Camera Status -->
+                    <div id="cameraStatus" class="hidden absolute top-4 left-1/2 transform -translate-x-1/2 z-20 bg-black/70 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-2 shadow-lg">
+                        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                        LIVE CAMERA
+                    </div>
+
+                    <!-- Face Frame Overlay -->
+                    <div class="absolute inset-0 z-10 pointer-events-none">
+                        <svg class="absolute inset-0 w-full h-full" preserveAspectRatio="xMidYMid slice">
+                            <defs>
+                                <mask id="frameMask">
+                                    <rect width="100%" height="100%" fill="white"/>
+                                    <rect x="15%" y="12.5%" width="70%" height="75%" rx="24" ry="24" fill="black"/>
+                                </mask>
+                            </defs>
+                            <rect width="100%" height="100%" fill="rgba(0,0,0,0.5)" mask="url(#frameMask)"/>
+                            <rect x="15%" y="12.5%" width="70%" height="75%" rx="24" ry="24" fill="none" stroke="#3b82f6" stroke-width="4"/>
                         </svg>
-                        <span class="progress-text" id="progressText">Loading face detection...</span>
                     </div>
 
-                    <div class="disclaimer">
-                        Biometric data is processed securely and not stored.
+                    <!-- Countdown Overlay -->
+                    <div id="countdownOverlay" class="hidden absolute inset-0 z-30 flex items-start justify-center pt-20">
+                        <div class="text-6xl font-black text-white text-center" style="text-shadow: 0 4px 30px rgba(0,0,0,0.9), 0 0 60px rgba(255,255,255,0.3);"></div>
+                    </div>
+
+                    <!-- Video Element -->
+                    <video id="video" autoplay playsinline class="absolute inset-0 w-full h-full object-cover"></video>
+                    
+                    <!-- Captured Image -->
+                    <img id="capturedImage" alt="Captured Face" class="hidden absolute inset-0 w-full h-full object-cover">
+                    
+                    <!-- Hidden Canvas -->
+                    <canvas id="canvas" class="hidden"></canvas>
+
+                    <!-- Camera Access Prompt -->
+                    <div id="cameraPrompt" class="absolute inset-0 flex flex-col items-center justify-center text-center p-8 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900">
+                        <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-blue-100 dark:bg-blue-900/20 mb-6">
+                            <span class="material-symbols-outlined text-5xl text-blue-600 dark:text-blue-400">photo_camera</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-700 dark:text-gray-300 mb-2" data-translate="Camera Access Required">Camera Access Required</h3>
+                        <p class="text-gray-500 dark:text-gray-400 max-w-md" data-translate="Please allow camera access to continue with facial verification">Please allow camera access to continue with facial verification</p>
+                    </div>
+                </div>
+
+                <!-- Progress Section -->
+                <div id="progressSection" class="hidden mt-6">
+                    <div class="flex items-center justify-center gap-3 mb-4">
+                        <div class="w-6 h-6 border-3 border-primary border-t-transparent rounded-full animate-spin"></div>
+                        <span id="progressText" class="text-lg font-semibold text-primary">Loading face detection...</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Action Buttons (Outside camera section) -->
-            <div class="action-buttons" id="actionButtons" style="display: none;">
-                <button type="button" class="btn btn-secondary" onclick="retakePhoto()">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
-                    </svg>
-                    Retake Photo
-                </button>
-                <button type="button" class="btn btn-primary" onclick="proceedToNextStep()">
-                    Continue
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M5 12h14M12 5l7 7-7 7"/>
-                    </svg>
-                </button>
+            <!-- Info Section -->
+            <div class="px-6 sm:px-8 pb-6">
+                <div class="p-4 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 dark:border-blue-400 rounded-lg">
+                    <div class="flex gap-3">
+                        <span class="material-symbols-outlined text-blue-600 dark:text-blue-400 flex-shrink-0">shield</span>
+                        <p class="text-sm text-blue-800 dark:text-blue-200 font-medium">
+                            Biometric data is processed securely and not stored permanently. Your privacy is protected.
+                        </p>
+                    </div>
+                </div>
             </div>
+        </section>
+
+        <!-- Action Buttons -->
+        <div id="actionButtons" class="hidden flex flex-col sm:flex-row gap-4 justify-center">
+            <button type="button" onclick="retakePhoto()" 
+                    class="px-8 py-4 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 text-text-main dark:text-white font-bold rounded-xl transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center gap-2 text-lg">
+                <span class="material-symbols-outlined">refresh</span>
+                Retake Photo
+            </button>
+            <button type="button" onclick="proceedToNextStep()" 
+                    class="px-8 py-4 bg-primary hover:bg-primary-hover text-white font-bold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center justify-center gap-2 text-lg">
+                <span class="material-symbols-outlined">check_circle</span>
+                Continue
+                <span class="material-symbols-outlined">arrow_forward</span>
+            </button>
         </div>
-    </div>
+    </main>
 
     <script>
         // Update time display
@@ -675,8 +410,10 @@
             if (countdownTimer) return; // Prevent multiple countdowns
             
             let count = 5;
-            countdownOverlay.style.display = 'block';
-            countdownOverlay.textContent = count;
+            const countdownText = countdownOverlay.querySelector('div');
+            countdownOverlay.style.display = 'flex';
+            countdownOverlay.classList.remove('hidden');
+            countdownText.textContent = count;
             
             countdownTimer = setInterval(() => {
                 // Check if face is still detected
@@ -684,16 +421,18 @@
                     clearInterval(countdownTimer);
                     countdownTimer = null;
                     countdownOverlay.style.display = 'none';
+                    countdownOverlay.classList.add('hidden');
                     return;
                 }
                 
                 count--;
                 if (count > 0) {
-                    countdownOverlay.textContent = count;
+                    countdownText.textContent = count;
                 } else {
                     clearInterval(countdownTimer);
                     countdownTimer = null;
                     countdownOverlay.style.display = 'none';
+                    countdownOverlay.classList.add('hidden');
                     capturePhoto();
                 }
             }, 1000);
@@ -738,6 +477,7 @@
             video.style.display = 'block';
             actionButtons.style.display = 'none';
             countdownOverlay.style.display = 'none';
+            countdownOverlay.classList.add('hidden');
             faceDetected = false;
             
             // Clear any existing timers
@@ -770,6 +510,139 @@
             alert('Facial verification completed! All steps are now complete.');
             window.location.href = '<?= base_url('security/completed?token=') ?>' + token;
         }
+
+        // Help and Language functions
+        function showHelp() {
+            document.getElementById('helpModal').classList.remove('hidden');
+        }
+        function closeHelpModal() {
+            document.getElementById('helpModal').classList.add('hidden');
+        }
+        function showLanguageMenu() {
+            const currentLang = localStorage.getItem('selectedLanguage') || 'en';
+            document.querySelectorAll('.language-option').forEach(btn => {
+                const checkIcon = btn.querySelector('.material-symbols-outlined');
+                if (btn.dataset.lang === currentLang) {
+                    checkIcon.classList.remove('hidden');
+                    btn.classList.add('bg-blue-50', 'dark:bg-blue-900/20');
+                } else {
+                    checkIcon.classList.add('hidden');
+                    btn.classList.remove('bg-blue-50', 'dark:bg-blue-900/20');
+                }
+            });
+            document.getElementById('languageModal').classList.remove('hidden');
+        }
+        function closeLanguageModal() {
+            document.getElementById('languageModal').classList.add('hidden');
+        }
+        function changeLanguage(langCode) {
+            localStorage.setItem('selectedLanguage', langCode);
+            const langNames = {'en': 'English', 'ms': 'Bahasa Malaysia', 'zh-CN': '中文', 'zh-TW': '繁體中文', 'ta': 'தமிழ்', 'hi': 'हिन्दी', 'ja': '日本語', 'ko': '한국어', 'th': 'ภาษาไทย', 'vi': 'Tiếng Việt', 'id': 'Bahasa Indonesia'};
+            document.getElementById('currentLang').textContent = langNames[langCode];
+            translatePage(langCode);
+            closeLanguageModal();
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-20 right-4 bg-green-500 text-white px-6 py-3 rounded-xl shadow-lg z-50';
+            notification.textContent = `Language: ${langNames[langCode]}`;
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 3000);
+        }
+
+        function translatePage(lang) {
+            const originalTexts = {
+                'Facial Verification': 'Facial Verification',
+                'Please look directly at the camera and hold still for a moment.': 'Please look directly at the camera and hold still for a moment.',
+                'Camera Access Required': 'Camera Access Required',
+                'Please allow camera access to continue with facial verification': 'Please allow camera access to continue with facial verification'
+            };
+
+            const translations = {
+                'ms': {
+                    'Facial Verification': 'Pengesahan Wajah',
+                    'Please look directly at the camera and hold still for a moment.': 'Sila lihat terus ke kamera dan kekal diam seketika.',
+                    'Camera Access Required': 'Akses Kamera Diperlukan',
+                    'Please allow camera access to continue with facial verification': 'Sila benarkan akses kamera untuk meneruskan pengesahan wajah'
+                },
+                'zh-CN': {
+                    'Facial Verification': '面部验证',
+                    'Please look directly at the camera and hold still for a moment.': '请直视相机并保持静止片刻。',
+                    'Camera Access Required': '需要相机访问',
+                    'Please allow camera access to continue with facial verification': '请允许相机访问以继续面部验证'
+                },
+                'zh-TW': {
+                    'Facial Verification': '面部驗證',
+                    'Please look directly at the camera and hold still for a moment.': '請直視相機並保持靜止片刻。',
+                    'Camera Access Required': '需要相機存取',
+                    'Please allow camera access to continue with facial verification': '請允許相機存取以繼續面部驗證'
+                },
+                'id': {
+                    'Facial Verification': 'Verifikasi Wajah',
+                    'Please look directly at the camera and hold still for a moment.': 'Silakan lihat langsung ke kamera dan tetap diam sejenak.',
+                    'Camera Access Required': 'Akses Kamera Diperlukan',
+                    'Please allow camera access to continue with facial verification': 'Harap izinkan akses kamera untuk melanjutkan verifikasi wajah'
+                },
+                'ta': {
+                    'Facial Verification': 'முக சரிபார்ப்பு',
+                    'Please look directly at the camera and hold still for a moment.': 'கேமராவை நேரடியாகப் பார்த்து ஒரு கணம் அமைதியாக இருங்கள்.',
+                    'Camera Access Required': 'கேமரா அணுகல் தேவை',
+                    'Please allow camera access to continue with facial verification': 'முக சரிபார்ப்பைத் தொடர கேமரா அணுகலை அனுமதிக்கவும்'
+                },
+                'ja': {
+                    'Facial Verification': '顔認証',
+                    'Please look directly at the camera and hold still for a moment.': 'カメラを直視し、しばらく静止してください。',
+                    'Camera Access Required': 'カメラアクセスが必要',
+                    'Please allow camera access to continue with facial verification': '顔認証を続行するにはカメラへのアクセスを許可してください'
+                },
+                'ko': {
+                    'Facial Verification': '얼굴 확인',
+                    'Please look directly at the camera and hold still for a moment.': '카메라를 직접 보고 잠시 가만히 계세요.',
+                    'Camera Access Required': '카메라 액세스 필요',
+                    'Please allow camera access to continue with facial verification': '얼굴 확인을 계속하려면 카메라 액세스를 허용하세요'
+                },
+                'th': {
+                    'Facial Verification': 'การยืนยันใบหน้า',
+                    'Please look directly at the camera and hold still for a moment.': 'โปรดมองตรงไปที่กล้องและอยู่นิ่งสักครู่',
+                    'Camera Access Required': 'ต้องการการเข้าถึงกล้อง',
+                    'Please allow camera access to continue with facial verification': 'โปรดอนุญาตการเข้าถึงกล้องเพื่อดำเนินการยืนยันใบหน้าต่อ'
+                },
+                'vi': {
+                    'Facial Verification': 'Xác minh khuôn mặt',
+                    'Please look directly at the camera and hold still for a moment.': 'Vui lòng nhìn thẳng vào camera và giữ yên trong giây lát.',
+                    'Camera Access Required': 'Cần quyền truy cập camera',
+                    'Please allow camera access to continue with facial verification': 'Vui lòng cho phép truy cập camera để tiếp tục xác minh khuôn mặt'
+                },
+                'hi': {
+                    'Facial Verification': 'चेहरे का सत्यापन',
+                    'Please look directly at the camera and hold still for a moment.': 'कृपया कैमरे की ओर सीधे देखें और एक पल के लिए स्थिर रहें।',
+                    'Camera Access Required': 'कैमरा एक्सेस आवश्यक',
+                    'Please allow camera access to continue with facial verification': 'चेहरे के सत्यापन को जारी रखने के लिए कृपया कैमरा एक्सेस की अनुमति दें'
+                }
+            };
+
+            const trans = lang === 'en' ? originalTexts : translations[lang];
+            if (!trans) return;
+
+            document.querySelectorAll('[data-translate]').forEach(el => {
+                const key = el.getAttribute('data-translate');
+                if (trans[key]) {
+                    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+                        el.placeholder = trans[key];
+                    } else {
+                        el.textContent = trans[key];
+                    }
+                }
+            });
+        }
+        window.addEventListener('DOMContentLoaded', function() {
+            const savedLang = localStorage.getItem('selectedLanguage');
+            if (savedLang && savedLang !== 'en') changeLanguage(savedLang);
+        });
+        document.getElementById('helpModal')?.addEventListener('click', function(e) {
+            if (e.target === this) closeHelpModal();
+        });
+        document.getElementById('languageModal')?.addEventListener('click', function(e) {
+            if (e.target === this) closeLanguageModal();
+        });
 
         // Start camera when page loads
         window.addEventListener('load', () => {

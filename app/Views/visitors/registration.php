@@ -69,11 +69,141 @@
                 <span class="text-xl font-bold text-text-main dark:text-white">SafeG</span>
             </div>
             <div class="hidden sm:flex items-center gap-4 text-sm font-medium text-text-sub dark:text-gray-400">
-                <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">help</span> Help</span>
-                <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">language</span> English</span>
+                <button type="button" onclick="showHelp()" class="flex items-center gap-1 hover:text-primary transition-colors cursor-pointer">
+                    <span class="material-symbols-outlined text-[18px]">help</span> Help
+                </button>
+                <button type="button" onclick="showLanguageMenu()" class="flex items-center gap-1 hover:text-primary transition-colors cursor-pointer">
+                    <span class="material-symbols-outlined text-[18px]">language</span> <span id="currentLang">English</span>
+                </button>
             </div>
         </div>
     </header>
+
+    <!-- Help Modal -->
+    <div id="helpModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full animate-scale-in">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                        <span class="material-symbols-outlined text-2xl text-primary">help</span>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">Need Help?</h3>
+                </div>
+            </div>
+            <div class="p-6">
+                <div class="space-y-4 text-gray-700 dark:text-gray-300">
+                    <p class="font-semibold">Registration Assistance:</p>
+                    <ul class="space-y-2 text-sm">
+                        <li class="flex items-start gap-2">
+                            <span class="material-symbols-outlined text-lg text-primary mt-0.5">check_circle</span>
+                            <span>Fill in all required fields accurately</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="material-symbols-outlined text-lg text-primary mt-0.5">check_circle</span>
+                            <span>Upload a clear photo of your MyKad for OCR</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="material-symbols-outlined text-lg text-primary mt-0.5">check_circle</span>
+                            <span>Ensure contact information is correct</span>
+                        </li>
+                    </ul>
+                    <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <p class="font-semibold mb-2">Contact Support:</p>
+                        <p class="text-sm">📞 Helpline: +60 3-XXXX XXXX</p>
+                        <p class="text-sm">✉️ Email: support@safeg.com</p>
+                    </div>
+                </div>
+            </div>
+            <div class="p-6 border-t border-gray-200 dark:border-gray-700">
+                <button onclick="closeHelpModal()" class="w-full px-4 py-3 bg-primary hover:bg-primary-hover text-white font-semibold rounded-xl transition-colors">
+                    Got it, thanks!
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Language Modal -->
+    <div id="languageModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full animate-scale-in">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                        <span class="material-symbols-outlined text-2xl text-primary">language</span>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">Select Language</h3>
+                </div>
+            </div>
+            <div class="p-6 max-h-96 overflow-y-auto">
+                <div class="space-y-2">
+                    <button onclick="changeLanguage('en')" class="language-option w-full px-4 py-3 text-left rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center justify-between" data-lang="en">
+                        <span class="font-medium">🇬🇧 English</span>
+                        <span class="material-symbols-outlined text-primary hidden">check_circle</span>
+                    </button>
+                    <button onclick="changeLanguage('ms')" class="language-option w-full px-4 py-3 text-left rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center justify-between" data-lang="ms">
+                        <span class="font-medium">🇲🇾 Bahasa Malaysia</span>
+                        <span class="material-symbols-outlined text-primary hidden">check_circle</span>
+                    </button>
+                    <button onclick="changeLanguage('zh-CN')" class="language-option w-full px-4 py-3 text-left rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center justify-between" data-lang="zh-CN">
+                        <span class="font-medium">🇨🇳 中文 (简体)</span>
+                        <span class="material-symbols-outlined text-primary hidden">check_circle</span>
+                    </button>
+                    <button onclick="changeLanguage('zh-TW')" class="language-option w-full px-4 py-3 text-left rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center justify-between" data-lang="zh-TW">
+                        <span class="font-medium">🇹🇼 繁體中文</span>
+                        <span class="material-symbols-outlined text-primary hidden">check_circle</span>
+                    </button>
+                    <button onclick="changeLanguage('ta')" class="language-option w-full px-4 py-3 text-left rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center justify-between" data-lang="ta">
+                        <span class="font-medium">🇮🇳 தமிழ் (Tamil)</span>
+                        <span class="material-symbols-outlined text-primary hidden">check_circle</span>
+                    </button>
+                    <button onclick="changeLanguage('hi')" class="language-option w-full px-4 py-3 text-left rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center justify-between" data-lang="hi">
+                        <span class="font-medium">🇮🇳 हिन्दी (Hindi)</span>
+                        <span class="material-symbols-outlined text-primary hidden">check_circle</span>
+                    </button>
+                    <button onclick="changeLanguage('ja')" class="language-option w-full px-4 py-3 text-left rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center justify-between" data-lang="ja">
+                        <span class="font-medium">🇯🇵 日本語 (Japanese)</span>
+                        <span class="material-symbols-outlined text-primary hidden">check_circle</span>
+                    </button>
+                    <button onclick="changeLanguage('ko')" class="language-option w-full px-4 py-3 text-left rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center justify-between" data-lang="ko">
+                        <span class="font-medium">🇰🇷 한국어 (Korean)</span>
+                        <span class="material-symbols-outlined text-primary hidden">check_circle</span>
+                    </button>
+                    <button onclick="changeLanguage('th')" class="language-option w-full px-4 py-3 text-left rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center justify-between" data-lang="th">
+                        <span class="font-medium">🇹🇭 ภาษาไทย (Thai)</span>
+                        <span class="material-symbols-outlined text-primary hidden">check_circle</span>
+                    </button>
+                    <button onclick="changeLanguage('vi')" class="language-option w-full px-4 py-3 text-left rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center justify-between" data-lang="vi">
+                        <span class="font-medium">🇻🇳 Tiếng Việt (Vietnamese)</span>
+                        <span class="material-symbols-outlined text-primary hidden">check_circle</span>
+                    </button>
+                    <button onclick="changeLanguage('id')" class="language-option w-full px-4 py-3 text-left rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center justify-between" data-lang="id">
+                        <span class="font-medium">🇮🇩 Bahasa Indonesia</span>
+                        <span class="material-symbols-outlined text-primary hidden">check_circle</span>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6 border-t border-gray-200 dark:border-gray-700">
+                <button onclick="closeLanguageModal()" class="w-full px-4 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white font-semibold rounded-xl transition-colors">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        @keyframes scale-in {
+            from {
+                transform: scale(0.9);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        .animate-scale-in {
+            animation: scale-in 0.2s ease-out;
+        }
+    </style>
 
     <main class="flex-1 w-full max-w-[960px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Progress Bar -->
@@ -89,14 +219,17 @@
 
         <!-- Page Header -->
         <div class="mb-8 space-y-2">
-            <h1 class="text-3xl sm:text-4xl font-black text-text-main dark:text-white font-brand tracking-tight">Visitor Registration</h1>
-            <p class="text-text-sub dark:text-gray-400 text-lg max-w-2xl font-brand">
+            <h1 class="text-3xl sm:text-4xl font-black text-text-main dark:text-white font-brand tracking-tight" data-translate="Visitor Registration">Visitor Registration</h1>
+            <p class="text-text-sub dark:text-gray-400 text-lg max-w-2xl font-brand" data-translate="Please complete your details for secure entry verification at SafeG.">
                 Please complete your details for secure entry verification at SafeG.
             </p>
         </div>
 
         <form action="<?= base_url('visitor-registration/submit') ?>" class="space-y-8" method="POST" id="registrationForm">
             <?= csrf_field() ?>
+            <?php if (isset($token) && $token): ?>
+                <input type="hidden" name="token" value="<?= esc($token) ?>">
+            <?php endif; ?>
 
                 <!-- Visit Information -->
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8">
@@ -105,13 +238,13 @@
                             <span class="material-symbols-outlined">business</span>
                         </div>
                         <div>
-                            <h2 class="text-lg font-bold font-brand text-text-main dark:text-white">Visit Information</h2>
-                            <p class="text-sm text-text-sub dark:text-gray-400 font-brand">Where and when are you visiting?</p>
+                            <h2 class="text-lg font-bold font-brand text-text-main dark:text-white" data-translate="Visit Information">Visit Information</h2>
+                            <p class="text-sm text-text-sub dark:text-gray-400 font-brand" data-translate="Where and when are you visiting?">Where and when are you visiting?</p>
                         </div>
                     </div>
                     <div class="space-y-6">
                         <div class="space-y-2">
-                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Company Visiting <span class="text-red-500">*</span></label>
+                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand"><span data-translate="Company Visiting">Company Visiting</span> <span class="text-red-500">*</span></label>
                             <div class="bg-background-light dark:bg-background-dark p-4 rounded-lg border border-border-color dark:border-gray-700">
                                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                                 <?php 
@@ -223,25 +356,25 @@
                             <span class="material-symbols-outlined">badge</span>
                         </div>
                         <div>
-                            <h2 class="text-lg font-bold font-brand text-text-main dark:text-white">Details of Visit</h2>
-                            <p class="text-sm text-text-sub dark:text-gray-400 font-brand">Host and purpose details.</p>
+                            <h2 class="text-lg font-bold font-brand text-text-main dark:text-white" data-translate="Details of Visit">Details of Visit</h2>
+                            <p class="text-sm text-text-sub dark:text-gray-400 font-brand" data-translate="Host and purpose details.">Host and purpose details.</p>
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="space-y-2">
-                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Staff ID Of Person Visited</label>
+                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand" data-translate="Staff ID Of Person Visited">Staff ID Of Person Visited</label>
                             <input name="staff_id" value="<?= esc($invitation['staff_id'] ?? '') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
                         </div>
                         <div class="space-y-2">
-                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Contact No Of Person Visited</label>
+                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand" data-translate="Contact No Of Person Visited">Contact No Of Person Visited</label>
                             <input name="host_contact" value="<?= esc($invitation['host_contact'] ?? '') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
                         </div>
                         <div class="space-y-2 md:col-span-2">
-                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Name Of Company Visited</label>
+                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand" data-translate="Name Of Company Visited">Name Of Company Visited</label>
                             <input name="company_visited" value="<?= esc($invitation['company_visited'] ?? '') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
                         </div>
                         <div class="space-y-2 md:col-span-2">
-                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Reason</label>
+                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand" data-translate="Reason">Reason</label>
                             <input name="visit_reason" value="<?= esc($invitation['reason'] ?? '') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
                         </div>
                     </div>
@@ -255,8 +388,8 @@
                                 <span class="material-symbols-outlined">person</span>
                             </div>
                             <div>
-                                <h2 class="text-lg font-bold font-brand text-text-main dark:text-white">Person Details</h2>
-                                <p class="text-sm text-text-sub dark:text-gray-400 font-brand">Visitor identification information.</p>
+                                <h2 class="text-lg font-bold font-brand text-text-main dark:text-white" data-translate="Person Details">Person Details</h2>
+                                <p class="text-sm text-text-sub dark:text-gray-400 font-brand" data-translate="Visitor identification information.">Visitor identification information.</p>
                             </div>
                         </div>
                         <div>
@@ -764,6 +897,78 @@
         document.getElementById('takePhotoBtn').addEventListener('click', function() {
             openCameraModal();
         });
+
+        // Handle Government ID file upload preview
+        document.querySelector('input[name="government_id"]').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // Validate file size (5MB)
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('File size must be less than 5MB');
+                    this.value = '';
+                    return;
+                }
+
+                // Show file name preview
+                const parent = this.closest('.group');
+                let preview = parent.querySelector('.file-preview');
+                if (!preview) {
+                    preview = document.createElement('div');
+                    preview.className = 'file-preview absolute inset-0 bg-green-50 dark:bg-green-900/20 rounded-xl border-2 border-green-500 flex items-center justify-center p-4';
+                    parent.appendChild(preview);
+                }
+                
+                preview.innerHTML = `
+                    <div class="text-center">
+                        <span class="material-symbols-outlined text-4xl text-green-600 mb-2">check_circle</span>
+                        <p class="text-sm font-semibold text-green-700 dark:text-green-400 font-brand">${file.name}</p>
+                        <p class="text-xs text-green-600 dark:text-green-500 mt-1 font-brand">${(file.size / 1024).toFixed(1)} KB</p>
+                        <button type="button" class="mt-2 text-xs text-red-600 hover:text-red-800 font-brand" onclick="clearFileInput(this, 'government_id')">Remove</button>
+                    </div>
+                `;
+            }
+        });
+
+        // Handle Invitation Letter file upload preview
+        document.querySelector('input[name="invitation_letter"]').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // Validate file size (5MB)
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('File size must be less than 5MB');
+                    this.value = '';
+                    return;
+                }
+
+                // Show file name preview
+                const parent = this.closest('.group');
+                let preview = parent.querySelector('.file-preview');
+                if (!preview) {
+                    preview = document.createElement('div');
+                    preview.className = 'file-preview absolute inset-0 bg-green-50 dark:bg-green-900/20 rounded-xl border-2 border-green-500 flex items-center justify-center p-4';
+                    parent.appendChild(preview);
+                }
+                
+                preview.innerHTML = `
+                    <div class="text-center">
+                        <span class="material-symbols-outlined text-4xl text-green-600 mb-2">check_circle</span>
+                        <p class="text-sm font-semibold text-green-700 dark:text-green-400 font-brand">${file.name}</p>
+                        <p class="text-xs text-green-600 dark:text-green-500 mt-1 font-brand">${(file.size / 1024).toFixed(1)} KB</p>
+                        <button type="button" class="mt-2 text-xs text-red-600 hover:text-red-800 font-brand" onclick="clearFileInput(this, 'invitation_letter')">Remove</button>
+                    </div>
+                `;
+            }
+        });
+
+        // Function to clear file input
+        window.clearFileInput = function(button, inputName) {
+            const input = document.querySelector(`input[name="${inputName}"]`);
+            input.value = '';
+            const preview = button.closest('.file-preview');
+            if (preview) {
+                preview.remove();
+            }
+        };
 
         // Open camera modal
         function openCameraModal() {
@@ -1646,6 +1851,76 @@
                         }
                     }
                     
+                    // Fill State first (needed to load cities)
+                    if (data.state) {
+                        const stateField = document.querySelector('select[name="state"]');
+                        if (stateField) {
+                            // Try to find matching option by text content
+                            const options = Array.from(stateField.options);
+                            const matchingOption = options.find(opt => opt.text.toUpperCase().includes(data.state.toUpperCase()));
+                            if (matchingOption) {
+                                stateField.value = matchingOption.value;
+                                console.log('State filled:', data.state);
+                                fieldsUpdated++;
+                                
+                                // Trigger change event to load cities and wait for it
+                                stateField.dispatchEvent(new Event('change'));
+                                
+                                // Wait for cities to load, then set city
+                                if (data.city) {
+                                    setTimeout(() => {
+                                        const cityField = document.querySelector('select[name="city"]');
+                                        if (cityField) {
+                                            const cityOptions = Array.from(cityField.options);
+                                            
+                                            // Try exact match first
+                                            let matchingCityOption = cityOptions.find(opt => opt.text.toUpperCase() === data.city.toUpperCase());
+                                            
+                                            // Try partial match (OCR might have extra chars)
+                                            if (!matchingCityOption) {
+                                                matchingCityOption = cityOptions.find(opt => 
+                                                    opt.text.toUpperCase().includes(data.city.toUpperCase()) || 
+                                                    data.city.toUpperCase().includes(opt.text.toUpperCase())
+                                                );
+                                            }
+                                            
+                                            // Try fuzzy match (remove last few chars for OCR errors)
+                                            if (!matchingCityOption && data.city.length > 5) {
+                                                const cityPrefix = data.city.substring(0, data.city.length - 2).toUpperCase();
+                                                matchingCityOption = cityOptions.find(opt => 
+                                                    opt.text.toUpperCase().startsWith(cityPrefix) ||
+                                                    cityPrefix.startsWith(opt.text.toUpperCase())
+                                                );
+                                            }
+                                            
+                                            if (matchingCityOption) {
+                                                cityField.value = matchingCityOption.value;
+                                                console.log('City filled (after state load):', data.city, '→', matchingCityOption.text);
+                                                fieldsUpdated++;
+                                            } else {
+                                                console.warn('City not found in dropdown after state load:', data.city);
+                                            }
+                                        }
+                                    }, 1000); // Wait 1 second for cities to load
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Fill Country (Malaysia for local IC)
+                    if (data.country) {
+                        const countryField = document.querySelector('select[name="country"]');
+                        if (countryField) {
+                            const options = Array.from(countryField.options);
+                            const matchingOption = options.find(opt => opt.text.toUpperCase().includes(data.country.toUpperCase()));
+                            if (matchingOption) {
+                                countryField.value = matchingOption.value;
+                                console.log('Country filled:', data.country);
+                                fieldsUpdated++;
+                            }
+                        }
+                    }
+                    
                     // Set Resident to LOCAL
                     const residentField = document.querySelector('select[name="resident"]');
                     if (residentField) {
@@ -1673,6 +1948,263 @@
                 processButton.innerHTML = originalText;
             }
         }
+
+        // Help and Language functions
+        function showHelp() {
+            document.getElementById('helpModal').classList.remove('hidden');
+        }
+
+        function closeHelpModal() {
+            document.getElementById('helpModal').classList.add('hidden');
+        }
+
+        function showLanguageMenu() {
+            const currentLang = localStorage.getItem('selectedLanguage') || 'en';
+            document.querySelectorAll('.language-option').forEach(btn => {
+                const checkIcon = btn.querySelector('.material-symbols-outlined');
+                if (btn.dataset.lang === currentLang) {
+                    checkIcon.classList.remove('hidden');
+                    btn.classList.add('bg-blue-50', 'dark:bg-blue-900/20');
+                } else {
+                    checkIcon.classList.add('hidden');
+                    btn.classList.remove('bg-blue-50', 'dark:bg-blue-900/20');
+                }
+            });
+            document.getElementById('languageModal').classList.remove('hidden');
+        }
+
+        function closeLanguageModal() {
+            document.getElementById('languageModal').classList.add('hidden');
+        }
+
+        function changeLanguage(langCode) {
+            localStorage.setItem('selectedLanguage', langCode);
+            const langNames = {
+                'en': 'English', 'ms': 'Bahasa Malaysia', 'zh-CN': '中文', 'zh-TW': '繁體中文',
+                'ta': 'தமிழ்', 'hi': 'हिन्दी', 'ja': '日本語', 'ko': '한국어',
+                'th': 'ภาษาไทย', 'vi': 'Tiếng Việt', 'id': 'Bahasa Indonesia'
+            };
+            
+            // Update language display in header
+            document.getElementById('currentLang').textContent = langNames[langCode];
+            
+            // Translate page content
+            translatePage(langCode);
+            
+            closeLanguageModal();
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-20 right-4 bg-green-500 text-white px-6 py-3 rounded-xl shadow-lg z-50 animate-slide-in';
+            notification.textContent = `Language changed to ${langNames[langCode]}`;
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 3000);
+        }
+
+        // Translation function
+        function translatePage(lang) {
+            const originalTexts = {
+                'Visitor Registration': 'Visitor Registration',
+                'Please complete your details for secure entry verification at SafeG.': 'Please complete your details for secure entry verification at SafeG.'
+            };
+
+            const translations = {
+                'ms': {
+                    'Visitor Registration': 'Pendaftaran Pelawat',
+                    'Please complete your details for secure entry verification at SafeG.': 'Sila lengkapkan butiran anda untuk pengesahan kemasukan selamat di SafeG.',
+                    'Visit Information': 'Maklumat Lawatan',
+                    'Where and when are you visiting?': 'Ke mana dan bila anda melawat?',
+                    'Company Visiting': 'Syarikat Yang Dilawati',
+                    'Details of Visit': 'Butiran Lawatan',
+                    'Host and purpose details.': 'Butiran tuan rumah dan tujuan.',
+                    'Staff ID Of Person Visited': 'ID Kakitangan Yang Dilawati',
+                    'Contact No Of Person Visited': 'No. Perhubungan Yang Dilawati',
+                    'Name Of Company Visited': 'Nama Syarikat Yang Dilawati',
+                    'Reason': 'Sebab',
+                    'Person Details': 'Butiran Diri',
+                    'Visitor identification information.': 'Maklumat pengenalan pelawat.'
+                },
+                'zh-CN': {
+                    'Visitor Registration': '访客登记',
+                    'Please complete your details for secure entry verification at SafeG.': '请填写您的详细信息以进行SafeG的安全入境验证。',
+                    'Visit Information': '访问信息',
+                    'Where and when are you visiting?': '您要访问哪里和什么时候？',
+                    'Company Visiting': '访问公司',
+                    'Details of Visit': '访问详情',
+                    'Host and purpose details.': '主人和目的详情。',
+                    'Staff ID Of Person Visited': '被访者员工编号',
+                    'Contact No Of Person Visited': '被访者联系电话',
+                    'Name Of Company Visited': '被访公司名称',
+                    'Reason': '原因',
+                    'Person Details': '个人详情',
+                    'Visitor identification information.': '访客身份信息。'
+                },
+                'zh-TW': {
+                    'Visitor Registration': '訪客登記',
+                    'Please complete your details for secure entry verification at SafeG.': '請填寫您的詳細資訊以進行SafeG的安全入境驗證。',
+                    'Visit Information': '訪問資訊',
+                    'Where and when are you visiting?': '您要訪問哪裡和什麼時候？',
+                    'Company Visiting': '訪問公司',
+                    'Details of Visit': '訪問詳情',
+                    'Host and purpose details.': '主人和目的詳情。',
+                    'Staff ID Of Person Visited': '被訪者員工編號',
+                    'Contact No Of Person Visited': '被訪者聯絡電話',
+                    'Name Of Company Visited': '被訪公司名稱',
+                    'Reason': '原因',
+                    'Person Details': '個人詳情',
+                    'Visitor identification information.': '訪客身份資訊。'
+                },
+                'ta': {
+                    'Visitor Registration': 'பார்வையாளர் பதிவு',
+                    'Please complete your details for secure entry verification at SafeG.': 'SafeG இல் பாதுகாப்பான நுழைவு சரிபார்ப்புக்கு உங்கள் விவரங்களை முடிக்கவும்.',
+                    'Visit Information': 'வருகை தகவல்',
+                    'Where and when are you visiting?': 'நீங்கள் எங்கு மற்றும் எப்போது வருகிறீர்கள்?',
+                    'Company Visiting': 'வருகை நிறுவனம்',
+                    'Details of Visit': 'வருகை விவரங்கள்',
+                    'Host and purpose details.': 'புரவலன் மற்றும் நோக்கம் விவரங்கள்.',
+                    'Staff ID Of Person Visited': 'சந்திக்கப்பட்ட நபரின் ஊழியர் அடையாள எண்',
+                    'Contact No Of Person Visited': 'சந்திக்கப்பட்ட நபரின் தொடர்பு எண்',
+                    'Name Of Company Visited': 'சந்திக்கப்பட்ட நிறுவனத்தின் பெயர்',
+                    'Reason': 'காரணம்',
+                    'Person Details': 'நபர் விவரங்கள்',
+                    'Visitor identification information.': 'பார்வையாளர் அடையாள தகவல்.'
+                },
+                'hi': {
+                    'Visitor Registration': 'आगंतुक पंजीकरण',
+                    'Please complete your details for secure entry verification at SafeG.': 'SafeG में सुरक्षित प्रवेश सत्यापन के लिए कृपया अपना विवरण पूरा करें।',
+                    'Visit Information': 'यात्रा जानकारी',
+                    'Where and when are you visiting?': 'आप कहाँ और कब जा रहे हैं?',
+                    'Company Visiting': 'कंपनी का दौरा',
+                    'Details of Visit': 'यात्रा का विवरण',
+                    'Host and purpose details.': 'मेजबान और उद्देश्य विवरण।',
+                    'Staff ID Of Person Visited': 'मिले व्यक्ति की स्टाफ आईडी',
+                    'Contact No Of Person Visited': 'मिले व्यक्ति का संपर्क नंबर',
+                    'Name Of Company Visited': 'मिली कंपनी का नाम',
+                    'Reason': 'कारण',
+                    'Person Details': 'व्यक्ति विवरण',
+                    'Visitor identification information.': 'आगंतुक पहचान जानकारी।'
+                },
+                'ja': {
+                    'Visitor Registration': '訪問者登録',
+                    'Please complete your details for secure entry verification at SafeG.': 'SafeGでの安全な入場確認のため、詳細を記入してください。',
+                    'Visit Information': '訪問情報',
+                    'Where and when are you visiting?': 'どこへいつ訪問しますか？',
+                    'Company Visiting': '訪問先企業',
+                    'Details of Visit': '訪問詳細',
+                    'Host and purpose details.': 'ホストと目的の詳細。',
+                    'Staff ID Of Person Visited': '訪問先担当者のスタッフID',
+                    'Contact No Of Person Visited': '訪問先担当者の連絡先',
+                    'Name Of Company Visited': '訪問先企業名',
+                    'Reason': '理由',
+                    'Person Details': '個人詳細',
+                    'Visitor identification information.': '訪問者識別情報。'
+                },
+                'ko': {
+                    'Visitor Registration': '방문자 등록',
+                    'Please complete your details for secure entry verification at SafeG.': 'SafeG의 안전한 입장 확인을 위해 세부 정보를 작성해 주세요.',
+                    'Visit Information': '방문 정보',
+                    'Where and when are you visiting?': '어디를 언제 방문하십니까?',
+                    'Company Visiting': '방문 회사',
+                    'Details of Visit': '방문 세부정보',
+                    'Host and purpose details.': '호스트 및 목적 세부정보.',
+                    'Staff ID Of Person Visited': '방문 대상자 직원 ID',
+                    'Contact No Of Person Visited': '방문 대상자 연락처',
+                    'Name Of Company Visited': '방문 회사명',
+                    'Reason': '이유',
+                    'Person Details': '개인 정보',
+                    'Visitor identification information.': '방문자 신원 정보.'
+                },
+                'th': {
+                    'Visitor Registration': 'การลงทะเบียนผู้เยี่ยมชม',
+                    'Please complete your details for secure entry verification at SafeG.': 'โปรดกรอกรายละเอียดของคุณเพื่อการยืนยันการเข้าที่ปลอดภัยที่ SafeG',
+                    'Visit Information': 'ข้อมูลการเยี่ยมชม',
+                    'Where and when are you visiting?': 'คุณจะเยี่ยมชมที่ไหนและเมื่อไหร่?',
+                    'Company Visiting': 'บริษัทที่จะเยี่ยม',
+                    'Details of Visit': 'รายละเอียดการเยี่ยมชม',
+                    'Host and purpose details.': 'รายละเอียดเจ้าภาพและวัตถุประสงค์',
+                    'Staff ID Of Person Visited': 'รหัสพนักงานของผู้ที่เยี่ยมชม',
+                    'Contact No Of Person Visited': 'เบอร์ติดต่อของผู้ที่เยี่ยมชม',
+                    'Name Of Company Visited': 'ชื่อบริษัทที่เยี่ยมชม',
+                    'Reason': 'เหตุผล',
+                    'Person Details': 'รายละเอียดบุคคล',
+                    'Visitor identification information.': 'ข้อมูลระบุตัวตนผู้เยี่ยมชม'
+                },
+                'vi': {
+                    'Visitor Registration': 'Đăng ký khách',
+                    'Please complete your details for secure entry verification at SafeG.': 'Vui lòng hoàn thành thông tin của bạn để xác minh ra vào an toàn tại SafeG.',
+                    'Visit Information': 'Thông tin chuyến thăm',
+                    'Where and when are you visiting?': 'Bạn đang thăm đâu và khi nào?',
+                    'Company Visiting': 'Công ty đến thăm',
+                    'Details of Visit': 'Chi tiết chuyến thăm',
+                    'Host and purpose details.': 'Chi tiết chủ nhà và mục đích.',
+                    'Staff ID Of Person Visited': 'ID nhân viên người được thăm',
+                    'Contact No Of Person Visited': 'Số liên lạc người được thăm',
+                    'Name Of Company Visited': 'Tên công ty được thăm',
+                    'Reason': 'Lý do',
+                    'Person Details': 'Chi tiết cá nhân',
+                    'Visitor identification information.': 'Thông tin nhận dạng khách.'
+                },
+                'id': {
+                    'Visitor Registration': 'Pendaftaran Pengunjung',
+                    'Please complete your details for secure entry verification at SafeG.': 'Silakan lengkapi detail Anda untuk verifikasi masuk aman di SafeG.',
+                    'Visit Information': 'Informasi Kunjungan',
+                    'Where and when are you visiting?': 'Ke mana dan kapan Anda berkunjung?',
+                    'Company Visiting': 'Perusahaan yang Dikunjungi',
+                    'Details of Visit': 'Detail Kunjungan',
+                    'Host and purpose details.': 'Detail tuan rumah dan tujuan.',
+                    'Staff ID Of Person Visited': 'ID Staf Orang yang Dikunjungi',
+                    'Contact No Of Person Visited': 'No. Kontak Orang yang Dikunjungi',
+                    'Name Of Company Visited': 'Nama Perusahaan yang Dikunjungi',
+                    'Reason': 'Alasan',
+                    'Person Details': 'Detail Pribadi',
+                    'Visitor identification information.': 'Informasi identifikasi pengunjung.'
+                }
+            };
+
+            const originalTexts = {
+                'Visitor Registration': 'Visitor Registration',
+                'Please complete your details for secure entry verification at SafeG.': 'Please complete your details for secure entry verification at SafeG.',
+                'Visit Information': 'Visit Information',
+                'Where and when are you visiting?': 'Where and when are you visiting?',
+                'Company Visiting': 'Company Visiting',
+                'Details of Visit': 'Details of Visit',
+                'Host and purpose details.': 'Host and purpose details.',
+                'Staff ID Of Person Visited': 'Staff ID Of Person Visited',
+                'Contact No Of Person Visited': 'Contact No Of Person Visited',
+                'Name Of Company Visited': 'Name Of Company Visited',
+                'Reason': 'Reason',
+                'Person Details': 'Person Details',
+                'Visitor identification information.': 'Visitor identification information.'
+            };
+
+            const trans = lang === 'en' ? originalTexts : translations[lang];
+            if (!trans) return;
+
+            document.querySelectorAll('[data-translate]').forEach(el => {
+                const key = el.getAttribute('data-translate');
+                if (trans[key]) {
+                    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+                        el.placeholder = trans[key];
+                    } else {
+                        el.textContent = trans[key];
+                    }
+                }
+            });
+        }
+
+        // Load saved language on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            const savedLang = localStorage.getItem('selectedLanguage');
+            if (savedLang && savedLang !== 'en') {
+                changeLanguage(savedLang);
+            }
+        });
+
+        // Close modals on outside click
+        document.getElementById('helpModal')?.addEventListener('click', function(e) {
+            if (e.target === this) closeHelpModal();
+        });
+        document.getElementById('languageModal')?.addEventListener('click', function(e) {
+            if (e.target === this) closeLanguageModal();
+        });
     </script>
 </body>
 </html>

@@ -129,7 +129,7 @@
             </div>
 
             <!-- Stats Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
                 <div class="bg-white dark:bg-gray-800 rounded-lg p-5 border-l-4 border-indigo-500 shadow-sm border-t border-r border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
                     <div>
                         <p class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Total Invitations</p>
@@ -148,6 +148,16 @@
                     </div>
                     <div class="p-3 bg-orange-50 dark:bg-orange-900/20 rounded-full text-orange-600 dark:text-orange-400">
                         <span class="material-symbols-outlined text-2xl">pending_actions</span>
+                    </div>
+                </div>
+                <div class="bg-white dark:bg-gray-800 rounded-lg p-5 border-l-4 border-blue-500 shadow-sm border-t border-r border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Submitted</p>
+                        <p class="text-2xl font-bold text-gray-800 dark:text-white mt-1"><?= number_format($stats['submitted']) ?></p>
+                        <p class="text-[10px] text-blue-500 mt-1 font-medium">Form completed</p>
+                    </div>
+                    <div class="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-full text-blue-600 dark:text-blue-400">
+                        <span class="material-symbols-outlined text-2xl">task_alt</span>
                     </div>
                 </div>
                 <div class="bg-white dark:bg-gray-800 rounded-lg p-5 border-l-4 border-green-500 shadow-sm border-t border-r border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
@@ -193,6 +203,7 @@
                         <select class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs appearance-none focus:ring-primary focus:border-primary text-gray-500 dark:text-gray-300">
                             <option>STATUS</option>
                             <option>Pending</option>
+                            <option>Submitted</option>
                             <option>Approved</option>
                             <option>Rejected</option>
                         </select>
@@ -287,6 +298,8 @@
                                 <span class="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Approved</span>
                                 <?php elseif ($invitation['status'] === 'Pending'): ?>
                                 <span class="bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Pending</span>
+                                <?php elseif ($invitation['status'] === 'Submitted'): ?>
+                                <span class="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Submitted</span>
                                 <?php elseif ($invitation['status'] === 'Rejected'): ?>
                                 <span class="bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Rejected</span>
                                 <?php endif; ?>
@@ -502,6 +515,9 @@
             } else if (invitation.status === 'Pending') {
                 statusEl.className = 'px-4 py-2 rounded-full text-sm font-bold bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300';
                 statusEl.textContent = 'Pending';
+            } else if (invitation.status === 'Submitted') {
+                statusEl.className = 'px-4 py-2 rounded-full text-sm font-bold bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300';
+                statusEl.textContent = 'Submitted';
             } else if (invitation.status === 'Rejected') {
                 statusEl.className = 'px-4 py-2 rounded-full text-sm font-bold bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300';
                 statusEl.textContent = 'Rejected';

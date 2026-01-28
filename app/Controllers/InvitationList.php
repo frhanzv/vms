@@ -66,6 +66,7 @@ class InvitationList extends BaseController
         $stats = [
             'total' => $result['total'],
             'pending' => $this->invitationModel->where('status', 'Pending')->countAllResults(),
+            'submitted' => $this->invitationModel->where('status', 'Submitted')->countAllResults(),
             'approved' => $this->invitationModel->where('status', 'Approved')->countAllResults(),
             'rejected' => $this->invitationModel->where('status', 'Rejected')->countAllResults()
         ];
