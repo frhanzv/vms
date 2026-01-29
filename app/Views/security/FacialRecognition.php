@@ -503,12 +503,39 @@
             
             const token = new URLSearchParams(window.location.search).get('token');
             
-            // TODO: Send captured photo to backend for verification
-            // You can send capturedPhotoData (base64 image) to server
+            // Show loading state
+            const button = event.target.closest('button');
+            const originalText = button.innerHTML;
+            button.disabled = true;
+            button.innerHTML = '<span class="animate-spin material-symbols-outlined">refresh</span> Processing...';
             
-            // For now, just proceed
-            alert('Facial verification completed! All steps are now complete.');
-            window.location.href = '<?= base_url('security/completed?token=') ?>' + token;
+            // Send captured photo to backend for verification
+            fetch('<?= base_url('security/facial-complete') ?>', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    token: token,
+                    image: capturedPhotoData
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = data.redirect_url || '<?= base_url('security/completed?token=') ?>' + token;
+                } else {
+                    alert('Failed to save facial verification: ' + (data.message || 'Unknown error'));
+                    button.disabled = false;
+                    button.innerHTML = originalText;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while saving facial verification. Please try again.');
+                button.disabled = false;
+                button.innerHTML = originalText;
+            });
         }
 
         // Help and Language functions

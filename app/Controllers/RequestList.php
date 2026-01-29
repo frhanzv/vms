@@ -150,6 +150,16 @@ class RequestList extends BaseController
         }
 
         try {
+            // Get the invitation
+            $invitation = $this->invitationModel->find($id);
+            
+            if (!$invitation) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Invitation not found'
+                ]);
+            }
+
             // Update status to Approved
             $updated = $this->invitationModel->update($id, [
                 'status' => 'Approved',
@@ -157,6 +167,25 @@ class RequestList extends BaseController
             ]);
 
             if ($updated) {
+                // Create record in invitation_visitors table for RFID tracking
+                $invitationVisitorModel = new \App\Models\InvitationVisitorModel();
+                
+                // Check if record already exists
+                $existing = $invitationVisitorModel->where('invitation_id', $id)->first();
+                
+                if (!$existing) {
+                    $inserted = $invitationVisitorModel->insert([
+                        'invitation_id' => $id,
+                        'visitor_card_id' => null,
+                        'check_in_time' => null,
+                        'check_out_time' => null,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]);
+                    
+                    log_message('debug', 'Created invitation_visitor record for invitation ID: ' . $id . ', Result: ' . ($inserted ? 'Success' : 'Failed'));
+                }
+                
                 return $this->response->setJSON([
                     'success' => true,
                     'message' => 'Request approved successfully'

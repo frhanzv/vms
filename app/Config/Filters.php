@@ -82,7 +82,8 @@ class Filters extends BaseFilters
                 'auth/*', 
                 'visitor-registration',
                 'visitor-registration/*',
-                'security/*'
+                'security/*',
+                'api/rfid/*'
             ]],
         ],
         'after' => [

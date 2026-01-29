@@ -2277,7 +2277,6 @@ class Config extends BaseController
     {
         $data = [
             'card_id' => $this->request->getPost('card_id'),
-            'serial_no' => $this->request->getPost('serial_no'),
             'status' => $this->request->getPost('status')
         ];
 
@@ -2308,7 +2307,6 @@ class Config extends BaseController
 
         $data = [
             'card_id' => $this->request->getPost('card_id'),
-            'serial_no' => $this->request->getPost('serial_no'),
             'status' => $this->request->getPost('status')
         ];
 

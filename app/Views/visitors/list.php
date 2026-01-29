@@ -401,7 +401,7 @@
                     Close
                 </button>
                 <div class="flex gap-3">
-                    <button class="px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
+                    <button onclick="openCardBindingModal()" class="px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
                         <span class="material-symbols-outlined text-lg">badge</span>
                         i Card Details
                     </button>
@@ -418,9 +418,80 @@
         </div>
     </div>
 
+    <!-- Card Binding Modal -->
+    <div id="cardBindingModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-md w-full">
+            <!-- Modal Header -->
+            <div class="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4 rounded-t-xl">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="material-symbols-outlined text-white text-3xl">badge</span>
+                        <h3 class="text-xl font-bold text-white">Bind Visitor Card</h3>
+                    </div>
+                    <button onclick="closeCardBindingModal()" class="text-white hover:bg-white/20 rounded-lg p-1 transition-colors">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6">
+                <div class="mb-4">
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                        Select an available card or enter a new EPC number to bind to this visitor.
+                    </p>
+                    
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        Card EPC Number
+                    </label>
+                    <select id="cardEpcSelect" class="w-full px-4 py-2.5 bg-white dark:bg-slate-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">-- Select Available Card --</option>
+                        <?php foreach ($availableCards as $card): ?>
+                        <option value="<?= $card['id'] ?>"><?= esc($card['card_id']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    
+                    <div class="mt-4">
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            Or Enter New EPC Number
+                        </label>
+                        <input type="text" id="newCardEpc" placeholder="Enter 24-character EPC (e.g., DD123456789012345678901)" 
+                               class="w-full px-4 py-2.5 bg-white dark:bg-slate-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               maxlength="24">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            EPC format: 24 hex characters (DD/E2/30 prefixes)
+                        </p>
+                    </div>
+                </div>
+
+                <div id="cardBindingError" class="hidden mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                    <p class="text-sm text-red-600 dark:text-red-400"></p>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="bg-gray-50 dark:bg-slate-900 border-t border-gray-200 dark:border-gray-700 px-6 py-4 rounded-b-xl flex gap-3 justify-end">
+                <button onclick="closeCardBindingModal()" class="px-4 py-2.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg transition-colors duration-200">
+                    Cancel
+                </button>
+                <button onclick="bindCardToVisitor()" class="px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-lg">link</span>
+                    Bind Card
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        let currentVisitorId = null;
+        let currentInvitationVisitorId = null;
+
         function openDetailModal(visitor) {
             const modal = document.getElementById('detailModal');
+            
+            // Store visitor IDs for card binding
+            currentVisitorId = visitor.id;
+            currentInvitationVisitorId = visitor.id;
             
             // Populate visitor information
             document.getElementById('detailFullName').textContent = visitor.full_name || 'N/A';
@@ -460,6 +531,89 @@
             document.body.style.overflow = 'auto';
         }
 
+        function openCardBindingModal() {
+            document.getElementById('cardBindingModal').classList.remove('hidden');
+            document.getElementById('cardBindingModal').classList.add('flex');
+            document.getElementById('cardEpcSelect').value = '';
+            document.getElementById('newCardEpc').value = '';
+            hideCardBindingError();
+        }
+
+        function closeCardBindingModal() {
+            document.getElementById('cardBindingModal').classList.add('hidden');
+            document.getElementById('cardBindingModal').classList.remove('flex');
+        }
+
+        function showCardBindingError(message) {
+            const errorDiv = document.getElementById('cardBindingError');
+            errorDiv.querySelector('p').textContent = message;
+            errorDiv.classList.remove('hidden');
+        }
+
+        function hideCardBindingError() {
+            document.getElementById('cardBindingError').classList.add('hidden');
+        }
+
+        function bindCardToVisitor() {
+            const selectedCardId = document.getElementById('cardEpcSelect').value;
+            const newCardEpc = document.getElementById('newCardEpc').value.trim();
+            
+            if (!selectedCardId && !newCardEpc) {
+                showCardBindingError('Please select a card or enter a new EPC number');
+                return;
+            }
+
+            if (newCardEpc && newCardEpc.length !== 24) {
+                showCardBindingError('EPC number must be exactly 24 characters');
+                return;
+            }
+
+            // Validate EPC format (hex characters)
+            if (newCardEpc && !/^[0-9A-Fa-f]{24}$/.test(newCardEpc)) {
+                showCardBindingError('EPC must contain only hexadecimal characters (0-9, A-F)');
+                return;
+            }
+
+            const data = {
+                invitation_visitor_id: currentInvitationVisitorId,
+                card_id: selectedCardId || null,
+                new_card_epc: newCardEpc || null
+            };
+
+            // Show loading state
+            const bindButton = event.target.closest('button');
+            const originalText = bindButton.innerHTML;
+            bindButton.disabled = true;
+            bindButton.innerHTML = '<span class="material-symbols-outlined text-lg animate-spin">refresh</span> Binding...';
+
+            fetch('<?= base_url('visitors/bindCard') ?>', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    alert(result.message);
+                    closeCardBindingModal();
+                    closeDetailModal();
+                    location.reload(); // Refresh the page to show updated data
+                } else {
+                    showCardBindingError(result.message || 'Failed to bind card');
+                    bindButton.disabled = false;
+                    bindButton.innerHTML = originalText;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showCardBindingError('An error occurred while binding the card');
+                bindButton.disabled = false;
+                bindButton.innerHTML = originalText;
+            });
+        }
+
         // Close modal on backdrop click
         document.getElementById('detailModal').addEventListener('click', function(e) {
             if (e.target === this) {
@@ -467,10 +621,37 @@
             }
         });
 
+        document.getElementById('cardBindingModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeCardBindingModal();
+            }
+        });
+
         // Close modal on Escape key
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
-                closeDetailModal();
+                const cardModal = document.getElementById('cardBindingModal');
+                const detailModal = document.getElementById('detailModal');
+                
+                if (!cardModal.classList.contains('hidden')) {
+                    closeCardBindingModal();
+                } else if (!detailModal.classList.contains('hidden')) {
+                    closeDetailModal();
+                }
+            }
+        });
+
+        // Clear new EPC input when selecting from dropdown
+        document.getElementById('cardEpcSelect').addEventListener('change', function() {
+            if (this.value) {
+                document.getElementById('newCardEpc').value = '';
+            }
+        });
+
+        // Clear dropdown when typing in new EPC input
+        document.getElementById('newCardEpc').addEventListener('input', function() {
+            if (this.value) {
+                document.getElementById('cardEpcSelect').value = '';
             }
         });
     </script>

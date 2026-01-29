@@ -30,7 +30,10 @@ class LaneModel extends Model
         'last_logged_in_by',
         'last_logged_in_datetime',
         'last_changed_on_printer_paper',
-        'status'
+        'status',
+        'rfid_reader_ip',
+        'rfid_reader_port',
+        'rfid_enabled'
     ];
 
     // Dates

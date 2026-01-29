@@ -11,6 +11,14 @@ $routes->get('login', 'Auth::login');
 $routes->post('auth/attemptLogin', 'Auth::attemptLogin');
 $routes->get('auth/logout', 'Auth::logout');
 
+// RFID API routes (no auth filter - for RFID reader webhook)
+$routes->group('api/rfid', function($routes) {
+    $routes->get('scan', 'RFID::scan');                  // Single reader endpoint
+    $routes->get('scan-lane', 'RFID::scanLane');         // Multi-reader endpoint with lane info
+    $routes->get('status', 'RFID::status');              // Reader status
+    $routes->get('test-connection', 'RFID::testConnection'); // Test connection
+});
+
 // Protected Routes
 $routes->get('/', 'Dashboard::index');
 $routes->get('dashboard', 'Dashboard::index');
@@ -24,6 +32,8 @@ $routes->post('requests/approve', 'RequestList::approve');
 $routes->post('requests/reject', 'RequestList::reject');
 $routes->post('requests/pastVisits', 'RequestList::pastVisits');
 $routes->get('visitors', 'VisitorList::index');
+$routes->post('visitors/bindCard', 'VisitorList::bindCard');
+$routes->post('visitors/unbindCard', 'VisitorList::unbindCard');
 $routes->get('visitor-pass-request', 'VisitorPassRequest::index');
 $routes->post('visitor-pass-request/store', 'VisitorPassRequest::store');
 $routes->get('logbook', 'VisitorLogbook::index');

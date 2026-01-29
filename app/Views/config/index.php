@@ -1211,7 +1211,7 @@
                             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                                 <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                                     <div class="flex shadow-sm w-full sm:w-96">
-                                        <input id="visitorCardSearchInput" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Search card ID, serial number..." type="text"/>
+                                        <input id="visitorCardSearchInput" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Search card EPC..." type="text"/>
                                         <button onclick="searchVisitorCards()" class="bg-primary hover:bg-blue-600 text-white px-6 py-2.5 rounded-r flex items-center justify-center transition-colors">
                                             <span class="material-symbols-outlined text-white text-[20px]">search</span>
                                         </button>
@@ -1219,10 +1219,8 @@
                                     <div class="relative w-full sm:w-48">
                                         <select id="visitorCardSortSelect" onchange="sortVisitorCards()" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm appearance-none focus:ring-primary focus:border-primary text-gray-700 dark:text-gray-300">
                                             <option value="">Sort By</option>
-                                            <option value="card_asc">Card ID (A-Z)</option>
-                                            <option value="card_desc">Card ID (Z-A)</option>
-                                            <option value="serial_asc">Serial No (A-Z)</option>
-                                            <option value="serial_desc">Serial No (Z-A)</option>
+                                            <option value="card_asc">Card EPC (A-Z)</option>
+                                            <option value="card_desc">Card EPC (Z-A)</option>
                                             <option value="status">Status</option>
                                         </select>
                                         <span class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-symbols-outlined text-[20px]">expand_more</span>
@@ -1239,15 +1237,14 @@
                                 <table class="w-full text-left text-sm">
                                     <thead class="text-xs text-gray-600 dark:text-slate-400 uppercase border-b border-gray-200 dark:border-slate-700">
                                         <tr>
-                                            <th class="px-4 py-3">Card ID</th>
-                                            <th class="px-4 py-3">Serial No</th>
+                                            <th class="px-4 py-3">Card EPC</th>
                                             <th class="px-4 py-3">Status</th>
                                             <th class="px-4 py-3 w-32">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody id="visitorCardTableBody" class="text-gray-700 dark:text-slate-300">
                                         <tr>
-                                            <td colspan="4" class="px-4 py-12 text-center">
+                                            <td colspan="3" class="px-4 py-12 text-center">
                                                 <div class="flex flex-col items-center justify-center">
                                                     <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
                                                     <p class="text-gray-500 dark:text-slate-400">Loading visitor cards...</p>
@@ -6808,6 +6805,33 @@
                                         </div>
                                     </div>
                                     
+                                    <!-- RFID Reader Settings -->
+                                    <div class="mt-6 mb-6">
+                                        <h4 class="text-md font-semibold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
+                                            <span class="material-symbols-outlined text-primary">sensors</span>
+                                            RFID Reader Settings
+                                        </h4>
+                                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">RFID Reader IP</label>
+                                                <input type="text" id="laneRfidReaderIp" name="rfid_reader_ip" placeholder="e.g., 192.168.1.100" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">IP address of RFID antenna</p>
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">RFID Reader Port</label>
+                                                <input type="number" id="laneRfidReaderPort" name="rfid_reader_port" value="49152" placeholder="49152" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Default: 49152</p>
+                                            </div>
+                                            <div class="flex items-center">
+                                                <label class="relative inline-flex items-center cursor-pointer mt-6">
+                                                    <input type="checkbox" id="laneRfidEnabled" name="rfid_enabled" value="1" class="sr-only peer">
+                                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+                                                    <span class="ml-3 text-sm font-medium text-gray-700 dark:text-slate-300">RFID Enabled</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
                                     <div class="flex gap-3 justify-end pt-4 border-t border-gray-200 dark:border-slate-700">
                                         <button type="button" onclick="closeLaneModal()" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">
                                             Cancel
@@ -6939,6 +6963,33 @@
                                     </div>
                                 </div>
                                 
+                                <!-- RFID Reader Settings -->
+                                <div class="mt-6 mb-6">
+                                    <h4 class="text-md font-semibold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-primary">sensors</span>
+                                        RFID Reader Settings
+                                    </h4>
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">RFID Reader IP</label>
+                                            <input type="text" id="laneRfidReaderIp" name="rfid_reader_ip" value="${escapeHtml(lane.rfid_reader_ip || '')}" placeholder="e.g., 192.168.1.100" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                            <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">IP address of RFID antenna</p>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">RFID Reader Port</label>
+                                            <input type="number" id="laneRfidReaderPort" name="rfid_reader_port" value="${lane.rfid_reader_port || 49152}" placeholder="49152" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                            <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Default: 49152</p>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <label class="relative inline-flex items-center cursor-pointer mt-6">
+                                                <input type="checkbox" id="laneRfidEnabled" name="rfid_enabled" value="1" ${lane.rfid_enabled ? 'checked' : ''} class="sr-only peer">
+                                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+                                                <span class="ml-3 text-sm font-medium text-gray-700 dark:text-slate-300">RFID Enabled</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
                                 <div class="flex gap-3 justify-end pt-4 border-t border-gray-200 dark:border-slate-700">
                                     <button type="button" onclick="closeLaneModal()" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">
                                         Cancel
@@ -7031,7 +7082,10 @@
                 cam_photo_ip_2: document.getElementById('laneCamPhotoIp2').value || null,
                 in_bound: document.getElementById('laneInBound').value,
                 out_bound: document.getElementById('laneOutBound').value,
-                status: document.getElementById('laneStatus').value
+                status: document.getElementById('laneStatus').value,
+                rfid_reader_ip: document.getElementById('laneRfidReaderIp')?.value || null,
+                rfid_reader_port: document.getElementById('laneRfidReaderPort')?.value || null,
+                rfid_enabled: document.getElementById('laneRfidEnabled')?.checked ? 1 : 0
             };
 
             const submitBtn = e.target.querySelector('button[type="submit"]');
@@ -7568,7 +7622,7 @@
             if (visitorCards.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="4" class="px-4 py-12 text-center">
+                        <td colspan="3" class="px-4 py-12 text-center">
                             <div class="flex flex-col items-center justify-center">
                                 <span class="material-symbols-outlined text-gray-400 text-5xl mb-2">inventory_2</span>
                                 <p class="text-gray-500 dark:text-slate-400">No visitor cards found</p>
@@ -7596,7 +7650,6 @@
                 return `
                     <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
                         <td class="px-4 py-3 font-medium">${escapeHtml(card.card_id)}</td>
-                        <td class="px-4 py-3">${escapeHtml(card.serial_no)}</td>
                         <td class="px-4 py-3">${statusBadge}</td>
                         <td class="px-4 py-3 w-32">
                             <div class="flex gap-2">
@@ -7684,18 +7737,13 @@
                             </button>
                         </div>
                         <form id="visitorCardForm" class="p-6">
-                            <div class="grid grid-cols-2 gap-4">
+                            <div class="grid grid-cols-1 gap-4">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Card ID <span class="text-red-500">*</span></label>
-                                    <input type="text" id="cardId" name="card_id" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Enter card ID" required>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Card EPC <span class="text-red-500">*</span></label>
+                                    <input type="text" id="cardId" name="card_id" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Enter card EPC" required>
                                     <span id="cardIdError" class="text-red-500 text-xs mt-1 hidden"></span>
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Serial Number <span class="text-red-500">*</span></label>
-                                    <input type="text" id="serialNo" name="serial_no" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Enter serial number" required>
-                                    <span id="serialNoError" class="text-red-500 text-xs mt-1 hidden"></span>
-                                </div>
-                                <div class="col-span-2">
                                     <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Status <span class="text-red-500">*</span></label>
                                     <select id="cardStatus" name="status" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" required>
                                         <option value="">Select Status</option>
@@ -7740,18 +7788,13 @@
                                     </button>
                                 </div>
                                 <form id="visitorCardForm" class="p-6">
-                                    <div class="grid grid-cols-2 gap-4">
+                                    <div class="grid grid-cols-1 gap-4">
                                         <div>
-                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Card ID <span class="text-red-500">*</span></label>
-                                            <input type="text" id="cardId" name="card_id" value="${escapeHtml(card.card_id)}" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Enter card ID" required>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Card EPC <span class="text-red-500">*</span></label>
+                                            <input type="text" id="cardId" name="card_id" value="${escapeHtml(card.card_id)}" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Enter card EPC" required>
                                             <span id="cardIdError" class="text-red-500 text-xs mt-1 hidden"></span>
                                         </div>
                                         <div>
-                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Serial Number <span class="text-red-500">*</span></label>
-                                            <input type="text" id="serialNo" name="serial_no" value="${escapeHtml(card.serial_no)}" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Enter serial number" required>
-                                            <span id="serialNoError" class="text-red-500 text-xs mt-1 hidden"></span>
-                                        </div>
-                                        <div class="col-span-2">
                                             <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Status <span class="text-red-500">*</span></label>
                                             <select id="cardStatus" name="status" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" required>
                                                 <option value="">Select Status</option>
@@ -7832,9 +7875,11 @@
         }
 
         function clearVisitorCardErrors() {
-            document.getElementById('cardIdError').classList.add('hidden');
-            document.getElementById('serialNoError').classList.add('hidden');
-            document.getElementById('cardStatusError').classList.add('hidden');
+            const cardIdError = document.getElementById('cardIdError');
+            const cardStatusError = document.getElementById('cardStatusError');
+            
+            if (cardIdError) cardIdError.classList.add('hidden');
+            if (cardStatusError) cardStatusError.classList.add('hidden');
         }
 
         function saveVisitorCard(e) {
@@ -7843,7 +7888,6 @@
 
             const formData = new FormData();
             formData.append('card_id', document.getElementById('cardId').value.trim());
-            formData.append('serial_no', document.getElementById('serialNo').value.trim());
             formData.append('status', document.getElementById('cardStatus').value);
 
             const url = currentVisitorCardId 
@@ -7872,10 +7916,6 @@
                             if (data.errors.card_id) {
                                 document.getElementById('cardIdError').textContent = data.errors.card_id;
                                 document.getElementById('cardIdError').classList.remove('hidden');
-                            }
-                            if (data.errors.serial_no) {
-                                document.getElementById('serialNoError').textContent = data.errors.serial_no;
-                                document.getElementById('serialNoError').classList.remove('hidden');
                             }
                             if (data.errors.status) {
                                 document.getElementById('cardStatusError').textContent = data.errors.status;

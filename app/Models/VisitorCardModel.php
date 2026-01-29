@@ -14,7 +14,6 @@ class VisitorCardModel extends Model
     protected $protectFields = true;
     protected $allowedFields = [
         'card_id',
-        'serial_no',
         'status'
     ];
 
@@ -27,20 +26,14 @@ class VisitorCardModel extends Model
     // Validation
     protected $validationRules = [
         'card_id' => 'required|max_length[50]|is_unique[visitor_cards.card_id,id,{id}]',
-        'serial_no' => 'required|max_length[100]|is_unique[visitor_cards.serial_no,id,{id}]',
         'status' => 'required|in_list[active,in_use,lost,inactive]'
     ];
 
     protected $validationMessages = [
         'card_id' => [
-            'required' => 'Card ID is required',
-            'max_length' => 'Card ID cannot exceed 50 characters',
-            'is_unique' => 'This card ID already exists'
-        ],
-        'serial_no' => [
-            'required' => 'Serial number is required',
-            'max_length' => 'Serial number cannot exceed 100 characters',
-            'is_unique' => 'This serial number already exists'
+            'required' => 'Card EPC is required',
+            'max_length' => 'Card EPC cannot exceed 50 characters',
+            'is_unique' => 'This card EPC already exists'
         ],
         'status' => [
             'required' => 'Status is required',

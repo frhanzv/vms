@@ -2003,7 +2003,18 @@
         function translatePage(lang) {
             const originalTexts = {
                 'Visitor Registration': 'Visitor Registration',
-                'Please complete your details for secure entry verification at SafeG.': 'Please complete your details for secure entry verification at SafeG.'
+                'Please complete your details for secure entry verification at SafeG.': 'Please complete your details for secure entry verification at SafeG.',
+                'Visit Information': 'Visit Information',
+                'Where and when are you visiting?': 'Where and when are you visiting?',
+                'Company Visiting': 'Company Visiting',
+                'Details of Visit': 'Details of Visit',
+                'Host and purpose details.': 'Host and purpose details.',
+                'Staff ID Of Person Visited': 'Staff ID Of Person Visited',
+                'Contact No Of Person Visited': 'Contact No Of Person Visited',
+                'Name Of Company Visited': 'Name Of Company Visited',
+                'Reason': 'Reason',
+                'Person Details': 'Person Details',
+                'Visitor identification information.': 'Visitor identification information.'
             };
 
             const translations = {
@@ -2157,22 +2168,6 @@
                     'Person Details': 'Detail Pribadi',
                     'Visitor identification information.': 'Informasi identifikasi pengunjung.'
                 }
-            };
-
-            const originalTexts = {
-                'Visitor Registration': 'Visitor Registration',
-                'Please complete your details for secure entry verification at SafeG.': 'Please complete your details for secure entry verification at SafeG.',
-                'Visit Information': 'Visit Information',
-                'Where and when are you visiting?': 'Where and when are you visiting?',
-                'Company Visiting': 'Company Visiting',
-                'Details of Visit': 'Details of Visit',
-                'Host and purpose details.': 'Host and purpose details.',
-                'Staff ID Of Person Visited': 'Staff ID Of Person Visited',
-                'Contact No Of Person Visited': 'Contact No Of Person Visited',
-                'Name Of Company Visited': 'Name Of Company Visited',
-                'Reason': 'Reason',
-                'Person Details': 'Person Details',
-                'Visitor identification information.': 'Visitor identification information.'
             };
 
             const trans = lang === 'en' ? originalTexts : translations[lang];

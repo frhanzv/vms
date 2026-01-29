@@ -280,7 +280,7 @@
                     class="w-full mt-6 px-8 py-4 bg-primary hover:bg-primary-hover disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 disabled:hover:translate-y-0 disabled:hover:shadow-lg flex items-center justify-center gap-2 text-lg">
                 <span id="buttonText" class="flex items-center gap-2">
                     <span class="material-symbols-outlined">check_circle</span>
-                    <span data-translate="I Acknowledge & Check-in">I Acknowledge & Check-in</span>
+                    <span data-translate="I Acknowledge & Proceed">I Acknowledge & Proceed</span>
                     <span class="material-symbols-outlined">arrow_forward</span>
                 </span>
                 <svg id="spinner" class="hidden animate-spin h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -546,7 +546,7 @@
                 'Acknowledgment': 'Acknowledgment',
                 'Confirm your understanding': 'Confirm your understanding',
                 'I have watched the entire video and clearly understand the safety protocols and emergency procedures of this facility.': 'I have watched the entire video and clearly understand the safety protocols and emergency procedures of this facility.',
-                'I Acknowledge & Check-in': 'I Acknowledge & Check-in'
+                'I Acknowledge & Proceed': 'I Acknowledge & Proceed'
             };
 
             const translations = {
@@ -557,7 +557,7 @@
                     'Acknowledgment': 'Pengakuan',
                     'Confirm your understanding': 'Sahkan pemahaman anda',
                     'I have watched the entire video and clearly understand the safety protocols and emergency procedures of this facility.': 'Saya telah menonton keseluruhan video dan memahami dengan jelas protokol keselamatan dan prosedur kecemasan kemudahan ini.',
-                    'I Acknowledge & Check-in': 'Saya Akui & Daftar Masuk'
+                    'I Acknowledge & Proceed': 'Saya Akui & Teruskan'
                 },
                 'zh-CN': {
                     'Safety & Security Briefing': '安全与保安简报',
@@ -566,7 +566,7 @@
                     'Acknowledgment': '确认',
                     'Confirm your understanding': '确认您的理解',
                     'I have watched the entire video and clearly understand the safety protocols and emergency procedures of this facility.': '我已观看完整视频并清楚了解本设施的安全协议和紧急程序。',
-                    'I Acknowledge & Check-in': '我确认并签到'
+                    'I Acknowledge & Proceed': '我确认并继续'
                 },
                 'zh-TW': {
                     'Safety & Security Briefing': '安全與保安簡報',
@@ -575,7 +575,7 @@
                     'Acknowledgment': '確認',
                     'Confirm your understanding': '確認您的理解',
                     'I have watched the entire video and clearly understand the safety protocols and emergency procedures of this facility.': '我已觀看完整影片並清楚了解本設施的安全協議和緊急程序。',
-                    'I Acknowledge & Check-in': '我確認並簽到'
+                    'I Acknowledge & Proceed': '我確認並繼續'
                 },
                 'id': {
                     'Safety & Security Briefing': 'Pengarahan Keselamatan & Keamanan',
@@ -584,7 +584,7 @@
                     'Acknowledgment': 'Pengakuan',
                     'Confirm your understanding': 'Konfirmasi pemahaman Anda',
                     'I have watched the entire video and clearly understand the safety protocols and emergency procedures of this facility.': 'Saya telah menonton seluruh video dan memahami dengan jelas protokol keselamatan dan prosedur darurat fasilitas ini.',
-                    'I Acknowledge & Check-in': 'Saya Mengakui & Check-in'
+                    'I Acknowledge & Proceed': 'Saya Mengakui & Lanjutkan'
                 },
                 'ta': {
                     'Safety & Security Briefing': 'பாதுகாப்பு மற்றும் பாதுகாப்பு விளக்கம்',
@@ -593,7 +593,7 @@
                     'Acknowledgment': 'ஒப்புதல்',
                     'Confirm your understanding': 'உங்கள் புரிதலை உறுதிப்படுத்தவும்',
                     'I have watched the entire video and clearly understand the safety protocols and emergency procedures of this facility.': 'நான் முழு வீடியோவையும் பார்த்துவிட்டேன் மற்றும் இந்த வசதியின் பாதுகாப்பு நெறிமுறைகள் மற்றும் அவசர நடைமுறைகளை தெளிவாக புரிந்துகொள்கிறேன்.',
-                    'I Acknowledge & Check-in': 'நான் ஒப்புக்கொள்கிறேன் மற்றும் செக்-இன்'
+                    'I Acknowledge & Proceed': 'நான் ஒப்புக்கொள்கிறேன் மற்றும் தொடரவும்'
                 },
                 'ja': {
                     'Safety & Security Briefing': '安全・セキュリティブリーフィング',
@@ -602,7 +602,7 @@
                     'Acknowledgment': '確認',
                     'Confirm your understanding': '理解の確認',
                     'I have watched the entire video and clearly understand the safety protocols and emergency procedures of this facility.': 'ビデオ全体を視聴し、この施設の安全プロトコルと緊急手順を明確に理解しました。',
-                    'I Acknowledge & Check-in': '確認してチェックイン'
+                    'I Acknowledge & Proceed': '確認して続行'
                 },
                 'ko': {
                     'Safety & Security Briefing': '안전 및 보안 브리핑',
@@ -611,7 +611,7 @@
                     'Acknowledgment': '확인',
                     'Confirm your understanding': '이해 확인',
                     'I have watched the entire video and clearly understand the safety protocols and emergency procedures of this facility.': '전체 비디오를 시청했으며 이 시설의 안전 프로토콜 및 비상 절차를 명확히 이해했습니다.',
-                    'I Acknowledge & Check-in': '확인 및 체크인'
+                    'I Acknowledge & Proceed': '확인 및 계속'
                 },
                 'th': {
                     'Safety & Security Briefing': 'การบรรยายสรุปด้านความปลอดภัยและการรักษาความปลอดภัย',
@@ -620,7 +620,7 @@
                     'Acknowledgment': 'การรับทราบ',
                     'Confirm your understanding': 'ยืนยันความเข้าใจของคุณ',
                     'I have watched the entire video and clearly understand the safety protocols and emergency procedures of this facility.': 'ฉันได้ดูวิดีโอทั้งหมดและเข้าใจอย่างชัดเจนเกี่ยวกับโปรโตคอลความปลอดภัยและขั้นตอนฉุกเฉินของสถานที่แห่งนี้',
-                    'I Acknowledge & Check-in': 'ฉันรับทราบและเช็คอิน'
+                    'I Acknowledge & Proceed': 'ฉันรับทราบและดำเนินการต่อ'
                 },
                 'vi': {
                     'Safety & Security Briefing': 'Hướng dẫn An toàn & Bảo mật',
@@ -629,7 +629,7 @@
                     'Acknowledgment': 'Xác nhận',
                     'Confirm your understanding': 'Xác nhận sự hiểu biết của bạn',
                     'I have watched the entire video and clearly understand the safety protocols and emergency procedures of this facility.': 'Tôi đã xem toàn bộ video và hiểu rõ các giao thức an toàn và quy trình khẩn cấp của cơ sở này.',
-                    'I Acknowledge & Check-in': 'Tôi xác nhận & Đăng ký'
+                    'I Acknowledge & Proceed': 'Tôi xác nhận & Tiếp tục'
                 },
                 'hi': {
                     'Safety & Security Briefing': 'सुरक्षा और सुरक्षा ब्रीफिंग',
@@ -638,7 +638,7 @@
                     'Acknowledgment': 'स्वीकृति',
                     'Confirm your understanding': 'अपनी समझ की पुष्टि करें',
                     'I have watched the entire video and clearly understand the safety protocols and emergency procedures of this facility.': 'मैंने पूरा वीडियो देखा है और इस सुविधा की सुरक्षा प्रोटोकॉल और आपातकालीन प्रक्रियाओं को स्पष्ट रूप से समझता हूं।',
-                    'I Acknowledge & Check-in': 'मैं स्वीकार करता हूं और चेक-इन करता हूं'
+                    'I Acknowledge & Proceed': 'मैं स्वीकार करता हूं और आगे बढ़ता हूं'
                 }
             };
 
