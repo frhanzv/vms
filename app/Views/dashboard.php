@@ -178,9 +178,11 @@
                         <p class="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Expected Today</p>
                         <div class="flex items-baseline gap-2">
                             <p class="text-3xl font-bold text-slate-900 dark:text-white"><?= $stats['expectedToday'] ?></p>
-                            <span class="text-xs text-green-600 font-medium flex items-center bg-green-50 dark:bg-green-900/20 px-1.5 py-0.5 rounded">
-                                <span class="material-symbols-outlined text-[14px] mr-0.5">trending_up</span> +2
+                            <?php if ($trend != 0): ?>
+                            <span class="text-xs <?= $trend > 0 ? 'text-green-600' : 'text-red-600' ?> font-medium flex items-center <?= $trend > 0 ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20' ?> px-1.5 py-0.5 rounded">
+                                <span class="material-symbols-outlined text-[14px] mr-0.5"><?= $trend > 0 ? 'trending_up' : 'trending_down' ?></span> <?= ($trend > 0 ? '+' : '') . $trend ?>
                             </span>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -251,44 +253,18 @@
                         </div>
                     </div>
                     <div class="grid grid-cols-6 gap-4 items-end h-48 px-2">
-                        <div class="flex flex-col items-center gap-2 h-full justify-end group cursor-pointer">
-                            <div class="relative w-full max-w-[40px] bg-indigo-50 dark:bg-slate-800 rounded-t-sm h-[80%] flex items-end overflow-hidden">
-                                <div class="w-full bg-indigo-200 dark:bg-indigo-900 h-0 group-hover:h-[20%] transition-all duration-500"></div>
-                            </div>
-                            <span class="text-xs font-medium text-slate-500">8am</span>
-                        </div>
+                        <?php foreach ($occupancyChart as $bar): ?>
                         <div class="flex flex-col items-center gap-2 h-full justify-end group cursor-pointer">
                             <div class="relative w-full max-w-[40px] bg-indigo-50 dark:bg-slate-800 rounded-t-sm h-full flex items-end overflow-hidden">
-                                <div class="w-full bg-indigo-300 dark:bg-indigo-800 h-[30%] transition-all duration-500"></div>
-                            </div>
-                            <span class="text-xs font-medium text-slate-500">10am</span>
-                        </div>
-                        <div class="flex flex-col items-center gap-2 h-full justify-end group cursor-pointer">
-                            <div class="relative w-full max-w-[40px] bg-indigo-50 dark:bg-slate-800 rounded-t-sm h-full flex items-end overflow-hidden">
-                                <div class="w-full bg-primary h-[60%] transition-all duration-500 relative">
-                                    <div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">12pm (Peak)</div>
+                                <div class="w-full <?= $bar['isPeak'] ? 'bg-primary' : 'bg-indigo-200 dark:bg-indigo-900' ?> transition-all duration-500<?= $bar['isPeak'] ? ' relative' : '' ?>" style="height: <?= max($bar['percentage'], 2) ?>%">
+                                    <?php if ($bar['isPeak']): ?>
+                                    <div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10"><?= $bar['label'] ?> (Peak: <?= $bar['count'] ?>)</div>
+                                    <?php endif; ?>
                                 </div>
                             </div>
-                            <span class="text-xs font-bold text-primary">12pm</span>
+                            <span class="text-xs <?= $bar['isPeak'] ? 'font-bold text-primary' : 'font-medium text-slate-500' ?>"><?= $bar['label'] ?></span>
                         </div>
-                        <div class="flex flex-col items-center gap-2 h-full justify-end group cursor-pointer">
-                            <div class="relative w-full max-w-[40px] bg-indigo-50 dark:bg-slate-800 rounded-t-sm h-full flex items-end overflow-hidden">
-                                <div class="w-full bg-indigo-200 dark:bg-indigo-900 h-[45%] transition-all duration-500"></div>
-                            </div>
-                            <span class="text-xs font-medium text-slate-500">2pm</span>
-                        </div>
-                        <div class="flex flex-col items-center gap-2 h-full justify-end group cursor-pointer">
-                            <div class="relative w-full max-w-[40px] bg-indigo-50 dark:bg-slate-800 rounded-t-sm h-full flex items-end overflow-hidden">
-                                <div class="w-full bg-indigo-100 dark:bg-indigo-900/50 h-[25%] transition-all duration-500"></div>
-                            </div>
-                            <span class="text-xs font-medium text-slate-500">4pm</span>
-                        </div>
-                        <div class="flex flex-col items-center gap-2 h-full justify-end group cursor-pointer">
-                            <div class="relative w-full max-w-[40px] bg-indigo-50 dark:bg-slate-800 rounded-t-sm h-full flex items-end overflow-hidden">
-                                <div class="w-full bg-indigo-50 dark:bg-indigo-900/20 h-[10%] transition-all duration-500"></div>
-                            </div>
-                            <span class="text-xs font-medium text-slate-500">6pm</span>
-                        </div>
+                        <?php endforeach; ?>
                     </div>
                 </div>
 
@@ -339,19 +315,19 @@
                     <div class="flex gap-8 overflow-x-auto no-scrollbar">
                         <a class="flex items-center gap-2 border-b-[3px] border-primary text-primary pb-3 pt-2 cursor-pointer group whitespace-nowrap">
                             <p class="text-sm font-bold">All Visitors</p>
-                            <span class="bg-primary/10 text-primary text-[10px] px-1.5 py-0.5 rounded-full font-bold">25</span>
+                            <span class="bg-primary/10 text-primary text-[10px] px-1.5 py-0.5 rounded-full font-bold"><?= $tabCounts['all'] ?></span>
                         </a>
                         <a class="flex items-center gap-2 border-b-[3px] border-transparent hover:border-slate-300 dark:hover:border-slate-600 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 pb-3 pt-2 cursor-pointer transition-all whitespace-nowrap">
                             <p class="text-sm font-medium">Pre-Arrival</p>
-                            <span class="bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] px-1.5 py-0.5 rounded-full font-bold">12</span>
+                            <span class="bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] px-1.5 py-0.5 rounded-full font-bold"><?= $tabCounts['preArrival'] ?></span>
                         </a>
                         <a class="flex items-center gap-2 border-b-[3px] border-transparent hover:border-slate-300 dark:hover:border-slate-600 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 pb-3 pt-2 cursor-pointer transition-all whitespace-nowrap">
                             <p class="text-sm font-medium">Checked In</p>
-                            <span class="bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] px-1.5 py-0.5 rounded-full font-bold">5</span>
+                            <span class="bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] px-1.5 py-0.5 rounded-full font-bold"><?= $tabCounts['checkedIn'] ?></span>
                         </a>
                         <a class="flex items-center gap-2 border-b-[3px] border-transparent hover:border-slate-300 dark:hover:border-slate-600 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 pb-3 pt-2 cursor-pointer transition-all whitespace-nowrap">
                             <p class="text-sm font-medium">Checked Out</p>
-                            <span class="bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] px-1.5 py-0.5 rounded-full font-bold">8</span>
+                            <span class="bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] px-1.5 py-0.5 rounded-full font-bold"><?= $tabCounts['checkedOut'] ?></span>
                         </a>
                     </div>
                 </div>
@@ -363,8 +339,9 @@
                             <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">filter_list</span>
                             <select class="pl-9 pr-8 py-2 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm focus:ring-primary focus:border-primary text-slate-700 dark:text-slate-300 w-full sm:w-48 appearance-none cursor-pointer">
                                 <option>Filter by Company</option>
-                                <option>TechCorp</option>
-                                <option>Design Studio</option>
+                                <?php foreach ($companyList as $company): ?>
+                                <option><?= esc($company) ?></option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
                         <div class="flex items-center gap-2 w-full sm:w-auto">
@@ -462,7 +439,7 @@
 
                 <!-- Pagination -->
                 <div class="flex items-center justify-between border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-surface-dark px-6 py-3">
-                    <p class="text-xs text-slate-500 dark:text-slate-400">Showing <span class="font-bold">1-4</span> of <span class="font-bold">25</span> visitors</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Showing <span class="font-bold">1-<?= count($visitors) ?></span> of <span class="font-bold"><?= $tabCounts['all'] ?></span> visitors</p>
                     <div class="flex gap-2">
                         <button class="px-3 py-1 text-xs border border-slate-200 dark:border-slate-700 rounded hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 disabled:opacity-50" disabled>Previous</button>
                         <button class="px-3 py-1 text-xs border border-slate-200 dark:border-slate-700 rounded hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400">Next</button>
