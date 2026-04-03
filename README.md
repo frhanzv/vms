@@ -95,11 +95,11 @@ encryption.key = hex2bin:your_generated_key_here
 
 ### Step 5: Database Setup
 
-1. Open HeidiSQL from Laragon (Right-click Laragon → HeidiSQL)
+1. Right-click Laragon → Tools → Quick Add → phpmyadmin )
 2. Create a new database:
-   - Right-click on server → Create new → Database
+   - Import database vmsbackup
    - Name: `vms`
-   - Collation: `utf8mb4_unicode_ci`
+   - Collation: `utf8mb4_general_ci`
 
 3. Import your SQL file if you have one, or create tables manually
 
