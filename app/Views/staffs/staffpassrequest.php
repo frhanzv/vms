@@ -385,6 +385,11 @@
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">City <span class="text-red-500">*</span></label>
                                     <select name="city" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" required>
                                         <option value="">SELECT</option>
+                                        <option value="JOHOR">KUALA LUMPUR</option>
+                                        <option value="KEDAH">KOTA BHARU</option>
+                                        <option value="KELANTAN">SIBU</option>
+                                        <option value="MELAKA">IPOH</option>
+                                        <option value="NEGERI SEMBILAN">KANGAR</option>
                                     </select>
                                 </div>
                             </div>
@@ -406,7 +411,7 @@
                             <div class="flex items-center justify-between mb-6 pb-4 border-b border-border-color dark:border-gray-800">
                                 <div class="flex items-center gap-3">
                                     <div class="size-10 rounded-full bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center text-orange-600 dark:text-orange-400">
-                                        <span class="material-symbols-outlined">badge</span>
+                                        <span class="material-symbols-outlined">cards_stack</span>
                                     </div>
                                     <div>
                                         <h2 class="text-lg font-bold font-brand text-text-main dark:text-white">Driving License</h2>
@@ -471,7 +476,7 @@
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div class="flex flex-col gap-3">
-                                <p class="text-sm font-medium text-text-main dark:text-gray-200 font-brand">Government ID <span class="text-red-500">*</span></p>
+                                <p class="text-sm font-medium text-text-main dark:text-gray-200 font-brand">IC / MyKad <span class="text-red-500">*</span></p>
                                 <div class="group relative flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer">
                                     <input name="government_id" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" type="file"/>
                                     <div class="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4">
@@ -513,5 +518,110 @@
 
 </body>
 
+<script>
 
+// License dynamic addition
+        let licenseCount = 0;
+        function addLicense() {
+            const container = document.getElementById('licenseContainer');
+            
+            // Remove empty state message if it exists
+            const emptyState = container.querySelector('.text-center');
+            if (emptyState) {
+                emptyState.remove();
+            }
+            
+            const items = container.querySelectorAll('.license-item');
+            const newIndex = items.length;
+            
+            const html = `
+                <div class="license-item bg-background-light dark:bg-background-dark/50 rounded-lg p-4 border border-border-color dark:border-gray-700">
+                    <div class="flex items-center justify-between mb-4">
+                        <h4 class="font-semibold text-text-main dark:text-white font-brand">License ${newIndex + 1}</h4>
+                        <button type="button" onclick="removeSpecificLicense(this)" class="text-red-600 hover:text-red-700 transition-colors p-1 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20" title="Delete this license">
+                            <span class="material-symbols-outlined text-xl">delete</span>
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">License Class</label>
+                            <select name="licenses[${licenseCount}][class]" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
+                                <option value="">SELECT</option>
+                                <option value="B">B</option>
+                                <option value="B2">B2</option>
+                                <option value="C">C</option>
+                                <option value="D">D</option>
+                                <option value="DA">DA</option>
+                                <option value="E">E</option>
+                                <option value="E1">E1</option>
+                                <option value="E2">E2</option>
+                            </select>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">License Expiry <span class="text-red-500">*</span></label>
+                            <input name="licenses[${licenseCount}][expiry]" placeholder="DD/MM/YYYY" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="date"/>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', html);
+            licenseCount++;
+        }
+
+
+// Function for removing license
+        function removeLicense() {
+            const container = document.getElementById('licenseContainer');
+            const items = container.querySelectorAll('.license-item');
+            if (items.length > 0) {
+                items[items.length - 1].remove();
+                updateLicenseNumbers();
+                
+                // Show empty state if no items left
+                if (container.querySelectorAll('.license-item').length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-8 text-text-sub dark:text-gray-400">
+                            <span class="material-symbols-outlined text-5xl mb-3 block text-gray-300 dark:text-gray-600">badge</span>
+                            <p class="text-sm">No licenses added yet. Click <span class="text-primary font-semibold">+</span> to add driving license.</p>
+                        </div>
+                    `;
+                    licenseCount = 0;
+                }
+            }
+        }
+
+        function removeSpecificLicense(button) {
+            const container = document.getElementById('licenseContainer');
+            const item = button.closest('.license-item');
+            item.remove();
+            
+            updateLicenseNumbers();
+            
+            // Show empty state if no items left
+            const items = container.querySelectorAll('.license-item');
+            if (items.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-text-sub dark:text-gray-400">
+                        <span class="material-symbols-outlined text-5xl mb-3 block text-gray-300 dark:text-gray-600">badge</span>
+                        <p class="text-sm">No licenses added yet. Click <span class="text-primary font-semibold">+</span> to add driving license.</p>
+                    </div>
+                `;
+                licenseCount = 0;
+            }
+        }
+
+        function updateLicenseNumbers() {
+            const container = document.getElementById('licenseContainer');
+            const items = container.querySelectorAll('.license-item');
+            items.forEach((item, index) => {
+                const header = item.querySelector('h4');
+                if (header) {
+                    header.textContent = `License ${index + 1}`;
+                }
+            });
+        }
+
+
+
+</script>
 </html>
