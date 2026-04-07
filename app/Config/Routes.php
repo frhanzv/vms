@@ -149,6 +149,12 @@ $routes->post('config/createRejectReason', 'Config::createRejectReason');
 $routes->put('config/updateRejectReason/(:num)', 'Config::updateRejectReason/$1');
 $routes->delete('config/deleteRejectReason/(:num)', 'Config::deleteRejectReason/$1');
 
+// Staff Pass List Routes
+$routes->get('staffs', 'StaffList::index');
+$routes->get('staffs/staffpassrequest', 'StaffPassRequest::index');
+$routes->post('staffs/staffpassrequest/store', 'StaffPassRequest::store');
+
+
 // Visitor Card Management Routes
 $routes->get('config/getVisitorCards', 'Config::getVisitorCards');
 $routes->get('config/getVisitorCard/(:num)', 'Config::getVisitorCard/$1');
