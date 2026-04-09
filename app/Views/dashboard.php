@@ -61,10 +61,7 @@
                     <span class="material-symbols-outlined text-[22px] font-medium fill-1 group-hover:scale-110 transition-transform">dashboard</span>
                     <p class="text-sm font-semibold">Dashboard</p>
                 </a>
-                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('compliance') ?>">
-                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">health_and_safety</span>
-                    <p class="text-sm font-medium">Compliance</p>
-                </a>
+
                 <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('invitations') ?>">
                     <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">mail</span>
                     <p class="text-sm font-medium">Invitations</p>
@@ -166,6 +163,63 @@
             <div class="flex flex-col gap-2">
                 <h1 class="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Welcome back, <?= esc(session()->get('full_name') ?? $userName) ?></h1>
                 <p class="text-slate-500 dark:text-slate-400 text-base">Here's what's happening at your facility today.</p>
+            </div>
+
+            <!-- Critical Security Alert Banner -->
+            <?php if (!empty($criticalAlerts)): ?>
+            <?php foreach ($criticalAlerts as $alert): ?>
+            <div class="bg-gradient-to-r from-red-900 via-red-800 to-red-900 rounded-xl p-5 border border-red-700 shadow-lg relative overflow-hidden" id="alert-banner-<?= $alert['id'] ?>">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-red-700/20 rounded-full -mr-10 -mt-10"></div>
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
+                    <div class="flex items-start gap-4">
+                        <div class="size-10 rounded-lg bg-red-700/50 flex items-center justify-center text-red-200 flex-shrink-0 mt-0.5">
+                            <span class="material-symbols-outlined fill-1">warning</span>
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex items-center gap-3 mb-1.5">
+                                <h3 class="text-white font-bold text-base">Critical Security Alert</h3>
+                                <span class="px-2 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full uppercase tracking-wider"><?= esc(ucfirst($alert['severity'])) ?></span>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-x-8 gap-y-1 text-sm mb-2">
+                                <div><span class="text-red-300 font-medium">INCIDENT TYPE</span><p class="text-white font-semibold"><?= esc($alert['incident_type']) ?></p></div>
+                                <div><span class="text-red-300 font-medium">LOCATION</span><p class="text-white font-semibold"><?= esc($alert['location']) ?></p></div>
+                                <div><span class="text-red-300 font-medium">TIME</span><p class="text-white font-semibold"><?= esc($alert['time']) ?></p></div>
+                            </div>
+                            <?php if (!empty($alert['description'])): ?>
+                            <p class="text-red-200 text-sm"><?= esc($alert['description']) ?></p>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                        <button onclick="acknowledgeAlert(<?= $alert['id'] ?>)" class="flex items-center gap-1.5 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-sm font-bold rounded-lg transition-colors backdrop-blur-sm">
+                            <span class="material-symbols-outlined text-[18px]">check</span> Acknowledge
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <?php endforeach; ?>
+            <?php endif; ?>
+
+            <!-- Recent Alerts Summary -->
+            <div>
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="material-symbols-outlined text-slate-700 dark:text-slate-300 fill-1">notifications_active</span>
+                    <h2 class="text-lg font-bold text-slate-900 dark:text-white">Recent Alerts</h2>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-gradient-to-br from-red-800 to-red-900 rounded-xl p-6 border border-red-700 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow cursor-pointer">
+                        <div class="absolute top-3 right-3"><span class="px-2 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full">Access Denied</span></div>
+                        <p class="text-4xl font-black text-white mb-1"><?= $accessDeniedCount ?></p>
+                        <p class="text-red-100 font-semibold text-sm">Access Denied Incidents</p>
+                        <p class="text-red-300 text-xs mt-1">Last 24 hours only</p>
+                    </div>
+                    <div class="bg-gradient-to-br from-amber-700 to-amber-800 rounded-xl p-6 border border-amber-600 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow cursor-pointer">
+                        <div class="absolute top-3 right-3"><span class="px-2 py-0.5 bg-amber-500 text-white text-[10px] font-bold rounded-full">Overstay</span></div>
+                        <p class="text-4xl font-black text-white mb-1"><?= $overstayCount ?></p>
+                        <p class="text-amber-100 font-semibold text-sm">Visitor Overstay Alerts</p>
+                        <p class="text-amber-300 text-xs mt-1">Active alerts</p>
+                    </div>
+                </div>
             </div>
 
             <!-- Stats Cards -->
@@ -450,8 +504,124 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Currently On-Site & Appointments Row -->
+            <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                <!-- Currently On-Site Table -->
+                <div class="xl:col-span-2 bg-surface-light dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                    <div class="flex items-center justify-between p-6 pb-4">
+                        <div class="flex items-center gap-2">
+                            <span class="material-symbols-outlined text-primary fill-1">group</span>
+                            <h3 class="text-base font-bold text-slate-900 dark:text-white">Currently On-Site</h3>
+                            <span class="bg-primary/10 text-primary text-[10px] px-2 py-0.5 rounded-full font-bold"><?= $onSiteVisitorCount ?></span>
+                        </div>
+                        <div class="relative">
+                            <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-[16px]">search</span>
+                            <input class="h-8 pl-8 pr-3 text-xs bg-slate-100 dark:bg-slate-800 border-none rounded-full focus:ring-1 focus:ring-primary text-slate-900 dark:text-white placeholder-slate-400 w-40" placeholder="Search visitors..." type="text" id="onsite-search"/>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse" id="onsite-table">
+                            <thead>
+                                <tr class="border-y border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                                    <th class="px-6 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Visitor Name</th>
+                                    <th class="px-6 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Host</th>
+                                    <th class="px-6 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Check-in Time</th>
+                                    <th class="px-6 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Location</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-surface-dark">
+                                <?php if (empty($onSiteVisitors)): ?>
+                                <tr><td colspan="4" class="px-6 py-8 text-center text-sm text-slate-400">No visitors currently on-site</td></tr>
+                                <?php else: ?>
+                                <?php foreach ($onSiteVisitors as $ov): ?>
+                                <tr class="group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                    <td class="px-6 py-3 whitespace-nowrap"><div class="flex items-center gap-2"><div class="size-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px] font-bold"><?= strtoupper(substr($ov['name'], 0, 2)) ?></div><span class="text-sm font-medium text-slate-900 dark:text-white"><?= esc($ov['name']) ?></span></div></td>
+                                    <td class="px-6 py-3 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300"><?= esc($ov['host']) ?></td>
+                                    <td class="px-6 py-3 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300"><?= esc($ov['check_in_time']) ?></td>
+                                    <td class="px-6 py-3 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300"><?= esc($ov['location']) ?></td>
+                                </tr>
+                                <?php endforeach; ?>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- Appointments Sidebar -->
+                <div class="flex flex-col gap-6">
+                    <!-- Upcoming Appointments -->
+                    <div class="bg-surface-light dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 flex flex-col">
+                        <div class="flex items-center gap-2 mb-4"><span class="material-symbols-outlined text-indigo-500 fill-1">event_upcoming</span><h3 class="text-base font-bold text-slate-900 dark:text-white">Upcoming Appointments</h3></div>
+                        <?php if (empty($upcomingAppointments)): ?>
+                        <div class="flex flex-col items-center justify-center py-8 text-center"><p class="text-4xl font-black text-slate-300 dark:text-slate-600 mb-2">0</p><p class="text-sm text-slate-400 italic">No upcoming appointments</p></div>
+                        <?php else: ?>
+                        <div class="flex flex-col gap-3 max-h-[200px] overflow-y-auto pr-1">
+                            <?php foreach ($upcomingAppointments as $appt): ?>
+                            <div class="flex items-start gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                                <div class="size-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 flex-shrink-0 mt-0.5"><span class="material-symbols-outlined text-[18px]">schedule</span></div>
+                                <div class="flex-1 min-w-0"><p class="text-sm font-semibold text-slate-900 dark:text-white truncate"><?= esc($appt['visitor_name']) ?></p><p class="text-xs text-slate-500"><?= esc($appt['time']) ?> - <?= esc($appt['date']) ?></p><p class="text-xs text-slate-400">Host: <?= esc($appt['host_name']) ?></p></div>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                    <!-- Today's Appointments -->
+                    <div class="bg-surface-light dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 flex flex-col">
+                        <div class="flex items-center gap-2 mb-4"><span class="material-symbols-outlined text-emerald-500 fill-1">today</span><h3 class="text-base font-bold text-slate-900 dark:text-white">Today's Appointments</h3><span class="bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-[10px] px-2 py-0.5 rounded-full font-bold"><?= count($todayAppointments) ?></span></div>
+                        <?php if (empty($todayAppointments)): ?>
+                        <p class="text-sm text-slate-400 italic text-center py-4">No appointments today</p>
+                        <?php else: ?>
+                        <div class="flex flex-col gap-2.5 max-h-[250px] overflow-y-auto pr-1">
+                            <?php foreach ($todayAppointments as $ta): ?>
+                            <div class="flex items-center gap-3 p-3 rounded-lg border border-slate-100 dark:border-slate-700 hover:border-emerald-200 dark:hover:border-emerald-800 transition-colors">
+                                <div class="flex-1 min-w-0"><p class="text-sm font-semibold text-slate-900 dark:text-white truncate"><?= esc($ta['visitor_name']) ?></p><p class="text-xs text-slate-500"><?= esc($ta['time']) ?> - <?= esc($ta['end_time']) ?></p><p class="text-xs text-slate-400">Host: <?= esc($ta['host_name']) ?></p></div>
+                                <?php $apptStatusColor = match($ta['status']) { 'In Progress' => 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400', 'Completed' => 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400', default => 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' }; ?>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold flex-shrink-0 <?= $apptStatusColor ?>"><?= esc($ta['status']) ?></span>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visitor Traffic Analytics -->
+            <div class="bg-surface-light dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                    <div class="flex items-center gap-2"><span class="material-symbols-outlined text-primary fill-1">bar_chart</span><h3 class="text-base font-bold text-slate-900 dark:text-white">Visitor Traffic Analytics</h3></div>
+                    <div class="flex items-center gap-3 flex-wrap">
+                        <div class="flex items-center gap-2"><label class="text-xs font-medium text-slate-500">From</label><input type="date" id="traffic-from" value="<?= date('Y-m-d') ?>" class="h-9 px-3 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-primary focus:border-primary text-slate-700 dark:text-slate-300"/></div>
+                        <div class="flex items-center gap-2"><label class="text-xs font-medium text-slate-500">To</label><input type="date" id="traffic-to" value="<?= date('Y-m-d') ?>" class="h-9 px-3 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-primary focus:border-primary text-slate-700 dark:text-slate-300"/></div>
+                        <button onclick="updateTrafficGraph()" class="flex items-center gap-1.5 h-9 px-4 bg-primary hover:bg-primary-dark text-white text-sm font-bold rounded-lg transition-colors"><span class="material-symbols-outlined text-[18px]">bar_chart</span> Update Graph</button>
+                    </div>
+                </div>
+                <div class="relative">
+                    <div class="flex items-center gap-1.5 mb-3"><div class="w-3 h-3 bg-primary rounded-sm"></div><span class="text-xs text-slate-500 font-medium">Scans</span></div>
+                    <div class="flex items-end gap-1 h-48 border-b border-l border-slate-200 dark:border-slate-700 pl-8 pb-1 relative" id="traffic-chart">
+                        <div class="absolute left-0 top-0 bottom-0 flex flex-col justify-between text-[10px] text-slate-400 font-medium py-1" id="traffic-y-axis"></div>
+                        <?php foreach ($trafficHours as $th): ?>
+                        <div class="flex-1 flex flex-col items-center justify-end h-full gap-1 group cursor-pointer traffic-bar-container" data-count="<?= $th['count'] ?>">
+                            <div class="w-full max-w-[28px] mx-auto bg-primary/80 hover:bg-primary rounded-t transition-all duration-300 relative" style="height: 0%"><div class="absolute -top-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[9px] py-0.5 px-1.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10"><?= $th['count'] ?></div></div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                    <div class="flex gap-1 pl-8 mt-1" id="traffic-x-labels">
+                        <?php foreach ($trafficHours as $th): ?>
+                        <div class="flex-1 text-center text-[9px] text-slate-400 font-medium truncate"><?= $th['label'] ?></div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </main>
 </div>
+<script>
+function acknowledgeAlert(id){fetch('<?= base_url('dashboard/acknowledgeAlert') ?>',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-Requested-With':'XMLHttpRequest'},body:'alert_id='+id}).then(r=>r.json()).then(d=>{if(d.success){const b=document.getElementById('alert-banner-'+id);if(b){b.style.transition='opacity .4s,transform .4s';b.style.opacity='0';b.style.transform='translateY(-10px)';setTimeout(()=>b.remove(),400)}}})}
+function updateTrafficGraph(){const f=document.getElementById('traffic-from').value,t=document.getElementById('traffic-to').value;fetch(`<?= base_url('dashboard/trafficData') ?>?from=${f}&to=${t}`).then(r=>r.json()).then(d=>{if(d.success){const c=document.getElementById('traffic-chart'),l=document.getElementById('traffic-x-labels');c.querySelectorAll('.traffic-bar-container').forEach(e=>e.remove());l.innerHTML='';const m=Math.max(1,...d.data.map(x=>x.count));d.data.forEach(x=>{const p=(x.count/m)*100,cn=document.createElement('div');cn.className='flex-1 flex flex-col items-center justify-end h-full gap-1 group cursor-pointer traffic-bar-container';cn.dataset.count=x.count;cn.innerHTML=`<div class="w-full max-w-[28px] mx-auto bg-primary/80 hover:bg-primary rounded-t transition-all duration-300 relative" style="height:${p}%"><div class="absolute -top-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[9px] py-0.5 px-1.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">${x.count}</div></div>`;c.appendChild(cn);const lb=document.createElement('div');lb.className='flex-1 text-center text-[9px] text-slate-400 font-medium truncate';lb.textContent=x.label;l.appendChild(lb)});renderYAxis(m)}})}
+document.getElementById('onsite-search')?.addEventListener('input',function(){const q=this.value.toLowerCase();document.querySelectorAll('#onsite-table tbody tr').forEach(r=>{r.style.display=r.textContent.toLowerCase().includes(q)?'':'none'})});
+function renderYAxis(m){const y=document.getElementById('traffic-y-axis');if(!y)return;y.innerHTML='';for(let i=4;i>=0;i--){const s=document.createElement('span');s.textContent=Math.round((m/4)*i);y.appendChild(s)}}
+document.addEventListener('DOMContentLoaded',function(){const bars=document.querySelectorAll('.traffic-bar-container');let mx=1;bars.forEach(b=>{const c=parseInt(b.dataset.count||0);if(c>mx)mx=c});renderYAxis(mx);setTimeout(()=>{bars.forEach(b=>{const bar=b.querySelector('div'),c=parseInt(b.dataset.count||0),p=mx>0?(c/mx)*100:0;if(bar)bar.style.height=Math.max(p,c>0?3:0)+'%'})},100)})
+</script>
 </body>
 </html>
