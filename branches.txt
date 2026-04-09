@@ -1,0 +1,4 @@
+﻿* main
+  remotes/origin/1.12-README-Updated
+  remotes/origin/HEAD -> origin/main
+  remotes/origin/main

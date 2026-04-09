@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title><?= esc($pageTitle) ?></title>
+    <link rel="icon" type="image/png" href="<?= base_url('assets/images/vms-icon.png') ?>"/>
+    <link href="https://fonts.googleapis.com" rel="preconnect"/>
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#137fec",
+                        secondary: "#3b82f6",
+                        success: "#10b981",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#111827",
+                        "card-light": "#ffffff",
+                        "card-dark": "#1f2937",
+                        "nav-active": "#e0efff",
+                        "nav-text": "#344767",
+                        "nav-icon": "#3b82f6",
+                    },
+                    fontFamily: {
+                        display: ["Montserrat", "sans-serif"],
+                        sans: ["Montserrat", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.375rem",
+                    },
+                },
+            },
+        };
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-sans text-gray-800 dark:text-gray-200 antialiased h-screen flex overflow-hidden transition-colors duration-200">
+   
+    <!-- Sidebar -->
+
+    <aside class="w-64 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col justify-between p-4 hidden md:flex h-full">
+        <div class="flex flex-col gap-8">
+            <div class="flex items-center gap-3 px-2">
+                <div class="bg-center bg-no-repeat bg-cover rounded-lg size-10 bg-primary/10 flex items-center justify-center text-primary" data-alt="SafeG Logo abstract blue square">
+                    <span class="material-symbols-outlined text-3xl">shield_person</span>
+                </div>
+                <h1 class="text-lg font-bold tracking-tight text-slate-900 dark:text-white">SafeG</h1>
+            </div>
+            <nav class="flex flex-col gap-2">
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('dashboard') ?>">
+                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">dashboard</span>
+                    <p class="text-sm font-medium">Dashboard</p>
+                </a>
+
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('invitations') ?>">
+                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">mail</span>
+                    <p class="text-sm font-medium">Invitations</p>
+                </a>
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('requests') ?>">
+                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">assignment</span>
+                    <p class="text-sm font-medium">Request List</p>
+                </a>
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary group transition-colors" href="<?= base_url('staffs') ?>">
+                    <span class="material-symbols-outlined text-[22px] font-medium fill-1 group-hover:scale-110 transition-transform">badge</span>
+                    <p class="text-sm font-semibold">Staff Pass List</p>
+                </a>
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('visitors') ?>">
+                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">group</span>
+                    <p class="text-sm font-medium">Visitors List</p>
+                </a>
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('logbook') ?>">
+                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">menu_book</span>
+                    <p class="text-sm font-medium">Visitor Logbook</p>
+                </a>
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('workflow') ?>">
+                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">account_tree</span>
+                    <p class="text-sm font-medium">Visitor Workflow</p>
+                </a>
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('config') ?>">
+                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">tune</span>
+                    <p class="text-sm font-medium">Config</p>
+                </a>
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('settings') ?>">
+                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">settings</span>
+                    <p class="text-sm font-medium">Settings</p>
+                </a>
+            </nav>
+        </div>
+        <div class="border-t border-slate-200 dark:border-slate-700 pt-4 px-2">
+            <div class="flex items-center gap-3">
+                <div class="size-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shadow-sm ring-2 ring-white dark:ring-slate-900">
+                    <?= strtoupper(substr(session()->get('full_name') ?? 'U', 0, 2)) ?>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-semibold text-slate-900 dark:text-white truncate"><?= esc(session()->get('full_name') ?? 'User') ?></p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 truncate"><?= esc(ucfirst(session()->get('role') ?? 'User')) ?></p>
+                </div>
+                <a href="<?= base_url('auth/logout') ?>" class="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <span class="material-symbols-outlined text-xl">logout</span>
+                </a>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto h-full p-4 md:p-8 bg-background-light dark:bg-background-dark">
+        <div class="bg-card-light dark:bg-card-dark rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mx-auto max-w-7xl">
+
+            <!-- Header -->
+
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                    <h1 class="text-xl md:text-2xl font-bold tracking-tight text-gray-800 dark:text-white uppercase">
+                        Staff List
+                    </h1>
+                    <div class="flex gap-2">
+                        <button class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
+                            <span class="material-icons text-sm mr-1">add</span>
+                            Import
+                        </button>
+                        <a href="<?= base_url('staff-pass-request') ?>" class="bg-primary hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
+                            <span class="material-icons text-sm mr-1">file_download</span>
+                            Template
+                        </a>
+                        <a href="<?= base_url('staffs/staffpassrequest') ?>" class="bg-primary hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
+                            <span class="material-icons text-sm mr-1">add</span>
+                            Request
+                        </a>
+                    </div>
+            </div>
+        
+            <!-- Filter -->
+
+            <div class="flex items-center justify-between gap-4 mb-6">
+                <div class="flex shadow-sm w-full max-w-lg">
+                    <input class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-xs focus:ring-primary focus:border-primary outline-none" placeholder="IC / PASSPORT / FULL NAME / STAFF NO" type="text"/>
+                    <button class="bg-primary hover:bg-indigo-700 text-white px-4 py-2 rounded-r flex items-center justify-center transition-colors">
+                        <span class="material-icons text-white">search</span>
+                    </button>
+                </div>
+                <div class="w-48">
+                    <select class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-xs focus:ring-primary focus:border-primary outline-none appearance-none bg-white">
+                        <option value="" disabled selected>SORT BY</option>
+                        <option value="name_asc">Name (A - Z)</option>
+                        <option value="name_desc">Name (Z - A)</option>
+                        <option value="date_asc">Date (Oldest)</option>
+                        <option value="date_desc">Date (Newest)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="overflow-x-auto rounded border border-gray-200 dark:border-gray-700 mb-6">
+                <table class="w-full min-w-max text-left border-collapse">
+                    <thead>
+                        <tr class="bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs font-bold uppercase tracking-wide">
+                            <th class="p-4 border-b dark:border-gray-600">No</th>
+                            <th class="p-4 border-b dark:border-gray-600">Action</th>
+                            <th class="p-4 border-b dark:border-gray-600">Date</th>
+                            <th class="p-4 border-b dark:border-gray-600">App No</th>
+                            <th class="p-4 border-b dark:border-gray-600">Full Name</th>
+                            <th class="p-4 border-b dark:border-gray-600">IC / Passport No</th>
+                            <th class="p-4 border-b dark:border-gray-600">Staff No</th>
+                            <th class="p-4 border-b dark:border-gray-600">Status</th>
+                            <th class="p-4 border-b dark:border-gray-600">Suspension Period</th>
+                            <th class="p-4 border-b dark:border-gray-600">Next Action</th>
+                            <th class="p-4 border-b dark:border-gray-600">Card Status</th>
+                            <th class="p-4 border-b dark:border-gray-600">Card Expiry</th>
+                            <th class="p-4 border-b dark:border-gray-600">Remark</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-xs text-gray-600 dark:text-gray-300 font-medium">
+                        <?php if (empty($staffList)): ?>
+                        <tr>
+                            <td colspan="13" class="p-8 text-center">
+                                <div class="flex flex-col items-center justify-center gap-3">
+                                    <div class="bg-gray-100 dark:bg-gray-800 rounded-full p-4">
+                                        <span class="material-symbols-outlined text-4xl text-gray-400 dark:text-gray-500">folder_off</span>
+                                    </div>
+                                    <div>
+                                        <p class="text-base font-semibold text-gray-700 dark:text-gray-300">No Data Available</p>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">There are no staff records at the moment.</p>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        <?php else: ?>
+                            <?php foreach ($staffList as $staff): ?>
+                            <tr onclick='openDetailModal(<?= json_encode($staff) ?>)' class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-b border-gray-100 dark:border-gray-700 cursor-pointer">
+                                <td class="p-4"><?= $staff['no'] ?></td>
+                                <td class="p-4">
+                                    <div class="flex items-center gap-2">
+                                        <button onclick="event.stopPropagation(); window.location.href='<?= base_url('staffpassrequest') ?>'" class="text-primary hover:text-blue-700 transition-colors" title="View Details">
+                                            <span class="material-symbols-outlined text-[20px]">search</span>
+                                        </button>
+                                        <button onclick="event.stopPropagation(); printStaff(<?= json_encode($staff) ?>)" class="text-primary hover:text-blue-700 transition-colors" title="Print">
+                                            <span class="material-symbols-outlined text-[20px]">print</span>
+                                        </button>
+                                    </div>
+                                </td>
+                                <td class="p-4"><?= esc($staff['date']) ?></td>
+                                <td class="p-4"><?= esc($staff['app_no'] ?? 'N/A') ?></td>
+                                <td class="p-4 font-semibold text-gray-800 dark:text-white"><?= esc($staff['full_name']) ?></td>
+                                <td class="p-4"><?= esc($staff['ic_passport']) ?></td>
+                                <td class="p-4"><?= esc($staff['staff_no'] ?? 'N/A') ?></td>
+                                <td class="p-4"><?= esc($staff['status'] ?? 'N/A') ?></td>
+                                <td class="p-4"><?= esc($staff['suspension_period'] ?? '-') ?></td>
+                                <td class="p-4"><?= esc($staff['next_action'] ?? '-') ?></td>
+                                <td class="p-4">
+                                    <?php if (($staff['card_status'] ?? '') === 'Active'): ?>
+                                        <span class="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Active</span>
+                                    <?php elseif (($staff['card_status'] ?? '') === 'Inactive'): ?>
+                                        <span class="bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Inactive</span>
+                                    <?php else: ?>
+                                        <span class="text-gray-400">-</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="p-4"><?= esc($staff['card_expiry'] ?? '-') ?></td>
+                                <td class="p-4"><?= esc($staff['remark'] ?? '-') ?></td>
+                            </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4 text-xs font-medium text-gray-500 dark:text-gray-400">
+                <div class="flex items-center gap-1">
+                    <button class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50">«</button>
+                    <button class="w-8 h-8 flex items-center justify-center bg-primary text-white rounded shadow-sm">1</button>
+                    <button class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">2</button>
+                    <button class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">3</button>
+                    <span class="w-8 h-8 flex items-center justify-center">...</span>
+                    <button class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">1392</button>
+                    <button class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">»</button>
+                </div>
+                <div class="relative">
+                    <select class="appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 py-1.5 pl-3 pr-8 rounded focus:outline-none focus:ring-1 focus:ring-primary text-xs font-medium cursor-pointer shadow-sm">
+                        <option>10 ITEMS PER PAGE</option>
+                        <option>25 ITEMS PER PAGE</option>
+                        <option>50 ITEMS PER PAGE</option>
+                    </select>
+                    <span class="absolute right-2 top-1.5 pointer-events-none material-icons text-sm text-gray-500">expand_more</span>
+                </div>
+            </div>
+            
+        </div>
+    </main>
+    
+    
+    
+
+</body>
+</html>
