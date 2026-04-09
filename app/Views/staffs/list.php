@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<?php $current = service('uri')->getPath(); ?>
 <html lang="en">
 <head>
     <meta charset="utf-8"/>
@@ -39,6 +40,8 @@
             },
         };
     </script>
+    <!-- Blacklist dropdown function-->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body class="bg-background-light dark:bg-background-dark font-sans text-gray-800 dark:text-gray-200 antialiased h-screen flex overflow-hidden transition-colors duration-200">
    
@@ -85,6 +88,84 @@
                     <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">account_tree</span>
                     <p class="text-sm font-medium">Visitor Workflow</p>
                 </a>
+                <div x-data="{ openBlacklist: <?= str_contains($current, 'blacklist') ? 'true' : 'false' ?>, openIndividual: <?= str_contains($current, 'blacklist') ? 'true' : 'false' ?> }">
+    
+                    <!-- Blacklist Parent Button -->
+                    <button 
+                        type="button"
+                        @click="openBlacklist = !openBlacklist"
+                        class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= str_contains($current, 'blacklist') ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group"
+                    >
+                        <div class="flex items-center gap-3">
+                            <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">person_cancel</span>
+                            <p class="text-sm font-medium">Blacklist</p>
+                        </div>
+                        <span 
+                            class="material-symbols-outlined text-[18px] transition-transform duration-200"
+                            :class="openBlacklist ? 'rotate-180' : ''"
+                        >expand_more</span>
+                    </button>
+
+                    <!-- Blacklist Dropdown -->
+                    <div 
+                        x-show="openBlacklist" 
+                        x-transition:enter="transition ease-out duration-200"
+                        x-transition:enter-start="opacity-0 -translate-y-1"
+                        x-transition:enter-end="opacity-100 translate-y-0"
+                        x-transition:leave="transition ease-in duration-150"
+                        x-transition:leave-start="opacity-100 translate-y-0"
+                        x-transition:leave-end="opacity-0 -translate-y-1"
+                        class="ml-4 mt-1 flex flex-col gap-1"
+                    >
+                        <!-- Individual Submenu Button -->
+                        <button
+                            type="button"
+                            @click="openIndividual = !openIndividual"
+                            class="w-full flex items-center justify-between px-3 py-2 rounded-lg <?= str_contains($current, 'blacklist') ? 'text-primary bg-primary/5' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group"
+                        >
+                            <div class="flex items-center gap-3">
+                                <span class="material-symbols-outlined text-[18px] group-hover:scale-110 transition-transform">person</span>
+                                <p class="text-sm font-medium">Individual</p>
+                            </div>
+                            <span 
+                                class="material-symbols-outlined text-[16px] transition-transform duration-200"
+                                :class="openIndividual ? 'rotate-180' : ''"
+                            >expand_more</span>
+                        </button>
+
+                        <!-- Request List & Closed List Links -->
+                        <div 
+                            x-show="openIndividual"
+                            x-transition:enter="transition ease-out duration-150"
+                            x-transition:enter-start="opacity-0 -translate-y-1"
+                            x-transition:enter-end="opacity-100 translate-y-0"
+                            x-transition:leave="transition ease-in duration-100"
+                            x-transition:leave-start="opacity-100 translate-y-0"
+                            x-transition:leave-end="opacity-0 -translate-y-1"
+                            class="ml-4 mt-1 flex flex-col gap-1"
+                        >   
+                            <!-- Request List -->
+                            <a href="<?= base_url('blacklist/blacklistrequest') ?>"
+                            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm
+                            <?= $current == 'blacklist/blacklistrequest' 
+                                ? 'bg-primary/10 text-primary font-medium' 
+                                : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
+                                <span class="w-1.5 h-1.5 rounded-full <?= $current == 'blacklist/blacklistrequest' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
+                                Request List
+                            </a>
+
+                            <!-- Closed List -->
+                            <a href="<?= base_url('blacklist/closedlist') ?>"
+                            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm
+                            <?= $current == 'blacklist/closedlist' 
+                                ? 'bg-primary/10 text-primary font-medium' 
+                                : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
+                                <span class="w-1.5 h-1.5 rounded-full <?= $current == 'blacklist/closedlist' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
+                                Closed List
+                            </a>
+                        </div>
+                    </div>
+                </div>
                 <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('config') ?>">
                     <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">tune</span>
                     <p class="text-sm font-medium">Config</p>

@@ -180,3 +180,8 @@ $routes->post('settings/updateProfile', 'Settings::updateProfile');
 $routes->post('settings/updatePassword', 'Settings::updatePassword');
 $routes->post('settings/updatePhoto', 'Settings::updatePhoto');
 $routes->post('settings/removePhoto', 'Settings::removePhoto');
+
+// Blacklist Routes
+$routes->get('blacklist/blacklistrequest', 'BlacklistRequest::requestList');
+$routes->get('blacklist/entry', 'BlacklistEntry::index');
+$routes->get('blacklist/closedlist', 'BlacklistClosedList::index');
