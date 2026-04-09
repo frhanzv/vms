@@ -77,10 +77,7 @@
                             <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">dashboard</span>
                             <p class="text-sm font-medium">Dashboard</p>
                         </a>
-                        <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-primary transition-colors group" href="<?= base_url('compliance') ?>">
-                            <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">health_and_safety</span>
-                            <p class="text-sm font-medium">Compliance</p>
-                        </a>
+
                         <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-primary transition-colors group" href="<?= base_url('invitations') ?>">
                             <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">mail</span>
                             <p class="text-sm font-medium">Invitations</p>

@@ -1,0 +1,33 @@
+﻿On branch 1.12-README-Updated
+Your branch is up to date with 'origin/1.12-README-Updated'.
+
+You have unmerged paths.
+  (fix conflicts and run "git commit")
+  (use "git merge --abort" to abort the merge)
+
+Changes to be committed:
+	modified:   app/Config/Routes.php
+	deleted:    app/Controllers/Compliance.php
+	modified:   app/Controllers/Dashboard.php
+	new file:   app/Database/Migrations/2026-04-08-000001_CreateSecurityAlertsTable.php
+	modified:   app/Views/config/index.php
+	modified:   app/Views/dashboard.php
+	modified:   app/Views/invitations/create.php
+	modified:   app/Views/invitations/list.php
+	modified:   app/Views/requests/list.php
+	modified:   app/Views/settings/index.php
+	modified:   app/Views/visitors/list.php
+	modified:   app/Views/visitors/logbook.php
+	modified:   app/Views/visitors/request.php
+	modified:   app/Views/visitors/workflow.php
+	modified:   app/Views/visitors/workflow_create.php
+
+Unmerged paths:
+  (use "git add/rm <file>..." as appropriate to mark resolution)
+	deleted by them: app/Views/compliance/index.php
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	branches.txt
+	status.txt
+

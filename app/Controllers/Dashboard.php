@@ -261,6 +261,172 @@ class Dashboard extends BaseController
         )->getResultArray();
         $companyList = array_column($companies, 'company');
         
+        // ===== NEW SECTIONS DATA =====
+        
+        // 1. Critical Security Alerts (unacknowledged, high/critical severity)
+        $criticalAlerts = [];
+        if ($db->tableExists('security_alerts')) {
+            $criticalAlertsData = $db->query(
+                "SELECT * FROM security_alerts 
+                 WHERE is_acknowledged = 0 
+                 AND severity IN ('high', 'critical')
+                 ORDER BY created_at DESC
+                 LIMIT 5"
+            )->getResultArray();
+            
+            foreach ($criticalAlertsData as $alert) {
+                $criticalAlerts[] = [
+                    'id' => $alert['id'],
+                    'incident_type' => $alert['incident_type'],
+                    'severity' => $alert['severity'],
+                    'location' => $alert['location'] ?? 'Unknown',
+                    'description' => $alert['description'] ?? '',
+                    'visitor_name' => $alert['visitor_name'] ?? '',
+                    'time' => !empty($alert['created_at']) ? date('Y-m-d h:i A', strtotime($alert['created_at'])) : 'N/A',
+                    'time_ago' => !empty($alert['created_at']) ? $this->getTimeAgo($alert['created_at']) : 'N/A',
+                ];
+            }
+        }
+        
+        // 2. Recent Alerts Summary: Access Denied (last 24h) & Visitor Overstay (active)
+        $accessDeniedCount = 0;
+        $overstayCount = 0;
+        $activeSecurityAlertCount = 0;
+        
+        if ($db->tableExists('security_alerts')) {
+            // Access denied in last 24 hours
+            $accessDeniedCount = $db->table('security_alerts')
+                ->where('incident_type', 'Access Denied')
+                ->where('created_at >=', date('Y-m-d H:i:s', strtotime('-24 hours')))
+                ->countAllResults();
+            
+            // Visitor Overstay (active / unacknowledged)
+            $overstayCount = $db->table('security_alerts')
+                ->where('incident_type', 'Visitor Overstay')
+                ->where('is_acknowledged', 0)
+                ->countAllResults();
+            
+            // Total active security alerts
+            $activeSecurityAlertCount = $db->table('security_alerts')
+                ->where('is_acknowledged', 0)
+                ->countAllResults();
+        }
+        
+        // Also derive overstay from invitation data (visitors on-site past schedule)
+        $derivedOverstay = $outOfWindow; // reuse outOfWindow count
+        $overstayCount = max($overstayCount, $derivedOverstay);
+        
+        // 3. Currently On-Site visitors table (detailed, for the new section)
+        $onSiteVisitorsQuery = "SELECT iv.id as visitor_id, 
+                                       COALESCE(iv.full_name, i.full_name) as visitor_name, 
+                                       COALESCE(u.full_name, 'N/A') as host_name,
+                                       iv.check_in_time,
+                                       COALESCE(i.location, 'N/A') as location
+                                FROM invitation_visitors iv
+                                JOIN invitations i ON i.id = iv.invitation_id
+                                LEFT JOIN users u ON u.id = i.invited_by
+                                WHERE iv.check_in_time IS NOT NULL
+                                AND iv.check_out_time IS NULL
+                                ORDER BY iv.check_in_time DESC
+                                LIMIT 50";
+        $onSiteVisitorsData = $db->query($onSiteVisitorsQuery)->getResultArray();
+        
+        $onSiteVisitors = [];
+        foreach ($onSiteVisitorsData as $v) {
+            $onSiteVisitors[] = [
+                'name' => $v['visitor_name'] ?? 'N/A',
+                'host' => $v['host_name'] ?? 'N/A',
+                'check_in_time' => !empty($v['check_in_time']) ? date('h:i A', strtotime($v['check_in_time'])) : 'N/A',
+                'location' => $v['location'] ?? 'N/A',
+            ];
+        }
+        
+        // 4. Upcoming Appointments (approved invitations with schedules in the future)
+        $upcomingAppointmentsQuery = "SELECT i.full_name as visitor_name,
+                                             u.full_name as host_name,
+                                             s.date_from, s.date_to, i.reason
+                                      FROM invitations i
+                                      JOIN invitation_schedules s ON s.invitation_id = i.id
+                                      LEFT JOIN users u ON u.id = i.invited_by
+                                      WHERE i.status = 'Approved'
+                                      AND s.date_from > ?
+                                      ORDER BY s.date_from ASC
+                                      LIMIT 10";
+        $upcomingAppointmentsData = $db->query($upcomingAppointmentsQuery, [$now])->getResultArray();
+        
+        $upcomingAppointments = [];
+        foreach ($upcomingAppointmentsData as $appt) {
+            $upcomingAppointments[] = [
+                'visitor_name' => $appt['visitor_name'] ?? 'N/A',
+                'host_name' => $appt['host_name'] ?? 'N/A',
+                'time' => date('h:i A', strtotime($appt['date_from'])),
+                'date' => date('M d, Y', strtotime($appt['date_from'])),
+                'reason' => $appt['reason'] ?? 'Visit',
+            ];
+        }
+        
+        // 5. Today's Appointments (approved invitations scheduled for today)
+        $todayAppointmentsQuery = "SELECT i.full_name as visitor_name,
+                                          u.full_name as host_name,
+                                          s.date_from, s.date_to, i.reason,
+                                          iv.check_in_time, iv.check_out_time
+                                   FROM invitations i
+                                   JOIN invitation_schedules s ON s.invitation_id = i.id
+                                   LEFT JOIN users u ON u.id = i.invited_by
+                                   LEFT JOIN invitation_visitors iv ON iv.invitation_id = i.id
+                                   WHERE i.status = 'Approved'
+                                   AND DATE(s.date_from) <= ? AND DATE(s.date_to) >= ?
+                                   ORDER BY s.date_from ASC
+                                   LIMIT 20";
+        $todayAppointmentsData = $db->query($todayAppointmentsQuery, [$today, $today])->getResultArray();
+        
+        $todayAppointments = [];
+        foreach ($todayAppointmentsData as $appt) {
+            $apptStatus = 'Scheduled';
+            if (!empty($appt['check_in_time'])) {
+                if (!empty($appt['check_out_time'])) {
+                    $apptStatus = 'Completed';
+                } else {
+                    $apptStatus = 'In Progress';
+                }
+            }
+            
+            $todayAppointments[] = [
+                'visitor_name' => $appt['visitor_name'] ?? 'N/A',
+                'host_name' => $appt['host_name'] ?? 'N/A',
+                'time' => date('h:i A', strtotime($appt['date_from'])),
+                'end_time' => date('h:i A', strtotime($appt['date_to'])),
+                'reason' => $appt['reason'] ?? 'Visit',
+                'status' => $apptStatus,
+            ];
+        }
+        
+        // 6. Visitor Traffic Analytics (hourly check-in counts for today)
+        $trafficQuery = "SELECT HOUR(iv.check_in_time) as hour, COUNT(*) as count
+                         FROM invitation_visitors iv
+                         JOIN invitations i ON i.id = iv.invitation_id
+                         WHERE iv.check_in_time IS NOT NULL
+                         AND DATE(iv.check_in_time) = ?
+                         GROUP BY HOUR(iv.check_in_time)
+                         ORDER BY hour ASC";
+        $trafficData = $db->query($trafficQuery, [$today])->getResultArray();
+        
+        // Build hourly data for chart (6am to 10pm)
+        $trafficHours = [];
+        for ($h = 6; $h <= 22; $h++) {
+            $found = false;
+            foreach ($trafficData as $td) {
+                if ((int)$td['hour'] === $h) {
+                    $trafficHours[] = ['hour' => $h, 'label' => date('h A', mktime($h, 0, 0)), 'count' => (int)$td['count']];
+                    $found = true;
+                    break;
+                }
+            }
+            if (!$found) {
+                $trafficHours[] = ['hour' => $h, 'label' => date('h A', mktime($h, 0, 0)), 'count' => 0];
+            }
+        }
+
         $data = [
             'pageTitle' => 'Host Dashboard - SafeG',
             'currentDate' => date('F jS, Y'),
@@ -278,10 +444,85 @@ class Dashboard extends BaseController
             'tabCounts' => $tabCounts,
             'occupancyChart' => $occupancyChart,
             'companyList' => $companyList,
-            'recentActivity' => $recentActivity
+            'recentActivity' => $recentActivity,
+            // New data
+            'criticalAlerts' => $criticalAlerts,
+            'accessDeniedCount' => $accessDeniedCount,
+            'overstayCount' => $overstayCount,
+            'activeSecurityAlertCount' => $activeSecurityAlertCount,
+            'onSiteVisitors' => $onSiteVisitors,
+            'onSiteVisitorCount' => $currentlyOnSite,
+            'upcomingAppointments' => $upcomingAppointments,
+            'todayAppointments' => $todayAppointments,
+            'trafficHours' => $trafficHours,
         ];
 
         return view('dashboard', $data);
+    }
+    
+    /**
+     * Acknowledge a security alert via AJAX
+     */
+    public function acknowledgeAlert()
+    {
+        $alertId = $this->request->getPost('alert_id');
+        $userId = session()->get('user_id');
+        
+        if (!$alertId) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Invalid alert ID']);
+        }
+        
+        $db = \Config\Database::connect();
+        
+        if (!$db->tableExists('security_alerts')) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Security alerts table not found']);
+        }
+        
+        $db->table('security_alerts')
+            ->where('id', $alertId)
+            ->update([
+                'is_acknowledged' => 1,
+                'acknowledged_by' => $userId,
+                'acknowledged_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+        
+        return $this->response->setJSON(['success' => true, 'message' => 'Alert acknowledged']);
+    }
+    
+    /**
+     * Get visitor traffic analytics data via AJAX
+     */
+    public function trafficData()
+    {
+        $fromDate = $this->request->getGet('from') ?? date('Y-m-d');
+        $toDate = $this->request->getGet('to') ?? date('Y-m-d');
+        
+        $db = \Config\Database::connect();
+        
+        $trafficQuery = "SELECT DATE(iv.check_in_time) as date, HOUR(iv.check_in_time) as hour, COUNT(*) as count
+                         FROM invitation_visitors iv
+                         JOIN invitations i ON i.id = iv.invitation_id
+                         WHERE iv.check_in_time IS NOT NULL
+                         AND DATE(iv.check_in_time) >= ?
+                         AND DATE(iv.check_in_time) <= ?
+                         GROUP BY DATE(iv.check_in_time), HOUR(iv.check_in_time)
+                         ORDER BY date ASC, hour ASC";
+        $trafficData = $db->query($trafficQuery, [$fromDate, $toDate])->getResultArray();
+        
+        // Build hourly data for chart
+        $trafficHours = [];
+        for ($h = 6; $h <= 22; $h++) {
+            $totalCount = 0;
+            foreach ($trafficData as $td) {
+                if ((int)$td['hour'] === $h) {
+                    $totalCount += (int)$td['count'];
+                }
+            }
+            $trafficHours[] = ['hour' => $h, 'label' => date('h A', mktime($h, 0, 0)), 'count' => $totalCount];
+        }
+        
+        return $this->response->setJSON(['success' => true, 'data' => $trafficHours]);
     }
     
     private function getTimeAgo($datetime)

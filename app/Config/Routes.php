@@ -22,7 +22,8 @@ $routes->group('api/rfid', function($routes) {
 // Protected Routes
 $routes->get('/', 'Dashboard::index');
 $routes->get('dashboard', 'Dashboard::index');
-$routes->get('compliance', 'Compliance::index');
+$routes->post('dashboard/acknowledgeAlert', 'Dashboard::acknowledgeAlert');
+$routes->get('dashboard/trafficData', 'Dashboard::trafficData');
 $routes->get('invitations', 'InvitationList::index');
 $routes->get('invitations/create', 'InvitationList::create');
 $routes->post('invitations/store', 'InvitationList::store');
