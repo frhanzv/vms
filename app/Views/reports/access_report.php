@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<?php $current = service('uri')->getPath(); ?>
+<html class="light" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title><?= esc($pageTitle) ?></title>
+    <link rel="icon" type="image/png" href="<?= base_url('assets/images/vms-icon.png') ?>"/>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101922",
+                    },
+                    fontFamily: {
+                        "display": ["Montserrat", "sans-serif"],
+                        "sans": ["Montserrat", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <!-- Flatpickr for datetime picker -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <!-- DataTables -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Override DataTables to match VMS style */
+        .dataTables_wrapper .dataTables_length select,
+        .dataTables_wrapper .dataTables_filter input {
+            border: 1px solid #e2e8f0;
+            border-radius: 0.375rem;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+            font-family: 'Montserrat', sans-serif;
+            outline: none;
+        }
+        .dataTables_wrapper .dataTables_filter input:focus {
+            border-color: #137fec;
+            box-shadow: 0 0 0 2px rgba(19,127,236,0.15);
+        }
+        .dataTables_wrapper .dataTables_info,
+        .dataTables_wrapper .dataTables_length,
+        .dataTables_wrapper .dataTables_filter {
+            font-size: 0.8rem;
+            color: #64748b;
+            font-family: 'Montserrat', sans-serif;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button {
+            border-radius: 0.375rem !important;
+            font-size: 0.8rem;
+            font-family: 'Montserrat', sans-serif;
+            padding: 0.3rem 0.7rem !important;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+            background: #137fec !important;
+            color: white !important;
+            border: none !important;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+            background: #e0effe !important;
+            color: #137fec !important;
+            border: none !important;
+        }
+        table.dataTable thead th {
+            background: #f8fafc;
+            color: #475569;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 2px solid #e2e8f0 !important;
+            padding: 0.85rem 1rem;
+        }
+        table.dataTable tbody td {
+            font-size: 0.82rem;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #f1f5f9;
+            color: #334155;
+            vertical-align: middle;
+        }
+        table.dataTable tbody tr:hover td { background: #f0f7ff; }
+        table.dataTable { border-collapse: collapse !important; width: 100% !important; }
+
+        /* Flatpickr custom */
+        .flatpickr-input {
+            background: white !important;
+        }
+        .flatpickr-calendar {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.82rem;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased overflow-hidden">
+<div class="flex h-screen w-full flex-col">
+    <div class="flex flex-1 overflow-hidden">
+
+        <!-- Sidebar -->
+        <aside class="w-64 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col justify-between p-4 hidden md:flex h-full">
+            <div class="flex flex-col gap-8">
+                <div class="flex items-center gap-3 px-2">
+                    <div class="bg-center bg-no-repeat bg-cover rounded-lg size-10 bg-primary/10 flex items-center justify-center text-primary">
+                        <span class="material-symbols-outlined text-3xl">shield_person</span>
+                    </div>
+                    <h1 class="text-lg font-bold tracking-tight text-slate-900 dark:text-white">SafeG</h1>
+                </div>
+                <nav class="flex flex-col gap-2">
+                    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('dashboard') ?>">
+                        <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">dashboard</span>
+                        <p class="text-sm font-medium">Dashboard</p>
+                    </a>
+                    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('invitations') ?>">
+                        <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">mail</span>
+                        <p class="text-sm font-medium">Invitations</p>
+                    </a>
+                    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('requests') ?>">
+                        <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">assignment</span>
+                        <p class="text-sm font-medium">Request List</p>
+                    </a>
+                    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('staffs') ?>">
+                        <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">badge</span>
+                        <p class="text-sm font-medium">Staff Pass List</p>
+                    </a>
+                    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('visitors') ?>">
+                        <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">group</span>
+                        <p class="text-sm font-medium">Visitors List</p>
+                    </a>
+                    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('logbook') ?>">
+                        <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">menu_book</span>
+                        <p class="text-sm font-medium">Visitor Logbook</p>
+                    </a>
+                    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('workflow') ?>">
+                        <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">account_tree</span>
+                        <p class="text-sm font-medium">Visitor Workflow</p>
+                    </a>
+
+                    <!-- Blacklist Dropdown -->
+                    <div x-data="{ openBlacklist: <?= str_contains($current, 'blacklist') ? 'true' : 'false' ?>, openIndividual: <?= str_contains($current, 'blacklist') ? 'true' : 'false' ?> }">
+                        <button type="button" @click="openBlacklist = !openBlacklist"
+                            class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= str_contains($current, 'blacklist') ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
+                            <div class="flex items-center gap-3">
+                                <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">person_cancel</span>
+                                <p class="text-sm font-medium">Blacklist</p>
+                            </div>
+                            <span class="material-symbols-outlined text-[18px] transition-transform duration-200" :class="openBlacklist ? 'rotate-180' : ''">expand_more</span>
+                        </button>
+                        <div x-show="openBlacklist"
+                            x-transition:enter="transition ease-out duration-200"
+                            x-transition:enter-start="opacity-0 -translate-y-1"
+                            x-transition:enter-end="opacity-100 translate-y-0"
+                            x-transition:leave="transition ease-in duration-150"
+                            x-transition:leave-start="opacity-100 translate-y-0"
+                            x-transition:leave-end="opacity-0 -translate-y-1"
+                            class="ml-4 mt-1 flex flex-col gap-1">
+                            <button type="button" @click="openIndividual = !openIndividual"
+                                class="w-full flex items-center justify-between px-3 py-2 rounded-lg <?= str_contains($current, 'blacklist') ? 'text-primary bg-primary/5' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
+                                <div class="flex items-center gap-3">
+                                    <span class="material-symbols-outlined text-[18px] group-hover:scale-110 transition-transform">person</span>
+                                    <p class="text-sm font-medium">Individual</p>
+                                </div>
+                                <span class="material-symbols-outlined text-[16px] transition-transform duration-200" :class="openIndividual ? 'rotate-180' : ''">expand_more</span>
+                            </button>
+                            <div x-show="openIndividual"
+                                x-transition:enter="transition ease-out duration-150"
+                                x-transition:enter-start="opacity-0 -translate-y-1"
+                                x-transition:enter-end="opacity-100 translate-y-0"
+                                x-transition:leave="transition ease-in duration-100"
+                                x-transition:leave-start="opacity-100 translate-y-0"
+                                x-transition:leave-end="opacity-0 -translate-y-1"
+                                class="ml-4 mt-1 flex flex-col gap-1">
+                                <a href="<?= base_url('blacklist/blacklistrequest') ?>"
+                                    class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'blacklist/blacklistrequest' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
+                                    <span class="w-1.5 h-1.5 rounded-full <?= $current == 'blacklist/blacklistrequest' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
+                                    Request List
+                                </a>
+                                <a href="<?= base_url('blacklist/closedlist') ?>"
+                                    class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'blacklist/closedlist' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
+                                    <span class="w-1.5 h-1.5 rounded-full <?= $current == 'blacklist/closedlist' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
+                                    Closed List
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Report Dropdown -->
+                    <div x-data="{ openReport: <?= str_contains($current, 'report') ? 'true' : 'false' ?> }">
+                        <button type="button" @click="openReport = !openReport"
+                            class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= str_contains($current, 'report') ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
+                            <div class="flex items-center gap-3">
+                                <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">description</span>
+                                <p class="text-sm font-medium">REPORT</p>
+                            </div>
+                            <span class="material-symbols-outlined text-[18px] transition-transform duration-200" :class="openReport ? 'rotate-180' : ''">expand_more</span>
+                        </button>
+                        <div x-show="openReport"
+                            x-transition:enter="transition ease-out duration-200"
+                            x-transition:enter-start="opacity-0 -translate-y-1"
+                            x-transition:enter-end="opacity-100 translate-y-0"
+                            x-transition:leave="transition ease-in duration-150"
+                            x-transition:leave-start="opacity-100 translate-y-0"
+                            x-transition:leave-end="opacity-0 -translate-y-1"
+                            class="ml-4 mt-1 flex flex-col gap-1">
+                            <a href="<?= base_url('report/access') ?>"
+                                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'report/access' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
+                                <span class="w-1.5 h-1.5 rounded-full <?= $current == 'report/access' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
+                                ACCESS REPORT
+                            </a>
+                            <a href="<?= base_url('report/visitor') ?>"
+                                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'report/visitor' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
+                                <span class="w-1.5 h-1.5 rounded-full <?= $current == 'report/visitor' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
+                                VISITOR REPORT
+                            </a>
+                        </div>
+                    </div>
+
+                    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('config') ?>">
+                        <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">tune</span>
+                        <p class="text-sm font-medium">Config</p>
+                    </a>
+                    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('settings') ?>">
+                        <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">settings</span>
+                        <p class="text-sm font-medium">Settings</p>
+                    </a>
+                </nav>
+            </div>
+            <div class="border-t border-slate-200 dark:border-slate-700 pt-4 px-2">
+                <div class="flex items-center gap-3">
+                    <div class="size-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shadow-sm ring-2 ring-white dark:ring-slate-900">
+                        <?= strtoupper(substr(session()->get('full_name') ?? 'U', 0, 2)) ?>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-semibold text-slate-900 dark:text-white truncate"><?= esc(session()->get('full_name') ?? 'User') ?></p>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 truncate"><?= esc(ucfirst(session()->get('role') ?? 'User')) ?></p>
+                    </div>
+                    <a href="<?= base_url('auth/logout') ?>" class="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                        <span class="material-symbols-outlined text-xl">logout</span>
+                    </a>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto bg-background-light dark:bg-background-dark custom-scrollbar p-6 lg:p-10">
+            <div class="mx-auto max-w-7xl flex flex-col gap-6">
+
+                <!-- Top Actions -->
+                <div class="flex justify-end items-center gap-3 mb-1">
+                    <button class="relative p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
+                        <span class="material-symbols-outlined text-[24px]">notifications</span>
+                        <span class="absolute top-2 right-2.5 size-2 bg-red-500 rounded-full border border-white dark:border-slate-900"></span>
+                    </button>
+                    <a href="<?= base_url('auth/logout') ?>" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
+                        <span class="material-symbols-outlined text-[24px]">account_circle</span>
+                    </a>
+                </div>
+
+                <!-- Page Header -->
+                <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 -mt-4">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-widest text-primary mb-1">Reports</p>
+                        <h1 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white mb-2">Access Logs Report</h1>
+                        <p class="text-slate-500 dark:text-slate-400 text-base font-medium">Staff Access History</p>
+                    </div>
+                </div>
+
+                <!-- Filter Card -->
+                <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+                    <div class="flex flex-col md:flex-row gap-4 items-start md:items-end">
+
+                        <!-- From Date & Time -->
+                        <div class="flex flex-col gap-1.5 flex-1 min-w-0">
+                            <label class="text-xs font-semibold text-slate-500 tracking-wider">From Date &amp; Time</label>
+                            <div class="relative">
+                                <input type="text" id="from_datetime" name="from_datetime"
+                                    class="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary cursor-pointer"
+                                    placeholder="Select start date &amp; time" readonly>
+                                <span class="absolute right-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-[18px] text-slate-400 pointer-events-none">calendar_today</span>
+                            </div>
+                            <p class="text-xs text-slate-400">Start date and time</p>
+                        </div>
+
+                        <!-- To Date & Time -->
+                        <div class="flex flex-col gap-1.5 flex-1 min-w-0">
+                            <label class="text-xs font-semibold text-slate-500 tracking-wider">To Date &amp; Time</label>
+                            <div class="relative">
+                                <input type="text" id="to_datetime" name="to_datetime"
+                                    class="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary cursor-pointer"
+                                    placeholder="Select end date &amp; time" readonly>
+                                <span class="absolute right-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-[18px] text-slate-400 pointer-events-none">calendar_today</span>
+                            </div>
+                            <p class="text-xs text-slate-400">End date and time</p>
+                        </div>
+
+                        <!-- Select Location -->
+                        <div class="flex flex-col gap-1.5 flex-1 min-w-0">
+                            <label class="text-xs font-semibold text-slate-500 tracking-wider">Select Locations</label>
+                            <div class="relative">
+                                <select id="location_id" name="location_id"
+                                    class="w-full border border-slate-200 dark:border-slate-700 rounded-lg pl-4 pr-10 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary appearance-none bg-none cursor-pointer">
+                                    <option value="">-- Select Location --</option>
+                                    <?php foreach ($locations as $loc): ?>
+                                        <option value="<?= esc($loc['id']) ?>">
+                                            <?= esc($loc['id']) ?>. <?= esc($loc['branch']) ?> - <?= esc($loc['location_access']) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <span class="absolute right-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-[18px] text-slate-400 pointer-events-none">expand_more</span>
+                            </div>
+                            <p class="text-xs text-slate-400">Select reporting location</p>
+                        </div>
+
+                        <!-- Generate Button -->
+                        <div class="flex-shrink-0 md:mb-5">
+                            <button id="generateBtn" onclick="generateReport()"
+                                class="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-white font-bold text-sm shadow-md shadow-primary/20 transition-all whitespace-nowrap">
+                                <span class="material-symbols-outlined text-[18px]">search</span>
+                                Generate
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Section (hidden until generated) -->
+                <div id="resultsSection" class="hidden flex flex-col gap-4">
+
+                    <!-- Summary Card -->
+                    <div class="flex flex-col md:flex-row gap-4 items-start">
+                        <!-- Total Visitor Count -->
+                        <div class="bg-slate-900 dark:bg-slate-800 rounded-xl p-6 flex flex-col items-center justify-center min-w-[160px] shadow-md">
+                            <p id="totalCount" class="text-5xl font-black text-white">0</p>
+                            <p class="text-xs font-bold uppercase tracking-widest text-slate-400 mt-2">Total Visitor</p>
+                        </div>
+                        <!-- Report Info -->
+                        <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-5 flex-1 shadow-sm flex flex-col justify-center gap-2">
+                            <div>
+                                <span class="text-sm font-bold text-slate-700 dark:text-slate-200">Report Period: </span>
+                                <span id="reportPeriod" class="text-sm text-slate-500"></span>
+                            </div>
+                            <div>
+                                <span class="text-sm font-bold text-slate-700 dark:text-slate-200">Location: </span>
+                                <span id="reportLocation" class="text-sm text-slate-500"></span>
+                            </div>
+                        </div>
+                        <!-- Export Button -->
+                        <div class="flex items-center">
+                            <button onclick="exportCSV()"
+                                class="flex items-center gap-2 px-5 py-2.5 rounded-lg border border-primary text-primary bg-primary/5 hover:bg-primary/10 font-bold text-sm transition-colors shadow-sm whitespace-nowrap">
+                                <span class="material-symbols-outlined text-[18px]">download</span>
+                                Export CSV
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Data Table Card -->
+                    <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                        <div class="p-5 border-b border-slate-100 dark:border-slate-700">
+                            <h3 class="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">Visitor Details</h3>
+                        </div>
+                        <div class="p-5 overflow-x-auto">
+                            <table id="accessTable" class="w-full" style="width:100%">
+                                <thead>
+                                    <tr>
+                                        <th>No</th>
+                                        <th>Visitor Name</th>
+                                        <th>Contact No</th>
+                                        <th>IC No</th>
+                                        <th>Person Visited</th>
+                                        <th>Company</th>
+                                        <th>Vehicle No</th>
+                                        <th>Visit Reason</th>
+                                        <th>Total Access</th>
+                                        <th>First Access</th>
+                                        <th>Last Access</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Empty State (shown before first generate) -->
+                <div id="emptyState" class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-16 flex flex-col items-center justify-center gap-3">
+                    <span class="material-symbols-outlined text-5xl text-slate-200 dark:text-slate-700">bar_chart</span>
+                    <p class="text-slate-400 font-semibold text-sm">Select a date range and location, then click Generate</p>
+                </div>
+
+                <!-- Loading State -->
+                <div id="loadingState" class="hidden bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-16 flex flex-col items-center justify-center gap-3">
+                    <div class="size-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+                    <p class="text-slate-400 font-semibold text-sm">Generating report...</p>
+                </div>
+
+                <!-- No Data State -->
+                <div id="noDataState" class="hidden bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-16 flex flex-col items-center justify-center gap-3">
+                    <span class="material-symbols-outlined text-5xl text-slate-200 dark:text-slate-700">search_off</span>
+                    <p class="text-slate-400 font-semibold text-sm">No visitors found for the selected period and location</p>
+                </div>
+
+            </div>
+        </main>
+    </div>
+</div>
+
+<script>
+    let dtTable = null;
+    let reportData = [];
+
+    // Init flatpickr datetime pickers
+    const today = new Date();
+    const todayStr = today.getFullYear() + '-' +
+        String(today.getMonth() + 1).padStart(2, '0') + '-' +
+        String(today.getDate()).padStart(2, '0');
+
+    flatpickr('#from_datetime', {
+        enableTime: true,
+        dateFormat: 'Y-m-d H:i',
+        time_24hr: true,
+        defaultDate: todayStr + ' 00:00',
+        disableMobile: true,
+    });
+
+    flatpickr('#to_datetime', {
+        enableTime: true,
+        dateFormat: 'Y-m-d H:i',
+        time_24hr: true,
+        defaultDate: todayStr + ' 23:59',
+        disableMobile: true,
+    });
+
+    function showState(state) {
+        document.getElementById('emptyState').classList.add('hidden');
+        document.getElementById('loadingState').classList.add('hidden');
+        document.getElementById('noDataState').classList.add('hidden');
+        document.getElementById('resultsSection').classList.add('hidden');
+
+        if (state === 'empty')   document.getElementById('emptyState').classList.remove('hidden');
+        if (state === 'loading') document.getElementById('loadingState').classList.remove('hidden');
+        if (state === 'nodata')  document.getElementById('noDataState').classList.remove('hidden');
+        if (state === 'results') document.getElementById('resultsSection').classList.remove('hidden');
+    }
+
+    function generateReport() {
+        const fromDatetime = document.getElementById('from_datetime').value;
+        const toDatetime   = document.getElementById('to_datetime').value;
+        const locationId   = document.getElementById('location_id').value;
+
+        if (!fromDatetime || !toDatetime || !locationId) {
+            alert('Please fill in all fields before generating the report.');
+            return;
+        }
+
+        showState('loading');
+
+        const formData = new FormData();
+        formData.append('from_datetime', fromDatetime);
+        formData.append('to_datetime',   toDatetime);
+        formData.append('location_id',   locationId);
+
+        fetch('<?= base_url('report/access/generate') ?>', {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                '<?= csrf_header() ?>': '<?= csrf_hash() ?>'
+            },
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (!data.success) {
+                alert(data.message || 'An error occurred.');
+                showState('empty');
+                return;
+            }
+
+            if (data.visitors.length === 0) {
+                showState('nodata');
+                return;
+            }
+
+            reportData = data.visitors;
+            renderTable(data);
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Failed to fetch report. Please try again.');
+            showState('empty');
+        });
+    }
+
+    function renderTable(data) {
+        // Update summary
+        document.getElementById('totalCount').textContent = data.total_visitors;
+        document.getElementById('reportPeriod').textContent = data.from_datetime + ' to ' + data.to_datetime;
+        document.getElementById('reportLocation').textContent = data.location_name;
+
+        // Destroy existing DataTable if any
+        if (dtTable) {
+            dtTable.destroy();
+            dtTable = null;
+        }
+
+        // Build table rows
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '';
+        data.visitors.forEach((v, idx) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="text-center font-semibold text-slate-400">${idx + 1}</td>
+                <td class="font-semibold text-slate-800">${escHtml(v.visitor_name)}</td>
+                <td>${escHtml(v.contact_no)}</td>
+                <td>${escHtml(v.ic_no)}</td>
+                <td>${escHtml(v.person_visited)}</td>
+                <td>${escHtml(v.visitor_company)}</td>
+                <td>${escHtml(v.vehicle_no)}</td>
+                <td>${escHtml(v.visit_reason)}</td>
+                <td class="text-center">
+                    <span class="inline-flex items-center justify-center px-2.5 py-1 rounded-full text-xs font-bold bg-primary/10 text-primary">${v.total_access}</span>
+                </td>
+                <td class="whitespace-nowrap">${escHtml(v.first_access)}</td>
+                <td class="whitespace-nowrap">${escHtml(v.last_access)}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        // Init DataTable
+        dtTable = $('#accessTable').DataTable({
+            pageLength: 10,
+            lengthMenu: [10, 25, 50, 100],
+            ordering: true,
+            responsive: false,
+            language: {
+                search: 'Search records:',
+                lengthMenu: 'Show _MENU_ entries',
+                info: 'Showing _START_ to _END_ of _TOTAL_ entries',
+                paginate: { previous: 'Previous', next: 'Next' }
+            },
+            columnDefs: [
+                { orderable: false, targets: [0] },
+                { className: 'text-center', targets: [0, 8] }
+            ]
+        });
+
+        showState('results');
+    }
+
+    function escHtml(str) {
+        if (!str) return '-';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function exportCSV() {
+        if (!reportData || reportData.length === 0) return;
+
+        const headers = ['No','Visitor Name','Contact No','IC No','Person Visited','Company','Vehicle No','Visit Reason','Total Access','First Access','Last Access'];
+        const rows = reportData.map((v, i) => [
+            i + 1,
+            v.visitor_name,
+            v.contact_no,
+            v.ic_no,
+            v.person_visited,
+            v.visitor_company,
+            v.vehicle_no,
+            v.visit_reason,
+            v.total_access,
+            v.first_access,
+            v.last_access
+        ]);
+
+        let csv = headers.join(',') + '\n';
+        rows.forEach(r => {
+            csv += r.map(c => '"' + String(c ?? '').replace(/"/g, '""') + '"').join(',') + '\n';
+        });
+
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = 'access_report_' + new Date().toISOString().slice(0,10) + '.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+</script>
+</body>
+</html>
