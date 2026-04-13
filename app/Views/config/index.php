@@ -1503,6 +1503,77 @@
                     </div>
                 </div>
 
+                <!-- Visitor Type Management -->
+                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                    <button onclick="toggleSection('visitortype')" class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                        <div class="flex items-center gap-4">
+                            <div class="p-2 bg-primary/10 rounded-lg">
+                                <span class="material-symbols-outlined text-primary text-xl">category</span>
+                            </div>
+                            <div class="text-left">
+                                <h3 class="text-base font-bold text-gray-800 dark:text-white">Visitor Type Management</h3>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Define visitor categories and routing paths for invitations</p>
+                            </div>
+                        </div>
+                        <span id="visitortype-icon" class="material-symbols-outlined text-gray-400 dark:text-slate-400 transition-transform">expand_more</span>
+                    </button>
+                    <div id="visitortype-content" class="hidden border-t border-gray-200 dark:border-slate-700">
+                        <div class="p-6 bg-gray-50 dark:bg-slate-800/50">
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                                <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                                    <div class="flex shadow-sm w-full sm:w-96">
+                                        <input id="visitorTypeSearchInput" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Search visitor type or path..." type="text" onkeyup="searchVisitorTypes()"/>
+                                        <button onclick="searchVisitorTypes()" class="bg-primary hover:bg-blue-600 text-white px-6 py-2.5 rounded-r flex items-center justify-center transition-colors">
+                                            <span class="material-symbols-outlined text-white text-[20px]">search</span>
+                                        </button>
+                                    </div>
+                                    <div class="relative w-full sm:w-48">
+                                        <select id="visitorTypeSortSelect" onchange="sortVisitorTypes()" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm appearance-none focus:ring-primary focus:border-primary text-gray-700 dark:text-gray-300">
+                                            <option value="created_at_desc">Newest First</option>
+                                            <option value="created_at_asc">Oldest First</option>
+                                            <option value="name_asc">Name (A-Z)</option>
+                                            <option value="name_desc">Name (Z-A)</option>
+                                        </select>
+                                        <span class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-symbols-outlined text-[20px]">expand_more</span>
+                                    </div>
+                                </div>
+                                <button onclick="openCreateVisitorTypeModal()" class="px-4 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm flex items-center gap-2 w-full sm:w-auto">
+                                    <span class="material-symbols-outlined text-base">add</span>
+                                    Add Visitor Type
+                                </button>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-sm">
+                                    <thead class="text-xs text-gray-600 dark:text-slate-400 uppercase border-b border-gray-200 dark:border-slate-700">
+                                        <tr>
+                                            <th class="px-4 py-3">No</th>
+                                            <th class="px-4 py-3">Visitor Type</th>
+                                            <th class="px-4 py-3">Path</th>
+                                            <th class="px-4 py-3 w-36">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="visitorTypeTableBody" class="text-gray-700 dark:text-slate-300">
+                                        <tr>
+                                            <td colspan="4" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
+                                                <div class="flex flex-col items-center justify-center">
+                                                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
+                                                    <span>Loading visitor types...</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div id="visitorTypePagination" class="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6">
+                                <p class="text-sm text-gray-600 dark:text-slate-400">
+                                    Showing <span id="visitorTypeFrom">0</span> to <span id="visitorTypeTo">0</span> of <span id="visitorTypeTotal">0</span> visitor types
+                                </p>
+                                <div id="visitorTypePaginationButtons" class="flex items-center gap-2"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Visitor QR Code Management -->
                 <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('qrcode')" class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
@@ -2219,6 +2290,9 @@
                 // Load visit reasons when Visit Reason Management section is opened
                 if (section === 'reason') {
                     loadVisitReasons();
+                }
+                if (section === 'visitortype') {
+                    loadVisitorTypes();
                 }
             } else {
                 content.classList.add('hidden');
@@ -8997,6 +9071,285 @@
                 modal.remove();
             }
         }
+
+        // Visitor Type Management
+        let currentVisitorTypePage = 1;
+        let visitorTypePerPage = 10;
+        let currentVisitorTypeSearch = '';
+        let currentVisitorTypeSort = 'created_at_desc';
+
+        function loadVisitorTypes(page = 1) {
+            currentVisitorTypePage = page;
+            let sortBy = 'created_at';
+            let sortOrder = 'DESC';
+            if (currentVisitorTypeSort === 'created_at_desc') {
+                sortBy = 'created_at';
+                sortOrder = 'DESC';
+            } else if (currentVisitorTypeSort === 'created_at_asc') {
+                sortBy = 'created_at';
+                sortOrder = 'ASC';
+            } else if (currentVisitorTypeSort === 'name_asc') {
+                sortBy = 'name';
+                sortOrder = 'ASC';
+            } else if (currentVisitorTypeSort === 'name_desc') {
+                sortBy = 'name';
+                sortOrder = 'DESC';
+            }
+
+            fetch(`<?= base_url('config/getVisitorTypes') ?>?page=${page}&per_page=${visitorTypePerPage}&search=${encodeURIComponent(currentVisitorTypeSearch)}&sort_by=${sortBy}&sort_order=${sortOrder}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayVisitorTypes(data.data, data.pagination);
+                    } else {
+                        document.getElementById('visitorTypeTableBody').innerHTML =
+                            '<tr><td colspan="4" class="px-4 py-8 text-center text-red-500">Error loading visitor types</td></tr>';
+                    }
+                })
+                .catch(() => {
+                    document.getElementById('visitorTypeTableBody').innerHTML =
+                        '<tr><td colspan="4" class="px-4 py-8 text-center text-red-500">Failed to load visitor types</td></tr>';
+                });
+        }
+
+        function displayVisitorTypes(rows, pagination) {
+            const tbody = document.getElementById('visitorTypeTableBody');
+            if (!rows.length) {
+                tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">No visitor types found</td></tr>';
+            } else {
+                tbody.innerHTML = rows.map((t, i) => {
+                    const no = (pagination.current_page - 1) * pagination.per_page + i + 1;
+                    const pathText = t.path ? escapeHtml(t.path) : '—';
+                    return `
+                        <tr class="border-b border-gray-100 dark:border-slate-700/80">
+                            <td class="px-4 py-3">${no}</td>
+                            <td class="px-4 py-3 font-medium">${escapeHtml(t.name)}</td>
+                            <td class="px-4 py-3 text-sm text-gray-600 dark:text-slate-400">${pathText}</td>
+                            <td class="px-4 py-3">
+                                <div class="flex items-center gap-2">
+                                    <button type="button" onclick="openEditVisitorTypeModal(${t.id})" class="text-primary hover:text-primary/80">
+                                        <span class="material-symbols-outlined text-[20px]">edit</span>
+                                    </button>
+                                    <button type="button" onclick="deleteVisitorType(${t.id})" class="text-red-500 hover:text-red-400">
+                                        <span class="material-symbols-outlined text-[20px]">delete</span>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>`;
+                }).join('');
+            }
+            document.getElementById('visitorTypeFrom').textContent = pagination.from;
+            document.getElementById('visitorTypeTo').textContent = pagination.to;
+            document.getElementById('visitorTypeTotal').textContent = pagination.total;
+            updateVisitorTypePaginationButtons(pagination);
+        }
+
+        function updateVisitorTypePaginationButtons(pagination) {
+            const container = document.getElementById('visitorTypePaginationButtons');
+            if (!container) return;
+
+            let buttons = '';
+            buttons += `
+                <button type="button" onclick="loadVisitorTypes(${pagination.current_page - 1})"
+                        class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors ${pagination.current_page === 1 ? 'opacity-50 cursor-not-allowed' : ''}"
+                        ${pagination.current_page === 1 ? 'disabled' : ''}>
+                    <span class="material-symbols-outlined text-base">chevron_left</span>
+                </button>`;
+            buttons += `
+                <button type="button" onclick="loadVisitorTypes(1)"
+                        class="px-3 py-2 rounded-lg ${1 === pagination.current_page ? 'bg-primary text-white' : 'border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700'} font-medium text-sm min-w-[40px] transition-colors">1</button>`;
+            if (pagination.current_page > 3) {
+                buttons += '<span class="px-2 text-gray-400">...</span>';
+            }
+            for (let i = Math.max(2, pagination.current_page - 1); i <= Math.min(pagination.last_page - 1, pagination.current_page + 1); i++) {
+                buttons += `
+                    <button type="button" onclick="loadVisitorTypes(${i})"
+                            class="px-3 py-2 rounded-lg ${i === pagination.current_page ? 'bg-primary text-white' : 'border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700'} font-medium text-sm min-w-[40px] transition-colors">${i}</button>`;
+            }
+            if (pagination.current_page < pagination.last_page - 2) {
+                buttons += '<span class="px-2 text-gray-400">...</span>';
+            }
+            if (pagination.last_page > 1) {
+                buttons += `
+                    <button type="button" onclick="loadVisitorTypes(${pagination.last_page})"
+                            class="px-3 py-2 rounded-lg ${pagination.last_page === pagination.current_page ? 'bg-primary text-white' : 'border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700'} font-medium text-sm min-w-[40px] transition-colors">${pagination.last_page}</button>`;
+            }
+            buttons += `
+                <button type="button" onclick="loadVisitorTypes(${pagination.current_page + 1})"
+                        class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors ${pagination.current_page === pagination.last_page ? 'opacity-50 cursor-not-allowed' : ''}"
+                        ${pagination.current_page === pagination.last_page ? 'disabled' : ''}>
+                    <span class="material-symbols-outlined text-base">chevron_right</span>
+                </button>`;
+            container.innerHTML = buttons;
+        }
+
+        function searchVisitorTypes() {
+            currentVisitorTypeSearch = document.getElementById('visitorTypeSearchInput').value;
+            loadVisitorTypes(1);
+        }
+
+        function sortVisitorTypes() {
+            currentVisitorTypeSort = document.getElementById('visitorTypeSortSelect').value;
+            loadVisitorTypes(1);
+        }
+
+        function closeVisitorTypeModal() {
+            const m = document.getElementById('visitorTypeModal');
+            if (m) m.remove();
+        }
+
+        function openCreateVisitorTypeModal() {
+            document.body.insertAdjacentHTML('beforeend', `
+                <div id="visitorTypeModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-md w-full border border-gray-200 dark:border-slate-700">
+                        <div class="px-6 py-4 border-b border-gray-200 dark:border-slate-700 flex justify-between items-center">
+                            <h3 class="text-lg font-bold text-gray-800 dark:text-white">Add Visitor Type</h3>
+                            <button type="button" onclick="closeVisitorTypeModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <form id="visitorTypeForm" class="p-6 space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Visitor Type <span class="text-red-500">*</span></label>
+                                <input type="text" id="visitorTypeName" name="name" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="e.g. BUSINESS MEETING" required>
+                                <span id="visitorTypeError" class="text-red-500 text-xs mt-1 hidden"></span>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Path</label>
+                                <input type="text" id="visitorTypePath" name="path" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Route or workflow reference">
+                            </div>
+                            <div class="flex justify-end gap-3 pt-2">
+                                <button type="button" onclick="closeVisitorTypeModal()" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 text-sm font-medium hover:bg-gray-100 dark:hover:bg-slate-700">Cancel</button>
+                                <button type="submit" class="px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-blue-600">Save</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>`);
+            document.getElementById('visitorTypeForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                createVisitorType();
+            });
+        }
+
+        function createVisitorType() {
+            const formData = new FormData();
+            formData.append('name', document.getElementById('visitorTypeName').value.trim());
+            formData.append('path', document.getElementById('visitorTypePath').value.trim());
+            fetch('<?= base_url('config/createVisitorType') ?>', {
+                method: 'POST',
+                body: formData
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        closeVisitorTypeModal();
+                        loadVisitorTypes(currentVisitorTypePage);
+                        showToast('Visitor type created', 'success');
+                    } else {
+                        const err = document.getElementById('visitorTypeError');
+                        err.textContent = (data.errors && (data.errors.name || data.errors.path)) || data.message || 'Validation failed';
+                        err.classList.remove('hidden');
+                    }
+                })
+                .catch(() => showToast('An error occurred', 'error'));
+        }
+
+        function openEditVisitorTypeModal(id) {
+            fetch(`<?= base_url('config/getVisitorType/') ?>${id}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.success || !data.data) {
+                        showToast(data.message || 'Not found', 'error');
+                        return;
+                    }
+                    const t = data.data;
+                    document.body.insertAdjacentHTML('beforeend', `
+                <div id="visitorTypeModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-md w-full border border-gray-200 dark:border-slate-700">
+                        <div class="px-6 py-4 border-b border-gray-200 dark:border-slate-700 flex justify-between items-center">
+                            <h3 class="text-lg font-bold text-gray-800 dark:text-white">Edit Visitor Type</h3>
+                            <button type="button" onclick="closeVisitorTypeModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <form id="visitorTypeForm" class="p-6 space-y-4">
+                            <input type="hidden" id="visitorTypeId" value="">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Visitor Type <span class="text-red-500">*</span></label>
+                                <input type="text" id="visitorTypeName" name="name" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" required>
+                                <span id="visitorTypeError" class="text-red-500 text-xs mt-1 hidden"></span>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Path</label>
+                                <input type="text" id="visitorTypePath" name="path" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none">
+                            </div>
+                            <div class="flex justify-end gap-3 pt-2">
+                                <button type="button" onclick="closeVisitorTypeModal()" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 text-sm font-medium hover:bg-gray-100 dark:hover:bg-slate-700">Cancel</button>
+                                <button type="submit" class="px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-blue-600">Update</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>`);
+                    document.getElementById('visitorTypeId').value = String(t.id);
+                    document.getElementById('visitorTypeName').value = t.name || '';
+                    document.getElementById('visitorTypePath').value = t.path || '';
+                    document.getElementById('visitorTypeForm').addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        updateVisitorType();
+                    });
+                })
+                .catch(() => showToast('Failed to load visitor type', 'error'));
+        }
+
+        function updateVisitorType() {
+            const id = document.getElementById('visitorTypeId').value;
+            const formData = new FormData();
+            formData.append('name', document.getElementById('visitorTypeName').value.trim());
+            formData.append('path', document.getElementById('visitorTypePath').value.trim());
+            fetch(`<?= base_url('config/updateVisitorType/') ?>${id}`, {
+                method: 'POST',
+                body: formData
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        closeVisitorTypeModal();
+                        loadVisitorTypes(currentVisitorTypePage);
+                        showToast('Visitor type updated', 'success');
+                    } else {
+                        const err = document.getElementById('visitorTypeError');
+                        err.textContent = (data.errors && (data.errors.name || data.errors.path)) || data.message || 'Validation failed';
+                        err.classList.remove('hidden');
+                    }
+                })
+                .catch(() => showToast('An error occurred', 'error'));
+        }
+
+        function deleteVisitorType(id) {
+            if (!confirm('Delete this visitor type? Invitations using it will keep the link cleared (null).')) {
+                return;
+            }
+            fetch(`<?= base_url('config/deleteVisitorType/') ?>${id}`, {
+                method: 'DELETE'
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        loadVisitorTypes(currentVisitorTypePage);
+                        showToast('Visitor type deleted', 'success');
+                    } else {
+                        showToast(data.message, 'error');
+                    }
+                })
+                .catch(() => showToast('An error occurred', 'error'));
+        }
+
+        document.addEventListener('keypress', function(e) {
+            if (e.target && e.target.id === 'visitorTypeSearchInput' && e.key === 'Enter') {
+                e.preventDefault();
+                searchVisitorTypes();
+            }
+        });
 
         // Visit Reason search Enter key
         document.addEventListener('keypress', function(e) {

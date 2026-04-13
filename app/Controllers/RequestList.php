@@ -176,11 +176,12 @@ class RequestList extends BaseController
                 if (!$existing) {
                     $inserted = $invitationVisitorModel->insert([
                         'invitation_id' => $id,
+                        'full_name' => $invitation['full_name'] ?? 'Visitor',
+                        'ic_passport' => ! empty($invitation['ic_passport']) ? $invitation['ic_passport'] : 'PENDING',
+                        'contact' => $invitation['contact'] ?? 'N/A',
                         'visitor_card_id' => null,
                         'check_in_time' => null,
                         'check_out_time' => null,
-                        'created_at' => date('Y-m-d H:i:s'),
-                        'updated_at' => date('Y-m-d H:i:s')
                     ]);
                     
                     log_message('debug', 'Created invitation_visitor record for invitation ID: ' . $id . ', Result: ' . ($inserted ? 'Success' : 'Failed'));

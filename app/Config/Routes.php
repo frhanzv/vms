@@ -33,6 +33,7 @@ $routes->post('requests/approve', 'RequestList::approve');
 $routes->post('requests/reject', 'RequestList::reject');
 $routes->post('requests/pastVisits', 'RequestList::pastVisits');
 $routes->get('visitors', 'VisitorList::index');
+$routes->post('visitors/update', 'VisitorList::updateVisitor');
 $routes->post('visitors/bindCard', 'VisitorList::bindCard');
 $routes->post('visitors/unbindCard', 'VisitorList::unbindCard');
 $routes->get('visitor-pass-request', 'VisitorPassRequest::index');
@@ -175,6 +176,12 @@ $routes->get('config/getVisitReasons', 'Config::getVisitReasons');
 $routes->post('config/createVisitReason', 'Config::createVisitReason');
 $routes->post('config/updateVisitReason/(:num)', 'Config::updateVisitReason/$1');
 $routes->delete('config/deleteVisitReason/(:num)', 'Config::deleteVisitReason/$1');
+
+$routes->get('config/getVisitorTypes', 'Config::getVisitorTypes');
+$routes->get('config/getVisitorType/(:num)', 'Config::getVisitorType/$1');
+$routes->post('config/createVisitorType', 'Config::createVisitorType');
+$routes->post('config/updateVisitorType/(:num)', 'Config::updateVisitorType/$1');
+$routes->delete('config/deleteVisitorType/(:num)', 'Config::deleteVisitorType/$1');
 
 $routes->get('settings', 'Settings::index');
 $routes->post('settings/updateProfile', 'Settings::updateProfile');
