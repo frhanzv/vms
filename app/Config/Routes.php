@@ -185,6 +185,7 @@ $routes->post('settings/removePhoto', 'Settings::removePhoto');
 // Report Routes
 $routes->get('report/access', 'AccessReport::index');
 $routes->post('report/access/generate', 'AccessReport::generate');
+$routes->post('report/access/movementHistory', 'AccessReport::movementHistory');
 $routes->get('report/visitor', 'VisitorReport::index');
 $routes->post('report/visitor/generate', 'VisitorReport::generate');
 $routes->get('report/chronology', 'VisitorChronology::index');

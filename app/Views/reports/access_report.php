@@ -100,6 +100,12 @@
         }
         table.dataTable tbody tr:hover td { background: #f0f7ff; }
         table.dataTable { border-collapse: collapse !important; width: 100% !important; }
+        /* Avoid heavy / dark edge on the right of the report table */
+        #accessTable_wrapper table.dataTable { border-right: none !important; }
+        #accessTable thead th:last-child,
+        #accessTable tbody td:last-child {
+            border-right: none !important;
+        }
 
         /* Flatpickr custom */
         .flatpickr-input {
@@ -115,167 +121,14 @@
 <div class="flex h-screen w-full flex-col">
     <div class="flex flex-1 overflow-hidden">
 
-        <!-- Sidebar -->
-        <aside class="w-64 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col justify-between p-4 hidden md:flex h-full">
-            <div class="flex flex-col gap-8">
-                <div class="flex items-center gap-3 px-2">
-                    <div class="bg-center bg-no-repeat bg-cover rounded-lg size-10 bg-primary/10 flex items-center justify-center text-primary">
-                        <span class="material-symbols-outlined text-3xl">shield_person</span>
-                    </div>
-                    <h1 class="text-lg font-bold tracking-tight text-slate-900 dark:text-white">SafeG</h1>
-                </div>
-                <nav class="flex flex-col gap-2">
-                    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('dashboard') ?>">
-                        <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">dashboard</span>
-                        <p class="text-sm font-medium">Dashboard</p>
-                    </a>
-                    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('invitations') ?>">
-                        <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">mail</span>
-                        <p class="text-sm font-medium">Invitations</p>
-                    </a>
-                    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('requests') ?>">
-                        <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">assignment</span>
-                        <p class="text-sm font-medium">Request List</p>
-                    </a>
-                    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('staffs') ?>">
-                        <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">badge</span>
-                        <p class="text-sm font-medium">Staff Pass List</p>
-                    </a>
-                    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('visitors') ?>">
-                        <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">group</span>
-                        <p class="text-sm font-medium">Visitors List</p>
-                    </a>
-                    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('logbook') ?>">
-                        <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">menu_book</span>
-                        <p class="text-sm font-medium">Visitor Logbook</p>
-                    </a>
-                    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('workflow') ?>">
-                        <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">account_tree</span>
-                        <p class="text-sm font-medium">Visitor Workflow</p>
-                    </a>
-
-                    <!-- Blacklist Dropdown -->
-                    <div x-data="{ openBlacklist: <?= str_contains($current, 'blacklist') ? 'true' : 'false' ?>, openIndividual: <?= str_contains($current, 'blacklist') ? 'true' : 'false' ?> }">
-                        <button type="button" @click="openBlacklist = !openBlacklist"
-                            class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= str_contains($current, 'blacklist') ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
-                            <div class="flex items-center gap-3">
-                                <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">person_cancel</span>
-                                <p class="text-sm font-medium">Blacklist</p>
-                            </div>
-                            <span class="material-symbols-outlined text-[18px] transition-transform duration-200" :class="openBlacklist ? 'rotate-180' : ''">expand_more</span>
-                        </button>
-                        <div x-show="openBlacklist"
-                            x-transition:enter="transition ease-out duration-200"
-                            x-transition:enter-start="opacity-0 -translate-y-1"
-                            x-transition:enter-end="opacity-100 translate-y-0"
-                            x-transition:leave="transition ease-in duration-150"
-                            x-transition:leave-start="opacity-100 translate-y-0"
-                            x-transition:leave-end="opacity-0 -translate-y-1"
-                            class="ml-4 mt-1 flex flex-col gap-1">
-                            <button type="button" @click="openIndividual = !openIndividual"
-                                class="w-full flex items-center justify-between px-3 py-2 rounded-lg <?= str_contains($current, 'blacklist') ? 'text-primary bg-primary/5' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
-                                <div class="flex items-center gap-3">
-                                    <span class="material-symbols-outlined text-[18px] group-hover:scale-110 transition-transform">person</span>
-                                    <p class="text-sm font-medium">Individual</p>
-                                </div>
-                                <span class="material-symbols-outlined text-[16px] transition-transform duration-200" :class="openIndividual ? 'rotate-180' : ''">expand_more</span>
-                            </button>
-                            <div x-show="openIndividual"
-                                x-transition:enter="transition ease-out duration-150"
-                                x-transition:enter-start="opacity-0 -translate-y-1"
-                                x-transition:enter-end="opacity-100 translate-y-0"
-                                x-transition:leave="transition ease-in duration-100"
-                                x-transition:leave-start="opacity-100 translate-y-0"
-                                x-transition:leave-end="opacity-0 -translate-y-1"
-                                class="ml-4 mt-1 flex flex-col gap-1">
-                                <a href="<?= base_url('blacklist/blacklistrequest') ?>"
-                                    class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'blacklist/blacklistrequest' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
-                                    <span class="w-1.5 h-1.5 rounded-full <?= $current == 'blacklist/blacklistrequest' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
-                                    Request List
-                                </a>
-                                <a href="<?= base_url('blacklist/closedlist') ?>"
-                                    class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'blacklist/closedlist' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
-                                    <span class="w-1.5 h-1.5 rounded-full <?= $current == 'blacklist/closedlist' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
-                                    Closed List
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Report Dropdown -->
-                    <div x-data="{ openReport: <?= str_contains($current, 'report') ? 'true' : 'false' ?> }">
-                        <button type="button" @click="openReport = !openReport"
-                            class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= str_contains($current, 'report') ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
-                            <div class="flex items-center gap-3">
-                                <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">description</span>
-                                <p class="text-sm font-medium">REPORT</p>
-                            </div>
-                            <span class="material-symbols-outlined text-[18px] transition-transform duration-200" :class="openReport ? 'rotate-180' : ''">expand_more</span>
-                        </button>
-                        <div x-show="openReport"
-                            x-transition:enter="transition ease-out duration-200"
-                            x-transition:enter-start="opacity-0 -translate-y-1"
-                            x-transition:enter-end="opacity-100 translate-y-0"
-                            x-transition:leave="transition ease-in duration-150"
-                            x-transition:leave-start="opacity-100 translate-y-0"
-                            x-transition:leave-end="opacity-0 -translate-y-1"
-                            class="ml-4 mt-1 flex flex-col gap-1">
-                            <a href="<?= base_url('report/access') ?>"
-                                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'report/access' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
-                                <span class="w-1.5 h-1.5 rounded-full <?= $current == 'report/access' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
-                                ACCESS REPORT
-                            </a>
-                            <a href="<?= base_url('report/visitor') ?>"
-                                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'report/visitor' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
-                                <span class="w-1.5 h-1.5 rounded-full <?= $current == 'report/visitor' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
-                                VISITOR REPORT
-                            </a>
-                        </div>
-                    </div>
-
-                    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('config') ?>">
-                        <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">tune</span>
-                        <p class="text-sm font-medium">Config</p>
-                    </a>
-                    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('settings') ?>">
-                        <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">settings</span>
-                        <p class="text-sm font-medium">Settings</p>
-                    </a>
-                </nav>
-            </div>
-            <div class="border-t border-slate-200 dark:border-slate-700 pt-4 px-2">
-                <div class="flex items-center gap-3">
-                    <div class="size-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shadow-sm ring-2 ring-white dark:ring-slate-900">
-                        <?= strtoupper(substr(session()->get('full_name') ?? 'U', 0, 2)) ?>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <p class="text-sm font-semibold text-slate-900 dark:text-white truncate"><?= esc(session()->get('full_name') ?? 'User') ?></p>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 truncate"><?= esc(ucfirst(session()->get('role') ?? 'User')) ?></p>
-                    </div>
-                    <a href="<?= base_url('auth/logout') ?>" class="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                        <span class="material-symbols-outlined text-xl">logout</span>
-                    </a>
-                </div>
-            </div>
-        </aside>
+        <?= view('reports/partials/report_sidebar', ['current' => $current]) ?>
 
         <!-- Main Content -->
         <main class="flex-1 overflow-y-auto bg-background-light dark:bg-background-dark custom-scrollbar p-6 lg:p-10">
             <div class="mx-auto max-w-7xl flex flex-col gap-6">
 
-                <!-- Top Actions -->
-                <div class="flex justify-end items-center gap-3 mb-1">
-                    <button class="relative p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
-                        <span class="material-symbols-outlined text-[24px]">notifications</span>
-                        <span class="absolute top-2 right-2.5 size-2 bg-red-500 rounded-full border border-white dark:border-slate-900"></span>
-                    </button>
-                    <a href="<?= base_url('auth/logout') ?>" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
-                        <span class="material-symbols-outlined text-[24px]">account_circle</span>
-                    </a>
-                </div>
-
                 <!-- Page Header -->
-                <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 -mt-4">
+                <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
                     <div>
                         <p class="text-xs font-semibold uppercase tracking-widest text-primary mb-1">Reports</p>
                         <h1 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white mb-2">Access Logs Report</h1>
@@ -391,6 +244,7 @@
                                         <th>Total Access</th>
                                         <th>First Access</th>
                                         <th>Last Access</th>
+                                        <th class="text-center">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="tableBody">
@@ -423,9 +277,64 @@
     </div>
 </div>
 
+<!-- Movement history modal -->
+<div id="movementModal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4" aria-modal="true" role="dialog">
+    <div id="movementModalBackdrop" class="absolute inset-0 bg-slate-900/55 dark:bg-black/65"></div>
+    <div class="relative flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+        <div class="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 dark:border-slate-700">
+            <div class="min-w-0">
+                <h2 id="movementModalTitle" class="truncate text-lg font-black tracking-tight text-slate-900 dark:text-white">Movement History</h2>
+                <p id="movementModalStaff" class="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">Staff No: —</p>
+            </div>
+            <button type="button" id="movementModalCloseX" class="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-white" aria-label="Close">
+                <span class="material-symbols-outlined text-[22px]">close</span>
+            </button>
+        </div>
+        <div class="min-h-[220px] flex-1 overflow-y-auto px-5 py-4 custom-scrollbar">
+            <div id="movementModalLoading" class="hidden flex flex-col items-center justify-center gap-3 py-12">
+                <div class="size-9 animate-spin rounded-full border-4 border-primary/20 border-t-primary"></div>
+                <p class="text-sm font-medium text-slate-500">Loading movement history…</p>
+            </div>
+            <table id="movementModalTable" class="hidden w-full border-collapse text-sm">
+                <thead>
+                    <tr class="border-b-2 border-slate-200 bg-slate-50 text-left text-xs font-bold uppercase tracking-wider text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                        <th class="px-3 py-3">Date &amp; Time</th>
+                        <th class="px-3 py-3">Location</th>
+                        <th class="px-3 py-3 text-center">Access</th>
+                        <th class="px-3 py-3">Reason</th>
+                        <th class="px-3 py-3 text-center">Type</th>
+                        <th class="px-3 py-3 text-center">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="movementModalTableBody" class="text-slate-700 dark:text-slate-200"></tbody>
+            </table>
+            <p id="movementModalEmpty" class="hidden py-12 text-center text-sm font-medium text-slate-500">No movement records for this visitor in the selected period.</p>
+        </div>
+        <div class="flex shrink-0 justify-end gap-3 border-t border-slate-200 bg-slate-50/80 px-5 py-4 dark:border-slate-700 dark:bg-slate-900/80">
+            <button type="button" id="movementModalBtnClose" class="rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">
+                Close
+            </button>
+            <button type="button" id="movementModalBtnChronology" class="rounded-lg bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-primary/25 transition-colors hover:bg-primary/90">
+                View Chronology
+            </button>
+        </div>
+    </div>
+</div>
+<input type="hidden" id="movementModalInvitationId" value="">
+<input type="hidden" id="movementModalIcNo" value="">
+
 <script>
     let dtTable = null;
     let reportData = [];
+
+    /** Escape for use inside double-quoted HTML attributes */
+    function escAttr(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
 
     // Init flatpickr datetime pickers
     const today = new Date();
@@ -540,6 +449,15 @@
                 </td>
                 <td class="whitespace-nowrap">${escHtml(v.first_access)}</td>
                 <td class="whitespace-nowrap">${escHtml(v.last_access)}</td>
+                <td class="text-center px-2 py-2">
+                    <button type="button"
+                        class="js-access-view inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm bg-primary/10 text-primary hover:bg-primary/20 transition-colors mx-auto"
+                        data-invitation-id="${escAttr(String(v.invitation_id))}"
+                        data-ic-no="${escAttr(v.ic_no)}">
+                        <span class="material-symbols-outlined text-[18px]">visibility</span>
+                        View
+                    </button>
+                </td>
             `;
             tbody.appendChild(tr);
         });
@@ -557,8 +475,8 @@
                 paginate: { previous: 'Previous', next: 'Next' }
             },
             columnDefs: [
-                { orderable: false, targets: [0] },
-                { className: 'text-center', targets: [0, 8] }
+                { orderable: false, targets: [0, 11] },
+                { className: 'text-center', targets: [0, 8, 11] }
             ]
         });
 
@@ -577,7 +495,7 @@
     function exportCSV() {
         if (!reportData || reportData.length === 0) return;
 
-        const headers = ['No','Visitor Name','Contact No','IC No','Person Visited','Company','Vehicle No','Visit Reason','Total Access','First Access','Last Access'];
+        const headers = ['No','Visitor Name','Contact No','IC No','Person Visited','Company','Vehicle No','Visit Reason','Total Access','First Access','Last Access','Invitation ID'];
         const rows = reportData.map((v, i) => [
             i + 1,
             v.visitor_name,
@@ -589,7 +507,8 @@
             v.visit_reason,
             v.total_access,
             v.first_access,
-            v.last_access
+            v.last_access,
+            v.invitation_id
         ]);
 
         let csv = headers.join(',') + '\n';
@@ -605,6 +524,145 @@
         a.click();
         URL.revokeObjectURL(url);
     }
+
+    function closeMovementModal() {
+        document.getElementById('movementModal').classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+    }
+
+    function movementBadgeYesNo(yes) {
+        if (yes) {
+            return '<span class="inline-flex rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">Yes</span>';
+        }
+        return '<span class="inline-flex rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-bold text-red-800 dark:bg-red-900/40 dark:text-red-300">No</span>';
+    }
+
+    function movementBadgeAction(allowed) {
+        if (allowed) {
+            return '<span class="inline-flex rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">Allowed</span>';
+        }
+        return '<span class="inline-flex rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-bold text-red-800 dark:bg-red-900/40 dark:text-red-300">Not Allowed</span>';
+    }
+
+    function movementTypeBadge(label) {
+        return '<span class="inline-flex rounded-full bg-slate-200 px-2.5 py-0.5 text-xs font-bold text-slate-700 dark:bg-slate-700 dark:text-slate-200">' + escHtml(label) + '</span>';
+    }
+
+    function openMovementHistory(invitationId, icNo) {
+        const locationId = document.getElementById('location_id').value;
+        const fromDatetime = document.getElementById('from_datetime').value;
+        const toDatetime = document.getElementById('to_datetime').value;
+        if (!locationId || !fromDatetime || !toDatetime) {
+            alert('Select location and date range, then generate the report before opening movement history.');
+            return;
+        }
+
+        document.getElementById('movementModalInvitationId').value = String(invitationId);
+        const ic = icNo != null ? String(icNo).trim() : '';
+        document.getElementById('movementModalIcNo').value = (ic && ic !== 'N/A') ? ic : '';
+        document.getElementById('movementModal').classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+        document.getElementById('movementModalLoading').classList.remove('hidden');
+        document.getElementById('movementModalTable').classList.add('hidden');
+        document.getElementById('movementModalEmpty').classList.add('hidden');
+        document.getElementById('movementModalTableBody').innerHTML = '';
+        document.getElementById('movementModalTitle').textContent = 'Movement History';
+        document.getElementById('movementModalStaff').textContent = 'Staff No: —';
+
+        const formData = new FormData();
+        formData.append('invitation_id', invitationId);
+        formData.append('location_id', locationId);
+        formData.append('from_datetime', fromDatetime);
+        formData.append('to_datetime', toDatetime);
+
+        fetch('<?= base_url('report/access/movementHistory') ?>', {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                '<?= csrf_header() ?>': '<?= csrf_hash() ?>'
+            },
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('movementModalLoading').classList.add('hidden');
+            if (!data.success) {
+                alert(data.message || 'Could not load movement history.');
+                closeMovementModal();
+                return;
+            }
+            document.getElementById('movementModalTitle').textContent = 'Movement History — ' + (data.staff_no || '');
+            document.getElementById('movementModalStaff').textContent = 'Staff No: ' + (data.staff_no || '—');
+            const tbody = document.getElementById('movementModalTableBody');
+            tbody.innerHTML = '';
+            if (!data.movements || data.movements.length === 0) {
+                document.getElementById('movementModalEmpty').classList.remove('hidden');
+                return;
+            }
+            document.getElementById('movementModalTable').classList.remove('hidden');
+            data.movements.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.className = 'border-b border-slate-100 dark:border-slate-800';
+                const accessYes = row.access_granted !== false && row.access !== 'No';
+                const actOk = row.action_allowed !== false && row.action !== 'Not Allowed';
+                tr.innerHTML =
+                    '<td class="whitespace-nowrap px-3 py-3 font-medium">' + escHtml(row.date_time) + '</td>' +
+                    '<td class="px-3 py-3">' + escHtml(row.location) + '</td>' +
+                    '<td class="px-3 py-3 text-center">' + movementBadgeYesNo(accessYes) + '</td>' +
+                    '<td class="max-w-[200px] px-3 py-3 text-slate-600 dark:text-slate-400">' + escHtml(row.reason || '—') + '</td>' +
+                    '<td class="px-3 py-3 text-center">' + movementTypeBadge(row.type || 'Checkin') + '</td>' +
+                    '<td class="px-3 py-3 text-center">' + movementBadgeAction(actOk) + '</td>';
+                tbody.appendChild(tr);
+            });
+        })
+        .catch(err => {
+            console.error(err);
+            document.getElementById('movementModalLoading').classList.add('hidden');
+            alert('Failed to load movement history.');
+            closeMovementModal();
+        });
+    }
+
+    document.getElementById('movementModalBackdrop').addEventListener('click', closeMovementModal);
+    document.getElementById('movementModalCloseX').addEventListener('click', closeMovementModal);
+    document.getElementById('movementModalBtnClose').addEventListener('click', closeMovementModal);
+    document.getElementById('movementModalBtnChronology').addEventListener('click', function () {
+        const invitationId = document.getElementById('movementModalInvitationId').value;
+        const icRaw = document.getElementById('movementModalIcNo').value;
+        const locationId = document.getElementById('location_id').value;
+        const fromDatetime = document.getElementById('from_datetime').value;
+        const toDatetime = document.getElementById('to_datetime').value;
+        if (!locationId || !fromDatetime || !toDatetime) return;
+        const q = new URLSearchParams();
+        q.set('location_id', locationId);
+        q.set('from_datetime', fromDatetime);
+        q.set('to_datetime', toDatetime);
+        q.set('auto_search', '1');
+        const ic = (icRaw && icRaw !== 'N/A') ? icRaw.trim() : '';
+        if (ic) {
+            q.set('ic_no', ic);
+        } else if (invitationId) {
+            q.set('invitation_id', invitationId);
+        } else {
+            return;
+        }
+        window.location.href = `<?= base_url('report/chronology') ?>?${q.toString()}`;
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !document.getElementById('movementModal').classList.contains('hidden')) {
+            closeMovementModal();
+        }
+    });
+
+    // Delegated handler: inline onclick breaks when IC contains " (JSON.stringify broke the attribute)
+    $(document).on('click', '#accessTable .js-access-view', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const inv = this.getAttribute('data-invitation-id');
+        const ic = this.getAttribute('data-ic-no');
+        if (inv === null || inv === '') return;
+        openMovementHistory(parseInt(inv, 10), ic || '');
+    });
 </script>
 </body>
 </html>

@@ -199,6 +199,16 @@
                                 <span class="w-1.5 h-1.5 rounded-full <?= $current == 'report/visitor' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
                                 VISITOR REPORT
                             </a>
+                            <a href="<?= base_url('report/chronology') ?>"
+                                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= str_contains($current, 'report/chronology') ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
+                                <span class="w-1.5 h-1.5 rounded-full <?= str_contains($current, 'report/chronology') ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
+                                VISITOR CHRONOLOGY
+                            </a>
+                            <a href="<?= base_url('report/bydoor') ?>"
+                                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= str_contains($current, 'report/bydoor') ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
+                                <span class="w-1.5 h-1.5 rounded-full <?= str_contains($current, 'report/bydoor') ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
+                                VISITOR INFO BY DOOR
+                            </a>
                         </div>
                     </div>
 
@@ -231,19 +241,8 @@
         <!-- Main Content -->
         <main class="flex-1 overflow-y-auto bg-background-light dark:bg-background-dark custom-scrollbar p-6 lg:p-10">
             <div class="mx-auto max-w-7xl flex flex-col gap-6">
-                <!-- Top Actions -->
-                <div class="flex justify-end items-center gap-3 mb-1">
-                    <button class="relative p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
-                        <span class="material-symbols-outlined text-[24px]">notifications</span>
-                        <span class="absolute top-2 right-2.5 size-2 bg-red-500 rounded-full border border-white dark:border-slate-900"></span>
-                    </button>
-                    <a href="<?= base_url('auth/logout') ?>" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
-                        <span class="material-symbols-outlined text-[24px]">account_circle</span>
-                    </a>
-                </div>
-
                 <!-- Header -->
-                <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 -mt-4">
+                <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
                     <div>
                         <h1 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white mb-2">Dynamic Reporting</h1>
                         <p class="text-slate-500 dark:text-slate-400 text-base font-medium max-w-2xl">Build custom reports by selecting data fields, applying filters, and previewing results in real-time.</p>
