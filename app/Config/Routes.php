@@ -197,6 +197,17 @@ $routes->post('settings/updatePassword', 'Settings::updatePassword');
 $routes->post('settings/updatePhoto', 'Settings::updatePhoto');
 $routes->post('settings/removePhoto', 'Settings::removePhoto');
 
+// Report Routes
+$routes->get('report/access', 'AccessReport::index');
+$routes->post('report/access/generate', 'AccessReport::generate');
+$routes->post('report/access/movementHistory', 'AccessReport::movementHistory');
+$routes->get('report/visitor', 'VisitorReport::index');
+$routes->post('report/visitor/generate', 'VisitorReport::generate');
+$routes->get('report/chronology', 'VisitorChronology::index');
+$routes->post('report/chronology/generate', 'VisitorChronology::generate');
+$routes->get('report/bydoor', 'VisitorInfoByDoor::index');
+$routes->post('report/bydoor/generate', 'VisitorInfoByDoor::generate');
+
 // Blacklist Routes
 $routes->get('blacklist/blacklistrequest', 'BlacklistRequest::requestList');
 $routes->get('blacklist/entry', 'BlacklistEntry::index');
