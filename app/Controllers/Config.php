@@ -17,6 +17,8 @@ use App\Models\RejectReasonModel;
 use App\Models\VisitorCardModel;
 use App\Models\VideoModel;
 use App\Models\VisitReasonModel;
+use App\Models\SettingModel;
+use App\Models\DeviceAssignmentModel;
 
 class Config extends BaseController
 {
@@ -35,6 +37,8 @@ class Config extends BaseController
     protected $visitorCardModel;
     protected $videoModel;
     protected $visitReasonModel;
+    protected $settingModel;
+    protected $deviceAssignmentModel;
 
     public function initController(\CodeIgniter\HTTP\RequestInterface $request, \CodeIgniter\HTTP\ResponseInterface $response, \Psr\Log\LoggerInterface $logger)
     {
@@ -55,6 +59,8 @@ class Config extends BaseController
         $this->visitorCardModel = new VisitorCardModel();
         $this->videoModel = new VideoModel();
         $this->visitReasonModel = new VisitReasonModel();
+        $this->settingModel = new SettingModel();
+        $this->deviceAssignmentModel = new DeviceAssignmentModel();
     }
 
     public function index()
@@ -2724,6 +2730,204 @@ class Config extends BaseController
         return $this->response->setJSON([
             'success' => true,
             'message' => 'Visit reason deleted successfully'
+        ]);
+    }
+
+    // ============== DEVICE ASSIGNMENTS METHODS ==============
+
+    public function getDeviceAssignments()
+    {
+        $page = $this->request->getGet('page') ?? 1;
+        $perPage = $this->request->getGet('per_page') ?? 10;
+        $search = $this->request->getGet('search') ?? '';
+        $offset = ($page - 1) * $perPage;
+
+        $devices = $this->deviceAssignmentModel->getDeviceAssignmentsWithPagination($search, $perPage, $offset);
+        $total = $this->deviceAssignmentModel->getTotalDeviceAssignments($search);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => $devices,
+            'pagination' => [
+                'current_page' => (int)$page,
+                'per_page' => (int)$perPage,
+                'total' => $total,
+                'total_pages' => ceil($total / $perPage),
+                'from' => $offset + 1,
+                'to' => min($offset + $perPage, $total)
+            ]
+        ]);
+    }
+
+    public function getDeviceAssignment($id)
+    {
+        $device = $this->deviceAssignmentModel->find($id);
+        if (!$device) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Device not found'])->setStatusCode(404);
+        }
+        return $this->response->setJSON(['success' => true, 'data' => $device]);
+    }
+
+    public function createDeviceAssignment()
+    {
+        $input = $this->request->getJSON(true);
+        $rules = [
+            'device_id' => 'required|max_length[50]',
+            'ip_address' => 'required|valid_ip',
+            'status' => 'required|in_list[Online,Offline]',
+            'registration_status' => 'required|in_list[Registered,Unregistered]',
+            'location_id' => 'required|numeric',
+            'type' => 'required|in_list[Check-In,Check-Out]',
+            'last_heartbeat' => 'permit_empty|valid_date[Y-m-d H:i:s]'
+        ];
+
+        if (!$this->validate($rules)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $this->validator->getErrors()
+            ])->setStatusCode(400);
+        }
+
+        try {
+            if ($this->deviceAssignmentModel->insert($input)) {
+                return $this->response->setJSON(['success' => true, 'message' => 'Device Assignment created successfully']);
+            }
+            return $this->response->setJSON(['success' => false, 'message' => 'Failed to create Device Assignment'])->setStatusCode(500);
+        } catch (\Exception $e) {
+            return $this->response->setJSON(['success' => false, 'message' => $e->getMessage()])->setStatusCode(500);
+        }
+    }
+
+    public function updateDeviceAssignment($id)
+    {
+        if (!$this->deviceAssignmentModel->find($id)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Device not found'])->setStatusCode(404);
+        }
+
+        $input = $this->request->getJSON(true);
+        $rules = [
+            'device_id' => 'required|max_length[50]',
+            'ip_address' => 'required|valid_ip',
+            'status' => 'required|in_list[Online,Offline]',
+            'registration_status' => 'required|in_list[Registered,Unregistered]',
+            'location_id' => 'required|numeric',
+            'type' => 'required|in_list[Check-In,Check-Out]',
+            'last_heartbeat' => 'permit_empty|valid_date[Y-m-d H:i:s]'
+        ];
+
+        if (!$this->validate($rules)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $this->validator->getErrors()
+            ])->setStatusCode(400);
+        }
+
+        if ($this->deviceAssignmentModel->update($id, $input)) {
+            return $this->response->setJSON(['success' => true, 'message' => 'Device Assignment updated successfully']);
+        }
+        return $this->response->setJSON(['success' => false, 'message' => 'Failed to update Device Assignment'])->setStatusCode(500);
+    }
+
+    public function deleteDeviceAssignment($id)
+    {
+        if (!$this->deviceAssignmentModel->find($id)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Device not found'])->setStatusCode(404);
+        }
+        if ($this->deviceAssignmentModel->delete($id)) {
+            return $this->response->setJSON(['success' => true, 'message' => 'Device Assignment deleted successfully']);
+        }
+        return $this->response->setJSON(['success' => false, 'message' => 'Failed to delete Device Assignment'])->setStatusCode(500);
+    }
+
+    public function checkDeviceStatus($id)
+    {
+        $device = $this->deviceAssignmentModel->find($id);
+        if (!$device) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Device not found'])->setStatusCode(404);
+        }
+
+        $ip = $device['ip_address'];
+        $os = strtoupper(substr(PHP_OS, 0, 3));
+        
+        $isOnline = false;
+        
+        // Define if we should do a real hardware ping. Defaults to false (simulation) unless explicitly set to true.
+        $enableRealPing = env('ENABLE_REAL_PING', false);
+
+        if ($enableRealPing) {
+            // Pinging the device with a short timeout. Use 1 ping attempt.
+            if ($os === 'WIN') {
+                exec("ping -n 1 -w 1000 " . escapeshellarg($ip), $output, $result);
+                $isOnline = ($result === 0);
+            } else {
+                exec("ping -c 1 -W 1 " . escapeshellarg($ip), $output, $result);
+                $isOnline = ($result === 0);
+            }
+        } else {
+            // Simulated Ping behavior for development
+            usleep(500000); // Simulate network latency (500ms)
+            // By default, simulate Offline as requested
+            $isOnline = false;
+        }
+
+        $status = $isOnline ? 'Online' : 'Offline';
+        $updateData = ['status' => $status];
+        if ($isOnline) {
+            $updateData['last_heartbeat'] = date('Y-m-d H:i:s');
+        }
+
+        $this->deviceAssignmentModel->update($id, $updateData);
+        $updatedDevice = $this->deviceAssignmentModel->find($id);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'status' => $updatedDevice['status'],
+            'last_heartbeat' => $updatedDevice['last_heartbeat']
+        ]);
+    }
+
+    public function getAllLocations()
+    {
+        return $this->response->setJSON(['success' => true, 'data' => $this->locationModel->findAll()]);
+    }
+
+    // ============== SETTINGS METHODS ==============
+
+    public function getIpRangeSettings()
+    {
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => [
+                'ip_range_from' => $this->settingModel->getSetting('ip_range_from'),
+                'ip_range_to' => $this->settingModel->getSetting('ip_range_to')
+            ]
+        ]);
+    }
+
+    public function saveIpRangeSettings()
+    {
+        $input = $this->request->getJSON(true);
+        $rules = [
+            'ip_range_from' => 'required|valid_ip',
+            'ip_range_to' => 'required|valid_ip'
+        ];
+
+        if (!$this->validate($rules)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $this->validator->getErrors()
+            ])->setStatusCode(400);
+        }
+
+        $this->settingModel->setSetting('ip_range_from', $input['ip_range_from']);
+        $this->settingModel->setSetting('ip_range_to', $input['ip_range_to']);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'IP Range settings saved successfully'
         ]);
     }
 }

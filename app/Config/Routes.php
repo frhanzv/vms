@@ -176,6 +176,21 @@ $routes->post('config/createVisitReason', 'Config::createVisitReason');
 $routes->post('config/updateVisitReason/(:num)', 'Config::updateVisitReason/$1');
 $routes->delete('config/deleteVisitReason/(:num)', 'Config::deleteVisitReason/$1');
 
+// Device Assignments Routes
+$routes->get('config/getDeviceAssignments', 'Config::getDeviceAssignments');
+$routes->get('config/getDeviceAssignment/(:num)', 'Config::getDeviceAssignment/$1');
+$routes->post('config/checkDeviceStatus/(:num)', 'Config::checkDeviceStatus/$1');
+$routes->post('config/createDeviceAssignment', 'Config::createDeviceAssignment');
+$routes->post('config/updateDeviceAssignment/(:num)', 'Config::updateDeviceAssignment/$1');
+$routes->post('config/deleteDeviceAssignment/(:num)', 'Config::deleteDeviceAssignment/$1');
+
+// IP Range Settings
+$routes->get('config/getIpRangeSettings', 'Config::getIpRangeSettings');
+$routes->post('config/saveIpRangeSettings', 'Config::saveIpRangeSettings');
+
+// Additional Location Routes
+$routes->get('config/getAllLocations', 'Config::getAllLocations');
+
 $routes->get('settings', 'Settings::index');
 $routes->post('settings/updateProfile', 'Settings::updateProfile');
 $routes->post('settings/updatePassword', 'Settings::updatePassword');
