@@ -3,16 +3,19 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
+use App\Traits\OptimisticLockTrait;
 
 class SettingModel extends Model
 {
+    use OptimisticLockTrait;
+
     protected $table            = 'settings';
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['setting_key', 'setting_value'];
+    protected $allowedFields    = ['setting_key', 'setting_value', 'version'];
 
     protected bool $allowEmptyInserts = false;
 

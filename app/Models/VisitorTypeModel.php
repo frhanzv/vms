@@ -3,16 +3,19 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
+use App\Traits\OptimisticLockTrait;
 
 class VisitorTypeModel extends Model
 {
+    use OptimisticLockTrait;
+
     protected $table            = 'visitor_types';
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['name', 'path'];
+    protected $allowedFields    = ['name', 'path', 'version'];
 
     protected $useTimestamps = true;
     protected $dateFormat    = 'datetime';

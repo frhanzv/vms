@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
+use App\Traits\OptimisticLockTrait;
 
 class LocationModel extends Model
 {
+    use OptimisticLockTrait;
+
     protected $table = 'locations';
     protected $primaryKey = 'id';
     protected $useAutoIncrement = true;
@@ -15,7 +18,8 @@ class LocationModel extends Model
     protected $allowedFields = [
         'branch', 'location_access', 'adam_ip', 'adam_password', 
         'mobile_app', 'is_hold_area', 'visitor_pass_print', 'turnstile', 
-        'in_out_bound', 'status', 'created_at', 'updated_at'
+        'in_out_bound', 'status', 'created_at', 'updated_at',
+        'version'
     ];
 
     // Dates

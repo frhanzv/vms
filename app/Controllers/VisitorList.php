@@ -29,6 +29,7 @@ class VisitorList extends BaseController
         $db = \Config\Database::connect();
         $builder = $db->table('invitation_visitors iv');
         $baseSelect = 'iv.*, 
+                          iv.version as iv_version,
                           i.full_name as visitor_name, 
                           i.ic_passport as visitor_ic_passport,
                           i.contact as visitor_contact,
@@ -38,6 +39,7 @@ class VisitorList extends BaseController
                           i.vehicle_registration as vehicle_reg,
                           i.location,
                           i.created_at as invitation_created_at,
+                          i.version as invitation_version,
                           sch.id as schedule_id,
                           sch.date_from as sch_date_from,
                           sch.date_to as sch_date_to,
@@ -147,6 +149,8 @@ class VisitorList extends BaseController
                 'check_in_time' => $row['check_in_time'],
                 'check_out_time' => $row['check_out_time'],
                 'visit_date_iso' => $visitDateIso,
+                'iv_version' => (int) ($row['iv_version'] ?? 1),
+                'invitation_version' => (int) ($row['invitation_version'] ?? 1),
             ];
         }
 
@@ -180,6 +184,7 @@ class VisitorList extends BaseController
 
     /**
      * Update invitation visitor record and related invitation / schedule / card fields.
+     * Uses optimistic locking via version column to prevent lost updates.
      */
     public function updateVisitor()
     {
@@ -218,6 +223,10 @@ class VisitorList extends BaseController
         $invitedBy = trim((string) ($payload['invited_by'] ?? ''));
         $visitDateIso = trim((string) ($payload['visit_date_iso'] ?? ''));
 
+        // Version from the client (what they last read)
+        $invitationVersion = (int) ($payload['invitation_version'] ?? $invitation['version'] ?? 1);
+        $ivVersion = (int) ($payload['iv_version'] ?? $iv['version'] ?? 1);
+
         $invitationUpdate = [
             'full_name' => $fullName,
             'ic_passport' => $icPassport,
@@ -238,9 +247,14 @@ class VisitorList extends BaseController
             }
         }
 
-        $this->invitationModel->skipValidation(true);
-        if (! $this->invitationModel->update($invitation['id'], $invitationUpdate)) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Failed to update invitation']);
+        try {
+            $this->invitationModel->skipValidation(true);
+            $this->invitationModel->updateWithLock($invitation['id'], $invitationUpdate, $invitationVersion, 'invitation');
+        } catch (\App\Exceptions\ConcurrencyException $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'This visitor record has been modified by another user. Please refresh and try again.'
+            ]);
         }
 
         $checkIn = $this->normalizeDateTimeInput($payload['check_in_time'] ?? null);
@@ -256,9 +270,14 @@ class VisitorList extends BaseController
             'check_out_time' => $checkOut,
         ];
 
-        $this->invitationVisitorModel->skipValidation(true);
-        if (! $this->invitationVisitorModel->update($invitationVisitorId, $ivUpdate)) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Failed to update visitor row']);
+        try {
+            $this->invitationVisitorModel->skipValidation(true);
+            $this->invitationVisitorModel->updateWithLock($invitationVisitorId, $ivUpdate, $ivVersion, 'visitor');
+        } catch (\App\Exceptions\ConcurrencyException $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'This visitor record has been modified by another user. Please refresh and try again.'
+            ]);
         }
 
         if ($visitDateIso !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $visitDateIso)) {
@@ -319,7 +338,8 @@ class VisitorList extends BaseController
     }
 
     /**
-     * Bind visitor card to invitation visitor
+     * Bind visitor card to invitation visitor.
+     * Uses a transaction to atomically check availability and assign.
      */
     public function bindCard()
     {
@@ -335,96 +355,137 @@ class VisitorList extends BaseController
             ]);
         }
 
-        // If new EPC is provided, create a new card
-        if ($newCardEpc) {
-            // Check if card with this EPC already exists
-            $existingCard = $this->visitorCardModel->where('card_id', $newCardEpc)->first();
-            
-            if ($existingCard) {
-                // Use existing card
-                $cardId = $existingCard['id'];
-                
-                if ($existingCard['status'] !== 'active') {
-                    return $this->response->setJSON([
-                        'success' => false,
-                        'message' => 'This card exists but is not available (status: ' . $existingCard['status'] . ')'
-                    ]);
-                }
-            } else {
-                // Create new card
-                $newCardId = $this->visitorCardModel->insert([
-                    'card_id' => $newCardEpc,
-                    'status' => 'active',
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s')
-                ]);
-                
-                if (!$newCardId) {
-                    return $this->response->setJSON([
-                        'success' => false,
-                        'message' => 'Failed to create new card'
-                    ]);
-                }
-                
-                $cardId = $newCardId;
-            }
-        }
-
-        if (!$cardId) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Please select a card or enter a new EPC number'
-            ]);
-        }
-
-        // Check if card is available
-        $card = $this->visitorCardModel->find($cardId);
-        if (!$card || $card['status'] !== 'active') {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Card is not available'
-            ]);
-        }
-
-        // Check if card is already assigned to another visitor today
         $db = \Config\Database::connect();
-        $existingAssignment = $db->table('invitation_visitors iv')
-            ->join('invitations i', 'i.id = iv.invitation_id')
-            ->where('iv.visitor_card_id', $cardId)
-            ->where('iv.id !=', $invitationVisitorId)
-            ->where('iv.check_out_time IS NULL')
-            ->where('DATE(i.created_at)', date('Y-m-d'))
-            ->get()
-            ->getRowArray();
+        $db->transStart();
 
-        if ($existingAssignment) {
+        try {
+            // If new EPC is provided, create a new card
+            if ($newCardEpc) {
+                $existingCard = $this->visitorCardModel->where('card_id', $newCardEpc)->first();
+                
+                if ($existingCard) {
+                    $cardId = $existingCard['id'];
+                    
+                    if ($existingCard['status'] !== 'active') {
+                        $db->transRollback();
+                        return $this->response->setJSON([
+                            'success' => false,
+                            'message' => 'This card exists but is not available (status: ' . $existingCard['status'] . ')'
+                        ]);
+                    }
+                } else {
+                    $newCardId = $this->visitorCardModel->insert([
+                        'card_id' => $newCardEpc,
+                        'status' => 'active',
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]);
+                    
+                    if (!$newCardId) {
+                        $db->transRollback();
+                        return $this->response->setJSON([
+                            'success' => false,
+                            'message' => 'Failed to create new card'
+                        ]);
+                    }
+                    
+                    $cardId = $newCardId;
+                }
+            }
+
+            if (!$cardId) {
+                $db->transRollback();
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Please select a card or enter a new EPC number'
+                ]);
+            }
+
+            // Lock the card row to prevent concurrent binding
+            $card = $db->query(
+                'SELECT * FROM visitor_cards WHERE id = ? FOR UPDATE',
+                [$cardId]
+            )->getRowArray();
+
+            if (!$card || $card['status'] !== 'active') {
+                $db->transRollback();
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Card is not available (it may have just been assigned to someone else)'
+                ]);
+            }
+
+            // Check visitor hasn't already got a card bound (by another concurrent request)
+            $iv = $db->query(
+                'SELECT * FROM invitation_visitors WHERE id = ? FOR UPDATE',
+                [$invitationVisitorId]
+            )->getRowArray();
+
+            if (!$iv) {
+                $db->transRollback();
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Visitor record not found'
+                ]);
+            }
+
+            if ($iv['visitor_card_id'] && (int)$iv['visitor_card_id'] !== (int)$cardId) {
+                $db->transRollback();
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'A card has already been assigned to this visitor by another user. Please refresh.'
+                ]);
+            }
+
+            // Check card isn't assigned to another visitor today
+            $existingAssignment = $db->table('invitation_visitors iv')
+                ->join('invitations i', 'i.id = iv.invitation_id')
+                ->where('iv.visitor_card_id', $cardId)
+                ->where('iv.id !=', $invitationVisitorId)
+                ->where('iv.check_out_time IS NULL')
+                ->where('DATE(i.created_at)', date('Y-m-d'))
+                ->get()
+                ->getRowArray();
+
+            if ($existingAssignment) {
+                $db->transRollback();
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Card is currently assigned to another visitor'
+                ]);
+            }
+
+            $this->invitationVisitorModel->update($invitationVisitorId, [
+                'visitor_card_id' => $cardId
+            ]);
+
+            $db->transComplete();
+
+            if ($db->transStatus() === false) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Failed to bind card due to a database error'
+                ]);
+            }
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Card bound successfully',
+                'card' => $card
+            ]);
+        } catch (\Exception $e) {
+            $db->transRollback();
+            log_message('error', 'bindCard error: ' . $e->getMessage());
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Card is currently assigned to another visitor'
+                'message' => 'An error occurred: ' . $e->getMessage()
             ]);
         }
-
-        // Bind the card
-        $updated = $this->invitationVisitorModel->update($invitationVisitorId, [
-            'visitor_card_id' => $cardId
-        ]);
-
-        if (!$updated) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Failed to bind card'
-            ]);
-        }
-
-        return $this->response->setJSON([
-            'success' => true,
-            'message' => 'Card bound successfully',
-            'card' => $card
-        ]);
     }
 
     /**
-     * Unbind visitor card from invitation visitor
+     * Unbind visitor card from invitation visitor.
+     * Uses atomic check to prevent double-unbind.
      */
     public function unbindCard()
     {
@@ -437,35 +498,54 @@ class VisitorList extends BaseController
             ]);
         }
 
-        // Get the current card assignment
-        $invitationVisitor = $this->invitationVisitorModel->find($invitationVisitorId);
-        if (!$invitationVisitor || !$invitationVisitor['visitor_card_id']) {
+        $db = \Config\Database::connect();
+        $db->transStart();
+
+        try {
+            // Lock the row
+            $invitationVisitor = $db->query(
+                'SELECT * FROM invitation_visitors WHERE id = ? FOR UPDATE',
+                [$invitationVisitorId]
+            )->getRowArray();
+
+            if (!$invitationVisitor || !$invitationVisitor['visitor_card_id']) {
+                $db->transRollback();
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'No card is currently assigned to this visitor'
+                ]);
+            }
+
+            $cardId = $invitationVisitor['visitor_card_id'];
+
+            $this->invitationVisitorModel->update($invitationVisitorId, [
+                'visitor_card_id' => null
+            ]);
+
+            $this->visitorCardModel->update($cardId, [
+                'status' => 'active'
+            ]);
+
+            $db->transComplete();
+
+            if ($db->transStatus() === false) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Failed to unbind card due to a database error'
+                ]);
+            }
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Card unbound successfully'
+            ]);
+        } catch (\Exception $e) {
+            $db->transRollback();
+            log_message('error', 'unbindCard error: ' . $e->getMessage());
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'No card assigned to this visitor'
+                'message' => 'An error occurred: ' . $e->getMessage()
             ]);
         }
-
-        // Unbind the card
-        $updated = $this->invitationVisitorModel->update($invitationVisitorId, [
-            'visitor_card_id' => null
-        ]);
-
-        if (!$updated) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Failed to unbind card'
-            ]);
-        }
-
-        // Reset card status to active if it was in use
-        $this->visitorCardModel->update($invitationVisitor['visitor_card_id'], [
-            'status' => 'active'
-        ]);
-
-        return $this->response->setJSON([
-            'success' => true,
-            'message' => 'Card unbound successfully'
-        ]);
     }
 }
