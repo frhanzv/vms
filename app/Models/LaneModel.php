@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
+use App\Traits\OptimisticLockTrait;
 
 class LaneModel extends Model
 {
+    use OptimisticLockTrait;
+
     protected $table = 'lanes';
     protected $primaryKey = 'id';
     protected $useAutoIncrement = true;
@@ -33,7 +36,8 @@ class LaneModel extends Model
         'status',
         'rfid_reader_ip',
         'rfid_reader_port',
-        'rfid_enabled'
+        'rfid_enabled',
+        'version'
     ];
 
     // Dates

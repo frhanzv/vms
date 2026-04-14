@@ -3,16 +3,19 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
+use App\Traits\OptimisticLockTrait;
 
 class VideoModel extends Model
 {
+    use OptimisticLockTrait;
+
     protected $table = 'videos';
     protected $primaryKey = 'id';
     protected $useAutoIncrement = true;
     protected $returnType = 'array';
     protected $useSoftDeletes = false;
     protected $protectFields = true;
-    protected $allowedFields = ['name', 'file_path', 'status'];
+    protected $allowedFields = ['name', 'file_path', 'status', 'version'];
 
     // Dates
     protected $useTimestamps = true;

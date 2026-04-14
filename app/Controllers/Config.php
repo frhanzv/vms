@@ -42,6 +42,45 @@ class Config extends BaseController
     protected $settingModel;
     protected $deviceAssignmentModel;
 
+    /**
+     * Version-checked update for config entities.
+     * Reads `version` from the JSON input and uses optimistic locking.
+     * Falls back to a regular update if no version is provided (backward compat).
+     *
+     * @param  \CodeIgniter\Model $model  The model instance
+     * @param  int|string         $id     Primary key
+     * @param  array              $data   Fields to update (version is handled automatically)
+     * @param  array              $input  Raw JSON input (to read 'version' from)
+     * @param  string             $entityType  Human-readable name for error messages
+     * @return \CodeIgniter\HTTP\Response|null  Returns error response on conflict, null on success
+     */
+    protected function versionedUpdate($model, $id, array $data, array $input, string $entityType)
+    {
+        $clientVersion = isset($input['version']) ? (int) $input['version'] : null;
+
+        if ($clientVersion !== null && method_exists($model, 'updateWithLock')) {
+            try {
+                $model->updateWithLock($id, $data, $clientVersion, $entityType);
+                return null;
+            } catch (\App\Exceptions\ConcurrencyException $e) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => $e->getMessage()
+                ])->setStatusCode(409);
+            }
+        }
+
+        if ($model->update($id, $data)) {
+            return null;
+        }
+
+        return $this->response->setJSON([
+            'success' => false,
+            'message' => "Failed to update {$entityType}",
+            'errors' => $model->errors()
+        ])->setStatusCode(500);
+    }
+
     public function initController(\CodeIgniter\HTTP\RequestInterface $request, \CodeIgniter\HTTP\ResponseInterface $response, \Psr\Log\LoggerInterface $logger)
     {
         parent::initController($request, $response, $logger);
@@ -318,17 +357,15 @@ class Config extends BaseController
         ];
 
         try {
-            if ($this->roleModel->update($id, $data)) {
-                return $this->response->setJSON([
-                    'success' => true,
-                    'message' => 'Role updated successfully'
-                ]);
+            $error = $this->versionedUpdate($this->roleModel, $id, $data, $input, 'role');
+            if ($error) {
+                return $error;
             }
 
             return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Failed to update role'
-            ])->setStatusCode(500);
+                'success' => true,
+                'message' => 'Role updated successfully'
+            ]);
         } catch (\Exception $e) {
             log_message('error', 'Error updating role: ' . $e->getMessage());
             return $this->response->setJSON([
@@ -549,17 +586,15 @@ class Config extends BaseController
         }
 
         try {
-            if ($this->userModel->update($id, $data)) {
-                return $this->response->setJSON([
-                    'success' => true,
-                    'message' => 'User updated successfully'
-                ]);
+            $error = $this->versionedUpdate($this->userModel, $id, $data, $input, 'user');
+            if ($error) {
+                return $error;
             }
 
             return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Failed to update user'
-            ])->setStatusCode(500);
+                'success' => true,
+                'message' => 'User updated successfully'
+            ]);
         } catch (\Exception $e) {
             log_message('error', 'Error updating user: ' . $e->getMessage());
             return $this->response->setJSON([
@@ -709,7 +744,7 @@ class Config extends BaseController
     public function updateCompany($id)
     {
         try {
-            $data = $this->request->getJSON(true);
+            $input = $this->request->getJSON(true);
             
             if (!$this->companyModel->find($id)) {
                 return $this->response->setJSON([
@@ -718,18 +753,18 @@ class Config extends BaseController
                 ])->setStatusCode(404);
             }
 
-            if ($this->companyModel->update($id, $data)) {
-                return $this->response->setJSON([
-                    'success' => true,
-                    'message' => 'Company updated successfully'
-                ]);
+            $data = $input;
+            unset($data['version'], $data['id']);
+
+            $error = $this->versionedUpdate($this->companyModel, $id, $data, $input, 'company');
+            if ($error) {
+                return $error;
             }
 
             return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Failed to update company',
-                'errors' => $this->companyModel->errors()
-            ])->setStatusCode(400);
+                'success' => true,
+                'message' => 'Company updated successfully'
+            ]);
         } catch (\Exception $e) {
             log_message('error', 'Error in updateCompany: ' . $e->getMessage());
             return $this->response->setJSON([
@@ -873,8 +908,11 @@ class Config extends BaseController
     public function updateSubCompany($id)
     {
         try {
-            $data = $this->request->getJSON(true);
-            
+            $input = $this->request->getJSON(true);
+            if (! is_array($input)) {
+                $input = [];
+            }
+
             if (!$this->subCompanyModel->find($id)) {
                 return $this->response->setJSON([
                     'success' => false,
@@ -882,18 +920,18 @@ class Config extends BaseController
                 ])->setStatusCode(404);
             }
 
-            if ($this->subCompanyModel->update($id, $data)) {
-                return $this->response->setJSON([
-                    'success' => true,
-                    'message' => 'Sub company updated successfully'
-                ]);
+            $data = $input;
+            unset($data['version'], $data['id']);
+
+            $error = $this->versionedUpdate($this->subCompanyModel, $id, $data, $input, 'sub company');
+            if ($error) {
+                return $error;
             }
 
             return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Failed to update sub company',
-                'errors' => $this->subCompanyModel->errors()
-            ])->setStatusCode(400);
+                'success' => true,
+                'message' => 'Sub company updated successfully'
+            ]);
         } catch (\Exception $e) {
             log_message('error', 'Error in updateSubCompany: ' . $e->getMessage());
             return $this->response->setJSON([
@@ -1061,7 +1099,10 @@ class Config extends BaseController
                 ])->setStatusCode(404);
             }
 
-            $json = $this->request->getJSON(true);
+            $input = $this->request->getJSON(true);
+            if (! is_array($input)) {
+                $input = [];
+            }
 
             $validation = \Config\Services::validation();
             $validation->setRules([
@@ -1070,7 +1111,7 @@ class Config extends BaseController
                 'status' => 'required|in_list[Active,Inactive]'
             ]);
 
-            if (!$validation->run($json)) {
+            if (!$validation->run($input)) {
                 return $this->response->setJSON([
                     'success' => false,
                     'message' => 'Validation failed',
@@ -1079,22 +1120,20 @@ class Config extends BaseController
             }
 
             $data = [
-                'name' => $json['name'],
-                'code' => strtoupper($json['code']),
-                'status' => $json['status']
+                'name' => $input['name'],
+                'code' => strtoupper($input['code']),
+                'status' => $input['status']
             ];
 
-            if ($this->countryModel->update($id, $data)) {
-                return $this->response->setJSON([
-                    'success' => true,
-                    'message' => 'Country updated successfully'
-                ]);
+            $error = $this->versionedUpdate($this->countryModel, $id, $data, $input, 'country');
+            if ($error) {
+                return $error;
             }
 
             return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Failed to update country'
-            ])->setStatusCode(500);
+                'success' => true,
+                'message' => 'Country updated successfully'
+            ]);
         } catch (\Exception $e) {
             log_message('error', 'Error in updateCountry: ' . $e->getMessage());
             return $this->response->setJSON([
@@ -1258,7 +1297,10 @@ class Config extends BaseController
                 ])->setStatusCode(404);
             }
 
-            $json = $this->request->getJSON(true);
+            $input = $this->request->getJSON(true);
+            if (! is_array($input)) {
+                $input = [];
+            }
 
             $validation = \Config\Services::validation();
             $validation->setRules([
@@ -1268,7 +1310,7 @@ class Config extends BaseController
                 'status' => 'required|in_list[active,inactive]'
             ]);
 
-            if (!$validation->run($json)) {
+            if (!$validation->run($input)) {
                 return $this->response->setJSON([
                     'success' => false,
                     'message' => 'Validation failed',
@@ -1277,23 +1319,21 @@ class Config extends BaseController
             }
 
             $data = [
-                'country_id' => $json['country_id'],
-                'name' => $json['name'],
-                'code' => strtoupper($json['code']),
-                'status' => $json['status']
+                'country_id' => $input['country_id'],
+                'name' => $input['name'],
+                'code' => strtoupper($input['code']),
+                'status' => $input['status']
             ];
 
-            if ($this->stateModel->update($id, $data)) {
-                return $this->response->setJSON([
-                    'success' => true,
-                    'message' => 'State updated successfully'
-                ]);
+            $error = $this->versionedUpdate($this->stateModel, $id, $data, $input, 'state');
+            if ($error) {
+                return $error;
             }
 
             return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Failed to update state'
-            ])->setStatusCode(500);
+                'success' => true,
+                'message' => 'State updated successfully'
+            ]);
         } catch (\Exception $e) {
             log_message('error', 'Error in updateState: ' . $e->getMessage());
             return $this->response->setJSON([
@@ -1474,7 +1514,10 @@ class Config extends BaseController
                 ])->setStatusCode(404);
             }
 
-            $json = $this->request->getJSON(true);
+            $input = $this->request->getJSON(true);
+            if (! is_array($input)) {
+                $input = [];
+            }
 
             $validation = \Config\Services::validation();
             $validation->setRules([
@@ -1484,7 +1527,7 @@ class Config extends BaseController
                 'status' => 'required|in_list[active,inactive]'
             ]);
 
-            if (!$validation->run($json)) {
+            if (!$validation->run($input)) {
                 return $this->response->setJSON([
                     'success' => false,
                     'message' => 'Validation failed',
@@ -1493,23 +1536,21 @@ class Config extends BaseController
             }
 
             $data = [
-                'state_id' => $json['state_id'],
-                'name' => $json['name'],
-                'code' => !empty($json['code']) ? strtoupper($json['code']) : null,
-                'status' => $json['status']
+                'state_id' => $input['state_id'],
+                'name' => $input['name'],
+                'code' => !empty($input['code']) ? strtoupper($input['code']) : null,
+                'status' => $input['status']
             ];
 
-            if ($this->cityModel->update($id, $data)) {
-                return $this->response->setJSON([
-                    'success' => true,
-                    'message' => 'City updated successfully'
-                ]);
+            $error = $this->versionedUpdate($this->cityModel, $id, $data, $input, 'city');
+            if ($error) {
+                return $error;
             }
 
             return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Failed to update city'
-            ])->setStatusCode(500);
+                'success' => true,
+                'message' => 'City updated successfully'
+            ]);
         } catch (\Exception $e) {
             log_message('error', 'Error in updateCity: ' . $e->getMessage());
             return $this->response->setJSON([
@@ -1665,19 +1706,21 @@ class Config extends BaseController
             ])->setStatusCode(404);
         }
 
-        $data = $this->request->getJSON(true);
+        $input = $this->request->getJSON(true);
+        if (! is_array($input)) {
+            $input = [];
+        }
+        $data = $input;
+        unset($data['version'], $data['id']);
 
         // Uppercase the code if provided
         if (!empty($data['code'])) {
             $data['code'] = strtoupper($data['code']);
         }
 
-        if (!$this->departmentModel->update($id, $data)) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Failed to update department',
-                'errors' => $this->departmentModel->errors()
-            ])->setStatusCode(400);
+        $error = $this->versionedUpdate($this->departmentModel, $id, $data, $input, 'department');
+        if ($error) {
+            return $error;
         }
 
         return $this->response->setJSON([
@@ -1802,19 +1845,21 @@ class Config extends BaseController
             ])->setStatusCode(404);
         }
 
-        $data = $this->request->getJSON(true);
+        $input = $this->request->getJSON(true);
+        if (! is_array($input)) {
+            $input = [];
+        }
+        $data = $input;
+        unset($data['version'], $data['id']);
 
         // Uppercase the code if provided
         if (!empty($data['code'])) {
             $data['code'] = strtoupper($data['code']);
         }
 
-        if (!$this->designationModel->update($id, $data)) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Failed to update designation',
-                'errors' => $this->designationModel->errors()
-            ])->setStatusCode(400);
+        $error = $this->versionedUpdate($this->designationModel, $id, $data, $input, 'designation');
+        if ($error) {
+            return $error;
         }
 
         return $this->response->setJSON([
@@ -1939,7 +1984,12 @@ class Config extends BaseController
             ])->setStatusCode(404);
         }
 
-        $data = $this->request->getJSON(true);
+        $input = $this->request->getJSON(true);
+        if (! is_array($input)) {
+            $input = [];
+        }
+        $data = $input;
+        unset($data['version'], $data['id']);
 
         // Hash password if provided and not empty
         if (!empty($data['adam_password'])) {
@@ -1949,12 +1999,9 @@ class Config extends BaseController
             unset($data['adam_password']);
         }
 
-        if (!$this->locationModel->update($id, $data)) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Failed to update location',
-                'errors' => $this->locationModel->errors()
-            ])->setStatusCode(400);
+        $error = $this->versionedUpdate($this->locationModel, $id, $data, $input, 'location');
+        if ($error) {
+            return $error;
         }
 
         return $this->response->setJSON([
@@ -2073,14 +2120,16 @@ class Config extends BaseController
             ])->setStatusCode(404);
         }
 
-        $data = $this->request->getJSON(true);
+        $input = $this->request->getJSON(true);
+        if (! is_array($input)) {
+            $input = [];
+        }
+        $data = $input;
+        unset($data['version'], $data['id']);
 
-        if (!$this->laneModel->update($id, $data)) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Failed to update lane',
-                'errors' => $this->laneModel->errors()
-            ])->setStatusCode(400);
+        $error = $this->versionedUpdate($this->laneModel, $id, $data, $input, 'lane');
+        if ($error) {
+            return $error;
         }
 
         return $this->response->setJSON([
@@ -2199,14 +2248,16 @@ class Config extends BaseController
             ])->setStatusCode(404);
         }
 
-        $data = $this->request->getJSON(true);
+        $input = $this->request->getJSON(true);
+        if (! is_array($input)) {
+            $input = [];
+        }
+        $data = $input;
+        unset($data['version'], $data['id']);
 
-        if (!$this->rejectReasonModel->update($id, $data)) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Failed to update reject reason',
-                'errors' => $this->rejectReasonModel->errors()
-            ])->setStatusCode(400);
+        $error = $this->versionedUpdate($this->rejectReasonModel, $id, $data, $input, 'reject reason');
+        if ($error) {
+            return $error;
         }
 
         return $this->response->setJSON([
@@ -2314,17 +2365,18 @@ class Config extends BaseController
             ]);
         }
 
+        $input = $this->request->getJSON(true);
+        if (! is_array($input)) {
+            $input = [];
+        }
         $data = [
-            'card_id' => $this->request->getPost('card_id'),
-            'status' => $this->request->getPost('status')
+            'card_id' => $input['card_id'] ?? null,
+            'status' => $input['status'] ?? null,
         ];
 
-        if (!$this->visitorCardModel->update($id, $data)) {
-            return $this->response->setStatusCode(400)->setJSON([
-                'success' => false,
-                'message' => 'Failed to update visitor card',
-                'errors' => $this->visitorCardModel->errors()
-            ]);
+        $error = $this->versionedUpdate($this->visitorCardModel, $id, $data, $input, 'visitor card');
+        if ($error) {
+            return $error;
         }
 
         return $this->response->setJSON([
@@ -2473,6 +2525,10 @@ class Config extends BaseController
             ]);
         }
 
+        $jsonInput = $this->request->getJSON(true);
+        $input = is_array($jsonInput) ? $jsonInput : [];
+        $input = array_merge($input, $this->request->getPost() ?? []);
+
         // Validate video data manually with ID exclusion
         $validation = \Config\Services::validation();
         $validation->setRules([
@@ -2495,7 +2551,7 @@ class Config extends BaseController
             ]
         ]);
 
-        if (!$validation->run($this->request->getPost())) {
+        if (!$validation->run($input)) {
             return $this->response->setStatusCode(400)->setJSON([
                 'success' => false,
                 'message' => 'Validation failed',
@@ -2504,8 +2560,8 @@ class Config extends BaseController
         }
 
         $data = [
-            'name' => $this->request->getPost('name'),
-            'status' => $this->request->getPost('status')
+            'name' => $input['name'],
+            'status' => $input['status']
         ];
 
         // Check if new video file is uploaded
@@ -2549,15 +2605,11 @@ class Config extends BaseController
 
         // Update without model validation since we already validated
         $this->videoModel->skipValidation(true);
-        if (!$this->videoModel->update($id, $data)) {
-            $this->videoModel->skipValidation(false);
-            return $this->response->setStatusCode(400)->setJSON([
-                'success' => false,
-                'message' => 'Failed to update video',
-                'errors' => $this->videoModel->errors()
-            ]);
-        }
+        $error = $this->versionedUpdate($this->videoModel, $id, $data, $input, 'video');
         $this->videoModel->skipValidation(false);
+        if ($error) {
+            return $error;
+        }
 
         return $this->response->setJSON([
             'success' => true,
@@ -2673,6 +2725,10 @@ class Config extends BaseController
             ]);
         }
 
+        $jsonInput = $this->request->getJSON(true);
+        $input = is_array($jsonInput) ? $jsonInput : [];
+        $input = array_merge($input, $this->request->getPost() ?? []);
+
         // Manual validation with ID exclusion for unique check
         $rules = [
             'reason' => "required|min_length[3]|max_length[255]|is_unique[visit_reasons.reason,id,{$id}]"
@@ -2681,7 +2737,7 @@ class Config extends BaseController
         $validation = \Config\Services::validation();
         $validation->setRules($rules);
 
-        if (!$validation->run($this->request->getPost())) {
+        if (!$validation->run($input)) {
             return $this->response->setStatusCode(400)->setJSON([
                 'success' => false,
                 'message' => 'Validation failed',
@@ -2690,21 +2746,16 @@ class Config extends BaseController
         }
 
         $data = [
-            'reason' => $this->request->getPost('reason')
+            'reason' => $input['reason']
         ];
 
         // Skip model validation since we did it manually
         $this->visitReasonModel->skipValidation(true);
-        
-        if (!$this->visitReasonModel->update($id, $data)) {
-            return $this->response->setStatusCode(500)->setJSON([
-                'success' => false,
-                'message' => 'Failed to update visit reason'
-            ]);
-        }
-
-        // Re-enable validation for future operations
+        $error = $this->versionedUpdate($this->visitReasonModel, $id, $data, $input, 'visit reason');
         $this->visitReasonModel->skipValidation(false);
+        if ($error) {
+            return $error;
+        }
 
         return $this->response->setJSON([
             'success' => true,
@@ -2827,6 +2878,10 @@ class Config extends BaseController
             ]);
         }
 
+        $jsonInput = $this->request->getJSON(true);
+        $input = is_array($jsonInput) ? $jsonInput : [];
+        $input = array_merge($input, $this->request->getPost() ?? []);
+
         $rules = [
             'name' => "required|min_length[2]|max_length[255]|is_unique[visitor_types.name,id,{$id}]",
             'path' => 'permit_empty|max_length[500]',
@@ -2835,7 +2890,7 @@ class Config extends BaseController
         $validation = \Config\Services::validation();
         $validation->setRules($rules);
 
-        if (! $validation->run($this->request->getPost())) {
+        if (! $validation->run($input)) {
             return $this->response->setStatusCode(400)->setJSON([
                 'success' => false,
                 'message' => 'Validation failed',
@@ -2843,21 +2898,17 @@ class Config extends BaseController
             ]);
         }
 
+        $data = [
+            'name' => $input['name'],
+            'path' => $input['path'] ?? '',
+        ];
+
         $this->visitorTypeModel->skipValidation(true);
-
-        if (! $this->visitorTypeModel->update($id, [
-            'name' => $this->request->getPost('name'),
-            'path' => $this->request->getPost('path') ?? '',
-        ])) {
-            $this->visitorTypeModel->skipValidation(false);
-
-            return $this->response->setStatusCode(500)->setJSON([
-                'success' => false,
-                'message' => 'Failed to update visitor type',
-            ]);
-        }
-
+        $error = $this->versionedUpdate($this->visitorTypeModel, $id, $data, $input, 'visitor type');
         $this->visitorTypeModel->skipValidation(false);
+        if ($error) {
+            return $error;
+        }
 
         return $this->response->setJSON([
             'success' => true,
@@ -2888,7 +2939,7 @@ class Config extends BaseController
             'message' => 'Visitor type deleted successfully',
         ]);
     }
-}
+
     // ============== DEVICE ASSIGNMENTS METHODS ==============
 
     public function getDeviceAssignments()
@@ -2962,6 +3013,9 @@ class Config extends BaseController
         }
 
         $input = $this->request->getJSON(true);
+        if (! is_array($input)) {
+            $input = [];
+        }
         $rules = [
             'device_id' => 'required|max_length[50]',
             'ip_address' => 'required|valid_ip',
@@ -2980,10 +3034,15 @@ class Config extends BaseController
             ])->setStatusCode(400);
         }
 
-        if ($this->deviceAssignmentModel->update($id, $input)) {
-            return $this->response->setJSON(['success' => true, 'message' => 'Device Assignment updated successfully']);
+        $data = $input;
+        unset($data['version'], $data['id']);
+
+        $error = $this->versionedUpdate($this->deviceAssignmentModel, $id, $data, $input, 'device assignment');
+        if ($error) {
+            return $error;
         }
-        return $this->response->setJSON(['success' => false, 'message' => 'Failed to update Device Assignment'])->setStatusCode(500);
+
+        return $this->response->setJSON(['success' => true, 'message' => 'Device Assignment updated successfully']);
     }
 
     public function deleteDeviceAssignment($id)

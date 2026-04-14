@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
+use App\Traits\OptimisticLockTrait;
 
 class DeviceAssignmentModel extends Model
 {
+    use OptimisticLockTrait;
+
     protected $table            = 'device_assignments';
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
@@ -19,7 +22,8 @@ class DeviceAssignmentModel extends Model
         'registration_status',
         'location_id',
         'type',
-        'last_heartbeat'
+        'last_heartbeat',
+        'version'
     ];
 
     protected bool $allowEmptyInserts = false;

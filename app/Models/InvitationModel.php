@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
+use App\Traits\OptimisticLockTrait;
 
 class InvitationModel extends Model
 {
+    use OptimisticLockTrait;
+
     protected $table = 'invitations';
     protected $primaryKey = 'id';
     protected $useAutoIncrement = true;
@@ -20,7 +23,8 @@ class InvitationModel extends Model
         'government_id_path', 'invitation_letter_path', 'profile_photo_path',
         'vehicle_category', 'vehicle_type',
         'video_watched', 'video_watched_at', 'video_completion_percentage',
-        'facial_verification_image', 'facial_verified_at', 'checked_in_at'
+        'facial_verification_image', 'facial_verified_at', 'checked_in_at',
+        'version'
     ];
 
     // Dates

@@ -3,16 +3,19 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
+use App\Traits\OptimisticLockTrait;
 
 class UserModel extends Model
 {
+    use OptimisticLockTrait;
+
     protected $table            = 'users';
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['username', 'email', 'password', 'full_name', 'staff_id', 'contact_no', 'role', 'is_active', 'profile_photo'];
+    protected $allowedFields    = ['username', 'email', 'password', 'full_name', 'staff_id', 'contact_no', 'role', 'is_active', 'profile_photo', 'version'];
 
     // Dates
     protected $useTimestamps = true;

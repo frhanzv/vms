@@ -558,6 +558,8 @@
                 <input type="hidden" id="editInvitationVisitorId"/>
                 <input type="hidden" id="editInvitationId"/>
                 <input type="hidden" id="editScheduleId"/>
+                <input type="hidden" id="editIvVersion"/>
+                <input type="hidden" id="editInvitationVersion"/>
                 <div id="visitorSaveError" class="hidden mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-600 dark:text-red-400"></div>
             </div>
 
@@ -672,6 +674,8 @@
             document.getElementById('editInvitationVisitorId').value = visitor.id ?? '';
             document.getElementById('editInvitationId').value = visitor.invitation_id ?? '';
             document.getElementById('editScheduleId').value = visitor.schedule_id != null ? visitor.schedule_id : '';
+            document.getElementById('editIvVersion').value = visitor.iv_version ?? 1;
+            document.getElementById('editInvitationVersion').value = visitor.invitation_version ?? 1;
 
             document.getElementById('editFullName').value = visitor.full_name || '';
             document.getElementById('editIcPassport').value = (visitor.ic_passport && visitor.ic_passport !== 'N/A') ? visitor.ic_passport : '';
@@ -730,6 +734,8 @@
             const ivId = parseInt(document.getElementById('editInvitationVisitorId').value, 10);
             const payload = {
                 invitation_visitor_id: ivId,
+                iv_version: parseInt(document.getElementById('editIvVersion').value, 10) || 1,
+                invitation_version: parseInt(document.getElementById('editInvitationVersion').value, 10) || 1,
                 full_name: document.getElementById('editFullName').value.trim(),
                 ic_passport: document.getElementById('editIcPassport').value.trim(),
                 contact: document.getElementById('editContact').value.trim(),

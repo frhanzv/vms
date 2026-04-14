@@ -2509,6 +2509,7 @@
             <form id="roleForm" onsubmit="submitRoleForm(event)">
                 <div class="p-6 space-y-4">
                     <input type="hidden" id="roleId" name="roleId">
+                    <input type="hidden" id="roleVersion" name="version">
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Role Name
                             <span class="text-red-500">*</span></label>
@@ -3238,6 +3239,7 @@
         function openCreateRoleModal() {
             document.getElementById('roleModalTitle').textContent = 'Create New Role';
             document.getElementById('roleId').value = '';
+            document.getElementById('roleVersion').value = '';
             document.getElementById('roleForm').reset();
             clearRoleErrors();
             document.getElementById('roleModal').classList.remove('hidden');
@@ -3251,6 +3253,7 @@
                     if (data.success) {
                         document.getElementById('roleModalTitle').textContent = 'Edit Role';
                         document.getElementById('roleId').value = data.data.id;
+                        document.getElementById('roleVersion').value = data.data.version || 1;
                         document.getElementById('roleName').value = data.data.name;
                         document.getElementById('roleDescription').value = data.data.description || '';
                         document.getElementById('roleStatus').value = data.data.status;

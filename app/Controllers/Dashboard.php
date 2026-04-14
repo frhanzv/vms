@@ -521,7 +521,8 @@ class Dashboard extends BaseController
     }
     
     /**
-     * Acknowledge a security alert via AJAX
+     * Acknowledge a security alert via AJAX.
+     * Atomic: only acknowledges if not already acknowledged.
      */
     public function acknowledgeAlert()
     {
@@ -538,14 +539,24 @@ class Dashboard extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'Security alerts table not found']);
         }
         
+        // Only acknowledge if not already acknowledged
         $db->table('security_alerts')
             ->where('id', $alertId)
+            ->where('is_acknowledged', 0)
             ->update([
                 'is_acknowledged' => 1,
                 'acknowledged_by' => $userId,
                 'acknowledged_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s'),
             ]);
+        
+        if ($db->affectedRows() === 0) {
+            $alert = $db->table('security_alerts')->where('id', $alertId)->get()->getRowArray();
+            if (!$alert) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Alert not found']);
+            }
+            return $this->response->setJSON(['success' => false, 'message' => 'This alert has already been acknowledged']);
+        }
         
         return $this->response->setJSON(['success' => true, 'message' => 'Alert acknowledged']);
     }

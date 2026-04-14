@@ -150,7 +150,6 @@ class RequestList extends BaseController
         }
 
         try {
-            // Get the invitation
             $invitation = $this->invitationModel->find($id);
             
             if (!$invitation) {
@@ -160,43 +159,77 @@ class RequestList extends BaseController
                 ]);
             }
 
-            // Update status to Approved
-            $updated = $this->invitationModel->update($id, [
-                'status' => 'Approved',
-                'checked_in_at' => date('Y-m-d H:i:s')
-            ]);
-
-            if ($updated) {
-                // Create record in invitation_visitors table for RFID tracking
-                $invitationVisitorModel = new \App\Models\InvitationVisitorModel();
-                
-                // Check if record already exists
-                $existing = $invitationVisitorModel->where('invitation_id', $id)->first();
-                
-                if (!$existing) {
-                    $inserted = $invitationVisitorModel->insert([
-                        'invitation_id' => $id,
-                        'full_name' => $invitation['full_name'] ?? 'Visitor',
-                        'ic_passport' => ! empty($invitation['ic_passport']) ? $invitation['ic_passport'] : 'PENDING',
-                        'contact' => $invitation['contact'] ?? 'N/A',
-                        'visitor_card_id' => null,
-                        'check_in_time' => null,
-                        'check_out_time' => null,
-                    ]);
-                    
-                    log_message('debug', 'Created invitation_visitor record for invitation ID: ' . $id . ', Result: ' . ($inserted ? 'Success' : 'Failed'));
-                }
-                
-                return $this->response->setJSON([
-                    'success' => true,
-                    'message' => 'Request approved successfully'
-                ]);
-            } else {
+            if ($invitation['status'] === 'Approved') {
                 return $this->response->setJSON([
                     'success' => false,
-                    'message' => 'Failed to approve request'
+                    'message' => 'This request has already been approved'
                 ]);
             }
+
+            if ($invitation['status'] === 'Rejected') {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'This request has already been rejected and cannot be approved'
+                ]);
+            }
+
+            if ($invitation['status'] !== 'Submitted') {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Only submitted requests can be approved (current status: ' . $invitation['status'] . ')'
+                ]);
+            }
+
+            $db = \Config\Database::connect();
+            $db->transStart();
+
+            // Atomic update: only succeeds if status is still 'Submitted'
+            $db->table('invitations')
+                ->where('id', $id)
+                ->where('status', 'Submitted')
+                ->update([
+                    'status' => 'Approved',
+                    'checked_in_at' => date('Y-m-d H:i:s'),
+                    'version' => ($invitation['version'] ?? 1) + 1,
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ]);
+
+            if ($db->affectedRows() === 0) {
+                $db->transRollback();
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'This request has already been processed by another user. Please refresh the page.'
+                ]);
+            }
+
+            $invitationVisitorModel = new \App\Models\InvitationVisitorModel();
+            $existing = $invitationVisitorModel->where('invitation_id', $id)->first();
+            
+            if (!$existing) {
+                $invitationVisitorModel->insert([
+                    'invitation_id' => $id,
+                    'full_name' => $invitation['full_name'] ?? 'Visitor',
+                    'ic_passport' => !empty($invitation['ic_passport']) ? $invitation['ic_passport'] : 'PENDING',
+                    'contact' => $invitation['contact'] ?? 'N/A',
+                    'visitor_card_id' => null,
+                    'check_in_time' => null,
+                    'check_out_time' => null,
+                ]);
+            }
+
+            $db->transComplete();
+
+            if ($db->transStatus() === false) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Failed to approve request due to a database error'
+                ]);
+            }
+                
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Request approved successfully'
+            ]);
         } catch (\Exception $e) {
             return $this->response->setJSON([
                 'success' => false,
@@ -219,23 +252,59 @@ class RequestList extends BaseController
         }
 
         try {
-            // Update status to Rejected
-            $updated = $this->invitationModel->update($id, [
-                'status' => 'Rejected',
-                'other_reason' => $reason
-            ]);
+            $invitation = $this->invitationModel->find($id);
 
-            if ($updated) {
-                return $this->response->setJSON([
-                    'success' => true,
-                    'message' => 'Request rejected successfully'
-                ]);
-            } else {
+            if (!$invitation) {
                 return $this->response->setJSON([
                     'success' => false,
-                    'message' => 'Failed to reject request'
+                    'message' => 'Invitation not found'
                 ]);
             }
+
+            if ($invitation['status'] === 'Rejected') {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'This request has already been rejected'
+                ]);
+            }
+
+            if ($invitation['status'] === 'Approved') {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'This request has already been approved and cannot be rejected'
+                ]);
+            }
+
+            if ($invitation['status'] !== 'Submitted') {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Only submitted requests can be rejected (current status: ' . $invitation['status'] . ')'
+                ]);
+            }
+
+            // Atomic update: only succeeds if status is still 'Submitted'
+            $db = \Config\Database::connect();
+            $db->table('invitations')
+                ->where('id', $id)
+                ->where('status', 'Submitted')
+                ->update([
+                    'status' => 'Rejected',
+                    'other_reason' => $reason,
+                    'version' => ($invitation['version'] ?? 1) + 1,
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ]);
+
+            if ($db->affectedRows() === 0) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'This request has already been processed by another user. Please refresh the page.'
+                ]);
+            }
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Request rejected successfully'
+            ]);
         } catch (\Exception $e) {
             return $this->response->setJSON([
                 'success' => false,
