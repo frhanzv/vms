@@ -17,6 +17,9 @@ use App\Models\RejectReasonModel;
 use App\Models\VisitorCardModel;
 use App\Models\VideoModel;
 use App\Models\VisitReasonModel;
+use App\Models\VisitorTypeModel;
+use App\Models\SettingModel;
+use App\Models\DeviceAssignmentModel;
 
 class Config extends BaseController
 {
@@ -35,6 +38,48 @@ class Config extends BaseController
     protected $visitorCardModel;
     protected $videoModel;
     protected $visitReasonModel;
+    protected $visitorTypeModel;
+    protected $settingModel;
+    protected $deviceAssignmentModel;
+
+    /**
+     * Version-checked update for config entities.
+     * Reads `version` from the JSON input and uses optimistic locking.
+     * Falls back to a regular update if no version is provided (backward compat).
+     *
+     * @param  \CodeIgniter\Model $model  The model instance
+     * @param  int|string         $id     Primary key
+     * @param  array              $data   Fields to update (version is handled automatically)
+     * @param  array              $input  Raw JSON input (to read 'version' from)
+     * @param  string             $entityType  Human-readable name for error messages
+     * @return \CodeIgniter\HTTP\Response|null  Returns error response on conflict, null on success
+     */
+    protected function versionedUpdate($model, $id, array $data, array $input, string $entityType)
+    {
+        $clientVersion = isset($input['version']) ? (int) $input['version'] : null;
+
+        if ($clientVersion !== null && method_exists($model, 'updateWithLock')) {
+            try {
+                $model->updateWithLock($id, $data, $clientVersion, $entityType);
+                return null;
+            } catch (\App\Exceptions\ConcurrencyException $e) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => $e->getMessage()
+                ])->setStatusCode(409);
+            }
+        }
+
+        if ($model->update($id, $data)) {
+            return null;
+        }
+
+        return $this->response->setJSON([
+            'success' => false,
+            'message' => "Failed to update {$entityType}",
+            'errors' => $model->errors()
+        ])->setStatusCode(500);
+    }
 
     public function initController(\CodeIgniter\HTTP\RequestInterface $request, \CodeIgniter\HTTP\ResponseInterface $response, \Psr\Log\LoggerInterface $logger)
     {
@@ -55,6 +100,9 @@ class Config extends BaseController
         $this->visitorCardModel = new VisitorCardModel();
         $this->videoModel = new VideoModel();
         $this->visitReasonModel = new VisitReasonModel();
+        $this->visitorTypeModel = new VisitorTypeModel();
+        $this->settingModel = new SettingModel();
+        $this->deviceAssignmentModel = new DeviceAssignmentModel();
     }
 
     public function index()
@@ -309,17 +357,15 @@ class Config extends BaseController
         ];
 
         try {
-            if ($this->roleModel->update($id, $data)) {
-                return $this->response->setJSON([
-                    'success' => true,
-                    'message' => 'Role updated successfully'
-                ]);
+            $error = $this->versionedUpdate($this->roleModel, $id, $data, $input, 'role');
+            if ($error) {
+                return $error;
             }
 
             return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Failed to update role'
-            ])->setStatusCode(500);
+                'success' => true,
+                'message' => 'Role updated successfully'
+            ]);
         } catch (\Exception $e) {
             log_message('error', 'Error updating role: ' . $e->getMessage());
             return $this->response->setJSON([
@@ -540,17 +586,15 @@ class Config extends BaseController
         }
 
         try {
-            if ($this->userModel->update($id, $data)) {
-                return $this->response->setJSON([
-                    'success' => true,
-                    'message' => 'User updated successfully'
-                ]);
+            $error = $this->versionedUpdate($this->userModel, $id, $data, $input, 'user');
+            if ($error) {
+                return $error;
             }
 
             return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Failed to update user'
-            ])->setStatusCode(500);
+                'success' => true,
+                'message' => 'User updated successfully'
+            ]);
         } catch (\Exception $e) {
             log_message('error', 'Error updating user: ' . $e->getMessage());
             return $this->response->setJSON([
@@ -700,7 +744,7 @@ class Config extends BaseController
     public function updateCompany($id)
     {
         try {
-            $data = $this->request->getJSON(true);
+            $input = $this->request->getJSON(true);
             
             if (!$this->companyModel->find($id)) {
                 return $this->response->setJSON([
@@ -709,18 +753,18 @@ class Config extends BaseController
                 ])->setStatusCode(404);
             }
 
-            if ($this->companyModel->update($id, $data)) {
-                return $this->response->setJSON([
-                    'success' => true,
-                    'message' => 'Company updated successfully'
-                ]);
+            $data = $input;
+            unset($data['version'], $data['id']);
+
+            $error = $this->versionedUpdate($this->companyModel, $id, $data, $input, 'company');
+            if ($error) {
+                return $error;
             }
 
             return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Failed to update company',
-                'errors' => $this->companyModel->errors()
-            ])->setStatusCode(400);
+                'success' => true,
+                'message' => 'Company updated successfully'
+            ]);
         } catch (\Exception $e) {
             log_message('error', 'Error in updateCompany: ' . $e->getMessage());
             return $this->response->setJSON([
@@ -864,8 +908,11 @@ class Config extends BaseController
     public function updateSubCompany($id)
     {
         try {
-            $data = $this->request->getJSON(true);
-            
+            $input = $this->request->getJSON(true);
+            if (! is_array($input)) {
+                $input = [];
+            }
+
             if (!$this->subCompanyModel->find($id)) {
                 return $this->response->setJSON([
                     'success' => false,
@@ -873,18 +920,18 @@ class Config extends BaseController
                 ])->setStatusCode(404);
             }
 
-            if ($this->subCompanyModel->update($id, $data)) {
-                return $this->response->setJSON([
-                    'success' => true,
-                    'message' => 'Sub company updated successfully'
-                ]);
+            $data = $input;
+            unset($data['version'], $data['id']);
+
+            $error = $this->versionedUpdate($this->subCompanyModel, $id, $data, $input, 'sub company');
+            if ($error) {
+                return $error;
             }
 
             return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Failed to update sub company',
-                'errors' => $this->subCompanyModel->errors()
-            ])->setStatusCode(400);
+                'success' => true,
+                'message' => 'Sub company updated successfully'
+            ]);
         } catch (\Exception $e) {
             log_message('error', 'Error in updateSubCompany: ' . $e->getMessage());
             return $this->response->setJSON([
@@ -1052,7 +1099,10 @@ class Config extends BaseController
                 ])->setStatusCode(404);
             }
 
-            $json = $this->request->getJSON(true);
+            $input = $this->request->getJSON(true);
+            if (! is_array($input)) {
+                $input = [];
+            }
 
             $validation = \Config\Services::validation();
             $validation->setRules([
@@ -1061,7 +1111,7 @@ class Config extends BaseController
                 'status' => 'required|in_list[Active,Inactive]'
             ]);
 
-            if (!$validation->run($json)) {
+            if (!$validation->run($input)) {
                 return $this->response->setJSON([
                     'success' => false,
                     'message' => 'Validation failed',
@@ -1070,22 +1120,20 @@ class Config extends BaseController
             }
 
             $data = [
-                'name' => $json['name'],
-                'code' => strtoupper($json['code']),
-                'status' => $json['status']
+                'name' => $input['name'],
+                'code' => strtoupper($input['code']),
+                'status' => $input['status']
             ];
 
-            if ($this->countryModel->update($id, $data)) {
-                return $this->response->setJSON([
-                    'success' => true,
-                    'message' => 'Country updated successfully'
-                ]);
+            $error = $this->versionedUpdate($this->countryModel, $id, $data, $input, 'country');
+            if ($error) {
+                return $error;
             }
 
             return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Failed to update country'
-            ])->setStatusCode(500);
+                'success' => true,
+                'message' => 'Country updated successfully'
+            ]);
         } catch (\Exception $e) {
             log_message('error', 'Error in updateCountry: ' . $e->getMessage());
             return $this->response->setJSON([
@@ -1249,7 +1297,10 @@ class Config extends BaseController
                 ])->setStatusCode(404);
             }
 
-            $json = $this->request->getJSON(true);
+            $input = $this->request->getJSON(true);
+            if (! is_array($input)) {
+                $input = [];
+            }
 
             $validation = \Config\Services::validation();
             $validation->setRules([
@@ -1259,7 +1310,7 @@ class Config extends BaseController
                 'status' => 'required|in_list[active,inactive]'
             ]);
 
-            if (!$validation->run($json)) {
+            if (!$validation->run($input)) {
                 return $this->response->setJSON([
                     'success' => false,
                     'message' => 'Validation failed',
@@ -1268,23 +1319,21 @@ class Config extends BaseController
             }
 
             $data = [
-                'country_id' => $json['country_id'],
-                'name' => $json['name'],
-                'code' => strtoupper($json['code']),
-                'status' => $json['status']
+                'country_id' => $input['country_id'],
+                'name' => $input['name'],
+                'code' => strtoupper($input['code']),
+                'status' => $input['status']
             ];
 
-            if ($this->stateModel->update($id, $data)) {
-                return $this->response->setJSON([
-                    'success' => true,
-                    'message' => 'State updated successfully'
-                ]);
+            $error = $this->versionedUpdate($this->stateModel, $id, $data, $input, 'state');
+            if ($error) {
+                return $error;
             }
 
             return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Failed to update state'
-            ])->setStatusCode(500);
+                'success' => true,
+                'message' => 'State updated successfully'
+            ]);
         } catch (\Exception $e) {
             log_message('error', 'Error in updateState: ' . $e->getMessage());
             return $this->response->setJSON([
@@ -1465,7 +1514,10 @@ class Config extends BaseController
                 ])->setStatusCode(404);
             }
 
-            $json = $this->request->getJSON(true);
+            $input = $this->request->getJSON(true);
+            if (! is_array($input)) {
+                $input = [];
+            }
 
             $validation = \Config\Services::validation();
             $validation->setRules([
@@ -1475,7 +1527,7 @@ class Config extends BaseController
                 'status' => 'required|in_list[active,inactive]'
             ]);
 
-            if (!$validation->run($json)) {
+            if (!$validation->run($input)) {
                 return $this->response->setJSON([
                     'success' => false,
                     'message' => 'Validation failed',
@@ -1484,23 +1536,21 @@ class Config extends BaseController
             }
 
             $data = [
-                'state_id' => $json['state_id'],
-                'name' => $json['name'],
-                'code' => !empty($json['code']) ? strtoupper($json['code']) : null,
-                'status' => $json['status']
+                'state_id' => $input['state_id'],
+                'name' => $input['name'],
+                'code' => !empty($input['code']) ? strtoupper($input['code']) : null,
+                'status' => $input['status']
             ];
 
-            if ($this->cityModel->update($id, $data)) {
-                return $this->response->setJSON([
-                    'success' => true,
-                    'message' => 'City updated successfully'
-                ]);
+            $error = $this->versionedUpdate($this->cityModel, $id, $data, $input, 'city');
+            if ($error) {
+                return $error;
             }
 
             return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Failed to update city'
-            ])->setStatusCode(500);
+                'success' => true,
+                'message' => 'City updated successfully'
+            ]);
         } catch (\Exception $e) {
             log_message('error', 'Error in updateCity: ' . $e->getMessage());
             return $this->response->setJSON([
@@ -1656,19 +1706,21 @@ class Config extends BaseController
             ])->setStatusCode(404);
         }
 
-        $data = $this->request->getJSON(true);
+        $input = $this->request->getJSON(true);
+        if (! is_array($input)) {
+            $input = [];
+        }
+        $data = $input;
+        unset($data['version'], $data['id']);
 
         // Uppercase the code if provided
         if (!empty($data['code'])) {
             $data['code'] = strtoupper($data['code']);
         }
 
-        if (!$this->departmentModel->update($id, $data)) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Failed to update department',
-                'errors' => $this->departmentModel->errors()
-            ])->setStatusCode(400);
+        $error = $this->versionedUpdate($this->departmentModel, $id, $data, $input, 'department');
+        if ($error) {
+            return $error;
         }
 
         return $this->response->setJSON([
@@ -1793,19 +1845,21 @@ class Config extends BaseController
             ])->setStatusCode(404);
         }
 
-        $data = $this->request->getJSON(true);
+        $input = $this->request->getJSON(true);
+        if (! is_array($input)) {
+            $input = [];
+        }
+        $data = $input;
+        unset($data['version'], $data['id']);
 
         // Uppercase the code if provided
         if (!empty($data['code'])) {
             $data['code'] = strtoupper($data['code']);
         }
 
-        if (!$this->designationModel->update($id, $data)) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Failed to update designation',
-                'errors' => $this->designationModel->errors()
-            ])->setStatusCode(400);
+        $error = $this->versionedUpdate($this->designationModel, $id, $data, $input, 'designation');
+        if ($error) {
+            return $error;
         }
 
         return $this->response->setJSON([
@@ -1930,7 +1984,12 @@ class Config extends BaseController
             ])->setStatusCode(404);
         }
 
-        $data = $this->request->getJSON(true);
+        $input = $this->request->getJSON(true);
+        if (! is_array($input)) {
+            $input = [];
+        }
+        $data = $input;
+        unset($data['version'], $data['id']);
 
         // Hash password if provided and not empty
         if (!empty($data['adam_password'])) {
@@ -1940,12 +1999,9 @@ class Config extends BaseController
             unset($data['adam_password']);
         }
 
-        if (!$this->locationModel->update($id, $data)) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Failed to update location',
-                'errors' => $this->locationModel->errors()
-            ])->setStatusCode(400);
+        $error = $this->versionedUpdate($this->locationModel, $id, $data, $input, 'location');
+        if ($error) {
+            return $error;
         }
 
         return $this->response->setJSON([
@@ -2064,14 +2120,16 @@ class Config extends BaseController
             ])->setStatusCode(404);
         }
 
-        $data = $this->request->getJSON(true);
+        $input = $this->request->getJSON(true);
+        if (! is_array($input)) {
+            $input = [];
+        }
+        $data = $input;
+        unset($data['version'], $data['id']);
 
-        if (!$this->laneModel->update($id, $data)) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Failed to update lane',
-                'errors' => $this->laneModel->errors()
-            ])->setStatusCode(400);
+        $error = $this->versionedUpdate($this->laneModel, $id, $data, $input, 'lane');
+        if ($error) {
+            return $error;
         }
 
         return $this->response->setJSON([
@@ -2190,14 +2248,16 @@ class Config extends BaseController
             ])->setStatusCode(404);
         }
 
-        $data = $this->request->getJSON(true);
+        $input = $this->request->getJSON(true);
+        if (! is_array($input)) {
+            $input = [];
+        }
+        $data = $input;
+        unset($data['version'], $data['id']);
 
-        if (!$this->rejectReasonModel->update($id, $data)) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Failed to update reject reason',
-                'errors' => $this->rejectReasonModel->errors()
-            ])->setStatusCode(400);
+        $error = $this->versionedUpdate($this->rejectReasonModel, $id, $data, $input, 'reject reason');
+        if ($error) {
+            return $error;
         }
 
         return $this->response->setJSON([
@@ -2305,17 +2365,18 @@ class Config extends BaseController
             ]);
         }
 
+        $input = $this->request->getJSON(true);
+        if (! is_array($input)) {
+            $input = [];
+        }
         $data = [
-            'card_id' => $this->request->getPost('card_id'),
-            'status' => $this->request->getPost('status')
+            'card_id' => $input['card_id'] ?? null,
+            'status' => $input['status'] ?? null,
         ];
 
-        if (!$this->visitorCardModel->update($id, $data)) {
-            return $this->response->setStatusCode(400)->setJSON([
-                'success' => false,
-                'message' => 'Failed to update visitor card',
-                'errors' => $this->visitorCardModel->errors()
-            ]);
+        $error = $this->versionedUpdate($this->visitorCardModel, $id, $data, $input, 'visitor card');
+        if ($error) {
+            return $error;
         }
 
         return $this->response->setJSON([
@@ -2464,6 +2525,10 @@ class Config extends BaseController
             ]);
         }
 
+        $jsonInput = $this->request->getJSON(true);
+        $input = is_array($jsonInput) ? $jsonInput : [];
+        $input = array_merge($input, $this->request->getPost() ?? []);
+
         // Validate video data manually with ID exclusion
         $validation = \Config\Services::validation();
         $validation->setRules([
@@ -2486,7 +2551,7 @@ class Config extends BaseController
             ]
         ]);
 
-        if (!$validation->run($this->request->getPost())) {
+        if (!$validation->run($input)) {
             return $this->response->setStatusCode(400)->setJSON([
                 'success' => false,
                 'message' => 'Validation failed',
@@ -2495,8 +2560,8 @@ class Config extends BaseController
         }
 
         $data = [
-            'name' => $this->request->getPost('name'),
-            'status' => $this->request->getPost('status')
+            'name' => $input['name'],
+            'status' => $input['status']
         ];
 
         // Check if new video file is uploaded
@@ -2540,15 +2605,11 @@ class Config extends BaseController
 
         // Update without model validation since we already validated
         $this->videoModel->skipValidation(true);
-        if (!$this->videoModel->update($id, $data)) {
-            $this->videoModel->skipValidation(false);
-            return $this->response->setStatusCode(400)->setJSON([
-                'success' => false,
-                'message' => 'Failed to update video',
-                'errors' => $this->videoModel->errors()
-            ]);
-        }
+        $error = $this->versionedUpdate($this->videoModel, $id, $data, $input, 'video');
         $this->videoModel->skipValidation(false);
+        if ($error) {
+            return $error;
+        }
 
         return $this->response->setJSON([
             'success' => true,
@@ -2664,6 +2725,10 @@ class Config extends BaseController
             ]);
         }
 
+        $jsonInput = $this->request->getJSON(true);
+        $input = is_array($jsonInput) ? $jsonInput : [];
+        $input = array_merge($input, $this->request->getPost() ?? []);
+
         // Manual validation with ID exclusion for unique check
         $rules = [
             'reason' => "required|min_length[3]|max_length[255]|is_unique[visit_reasons.reason,id,{$id}]"
@@ -2672,7 +2737,7 @@ class Config extends BaseController
         $validation = \Config\Services::validation();
         $validation->setRules($rules);
 
-        if (!$validation->run($this->request->getPost())) {
+        if (!$validation->run($input)) {
             return $this->response->setStatusCode(400)->setJSON([
                 'success' => false,
                 'message' => 'Validation failed',
@@ -2681,21 +2746,16 @@ class Config extends BaseController
         }
 
         $data = [
-            'reason' => $this->request->getPost('reason')
+            'reason' => $input['reason']
         ];
 
         // Skip model validation since we did it manually
         $this->visitReasonModel->skipValidation(true);
-        
-        if (!$this->visitReasonModel->update($id, $data)) {
-            return $this->response->setStatusCode(500)->setJSON([
-                'success' => false,
-                'message' => 'Failed to update visit reason'
-            ]);
-        }
-
-        // Re-enable validation for future operations
+        $error = $this->versionedUpdate($this->visitReasonModel, $id, $data, $input, 'visit reason');
         $this->visitReasonModel->skipValidation(false);
+        if ($error) {
+            return $error;
+        }
 
         return $this->response->setJSON([
             'success' => true,
@@ -2724,6 +2784,365 @@ class Config extends BaseController
         return $this->response->setJSON([
             'success' => true,
             'message' => 'Visit reason deleted successfully'
+        ]);
+    }
+
+    // Visitor Type Management
+    public function getVisitorType($id)
+    {
+        $row = $this->visitorTypeModel->find($id);
+
+        if (! $row) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'success' => false,
+                'message' => 'Visitor type not found',
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data'    => $row,
+        ]);
+    }
+
+    public function getVisitorTypes()
+    {
+        $perPage   = (int) ($this->request->getGet('per_page') ?? 10);
+        $page      = (int) ($this->request->getGet('page') ?? 1);
+        $search    = $this->request->getGet('search') ?? '';
+        $sortBy    = $this->request->getGet('sort_by') ?? 'created_at';
+        $sortOrder = $this->request->getGet('sort_order') ?? 'DESC';
+
+        $offset       = ($page - 1) * $perPage;
+        $totalRecords = $this->visitorTypeModel->countVisitorTypes($search);
+        $rows         = $this->visitorTypeModel->getVisitorTypesPage($perPage, $offset, $search, $sortBy, $sortOrder);
+
+        $from = $totalRecords > 0 ? $offset + 1 : 0;
+        $to   = min($offset + $perPage, $totalRecords);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data'    => $rows,
+            'pagination' => [
+                'total'         => $totalRecords,
+                'per_page'      => $perPage,
+                'current_page'  => $page,
+                'last_page'     => $perPage > 0 ? max(1, (int) ceil($totalRecords / $perPage)) : 1,
+                'from'          => $from,
+                'to'            => $to,
+            ],
+        ]);
+    }
+
+    public function createVisitorType()
+    {
+        $rules = [
+            'name' => 'required|min_length[2]|max_length[255]|is_unique[visitor_types.name]',
+            'path' => 'permit_empty|max_length[500]',
+        ];
+
+        if (! $this->validate($rules)) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors'  => $this->validator->getErrors(),
+            ]);
+        }
+
+        $data = [
+            'name' => $this->request->getPost('name'),
+            'path' => $this->request->getPost('path') ?? '',
+        ];
+
+        if (! $this->visitorTypeModel->insert($data)) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'Failed to create visitor type',
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Visitor type created successfully',
+        ]);
+    }
+
+    public function updateVisitorType($id)
+    {
+        $row = $this->visitorTypeModel->find($id);
+
+        if (! $row) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'success' => false,
+                'message' => 'Visitor type not found',
+            ]);
+        }
+
+        $jsonInput = $this->request->getJSON(true);
+        $input = is_array($jsonInput) ? $jsonInput : [];
+        $input = array_merge($input, $this->request->getPost() ?? []);
+
+        $rules = [
+            'name' => "required|min_length[2]|max_length[255]|is_unique[visitor_types.name,id,{$id}]",
+            'path' => 'permit_empty|max_length[500]',
+        ];
+
+        $validation = \Config\Services::validation();
+        $validation->setRules($rules);
+
+        if (! $validation->run($input)) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors'  => $validation->getErrors(),
+            ]);
+        }
+
+        $data = [
+            'name' => $input['name'],
+            'path' => $input['path'] ?? '',
+        ];
+
+        $this->visitorTypeModel->skipValidation(true);
+        $error = $this->versionedUpdate($this->visitorTypeModel, $id, $data, $input, 'visitor type');
+        $this->visitorTypeModel->skipValidation(false);
+        if ($error) {
+            return $error;
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Visitor type updated successfully',
+        ]);
+    }
+
+    public function deleteVisitorType($id)
+    {
+        $row = $this->visitorTypeModel->find($id);
+
+        if (! $row) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'success' => false,
+                'message' => 'Visitor type not found',
+            ]);
+        }
+
+        if (! $this->visitorTypeModel->delete($id)) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'Failed to delete visitor type',
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Visitor type deleted successfully',
+        ]);
+    }
+
+    // ============== DEVICE ASSIGNMENTS METHODS ==============
+
+    public function getDeviceAssignments()
+    {
+        $page = $this->request->getGet('page') ?? 1;
+        $perPage = $this->request->getGet('per_page') ?? 10;
+        $search = $this->request->getGet('search') ?? '';
+        $offset = ($page - 1) * $perPage;
+
+        $devices = $this->deviceAssignmentModel->getDeviceAssignmentsWithPagination($search, $perPage, $offset);
+        $total = $this->deviceAssignmentModel->getTotalDeviceAssignments($search);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => $devices,
+            'pagination' => [
+                'current_page' => (int)$page,
+                'per_page' => (int)$perPage,
+                'total' => $total,
+                'total_pages' => ceil($total / $perPage),
+                'from' => $offset + 1,
+                'to' => min($offset + $perPage, $total)
+            ]
+        ]);
+    }
+
+    public function getDeviceAssignment($id)
+    {
+        $device = $this->deviceAssignmentModel->find($id);
+        if (!$device) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Device not found'])->setStatusCode(404);
+        }
+        return $this->response->setJSON(['success' => true, 'data' => $device]);
+    }
+
+    public function createDeviceAssignment()
+    {
+        $input = $this->request->getJSON(true);
+        $rules = [
+            'device_id' => 'required|max_length[50]',
+            'ip_address' => 'required|valid_ip',
+            'status' => 'required|in_list[Online,Offline]',
+            'registration_status' => 'required|in_list[Registered,Unregistered]',
+            'location_id' => 'required|numeric',
+            'type' => 'required|in_list[Check-In,Check-Out]',
+            'last_heartbeat' => 'permit_empty|valid_date[Y-m-d H:i:s]'
+        ];
+
+        if (!$this->validate($rules)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $this->validator->getErrors()
+            ])->setStatusCode(400);
+        }
+
+        try {
+            if ($this->deviceAssignmentModel->insert($input)) {
+                return $this->response->setJSON(['success' => true, 'message' => 'Device Assignment created successfully']);
+            }
+            return $this->response->setJSON(['success' => false, 'message' => 'Failed to create Device Assignment'])->setStatusCode(500);
+        } catch (\Exception $e) {
+            return $this->response->setJSON(['success' => false, 'message' => $e->getMessage()])->setStatusCode(500);
+        }
+    }
+
+    public function updateDeviceAssignment($id)
+    {
+        if (!$this->deviceAssignmentModel->find($id)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Device not found'])->setStatusCode(404);
+        }
+
+        $input = $this->request->getJSON(true);
+        if (! is_array($input)) {
+            $input = [];
+        }
+        $rules = [
+            'device_id' => 'required|max_length[50]',
+            'ip_address' => 'required|valid_ip',
+            'status' => 'required|in_list[Online,Offline]',
+            'registration_status' => 'required|in_list[Registered,Unregistered]',
+            'location_id' => 'required|numeric',
+            'type' => 'required|in_list[Check-In,Check-Out]',
+            'last_heartbeat' => 'permit_empty|valid_date[Y-m-d H:i:s]'
+        ];
+
+        if (!$this->validate($rules)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $this->validator->getErrors()
+            ])->setStatusCode(400);
+        }
+
+        $data = $input;
+        unset($data['version'], $data['id']);
+
+        $error = $this->versionedUpdate($this->deviceAssignmentModel, $id, $data, $input, 'device assignment');
+        if ($error) {
+            return $error;
+        }
+
+        return $this->response->setJSON(['success' => true, 'message' => 'Device Assignment updated successfully']);
+    }
+
+    public function deleteDeviceAssignment($id)
+    {
+        if (!$this->deviceAssignmentModel->find($id)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Device not found'])->setStatusCode(404);
+        }
+        if ($this->deviceAssignmentModel->delete($id)) {
+            return $this->response->setJSON(['success' => true, 'message' => 'Device Assignment deleted successfully']);
+        }
+        return $this->response->setJSON(['success' => false, 'message' => 'Failed to delete Device Assignment'])->setStatusCode(500);
+    }
+
+    public function checkDeviceStatus($id)
+    {
+        $device = $this->deviceAssignmentModel->find($id);
+        if (!$device) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Device not found'])->setStatusCode(404);
+        }
+
+        $ip = $device['ip_address'];
+        $os = strtoupper(substr(PHP_OS, 0, 3));
+        
+        $isOnline = false;
+        
+        // Define if we should do a real hardware ping. Defaults to false (simulation) unless explicitly set to true.
+        $enableRealPing = env('ENABLE_REAL_PING', false);
+
+        if ($enableRealPing) {
+            // Pinging the device with a short timeout. Use 1 ping attempt.
+            if ($os === 'WIN') {
+                exec("ping -n 1 -w 1000 " . escapeshellarg($ip), $output, $result);
+                $isOnline = ($result === 0);
+            } else {
+                exec("ping -c 1 -W 1 " . escapeshellarg($ip), $output, $result);
+                $isOnline = ($result === 0);
+            }
+        } else {
+            // Simulated Ping behavior for development
+            usleep(500000); // Simulate network latency (500ms)
+            // By default, simulate Offline as requested
+            $isOnline = false;
+        }
+
+        $status = $isOnline ? 'Online' : 'Offline';
+        $updateData = ['status' => $status];
+        if ($isOnline) {
+            $updateData['last_heartbeat'] = date('Y-m-d H:i:s');
+        }
+
+        $this->deviceAssignmentModel->update($id, $updateData);
+        $updatedDevice = $this->deviceAssignmentModel->find($id);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'status' => $updatedDevice['status'],
+            'last_heartbeat' => $updatedDevice['last_heartbeat']
+        ]);
+    }
+
+    public function getAllLocations()
+    {
+        return $this->response->setJSON(['success' => true, 'data' => $this->locationModel->findAll()]);
+    }
+
+    // ============== SETTINGS METHODS ==============
+
+    public function getIpRangeSettings()
+    {
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => [
+                'ip_range_from' => $this->settingModel->getSetting('ip_range_from'),
+                'ip_range_to' => $this->settingModel->getSetting('ip_range_to')
+            ]
+        ]);
+    }
+
+    public function saveIpRangeSettings()
+    {
+        $input = $this->request->getJSON(true);
+        $rules = [
+            'ip_range_from' => 'required|valid_ip',
+            'ip_range_to' => 'required|valid_ip'
+        ];
+
+        if (!$this->validate($rules)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $this->validator->getErrors()
+            ])->setStatusCode(400);
+        }
+
+        $this->settingModel->setSetting('ip_range_from', $input['ip_range_from']);
+        $this->settingModel->setSetting('ip_range_to', $input['ip_range_to']);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'IP Range settings saved successfully'
         ]);
     }
 }

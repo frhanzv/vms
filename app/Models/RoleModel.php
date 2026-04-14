@@ -3,16 +3,19 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
+use App\Traits\OptimisticLockTrait;
 
 class RoleModel extends Model
 {
+    use OptimisticLockTrait;
+
     protected $table            = 'roles';
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['name', 'description', 'status'];
+    protected $allowedFields    = ['name', 'description', 'status', 'version'];
 
     protected bool $allowEmptyInserts = false;
     protected bool $updateOnlyChanged = true;

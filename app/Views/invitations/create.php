@@ -47,15 +47,15 @@
 </head>
 <body class="bg-background-light dark:bg-background-dark font-sans text-gray-800 dark:text-gray-200 antialiased h-screen flex overflow-hidden transition-colors duration-200">
     <!-- Sidebar -->
-    <aside class="w-64 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col justify-between p-4 hidden md:flex h-full">
-        <div class="flex flex-col gap-8">
+    <aside class="w-64 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col p-4 hidden md:flex h-full overflow-hidden">
+        <div class="flex flex-col gap-8 flex-1 min-h-0">
             <div class="flex items-center gap-3 px-2">
                 <div class="bg-center bg-no-repeat bg-cover rounded-lg size-10 bg-primary/10 flex items-center justify-center text-primary" data-alt="SafeG Logo abstract blue square">
                     <span class="material-symbols-outlined text-3xl">shield_person</span>
                 </div>
                 <h1 class="text-lg font-bold tracking-tight text-slate-900 dark:text-white">SafeG</h1>
             </div>
-            <nav class="flex flex-col gap-2">
+            <nav class="flex flex-col gap-2 overflow-y-auto pr-1 custom-scrollbar">
                 <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('dashboard') ?>">
                     <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">dashboard</span>
                     <p class="text-sm font-medium">Dashboard</p>
@@ -162,6 +162,47 @@
                         </div>
                     </div>
                 </div>
+                <!-- Report Dropdown -->
+                <div x-data="{ openReport: <?= str_contains($current, 'report') ? 'true' : 'false' ?> }">
+                    <button type="button" @click="openReport = !openReport"
+                        class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= str_contains($current, 'report') ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
+                        <div class="flex items-center gap-3">
+                            <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">description</span>
+                            <p class="text-sm font-medium">Report</p>
+                        </div>
+                        <span class="material-symbols-outlined text-[18px] transition-transform duration-200" :class="openReport ? 'rotate-180' : ''">expand_more</span>
+                    </button>
+                    <div x-show="openReport"
+                        x-transition:enter="transition ease-out duration-200"
+                        x-transition:enter-start="opacity-0 -translate-y-1"
+                        x-transition:enter-end="opacity-100 translate-y-0"
+                        x-transition:leave="transition ease-in duration-150"
+                        x-transition:leave-start="opacity-100 translate-y-0"
+                        x-transition:leave-end="opacity-0 -translate-y-1"
+                        class="ml-4 mt-1 flex flex-col gap-1">
+                        <a href="<?= base_url('report/access') ?>"
+                            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'report/access' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
+                            <span class="w-1.5 h-1.5 rounded-full <?= $current == 'report/access' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
+                            Access Report
+                        </a>
+                        <a href="<?= base_url('report/visitor') ?>"
+                            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'report/visitor' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
+                            <span class="w-1.5 h-1.5 rounded-full <?= $current == 'report/visitor' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
+                            Visitor Report
+                        </a>
+                        <a href="<?= base_url('report/chronology') ?>"
+                            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= str_contains($current, 'report/chronology') ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
+                            <span class="w-1.5 h-1.5 rounded-full <?= str_contains($current, 'report/chronology') ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
+                            Visitor Chronology
+                        </a>
+                        <a href="<?= base_url('report/bydoor') ?>"
+                            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= str_contains($current, 'report/bydoor') ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
+                            <span class="w-1.5 h-1.5 rounded-full <?= str_contains($current, 'report/bydoor') ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
+                            Visitor Info By Door
+                        </a>
+                    </div>
+                </div>
+
                 <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('config') ?>">
                     <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">tune</span>
                     <p class="text-sm font-medium">Config</p>
@@ -256,6 +297,23 @@ Staff ID
 </div>
 </div>
 
+<!-- Visitor Type -->
+<div class="flex flex-col gap-2 md:col-span-2">
+<label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Visitor Type <?php if (! empty($visitorTypes)): ?><span class="text-red-500">*</span><?php endif; ?></label>
+<?php if (! empty($visitorTypes)): ?>
+<select name="visitor_type_id" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white" required>
+<option value="">Select visitor type...</option>
+<?php foreach ($visitorTypes as $vt): ?>
+<option value="<?= (int) $vt['id'] ?>"><?= esc($vt['name']) ?></option>
+<?php endforeach; ?>
+</select>
+<p class="text-xs text-slate-500 dark:text-slate-400">Configured under System Configuration → Visitor Type Management. Path is stored for routing reference.</p>
+<?php else: ?>
+<input type="hidden" name="visitor_type_id" value=""/>
+<p class="text-sm text-amber-700 dark:text-amber-400 rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-900/20 px-4 py-3">No visitor types are configured yet. Add them under <strong>Config</strong> → Visitor Type Management, then refresh this page.</p>
+<?php endif; ?>
+</div>
+
 <!-- Name of Company Visited -->
 <div class="flex flex-col gap-2">
 <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Name of Company Visited</label>
@@ -322,26 +380,42 @@ Contact No Of Person Visited
 </div></div>
 </section>
 
-<!-- Visitor Details Section -->
+<!-- Visitor Details Section (multiple rows, same pattern as Visit Schedule) -->
 <section class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden mt-8">
 <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
-<h3 class="text-lg font-bold text-slate-900 dark:text-white">Primary Visitor Details</h3>
-<span class="material-symbols-outlined text-slate-400">person</span>
-</div>
-<div class="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-<div class="flex flex-col gap-2">
-<label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Full Name <span class="text-red-500">*</span></label>
-<input name="full_name" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white" placeholder="Full name as per ID" type="text" required/>
-</div>
-<div class="flex flex-col gap-2">
-<label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Contact Number <span class="text-red-500">*</span></label>
-<input name="contact" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white" placeholder="+60 1x-xxx xxxx" type="tel" required/>
-</div>
-<div class="flex flex-col gap-2">
-<label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Email Address <span class="text-red-500">*</span></label>
-<input name="visitor_email" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white" placeholder="visitor@example.com" type="email" required/>
+<h3 class="text-lg font-bold text-slate-900 dark:text-white">Visitor Details</h3>
+<div class="flex items-center gap-2">
+<button type="button" id="add-visitor" class="text-primary hover:text-primary/80 flex items-center gap-1 text-sm font-semibold" title="Add visitor">
+<span class="material-symbols-outlined text-[20px]">person_add</span>
+Add Visitor
+</button>
+<button type="button" id="remove-last-visitor" class="text-slate-500 hover:text-red-500 flex items-center gap-1 text-sm font-semibold" title="Remove last visitor">
+<span class="material-symbols-outlined text-[20px]">person_remove</span>
+</button>
 </div>
 </div>
+<div id="visitors-container" class="p-6 flex flex-col gap-4">
+<div class="visitor-item flex flex-col lg:flex-row lg:items-end gap-4 p-4 border border-slate-200 dark:border-slate-700 rounded-lg">
+<div class="flex-1 space-y-2">
+<label class="block text-sm font-semibold text-slate-600 dark:text-slate-400">Full Name <span class="text-red-500">*</span></label>
+<input name="visitors[0][full_name]" class="w-full h-12 rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none" placeholder="Full name as per ID" type="text" required/>
+</div>
+<div class="flex-1 space-y-2">
+<label class="block text-sm font-semibold text-slate-600 dark:text-slate-400">Contact Number <span class="text-red-500">*</span></label>
+<input name="visitors[0][contact]" class="w-full h-12 rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none" placeholder="+60 1x-xxx xxxx" type="tel" required/>
+</div>
+<div class="flex-1 space-y-2">
+<label class="block text-sm font-semibold text-slate-600 dark:text-slate-400">Email Address <span class="text-red-500">*</span></label>
+<input name="visitors[0][visitor_email]" class="w-full h-12 rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none" placeholder="visitor@example.com" type="email" required/>
+</div>
+<div class="flex items-center pb-2 lg:pb-0">
+<button type="button" class="remove-visitor text-slate-400 hover:text-red-500 transition-colors p-2 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 opacity-50 pointer-events-none" title="Remove visitor" aria-disabled="true">
+<span class="material-symbols-outlined">remove_circle_outline</span>
+</button>
+</div>
+</div>
+</div>
+<p class="px-6 pb-6 text-xs text-slate-500 dark:text-slate-400 -mt-2">Each visitor receives a separate invitation and registration link. Empty rows are ignored.</p>
 </section>
 
 <!-- Visit Schedule Section -->
@@ -404,77 +478,99 @@ visitReasonSelect.addEventListener('change', function() {
     }
 });
 
-// Dynamic visitor addition
-let visitorCount = 1;
-document.getElementById('add-visitor').addEventListener('click', function() {
-    const container = document.getElementById('visitors-container');
-    visitorCount++;
-    
-    const visitorHTML = `
-        <div class="visitor-item relative p-5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/20 group hover:border-primary/30 transition-colors">
-            <div class="absolute right-4 top-4">
-                <button type="button" class="remove-visitor text-slate-400 hover:text-red-500 transition-colors p-1 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20" title="Remove Visitor">
-                    <span class="material-symbols-outlined text-[20px]">delete</span>
-                </button>
-            </div>
-            <h4 class="text-sm font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                <span class="visitor-number flex items-center justify-center size-6 rounded-full bg-primary/10 text-primary text-xs">${visitorCount}</span>
-                Visitor Information
-            </h4>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="flex flex-col gap-2">
-                    <label class="text-xs font-semibold text-slate-600 dark:text-slate-400">Full Name</label>
-                    <input name="visitors[${visitorCount-1}][name]" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm focus:border-primary focus:ring-primary dark:text-white" placeholder="Full name as per ID" type="text" required/>
-                </div>
-                <div class="flex flex-col gap-2">
-                    <label class="text-xs font-semibold text-slate-600 dark:text-slate-400">Contact Number</label>
-                    <input name="visitors[${visitorCount-1}][contact]" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm focus:border-primary focus:ring-primary dark:text-white" placeholder="+60 1x-xxx xxxx" type="tel" required/>
-                </div>
-                <div class="flex flex-col gap-2">
-                    <label class="text-xs font-semibold text-slate-600 dark:text-slate-400">Email Address</label>
-                    <input name="visitors[${visitorCount-1}][email]" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm focus:border-primary focus:ring-primary dark:text-white" placeholder="visitor@example.com" type="email" required/>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    container.insertAdjacentHTML('beforeend', visitorHTML);
-    document.getElementById('visitor-count').value = visitorCount;
-    updateVisitorNumbers();
-});
+// Dynamic visitor rows (same indexing approach as schedules)
+let visitorRowCount = 1;
 
-// Remove visitor
-document.addEventListener('click', function(e) {
-    if (e.target.closest('.remove-visitor')) {
-        const visitorItems = document.querySelectorAll('.visitor-item');
-        if (visitorItems.length > 1) {
-            e.target.closest('.visitor-item').remove();
-            visitorCount--;
-            document.getElementById('visitor-count').value = visitorCount;
-            updateVisitorNumbers();
-        }
+function visitorFieldTemplate(index, field) {
+    const base = 'w-full h-12 rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none';
+    if (field === 'full_name') {
+        return `<input name="visitors[${index}][full_name]" class="${base}" placeholder="Full name as per ID" type="text" required/>`;
     }
-});
+    if (field === 'contact') {
+        return `<input name="visitors[${index}][contact]" class="${base}" placeholder="+60 1x-xxx xxxx" type="tel" required/>`;
+    }
+    return `<input name="visitors[${index}][visitor_email]" class="${base}" placeholder="visitor@example.com" type="email" required/>`;
+}
 
-// Update visitor numbers
-function updateVisitorNumbers() {
-    const visitorItems = document.querySelectorAll('.visitor-item');
-    visitorItems.forEach((item, index) => {
-        const numberSpan = item.querySelector('.visitor-number');
-        if (numberSpan) {
-            numberSpan.textContent = index + 1;
-        }
-        // Update input names
+function updateVisitorRemoveButtons() {
+    const items = document.querySelectorAll('#visitors-container .visitor-item');
+    items.forEach((item, i) => {
+        const btn = item.querySelector('.remove-visitor');
+        if (!btn) return;
+        const onlyOne = items.length <= 1;
+        btn.classList.toggle('opacity-50', onlyOne);
+        btn.classList.toggle('pointer-events-none', onlyOne);
+        btn.toggleAttribute('aria-disabled', onlyOne);
+    });
+}
+
+function reindexVisitorRows() {
+    const items = document.querySelectorAll('#visitors-container .visitor-item');
+    items.forEach((item, index) => {
         const inputs = item.querySelectorAll('input');
         inputs.forEach(input => {
-            const name = input.getAttribute('name');
-            if (name && name.startsWith('visitors[')) {
-                const fieldName = name.split('][')[1].replace(']', '');
-                input.setAttribute('name', `visitors[${index}][${fieldName}]`);
+            const n = input.getAttribute('name');
+            if (!n || !n.startsWith('visitors[')) return;
+            const m = n.match(/^visitors\[\d+\]\[(full_name|contact|visitor_email)\]$/);
+            if (m) {
+                input.setAttribute('name', 'visitors[' + index + '][' + m[1] + ']');
             }
         });
     });
+    visitorRowCount = items.length;
+    updateVisitorRemoveButtons();
 }
+
+document.getElementById('add-visitor').addEventListener('click', function() {
+    const container = document.getElementById('visitors-container');
+    const idx = container.querySelectorAll('.visitor-item').length;
+    const row = document.createElement('div');
+    row.className = 'visitor-item flex flex-col lg:flex-row lg:items-end gap-4 p-4 border border-slate-200 dark:border-slate-700 rounded-lg';
+    row.innerHTML = `
+        <div class="flex-1 space-y-2">
+            <label class="block text-sm font-semibold text-slate-600 dark:text-slate-400">Full Name <span class="text-red-500">*</span></label>
+            ${visitorFieldTemplate(idx, 'full_name')}
+        </div>
+        <div class="flex-1 space-y-2">
+            <label class="block text-sm font-semibold text-slate-600 dark:text-slate-400">Contact Number <span class="text-red-500">*</span></label>
+            ${visitorFieldTemplate(idx, 'contact')}
+        </div>
+        <div class="flex-1 space-y-2">
+            <label class="block text-sm font-semibold text-slate-600 dark:text-slate-400">Email Address <span class="text-red-500">*</span></label>
+            ${visitorFieldTemplate(idx, 'visitor_email')}
+        </div>
+        <div class="flex items-center pb-2 lg:pb-0">
+            <button type="button" class="remove-visitor text-slate-400 hover:text-red-500 transition-colors p-2 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20" title="Remove visitor">
+                <span class="material-symbols-outlined">remove_circle_outline</span>
+            </button>
+        </div>
+    `;
+    container.appendChild(row);
+    reindexVisitorRows();
+});
+
+document.getElementById('remove-last-visitor').addEventListener('click', function() {
+    const container = document.getElementById('visitors-container');
+    const items = container.querySelectorAll('.visitor-item');
+    if (items.length > 1) {
+        items[items.length - 1].remove();
+        reindexVisitorRows();
+    }
+});
+
+document.addEventListener('click', function(e) {
+    const rm = e.target.closest('.remove-visitor');
+    if (!rm || rm.getAttribute('aria-disabled') === 'true') return;
+    const row = rm.closest('.visitor-item');
+    if (!row) return;
+    const items = document.querySelectorAll('#visitors-container .visitor-item');
+    if (items.length > 1) {
+        row.remove();
+        reindexVisitorRows();
+    }
+});
+
+updateVisitorRemoveButtons();
 
 // Dynamic schedule addition
 let scheduleCount = 1;

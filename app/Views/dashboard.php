@@ -54,15 +54,15 @@
 <body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white overflow-hidden">
 <div class="flex h-screen w-full">
     <!-- Sidebar -->
-    <aside class="w-64 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-surface-light dark:bg-surface-dark flex flex-col justify-between p-4 hidden md:flex h-full">
-        <div class="flex flex-col gap-8">
+    <aside class="w-64 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-surface-light dark:bg-surface-dark flex flex-col p-4 hidden md:flex h-full overflow-hidden">
+        <div class="flex flex-col gap-8 flex-1 min-h-0">
             <div class="flex items-center gap-3 px-2">
                 <div class="bg-center bg-no-repeat bg-cover rounded-lg size-10 bg-primary/10 flex items-center justify-center text-primary" data-alt="SafeG Logo abstract blue square">
                     <span class="material-symbols-outlined text-3xl">shield_person</span>
                 </div>
                 <h1 class="text-lg font-bold tracking-tight text-slate-900 dark:text-white">SafeG</h1>
             </div>
-            <nav class="flex flex-col gap-2">
+            <nav class="flex flex-col gap-2 overflow-y-auto pr-1 custom-scrollbar">
                 <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary group transition-colors" href="<?= base_url('dashboard') ?>">
                     <span class="material-symbols-outlined text-[22px] font-medium fill-1 group-hover:scale-110 transition-transform">dashboard</span>
                     <p class="text-sm font-semibold">Dashboard</p>
@@ -170,7 +170,48 @@
                         </div>
                     </div>
                 </div>
-                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('config') ?>">
+                    <!-- Report Dropdown -->
+                    <div x-data="{ openReport: <?= str_contains($current, 'report') ? 'true' : 'false' ?> }">
+                        <button type="button" @click="openReport = !openReport"
+                            class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= str_contains($current, 'report') ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
+                            <div class="flex items-center gap-3">
+                                <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">description</span>
+                                <p class="text-sm font-medium">Report</p>
+                            </div>
+                            <span class="material-symbols-outlined text-[18px] transition-transform duration-200" :class="openReport ? 'rotate-180' : ''">expand_more</span>
+                        </button>
+                        <div x-show="openReport"
+                            x-transition:enter="transition ease-out duration-200"
+                            x-transition:enter-start="opacity-0 -translate-y-1"
+                            x-transition:enter-end="opacity-100 translate-y-0"
+                            x-transition:leave="transition ease-in duration-150"
+                            x-transition:leave-start="opacity-100 translate-y-0"
+                            x-transition:leave-end="opacity-0 -translate-y-1"
+                            class="ml-4 mt-1 flex flex-col gap-1">
+                            <a href="<?= base_url('report/access') ?>"
+                                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'report/access' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
+                                <span class="w-1.5 h-1.5 rounded-full <?= $current == 'report/access' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
+                                Access Report
+                            </a>
+                            <a href="<?= base_url('report/visitor') ?>"
+                                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'report/visitor' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
+                                <span class="w-1.5 h-1.5 rounded-full <?= $current == 'report/visitor' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
+                                Visitor Report
+                            </a>
+                            <a href="<?= base_url('report/chronology') ?>"
+                                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= str_contains($current, 'report/chronology') ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
+                                <span class="w-1.5 h-1.5 rounded-full <?= str_contains($current, 'report/chronology') ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
+                                Visitor Chronology
+                            </a>
+                            <a href="<?= base_url('report/bydoor') ?>"
+                                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= str_contains($current, 'report/bydoor') ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
+                                <span class="w-1.5 h-1.5 rounded-full <?= str_contains($current, 'report/bydoor') ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
+                                Visitor Info By Door
+                            </a>
+                        </div>
+                    </div>
+
+                    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('config') ?>">
                     <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">tune</span>
                     <p class="text-sm font-medium">Config</p>
                 </a>
@@ -701,7 +742,7 @@
     </main>
 </div>
 <script>
-function acknowledgeAlert(id){fetch('<?= base_url('dashboard/acknowledgeAlert') ?>',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-Requested-With':'XMLHttpRequest'},body:'alert_id='+id}).then(r=>r.json()).then(d=>{if(d.success){const b=document.getElementById('alert-banner-'+id);if(b){b.style.transition='opacity .4s,transform .4s';b.style.opacity='0';b.style.transform='translateY(-10px)';setTimeout(()=>b.remove(),400)}}})}
+function acknowledgeAlert(id){fetch('<?= base_url('dashboard/acknowledgeAlert') ?>',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-Requested-With':'XMLHttpRequest'},body:'alert_id='+id}).then(r=>r.json()).then(d=>{if(d.success){const b=document.getElementById('alert-banner-'+id);if(b){b.style.transition='opacity .4s,transform .4s';b.style.opacity='0';b.style.transform='translateY(-10px)';setTimeout(()=>b.remove(),400)}}else{const b=document.getElementById('alert-banner-'+id);if(b){b.style.transition='opacity .4s,transform .4s';b.style.opacity='0';setTimeout(()=>b.remove(),400)}if(d.message)console.log(d.message)}})}
 function updateTrafficGraph(){const f=document.getElementById('traffic-from').value,t=document.getElementById('traffic-to').value;fetch(`<?= base_url('dashboard/trafficData') ?>?from=${f}&to=${t}`).then(r=>r.json()).then(d=>{if(d.success){const c=document.getElementById('traffic-chart'),l=document.getElementById('traffic-x-labels');c.querySelectorAll('.traffic-bar-container').forEach(e=>e.remove());l.innerHTML='';const m=Math.max(1,...d.data.map(x=>x.count));d.data.forEach(x=>{const p=(x.count/m)*100,cn=document.createElement('div');cn.className='flex-1 flex flex-col items-center justify-end h-full gap-1 group cursor-pointer traffic-bar-container';cn.dataset.count=x.count;cn.innerHTML=`<div class="w-full max-w-[28px] mx-auto bg-primary/80 hover:bg-primary rounded-t transition-all duration-300 relative" style="height:${p}%"><div class="absolute -top-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[9px] py-0.5 px-1.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">${x.count}</div></div>`;c.appendChild(cn);const lb=document.createElement('div');lb.className='flex-1 text-center text-[9px] text-slate-400 font-medium truncate';lb.textContent=x.label;l.appendChild(lb)});renderYAxis(m)}})}
 document.getElementById('onsite-search')?.addEventListener('input',function(){const q=this.value.toLowerCase();document.querySelectorAll('#onsite-table tbody tr').forEach(r=>{r.style.display=r.textContent.toLowerCase().includes(q)?'':'none'})});
 function renderYAxis(m){const y=document.getElementById('traffic-y-axis');if(!y)return;y.innerHTML='';for(let i=4;i>=0;i--){const s=document.createElement('span');s.textContent=Math.round((m/4)*i);y.appendChild(s)}}

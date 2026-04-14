@@ -9,6 +9,7 @@ use App\Models\InvitationVisitorModel;
 use App\Models\VisitReasonModel;
 use App\Models\LocationModel;
 use App\Models\CompanyModel;
+use App\Models\VisitorTypeModel;
 
 class InvitationList extends BaseController
 {
@@ -18,6 +19,7 @@ class InvitationList extends BaseController
     protected $visitReasonModel;
     protected $locationModel;
     protected $companyModel;
+    protected $visitorTypeModel;
 
     public function __construct()
     {
@@ -27,6 +29,7 @@ class InvitationList extends BaseController
         $this->visitReasonModel = new VisitReasonModel();
         $this->locationModel = new LocationModel();
         $this->companyModel = new CompanyModel();
+        $this->visitorTypeModel = new VisitorTypeModel();
     }
 
     public function index()
@@ -89,6 +92,10 @@ class InvitationList extends BaseController
     {
         // Get visit reasons from database
         $visitReasons = $this->visitReasonModel->findAll();
+
+        $visitorTypes = $this->invitationsSupportVisitorType()
+            ? $this->visitorTypeModel->orderBy('name', 'ASC')->findAll()
+            : [];
         
         // Get locations from database  
         $locations = $this->locationModel->findAll();
@@ -106,6 +113,7 @@ class InvitationList extends BaseController
         $data = [
             'pageTitle' => 'Create Invitation - SafeG',
             'visitReasons' => $visitReasons,
+            'visitorTypes' => $visitorTypes,
             'locations' => $locations,
             'companies' => $companies,
             'staff_id' => $currentUser['staff_id'] ?? $currentUser['user_id'] ?? 'STAFF001',  // Try user_id as fallback
@@ -118,16 +126,20 @@ class InvitationList extends BaseController
     public function store()
     {
         $validation = \Config\Services::validation();
-        
-        // Validate admin-provided fields including basic visitor details
+
         $rules = [
-            'full_name' => 'required|max_length[255]',
-            'contact' => 'required|max_length[20]', 
-            'visitor_email' => 'required|valid_email|max_length[255]',
             'reason' => 'required',
+            'schedules' => 'required',
             'schedules.*.date_from' => 'required',
-            'schedules.*.date_to' => 'required'
+            'schedules.*.date_to' => 'required',
         ];
+
+        $visitorTypeCount = $this->invitationsSupportVisitorType()
+            ? $this->visitorTypeModel->countAllResults()
+            : 0;
+        if ($visitorTypeCount > 0) {
+            $rules['visitor_type_id'] = 'required|integer';
+        }
 
         if (!$validation->withRequest($this->request)->setRules($rules)->run()) {
             return redirect()->back()
@@ -135,24 +147,81 @@ class InvitationList extends BaseController
                            ->with('errors', $validation->getErrors());
         }
 
+        $rawVisitors = $this->request->getPost('visitors');
+        if (! is_array($rawVisitors)) {
+            return redirect()->back()
+                           ->withInput()
+                           ->with('errors', ['visitors' => 'Visitor details are required.']);
+        }
+
+        $visitors = [];
+        foreach ($rawVisitors as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $fullName = trim((string) ($row['full_name'] ?? $row['name'] ?? ''));
+            if ($fullName === '') {
+                continue;
+            }
+            $visitors[] = [
+                'full_name' => $fullName,
+                'contact' => trim((string) ($row['contact'] ?? '')),
+                'visitor_email' => trim((string) ($row['visitor_email'] ?? $row['email'] ?? '')),
+            ];
+        }
+
+        if ($visitors === []) {
+            return redirect()->back()
+                           ->withInput()
+                           ->with('errors', ['visitors' => 'Add at least one visitor with a full name, contact, and email.']);
+        }
+
+        $visitorValidation = \Config\Services::validation();
+        foreach ($visitors as $i => $visitorRow) {
+            if (! $visitorValidation->setRules([
+                'contact' => 'required|max_length[20]',
+                'visitor_email' => 'required|valid_email|max_length[255]',
+            ])->run($visitorRow)) {
+                return redirect()->back()
+                               ->withInput()
+                               ->with('errors', array_merge(
+                                   ['visitors' => 'Visitor #' . ($i + 1) . ' has invalid contact or email.'],
+                                   $visitorValidation->getErrors()
+                               ));
+            }
+        }
+
+        $schedules = $this->request->getPost('schedules');
+        if (! is_array($schedules) || $schedules === []) {
+            return redirect()->back()
+                           ->withInput()
+                           ->with('errors', ['schedules' => 'At least one visit schedule is required.']);
+        }
+
+        $vtPost = $this->request->getPost('visitor_type_id');
+        $visitorTypeId = ($vtPost !== null && $vtPost !== '') ? (int) $vtPost : null;
+        if ($visitorTypeCount > 0) {
+            if ($visitorTypeId === null || ! $this->visitorTypeModel->find($visitorTypeId)) {
+                return redirect()->back()
+                               ->withInput()
+                               ->with('errors', ['visitor_type_id' => 'Please select a valid visitor type.']);
+            }
+        } else {
+            $visitorTypeId = null;
+        }
+
         $db = \Config\Database::connect();
         $db->transStart();
 
         try {
-            // Get current user from session
             $currentUser = session()->get('full_name') ?? session()->get('user_name') ?? 'System';
-            
-            // Debug: Log POST data
+
             log_message('info', 'Invitation POST data: ' . print_r($this->request->getPost(), true));
-            
-            // Prepare main invitation data (admin provides basic visitor details)
-            $invitationData = [
-                'full_name' => $this->request->getPost('full_name'),  // Admin provides
-                'ic_passport' => null,  // Visitor will fill later
-                'contact' => $this->request->getPost('contact'),  // Admin provides
-                'visitor_email' => $this->request->getPost('visitor_email'),  // Admin provides visitor's email
-                'company' => $this->request->getPost('company_visited'),  // From admin selection
-                'vehicle_registration' => null,  // Visitor will fill later
+
+            $shared = [
+                'ic_passport' => null,
+                'company' => $this->request->getPost('company_visited'),
+                'vehicle_registration' => null,
                 'location' => $this->request->getPost('location'),
                 'invited_by' => $currentUser,
                 'reason' => $this->request->getPost('reason'),
@@ -161,74 +230,87 @@ class InvitationList extends BaseController
                 'status' => 'Pending',
                 'staff_id' => $this->request->getPost('staff_id'),
                 'company_visited' => $this->request->getPost('company_visited'),
-                'host_contact' => $this->request->getPost('contact_person')  // Correct field name
+                'host_contact' => $this->request->getPost('contact_person'),
             ];
-            
-            // Debug: Log prepared data
-            log_message('info', 'Prepared invitation data: ' . print_r($invitationData, true));
-
-            // Insert main invitation
-            $invitationId = $this->invitationModel->insert($invitationData);
-
-            if (!$invitationId) {
-                // Get detailed error information
-                $errors = $this->invitationModel->errors();
-                $dbError = \Config\Database::connect()->error();
-                
-                $errorMsg = 'Failed to create invitation';
-                if (!empty($errors)) {
-                    $errorMsg .= ': ' . implode(', ', $errors);
-                }
-                if ($dbError['code'] !== 0) {
-                    $errorMsg .= ' (DB Error: ' . $dbError['message'] . ')';
-                }
-                
-                throw new \Exception($errorMsg);
+            if ($this->invitationsSupportVisitorType()) {
+                $shared['visitor_type_id'] = $visitorTypeId;
             }
 
-            // Insert schedules
-            $schedules = $this->request->getPost('schedules');
-            if ($schedules) {
+            $createdIds = [];
+
+            foreach ($visitors as $visitorRow) {
+                $invitationData = array_merge($shared, [
+                    'full_name' => $visitorRow['full_name'],
+                    'contact' => $visitorRow['contact'],
+                    'visitor_email' => $visitorRow['visitor_email'],
+                ]);
+
+                log_message('info', 'Prepared invitation data: ' . print_r($invitationData, true));
+
+                $invitationId = $this->invitationModel->insert($invitationData);
+
+                if (! $invitationId) {
+                    $errors = $this->invitationModel->errors();
+                    $dbError = \Config\Database::connect()->error();
+                    $errorMsg = 'Failed to create invitation';
+                    if ($errors !== []) {
+                        $errorMsg .= ': ' . implode(', ', $errors);
+                    }
+                    if ($dbError['code'] !== 0) {
+                        $errorMsg .= ' (DB Error: ' . $dbError['message'] . ')';
+                    }
+                    throw new \Exception($errorMsg);
+                }
+
+                $createdIds[] = (int) $invitationId;
+
                 foreach ($schedules as $schedule) {
-                    if (!empty($schedule['date_from']) && !empty($schedule['date_to'])) {
+                    if (! empty($schedule['date_from']) && ! empty($schedule['date_to'])) {
                         $this->scheduleModel->insert([
                             'invitation_id' => $invitationId,
                             'date_from' => $schedule['date_from'],
-                            'date_to' => $schedule['date_to']
+                            'date_to' => $schedule['date_to'],
                         ]);
                     }
                 }
             }
 
-            // Send invitation email to visitor
-            if ($this->sendInvitationEmail($invitationId)) {
-                $db->transComplete();
+            $db->transComplete();
 
-                if ($db->transStatus() === false) {
-                    throw new \Exception('Database transaction failed');
-                }
-
-                return redirect()->to(base_url('invitations'))
-                               ->with('success', 'Invitation created successfully and email sent to visitor.');
-            } else {
-                // Email failed but continue with invitation creation
-                log_message('warning', 'Invitation created but email sending failed for invitation ID: ' . $invitationId);
-                
-                $db->transComplete();
-
-                if ($db->transStatus() === false) {
-                    throw new \Exception('Database transaction failed');
-                }
-
-                return redirect()->to(base_url('invitations'))
-                               ->with('warning', 'Invitation created successfully but email could not be sent. You can resend it from the invitation list.');
+            if ($db->transStatus() === false) {
+                throw new \Exception('Database transaction failed');
             }
 
+            $n = count($createdIds);
+            $emailsSent = 0;
+            foreach ($createdIds as $invitationId) {
+                if ($this->sendInvitationEmail($invitationId)) {
+                    $emailsSent++;
+                } else {
+                    log_message('warning', 'Invitation created but email sending failed for invitation ID: ' . $invitationId);
+                }
+            }
+
+            if ($emailsSent === $n) {
+                $msg = $n === 1
+                    ? 'Invitation created successfully and email sent to visitor.'
+                    : $n . ' invitations created successfully and email sent to each visitor.';
+
+                return redirect()->to(base_url('invitations'))->with('success', $msg);
+            }
+
+            if ($emailsSent > 0) {
+                return redirect()->to(base_url('invitations'))
+                               ->with('warning', $n . ' invitation(s) created; email sent to ' . $emailsSent . ' of ' . $n . '. Resend from the invitation list for any that failed.');
+            }
+
+            return redirect()->to(base_url('invitations'))
+                           ->with('warning', $n . ' invitation(s) created but email could not be sent. You can resend from the invitation list.');
         } catch (\Exception $e) {
             $db->transRollback();
             log_message('error', 'Invitation creation failed: ' . $e->getMessage());
             log_message('error', 'Stack trace: ' . $e->getTraceAsString());
-            
+
             return redirect()->back()
                            ->withInput()
                            ->with('error', 'Failed to create invitation: ' . $e->getMessage());
@@ -322,6 +404,12 @@ class InvitationList extends BaseController
         // Get reason name
         $reason = $this->visitReasonModel->find($invitation['reason']);
         $invitation['reason_name'] = $reason ? $reason['reason'] : $invitation['reason'];
+
+        $invitation['visitor_type_name'] = '';
+        if ($this->invitationsSupportVisitorType() && ! empty($invitation['visitor_type_id'])) {
+            $vt = $this->visitorTypeModel->find((int) $invitation['visitor_type_id']);
+            $invitation['visitor_type_name'] = $vt ? $vt['name'] : '';
+        }
 
         // Get schedules
         $schedules = $this->scheduleModel->where('invitation_id', $invitationId)->findAll();

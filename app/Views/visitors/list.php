@@ -45,15 +45,15 @@
 </head>
 <body class="bg-background-light dark:bg-background-dark font-sans text-gray-800 dark:text-gray-200 antialiased h-screen flex overflow-hidden transition-colors duration-200">
     <!-- Sidebar -->
-    <aside class="w-64 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col justify-between p-4 hidden md:flex h-full">
-        <div class="flex flex-col gap-8">
+        <aside class="w-64 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col p-4 hidden md:flex h-full overflow-hidden">
+            <div class="flex flex-col gap-8 flex-1 min-h-0">
             <div class="flex items-center gap-3 px-2">
                 <div class="bg-center bg-no-repeat bg-cover rounded-lg size-10 bg-primary/10 flex items-center justify-center text-primary" data-alt="SafeG Logo abstract blue square">
                     <span class="material-symbols-outlined text-3xl">shield_person</span>
                 </div>
                 <h1 class="text-lg font-bold tracking-tight text-slate-900 dark:text-white">SafeG</h1>
             </div>
-            <nav class="flex flex-col gap-2">
+                <nav class="flex flex-col gap-2 overflow-y-auto pr-1 custom-scrollbar">
                 <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('dashboard') ?>">
                     <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">dashboard</span>
                     <p class="text-sm font-medium">Dashboard</p>
@@ -160,6 +160,47 @@
                         </div>
                     </div>
                 </div>
+                    <!-- Report Dropdown -->
+                    <div x-data="{ openReport: <?= str_contains($current, 'report') ? 'true' : 'false' ?> }">
+                        <button type="button" @click="openReport = !openReport"
+                            class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= str_contains($current, 'report') ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
+                            <div class="flex items-center gap-3">
+                                <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">description</span>
+                                <p class="text-sm font-medium">Report</p>
+                            </div>
+                            <span class="material-symbols-outlined text-[18px] transition-transform duration-200" :class="openReport ? 'rotate-180' : ''">expand_more</span>
+                        </button>
+                        <div x-show="openReport"
+                            x-transition:enter="transition ease-out duration-200"
+                            x-transition:enter-start="opacity-0 -translate-y-1"
+                            x-transition:enter-end="opacity-100 translate-y-0"
+                            x-transition:leave="transition ease-in duration-150"
+                            x-transition:leave-start="opacity-100 translate-y-0"
+                            x-transition:leave-end="opacity-0 -translate-y-1"
+                            class="ml-4 mt-1 flex flex-col gap-1">
+                            <a href="<?= base_url('report/access') ?>"
+                                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'report/access' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
+                                <span class="w-1.5 h-1.5 rounded-full <?= $current == 'report/access' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
+                                Access Report
+                            </a>
+                            <a href="<?= base_url('report/visitor') ?>"
+                                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'report/visitor' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
+                                <span class="w-1.5 h-1.5 rounded-full <?= $current == 'report/visitor' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
+                                Visitor Report
+                            </a>
+                            <a href="<?= base_url('report/chronology') ?>"
+                                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= str_contains($current, 'report/chronology') ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
+                                <span class="w-1.5 h-1.5 rounded-full <?= str_contains($current, 'report/chronology') ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
+                                Visitor Chronology
+                            </a>
+                            <a href="<?= base_url('report/bydoor') ?>"
+                                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= str_contains($current, 'report/bydoor') ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
+                                <span class="w-1.5 h-1.5 rounded-full <?= str_contains($current, 'report/bydoor') ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
+                                Visitor Info By Door
+                            </a>
+                        </div>
+                    </div>
+
                 <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('config') ?>">
                     <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">tune</span>
                     <p class="text-sm font-medium">Config</p>
@@ -192,7 +233,7 @@
             <!-- Header -->
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                 <h1 class="text-xl md:text-2xl font-bold tracking-tight text-gray-800 dark:text-white uppercase">
-                    Visitor Pass List
+                    Visitor Past List
                 </h1>
                 <div class="flex gap-2">
                     <button class="bg-secondary hover:bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
@@ -310,6 +351,7 @@
                             <th class="p-4 border-b dark:border-gray-600">Contact No</th>
                             <th class="p-4 border-b dark:border-gray-600">Vehicle Registration Number</th>
                             <th class="p-4 border-b dark:border-gray-600">Location</th>
+                            <th class="p-4 border-b dark:border-gray-600">Visitor Type</th>
                             <th class="p-4 border-b dark:border-gray-600">Type</th>
                             <th class="p-4 border-b dark:border-gray-600">Card Status</th>
                             <th class="p-4 border-b dark:border-gray-600">Visitor Pass No</th>
@@ -319,7 +361,7 @@
                     <tbody class="text-xs text-gray-600 dark:text-gray-300 font-medium">
                         <?php if (empty($visitors)): ?>
                         <tr>
-                            <td colspan="11" class="p-8 text-center">
+                            <td colspan="12" class="p-8 text-center">
                                 <div class="flex flex-col items-center justify-center gap-3">
                                     <div class="bg-gray-100 dark:bg-gray-800 rounded-full p-4">
                                         <span class="material-symbols-outlined text-4xl text-gray-400 dark:text-gray-500">folder_off</span>
@@ -343,6 +385,7 @@
                                 <?= empty($visitor['vehicle_reg']) ? 'NULL' : esc($visitor['vehicle_reg']) ?>
                             </td>
                             <td class="p-4"><?= esc($visitor['location']) ?></td>
+                            <td class="p-4"><?= esc($visitor['visitor_type'] ?? '-') ?></td>
                             <td class="p-4"><?= esc($visitor['type']) ?></td>
                             <td class="p-4">
                                 <?php if ($visitor['card_status'] === 'Active'): ?>
@@ -405,7 +448,7 @@
                 <!-- Status Badge -->
                 <div id="statusBadge" class="mb-6"></div>
 
-                <!-- Visitor Information -->
+                <!-- Visitor Information (editable) -->
                 <div class="mb-6">
                     <h3 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-2">
                         <span class="material-symbols-outlined text-lg">badge</span>
@@ -413,20 +456,24 @@
                     </h3>
                     <div class="bg-gray-50 dark:bg-slate-800 rounded-lg p-4 grid grid-cols-1 md:grid-cols-2 gap-4 border border-gray-200 dark:border-gray-700">
                         <div>
-                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Full Name</p>
-                            <p id="detailFullName" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
+                            <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Full Name</label>
+                            <input type="text" id="editFullName" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
                         </div>
                         <div>
-                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">IC / Passport No</p>
-                            <p id="detailIcPassport" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
+                            <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">IC / Passport No</label>
+                            <input type="text" id="editIcPassport" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
                         </div>
                         <div>
-                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Contact Number</p>
-                            <p id="detailContact" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
+                            <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Contact Number</label>
+                            <input type="text" id="editContact" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
                         </div>
                         <div>
-                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Vehicle Registration</p>
-                            <p id="detailVehicle" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
+                            <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Company</label>
+                            <input type="text" id="editCompany" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
+                        </div>
+                        <div>
+                            <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Vehicle Registration</label>
+                            <input type="text" id="editVehicle" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
                         </div>
                     </div>
                 </div>
@@ -439,20 +486,48 @@
                     </h3>
                     <div class="bg-gray-50 dark:bg-slate-800 rounded-lg p-4 grid grid-cols-1 md:grid-cols-2 gap-4 border border-gray-200 dark:border-gray-700">
                         <div>
-                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Date of Visit</p>
-                            <p id="detailDate" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
+                            <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Date of Visit</label>
+                            <input type="date" id="editVisitDate" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
                         </div>
                         <div>
-                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Visit Type</p>
-                            <p id="detailType" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
+                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Visit Type (from check-in)</p>
+                            <p id="detailType" class="text-sm font-semibold text-gray-900 dark:text-white py-2"></p>
+                        </div>
+                        <?php if (! empty($showVisitorTypes)): ?>
+                        <div>
+                            <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Visitor Type</label>
+                            <select id="editVisitorTypeId" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary">
+                                <option value="">— None —</option>
+                                <?php foreach ($visitorTypes as $vt): ?>
+                                <option value="<?= (int) $vt['id'] ?>"><?= esc($vt['name']) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <?php else: ?>
+                        <div>
+                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Visitor Type</p>
+                            <p id="detailVisitorTypeReadonly" class="text-sm font-semibold text-gray-900 dark:text-white py-2"></p>
+                        </div>
+                        <?php endif; ?>
+                        <div>
+                            <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Host / Invited By</label>
+                            <input type="text" id="editInvitedBy" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
                         </div>
                         <div>
-                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Location</p>
-                            <p id="detailLocation" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
+                            <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Location</label>
+                            <input type="text" id="editLocation" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Reason</label>
+                            <textarea id="editReason" rows="2" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"></textarea>
                         </div>
                         <div>
-                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Reason</p>
-                            <p id="detailReason" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
+                            <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Check-in</label>
+                            <input type="datetime-local" id="editCheckIn" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
+                        </div>
+                        <div>
+                            <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Check-out</label>
+                            <input type="datetime-local" id="editCheckOut" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
                         </div>
                     </div>
                 </div>
@@ -465,32 +540,50 @@
                     </h3>
                     <div class="bg-gray-50 dark:bg-slate-800 rounded-lg p-4 grid grid-cols-1 md:grid-cols-2 gap-4 border border-gray-200 dark:border-gray-700">
                         <div>
-                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Visitor Pass No</p>
-                            <p id="detailPassNo" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
+                            <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Visitor Pass No (EPC)</label>
+                            <input type="text" id="editPassNo" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
+                            <p id="editPassNoHint" class="text-[10px] text-gray-500 mt-1 hidden">Bind a card first to edit EPC, or use Bind Card below.</p>
                         </div>
                         <div>
-                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Card Status</p>
-                            <p id="detailCardStatus" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
+                            <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Card Status (raw)</label>
+                            <select id="editCardStatusRaw" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary">
+                                <option value="active">active</option>
+                                <option value="in_use">in_use</option>
+                                <option value="lost">lost</option>
+                                <option value="inactive">inactive</option>
+                            </select>
                         </div>
                     </div>
                 </div>
+                <input type="hidden" id="editInvitationVisitorId"/>
+                <input type="hidden" id="editInvitationId"/>
+                <input type="hidden" id="editScheduleId"/>
+                <input type="hidden" id="editIvVersion"/>
+                <input type="hidden" id="editInvitationVersion"/>
+                <div id="visitorSaveError" class="hidden mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-600 dark:text-red-400"></div>
             </div>
 
             <!-- Modal Footer -->
-            <div class="sticky bottom-0 bg-gray-50 dark:bg-slate-900 border-t border-gray-200 dark:border-gray-700 px-6 py-4 flex gap-3 justify-between items-center">
-                <button onclick="closeDetailModal()" class="px-4 py-2.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg transition-colors duration-200">
-                    Close
-                </button>
-                <div class="flex gap-3">
+            <div class="sticky bottom-0 bg-gray-50 dark:bg-slate-900 border-t border-gray-200 dark:border-gray-700 px-6 py-4 flex flex-wrap gap-3 justify-between items-center">
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="closeDetailModal()" class="px-4 py-2.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg transition-colors duration-200">
+                        Close
+                    </button>
+                    <button type="button" onclick="saveVisitorChanges()" id="btnSaveVisitor" class="px-4 py-2.5 bg-success hover:bg-emerald-600 text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-lg">save</span>
+                        Save changes
+                    </button>
+                </div>
+                <div class="flex flex-wrap gap-2">
                     <button onclick="openCardBindingModal()" class="px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
                         <span class="material-symbols-outlined text-lg">badge</span>
                         i Card Details
                     </button>
-                    <button class="px-4 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
+                    <button type="button" class="px-4 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
                         <span class="material-symbols-outlined text-lg">qr_code</span>
                         QR Code
                     </button>
-                    <button class="px-4 py-2.5 bg-primary hover:bg-primary-dark text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
+                    <button type="button" class="px-4 py-2.5 bg-primary hover:bg-primary-dark text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
                         <span class="material-symbols-outlined text-lg">print</span>
                         Print Slip
                     </button>
@@ -567,42 +660,135 @@
         let currentVisitorId = null;
         let currentInvitationVisitorId = null;
 
+        function mysqlToDatetimeLocal(v) {
+            if (!v) return '';
+            return String(v).replace(' ', 'T').slice(0, 16);
+        }
+
         function openDetailModal(visitor) {
             const modal = document.getElementById('detailModal');
             
-            // Store visitor IDs for card binding
             currentVisitorId = visitor.id;
             currentInvitationVisitorId = visitor.id;
-            
-            // Populate visitor information
-            document.getElementById('detailFullName').textContent = visitor.full_name || 'N/A';
-            document.getElementById('detailIcPassport').textContent = visitor.ic_passport || 'N/A';
-            document.getElementById('detailContact').textContent = visitor.contact || 'N/A';
-            document.getElementById('detailVehicle').textContent = visitor.vehicle_reg || 'N/A';
-            
-            // Populate visit details
-            document.getElementById('detailDate').textContent = visitor.date || 'N/A';
-            document.getElementById('detailType').textContent = visitor.type || 'N/A';
-            document.getElementById('detailLocation').textContent = visitor.location || 'N/A';
-            document.getElementById('detailReason').textContent = visitor.reason || 'N/A';
-            
-            // Populate pass information
-            document.getElementById('detailPassNo').textContent = visitor.pass_no || 'N/A';
-            
-            // Card status badge
+
+            document.getElementById('editInvitationVisitorId').value = visitor.id ?? '';
+            document.getElementById('editInvitationId').value = visitor.invitation_id ?? '';
+            document.getElementById('editScheduleId').value = visitor.schedule_id != null ? visitor.schedule_id : '';
+            document.getElementById('editIvVersion').value = visitor.iv_version ?? 1;
+            document.getElementById('editInvitationVersion').value = visitor.invitation_version ?? 1;
+
+            document.getElementById('editFullName').value = visitor.full_name || '';
+            document.getElementById('editIcPassport').value = (visitor.ic_passport && visitor.ic_passport !== 'N/A') ? visitor.ic_passport : '';
+            document.getElementById('editContact').value = (visitor.contact && visitor.contact !== 'N/A') ? visitor.contact : '';
+            document.getElementById('editCompany').value = visitor.company || '';
+            document.getElementById('editVehicle').value = visitor.vehicle_reg || '';
+            document.getElementById('editInvitedBy').value = visitor.invited_by || visitor.host || '';
+            document.getElementById('editLocation').value = (visitor.location && visitor.location !== 'N/A') ? visitor.location : '';
+            document.getElementById('editReason').value = visitor.reason || '';
+            document.getElementById('editVisitDate').value = visitor.visit_date_iso || '';
+
+            document.getElementById('detailType').textContent = visitor.type || '—';
+
+            const vtSelect = document.getElementById('editVisitorTypeId');
+            if (vtSelect) {
+                const vid = visitor.visitor_type_id;
+                vtSelect.value = (vid != null && vid !== '') ? String(vid) : '';
+            }
+            const vtRead = document.getElementById('detailVisitorTypeReadonly');
+            if (vtRead) {
+                vtRead.textContent = visitor.visitor_type || '—';
+            }
+
+            document.getElementById('editCheckIn').value = mysqlToDatetimeLocal(visitor.check_in_time);
+            document.getElementById('editCheckOut').value = mysqlToDatetimeLocal(visitor.check_out_time);
+
+            const hasCard = !!(visitor.card_id || visitor.visitor_card_table_id);
+            document.getElementById('editPassNo').disabled = !hasCard;
+            document.getElementById('editCardStatusRaw').disabled = !hasCard;
+            document.getElementById('editPassNoHint').classList.toggle('hidden', hasCard);
+            document.getElementById('editPassNo').value = visitor.pass_no || visitor.card_epc || '';
+            const raw = visitor.card_status_raw;
+            const allowed = ['active', 'in_use', 'lost', 'inactive'];
+            document.getElementById('editCardStatusRaw').value = raw && allowed.includes(raw) ? raw : 'active';
+
             const statusBadge = document.getElementById('statusBadge');
-            if (visitor.card_status === 'Active') {
-                statusBadge.innerHTML = '<span class="inline-flex items-center gap-2 px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg text-sm font-semibold border border-green-200 dark:border-green-800"><span class="material-symbols-outlined text-base">check_circle</span>Card Active</span>';
+            if (visitor.card_status === 'Active' || visitor.card_status === 'In Use') {
+                statusBadge.innerHTML = '<span class="inline-flex items-center gap-2 px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg text-sm font-semibold border border-green-200 dark:border-green-800"><span class="material-symbols-outlined text-base">check_circle</span>Card ' + (visitor.card_status === 'In Use' ? 'In Use' : 'Active') + '</span>';
+            } else if (visitor.card_id || visitor.visitor_card_table_id) {
+                statusBadge.innerHTML = '<span class="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 rounded-lg text-sm font-semibold border border-amber-200 dark:border-amber-800"><span class="material-symbols-outlined text-base">credit_card</span>' + (visitor.card_status || 'Card') + '</span>';
             } else {
                 statusBadge.innerHTML = '<span class="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-lg text-sm font-semibold border border-gray-200 dark:border-gray-700"><span class="material-symbols-outlined text-base">info</span>No Card Issued</span>';
             }
-            
-            document.getElementById('detailCardStatus').textContent = visitor.card_status || 'N/A';
-            
-            // Show modal
+
+            document.getElementById('visitorSaveError').classList.add('hidden');
+
             modal.classList.remove('hidden');
             modal.classList.add('flex');
             document.body.style.overflow = 'hidden';
+        }
+
+        function saveVisitorChanges() {
+            const errEl = document.getElementById('visitorSaveError');
+            errEl.classList.add('hidden');
+
+            const ivId = parseInt(document.getElementById('editInvitationVisitorId').value, 10);
+            const payload = {
+                invitation_visitor_id: ivId,
+                iv_version: parseInt(document.getElementById('editIvVersion').value, 10) || 1,
+                invitation_version: parseInt(document.getElementById('editInvitationVersion').value, 10) || 1,
+                full_name: document.getElementById('editFullName').value.trim(),
+                ic_passport: document.getElementById('editIcPassport').value.trim(),
+                contact: document.getElementById('editContact').value.trim(),
+                company: document.getElementById('editCompany').value.trim(),
+                vehicle_reg: document.getElementById('editVehicle').value.trim(),
+                invited_by: document.getElementById('editInvitedBy').value.trim(),
+                location: document.getElementById('editLocation').value.trim(),
+                reason: document.getElementById('editReason').value.trim(),
+                visit_date_iso: document.getElementById('editVisitDate').value,
+                check_in_time: document.getElementById('editCheckIn').value || null,
+                check_out_time: document.getElementById('editCheckOut').value || null,
+                pass_no: document.getElementById('editPassNo').disabled ? '' : document.getElementById('editPassNo').value.trim(),
+                card_status_raw: document.getElementById('editCardStatusRaw').disabled ? '' : document.getElementById('editCardStatusRaw').value,
+            };
+
+            const sid = document.getElementById('editScheduleId').value;
+            if (sid !== '') {
+                payload.schedule_id = parseInt(sid, 10);
+            }
+
+            const vtSelect = document.getElementById('editVisitorTypeId');
+            if (vtSelect) {
+                payload.visitor_type_id = vtSelect.value === '' ? null : parseInt(vtSelect.value, 10);
+            }
+
+            const btn = document.getElementById('btnSaveVisitor');
+            const prev = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="material-symbols-outlined text-lg animate-spin">progress_activity</span> Saving…';
+
+            fetch('<?= base_url('visitors/update') ?>', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(r => r.json())
+            .then(result => {
+                btn.disabled = false;
+                btn.innerHTML = prev;
+                if (result.success) {
+                    closeDetailModal();
+                    location.reload();
+                } else {
+                    errEl.textContent = result.message || 'Save failed';
+                    errEl.classList.remove('hidden');
+                }
+            })
+            .catch(() => {
+                btn.disabled = false;
+                btn.innerHTML = prev;
+                errEl.textContent = 'Network error while saving.';
+                errEl.classList.remove('hidden');
+            });
         }
 
         function closeDetailModal() {

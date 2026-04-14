@@ -3,16 +3,19 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
+use App\Traits\OptimisticLockTrait;
 
 class CompanyModel extends Model
 {
+    use OptimisticLockTrait;
+
     protected $table            = 'companies';
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['name', 'registration_no', 'address', 'contact_no', 'email', 'status'];
+    protected $allowedFields    = ['name', 'registration_no', 'address', 'contact_no', 'email', 'status', 'version'];
 
     protected bool $allowEmptyInserts = false;
     protected bool $updateOnlyChanged = true;

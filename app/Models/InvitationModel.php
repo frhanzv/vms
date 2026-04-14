@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
+use App\Traits\OptimisticLockTrait;
 
 class InvitationModel extends Model
 {
+    use OptimisticLockTrait;
+
     protected $table = 'invitations';
     protected $primaryKey = 'id';
     protected $useAutoIncrement = true;
@@ -14,13 +17,14 @@ class InvitationModel extends Model
     protected $protectFields = true;
     protected $allowedFields = [
         'full_name', 'ic_passport', 'contact', 'visitor_email', 'company', 'vehicle_registration', 
-        'location', 'invited_by', 'reason', 'other_reason', 'link_expiry', 'status',
+        'location', 'invited_by', 'reason', 'visitor_type_id', 'other_reason', 'link_expiry', 'status',
         'staff_id', 'company_visited', 'host_contact', 'registration_no',
         'date_of_birth', 'sex', 'resident', 'address', 'postcode', 'city', 'state', 'country',
         'government_id_path', 'invitation_letter_path', 'profile_photo_path',
         'vehicle_category', 'vehicle_type',
         'video_watched', 'video_watched_at', 'video_completion_percentage',
-        'facial_verification_image', 'facial_verified_at', 'checked_in_at'
+        'facial_verification_image', 'facial_verified_at', 'checked_in_at',
+        'version'
     ];
 
     // Dates

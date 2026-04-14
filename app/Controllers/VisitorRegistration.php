@@ -208,13 +208,21 @@ class VisitorRegistration extends BaseController
             ];
 
             // Insert or update invitation record
-            if ($invitationId && $this->invitationModel->find($invitationId)) {
-                // Update existing invitation
-                $this->invitationModel->update($invitationId, $visitorData);
-                
-                // Check for database errors
-                if ($this->invitationModel->errors()) {
-                    throw new \Exception('Failed to update invitation record: ' . json_encode($this->invitationModel->errors()));
+            if ($invitationId && ($existingInvitation = $this->invitationModel->find($invitationId))) {
+                // Prevent double-submission: only allow if status is Pending or Submitted
+                if (!in_array($existingInvitation['status'], ['Pending', 'Submitted'], true)) {
+                    throw new \Exception('This registration has already been processed (status: ' . $existingInvitation['status'] . '). It cannot be modified.');
+                }
+
+                // Atomic status-guarded update
+                $visitorData['version'] = ($existingInvitation['version'] ?? 1) + 1;
+                $db->table('invitations')
+                    ->where('id', $invitationId)
+                    ->whereIn('status', ['Pending', 'Submitted'])
+                    ->update($visitorData);
+
+                if ($db->affectedRows() === 0) {
+                    throw new \Exception('This registration has been modified by someone else. Please refresh and try again.');
                 }
                 
                 // Delete old schedules before inserting new ones

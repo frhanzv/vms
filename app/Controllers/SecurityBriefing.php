@@ -43,7 +43,6 @@ class SecurityBriefing extends BaseController
 
     public function validateCompletion()
     {
-        // AJAX endpoint to validate video completion
         try {
             $json = $this->request->getJSON();
             
@@ -58,19 +57,44 @@ class SecurityBriefing extends BaseController
             $watchedDuration = $json->watched_duration ?? 0;
             $videoDuration = $json->video_duration ?? 1;
             
-            // Calculate completion percentage
             $completionPercentage = ($watchedDuration / $videoDuration) * 100;
             
-            // Require at least 90% completion
             if ($completionPercentage >= 90) {
-                // Update database to mark briefing as completed
                 if ($token) {
                     $invitationId = base64_decode($token);
-                    $this->invitationModel->update($invitationId, [
-                        'video_watched' => true,
-                        'video_watched_at' => date('Y-m-d H:i:s'),
-                        'video_completion_percentage' => round($completionPercentage, 2)
-                    ]);
+                    $invitation = $this->invitationModel->find($invitationId);
+
+                    if (!$invitation) {
+                        return $this->response->setJSON([
+                            'success' => false,
+                            'message' => 'Invalid invitation'
+                        ]);
+                    }
+
+                    // Idempotent: if already completed, just redirect
+                    if (!empty($invitation['video_watched'])) {
+                        return $this->response->setJSON([
+                            'success' => true,
+                            'message' => 'Video briefing was already completed',
+                            'redirect_url' => base_url('security/facial-verification?token=' . $token)
+                        ]);
+                    }
+
+                    // Atomic: only update if video_watched is still falsy
+                    $db = \Config\Database::connect();
+                    $db->table('invitations')
+                        ->where('id', $invitationId)
+                        ->groupStart()
+                            ->where('video_watched', 0)
+                            ->orWhere('video_watched IS NULL')
+                        ->groupEnd()
+                        ->update([
+                            'video_watched' => true,
+                            'video_watched_at' => date('Y-m-d H:i:s'),
+                            'video_completion_percentage' => round($completionPercentage, 2),
+                            'version' => ($invitation['version'] ?? 1) + 1,
+                            'updated_at' => date('Y-m-d H:i:s'),
+                        ]);
                 }
                 
                 return $this->response->setJSON([
@@ -107,37 +131,56 @@ class SecurityBriefing extends BaseController
 
     public function facialComplete()
     {
-        // Handle facial verification completion
         $json = $this->request->getJSON();
         $token = $json->token ?? '';
         $imageData = $json->image ?? '';
         
         try {
             if ($token && $imageData) {
-                // Decode base64 image
+                $invitationId = base64_decode($token);
+                $invitation = $this->invitationModel->find($invitationId);
+
+                if (!$invitation) {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Invalid invitation'
+                    ]);
+                }
+
+                // Idempotent: if already verified, just redirect
+                if (!empty($invitation['facial_verified_at'])) {
+                    return $this->response->setJSON([
+                        'success' => true,
+                        'message' => 'Facial verification was already completed',
+                        'redirect_url' => base_url('security/completed?token=' . $token)
+                    ]);
+                }
+
                 $imageData = str_replace('data:image/png;base64,', '', $imageData);
                 $imageData = str_replace(' ', '+', $imageData);
                 $decodedImage = base64_decode($imageData);
                 
-                // Create upload directory if it doesn't exist
                 $uploadPath = WRITEPATH . 'uploads/facial/';
                 if (!is_dir($uploadPath)) {
                     mkdir($uploadPath, 0777, true);
                 }
                 
-                // Generate unique filename
-                $invitationId = base64_decode($token);
                 $filename = 'facial_' . $invitationId . '_' . time() . '.png';
                 $filePath = $uploadPath . $filename;
                 
-                // Save image file
                 file_put_contents($filePath, $decodedImage);
                 
-                // Update database
-                $this->invitationModel->update($invitationId, [
-                    'facial_verification_image' => 'facial/' . $filename,
-                    'facial_verified_at' => date('Y-m-d H:i:s')
-                ]);
+                // Atomic: only update if not yet verified
+                $db = \Config\Database::connect();
+                $db->table('invitations')
+                    ->where('id', $invitationId)
+                    ->where('facial_verified_at IS NULL')
+                    ->update([
+                        'facial_verification_image' => 'facial/' . $filename,
+                        'facial_verified_at' => date('Y-m-d H:i:s'),
+                        'version' => ($invitation['version'] ?? 1) + 1,
+                        'updated_at' => date('Y-m-d H:i:s'),
+                    ]);
             }
             
             return $this->response->setJSON([
