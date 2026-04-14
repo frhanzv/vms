@@ -17,6 +17,7 @@ use App\Models\RejectReasonModel;
 use App\Models\VisitorCardModel;
 use App\Models\VideoModel;
 use App\Models\VisitReasonModel;
+use App\Models\VisitorTypeModel;
 use App\Models\SettingModel;
 use App\Models\DeviceAssignmentModel;
 
@@ -37,6 +38,7 @@ class Config extends BaseController
     protected $visitorCardModel;
     protected $videoModel;
     protected $visitReasonModel;
+    protected $visitorTypeModel;
     protected $settingModel;
     protected $deviceAssignmentModel;
 
@@ -59,6 +61,7 @@ class Config extends BaseController
         $this->visitorCardModel = new VisitorCardModel();
         $this->videoModel = new VideoModel();
         $this->visitReasonModel = new VisitReasonModel();
+        $this->visitorTypeModel = new VisitorTypeModel();
         $this->settingModel = new SettingModel();
         $this->deviceAssignmentModel = new DeviceAssignmentModel();
     }
@@ -2733,6 +2736,159 @@ class Config extends BaseController
         ]);
     }
 
+    // Visitor Type Management
+    public function getVisitorType($id)
+    {
+        $row = $this->visitorTypeModel->find($id);
+
+        if (! $row) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'success' => false,
+                'message' => 'Visitor type not found',
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data'    => $row,
+        ]);
+    }
+
+    public function getVisitorTypes()
+    {
+        $perPage   = (int) ($this->request->getGet('per_page') ?? 10);
+        $page      = (int) ($this->request->getGet('page') ?? 1);
+        $search    = $this->request->getGet('search') ?? '';
+        $sortBy    = $this->request->getGet('sort_by') ?? 'created_at';
+        $sortOrder = $this->request->getGet('sort_order') ?? 'DESC';
+
+        $offset       = ($page - 1) * $perPage;
+        $totalRecords = $this->visitorTypeModel->countVisitorTypes($search);
+        $rows         = $this->visitorTypeModel->getVisitorTypesPage($perPage, $offset, $search, $sortBy, $sortOrder);
+
+        $from = $totalRecords > 0 ? $offset + 1 : 0;
+        $to   = min($offset + $perPage, $totalRecords);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data'    => $rows,
+            'pagination' => [
+                'total'         => $totalRecords,
+                'per_page'      => $perPage,
+                'current_page'  => $page,
+                'last_page'     => $perPage > 0 ? max(1, (int) ceil($totalRecords / $perPage)) : 1,
+                'from'          => $from,
+                'to'            => $to,
+            ],
+        ]);
+    }
+
+    public function createVisitorType()
+    {
+        $rules = [
+            'name' => 'required|min_length[2]|max_length[255]|is_unique[visitor_types.name]',
+            'path' => 'permit_empty|max_length[500]',
+        ];
+
+        if (! $this->validate($rules)) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors'  => $this->validator->getErrors(),
+            ]);
+        }
+
+        $data = [
+            'name' => $this->request->getPost('name'),
+            'path' => $this->request->getPost('path') ?? '',
+        ];
+
+        if (! $this->visitorTypeModel->insert($data)) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'Failed to create visitor type',
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Visitor type created successfully',
+        ]);
+    }
+
+    public function updateVisitorType($id)
+    {
+        $row = $this->visitorTypeModel->find($id);
+
+        if (! $row) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'success' => false,
+                'message' => 'Visitor type not found',
+            ]);
+        }
+
+        $rules = [
+            'name' => "required|min_length[2]|max_length[255]|is_unique[visitor_types.name,id,{$id}]",
+            'path' => 'permit_empty|max_length[500]',
+        ];
+
+        $validation = \Config\Services::validation();
+        $validation->setRules($rules);
+
+        if (! $validation->run($this->request->getPost())) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors'  => $validation->getErrors(),
+            ]);
+        }
+
+        $this->visitorTypeModel->skipValidation(true);
+
+        if (! $this->visitorTypeModel->update($id, [
+            'name' => $this->request->getPost('name'),
+            'path' => $this->request->getPost('path') ?? '',
+        ])) {
+            $this->visitorTypeModel->skipValidation(false);
+
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'Failed to update visitor type',
+            ]);
+        }
+
+        $this->visitorTypeModel->skipValidation(false);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Visitor type updated successfully',
+        ]);
+    }
+
+    public function deleteVisitorType($id)
+    {
+        $row = $this->visitorTypeModel->find($id);
+
+        if (! $row) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'success' => false,
+                'message' => 'Visitor type not found',
+            ]);
+        }
+
+        if (! $this->visitorTypeModel->delete($id)) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'Failed to delete visitor type',
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Visitor type deleted successfully',
+        ]);
+    }
+}
     // ============== DEVICE ASSIGNMENTS METHODS ==============
 
     public function getDeviceAssignments()
