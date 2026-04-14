@@ -11,12 +11,10 @@ use App\Models\CityModel;
 use App\Models\CompanyModel;
 use App\Models\VisitorLicenseModel;
 use App\Models\VisitorEquipmentModel;
-use App\Models\SettingModel;
+use App\Models\EmailTemplateFormFieldModel;
 
 class VisitorRegistration extends BaseController
 {
-    private const EMAIL_TEMPLATE_FORM_SETTING_KEY = 'email_template_form_fields';
-
     protected $invitationModel;
     protected $scheduleModel;
     protected $locationModel;
@@ -26,7 +24,7 @@ class VisitorRegistration extends BaseController
     protected $companyModel;
     protected $licenseModel;
     protected $equipmentModel;
-    protected $settingModel;
+    protected $emailTemplateFormFieldModel;
 
     public function initController(\CodeIgniter\HTTP\RequestInterface $request, \CodeIgniter\HTTP\ResponseInterface $response, \Psr\Log\LoggerInterface $logger)
     {
@@ -41,7 +39,7 @@ class VisitorRegistration extends BaseController
         $this->companyModel = new CompanyModel();
         $this->licenseModel = new VisitorLicenseModel();
         $this->equipmentModel = new VisitorEquipmentModel();
-        $this->settingModel = new SettingModel();
+        $this->emailTemplateFormFieldModel = new EmailTemplateFormFieldModel();
     }
 
     public function index()
@@ -85,6 +83,14 @@ class VisitorRegistration extends BaseController
             }
         }
         
+        $customFormValues = [];
+        if ($invitation && !empty($invitation['custom_form_data'])) {
+            $decodedCustomValues = json_decode($invitation['custom_form_data'], true);
+            if (is_array($decodedCustomValues)) {
+                $customFormValues = $decodedCustomValues;
+            }
+        }
+
         $data = [
             'pageTitle' => 'Visitor Registration - SafeG',
             'token' => $token,
@@ -98,6 +104,8 @@ class VisitorRegistration extends BaseController
             'cities' => $cities,
             'companyRegistrationId' => $companyRegistrationId,
             'formConfig' => $this->getEmailTemplateFormConfig(),
+            'customFormFields' => $this->getEnabledCustomFields(),
+            'customFormValues' => $customFormValues,
         ];
 
         return view('visitors/registration', $data);
@@ -144,6 +152,15 @@ class VisitorRegistration extends BaseController
                 'success' => false,
                 'message' => 'Validation failed',
                 'errors' => $this->validator->getErrors()
+            ]);
+        }
+
+        $customFieldErrors = $this->validateCustomFields($this->request->getPost('custom_fields'));
+        if (!empty($customFieldErrors)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $customFieldErrors
             ]);
         }
 
@@ -204,6 +221,7 @@ class VisitorRegistration extends BaseController
                 $this->request->getPost('address_3')
             ]);
             $fullAddress = implode(', ', $addressParts);
+            $customFormData = $this->prepareCustomFieldData($this->request->getPost('custom_fields'));
 
             // Prepare visitor data - save ALL fields
             $visitorData = [
@@ -232,7 +250,8 @@ class VisitorRegistration extends BaseController
                 'status' => 'Submitted',
                 'government_id_path' => $this->isFormFieldEnabled('document_upload_section', $formConfig) ? $governmentIdPath : null,
                 'invitation_letter_path' => $this->isFormFieldEnabled('document_upload_section', $formConfig) ? $invitationLetterPath : null,
-                'profile_photo_path' => $this->isFormFieldEnabled('profile_photo_section', $formConfig) ? $profilePhotoPath : null
+                'profile_photo_path' => $this->isFormFieldEnabled('profile_photo_section', $formConfig) ? $profilePhotoPath : null,
+                'custom_form_data' => !empty($customFormData) ? json_encode($customFormData) : null,
             ];
 
             // Insert or update invitation record
@@ -1112,24 +1131,17 @@ class VisitorRegistration extends BaseController
     private function getEmailTemplateFormConfig(): array
     {
         $defaults = $this->getDefaultEmailTemplateFormConfig();
-        $storedValue = $this->settingModel->getSetting(self::EMAIL_TEMPLATE_FORM_SETTING_KEY);
-
-        if (empty($storedValue)) {
+        try {
+            $map = $this->emailTemplateFormFieldModel->getSystemFieldMap();
+        } catch (\Throwable $e) {
             return $defaults;
         }
 
-        $decoded = json_decode($storedValue, true);
-        if (!is_array($decoded)) {
-            return $defaults;
+        foreach ($map as $fieldKey => $row) {
+            $defaults[$fieldKey] = (bool) ($row['is_enabled'] ?? true);
         }
 
-        $merged = array_merge($defaults, $decoded);
-
-        foreach ($merged as $key => $value) {
-            $merged[$key] = (bool) $value;
-        }
-
-        return $merged;
+        return $defaults;
     }
 
     private function getDefaultEmailTemplateFormConfig(): array
@@ -1176,5 +1188,50 @@ class VisitorRegistration extends BaseController
         }
 
         return $this->request->getPost($field) ?? $default;
+    }
+
+    private function getEnabledCustomFields(): array
+    {
+        try {
+            return $this->emailTemplateFormFieldModel
+                ->where('is_system', 0)
+                ->where('is_enabled', 1)
+                ->orderBy('sort_order', 'ASC')
+                ->findAll();
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    private function validateCustomFields($postedCustomFields): array
+    {
+        $errors = [];
+        $posted = is_array($postedCustomFields) ? $postedCustomFields : [];
+        $customFields = $this->getEnabledCustomFields();
+
+        foreach ($customFields as $field) {
+            $key = $field['field_key'];
+            $value = trim((string) ($posted[$key] ?? ''));
+
+            if ((int) ($field['is_required'] ?? 0) === 1 && $value === '') {
+                $errors['custom_fields.' . $key] = $field['label'] . ' is required';
+            }
+        }
+
+        return $errors;
+    }
+
+    private function prepareCustomFieldData($postedCustomFields): array
+    {
+        $result = [];
+        $posted = is_array($postedCustomFields) ? $postedCustomFields : [];
+        $customFields = $this->getEnabledCustomFields();
+
+        foreach ($customFields as $field) {
+            $key = $field['field_key'];
+            $result[$key] = trim((string) ($posted[$key] ?? ''));
+        }
+
+        return $result;
     }
 }

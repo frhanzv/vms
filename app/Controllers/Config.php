@@ -19,11 +19,10 @@ use App\Models\VideoModel;
 use App\Models\VisitReasonModel;
 use App\Models\SettingModel;
 use App\Models\DeviceAssignmentModel;
+use App\Models\EmailTemplateFormFieldModel;
 
 class Config extends BaseController
 {
-    private const EMAIL_TEMPLATE_FORM_SETTING_KEY = 'email_template_form_fields';
-
     protected $roleModel;
     protected $userModel;
     protected $companyModel;
@@ -41,6 +40,7 @@ class Config extends BaseController
     protected $visitReasonModel;
     protected $settingModel;
     protected $deviceAssignmentModel;
+    protected $emailTemplateFormFieldModel;
 
     public function initController(\CodeIgniter\HTTP\RequestInterface $request, \CodeIgniter\HTTP\ResponseInterface $response, \Psr\Log\LoggerInterface $logger)
     {
@@ -63,6 +63,7 @@ class Config extends BaseController
         $this->visitReasonModel = new VisitReasonModel();
         $this->settingModel = new SettingModel();
         $this->deviceAssignmentModel = new DeviceAssignmentModel();
+        $this->emailTemplateFormFieldModel = new EmailTemplateFormFieldModel();
     }
 
     public function index()
@@ -2937,7 +2938,7 @@ class Config extends BaseController
     {
         return $this->response->setJSON([
             'success' => true,
-            'data' => $this->getEmailTemplateFormConfig()
+            'data' => $this->emailTemplateFormFieldModel->getOrderedFields()
         ]);
     }
 
@@ -2945,21 +2946,24 @@ class Config extends BaseController
     {
         $input = $this->request->getJSON(true);
 
-        if (!is_array($input)) {
+        if (!is_array($input) || !isset($input['fields']) || !is_array($input['fields'])) {
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Invalid settings payload'
             ])->setStatusCode(400);
         }
 
-        $defaults = $this->getDefaultEmailTemplateFormConfig();
-        $sanitized = [];
+        foreach ($input['fields'] as $index => $row) {
+            if (!isset($row['id'])) {
+                continue;
+            }
 
-        foreach ($defaults as $key => $defaultValue) {
-            $sanitized[$key] = isset($input[$key]) ? filter_var($input[$key], FILTER_VALIDATE_BOOLEAN) : $defaultValue;
+            $this->emailTemplateFormFieldModel->update((int) $row['id'], [
+                'is_enabled' => isset($row['is_enabled']) ? (int) filter_var($row['is_enabled'], FILTER_VALIDATE_BOOLEAN) : 1,
+                'is_required' => isset($row['is_required']) ? (int) filter_var($row['is_required'], FILTER_VALIDATE_BOOLEAN) : 0,
+                'sort_order' => $index + 1,
+            ]);
         }
-
-        $this->settingModel->setSetting(self::EMAIL_TEMPLATE_FORM_SETTING_KEY, json_encode($sanitized));
 
         return $this->response->setJSON([
             'success' => true,
@@ -2967,58 +2971,158 @@ class Config extends BaseController
         ]);
     }
 
-    private function getEmailTemplateFormConfig(): array
+    public function createEmailTemplateFormField()
     {
-        $defaults = $this->getDefaultEmailTemplateFormConfig();
-        $storedValue = $this->settingModel->getSetting(self::EMAIL_TEMPLATE_FORM_SETTING_KEY);
+        $input = $this->request->getJSON(true);
+        $label = trim((string) ($input['label'] ?? ''));
 
-        if (empty($storedValue)) {
-            return $defaults;
+        if ($label === '') {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Field label is required'
+            ])->setStatusCode(400);
         }
 
-        $decoded = json_decode($storedValue, true);
-        if (!is_array($decoded)) {
-            return $defaults;
+        $fieldType = strtolower((string) ($input['field_type'] ?? 'text'));
+        $allowedTypes = ['text', 'textarea', 'email', 'tel', 'date', 'select'];
+        if (!in_array($fieldType, $allowedTypes, true)) {
+            $fieldType = 'text';
         }
 
-        $merged = array_merge($defaults, $decoded);
+        $maxSort = $this->emailTemplateFormFieldModel
+            ->selectMax('sort_order')
+            ->first();
 
-        foreach ($merged as $key => $value) {
-            $merged[$key] = (bool) $value;
+        $nextSort = ((int) ($maxSort['sort_order'] ?? 0)) + 1;
+        $baseKey = 'custom_' . strtolower(preg_replace('/[^a-zA-Z0-9]+/', '_', $label));
+        $baseKey = trim($baseKey, '_');
+        if ($baseKey === 'custom') {
+            $baseKey = 'custom_field';
         }
 
-        return $merged;
+        $fieldKey = $baseKey;
+        $suffix = 1;
+        while ($this->emailTemplateFormFieldModel->where('field_key', $fieldKey)->first()) {
+            $fieldKey = $baseKey . '_' . $suffix;
+            $suffix++;
+        }
+
+        $this->emailTemplateFormFieldModel->insert([
+            'field_key' => $fieldKey,
+            'label' => $label,
+            'field_type' => $fieldType,
+            'placeholder' => $input['placeholder'] ?? null,
+            'options' => $fieldType === 'select' ? ($input['options'] ?? null) : null,
+            'is_required' => isset($input['is_required']) ? (int) filter_var($input['is_required'], FILTER_VALIDATE_BOOLEAN) : 0,
+            'is_enabled' => 1,
+            'sort_order' => $nextSort,
+            'is_system' => 0,
+        ]);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Field added successfully'
+        ]);
     }
 
-    private function getDefaultEmailTemplateFormConfig(): array
+    public function updateEmailTemplateFormField($id)
     {
-        return [
-            'staff_id' => true,
-            'host_contact' => true,
-            'company_visited' => true,
-            'visit_reason' => true,
-            'resident' => true,
-            'ic_number' => true,
-            'date_of_birth' => true,
-            'sex' => true,
-            'full_name' => true,
-            'contact_number' => true,
-            'email' => true,
-            'address_1' => true,
-            'address_2' => true,
-            'address_3' => true,
-            'city' => true,
-            'state' => true,
-            'postal_code' => true,
-            'country' => true,
-            'category' => true,
-            'vehicle_type' => true,
-            'vehicle_registration' => true,
-            'driving_license_section' => true,
-            'company_details_section' => true,
-            'asset_equipment_section' => true,
-            'document_upload_section' => true,
-            'profile_photo_section' => true,
-        ];
+        $field = $this->emailTemplateFormFieldModel->find($id);
+        if (!$field) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Field not found'
+            ])->setStatusCode(404);
+        }
+
+        $input = $this->request->getJSON(true);
+        $payload = [];
+
+        if (isset($input['label']) && trim((string) $input['label']) !== '') {
+            $payload['label'] = trim((string) $input['label']);
+        }
+
+        if (isset($input['placeholder'])) {
+            $payload['placeholder'] = trim((string) $input['placeholder']) ?: null;
+        }
+
+        if (isset($input['is_enabled'])) {
+            $payload['is_enabled'] = (int) filter_var($input['is_enabled'], FILTER_VALIDATE_BOOLEAN);
+        }
+
+        if (isset($input['is_required'])) {
+            $payload['is_required'] = (int) filter_var($input['is_required'], FILTER_VALIDATE_BOOLEAN);
+        }
+
+        if (!$field['is_system']) {
+            if (isset($input['field_type'])) {
+                $fieldType = strtolower((string) $input['field_type']);
+                $allowedTypes = ['text', 'textarea', 'email', 'tel', 'date', 'select'];
+                if (in_array($fieldType, $allowedTypes, true)) {
+                    $payload['field_type'] = $fieldType;
+                }
+            }
+
+            if (isset($input['options'])) {
+                $payload['options'] = trim((string) $input['options']) ?: null;
+            }
+        }
+
+        if (!empty($payload)) {
+            $this->emailTemplateFormFieldModel->update($id, $payload);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Field updated successfully'
+        ]);
+    }
+
+    public function deleteEmailTemplateFormField($id)
+    {
+        $field = $this->emailTemplateFormFieldModel->find($id);
+        if (!$field) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Field not found'
+            ])->setStatusCode(404);
+        }
+
+        if ((int) $field['is_system'] === 1) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'System fields cannot be deleted'
+            ])->setStatusCode(400);
+        }
+
+        $this->emailTemplateFormFieldModel->delete($id);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Field deleted successfully'
+        ]);
+    }
+
+    public function reorderEmailTemplateFormFields()
+    {
+        $input = $this->request->getJSON(true);
+
+        if (!is_array($input) || !isset($input['ordered_ids']) || !is_array($input['ordered_ids'])) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Invalid ordering payload'
+            ])->setStatusCode(400);
+        }
+
+        foreach ($input['ordered_ids'] as $index => $id) {
+            $this->emailTemplateFormFieldModel->update((int) $id, [
+                'sort_order' => $index + 1,
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Field order updated successfully'
+        ]);
     }
 }

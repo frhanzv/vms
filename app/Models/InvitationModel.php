@@ -20,7 +20,8 @@ class InvitationModel extends Model
         'government_id_path', 'invitation_letter_path', 'profile_photo_path',
         'vehicle_category', 'vehicle_type',
         'video_watched', 'video_watched_at', 'video_completion_percentage',
-        'facial_verification_image', 'facial_verified_at', 'checked_in_at'
+        'facial_verification_image', 'facial_verified_at', 'checked_in_at',
+        'custom_form_data'
     ];
 
     // Dates

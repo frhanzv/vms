@@ -189,6 +189,10 @@ $routes->get('config/getIpRangeSettings', 'Config::getIpRangeSettings');
 $routes->post('config/saveIpRangeSettings', 'Config::saveIpRangeSettings');
 $routes->get('config/getEmailTemplateFormSettings', 'Config::getEmailTemplateFormSettings');
 $routes->post('config/saveEmailTemplateFormSettings', 'Config::saveEmailTemplateFormSettings');
+$routes->post('config/createEmailTemplateFormField', 'Config::createEmailTemplateFormField');
+$routes->post('config/updateEmailTemplateFormField/(:num)', 'Config::updateEmailTemplateFormField/$1');
+$routes->post('config/deleteEmailTemplateFormField/(:num)', 'Config::deleteEmailTemplateFormField/$1');
+$routes->post('config/reorderEmailTemplateFormFields', 'Config::reorderEmailTemplateFormFields');
 
 // Additional Location Routes
 $routes->get('config/getAllLocations', 'Config::getAllLocations');

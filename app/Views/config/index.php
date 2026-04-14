@@ -2044,60 +2044,82 @@
                         <div class="p-6 bg-gray-50 dark:bg-slate-800/50 space-y-6">
                             <div>
                                 <p class="text-sm font-semibold text-slate-700 dark:text-slate-300">Visitor registration form from invitation email</p>
-                                <p class="text-xs text-slate-500 mt-1">Turn off any line you do not want visitors to see in the linked registration form.</p>
+                                <p class="text-xs text-slate-500 mt-1">Manage real form rows with enable/disable, required toggle, CRUD, and sorting.</p>
                             </div>
 
-                            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" id="emailTemplateFormFields">
-                                <?php
-                                $emailTemplateFields = [
-                                    'staff_id' => 'Staff ID Of Person Visited',
-                                    'host_contact' => 'Contact No Of Person Visited',
-                                    'company_visited' => 'Name Of Company Visited',
-                                    'visit_reason' => 'Reason',
-                                    'resident' => 'Resident',
-                                    'ic_number' => 'IC Number',
-                                    'date_of_birth' => 'Date of Birth',
-                                    'sex' => 'Sex',
-                                    'full_name' => 'Full Name',
-                                    'contact_number' => 'Contact Number',
-                                    'email' => 'Email Address',
-                                    'address_1' => 'Address 1',
-                                    'address_2' => 'Address 2',
-                                    'address_3' => 'Address 3',
-                                    'city' => 'City',
-                                    'state' => 'State',
-                                    'postal_code' => 'Postal Code',
-                                    'country' => 'Country',
-                                    'category' => 'Vehicle Category',
-                                    'vehicle_type' => 'Type Of Vehicle',
-                                    'vehicle_registration' => 'Vehicle Registration Number',
-                                    'driving_license_section' => 'Driving License Section',
-                                    'company_details_section' => 'Company Details Section',
-                                    'asset_equipment_section' => 'Asset/Equipment Section',
-                                    'document_upload_section' => 'Document Upload Section',
-                                    'profile_photo_section' => 'Profile Photo Section',
-                                ];
-                                ?>
-                                <?php foreach ($emailTemplateFields as $fieldKey => $fieldLabel): ?>
-                                    <label class="flex items-center justify-between gap-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3">
-                                        <span class="text-sm font-medium text-slate-700 dark:text-slate-200"><?= esc($fieldLabel) ?></span>
-                                        <input
-                                            type="checkbox"
-                                            class="email-template-field h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
-                                            data-field="<?= esc($fieldKey) ?>"
-                                        >
-                                    </label>
-                                <?php endforeach; ?>
+                            <div class="flex flex-wrap items-center justify-between gap-3">
+                                <p class="text-xs text-slate-500 dark:text-slate-400">Tip: toggle at the input side, then move rows using up/down.</p>
+                                <div class="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onclick="openEmailTemplateFieldModal()"
+                                        class="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-sm font-medium">
+                                        Add New Field
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onclick="saveEmailTemplateFormSettings()"
+                                        class="px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary-hover transition-colors text-sm font-medium">
+                                        Save Email Template
+                                    </button>
+                                </div>
                             </div>
 
-                            <div class="flex justify-end">
-                                <button
-                                    type="button"
-                                    onclick="saveEmailTemplateFormSettings()"
-                                    class="px-4 py-2.5 rounded-lg bg-primary text-white hover:bg-primary-hover transition-colors font-medium text-sm">
-                                    Save Email Template
+                            <div id="emailTemplateFormFields" class="space-y-3"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="emailTemplateFieldModal" class="hidden fixed inset-0 z-[60] overflow-y-auto">
+                    <div class="flex min-h-screen items-center justify-center px-4 py-8">
+                        <div class="fixed inset-0 bg-black/40" onclick="closeEmailTemplateFieldModal()"></div>
+                        <div class="relative w-full max-w-xl rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xl">
+                            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+                                <h3 id="emailTemplateFieldModalTitle" class="text-lg font-bold text-slate-800 dark:text-white">Add New Field</h3>
+                                <button type="button" onclick="closeEmailTemplateFieldModal()" class="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
+                                    <span class="material-symbols-outlined">close</span>
                                 </button>
                             </div>
+                            <form id="emailTemplateFieldForm" onsubmit="submitEmailTemplateFieldForm(event)" class="p-6 space-y-4">
+                                <input type="hidden" id="emailTemplateFieldId">
+                                <div>
+                                    <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Label</label>
+                                    <input id="emailTemplateFieldLabel" type="text" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white" required>
+                                </div>
+                                <div>
+                                    <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Field Type</label>
+                                    <select id="emailTemplateFieldType" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white" onchange="toggleEmailTemplateOptionsField()">
+                                        <option value="text">Text</option>
+                                        <option value="textarea">Textarea</option>
+                                        <option value="email">Email</option>
+                                        <option value="tel">Phone</option>
+                                        <option value="date">Date</option>
+                                        <option value="select">Select</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Placeholder</label>
+                                    <input id="emailTemplateFieldPlaceholder" type="text" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white">
+                                </div>
+                                <div id="emailTemplateFieldOptionsWrapper" class="hidden">
+                                    <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Options (one per line)</label>
+                                    <textarea id="emailTemplateFieldOptions" rows="4" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white"></textarea>
+                                </div>
+                                <div class="flex items-center gap-6">
+                                    <label class="inline-flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+                                        <input id="emailTemplateFieldRequired" type="checkbox" class="rounded border-slate-300 text-primary focus:ring-primary">
+                                        Required
+                                    </label>
+                                    <label class="inline-flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+                                        <input id="emailTemplateFieldEnabled" type="checkbox" class="rounded border-slate-300 text-primary focus:ring-primary" checked>
+                                        Enabled
+                                    </label>
+                                </div>
+                                <div class="flex justify-end gap-2 pt-2">
+                                    <button type="button" onclick="closeEmailTemplateFieldModal()" class="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200">Cancel</button>
+                                    <button type="submit" class="px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary-hover">Save Field</button>
+                                </div>
+                            </form>
                         </div>
                     </div>
                 </div>
@@ -10041,47 +10063,214 @@
             });
         }
 
+        let emailTemplateFields = [];
+
+        function getEmailFieldPreview(field) {
+            const type = (field.field_type || 'text').toLowerCase();
+            if (type === 'textarea') {
+                return `<textarea class="w-full min-h-20 rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-300 px-3 py-2 text-sm" placeholder="${field.placeholder || ''}" disabled></textarea>`;
+            }
+            if (type === 'select') {
+                return `<select class="w-full h-10 rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-300 px-3 text-sm" disabled><option>${field.placeholder || 'Select option'}</option></select>`;
+            }
+            const inputType = ['email', 'tel', 'date'].includes(type) ? type : 'text';
+            return `<input type="${inputType}" class="w-full h-10 rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-300 px-3 text-sm" placeholder="${field.placeholder || ''}" disabled>`;
+        }
+
+        function renderEmailTemplateFields() {
+            const container = document.getElementById('emailTemplateFormFields');
+            if (!container) return;
+
+            container.innerHTML = emailTemplateFields.map((field, index) => {
+                const canDelete = Number(field.is_system) !== 1;
+                return `
+                    <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
+                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
+                            <div class="lg:col-span-4">
+                                <p class="text-sm font-semibold text-slate-700 dark:text-slate-200">${field.label}</p>
+                                <p class="text-xs text-slate-500 mt-1">${field.field_key}</p>
+                                ${Number(field.is_system) === 1 ? '<p class="text-[11px] text-blue-600 mt-1">System field</p>' : '<p class="text-[11px] text-emerald-600 mt-1">Custom field</p>'}
+                            </div>
+                            <div class="lg:col-span-4">
+                                ${getEmailFieldPreview(field)}
+                            </div>
+                            <div class="lg:col-span-4 flex flex-wrap items-center justify-start lg:justify-end gap-2">
+                                <label class="inline-flex items-center gap-1 text-xs text-slate-600 dark:text-slate-300">
+                                    <input type="checkbox" ${field.is_enabled ? 'checked' : ''} onchange="toggleEmailFieldEnabled(${field.id}, this.checked)" class="rounded border-slate-300 text-primary focus:ring-primary">
+                                    Enable
+                                </label>
+                                <label class="inline-flex items-center gap-1 text-xs text-slate-600 dark:text-slate-300">
+                                    <input type="checkbox" ${field.is_required ? 'checked' : ''} onchange="toggleEmailFieldRequired(${field.id}, this.checked)" class="rounded border-slate-300 text-primary focus:ring-primary">
+                                    Required
+                                </label>
+                                <button type="button" onclick="moveEmailField(${index}, -1)" class="px-2 py-1 rounded border border-slate-300 dark:border-slate-600 text-xs">Up</button>
+                                <button type="button" onclick="moveEmailField(${index}, 1)" class="px-2 py-1 rounded border border-slate-300 dark:border-slate-600 text-xs">Down</button>
+                                <button type="button" onclick="openEmailTemplateFieldModal(${field.id})" class="px-2 py-1 rounded border border-slate-300 dark:border-slate-600 text-xs">Edit</button>
+                                ${canDelete ? `<button type="button" onclick="deleteEmailTemplateField(${field.id})" class="px-2 py-1 rounded border border-red-300 text-red-600 text-xs">Delete</button>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
         function fetchEmailTemplateFormSettings() {
             fetch('<?= base_url('config/getEmailTemplateFormSettings') ?>')
                 .then(response => response.json())
                 .then(data => {
-                    if (!data.success || !data.data) {
-                        return;
-                    }
-
-                    document.querySelectorAll('.email-template-field').forEach(input => {
-                        const field = input.dataset.field;
-                        input.checked = data.data[field] !== false;
-                    });
+                    if (!data.success || !Array.isArray(data.data)) return;
+                    emailTemplateFields = data.data;
+                    renderEmailTemplateFields();
                 })
                 .catch(error => {
                     console.error('Error loading email template settings:', error);
                 });
         }
 
+        function toggleEmailFieldEnabled(id, checked) {
+            emailTemplateFields = emailTemplateFields.map(field => field.id === id ? { ...field, is_enabled: checked ? 1 : 0 } : field);
+        }
+
+        function toggleEmailFieldRequired(id, checked) {
+            emailTemplateFields = emailTemplateFields.map(field => field.id === id ? { ...field, is_required: checked ? 1 : 0 } : field);
+        }
+
+        function moveEmailField(index, direction) {
+            const target = index + direction;
+            if (target < 0 || target >= emailTemplateFields.length) return;
+            const temp = emailTemplateFields[index];
+            emailTemplateFields[index] = emailTemplateFields[target];
+            emailTemplateFields[target] = temp;
+            renderEmailTemplateFields();
+        }
+
         function saveEmailTemplateFormSettings() {
-            const payload = {};
-
-            document.querySelectorAll('.email-template-field').forEach(input => {
-                payload[input.dataset.field] = input.checked;
-            });
-
             fetch('<?= base_url('config/saveEmailTemplateFormSettings') ?>', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            })
-                .then(response => response.json())
+                body: JSON.stringify({ fields: emailTemplateFields })
+            }).then(response => response.json())
                 .then(data => {
-                    if (data.success) {
-                        showToast(data.message, 'success');
-                    } else {
+                    if (!data.success) {
                         showToast(data.message || 'Error saving email template settings', 'error');
+                        throw new Error(data.message || 'Error saving email template settings');
                     }
+
+                    const orderedIds = emailTemplateFields.map(field => field.id);
+                    return fetch('<?= base_url('config/reorderEmailTemplateFormFields') ?>', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ordered_ids: orderedIds })
+                    });
+                })
+                .then(response => response ? response.json() : { success: true })
+                .then(orderResult => {
+                    if (orderResult && orderResult.success === false) {
+                        throw new Error(orderResult.message || 'Error saving field order');
+                    }
+                    showToast('Email template form settings saved successfully', 'success');
+                    fetchEmailTemplateFormSettings();
                 })
                 .catch(error => {
                     console.error('Error saving email template settings:', error);
                     showToast('Error saving email template settings', 'error');
+                });
+        }
+
+        function openEmailTemplateFieldModal(id = null) {
+            const modal = document.getElementById('emailTemplateFieldModal');
+            const title = document.getElementById('emailTemplateFieldModalTitle');
+            const field = emailTemplateFields.find(item => item.id === id);
+
+            document.getElementById('emailTemplateFieldForm').reset();
+            document.getElementById('emailTemplateFieldId').value = field ? field.id : '';
+            document.getElementById('emailTemplateFieldLabel').value = field ? field.label : '';
+            document.getElementById('emailTemplateFieldType').value = field ? field.field_type : 'text';
+            document.getElementById('emailTemplateFieldPlaceholder').value = field ? (field.placeholder || '') : '';
+            document.getElementById('emailTemplateFieldOptions').value = field ? (field.options || '') : '';
+            document.getElementById('emailTemplateFieldRequired').checked = field ? Number(field.is_required) === 1 : false;
+            document.getElementById('emailTemplateFieldEnabled').checked = field ? Number(field.is_enabled) === 1 : true;
+
+            if (field && Number(field.is_system) === 1) {
+                document.getElementById('emailTemplateFieldType').disabled = true;
+                document.getElementById('emailTemplateFieldOptions').disabled = true;
+            } else {
+                document.getElementById('emailTemplateFieldType').disabled = false;
+                document.getElementById('emailTemplateFieldOptions').disabled = false;
+            }
+
+            title.textContent = field ? 'Edit Field' : 'Add New Field';
+            toggleEmailTemplateOptionsField();
+            modal.classList.remove('hidden');
+        }
+
+        function closeEmailTemplateFieldModal() {
+            document.getElementById('emailTemplateFieldModal').classList.add('hidden');
+        }
+
+        function toggleEmailTemplateOptionsField() {
+            const type = document.getElementById('emailTemplateFieldType').value;
+            const optionsWrapper = document.getElementById('emailTemplateFieldOptionsWrapper');
+            if (type === 'select') {
+                optionsWrapper.classList.remove('hidden');
+            } else {
+                optionsWrapper.classList.add('hidden');
+            }
+        }
+
+        function submitEmailTemplateFieldForm(event) {
+            event.preventDefault();
+            const id = document.getElementById('emailTemplateFieldId').value;
+            const payload = {
+                label: document.getElementById('emailTemplateFieldLabel').value,
+                field_type: document.getElementById('emailTemplateFieldType').value,
+                placeholder: document.getElementById('emailTemplateFieldPlaceholder').value,
+                options: document.getElementById('emailTemplateFieldOptions').value,
+                is_required: document.getElementById('emailTemplateFieldRequired').checked,
+                is_enabled: document.getElementById('emailTemplateFieldEnabled').checked,
+            };
+
+            const url = id
+                ? `<?= base_url('config/updateEmailTemplateFormField') ?>/${id}`
+                : '<?= base_url('config/createEmailTemplateFormField') ?>';
+
+            fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        showToast(data.message || 'Failed to save field', 'error');
+                        return;
+                    }
+                    closeEmailTemplateFieldModal();
+                    showToast(data.message, 'success');
+                    fetchEmailTemplateFormSettings();
+                })
+                .catch(error => {
+                    console.error('Error saving field:', error);
+                    showToast('Failed to save field', 'error');
+                });
+        }
+
+        function deleteEmailTemplateField(id) {
+            if (!confirm('Delete this custom field?')) return;
+
+            fetch(`<?= base_url('config/deleteEmailTemplateFormField') ?>/${id}`, {
+                method: 'POST'
+            }).then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        showToast(data.message || 'Failed to delete field', 'error');
+                        return;
+                    }
+                    showToast(data.message, 'success');
+                    fetchEmailTemplateFormSettings();
+                })
+                .catch(error => {
+                    console.error('Error deleting field:', error);
+                    showToast('Failed to delete field', 'error');
                 });
         }
 

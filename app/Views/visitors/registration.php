@@ -1,5 +1,7 @@
 <?php
 $formConfig = $formConfig ?? [];
+$customFormFields = $customFormFields ?? [];
+$customFormValues = $customFormValues ?? [];
 $isFieldEnabled = static function (string $field) use ($formConfig): bool {
     return !array_key_exists($field, $formConfig) || (bool) $formConfig[$field];
 };
@@ -592,6 +594,67 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
                                 <p class="text-sm">No licenses added yet. Click <span class="text-primary font-semibold">+</span> to add driving license.</p>
                             </div>
                         </div>
+                    </div>
+                </section>
+                <?php endif; ?>
+
+                <?php if (!empty($customFormFields)): ?>
+                <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8 mt-8">
+                    <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
+                        <div class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                            <span class="material-symbols-outlined">format_list_bulleted</span>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-bold font-brand text-text-main dark:text-white">Additional Form Fields</h2>
+                            <p class="text-sm text-text-sub dark:text-gray-400 font-brand">Custom fields configured in Email Template settings.</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <?php foreach ($customFormFields as $customField): ?>
+                            <?php
+                                $fieldKey = $customField['field_key'];
+                                $fieldType = strtolower($customField['field_type'] ?? 'text');
+                                $isRequired = (int)($customField['is_required'] ?? 0) === 1;
+                                $fieldValue = $customFormValues[$fieldKey] ?? '';
+                                $placeholder = $customField['placeholder'] ?? '';
+                            ?>
+                            <div class="space-y-2 <?= $fieldType === 'textarea' ? 'md:col-span-2' : '' ?>">
+                                <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">
+                                    <?= esc($customField['label']) ?><?= $isRequired ? ' <span class="text-red-500">*</span>' : '' ?>
+                                </label>
+                                <?php if ($fieldType === 'textarea'): ?>
+                                    <textarea
+                                        name="custom_fields[<?= esc($fieldKey) ?>]"
+                                        class="w-full min-h-28 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 py-3 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand"
+                                        placeholder="<?= esc($placeholder) ?>"
+                                        <?= $isRequired ? 'required' : '' ?>
+                                    ><?= esc($fieldValue) ?></textarea>
+                                <?php elseif ($fieldType === 'select'): ?>
+                                    <select
+                                        name="custom_fields[<?= esc($fieldKey) ?>]"
+                                        class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand"
+                                        <?= $isRequired ? 'required' : '' ?>
+                                    >
+                                        <option value="">SELECT</option>
+                                        <?php
+                                            $options = array_filter(array_map('trim', explode("\n", (string) ($customField['options'] ?? ''))));
+                                            foreach ($options as $opt):
+                                        ?>
+                                            <option value="<?= esc($opt) ?>" <?= ((string) $fieldValue === (string) $opt) ? 'selected' : '' ?>><?= esc($opt) ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                <?php else: ?>
+                                    <input
+                                        name="custom_fields[<?= esc($fieldKey) ?>]"
+                                        type="<?= esc(in_array($fieldType, ['email', 'tel', 'date'], true) ? $fieldType : 'text') ?>"
+                                        value="<?= esc($fieldValue) ?>"
+                                        class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand"
+                                        placeholder="<?= esc($placeholder) ?>"
+                                        <?= $isRequired ? 'required' : '' ?>
+                                    />
+                                <?php endif; ?>
+                            </div>
+                        <?php endforeach; ?>
                     </div>
                 </section>
                 <?php endif; ?>
