@@ -248,6 +248,7 @@
                         </div>
                     </div>
 
+                    <!-- Table -->
                     <div class="overflow-x-auto w-full rounded-xl border border-slate-200 dark:border-slate-700">
                         <table class="w-full text-left border-collapse whitespace-nowrap">
                             <thead>

@@ -285,6 +285,118 @@
                 </div>
 
                 <!-- Role Management -->
+                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                    <button onclick="toggleSection('appconfig')" class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                        <div class="flex items-center gap-4">
+                            <div class="p-2 bg-primary/10 rounded-lg">
+                                <span class="material-symbols-outlined text-primary text-xl">app_registration</span>
+                            </div>
+                            <div class="text-left">
+                                <h3 class="text-base font-bold text-gray-800 dark:text-white">App Config</h3>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Manage application settings</p>
+                            </div>
+                        </div>
+                        <span id="appconfig-icon" class="material-symbols-outlined text-gray-400 dark:text-slate-400 transition-transform">expand_more</span>
+                    </button>
+                    <div id="appconfig-content" class="hidden border-t border-gray-200 dark:border-slate-700">
+                        <div class="p-6 bg-gray-50 dark:bg-slate-800/50">
+                            <!-- Search and Create -->
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                                <div class="flex shadow-sm w-full sm:w-96">
+                                    <input id="appconfig-search-input" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Search description..." type="text"/>
+                                    <button onclick="searchDesc()" class="bg-primary hover:bg-blue-600 text-white px-6 py-2.5 rounded-r flex items-center justify-center transition-colors">
+                                        <span class="material-symbols-outlined text-white text-[20px]">search</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- App Table -->
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-sm">
+                                    <thead class="text-xs text-gray-600 dark:text-slate-400 uppercase border-b border-gray-200 dark:border-slate-700">
+                                        <tr>
+                                            <th class="px-4 py-3">Description</th>
+                                            <th class="px-4 py-3">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="appconfig-table-body" class="text-gray-700 dark:text-slate-300">
+                                        <tr>
+                                            <td colspan="2" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
+                                                <div class="flex flex-col items-center justify-center">
+                                                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
+                                                    <span>Loading description...</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Pagination -->
+                            <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6">
+                                <p id="appconfig-pagination-info" class="text-sm text-gray-600 dark:text-slate-400">
+                                    Loading...
+                                </p>
+                                <div id="appconfig-pagination-buttons" class="flex items-center gap-2">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- App Config View Details Modal (outside appconfig section) -->
+                <div id="appConfigModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+                    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-lg mx-4">
+                        <!-- Header -->
+                        <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-slate-700">
+                            <h3 class="text-base font-bold text-gray-800 dark:text-white">View Details</h3>
+                            <button onclick="closeAppConfigModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-slate-300">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <!-- Body -->
+                        <div class="p-6 space-y-4">
+                            <div>
+                                <label class="text-sm font-medium text-gray-700 dark:text-slate-300">*Description:</label>
+                                <input id="appConfigDescription" type="text" readonly
+                                    class="mt-1 w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2 text-sm bg-gray-50"/>
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium text-gray-700 dark:text-slate-300">Active</label>
+                                <input id="appConfigActive" type="text"
+                                    class="mt-1 w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2 text-sm"/>
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium text-gray-700 dark:text-slate-300">Day to Send First Alert</label>
+                                <input id="appConfigFirstAlert" type="number"
+                                    class="mt-1 w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2 text-sm"/>
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium text-gray-700 dark:text-slate-300">Day to Send Second Alert</label>
+                                <input id="appConfigSecondAlert" type="number"
+                                    class="mt-1 w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2 text-sm"/>
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium text-gray-700 dark:text-slate-300">Day to Block</label>
+                                <input id="appConfigDayToBlock" type="number"
+                                    class="mt-1 w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2 text-sm"/>
+                            </div>
+                        </div>
+                        <!-- Footer -->
+                        <div class="flex items-center justify-between p-4 border-t border-gray-200 dark:border-slate-700">
+                            <button onclick="closeAppConfigModal()"
+                                class="px-4 py-2 rounded-lg bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-medium transition-colors">
+                                Back
+                            </button>
+                            <button onclick="saveAppConfig()"
+                                class="px-4 py-2 rounded-lg bg-primary hover:bg-blue-600 text-white text-sm font-medium transition-colors">
+                                Save
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Role Management -->
                 <div
                     class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('role')"
