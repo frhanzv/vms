@@ -15,7 +15,7 @@ class VisitorChronology extends BaseController
 
     public function index()
     {
-        $locations = $this->locationModel->getAllActive();
+        $locations = $this->locationModel->orderBy('branch', 'ASC')->orderBy('location_access', 'ASC')->findAll();
 
         return view('reports/access_chronology', [
             'pageTitle'   => 'Visitor Details - SafeG',
