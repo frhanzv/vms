@@ -141,7 +141,7 @@
                             <select id="chronology_location_id" class="<?= $fieldInput ?> chronology-select xl:col-span-2 min-w-0">
                                 <option value="">All locations</option>
                                 <?php foreach ($locations as $loc): ?>
-                                    <option value="<?= esc($loc['id']) ?>"><?= esc($loc['branch'] . ' - ' . $loc['location_access']) ?></option>
+                                    <option value="<?= esc($loc['id']) ?>"><?= esc($loc['id']) ?>. <?= esc($loc['branch'] . ' - ' . $loc['location_access']) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
