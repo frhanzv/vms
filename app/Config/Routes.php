@@ -182,12 +182,37 @@ $routes->get('config/getVisitorType/(:num)', 'Config::getVisitorType/$1');
 $routes->post('config/createVisitorType', 'Config::createVisitorType');
 $routes->post('config/updateVisitorType/(:num)', 'Config::updateVisitorType/$1');
 $routes->delete('config/deleteVisitorType/(:num)', 'Config::deleteVisitorType/$1');
+// Device Assignments Routes
+$routes->get('config/getDeviceAssignments', 'Config::getDeviceAssignments');
+$routes->get('config/getDeviceAssignment/(:num)', 'Config::getDeviceAssignment/$1');
+$routes->post('config/checkDeviceStatus/(:num)', 'Config::checkDeviceStatus/$1');
+$routes->post('config/createDeviceAssignment', 'Config::createDeviceAssignment');
+$routes->post('config/updateDeviceAssignment/(:num)', 'Config::updateDeviceAssignment/$1');
+$routes->post('config/deleteDeviceAssignment/(:num)', 'Config::deleteDeviceAssignment/$1');
+
+// IP Range Settings
+$routes->get('config/getIpRangeSettings', 'Config::getIpRangeSettings');
+$routes->post('config/saveIpRangeSettings', 'Config::saveIpRangeSettings');
+
+// Additional Location Routes
+$routes->get('config/getAllLocations', 'Config::getAllLocations');
 
 $routes->get('settings', 'Settings::index');
 $routes->post('settings/updateProfile', 'Settings::updateProfile');
 $routes->post('settings/updatePassword', 'Settings::updatePassword');
 $routes->post('settings/updatePhoto', 'Settings::updatePhoto');
 $routes->post('settings/removePhoto', 'Settings::removePhoto');
+
+// Report Routes
+$routes->get('report/access', 'AccessReport::index');
+$routes->post('report/access/generate', 'AccessReport::generate');
+$routes->post('report/access/movementHistory', 'AccessReport::movementHistory');
+$routes->get('report/visitor', 'VisitorReport::index');
+$routes->post('report/visitor/generate', 'VisitorReport::generate');
+$routes->get('report/chronology', 'VisitorChronology::index');
+$routes->post('report/chronology/generate', 'VisitorChronology::generate');
+$routes->get('report/bydoor', 'VisitorInfoByDoor::index');
+$routes->post('report/bydoor/generate', 'VisitorInfoByDoor::generate');
 
 // Blacklist Routes
 $routes->get('blacklist/blacklistrequest', 'BlacklistRequest::requestList');
