@@ -63,6 +63,10 @@ $routes->get('config', 'Config::index');
 $routes->get('config/getLogs', 'Config::getLogs');
 $routes->get('config/exportLogs', 'Config::exportLogs');
 
+// App Config Routes
+$routes->get('config/getAppConfigs', 'Config::getAppConfigs');
+$routes->post('config/updateAppConfig/(:num)', 'Config::updateAppConfig/$1');
+
 // Role Management Routes
 $routes->get('config/getRoles', 'Config::getRoles');
 $routes->get('config/getRole/(:num)', 'Config::getRole/$1');
