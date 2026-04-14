@@ -2383,14 +2383,17 @@
                                 </div>
                                 <div>
                                     <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Field Type</label>
-                                    <select id="emailTemplateFieldType" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white" onchange="toggleEmailTemplateOptionsField()">
-                                        <option value="text">Text</option>
-                                        <option value="textarea">Textarea</option>
-                                        <option value="email">Email</option>
-                                        <option value="tel">Phone</option>
-                                        <option value="date">Date</option>
-                                        <option value="select">Select</option>
-                                    </select>
+                                    <div class="relative mt-1">
+                                        <select id="emailTemplateFieldType" class="w-full appearance-none rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white pr-10" onchange="toggleEmailTemplateOptionsField()">
+                                            <option value="text">Text</option>
+                                            <option value="textarea">Textarea</option>
+                                            <option value="email">Email</option>
+                                            <option value="tel">Phone</option>
+                                            <option value="date">Date</option>
+                                            <option value="select">Select</option>
+                                        </select>
+                                        <span class="material-symbols-outlined pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400">expand_more</span>
+                                    </div>
                                 </div>
                                 <div>
                                     <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Placeholder</label>
@@ -2400,6 +2403,7 @@
                                     <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Options (one per line)</label>
                                     <textarea id="emailTemplateFieldOptions" rows="4" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white"></textarea>
                                 </div>
+                                <div id="emailTemplateSystemSourceNote" class="hidden rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700"></div>
                                 <div class="flex items-center gap-6">
                                     <label class="inline-flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
                                         <input id="emailTemplateFieldRequired" type="checkbox" class="rounded border-slate-300 text-primary focus:ring-primary">
@@ -10759,9 +10763,46 @@
         }
 
         let emailTemplateFields = [];
+        let draggingEmailFieldIndex = null;
+
+        function getSystemFieldSource(fieldKey) {
+            const sourceMap = {
+                city: 'Options come from system City master data.',
+                state: 'Options come from system State master data.',
+                country: 'Options come from system Country master data.',
+                resident: 'Options are system-defined: LOCAL / FOREIGN.',
+                sex: 'Options are system-defined: MALE / FEMALE.',
+                category: 'Options are system-defined vehicle categories.',
+                vehicle_type: 'Options are system-defined by selected vehicle category.',
+            };
+
+            return sourceMap[fieldKey] || '';
+        }
+
+        function getSystemFieldDisplayType(field) {
+            const typeMap = {
+                resident: 'select',
+                sex: 'select',
+                date_of_birth: 'date',
+                email: 'email',
+                contact_number: 'tel',
+                host_contact: 'tel',
+                city: 'select',
+                state: 'select',
+                country: 'select',
+                category: 'select',
+                vehicle_type: 'select',
+            };
+
+            if (Number(field.is_system) === 1 && typeMap[field.field_key]) {
+                return typeMap[field.field_key];
+            }
+
+            return (field.field_type || 'text').toLowerCase();
+        }
 
         function getEmailFieldPreview(field) {
-            const type = (field.field_type || 'text').toLowerCase();
+            const type = getSystemFieldDisplayType(field);
             if (type === 'textarea') {
                 return `<textarea class="w-full min-h-20 rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-300 px-3 py-2 text-sm" placeholder="${field.placeholder || ''}" disabled></textarea>`;
             }
@@ -10779,11 +10820,31 @@
             container.innerHTML = emailTemplateFields.map((field, index) => {
                 const canDelete = Number(field.is_system) !== 1;
                 return `
-                    <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
+                    <div
+                        class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 email-field-row"
+                        ondragover="onEmailFieldDragOver(event, ${index})"
+                        ondragleave="onEmailFieldDragLeave(event, ${index})"
+                        ondrop="onEmailFieldDrop(event, ${index})"
+                        ondragend="onEmailFieldDragEnd(event)"
+                    >
                         <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
                             <div class="lg:col-span-4">
-                                <p class="text-sm font-semibold text-slate-700 dark:text-slate-200">${field.label}</p>
+                                <div class="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        draggable="true"
+                                        ondragstart="onEmailFieldDragStart(event, ${index})"
+                                        ondragend="onEmailFieldDragEnd(event)"
+                                        class="inline-flex items-center justify-center w-8 h-8 rounded-md border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-300 cursor-grab active:cursor-grabbing"
+                                        title="Drag to reorder"
+                                        aria-label="Drag to reorder"
+                                    >
+                                        <span class="material-symbols-outlined text-base leading-none">drag_indicator</span>
+                                    </button>
+                                    <p class="text-sm font-semibold text-slate-700 dark:text-slate-200">${field.label}</p>
+                                </div>
                                 <p class="text-xs text-slate-500 mt-1">${field.field_key}</p>
+                                <p class="text-[11px] text-slate-500 mt-1">Type: ${getSystemFieldDisplayType(field).toUpperCase()}</p>
                                 ${Number(field.is_system) === 1 ? '<p class="text-[11px] text-blue-600 mt-1">System field</p>' : '<p class="text-[11px] text-emerald-600 mt-1">Custom field</p>'}
                             </div>
                             <div class="lg:col-span-4">
@@ -10798,8 +10859,6 @@
                                     <input type="checkbox" ${field.is_required ? 'checked' : ''} onchange="toggleEmailFieldRequired(${field.id}, this.checked)" class="rounded border-slate-300 text-primary focus:ring-primary">
                                     Required
                                 </label>
-                                <button type="button" onclick="moveEmailField(${index}, -1)" class="px-2 py-1 rounded border border-slate-300 dark:border-slate-600 text-xs">Up</button>
-                                <button type="button" onclick="moveEmailField(${index}, 1)" class="px-2 py-1 rounded border border-slate-300 dark:border-slate-600 text-xs">Down</button>
                                 <button type="button" onclick="openEmailTemplateFieldModal(${field.id})" class="px-2 py-1 rounded border border-slate-300 dark:border-slate-600 text-xs">Edit</button>
                                 ${canDelete ? `<button type="button" onclick="deleteEmailTemplateField(${field.id})" class="px-2 py-1 rounded border border-red-300 text-red-600 text-xs">Delete</button>` : ''}
                             </div>
@@ -10823,20 +10882,62 @@
         }
 
         function toggleEmailFieldEnabled(id, checked) {
-            emailTemplateFields = emailTemplateFields.map(field => field.id === id ? { ...field, is_enabled: checked ? 1 : 0 } : field);
+            const normalizedId = Number(id);
+            emailTemplateFields = emailTemplateFields.map(field =>
+                Number(field.id) === normalizedId
+                    ? { ...field, is_enabled: checked ? 1 : 0 }
+                    : field
+            );
         }
 
         function toggleEmailFieldRequired(id, checked) {
-            emailTemplateFields = emailTemplateFields.map(field => field.id === id ? { ...field, is_required: checked ? 1 : 0 } : field);
+            const normalizedId = Number(id);
+            emailTemplateFields = emailTemplateFields.map(field =>
+                Number(field.id) === normalizedId
+                    ? { ...field, is_required: checked ? 1 : 0 }
+                    : field
+            );
         }
 
-        function moveEmailField(index, direction) {
-            const target = index + direction;
-            if (target < 0 || target >= emailTemplateFields.length) return;
-            const temp = emailTemplateFields[index];
-            emailTemplateFields[index] = emailTemplateFields[target];
-            emailTemplateFields[target] = temp;
+        function onEmailFieldDragStart(event, index) {
+            draggingEmailFieldIndex = index;
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/plain', String(index));
+        }
+
+        function onEmailFieldDragOver(event, index) {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'move';
+            const row = event.currentTarget;
+            row.classList.add('ring-2', 'ring-primary', 'bg-blue-50', 'dark:bg-slate-800');
+        }
+
+        function onEmailFieldDragLeave(event) {
+            const row = event.currentTarget;
+            row.classList.remove('ring-2', 'ring-primary', 'bg-blue-50', 'dark:bg-slate-800');
+        }
+
+        function onEmailFieldDrop(event, dropIndex) {
+            event.preventDefault();
+            const dragIndex = draggingEmailFieldIndex;
+            const row = event.currentTarget;
+            row.classList.remove('ring-2', 'ring-primary', 'bg-blue-50', 'dark:bg-slate-800');
+
+            if (dragIndex === null || dragIndex === dropIndex) {
+                return;
+            }
+
+            const movedItem = emailTemplateFields.splice(dragIndex, 1)[0];
+            emailTemplateFields.splice(dropIndex, 0, movedItem);
+            draggingEmailFieldIndex = null;
             renderEmailTemplateFields();
+        }
+
+        function onEmailFieldDragEnd() {
+            draggingEmailFieldIndex = null;
+            document.querySelectorAll('.email-field-row').forEach(row => {
+                row.classList.remove('ring-2', 'ring-primary', 'bg-blue-50', 'dark:bg-slate-800');
+            });
         }
 
         function saveEmailTemplateFormSettings() {
@@ -10875,23 +10976,42 @@
         function openEmailTemplateFieldModal(id = null) {
             const modal = document.getElementById('emailTemplateFieldModal');
             const title = document.getElementById('emailTemplateFieldModalTitle');
-            const field = emailTemplateFields.find(item => item.id === id);
+            const normalizedId = id === null || typeof id === 'undefined' ? null : Number(id);
+            const field = normalizedId === null
+                ? null
+                : emailTemplateFields.find(item => Number(item.id) === normalizedId);
+            const systemSourceNote = document.getElementById('emailTemplateSystemSourceNote');
+            const fieldTypeSelect = document.getElementById('emailTemplateFieldType');
+            const optionsInput = document.getElementById('emailTemplateFieldOptions');
 
             document.getElementById('emailTemplateFieldForm').reset();
-            document.getElementById('emailTemplateFieldId').value = field ? field.id : '';
+            document.getElementById('emailTemplateFieldId').value = field ? String(field.id) : '';
             document.getElementById('emailTemplateFieldLabel').value = field ? field.label : '';
-            document.getElementById('emailTemplateFieldType').value = field ? field.field_type : 'text';
+            fieldTypeSelect.value = field ? getSystemFieldDisplayType(field) : 'text';
             document.getElementById('emailTemplateFieldPlaceholder').value = field ? (field.placeholder || '') : '';
-            document.getElementById('emailTemplateFieldOptions').value = field ? (field.options || '') : '';
+            optionsInput.value = field ? (field.options || '') : '';
             document.getElementById('emailTemplateFieldRequired').checked = field ? Number(field.is_required) === 1 : false;
             document.getElementById('emailTemplateFieldEnabled').checked = field ? Number(field.is_enabled) === 1 : true;
 
             if (field && Number(field.is_system) === 1) {
-                document.getElementById('emailTemplateFieldType').disabled = true;
-                document.getElementById('emailTemplateFieldOptions').disabled = true;
+                fieldTypeSelect.disabled = true;
+                optionsInput.disabled = true;
+                fieldTypeSelect.classList.add('cursor-not-allowed', 'opacity-70');
+                const sourceText = getSystemFieldSource(field.field_key);
+                const lockText = 'Field Type is managed by system and cannot be changed.';
+                if (sourceText) {
+                    systemSourceNote.textContent = `${lockText} ${sourceText}`;
+                    systemSourceNote.classList.remove('hidden');
+                } else {
+                    systemSourceNote.textContent = lockText;
+                    systemSourceNote.classList.remove('hidden');
+                }
             } else {
-                document.getElementById('emailTemplateFieldType').disabled = false;
-                document.getElementById('emailTemplateFieldOptions').disabled = false;
+                fieldTypeSelect.disabled = false;
+                optionsInput.disabled = false;
+                fieldTypeSelect.classList.remove('cursor-not-allowed', 'opacity-70');
+                systemSourceNote.classList.add('hidden');
+                systemSourceNote.textContent = '';
             }
 
             title.textContent = field ? 'Edit Field' : 'Add New Field';
