@@ -24,7 +24,7 @@ class InvitationModel extends Model
         'vehicle_category', 'vehicle_type',
         'video_watched', 'video_watched_at', 'video_completion_percentage',
         'facial_verification_image', 'facial_verified_at', 'checked_in_at',
-        'version'
+        'custom_form_data'
     ];
 
     // Dates

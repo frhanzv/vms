@@ -11,6 +11,7 @@ use App\Models\CityModel;
 use App\Models\CompanyModel;
 use App\Models\VisitorLicenseModel;
 use App\Models\VisitorEquipmentModel;
+use App\Models\EmailTemplateFormFieldModel;
 
 class VisitorRegistration extends BaseController
 {
@@ -23,6 +24,7 @@ class VisitorRegistration extends BaseController
     protected $companyModel;
     protected $licenseModel;
     protected $equipmentModel;
+    protected $emailTemplateFormFieldModel;
 
     public function initController(\CodeIgniter\HTTP\RequestInterface $request, \CodeIgniter\HTTP\ResponseInterface $response, \Psr\Log\LoggerInterface $logger)
     {
@@ -37,6 +39,7 @@ class VisitorRegistration extends BaseController
         $this->companyModel = new CompanyModel();
         $this->licenseModel = new VisitorLicenseModel();
         $this->equipmentModel = new VisitorEquipmentModel();
+        $this->emailTemplateFormFieldModel = new EmailTemplateFormFieldModel();
     }
 
     public function index()
@@ -80,6 +83,14 @@ class VisitorRegistration extends BaseController
             }
         }
         
+        $customFormValues = [];
+        if ($invitation && !empty($invitation['custom_form_data'])) {
+            $decodedCustomValues = json_decode($invitation['custom_form_data'], true);
+            if (is_array($decodedCustomValues)) {
+                $customFormValues = $decodedCustomValues;
+            }
+        }
+
         $data = [
             'pageTitle' => 'Visitor Registration - SafeG',
             'token' => $token,
@@ -91,7 +102,10 @@ class VisitorRegistration extends BaseController
             'countries' => $countries,
             'states' => $states,
             'cities' => $cities,
-            'companyRegistrationId' => $companyRegistrationId
+            'companyRegistrationId' => $companyRegistrationId,
+            'formConfig' => $this->getEmailTemplateFormConfig(),
+            'customFormFields' => $this->getEnabledCustomFields(),
+            'customFormValues' => $customFormValues,
         ];
 
         return view('visitors/registration', $data);
@@ -100,22 +114,53 @@ class VisitorRegistration extends BaseController
     public function submit()
     {
         // Handle form submission
+        $formConfig = $this->getEmailTemplateFormConfig();
         $validationRules = [
-            'full_name' => 'required|max_length[255]',
-            'ic_number' => 'required|max_length[50]',
-            'contact_number' => 'required|max_length[20]',
-            'email' => 'required|valid_email',
-            'date_of_birth' => 'required',
-            'sex' => 'required|in_list[MALE,FEMALE]',
-            'resident' => 'required|in_list[LOCAL,FOREIGN]',
             'company_visiting' => 'required'
         ];
+
+        if ($this->isFormFieldEnabled('full_name', $formConfig)) {
+            $validationRules['full_name'] = 'required|max_length[255]';
+        }
+
+        if ($this->isFormFieldEnabled('ic_number', $formConfig)) {
+            $validationRules['ic_number'] = 'required|max_length[50]';
+        }
+
+        if ($this->isFormFieldEnabled('contact_number', $formConfig)) {
+            $validationRules['contact_number'] = 'required|max_length[20]';
+        }
+
+        if ($this->isFormFieldEnabled('email', $formConfig)) {
+            $validationRules['email'] = 'required|valid_email';
+        }
+
+        if ($this->isFormFieldEnabled('date_of_birth', $formConfig)) {
+            $validationRules['date_of_birth'] = 'required';
+        }
+
+        if ($this->isFormFieldEnabled('sex', $formConfig)) {
+            $validationRules['sex'] = 'required|in_list[MALE,FEMALE]';
+        }
+
+        if ($this->isFormFieldEnabled('resident', $formConfig)) {
+            $validationRules['resident'] = 'required|in_list[LOCAL,FOREIGN]';
+        }
 
         if (!$this->validate($validationRules)) {
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Validation failed',
                 'errors' => $this->validator->getErrors()
+            ]);
+        }
+
+        $customFieldErrors = $this->validateCustomFields($this->request->getPost('custom_fields'));
+        if (!empty($customFieldErrors)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $customFieldErrors
             ]);
         }
 
@@ -176,35 +221,37 @@ class VisitorRegistration extends BaseController
                 $this->request->getPost('address_3')
             ]);
             $fullAddress = implode(', ', $addressParts);
+            $customFormData = $this->prepareCustomFieldData($this->request->getPost('custom_fields'));
 
             // Prepare visitor data - save ALL fields
             $visitorData = [
-                'full_name' => $this->request->getPost('full_name'),
-                'ic_passport' => $this->request->getPost('ic_number'),
-                'contact' => $this->request->getPost('contact_number'),
-                'visitor_email' => $this->request->getPost('email'),
-                'date_of_birth' => $this->request->getPost('date_of_birth'),
-                'sex' => $this->request->getPost('sex'),
-                'resident' => $this->request->getPost('resident'),
+                'full_name' => $this->getConfiguredPostValue('full_name', $formConfig),
+                'ic_passport' => $this->getConfiguredPostValue('ic_number', $formConfig),
+                'contact' => $this->getConfiguredPostValue('contact_number', $formConfig),
+                'visitor_email' => $this->getConfiguredPostValue('email', $formConfig),
+                'date_of_birth' => $this->getConfiguredPostValue('date_of_birth', $formConfig),
+                'sex' => $this->getConfiguredPostValue('sex', $formConfig),
+                'resident' => $this->getConfiguredPostValue('resident', $formConfig),
                 'address' => $fullAddress,
-                'postcode' => $this->request->getPost('postal_code') ?? '',
-                'city' => $this->request->getPost('city') ?? '',
-                'state' => $this->request->getPost('state') ?? '',
-                'country' => $this->request->getPost('country') ?? '',
-                'company' => $this->request->getPost('company_name') ?? '',
-                'registration_no' => $this->request->getPost('company_reg_id') ?? '',
-                'vehicle_registration' => $this->request->getPost('vehicle_registration') ?? '',
-                'vehicle_category' => $this->request->getPost('category') ?? '',
-                'vehicle_type' => $this->request->getPost('vehicle_type') ?? '',
-                'staff_id' => $this->request->getPost('staff_id') ?? '',
-                'host_contact' => $this->request->getPost('host_contact') ?? '',
-                'company_visited' => $this->request->getPost('company_visited') ?? '',
+                'postcode' => $this->getConfiguredPostValue('postal_code', $formConfig),
+                'city' => $this->getConfiguredPostValue('city', $formConfig),
+                'state' => $this->getConfiguredPostValue('state', $formConfig),
+                'country' => $this->getConfiguredPostValue('country', $formConfig),
+                'company' => $this->isFormFieldEnabled('company_details_section', $formConfig) ? ($this->request->getPost('company_name') ?? '') : '',
+                'registration_no' => $this->isFormFieldEnabled('company_details_section', $formConfig) ? ($this->request->getPost('company_reg_id') ?? '') : '',
+                'vehicle_registration' => $this->getConfiguredPostValue('vehicle_registration', $formConfig),
+                'vehicle_category' => $this->getConfiguredPostValue('category', $formConfig),
+                'vehicle_type' => $this->getConfiguredPostValue('vehicle_type', $formConfig),
+                'staff_id' => $this->getConfiguredPostValue('staff_id', $formConfig),
+                'host_contact' => $this->getConfiguredPostValue('host_contact', $formConfig),
+                'company_visited' => $this->getConfiguredPostValue('company_visited', $formConfig),
                 'location' => $companyVisitingStr,
-                'reason' => $this->request->getPost('visit_reason') ?? '',
+                'reason' => $this->getConfiguredPostValue('visit_reason', $formConfig),
                 'status' => 'Submitted',
-                'government_id_path' => $governmentIdPath,
-                'invitation_letter_path' => $invitationLetterPath,
-                'profile_photo_path' => $profilePhotoPath
+                'government_id_path' => $this->isFormFieldEnabled('document_upload_section', $formConfig) ? $governmentIdPath : null,
+                'invitation_letter_path' => $this->isFormFieldEnabled('document_upload_section', $formConfig) ? $invitationLetterPath : null,
+                'profile_photo_path' => $this->isFormFieldEnabled('profile_photo_section', $formConfig) ? $profilePhotoPath : null,
+                'custom_form_data' => !empty($customFormData) ? json_encode($customFormData) : null,
             ];
 
             // Insert or update invitation record
@@ -257,7 +304,7 @@ class VisitorRegistration extends BaseController
                 $this->licenseModel->where('invitation_id', $invitationId)->delete();
             }
             
-            $licenses = $this->request->getPost('licenses');
+            $licenses = $this->isFormFieldEnabled('driving_license_section', $formConfig) ? $this->request->getPost('licenses') : [];
             if (is_array($licenses) && count($licenses) > 0) {
                 foreach ($licenses as $license) {
                     if (!empty($license['class'])) {
@@ -277,7 +324,7 @@ class VisitorRegistration extends BaseController
                 $this->equipmentModel->where('invitation_id', $invitationId)->delete();
             }
             
-            $equipment = $this->request->getPost('equipment');
+            $equipment = $this->isFormFieldEnabled('asset_equipment_section', $formConfig) ? $this->request->getPost('equipment') : [];
             if (is_array($equipment) && count($equipment) > 0) {
                 foreach ($equipment as $item) {
                     if (!empty($item['category']) || !empty($item['type'])) {
@@ -1087,5 +1134,112 @@ class VisitorRegistration extends BaseController
                 'message' => 'An error occurred while updating email'
             ]);
         }
+    }
+
+    private function getEmailTemplateFormConfig(): array
+    {
+        $defaults = $this->getDefaultEmailTemplateFormConfig();
+        try {
+            $map = $this->emailTemplateFormFieldModel->getSystemFieldMap();
+        } catch (\Throwable $e) {
+            return $defaults;
+        }
+
+        foreach ($map as $fieldKey => $row) {
+            $defaults[$fieldKey] = (bool) ($row['is_enabled'] ?? true);
+        }
+
+        return $defaults;
+    }
+
+    private function getDefaultEmailTemplateFormConfig(): array
+    {
+        return [
+            'staff_id' => true,
+            'host_contact' => true,
+            'company_visited' => true,
+            'visit_reason' => true,
+            'resident' => true,
+            'ic_number' => true,
+            'date_of_birth' => true,
+            'sex' => true,
+            'full_name' => true,
+            'contact_number' => true,
+            'email' => true,
+            'address_1' => true,
+            'address_2' => true,
+            'address_3' => true,
+            'city' => true,
+            'state' => true,
+            'postal_code' => true,
+            'country' => true,
+            'category' => true,
+            'vehicle_type' => true,
+            'vehicle_registration' => true,
+            'driving_license_section' => true,
+            'company_details_section' => true,
+            'asset_equipment_section' => true,
+            'document_upload_section' => true,
+            'profile_photo_section' => true,
+        ];
+    }
+
+    private function isFormFieldEnabled(string $field, array $formConfig): bool
+    {
+        return !array_key_exists($field, $formConfig) || (bool) $formConfig[$field];
+    }
+
+    private function getConfiguredPostValue(string $field, array $formConfig, string $default = ''): string
+    {
+        if (!$this->isFormFieldEnabled($field, $formConfig)) {
+            return $default;
+        }
+
+        return $this->request->getPost($field) ?? $default;
+    }
+
+    private function getEnabledCustomFields(): array
+    {
+        try {
+            return $this->emailTemplateFormFieldModel
+                ->where('is_system', 0)
+                ->where('is_enabled', 1)
+                ->orderBy('sort_order', 'ASC')
+                ->findAll();
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    private function validateCustomFields($postedCustomFields): array
+    {
+        $errors = [];
+        $posted = is_array($postedCustomFields) ? $postedCustomFields : [];
+        $customFields = $this->getEnabledCustomFields();
+
+        foreach ($customFields as $field) {
+            $key = $field['field_key'];
+            $value = trim((string) ($posted[$key] ?? ''));
+
+            if ((int) ($field['is_required'] ?? 0) === 1 && $value === '') {
+                $errors['custom_fields.' . $key] = $field['label'] . ' is required';
+            }
+        }
+
+        return $errors;
+    }
+
+    private function prepareCustomFieldData($postedCustomFields): array
+    {
+        $result = [];
+        $posted = is_array($postedCustomFields) ? $postedCustomFields : [];
+        $customFields = $this->getEnabledCustomFields();
+
+        foreach ($customFields as $field) {
+            $key = $field['field_key'];
+            $result[$key] = trim((string) ($posted[$key] ?? ''));
+        }
+
+        return $result;
     }
 }

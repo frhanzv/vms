@@ -20,6 +20,7 @@ use App\Models\VisitReasonModel;
 use App\Models\VisitorTypeModel;
 use App\Models\SettingModel;
 use App\Models\DeviceAssignmentModel;
+use App\Models\EmailTemplateFormFieldModel;
 
 class Config extends BaseController
 {
@@ -41,6 +42,7 @@ class Config extends BaseController
     protected $visitorTypeModel;
     protected $settingModel;
     protected $deviceAssignmentModel;
+    protected $emailTemplateFormFieldModel;
 
     /**
      * Version-checked update for config entities.
@@ -103,6 +105,7 @@ class Config extends BaseController
         $this->visitorTypeModel = new VisitorTypeModel();
         $this->settingModel = new SettingModel();
         $this->deviceAssignmentModel = new DeviceAssignmentModel();
+        $this->emailTemplateFormFieldModel = new EmailTemplateFormFieldModel();
     }
 
     public function index()
@@ -3143,6 +3146,198 @@ class Config extends BaseController
         return $this->response->setJSON([
             'success' => true,
             'message' => 'IP Range settings saved successfully'
+        ]);
+    }
+
+    public function getEmailTemplateFormSettings()
+    {
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => $this->emailTemplateFormFieldModel->getOrderedFields()
+        ]);
+    }
+
+    public function saveEmailTemplateFormSettings()
+    {
+        $input = $this->request->getJSON(true);
+
+        if (!is_array($input) || !isset($input['fields']) || !is_array($input['fields'])) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Invalid settings payload'
+            ])->setStatusCode(400);
+        }
+
+        foreach ($input['fields'] as $index => $row) {
+            if (!isset($row['id'])) {
+                continue;
+            }
+
+            $this->emailTemplateFormFieldModel->update((int) $row['id'], [
+                'is_enabled' => isset($row['is_enabled']) ? (int) filter_var($row['is_enabled'], FILTER_VALIDATE_BOOLEAN) : 1,
+                'is_required' => isset($row['is_required']) ? (int) filter_var($row['is_required'], FILTER_VALIDATE_BOOLEAN) : 0,
+                'sort_order' => $index + 1,
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Email template form settings saved successfully'
+        ]);
+    }
+
+    public function createEmailTemplateFormField()
+    {
+        $input = $this->request->getJSON(true);
+        $label = trim((string) ($input['label'] ?? ''));
+
+        if ($label === '') {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Field label is required'
+            ])->setStatusCode(400);
+        }
+
+        $fieldType = strtolower((string) ($input['field_type'] ?? 'text'));
+        $allowedTypes = ['text', 'textarea', 'email', 'tel', 'date', 'select'];
+        if (!in_array($fieldType, $allowedTypes, true)) {
+            $fieldType = 'text';
+        }
+
+        $maxSort = $this->emailTemplateFormFieldModel
+            ->selectMax('sort_order')
+            ->first();
+
+        $nextSort = ((int) ($maxSort['sort_order'] ?? 0)) + 1;
+        $baseKey = 'custom_' . strtolower(preg_replace('/[^a-zA-Z0-9]+/', '_', $label));
+        $baseKey = trim($baseKey, '_');
+        if ($baseKey === 'custom') {
+            $baseKey = 'custom_field';
+        }
+
+        $fieldKey = $baseKey;
+        $suffix = 1;
+        while ($this->emailTemplateFormFieldModel->where('field_key', $fieldKey)->first()) {
+            $fieldKey = $baseKey . '_' . $suffix;
+            $suffix++;
+        }
+
+        $this->emailTemplateFormFieldModel->insert([
+            'field_key' => $fieldKey,
+            'label' => $label,
+            'field_type' => $fieldType,
+            'placeholder' => $input['placeholder'] ?? null,
+            'options' => $fieldType === 'select' ? ($input['options'] ?? null) : null,
+            'is_required' => isset($input['is_required']) ? (int) filter_var($input['is_required'], FILTER_VALIDATE_BOOLEAN) : 0,
+            'is_enabled' => 1,
+            'sort_order' => $nextSort,
+            'is_system' => 0,
+        ]);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Field added successfully'
+        ]);
+    }
+
+    public function updateEmailTemplateFormField($id)
+    {
+        $field = $this->emailTemplateFormFieldModel->find($id);
+        if (!$field) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Field not found'
+            ])->setStatusCode(404);
+        }
+
+        $input = $this->request->getJSON(true);
+        $payload = [];
+
+        if (isset($input['label']) && trim((string) $input['label']) !== '') {
+            $payload['label'] = trim((string) $input['label']);
+        }
+
+        if (isset($input['placeholder'])) {
+            $payload['placeholder'] = trim((string) $input['placeholder']) ?: null;
+        }
+
+        if (isset($input['is_enabled'])) {
+            $payload['is_enabled'] = (int) filter_var($input['is_enabled'], FILTER_VALIDATE_BOOLEAN);
+        }
+
+        if (isset($input['is_required'])) {
+            $payload['is_required'] = (int) filter_var($input['is_required'], FILTER_VALIDATE_BOOLEAN);
+        }
+
+        if (!$field['is_system']) {
+            if (isset($input['field_type'])) {
+                $fieldType = strtolower((string) $input['field_type']);
+                $allowedTypes = ['text', 'textarea', 'email', 'tel', 'date', 'select'];
+                if (in_array($fieldType, $allowedTypes, true)) {
+                    $payload['field_type'] = $fieldType;
+                }
+            }
+
+            if (isset($input['options'])) {
+                $payload['options'] = trim((string) $input['options']) ?: null;
+            }
+        }
+
+        if (!empty($payload)) {
+            $this->emailTemplateFormFieldModel->update($id, $payload);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Field updated successfully'
+        ]);
+    }
+
+    public function deleteEmailTemplateFormField($id)
+    {
+        $field = $this->emailTemplateFormFieldModel->find($id);
+        if (!$field) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Field not found'
+            ])->setStatusCode(404);
+        }
+
+        if ((int) $field['is_system'] === 1) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'System fields cannot be deleted'
+            ])->setStatusCode(400);
+        }
+
+        $this->emailTemplateFormFieldModel->delete($id);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Field deleted successfully'
+        ]);
+    }
+
+    public function reorderEmailTemplateFormFields()
+    {
+        $input = $this->request->getJSON(true);
+
+        if (!is_array($input) || !isset($input['ordered_ids']) || !is_array($input['ordered_ids'])) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Invalid ordering payload'
+            ])->setStatusCode(400);
+        }
+
+        foreach ($input['ordered_ids'] as $index => $id) {
+            $this->emailTemplateFormFieldModel->update((int) $id, [
+                'sort_order' => $index + 1,
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Field order updated successfully'
         ]);
     }
 }
