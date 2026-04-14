@@ -2023,6 +2023,85 @@
                     </div>
                 </div>
 
+                <!-- Email Template Settings -->
+                <div
+                    class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                    <button onclick="toggleSection('email-template')"
+                        class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                        <div class="flex items-center gap-4">
+                            <div class="p-2 bg-primary/10 rounded-lg">
+                                <span class="material-symbols-outlined text-primary text-xl">mail</span>
+                            </div>
+                            <div class="text-left">
+                                <h3 class="text-base font-bold text-gray-800 dark:text-white">Email Template</h3>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Enable or disable visitor form lines shown from the email link</p>
+                            </div>
+                        </div>
+                        <span id="email-template-icon"
+                            class="material-symbols-outlined text-gray-400 dark:text-slate-400 transition-transform">expand_more</span>
+                    </button>
+                    <div id="email-template-content" class="hidden border-t border-gray-200 dark:border-slate-700">
+                        <div class="p-6 bg-gray-50 dark:bg-slate-800/50 space-y-6">
+                            <div>
+                                <p class="text-sm font-semibold text-slate-700 dark:text-slate-300">Visitor registration form from invitation email</p>
+                                <p class="text-xs text-slate-500 mt-1">Turn off any line you do not want visitors to see in the linked registration form.</p>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" id="emailTemplateFormFields">
+                                <?php
+                                $emailTemplateFields = [
+                                    'staff_id' => 'Staff ID Of Person Visited',
+                                    'host_contact' => 'Contact No Of Person Visited',
+                                    'company_visited' => 'Name Of Company Visited',
+                                    'visit_reason' => 'Reason',
+                                    'resident' => 'Resident',
+                                    'ic_number' => 'IC Number',
+                                    'date_of_birth' => 'Date of Birth',
+                                    'sex' => 'Sex',
+                                    'full_name' => 'Full Name',
+                                    'contact_number' => 'Contact Number',
+                                    'email' => 'Email Address',
+                                    'address_1' => 'Address 1',
+                                    'address_2' => 'Address 2',
+                                    'address_3' => 'Address 3',
+                                    'city' => 'City',
+                                    'state' => 'State',
+                                    'postal_code' => 'Postal Code',
+                                    'country' => 'Country',
+                                    'category' => 'Vehicle Category',
+                                    'vehicle_type' => 'Type Of Vehicle',
+                                    'vehicle_registration' => 'Vehicle Registration Number',
+                                    'driving_license_section' => 'Driving License Section',
+                                    'company_details_section' => 'Company Details Section',
+                                    'asset_equipment_section' => 'Asset/Equipment Section',
+                                    'document_upload_section' => 'Document Upload Section',
+                                    'profile_photo_section' => 'Profile Photo Section',
+                                ];
+                                ?>
+                                <?php foreach ($emailTemplateFields as $fieldKey => $fieldLabel): ?>
+                                    <label class="flex items-center justify-between gap-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3">
+                                        <span class="text-sm font-medium text-slate-700 dark:text-slate-200"><?= esc($fieldLabel) ?></span>
+                                        <input
+                                            type="checkbox"
+                                            class="email-template-field h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
+                                            data-field="<?= esc($fieldKey) ?>"
+                                        >
+                                    </label>
+                                <?php endforeach; ?>
+                            </div>
+
+                            <div class="flex justify-end">
+                                <button
+                                    type="button"
+                                    onclick="saveEmailTemplateFormSettings()"
+                                    class="px-4 py-2.5 rounded-lg bg-primary text-white hover:bg-primary-hover transition-colors font-medium text-sm">
+                                    Save Email Template
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Security Settings -->
                 <div
                     class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
@@ -9961,6 +10040,54 @@
                 }
             });
         }
+
+        function fetchEmailTemplateFormSettings() {
+            fetch('<?= base_url('config/getEmailTemplateFormSettings') ?>')
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success || !data.data) {
+                        return;
+                    }
+
+                    document.querySelectorAll('.email-template-field').forEach(input => {
+                        const field = input.dataset.field;
+                        input.checked = data.data[field] !== false;
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading email template settings:', error);
+                });
+        }
+
+        function saveEmailTemplateFormSettings() {
+            const payload = {};
+
+            document.querySelectorAll('.email-template-field').forEach(input => {
+                payload[input.dataset.field] = input.checked;
+            });
+
+            fetch('<?= base_url('config/saveEmailTemplateFormSettings') ?>', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast(data.message, 'success');
+                    } else {
+                        showToast(data.message || 'Error saving email template settings', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error saving email template settings:', error);
+                    showToast('Error saving email template settings', 'error');
+                });
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            fetchEmailTemplateFormSettings();
+        });
     </script>
 </body>
 

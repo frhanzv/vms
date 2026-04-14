@@ -22,6 +22,8 @@ use App\Models\DeviceAssignmentModel;
 
 class Config extends BaseController
 {
+    private const EMAIL_TEMPLATE_FORM_SETTING_KEY = 'email_template_form_fields';
+
     protected $roleModel;
     protected $userModel;
     protected $companyModel;
@@ -2929,5 +2931,94 @@ class Config extends BaseController
             'success' => true,
             'message' => 'IP Range settings saved successfully'
         ]);
+    }
+
+    public function getEmailTemplateFormSettings()
+    {
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => $this->getEmailTemplateFormConfig()
+        ]);
+    }
+
+    public function saveEmailTemplateFormSettings()
+    {
+        $input = $this->request->getJSON(true);
+
+        if (!is_array($input)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Invalid settings payload'
+            ])->setStatusCode(400);
+        }
+
+        $defaults = $this->getDefaultEmailTemplateFormConfig();
+        $sanitized = [];
+
+        foreach ($defaults as $key => $defaultValue) {
+            $sanitized[$key] = isset($input[$key]) ? filter_var($input[$key], FILTER_VALIDATE_BOOLEAN) : $defaultValue;
+        }
+
+        $this->settingModel->setSetting(self::EMAIL_TEMPLATE_FORM_SETTING_KEY, json_encode($sanitized));
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Email template form settings saved successfully'
+        ]);
+    }
+
+    private function getEmailTemplateFormConfig(): array
+    {
+        $defaults = $this->getDefaultEmailTemplateFormConfig();
+        $storedValue = $this->settingModel->getSetting(self::EMAIL_TEMPLATE_FORM_SETTING_KEY);
+
+        if (empty($storedValue)) {
+            return $defaults;
+        }
+
+        $decoded = json_decode($storedValue, true);
+        if (!is_array($decoded)) {
+            return $defaults;
+        }
+
+        $merged = array_merge($defaults, $decoded);
+
+        foreach ($merged as $key => $value) {
+            $merged[$key] = (bool) $value;
+        }
+
+        return $merged;
+    }
+
+    private function getDefaultEmailTemplateFormConfig(): array
+    {
+        return [
+            'staff_id' => true,
+            'host_contact' => true,
+            'company_visited' => true,
+            'visit_reason' => true,
+            'resident' => true,
+            'ic_number' => true,
+            'date_of_birth' => true,
+            'sex' => true,
+            'full_name' => true,
+            'contact_number' => true,
+            'email' => true,
+            'address_1' => true,
+            'address_2' => true,
+            'address_3' => true,
+            'city' => true,
+            'state' => true,
+            'postal_code' => true,
+            'country' => true,
+            'category' => true,
+            'vehicle_type' => true,
+            'vehicle_registration' => true,
+            'driving_license_section' => true,
+            'company_details_section' => true,
+            'asset_equipment_section' => true,
+            'document_upload_section' => true,
+            'profile_photo_section' => true,
+        ];
     }
 }

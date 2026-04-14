@@ -187,6 +187,8 @@ $routes->post('config/deleteDeviceAssignment/(:num)', 'Config::deleteDeviceAssig
 // IP Range Settings
 $routes->get('config/getIpRangeSettings', 'Config::getIpRangeSettings');
 $routes->post('config/saveIpRangeSettings', 'Config::saveIpRangeSettings');
+$routes->get('config/getEmailTemplateFormSettings', 'Config::getEmailTemplateFormSettings');
+$routes->post('config/saveEmailTemplateFormSettings', 'Config::saveEmailTemplateFormSettings');
 
 // Additional Location Routes
 $routes->get('config/getAllLocations', 'Config::getAllLocations');

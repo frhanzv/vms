@@ -1,3 +1,9 @@
+<?php
+$formConfig = $formConfig ?? [];
+$isFieldEnabled = static function (string $field) use ($formConfig): bool {
+    return !array_key_exists($field, $formConfig) || (bool) $formConfig[$field];
+};
+?>
 <!DOCTYPE html>
 <html class="light" lang="en">
 <head>
@@ -361,22 +367,30 @@
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <?php if ($isFieldEnabled('staff_id')): ?>
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand" data-translate="Staff ID Of Person Visited">Staff ID Of Person Visited</label>
                             <input name="staff_id" value="<?= esc($invitation['staff_id'] ?? '') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
                         </div>
+                        <?php endif; ?>
+                        <?php if ($isFieldEnabled('host_contact')): ?>
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand" data-translate="Contact No Of Person Visited">Contact No Of Person Visited</label>
                             <input name="host_contact" value="<?= esc($invitation['host_contact'] ?? '') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
                         </div>
+                        <?php endif; ?>
+                        <?php if ($isFieldEnabled('company_visited')): ?>
                         <div class="space-y-2 md:col-span-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand" data-translate="Name Of Company Visited">Name Of Company Visited</label>
                             <input name="company_visited" value="<?= esc($invitation['company_visited'] ?? '') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
                         </div>
+                        <?php endif; ?>
+                        <?php if ($isFieldEnabled('visit_reason')): ?>
                         <div class="space-y-2 md:col-span-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand" data-translate="Reason">Reason</label>
                             <input name="visit_reason" value="<?= esc($invitation['reason'] ?? '') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
                         </div>
+                        <?php endif; ?>
                     </div>
                 </section>
 
@@ -400,6 +414,7 @@
                         </div>
                     </div>
                     <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <?php if ($isFieldEnabled('resident')): ?>
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Resident <span class="text-red-500">*</span></label>
                             <select name="resident" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" required>
@@ -408,14 +423,20 @@
                                 <option value="FOREIGN">FOREIGN</option>
                             </select>
                         </div>
+                        <?php endif; ?>
+                        <?php if ($isFieldEnabled('ic_number')): ?>
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">IC Number <span class="text-red-500">*</span></label>
                             <input name="ic_number" value="<?= esc($invitation['ic_passport'] ?? '') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="Enter IC / Passport Number" type="text" required/>
                         </div>
+                        <?php endif; ?>
+                        <?php if ($isFieldEnabled('date_of_birth')): ?>
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Date of Birth <span class="text-red-500">*</span></label>
                             <input name="date_of_birth" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="date" required/>
                         </div>
+                        <?php endif; ?>
+                        <?php if ($isFieldEnabled('sex')): ?>
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Sex <span class="text-red-500">*</span></label>
                             <select name="sex" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" required>
@@ -424,14 +445,20 @@
                                 <option value="FEMALE">FEMALE</option>
                             </select>
                         </div>
+                        <?php endif; ?>
+                        <?php if ($isFieldEnabled('full_name')): ?>
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Full Name <span class="text-red-500">*</span></label>
                             <input name="full_name" value="<?= esc($invitation['full_name'] ?? '') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="Full name as per ID" type="text" required/>
                         </div>
+                        <?php endif; ?>
+                        <?php if ($isFieldEnabled('contact_number')): ?>
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Contact Number <span class="text-red-500">*</span></label>
                             <input name="contact_number" value="<?= esc($invitation['contact'] ?? '') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="+60 1x-xxx xxxx" type="tel" required/>
                         </div>
+                        <?php endif; ?>
+                        <?php if ($isFieldEnabled('email')): ?>
                         <div class="md:col-span-2 space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Email Address <span class="text-red-500">*</span></label>
                             <div class="flex flex-col sm:flex-row gap-3">
@@ -441,18 +468,26 @@
                                 </button>
                             </div>
                         </div>
+                        <?php endif; ?>
+                        <?php if ($isFieldEnabled('address_1')): ?>
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Address 1</label>
                             <input name="address_1" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
                         </div>
+                        <?php endif; ?>
+                        <?php if ($isFieldEnabled('address_2')): ?>
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Address 2</label>
                             <input name="address_2" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
                         </div>
+                        <?php endif; ?>
+                        <?php if ($isFieldEnabled('address_3')): ?>
                         <div class="md:col-span-2 space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Address 3</label>
                             <input name="address_3" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
                         </div>
+                        <?php endif; ?>
+                        <?php if ($isFieldEnabled('city')): ?>
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">City</label>
                             <select name="city" id="citySelect" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
@@ -464,6 +499,8 @@
                                 <?php endif; ?>
                             </select>
                         </div>
+                        <?php endif; ?>
+                        <?php if ($isFieldEnabled('state')): ?>
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">State</label>
                             <select name="state" id="stateSelect" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
@@ -475,10 +512,14 @@
                                 <?php endif; ?>
                             </select>
                         </div>
+                        <?php endif; ?>
+                        <?php if ($isFieldEnabled('postal_code')): ?>
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Postal Code</label>
                             <input name="postal_code" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
                         </div>
+                        <?php endif; ?>
+                        <?php if ($isFieldEnabled('country')): ?>
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Country</label>
                             <select name="country" id="countrySelect" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
@@ -490,6 +531,8 @@
                                 <?php endif; ?>
                             </select>
                         </div>
+                        <?php endif; ?>
+                        <?php if ($isFieldEnabled('category')): ?>
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Category</label>
                             <select name="category" id="vehicleCategory" onchange="updateVehicleType()" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
@@ -502,19 +545,25 @@
                                 <option value="HEAVY_MACHINERY">Heavy Machinery</option>
                             </select>
                         </div>
+                        <?php endif; ?>
+                        <?php if ($isFieldEnabled('vehicle_type')): ?>
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Type Of Vehicle</label>
                             <select name="vehicle_type" id="vehicleType" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
                                 <option value="">SELECT CATEGORY FIRST</option>
                             </select>
                         </div>
+                        <?php endif; ?>
+                        <?php if ($isFieldEnabled('vehicle_registration')): ?>
                         <div class="md:col-span-2 space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Vehicle Registration Number</label>
                             <input name="vehicle_registration" value="<?= esc($invitation['vehicle_registration'] ?? '') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="e.g. ABC 1234" type="text"/>
                         </div>
+                        <?php endif; ?>
                     </div>
                 </section>
 
+                <?php if ($isFieldEnabled('driving_license_section')): ?>
                 <!-- Driving License Section -->
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 mt-8">
                     <div class="p-6 sm:p-8">
@@ -545,7 +594,9 @@
                         </div>
                     </div>
                 </section>
+                <?php endif; ?>
 
+                <?php if ($isFieldEnabled('company_details_section')): ?>
                 <!-- Company Details -->
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8">
                     <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
@@ -568,8 +619,9 @@
                         </div>
                     </div>
                 </section>
-                </section>
+                <?php endif; ?>
 
+                <?php if ($isFieldEnabled('asset_equipment_section')): ?>
                 <!-- Asset/Equipment Details Section -->
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 mt-8">
                     <div class="p-6 sm:p-8">
@@ -600,7 +652,9 @@
                         </div>
                     </div>
                 </section>
+                <?php endif; ?>
 
+                <?php if ($isFieldEnabled('document_upload_section')): ?>
                 <!-- Document Upload -->
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8 mt-8">
                     <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
@@ -637,7 +691,9 @@
                         </div>
                     </div>
                 </section>
+                <?php endif; ?>
 
+                <?php if ($isFieldEnabled('profile_photo_section')): ?>
                 <!-- Profile Photo -->
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8 mt-8">
                     <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
@@ -677,6 +733,7 @@
                         </div>
                     </div>
                 </section>
+                <?php endif; ?>
 
             <!-- Sticky Footer with Actions -->
             <div class="sticky bottom-4 z-40 mt-8 mx-auto max-w-4xl">
@@ -850,18 +907,30 @@
         let cameraStream = null;
         let profilePhotoBlob = null;
 
+        const uploadPhotoBtn = document.getElementById('uploadPhotoBtn');
+        const editProfilePhotoBtn = document.getElementById('editProfilePhoto');
+        const profilePhotoInput = document.getElementById('profilePhotoInput');
+        const takePhotoBtn = document.getElementById('takePhotoBtn');
+        const governmentIdInput = document.querySelector('input[name="government_id"]');
+        const invitationLetterInput = document.querySelector('input[name="invitation_letter"]');
+
         // Upload Photo button
-        document.getElementById('uploadPhotoBtn').addEventListener('click', function() {
-            document.getElementById('profilePhotoInput').click();
-        });
+        if (uploadPhotoBtn && profilePhotoInput) {
+            uploadPhotoBtn.addEventListener('click', function() {
+                profilePhotoInput.click();
+            });
+        }
 
         // Edit button
-        document.getElementById('editProfilePhoto').addEventListener('click', function() {
-            document.getElementById('profilePhotoInput').click();
-        });
+        if (editProfilePhotoBtn && profilePhotoInput) {
+            editProfilePhotoBtn.addEventListener('click', function() {
+                profilePhotoInput.click();
+            });
+        }
 
         // Handle file selection
-        document.getElementById('profilePhotoInput').addEventListener('change', function(e) {
+        if (profilePhotoInput) {
+            profilePhotoInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
                 // Validate file type
@@ -891,15 +960,19 @@
                 };
                 reader.readAsDataURL(file);
             }
-        });
+            });
+        }
 
         // Take Photo button
-        document.getElementById('takePhotoBtn').addEventListener('click', function() {
-            openCameraModal();
-        });
+        if (takePhotoBtn) {
+            takePhotoBtn.addEventListener('click', function() {
+                openCameraModal();
+            });
+        }
 
         // Handle Government ID file upload preview
-        document.querySelector('input[name="government_id"]').addEventListener('change', function(e) {
+        if (governmentIdInput) {
+            governmentIdInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
                 // Validate file size (5MB)
@@ -927,10 +1000,12 @@
                     </div>
                 `;
             }
-        });
+            });
+        }
 
         // Handle Invitation Letter file upload preview
-        document.querySelector('input[name="invitation_letter"]').addEventListener('change', function(e) {
+        if (invitationLetterInput) {
+            invitationLetterInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
                 // Validate file size (5MB)
@@ -958,7 +1033,8 @@
                     </div>
                 `;
             }
-        });
+            });
+        }
 
         // Function to clear file input
         window.clearFileInput = function(button, inputName) {
@@ -1373,8 +1449,14 @@
         };
 
         function updateVehicleType() {
-            const category = document.getElementById('vehicleCategory').value;
+            const vehicleCategorySelect = document.getElementById('vehicleCategory');
             const vehicleTypeSelect = document.getElementById('vehicleType');
+
+            if (!vehicleCategorySelect || !vehicleTypeSelect) {
+                return;
+            }
+
+            const category = vehicleCategorySelect.value;
             
             // Clear existing options
             vehicleTypeSelect.innerHTML = '';
@@ -1402,112 +1484,118 @@
         }
 
         // Cascading dropdown: Bidirectional Country <-> State <-> City
-        const allStates = Array.from(document.querySelectorAll('#stateSelect option')).slice(1); // Skip first "SELECT" option
-        const allCities = Array.from(document.querySelectorAll('#citySelect option')).slice(1); // Skip first "SELECT" option
+        const countrySelect = document.getElementById('countrySelect');
+        const stateSelect = document.getElementById('stateSelect');
+        const citySelect = document.getElementById('citySelect');
+        const allStates = stateSelect ? Array.from(document.querySelectorAll('#stateSelect option')).slice(1) : [];
+        const allCities = citySelect ? Array.from(document.querySelectorAll('#citySelect option')).slice(1) : [];
         
         // Filter states based on selected country (top-down)
-        document.getElementById('countrySelect').addEventListener('change', function() {
-            const countryId = this.value;
-            const stateSelect = document.getElementById('stateSelect');
-            const citySelect = document.getElementById('citySelect');
-            
-            // Reset state and city
-            stateSelect.innerHTML = '<option value="">SELECT</option>';
-            citySelect.innerHTML = '<option value="">SELECT STATE FIRST</option>';
-            
-            if (!countryId) {
-                return;
-            }
-            
-            // Filter and add states for selected country
-            allStates.forEach(option => {
-                if (option.dataset.countryId === countryId) {
-                    stateSelect.appendChild(option.cloneNode(true));
+        if (countrySelect && stateSelect && citySelect) {
+            countrySelect.addEventListener('change', function() {
+                const countryId = this.value;
+                
+                // Reset state and city
+                stateSelect.innerHTML = '<option value="">SELECT</option>';
+                citySelect.innerHTML = '<option value="">SELECT STATE FIRST</option>';
+                
+                if (!countryId) {
+                    return;
                 }
+                
+                // Filter and add states for selected country
+                allStates.forEach(option => {
+                    if (option.dataset.countryId === countryId) {
+                        stateSelect.appendChild(option.cloneNode(true));
+                    }
+                });
             });
-        });
+        }
         
         // Filter cities based on selected state (top-down)
         // AND auto-select country when state is selected (bottom-up)
-        document.getElementById('stateSelect').addEventListener('change', function() {
-            const stateId = this.value;
-            const citySelect = document.getElementById('citySelect');
-            const countrySelect = document.getElementById('countrySelect');
-            
-            // Reset city
-            citySelect.innerHTML = '<option value="">SELECT</option>';
-            
-            if (!stateId) {
-                citySelect.innerHTML = '<option value="">SELECT STATE FIRST</option>';
-                return;
-            }
-            
-            // Auto-select country based on selected state (bottom-up)
-            const selectedStateOption = allStates.find(opt => opt.value === stateId);
-            if (selectedStateOption) {
-                const countryId = selectedStateOption.dataset.countryId;
-                if (countryId) {
-                    countrySelect.value = countryId;
+        if (stateSelect && citySelect && countrySelect) {
+            stateSelect.addEventListener('change', function() {
+                const stateId = this.value;
+                
+                // Reset city
+                citySelect.innerHTML = '<option value="">SELECT</option>';
+                
+                if (!stateId) {
+                    citySelect.innerHTML = '<option value="">SELECT STATE FIRST</option>';
+                    return;
                 }
-            }
-            
-            // Filter and add cities for selected state
-            allCities.forEach(option => {
-                if (option.dataset.stateId === stateId) {
-                    citySelect.appendChild(option.cloneNode(true));
+                
+                // Auto-select country based on selected state (bottom-up)
+                const selectedStateOption = allStates.find(opt => opt.value === stateId);
+                if (selectedStateOption) {
+                    const countryId = selectedStateOption.dataset.countryId;
+                    if (countryId) {
+                        countrySelect.value = countryId;
+                    }
                 }
+                
+                // Filter and add cities for selected state
+                allCities.forEach(option => {
+                    if (option.dataset.stateId === stateId) {
+                        citySelect.appendChild(option.cloneNode(true));
+                    }
+                });
             });
-        });
+        }
         
         // Auto-select state and country when city is selected (bottom-up)
-        document.getElementById('citySelect').addEventListener('change', function() {
-            const cityId = this.value;
-            
-            if (!cityId) {
-                return;
-            }
-            
-            // Find the selected city option from allCities
-            const selectedCityOption = allCities.find(opt => opt.value === cityId);
-            if (selectedCityOption) {
-                const stateId = selectedCityOption.dataset.stateId;
+        if (citySelect && stateSelect && countrySelect) {
+            citySelect.addEventListener('change', function() {
+                const cityId = this.value;
                 
-                if (stateId) {
-                    const stateSelect = document.getElementById('stateSelect');
-                    const countrySelect = document.getElementById('countrySelect');
+                if (!cityId) {
+                    return;
+                }
+                
+                // Find the selected city option from allCities
+                const selectedCityOption = allCities.find(opt => opt.value === cityId);
+                if (selectedCityOption) {
+                    const stateId = selectedCityOption.dataset.stateId;
                     
-                    // Find the state from allStates
-                    const selectedStateOption = allStates.find(opt => opt.value === stateId);
-                    
-                    if (selectedStateOption) {
-                        const countryId = selectedStateOption.dataset.countryId;
+                    if (stateId) {
+                        // Find the state from allStates
+                        const selectedStateOption = allStates.find(opt => opt.value === stateId);
                         
-                        // First select country
-                        if (countryId) {
-                            countrySelect.value = countryId;
-                            // Trigger country change to populate states
-                            countrySelect.dispatchEvent(new Event('change'));
+                        if (selectedStateOption) {
+                            const countryId = selectedStateOption.dataset.countryId;
                             
-                            // Then select state (after a small delay to let states populate)
-                            setTimeout(() => {
-                                stateSelect.value = stateId;
-                                // Trigger state change to populate cities
-                                stateSelect.dispatchEvent(new Event('change'));
+                            // First select country
+                            if (countryId) {
+                                countrySelect.value = countryId;
+                                // Trigger country change to populate states
+                                countrySelect.dispatchEvent(new Event('change'));
                                 
-                                // Restore city selection
+                                // Then select state (after a small delay to let states populate)
                                 setTimeout(() => {
-                                    document.getElementById('citySelect').value = cityId;
+                                    stateSelect.value = stateId;
+                                    // Trigger state change to populate cities
+                                    stateSelect.dispatchEvent(new Event('change'));
+                                    
+                                    // Restore city selection
+                                    setTimeout(() => {
+                                        citySelect.value = cityId;
+                                    }, 50);
                                 }, 50);
-                            }, 50);
+                            }
                         }
                     }
                 }
-            }
-        });
+            });
+        }
 
         // Update Email Handler
-        document.getElementById('updateEmailBtn').addEventListener('click', async function() {
-            const emailInput = document.getElementById('visitorEmail');
+        const updateEmailBtn = document.getElementById('updateEmailBtn');
+        const visitorEmailInput = document.getElementById('visitorEmail');
+
+        if (updateEmailBtn && visitorEmailInput) {
+            updateEmailBtn.addEventListener('click', async function() {
+            const emailInput = visitorEmailInput;
             const newEmail = emailInput.value.trim();
             
             if (!newEmail) {
@@ -1562,7 +1650,8 @@
                 updateBtn.disabled = false;
                 updateBtn.innerHTML = originalText;
             }
-        });
+            });
+        }
 
         // Form submission
         document.getElementById('registrationForm').addEventListener('submit', function(e) {
