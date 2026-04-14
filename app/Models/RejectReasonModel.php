@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
+use App\Traits\OptimisticLockTrait;
 
 class RejectReasonModel extends Model
 {
+    use OptimisticLockTrait;
+
     protected $table = 'reject_reasons';
     protected $primaryKey = 'id';
     protected $useAutoIncrement = true;
@@ -16,7 +19,8 @@ class RejectReasonModel extends Model
         'reason',
         'mobile_app',
         'commercial',
-        'status'
+        'status',
+        'version'
     ];
 
     // Dates

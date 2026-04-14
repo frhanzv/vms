@@ -15,16 +15,10 @@ class VisitorReport extends BaseController
 
     public function generate()
     {
-        $fromDatetime = $this->request->getPost('from_datetime');
-        $toDatetime   = $this->request->getPost('to_datetime');
-
-        if (empty($fromDatetime) || empty($toDatetime)) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Date range is required.']);
-        }
-
         $db = \Config\Database::connect();
 
         $sql = "SELECT
+                    i.id               AS invitation_id,
                     i.full_name        AS visitor_name,
                     i.contact          AS contact_no,
                     i.ic_passport      AS ic_no,
@@ -32,52 +26,84 @@ class VisitorReport extends BaseController
                     i.invited_by       AS person_visited,
                     i.staff_id         AS staff_id,
                     i.reason           AS visit_reason,
-                    i.vehicle_registration AS vehicle_no,
+                    i.location         AS location,
                     i.status           AS visit_status,
-                    i.visit_date       AS visit_date,
+                    DATE(i.created_at) AS visit_date,
                     MIN(vcl.scanned_at) AS checkin_time,
                     MAX(vcl.scanned_at) AS checkout_time,
                     COUNT(vcl.id)       AS total_scans
                 FROM invitations i
                 LEFT JOIN visitor_card_logs vcl ON vcl.invitation_id = i.id
-                WHERE i.visit_date >= ?
-                  AND i.visit_date <= ?
                 GROUP BY
                     i.id, i.full_name, i.contact, i.ic_passport,
                     i.company, i.invited_by, i.staff_id, i.reason,
-                    i.vehicle_registration, i.status, i.visit_date
-                ORDER BY i.visit_date ASC, i.full_name ASC";
+                    i.location, i.status, DATE(i.created_at)
+                ORDER BY DATE(i.created_at) ASC, i.full_name ASC";
 
-        $rows = $db->query($sql, [
-            date('Y-m-d', strtotime($fromDatetime)),
-            date('Y-m-d', strtotime($toDatetime)),
-        ])->getResultArray();
+
+        $rows = $db->query($sql)->getResultArray();
 
         $visitors = [];
+        $completedCount = 0;
+        $activeCount = 0;
+        $todayVisitors = 0;
+        $todayStr = date('Y-m-d');
+
         foreach ($rows as $row) {
+            $currentLocation = $row['location'] ?? 'N/A';
+            
+            $checkinTimeStr = $row['checkin_time'] ? date('H:i:s', strtotime($row['checkin_time'])) : '-';
+            $checkoutTimeStr = $row['checkout_time'] ? date('H:i:s', strtotime($row['checkout_time'])) : '-';
+            
+            $durationStr = '-';
+            if ($row['checkin_time'] && $row['checkout_time']) {
+                $diff = strtotime($row['checkout_time']) - strtotime($row['checkin_time']);
+                if ($diff > 0) {
+                    $hours = floor($diff / 3600);
+                    $mins = floor(($diff / 60) % 60);
+                    $durationStr = sprintf("%02d:%02d h", $hours, $mins);
+                } else {
+                    $durationStr = "00:00 h";
+                }
+            }
+            
+            if ($row['checkout_time']) {
+                $completedCount++;
+                $visitStatus = 'Completed';
+            } else {
+                $activeCount++;
+                $visitStatus = 'Active';
+            }
+            
+            if ($row['visit_date'] === $todayStr) {
+                $todayVisitors++;
+            }
+
             $visitors[] = [
-                'visitor_name'    => $row['visitor_name']    ?? 'N/A',
-                'contact_no'      => $row['contact_no']      ?? 'N/A',
-                'ic_no'           => $row['ic_no']           ?? 'N/A',
-                'visitor_company' => $row['visitor_company'] ?? 'N/A',
-                'person_visited'  => $row['person_visited']  ?? 'N/A',
-                'staff_id'        => $row['staff_id']        ?? 'N/A',
-                'visit_reason'    => $row['visit_reason']    ?? 'N/A',
-                'vehicle_no'      => $row['vehicle_no']      ?? '-',
-                'visit_status'    => ucfirst($row['visit_status'] ?? 'N/A'),
-                'visit_date'      => $row['visit_date']      ? date('d/m/Y', strtotime($row['visit_date'])) : '-',
-                'checkin_time'    => $row['checkin_time']    ? date('d/m/Y H:i', strtotime($row['checkin_time'])) : '-',
-                'checkout_time'   => $row['checkout_time']   ? date('d/m/Y H:i', strtotime($row['checkout_time'])) : '-',
-                'total_scans'     => (int) $row['total_scans'],
+                'visitor_name'      => $row['visitor_name']    ?? 'N/A',
+                'contact_no'        => $row['contact_no']      ?? 'N/A',
+                'ic_no'             => $row['ic_no']           ?? 'N/A',
+                'visitor_company'   => $row['visitor_company'] ?? 'N/A',
+                'person_visited'    => $row['person_visited']  ?? 'N/A',
+                'staff_id'          => $row['staff_id']        ?? 'N/A',
+                'visit_reason'      => $row['visit_reason']    ?? 'N/A',
+                'visit_status'      => $visitStatus,
+                'visit_date'        => $row['visit_date']      ? date('Y-m-d', strtotime($row['visit_date'])) : '-',
+                'checkin_time'      => $checkinTimeStr,
+                'checkout_time'     => $checkoutTimeStr,
+                'duration'          => $durationStr,
+                'current_location'  => $currentLocation,
+                'total_scans'       => (int) $row['total_scans'],
             ];
         }
 
         return $this->response->setJSON([
-            'success'       => true,
-            'total_visitors'=> count($visitors),
-            'from_datetime' => date('d M Y', strtotime($fromDatetime)),
-            'to_datetime'   => date('d M Y', strtotime($toDatetime)),
-            'visitors'      => $visitors,
+            'success'         => true,
+            'total_visitors'  => count($visitors),
+            'completed'       => $completedCount,
+            'active_visitors' => $activeCount,
+            'today_visitors'  => $todayVisitors,
+            'visitors'        => $visitors,
         ]);
     }
 }

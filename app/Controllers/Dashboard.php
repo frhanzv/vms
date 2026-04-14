@@ -23,21 +23,31 @@ class Dashboard extends BaseController
         $now = date('Y-m-d H:i:s');
         $yesterday = date('Y-m-d', strtotime('-1 day'));
         
-        // Expected Today: approved invitations whose schedule covers today
-        $expectedToday = $db->table('invitations i')
-            ->join('invitation_schedules s', 's.invitation_id = i.id')
-            ->where('i.status', 'Approved')
-            ->where('DATE(s.date_from) <=', $today)
-            ->where('DATE(s.date_to) >=', $today)
-            ->countAllResults();
-            
+        // Expected Today: approved invitations with at least one schedule slice overlapping today (no double-count, no “gap” days between disjoint visits)
+        $expectedToday = (int) ($db->query(
+            'SELECT COUNT(*) AS c
+             FROM invitations i
+             WHERE i.status = ?
+             AND EXISTS (
+                 SELECT 1 FROM invitation_schedules s
+                 WHERE s.invitation_id = i.id
+                 AND DATE(s.date_from) <= ? AND DATE(s.date_to) >= ?
+             )',
+            ['Approved', $today, $today]
+        )->getRow()->c ?? 0);
+
         // Yesterday's expected count for trend
-        $expectedYesterday = $db->table('invitations i')
-            ->join('invitation_schedules s', 's.invitation_id = i.id')
-            ->where('i.status', 'Approved')
-            ->where('DATE(s.date_from) <=', $yesterday)
-            ->where('DATE(s.date_to) >=', $yesterday)
-            ->countAllResults();
+        $expectedYesterday = (int) ($db->query(
+            'SELECT COUNT(*) AS c
+             FROM invitations i
+             WHERE i.status = ?
+             AND EXISTS (
+                 SELECT 1 FROM invitation_schedules s
+                 WHERE s.invitation_id = i.id
+                 AND DATE(s.date_from) <= ? AND DATE(s.date_to) >= ?
+             )',
+            ['Approved', $yesterday, $yesterday]
+        )->getRow()->c ?? 0);
         
         $trend = $expectedToday - $expectedYesterday;
             
@@ -49,38 +59,60 @@ class Dashboard extends BaseController
             ->where('iv.check_out_time IS NULL')
             ->countAllResults();
             
-        // Checked Out today
+        // Checked Out today (approved invitations only)
         $checkedOut = $db->table('invitation_visitors iv')
             ->join('invitations i', 'i.id = iv.invitation_id')
+            ->where('i.status', 'Approved')
             ->where('DATE(iv.check_out_time)', $today)
             ->countAllResults();
+
+        // Out of Window: on-site visitors whose latest schedule end has passed (avoids duplicate rows from multiple schedule rows)
+        $outOfWindow = (int) ($db->query(
+            'SELECT COUNT(*) AS c
+             FROM invitation_visitors iv
+             INNER JOIN invitations i ON i.id = iv.invitation_id
+             WHERE i.status = ?
+             AND iv.check_in_time IS NOT NULL
+             AND iv.check_out_time IS NULL
+             AND (
+                 SELECT MAX(s.date_to) FROM invitation_schedules s WHERE s.invitation_id = i.id
+             ) < ?',
+            ['Approved', $now]
+        )->getRow()->c ?? 0);
         
-        // Out of Window: visitors still on-site but their schedule end time has passed
-        $outOfWindow = $db->table('invitation_visitors iv')
-            ->join('invitations i', 'i.id = iv.invitation_id')
-            ->join('invitation_schedules s', 's.invitation_id = i.id')
-            ->where('iv.check_in_time IS NOT NULL')
-            ->where('iv.check_out_time IS NULL')
-            ->where('s.date_to <', $now)
-            ->countAllResults();
-        
-        // Get visitors expected today OR currently on-site (checked in but not checked out)
-        $visitorsQuery = "SELECT i.*, 
+        // One row per invitation: only schedules overlapping today (aggregated), plus on-site without a “today” slice
+        $visitorsQuery = "SELECT i.*,
                                  iv.check_in_time,
                                  iv.check_out_time,
                                  u.full_name as host_name,
-                                 s.date_from,
-                                 s.date_to
+                                 COALESCE(slot.date_from, fs.date_from) AS date_from,
+                                 COALESCE(slot.date_to, fs.date_to) AS date_to
                           FROM invitations i
-                          JOIN invitation_schedules s ON s.invitation_id = i.id
+                          LEFT JOIN (
+                              SELECT invitation_id,
+                                     MIN(date_from) AS date_from,
+                                     MAX(date_to) AS date_to
+                              FROM invitation_schedules
+                              WHERE DATE(date_from) <= ? AND DATE(date_to) >= ?
+                              GROUP BY invitation_id
+                          ) slot ON slot.invitation_id = i.id
+                          LEFT JOIN (
+                              SELECT s1.invitation_id, s1.date_from, s1.date_to
+                              FROM invitation_schedules s1
+                              INNER JOIN (
+                                  SELECT invitation_id, MIN(id) AS pick_id
+                                  FROM invitation_schedules
+                                  GROUP BY invitation_id
+                              ) sp ON sp.pick_id = s1.id
+                          ) fs ON fs.invitation_id = i.id
                           LEFT JOIN invitation_visitors iv ON iv.invitation_id = i.id
                           LEFT JOIN users u ON u.id = i.invited_by
                           WHERE i.status = 'Approved'
                           AND (
-                              (DATE(s.date_from) <= ? AND DATE(s.date_to) >= ?)
+                              slot.invitation_id IS NOT NULL
                               OR (iv.check_in_time IS NOT NULL AND iv.check_out_time IS NULL)
                           )
-                          ORDER BY s.date_from ASC
+                          ORDER BY COALESCE(slot.date_from, iv.check_in_time, fs.date_from) ASC
                           LIMIT 10";
         
         $visitorsData = $db->query($visitorsQuery, [$today, $today])->getResultArray();
@@ -88,14 +120,21 @@ class Dashboard extends BaseController
         $visitors = [];
         $tabCounts = ['all' => 0, 'preArrival' => 0, 'checkedIn' => 0, 'checkedOut' => 0];
         
-        // Count all visitors for tabs (not limited to 10)
+        // Count all visitors for tabs (same inclusion rules as the table above)
         $allVisitorsQuery = "SELECT iv.check_in_time, iv.check_out_time
                              FROM invitations i
-                             JOIN invitation_schedules s ON s.invitation_id = i.id
+                             LEFT JOIN (
+                                 SELECT invitation_id,
+                                        MIN(date_from) AS date_from,
+                                        MAX(date_to) AS date_to
+                                 FROM invitation_schedules
+                                 WHERE DATE(date_from) <= ? AND DATE(date_to) >= ?
+                                 GROUP BY invitation_id
+                             ) slot ON slot.invitation_id = i.id
                              LEFT JOIN invitation_visitors iv ON iv.invitation_id = i.id
                              WHERE i.status = 'Approved'
                              AND (
-                                 (DATE(s.date_from) <= ? AND DATE(s.date_to) >= ?)
+                                 slot.invitation_id IS NOT NULL
                                  OR (iv.check_in_time IS NOT NULL AND iv.check_out_time IS NULL)
                              )";
         $allVisitorsData = $db->query($allVisitorsQuery, [$today, $today])->getResultArray();
@@ -154,7 +193,8 @@ class Dashboard extends BaseController
             "SELECT HOUR(iv.check_in_time) as check_hour
              FROM invitation_visitors iv
              JOIN invitations i ON i.id = iv.invitation_id
-             WHERE iv.check_in_time IS NOT NULL
+             WHERE i.status = 'Approved'
+             AND iv.check_in_time IS NOT NULL
              AND DATE(iv.check_in_time) = ?",
             [$today]
         )->getResultArray();
@@ -197,28 +237,31 @@ class Dashboard extends BaseController
             ];
         }
         
-        // Get recent activity
-        $activityQuery = "SELECT 'check_in' as type, i.full_name, iv.check_in_time as time, 'Lobby' as location
+        // Recent activity: rolling window (not “today only”, which is often empty early in the day)
+        $activitySince = date('Y-m-d H:i:s', strtotime('-7 days'));
+        $activityQuery = "SELECT * FROM (
+                          SELECT 'check_in' AS type, i.full_name, iv.check_in_time AS time, 'Lobby' AS location
                           FROM invitation_visitors iv
                           JOIN invitations i ON i.id = iv.invitation_id
                           WHERE iv.check_in_time IS NOT NULL
-                          AND DATE(iv.check_in_time) = ?
+                          AND iv.check_in_time >= ?
                           UNION ALL
-                          SELECT 'check_out' as type, i.full_name, iv.check_out_time as time, 'Exit' as location
+                          SELECT 'check_out' AS type, i.full_name, iv.check_out_time AS time, 'Exit' AS location
                           FROM invitation_visitors iv
                           JOIN invitations i ON i.id = iv.invitation_id
                           WHERE iv.check_out_time IS NOT NULL
-                          AND DATE(iv.check_out_time) = ?
+                          AND iv.check_out_time >= ?
                           UNION ALL
-                          SELECT 'created' as type, i.full_name, i.created_at as time, u.full_name as location
+                          SELECT 'created' AS type, i.full_name, i.created_at AS time, COALESCE(u.full_name, 'System') AS location
                           FROM invitations i
                           LEFT JOIN users u ON u.id = i.invited_by
                           WHERE i.status = 'Approved'
-                          AND DATE(i.created_at) = ?
-                          ORDER BY time DESC
-                          LIMIT 10";
-        
-        $activityData = $db->query($activityQuery, [$today, $today, $today])->getResultArray();
+                          AND i.created_at >= ?
+                          ) act
+                          ORDER BY act.time DESC
+                          LIMIT 20";
+
+        $activityData = $db->query($activityQuery, [$activitySince, $activitySince, $activitySince])->getResultArray();
         
         $recentActivity = [];
         foreach ($activityData as $activity) {
@@ -294,17 +337,27 @@ class Dashboard extends BaseController
         $activeSecurityAlertCount = 0;
         
         if ($db->tableExists('security_alerts')) {
-            // Access denied in last 24 hours
-            $accessDeniedCount = $db->table('security_alerts')
-                ->where('incident_type', 'Access Denied')
-                ->where('created_at >=', date('Y-m-d H:i:s', strtotime('-24 hours')))
-                ->countAllResults();
-            
-            // Visitor Overstay (active / unacknowledged)
-            $overstayCount = $db->table('security_alerts')
-                ->where('incident_type', 'Visitor Overstay')
-                ->where('is_acknowledged', 0)
-                ->countAllResults();
+            $since24h = date('Y-m-d H:i:s', strtotime('-24 hours'));
+
+            // Access-related denials (incident_type strings vary by integration)
+            $accessDeniedCount = (int) ($db->query(
+                "SELECT COUNT(*) AS c FROM security_alerts
+                 WHERE created_at >= ?
+                 AND (
+                     LOWER(incident_type) LIKE '%access%denied%'
+                     OR LOWER(incident_type) LIKE '%unauthorized%access%'
+                     OR LOWER(incident_type) LIKE '%access%refused%'
+                 )",
+                [$since24h]
+            )->getRow()->c ?? 0);
+
+            // Visitor overstay from alerts (unacknowledged; match flexible wording)
+            $overstayCount = (int) ($db->query(
+                "SELECT COUNT(*) AS c FROM security_alerts
+                 WHERE is_acknowledged = 0
+                 AND LOWER(incident_type) LIKE '%overstay%'",
+                []
+            )->getRow()->c ?? 0);
             
             // Total active security alerts
             $activeSecurityAlertCount = $db->table('security_alerts')
@@ -312,20 +365,20 @@ class Dashboard extends BaseController
                 ->countAllResults();
         }
         
-        // Also derive overstay from invitation data (visitors on-site past schedule)
-        $derivedOverstay = $outOfWindow; // reuse outOfWindow count
-        $overstayCount = max($overstayCount, $derivedOverstay);
+        // Physical overstays (on-site past window) vs alert rows — show the higher so the card reflects real risk
+        $overstayCount = max($overstayCount, $outOfWindow);
         
         // 3. Currently On-Site visitors table (detailed, for the new section)
-        $onSiteVisitorsQuery = "SELECT iv.id as visitor_id, 
-                                       COALESCE(iv.full_name, i.full_name) as visitor_name, 
+        $onSiteVisitorsQuery = "SELECT iv.id as visitor_id,
+                                       COALESCE(iv.full_name, i.full_name) as visitor_name,
                                        COALESCE(u.full_name, 'N/A') as host_name,
                                        iv.check_in_time,
                                        COALESCE(i.location, 'N/A') as location
                                 FROM invitation_visitors iv
                                 JOIN invitations i ON i.id = iv.invitation_id
                                 LEFT JOIN users u ON u.id = i.invited_by
-                                WHERE iv.check_in_time IS NOT NULL
+                                WHERE i.status = 'Approved'
+                                AND iv.check_in_time IS NOT NULL
                                 AND iv.check_out_time IS NULL
                                 ORDER BY iv.check_in_time DESC
                                 LIMIT 50";
@@ -341,7 +394,7 @@ class Dashboard extends BaseController
             ];
         }
         
-        // 4. Upcoming Appointments (approved invitations with schedules in the future)
+        // Upcoming: next schedule slots strictly after now (includes later today); excludes past-only visits
         $upcomingAppointmentsQuery = "SELECT i.full_name as visitor_name,
                                              u.full_name as host_name,
                                              s.date_from, s.date_to, i.reason
@@ -350,9 +403,10 @@ class Dashboard extends BaseController
                                       LEFT JOIN users u ON u.id = i.invited_by
                                       WHERE i.status = 'Approved'
                                       AND s.date_from > ?
+                                      AND DATE(s.date_to) >= ?
                                       ORDER BY s.date_from ASC
                                       LIMIT 10";
-        $upcomingAppointmentsData = $db->query($upcomingAppointmentsQuery, [$now])->getResultArray();
+        $upcomingAppointmentsData = $db->query($upcomingAppointmentsQuery, [$now, $today])->getResultArray();
         
         $upcomingAppointments = [];
         foreach ($upcomingAppointmentsData as $appt) {
@@ -365,7 +419,7 @@ class Dashboard extends BaseController
             ];
         }
         
-        // 5. Today's Appointments (approved invitations scheduled for today)
+        // Today's appointments: each schedule slice overlapping today; one visitor row per invitation (latest iv)
         $todayAppointmentsQuery = "SELECT i.full_name as visitor_name,
                                           u.full_name as host_name,
                                           s.date_from, s.date_to, i.reason,
@@ -373,7 +427,12 @@ class Dashboard extends BaseController
                                    FROM invitations i
                                    JOIN invitation_schedules s ON s.invitation_id = i.id
                                    LEFT JOIN users u ON u.id = i.invited_by
-                                   LEFT JOIN invitation_visitors iv ON iv.invitation_id = i.id
+                                   LEFT JOIN invitation_visitors iv ON iv.id = (
+                                       SELECT iv2.id FROM invitation_visitors iv2
+                                       WHERE iv2.invitation_id = i.id
+                                       ORDER BY iv2.id DESC
+                                       LIMIT 1
+                                   )
                                    WHERE i.status = 'Approved'
                                    AND DATE(s.date_from) <= ? AND DATE(s.date_to) >= ?
                                    ORDER BY s.date_from ASC
@@ -401,11 +460,12 @@ class Dashboard extends BaseController
             ];
         }
         
-        // 6. Visitor Traffic Analytics (hourly check-in counts for today)
-        $trafficQuery = "SELECT HOUR(iv.check_in_time) as hour, COUNT(*) as count
+        // Visitor traffic: check-ins today (approved invitations only)
+        $trafficQuery = "SELECT HOUR(iv.check_in_time) AS hour, COUNT(*) AS count
                          FROM invitation_visitors iv
                          JOIN invitations i ON i.id = iv.invitation_id
-                         WHERE iv.check_in_time IS NOT NULL
+                         WHERE i.status = 'Approved'
+                         AND iv.check_in_time IS NOT NULL
                          AND DATE(iv.check_in_time) = ?
                          GROUP BY HOUR(iv.check_in_time)
                          ORDER BY hour ASC";
@@ -461,7 +521,8 @@ class Dashboard extends BaseController
     }
     
     /**
-     * Acknowledge a security alert via AJAX
+     * Acknowledge a security alert via AJAX.
+     * Atomic: only acknowledges if not already acknowledged.
      */
     public function acknowledgeAlert()
     {
@@ -478,14 +539,24 @@ class Dashboard extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'Security alerts table not found']);
         }
         
+        // Only acknowledge if not already acknowledged
         $db->table('security_alerts')
             ->where('id', $alertId)
+            ->where('is_acknowledged', 0)
             ->update([
                 'is_acknowledged' => 1,
                 'acknowledged_by' => $userId,
                 'acknowledged_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s'),
             ]);
+        
+        if ($db->affectedRows() === 0) {
+            $alert = $db->table('security_alerts')->where('id', $alertId)->get()->getRowArray();
+            if (!$alert) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Alert not found']);
+            }
+            return $this->response->setJSON(['success' => false, 'message' => 'This alert has already been acknowledged']);
+        }
         
         return $this->response->setJSON(['success' => true, 'message' => 'Alert acknowledged']);
     }
@@ -503,7 +574,8 @@ class Dashboard extends BaseController
         $trafficQuery = "SELECT DATE(iv.check_in_time) as date, HOUR(iv.check_in_time) as hour, COUNT(*) as count
                          FROM invitation_visitors iv
                          JOIN invitations i ON i.id = iv.invitation_id
-                         WHERE iv.check_in_time IS NOT NULL
+                         WHERE i.status = 'Approved'
+                         AND iv.check_in_time IS NOT NULL
                          AND DATE(iv.check_in_time) >= ?
                          AND DATE(iv.check_in_time) <= ?
                          GROUP BY DATE(iv.check_in_time), HOUR(iv.check_in_time)
@@ -529,7 +601,11 @@ class Dashboard extends BaseController
     {
         $timestamp = strtotime($datetime);
         $diff = time() - $timestamp;
-        
+
+        if ($diff < 0) {
+            return 'just now';
+        }
+
         if ($diff < 60) {
             return $diff . ' sec ago';
         } elseif ($diff < 3600) {

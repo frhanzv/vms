@@ -3,16 +3,19 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
+use App\Traits\OptimisticLockTrait;
 
 class VisitReasonModel extends Model
 {
+    use OptimisticLockTrait;
+
     protected $table = 'visit_reasons';
     protected $primaryKey = 'id';
     protected $useAutoIncrement = true;
     protected $returnType = 'array';
     protected $useSoftDeletes = false;
     protected $protectFields = true;
-    protected $allowedFields = ['reason'];
+    protected $allowedFields = ['reason', 'version'];
 
     // Dates
     protected $useTimestamps = true;

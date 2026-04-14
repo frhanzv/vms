@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
+use App\Traits\OptimisticLockTrait;
 
 class VisitorCardModel extends Model
 {
+    use OptimisticLockTrait;
+
     protected $table = 'visitor_cards';
     protected $primaryKey = 'id';
     protected $useAutoIncrement = true;
@@ -14,7 +17,8 @@ class VisitorCardModel extends Model
     protected $protectFields = true;
     protected $allowedFields = [
         'card_id',
-        'status'
+        'status',
+        'version'
     ];
 
     // Dates

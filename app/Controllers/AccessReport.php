@@ -15,7 +15,7 @@ class AccessReport extends BaseController
 
     public function index()
     {
-        $locations = $this->locationModel->getAllActive();
+        $locations = $this->locationModel->orderBy('branch', 'ASC')->orderBy('location_access', 'ASC')->findAll();
 
         $data = [
             'pageTitle' => 'Access Report - SafeG',

@@ -3,16 +3,19 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
+use App\Traits\OptimisticLockTrait;
 
 class CityModel extends Model
 {
+    use OptimisticLockTrait;
+
     protected $table            = 'cities';
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['state_id', 'name', 'code', 'status'];
+    protected $allowedFields    = ['state_id', 'name', 'code', 'status', 'version'];
 
     protected bool $allowEmptyInserts = false;
     protected bool $updateOnlyChanged = true;

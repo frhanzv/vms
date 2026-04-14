@@ -3,12 +3,15 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
+use App\Traits\OptimisticLockTrait;
 
 class StateModel extends Model
 {
+    use OptimisticLockTrait;
+
     protected $table = 'states';
     protected $primaryKey = 'id';
-    protected $allowedFields = ['country_id', 'name', 'code', 'status'];
+    protected $allowedFields = ['country_id', 'name', 'code', 'status', 'version'];
     protected $useTimestamps = true;
     protected $createdField = 'created_at';
     protected $updatedField = 'updated_at';

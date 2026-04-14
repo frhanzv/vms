@@ -3,16 +3,19 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
+use App\Traits\OptimisticLockTrait;
 
 class DesignationModel extends Model
 {
+    use OptimisticLockTrait;
+
     protected $table = 'designations';
     protected $primaryKey = 'id';
     protected $useAutoIncrement = true;
     protected $returnType = 'array';
     protected $useSoftDeletes = false;
     protected $protectFields = true;
-    protected $allowedFields = ['name', 'code', 'description', 'wo_flag', 'status', 'created_at', 'updated_at'];
+    protected $allowedFields = ['name', 'code', 'description', 'wo_flag', 'status', 'created_at', 'updated_at', 'version'];
 
     // Dates
     protected $useTimestamps = true;

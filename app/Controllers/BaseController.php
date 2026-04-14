@@ -42,4 +42,31 @@ abstract class BaseController extends Controller
         // Preload any models, libraries, etc, here.
         // $this->session = service('session');
     }
+
+    /**
+     * Whether DB has visitor type support (visitor_types table + invitations.visitor_type_id).
+     * Avoids SQL errors if migrations are not applied on an environment.
+     */
+    protected function invitationsSupportVisitorType(): bool
+    {
+        static $cached = null;
+        if ($cached !== null) {
+            return $cached;
+        }
+        try {
+            $db = \Config\Database::connect();
+            if (! $db->tableExists('visitor_types')) {
+                $cached = false;
+
+                return false;
+            }
+            $fields = array_map('strtolower', $db->getFieldNames('invitations'));
+            $cached = in_array('visitor_type_id', $fields, true);
+        } catch (\Throwable $e) {
+            log_message('debug', 'invitationsSupportVisitorType: ' . $e->getMessage());
+            $cached = false;
+        }
+
+        return $cached;
+    }
 }

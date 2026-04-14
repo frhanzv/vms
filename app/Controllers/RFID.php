@@ -33,7 +33,6 @@ class RFID extends ResourceController
             return $this->failValidationError('Card EPC is required');
         }
 
-        // Find the visitor card
         $card = $this->visitorCardModel
             ->where('card_id', $cardEpc)
             ->first();
@@ -47,7 +46,6 @@ class RFID extends ResourceController
             ]);
         }
 
-        // Check card status
         if ($card['status'] !== 'active' && $card['status'] !== 'in_use') {
             return $this->respond([
                 'success' => false,
@@ -56,74 +54,115 @@ class RFID extends ResourceController
             ]);
         }
 
-        // Find active invitation using this card
         $db = \Config\Database::connect();
-        $builder = $db->table('invitation_visitors iv');
-        $builder->select('iv.*, iv.id as iv_id, i.full_name as visitor_name, i.company as visitor_company, i.id as invitation_id');
-        $builder->join('invitations i', 'i.id = iv.invitation_id');
-        $builder->where('iv.visitor_card_id', $card['id']);
-        $builder->where('i.status', 'Approved');
-        $builder->where('DATE(i.created_at)', date('Y-m-d'));
-        $invitation = $builder->get()->getRowArray();
+        $db->transStart();
 
-        if (!$invitation) {
+        try {
+            // Lock the invitation_visitors row to prevent concurrent scan race
+            $invitation = $db->query(
+                'SELECT iv.*, iv.id as iv_id, i.full_name as visitor_name, i.company as visitor_company, i.id as invitation_id
+                 FROM invitation_visitors iv
+                 JOIN invitations i ON i.id = iv.invitation_id
+                 WHERE iv.visitor_card_id = ?
+                 AND i.status = ?
+                 AND DATE(i.created_at) = ?
+                 FOR UPDATE',
+                [$card['id'], 'Approved', date('Y-m-d')]
+            )->getRowArray();
+
+            if (!$invitation) {
+                $db->transRollback();
+                return $this->respond([
+                    'success' => false,
+                    'message' => 'No active invitation found for this card today',
+                    'card_epc' => $cardEpc
+                ]);
+            }
+
+            $action = 'checkin';
+            $duration = null;
+
+            if ($invitation['check_in_time'] && !$invitation['check_out_time']) {
+                $action = 'checkout';
+                $durationSeconds = time() - strtotime($invitation['check_in_time']);
+                $duration = $this->formatDuration($durationSeconds);
+
+                // Atomic: only check out if still checked in without checkout
+                $db->table('invitation_visitors')
+                    ->where('id', $invitation['iv_id'])
+                    ->where('check_in_time IS NOT NULL')
+                    ->where('check_out_time IS NULL')
+                    ->update([
+                        'check_out_time' => date('Y-m-d H:i:s'),
+                        'version' => ($invitation['version'] ?? 1) + 1,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]);
+
+                if ($db->affectedRows() === 0) {
+                    $db->transRollback();
+                    return $this->respond([
+                        'success' => false,
+                        'message' => 'Visitor has already been checked out',
+                        'card_epc' => $cardEpc
+                    ]);
+                }
+
+                $this->visitorCardModel->update($card['id'], ['status' => 'active']);
+
+            } elseif ($invitation['check_out_time']) {
+                $db->transRollback();
+                return $this->respond([
+                    'success' => false,
+                    'message' => 'Visitor has already checked out for today',
+                    'card_epc' => $cardEpc
+                ]);
+            } else {
+                // Atomic: only check in if not already checked in
+                $db->table('invitation_visitors')
+                    ->where('id', $invitation['iv_id'])
+                    ->where('check_in_time IS NULL')
+                    ->update([
+                        'check_in_time' => date('Y-m-d H:i:s'),
+                        'version' => ($invitation['version'] ?? 1) + 1,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]);
+
+                if ($db->affectedRows() === 0) {
+                    $db->transRollback();
+                    return $this->respond([
+                        'success' => false,
+                        'message' => 'Visitor has already been checked in',
+                        'card_epc' => $cardEpc
+                    ]);
+                }
+
+                $this->visitorCardModel->update($card['id'], ['status' => 'in_use']);
+            }
+
+            $this->logCardScan($card['id'], $invitation['invitation_id'], $action);
+
+            $db->transComplete();
+
             return $this->respond([
-                'success' => false,
-                'message' => 'No active invitation found for this card today',
+                'success' => true,
+                'action' => $action,
+                'visitor' => [
+                    'name' => $invitation['visitor_name'] ?? 'Unknown',
+                    'company' => $invitation['visitor_company'] ?? 'N/A'
+                ],
+                'time' => date('Y-m-d H:i:s'),
+                'duration' => $duration,
                 'card_epc' => $cardEpc
             ]);
+        } catch (\Exception $e) {
+            $db->transRollback();
+            log_message('error', 'RFID scan error: ' . $e->getMessage());
+            return $this->respond([
+                'success' => false,
+                'message' => 'Server error during scan',
+                'card_epc' => $cardEpc
+            ], 500);
         }
-
-        // Determine check-in or check-out
-        $action = 'checkin';
-        $duration = null;
-
-        if ($invitation['check_in_time']) {
-            // Already checked in, this is check-out
-            $action = 'checkout';
-            $checkInTime = strtotime($invitation['check_in_time']);
-            $currentTime = time();
-            $durationSeconds = $currentTime - $checkInTime;
-            $duration = $this->formatDuration($durationSeconds);
-
-            // Update check-out time
-            $db->table('invitation_visitors')
-                ->where('id', $invitation['iv_id'])
-                ->update([
-                    'check_out_time' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s')
-                ]);
-
-            // Update card status to active
-            $this->visitorCardModel->update($card['id'], ['status' => 'active']);
-
-        } else {
-            // This is check-in
-            $db->table('invitation_visitors')
-                ->where('id', $invitation['iv_id'])
-                ->update([
-                    'check_in_time' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s')
-                ]);
-
-            // Update card status to in_use
-            $this->visitorCardModel->update($card['id'], ['status' => 'in_use']);
-        }
-
-        // Log the scan
-        $this->logCardScan($card['id'], $invitation['invitation_id'], $action);
-
-        return $this->respond([
-            'success' => true,
-            'action' => $action,
-            'visitor' => [
-                'name' => $invitation['visitor_name'] ?? 'Unknown',
-                'company' => $invitation['visitor_company'] ?? 'N/A'
-            ],
-            'time' => date('Y-m-d H:i:s'),
-            'duration' => $duration,
-            'card_epc' => $cardEpc
-        ]);
     }
 
     /**
@@ -132,134 +171,178 @@ class RFID extends ResourceController
      */
     public function scanLane()
     {
-        try {
-            $cardEpc = $this->request->getGet('card_epc');
-            $laneId = $this->request->getGet('lane_id');
-            $laneType = $this->request->getGet('lane_type');
+        $cardEpc = $this->request->getGet('card_epc');
+        $laneId = $this->request->getGet('lane_id');
+        $laneType = $this->request->getGet('lane_type');
 
-            if (empty($cardEpc)) {
-                return $this->failValidationError('Card EPC is required');
-            }
+        if (empty($cardEpc)) {
+            return $this->failValidationError('Card EPC is required');
+        }
 
-            // Find the visitor card
-            $card = $this->visitorCardModel
-                ->where('card_id', $cardEpc)
-                ->first();
+        $card = $this->visitorCardModel
+            ->where('card_id', $cardEpc)
+            ->first();
 
-            if (!$card) {
-                log_message('warning', 'Unknown card scanned: ' . $cardEpc . ' at lane ' . $laneId);
-                return $this->respond([
-                    'success' => false,
-                    'message' => 'Card not registered in system',
-                    'card_epc' => $cardEpc
-                ]);
-            }
-
-            // Check card status
-            if ($card['status'] !== 'active' && $card['status'] !== 'in_use') {
-                return $this->respond([
-                    'success' => false,
-                    'message' => 'Card is ' . $card['status'],
-                    'card_epc' => $cardEpc
-                ]);
-            }
-
-        // Find active invitation using this card
-        $db = \Config\Database::connect();
-        $builder = $db->table('invitation_visitors iv');
-        $builder->select('iv.*, iv.id as iv_id, i.full_name as visitor_name, i.company as visitor_company, i.id as invitation_id');
-        $builder->join('invitations i', 'i.id = iv.invitation_id');
-        $builder->where('iv.visitor_card_id', $card['id']);
-        $builder->where('i.status', 'Approved');
-        $builder->where('DATE(i.created_at)', date('Y-m-d'));
-        $invitation = $builder->get()->getRowArray();
-
-        if (!$invitation) {
+        if (!$card) {
+            log_message('warning', 'Unknown card scanned: ' . $cardEpc . ' at lane ' . $laneId);
             return $this->respond([
                 'success' => false,
-                'message' => 'No active invitation found for this card today',
+                'message' => 'Card not registered in system',
                 'card_epc' => $cardEpc
             ]);
         }
 
-        // Determine action based on lane type and current status
-        $action = 'checkin';
-        $duration = null;
-
-        if ($laneType === 'exit') {
-            // Exit lane always means check-out
-            $action = 'checkout';
-
-            if ($invitation['check_in_time']) {
-                $checkInTime = strtotime($invitation['check_in_time']);
-                $currentTime = time();
-                $durationSeconds = $currentTime - $checkInTime;
-                $duration = $this->formatDuration($durationSeconds);
-            }
-
-            // Update check-out time
-            $db->table('invitation_visitors')
-                ->where('id', $invitation['iv_id'])
-                ->update([
-                    'check_out_time' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s')
-                ]);
-
-            // Update card status to active
-            $this->visitorCardModel->update($card['id'], ['status' => 'active']);
-
-        } else {
-            // Entry lane or bidirectional
-            if ($invitation['check_in_time'] && !$invitation['check_out_time']) {
-                // Already checked in but not checked out - this could be exit
-                // For bidirectional lanes, we check if they're exiting
-                $action = 'checkout';
-
-                $checkInTime = strtotime($invitation['check_in_time']);
-                $currentTime = time();
-                $durationSeconds = $currentTime - $checkInTime;
-                $duration = $this->formatDuration($durationSeconds);
-
-                $db->table('invitation_visitors')
-                    ->where('id', $invitation['iv_id'])
-                    ->update([
-                        'check_out_time' => date('Y-m-d H:i:s'),
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]);
-
-                $this->visitorCardModel->update($card['id'], ['status' => 'active']);
-            } else {
-                // This is check-in
-                $db->table('invitation_visitors')
-                    ->where('id', $invitation['iv_id'])
-                    ->update([
-                        'check_in_time' => date('Y-m-d H:i:s'),
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]);
-
-                $this->visitorCardModel->update($card['id'], ['status' => 'in_use']);
-            }
+        if ($card['status'] !== 'active' && $card['status'] !== 'in_use') {
+            return $this->respond([
+                'success' => false,
+                'message' => 'Card is ' . $card['status'],
+                'card_epc' => $cardEpc
+            ]);
         }
 
-        // Log the scan
-        $this->logCardScan($card['id'], $invitation['invitation_id'], $action, $laneId);
+        $db = \Config\Database::connect();
+        $db->transStart();
 
-        return $this->respond([
-            'success' => true,
-            'action' => $action,
-            'visitor' => [
-                'name' => $invitation['visitor_name'] ?? 'Unknown',
-                'company' => $invitation['visitor_company'] ?? 'N/A'
-            ],
-            'lane' => [
-                'id' => $laneId,
-                'type' => $laneType
-            ],
-            'time' => date('Y-m-d H:i:s'),
-            'duration' => $duration,
-            'card_epc' => $cardEpc
-        ]);
+        try {
+            // Lock the row to prevent concurrent scan race
+            $invitation = $db->query(
+                'SELECT iv.*, iv.id as iv_id, i.full_name as visitor_name, i.company as visitor_company, i.id as invitation_id
+                 FROM invitation_visitors iv
+                 JOIN invitations i ON i.id = iv.invitation_id
+                 WHERE iv.visitor_card_id = ?
+                 AND i.status = ?
+                 AND DATE(i.created_at) = ?
+                 FOR UPDATE',
+                [$card['id'], 'Approved', date('Y-m-d')]
+            )->getRowArray();
+
+            if (!$invitation) {
+                $db->transRollback();
+                return $this->respond([
+                    'success' => false,
+                    'message' => 'No active invitation found for this card today',
+                    'card_epc' => $cardEpc
+                ]);
+            }
+
+            $action = 'checkin';
+            $duration = null;
+            $now = date('Y-m-d H:i:s');
+            $nextVersion = ($invitation['version'] ?? 1) + 1;
+
+            if ($laneType === 'exit') {
+                $action = 'checkout';
+
+                if ($invitation['check_out_time']) {
+                    $db->transRollback();
+                    return $this->respond([
+                        'success' => false,
+                        'message' => 'Visitor has already checked out',
+                        'card_epc' => $cardEpc
+                    ]);
+                }
+
+                if ($invitation['check_in_time']) {
+                    $duration = $this->formatDuration(time() - strtotime($invitation['check_in_time']));
+                }
+
+                $db->table('invitation_visitors')
+                    ->where('id', $invitation['iv_id'])
+                    ->where('check_out_time IS NULL')
+                    ->update([
+                        'check_out_time' => $now,
+                        'version' => $nextVersion,
+                        'updated_at' => $now
+                    ]);
+
+                if ($db->affectedRows() === 0) {
+                    $db->transRollback();
+                    return $this->respond([
+                        'success' => false,
+                        'message' => 'Visitor has already been checked out',
+                        'card_epc' => $cardEpc
+                    ]);
+                }
+
+                $this->visitorCardModel->update($card['id'], ['status' => 'active']);
+
+            } else {
+                if ($invitation['check_in_time'] && !$invitation['check_out_time']) {
+                    $action = 'checkout';
+                    $duration = $this->formatDuration(time() - strtotime($invitation['check_in_time']));
+
+                    $db->table('invitation_visitors')
+                        ->where('id', $invitation['iv_id'])
+                        ->where('check_in_time IS NOT NULL')
+                        ->where('check_out_time IS NULL')
+                        ->update([
+                            'check_out_time' => $now,
+                            'version' => $nextVersion,
+                            'updated_at' => $now
+                        ]);
+
+                    if ($db->affectedRows() === 0) {
+                        $db->transRollback();
+                        return $this->respond([
+                            'success' => false,
+                            'message' => 'Visitor status has changed. Please try again.',
+                            'card_epc' => $cardEpc
+                        ]);
+                    }
+
+                    $this->visitorCardModel->update($card['id'], ['status' => 'active']);
+
+                } elseif ($invitation['check_out_time']) {
+                    $db->transRollback();
+                    return $this->respond([
+                        'success' => false,
+                        'message' => 'Visitor has already checked out for today',
+                        'card_epc' => $cardEpc
+                    ]);
+                } else {
+                    $db->table('invitation_visitors')
+                        ->where('id', $invitation['iv_id'])
+                        ->where('check_in_time IS NULL')
+                        ->update([
+                            'check_in_time' => $now,
+                            'version' => $nextVersion,
+                            'updated_at' => $now
+                        ]);
+
+                    if ($db->affectedRows() === 0) {
+                        $db->transRollback();
+                        return $this->respond([
+                            'success' => false,
+                            'message' => 'Visitor has already been checked in',
+                            'card_epc' => $cardEpc
+                        ]);
+                    }
+
+                    $this->visitorCardModel->update($card['id'], ['status' => 'in_use']);
+                }
+            }
+
+            $this->logCardScan($card['id'], $invitation['invitation_id'], $action, $laneId);
+
+            $db->transComplete();
+
+            return $this->respond([
+                'success' => true,
+                'action' => $action,
+                'visitor' => [
+                    'name' => $invitation['visitor_name'] ?? 'Unknown',
+                    'company' => $invitation['visitor_company'] ?? 'N/A'
+                ],
+                'lane' => [
+                    'id' => $laneId,
+                    'type' => $laneType
+                ],
+                'time' => $now,
+                'duration' => $duration,
+                'card_epc' => $cardEpc
+            ]);
         } catch (\Exception $e) {
+            $db->transRollback();
             log_message('error', 'RFID scanLane error: ' . $e->getMessage() . ' | ' . $e->getTraceAsString());
             return $this->respond([
                 'success' => false,
