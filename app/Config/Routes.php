@@ -223,6 +223,9 @@ $routes->get('report/chronology', 'VisitorChronology::index');
 $routes->post('report/chronology/generate', 'VisitorChronology::generate');
 $routes->get('report/bydoor', 'VisitorInfoByDoor::index');
 $routes->post('report/bydoor/generate', 'VisitorInfoByDoor::generate');
+$routes->get('report/visitor/details/(:num)', 'VisitorChronology::details/$1');
+$routes->post('report/visitor/movement', 'VisitorChronology::movementTimeline');
+
 
 // Blacklist Routes
 $routes->get('blacklist/blacklistrequest', 'BlacklistRequest::requestList');
