@@ -211,11 +211,6 @@
                             <span class="material-symbols-outlined text-[18px]">search</span>
                             Fetch Visitors
                         </button>
-                        
-                        <button onclick="exportExcel()" id="exportBtn" class="flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg bg-[#59ab73] hover:bg-[#4d9763] text-white font-bold text-sm transition-colors shadow-sm whitespace-nowrap h-[42px] min-w-[140px]">
-                            <span class="material-symbols-outlined text-[18px]">download</span>
-                            Export Excel
-                        </button>
                     </div>
                 </div>
                 
@@ -238,9 +233,19 @@
                     <div class="flex flex-col md:flex-row md:items-end justify-between items-center bg-white dark:bg-slate-900 rounded-t-xl border border-slate-200 dark:border-slate-700 shadow-sm border-b-0 p-5 mt-2">
                         <h2 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white mt-1">Visitor Records</h2>
                         
-                        <div class="flex items-center gap-3">
-                            <label class="text-sm font-medium text-slate-500 whitespace-nowrap">Search logs:</label>
-                            <input type="text" id="customSearchBox" class="border border-slate-300 dark:border-slate-600 rounded-md px-3 py-[7px] text-sm focus:ring-[#535dec] focus:border-[#535dec] outline-none min-w-[200px] w-full max-w-[280px]">
+                        <div class="flex flex-wrap items-center gap-3">
+                             <button type="button" onclick="openColumnsModal()" class="flex items-center gap-2 bg-[#535dec] hover:bg-[#4853e0] text-white px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm h-[38px]">
+                                 <span class="material-symbols-outlined text-[18px]">visibility</span>
+                                 Show/Hide Columns
+                             </button>
+                             <button type="button" onclick="exportExcel()" class="flex items-center gap-2 bg-[#53b2ec] hover:bg-[#46a2db] text-white px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm h-[38px]">
+                                 <span class="material-symbols-outlined text-[18px]">query_stats</span>
+                                 Export
+                             </button>
+                            <div class="flex items-center gap-2 ml-2">
+                                <label class="text-sm font-medium text-slate-500 whitespace-nowrap">Search logs:</label>
+                                <input type="text" id="customSearchBox" class="border border-slate-300 dark:border-slate-600 rounded-md px-3 py-[7px] text-sm focus:ring-[#535dec] focus:border-[#535dec] outline-none min-w-[200px] w-full max-w-[280px]">
+                            </div>
                         </div>
                     </div>
 
@@ -345,13 +350,39 @@
     </div>
 </div>
 
+<!-- Columns Modal Overlay -->
+<div id="columnsModal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div id="columnsModalBackdrop" onclick="closeColumnsModal()" class="absolute inset-0 bg-slate-900/55 dark:bg-black/65 cursor-pointer"></div>
+    <div class="relative flex w-full max-w-[600px] flex-col rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+        <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4 dark:border-slate-700">
+            <h2 class="text-lg font-bold tracking-tight text-[#3b5998] dark:text-white">Show/Hide Columns</h2>
+            <button type="button" onclick="closeColumnsModal()" class="text-slate-300 hover:text-slate-500">
+                <span class="material-symbols-outlined text-[20px]">close</span>
+            </button>
+        </div>
+        <div class="px-6 py-5 overflow-y-auto max-h-[60vh] custom-scrollbar">
+            <div class="mb-5 flex items-center gap-2">
+                <input type="checkbox" id="selectAllColumns" onchange="toggleAllColumns(this)" class="rounded border-slate-300 text-[#535dec] focus:ring-[#535dec] h-4 w-4 cursor-pointer" checked>
+                <label for="selectAllColumns" class="text-sm font-bold text-slate-700 dark:text-slate-300 cursor-pointer">Select All Columns</label>
+            </div>
+            <div class="grid grid-cols-2 gap-y-3 gap-x-4" id="columnsCheckboxesList">
+                <!-- Checkboxes populated here -->
+            </div>
+        </div>
+        <div class="flex justify-end gap-3 border-t border-slate-100 bg-white px-6 py-4 dark:border-slate-700 dark:bg-slate-900 rounded-b-xl border-t-2">
+            <button type="button" onclick="closeColumnsModal()" class="rounded-md border border-slate-400 bg-slate-500 hover:bg-slate-600 px-5 py-2 text-sm font-semibold text-white transition-colors">Close</button>
+            <button type="button" onclick="applyColumnsVisibility()" class="rounded-md bg-[#535dec] hover:bg-[#4853e0] px-5 py-2 text-sm font-semibold text-white shadow-md transition-colors">Apply Changes</button>
+        </div>
+    </div>
+</div>
+
 <script>
     let dtTable = null;
     let globalVisitorData = [];
 
     // Table Headers specifically mapped for Export
     const tableHeaders = [
-        "No.", "Visitor Name", "Contact No", "Staff No", "Person Visited", "Check-in Time", "Location"
+        "No.", "Visitor Name", "Contact No", "Staff No", "Person Visited", "Check-in Time", "Location", "Actions"
     ];
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -387,11 +418,100 @@
             columnDefs: [
                 { orderable: false, targets: [7] }, // Disable sorting on Action
                 { className: "text-center", targets: [7] }
-            ]
+            ],
+            initComplete: function () {
+                var api = this.api();
+                api.columns().every(function () {
+                    var column = this;
+                    var header = $(column.header());
+                    var headerText = header.clone().children().remove().end().text().trim().toUpperCase();
+                    if (headerText !== 'ACTIONS' && headerText !== 'NO' && headerText !== 'NO.') {
+                        header.find('.dt-filter-wrapper').remove();
+                        
+                        var wrapper = $('<div class="dt-filter-wrapper inline-block relative ml-1 align-middle" onclick="event.stopPropagation()"></div>');
+                        var icon = $('<span class="material-symbols-outlined text-[16px] text-slate-300 hover:text-[#535dec] transition-colors cursor-pointer" style="vertical-align: middle;">filter_alt</span>');
+                        var dropdown = $('<div class="filter-dropdown hidden absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded shadow-lg z-[50] p-2 text-left text-sm max-h-[250px] overflow-y-auto" style="min-width: 160px; font-weight: normal;"></div>');
+                        
+                        wrapper.append(icon).append(dropdown);
+                        header.append(wrapper);
+
+                        var options = [];
+                        column.data().unique().sort().each(function (d, j) {
+                            var textVal = $('<div>').html(d).text().trim();
+                            if (textVal && textVal !== '-' && textVal !== 'View' && textVal !== 'NULL' && textVal !== 'null') {
+                                options.push(textVal);
+                            }
+                        });
+
+                        var allLabel = $('<label class="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 cursor-pointer font-semibold text-slate-700 capitalize mb-1"></label>');
+                        var allCb = $('<input type="checkbox" checked class="form-checkbox h-4 w-4 text-[#535dec] accent-[#535dec] rounded border-slate-300 cursor-pointer">');
+                        allLabel.append(allCb).append('<span class="select-none">All</span>');
+                        dropdown.append(allLabel);
+                        dropdown.append('<hr class="my-1 border-slate-200">');
+
+                        var itemCbs = [];
+                        options.forEach(function(val) {
+                            var itemLabel = $('<label class="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 cursor-pointer text-slate-600 capitalize"></label>');
+                            var itemCb = $('<input type="checkbox" checked value="' + val.replace(/"/g, '&quot;') + '" class="form-checkbox h-4 w-4 text-[#535dec] accent-[#535dec] rounded border-slate-300 cursor-pointer">');
+                            itemLabel.append(itemCb).append('<span class="select-none">' + val + '</span>');
+                            dropdown.append(itemLabel);
+                            itemCbs.push(itemCb);
+                        });
+
+                        icon.on('click', function(e) {
+                            e.stopPropagation();
+                            $('.filter-dropdown').not(dropdown).addClass('hidden');
+                            dropdown.toggleClass('hidden');
+                        });
+                        
+                        $(document).on('click', function(e) {
+                            if (!$(e.target).closest(wrapper).length) {
+                                dropdown.addClass('hidden');
+                            }
+                        });
+
+                        function applyFilter() {
+                            var selected = [];
+                            var allChecked = true;
+                            itemCbs.forEach(function(cb) {
+                                if(cb.prop('checked')) {
+                                    selected.push($.fn.dataTable.util.escapeRegex(cb.val()));
+                                } else {
+                                    allChecked = false;
+                                }
+                            });
+                            
+                            allCb.prop('checked', allChecked);
+
+                            if(selected.length > 0 && selected.length < options.length) {
+                                icon.removeClass('text-slate-300 text-red-500').addClass('text-[#535dec]');
+                                var regex = '^(' + selected.join('|') + ')$';
+                                column.search(regex, true, false).draw();
+                            } else if (selected.length === 0) {
+                                icon.removeClass('text-slate-300 text-[#535dec]').addClass('text-red-500');
+                                column.search('^__NON_EXISTENT_MATCH__$', true, false).draw();
+                            } else {
+                                icon.removeClass('text-[#535dec] text-red-500').addClass('text-slate-300');
+                                column.search('', true, false).draw();
+                            }
+                        }
+
+                        allCb.on('change', function() {
+                            var isChecked = $(this).prop('checked');
+                            itemCbs.forEach(function(cb) { cb.prop('checked', isChecked); });
+                            applyFilter();
+                        });
+
+                        itemCbs.forEach(function(cb) {
+                            cb.on('change', applyFilter);
+                        });
+                    }
+                });
+            }
         });
 
         // Bind custom search box directly to data table API
-        $('#customSearchBox').on('keyup', function() {
+        $('#customSearchBox').off('keyup').on('keyup', function() {
             dtTable.search(this.value).draw();
         });
     }
@@ -473,6 +593,7 @@
             document.getElementById('resultsSection').classList.remove('hidden');
             document.getElementById('resultsSection').classList.add('flex');
             
+            initColumnsCheckboxes();
         })
         .catch(e => {
             console.error(e);
@@ -483,7 +604,12 @@
     }
 
     function buildTable(rows) {
-        if (dtTable) dtTable.clear();
+        if (dtTable) {
+            dtTable.destroy();
+        }
+        
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '';
         
         rows.forEach((v, i) => {
             // Null parsing for staff no pill
@@ -494,47 +620,58 @@
                 staffPill = `<span class="text-slate-600 font-medium">${esc(staffPill)}</span>`;
             }
 
-            const trNode = dtTable.row.add([
-                `<span class="text-slate-500 font-medium">${i + 1}</span>`,
-                `<span class="text-slate-600 font-medium tracking-tight text-[13px] capitalize">${esc(v.visitor_name)}</span>`,
-                `<span class="text-slate-500 uppercase tracking-tight text-[13px]">${esc(v.contact_no)}</span>`,
-                staffPill,
-                `<span class="text-slate-500 tracking-tight text-[13px] capitalize">${esc(v.person_visited)}</span>`,
-                `<span class="text-slate-500 tracking-tight text-[13px] font-medium">${esc(v.checkin_time)}</span>`,
-                `<span class="bg-gray-400 text-white rounded-full px-2 py-0.5 text-[11px] font-bold">${esc(v.location_name)}</span>`,
-                `<div class="flex justify-center"><span class="material-symbols-outlined text-[18px] text-[#535dec] cursor-pointer hover:text-blue-800 transition-colors" onclick="openModal(${i})">visibility</span></div>`
-            ]).node();
-            
-            // Add custom padding directly safely
-            $(trNode).find('td').addClass('py-3 align-middle');
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="py-3 align-middle"><span class="text-slate-500 font-medium">${i + 1}</span></td>
+                <td class="py-3 align-middle"><span class="text-slate-600 font-medium tracking-tight text-[13px] capitalize">${esc(v.visitor_name)}</span></td>
+                <td class="py-3 align-middle"><span class="text-slate-500 uppercase tracking-tight text-[13px]">${esc(v.contact_no)}</span></td>
+                <td class="py-3 align-middle">${staffPill}</td>
+                <td class="py-3 align-middle"><span class="text-slate-500 tracking-tight text-[13px] capitalize">${esc(v.person_visited)}</span></td>
+                <td class="py-3 align-middle"><span class="text-slate-500 tracking-tight text-[13px] font-medium">${esc(v.checkin_time)}</span></td>
+                <td class="py-3 align-middle"><span class="bg-gray-400 text-white rounded-full px-2 py-0.5 text-[11px] font-bold">${esc(v.location_name)}</span></td>
+                <td class="py-3 align-middle"><div class="flex justify-center"><span class="material-symbols-outlined text-[18px] text-[#535dec] cursor-pointer hover:text-blue-800 transition-colors" onclick="openModal(${i})">visibility</span></div></td>
+            `;
+            tbody.appendChild(tr);
         });
         
-        dtTable.draw(false);
+        initTable();
     }
     
     function exportExcel() {
-        if (!globalVisitorData.length) {
+        if (!globalVisitorData.length || !dtTable) {
             alert("No data available to export! Please fetch visitors first.");
             return;
         }
         
-        const exportData = [tableHeaders];
+        // Find visible columns (exclude action column 7 if desired, but respect visibility filter)
+        const visibleIndices = dtTable.columns().visible().toArray().map((v, i) => v && i !== 7 ? i : -1).filter(v => v !== -1);
+        const expHeaders = visibleIndices.map(i => tableHeaders[i]);
         
-        globalVisitorData.forEach((r, i) => {
-            exportData.push([
-                i + 1,
-                r.visitor_name || '-',
-                r.contact_no || '-',
-                r.staff_no || '-',
-                r.person_visited || '-',
-                r.checkin_time || '-',
-                r.location_name || '-'
-            ]);
+        const exportData = [expHeaders];
+        
+        let exportIndex = 1;
+        dtTable.rows({search: 'applied'}).every(function() {
+            var tr = this.node();
+            var tds = $(tr).find('td');
+            
+            const fullRowData = [];
+            tds.each(function(index) {
+                if (index === 0) {
+                    fullRowData.push(exportIndex++);
+                } else if (index === 7) {
+                    fullRowData.push('-');
+                } else {
+                    fullRowData.push($(this).text().trim());
+                }
+            });
+            
+            const rowData = visibleIndices.map(idx => fullRowData[idx] || '-');
+            exportData.push(rowData);
         });
         
         const ws = XLSX.utils.aoa_to_sheet(exportData);
         
-        for (let C = 0; C < tableHeaders.length; ++C) {
+        for (let C = 0; C < expHeaders.length; ++C) {
             const cell_ref = XLSX.utils.encode_cell({c: C, r: 0});
             if (!ws[cell_ref]) continue;
             ws[cell_ref].s = {
@@ -543,12 +680,68 @@
             };
         }
         
-        const wscols = tableHeaders.map(() => ({wch: 20}));
+        const wscols = visibleIndices.map(() => ({wch: 20}));
         ws['!cols'] = wscols;
 
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Visitor Report");
         XLSX.writeFile(wb, "Visitor_Door_Report_" + new Date().toISOString().slice(0, 10) + ".xlsx");
+    }
+
+    // Modal & Columns Toggle Logic
+    function initColumnsCheckboxes() {
+        const container = document.getElementById('columnsCheckboxesList');
+        container.innerHTML = '';
+        let allChecked = true;
+        
+        tableHeaders.forEach((colName, idx) => {
+            const isVisible = dtTable.column(idx).visible();
+            if(!isVisible) allChecked = false;
+            
+            const div = document.createElement('div');
+            div.className = 'flex items-center gap-2';
+            div.innerHTML = `
+                <input type="checkbox" id="col_${idx}" data-col-idx="${idx}" class="col-toggle-cb rounded border-slate-300 text-[#535dec] focus:ring-[#535dec] h-4 w-4 cursor-pointer" ${isVisible ? 'checked' : ''}>
+                <label for="col_${idx}" class="text-sm text-slate-600 dark:text-slate-300 uppercase cursor-pointer">${colName}</label>
+            `;
+            container.appendChild(div);
+        });
+        
+        document.getElementById('selectAllColumns').checked = allChecked;
+        
+        // Add event listeners
+        document.querySelectorAll('.col-toggle-cb').forEach(cb => {
+            cb.addEventListener('change', function() {
+                const total = document.querySelectorAll('.col-toggle-cb').length;
+                const checked = document.querySelectorAll('.col-toggle-cb:checked').length;
+                document.getElementById('selectAllColumns').checked = (total === checked);
+            });
+        });
+    }
+
+    function openColumnsModal() {
+        if(!dtTable) return;
+        document.getElementById('columnsModal').classList.remove('hidden');
+    }
+    
+    function closeColumnsModal() {
+        document.getElementById('columnsModal').classList.add('hidden');
+        initColumnsCheckboxes();
+    }
+    
+    function toggleAllColumns(elem) {
+        const isChecked = elem.checked;
+        document.querySelectorAll('.col-toggle-cb').forEach(cb => {
+            cb.checked = isChecked;
+        });
+    }
+    
+    function applyColumnsVisibility() {
+        document.querySelectorAll('.col-toggle-cb').forEach(cb => {
+            const idx = cb.getAttribute('data-col-idx');
+            dtTable.column(idx).visible(cb.checked);
+        });
+        document.getElementById('columnsModal').classList.add('hidden');
     }
 
     function openModal(idx) {
