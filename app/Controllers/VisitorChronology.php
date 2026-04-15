@@ -230,4 +230,134 @@ class VisitorChronology extends BaseController
 
         return view('reports/visitor_details_print', $data);
     }
+
+    /**
+     * Get detailed movement history and statistics for a specific visitor (Invitation)
+     */
+    public function movementTimeline()
+    {
+        $invitationId = $this->request->getPost('invitation_id');
+        if (empty($invitationId)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Invitation ID is required.']);
+        }
+
+        $db = db_connect();
+
+        // 1. Get Invitation Details
+        $invitation = $db->table('invitations')->where('id', (int)$invitationId)->get()->getRowArray();
+        if (!$invitation) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Record not found.']);
+        }
+
+        // 2. Get All Visitor Card Logs for this invitation
+        $sql = "SELECT vcl.*, la.lane AS lane_name, loc.branch, loc.location_access
+                FROM visitor_card_logs vcl
+                LEFT JOIN lanes la ON la.id = vcl.lane_id
+                LEFT JOIN locations loc ON loc.id = la.location_id
+                WHERE vcl.invitation_id = ?
+                ORDER BY vcl.scanned_at ASC";
+        
+        $logs = $db->query($sql, [(int)$invitationId])->getResultArray();
+
+        if (empty($logs)) {
+            return $this->response->setJSON([
+                'success' => true,
+                'summary' => [
+                    'full_name' => $invitation['full_name'],
+                    'ic_no' => $invitation['ic_passport'],
+                    'status' => 'NO_LOGS',
+                    'total_time' => '0s',
+                    'total_visits' => 0,
+                    'total_scans' => 0,
+                    'last_seen' => '-'
+                ],
+                'dates' => []
+            ]);
+        }
+
+        // 3. Process Logs into Movements and Stats
+        $dates = [];
+        $totalSeconds = 0;
+        $uniqueDays = [];
+        $totalScans = count($logs);
+        
+        // Group logs by date
+        foreach ($logs as $log) {
+            $dateStr = date('Y-m-d', strtotime($log['scanned_at']));
+            if (!isset($dates[$dateStr])) {
+                $dates[$dateStr] = [
+                    'display_date' => date('d-M-Y', strtotime($dateStr)),
+                    'logs_count' => 0,
+                    'movements' => []
+                ];
+                $uniqueDays[$dateStr] = true;
+            }
+        }
+
+        // Generate Movements
+        // Logic: Movement i = Log[i] to Log[i+1]
+        for ($i = 0; $i < count($logs); $i++) {
+            $currentLog = $logs[$i];
+            $dateStr = date('Y-m-d', strtotime($currentLog['scanned_at']));
+            $dates[$dateStr]['logs_count']++;
+
+            $nextLog = ($i + 1 < count($logs)) ? $logs[$i+1] : null;
+            
+            // Stats calculation: Only add to total time if next scan exists and is on the same day OR we just add anyway if it's a continuous visit
+            $durationSeconds = 0;
+            if ($nextLog) {
+                $durationSeconds = strtotime($nextLog['scanned_at']) - strtotime($currentLog['scanned_at']);
+                // Don't count overnight or very long gaps as a single movement if they are more than 12 hours? 
+                // For simplicity, we just count them.
+                $totalSeconds += $durationSeconds;
+            }
+
+            // Create Movement object
+            $exitTime = $nextLog ? date('h:i:s A', strtotime($nextLog['scanned_at'])) : '-';
+            $durationStr = $this->formatDuration($durationSeconds);
+
+            $dates[$dateStr]['movements'][] = [
+                'movement_index' => count($dates[$dateStr]['movements']) + 1,
+                'from' => ($currentLog['lane_name'] ?? 'Unknown Road'),
+                'to'   => ($nextLog ? ($nextLog['lane_name'] ?? 'Unknown Road') : 'STILL AT SITE'),
+                'entry_time' => date('h:i:s A', strtotime($currentLog['scanned_at'])),
+                'exit_time'  => $exitTime,
+                'time_spent' => ($nextLog ? $durationStr : '-'),
+                'status'     => 'GRANTED' // Action is always granted in logs unless denied logs exist
+            ];
+        }
+
+        // Final summary
+        $lastLog = end($logs);
+        $status = (strpos(strtolower($lastLog['lane_name'] ?? ''), 'out') !== false) ? 'OUT_BUILDING' : 'IN_BUILDING';
+        
+        return $this->response->setJSON([
+            'success' => true,
+            'summary' => [
+                'full_name' => $invitation['full_name'],
+                'ic_no' => $invitation['ic_passport'],
+                'status' => $status,
+                'total_time' => $this->formatDuration($totalSeconds),
+                'total_visits' => count($uniqueDays),
+                'total_scans' => $totalScans,
+                'last_seen' => ($lastLog['lane_name'] ?? '-')
+            ],
+            'dates' => array_values($dates)
+        ]);
+    }
+
+    private function formatDuration($seconds)
+    {
+        if ($seconds <= 0) return '0s';
+        $h = floor($seconds / 3600);
+        $m = floor(($seconds % 3600) / 60);
+        $s = $seconds % 60;
+        
+        $res = [];
+        if ($h > 0) $res[] = "{$h}h";
+        if ($m > 0 || $h > 0) $res[] = "{$m}m";
+        $res[] = "{$s}s";
+        
+        return implode(' ', $res);
+    }
 }
