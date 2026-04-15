@@ -159,6 +159,8 @@ $routes->delete('config/deleteRejectReason/(:num)', 'Config::deleteRejectReason/
 $routes->get('staffs', 'StaffList::index');
 $routes->get('staffs/staffpassrequest', 'StaffPassRequest::index');
 $routes->post('staffs/staffpassrequest/store', 'StaffPassRequest::store');
+//$routes->get('staff-pass-request', 'StaffList::downloadTemplate');
+
 
 
 // Visitor Card Management Routes
