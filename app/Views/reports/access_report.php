@@ -202,22 +202,46 @@
                             <p class="text-xs text-slate-400">End date and time</p>
                         </div>
 
-                        <!-- Select Location -->
-                        <div class="flex flex-col gap-1.5 flex-1 min-w-0">
+                        <!-- Select Locations (multi-select checkbox dropdown) -->
+                        <div class="flex flex-col gap-1.5 flex-1 min-w-0" id="locationDropdownWrapper">
                             <label class="text-xs font-semibold text-slate-500 tracking-wider">Select Locations</label>
-                            <div class="relative">
-                                <select id="location_id" name="location_id"
-                                    class="w-full border border-slate-200 dark:border-slate-700 rounded-lg pl-4 pr-10 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary appearance-none bg-none cursor-pointer">
-                                    <option value="">-- Select Location --</option>
-                                    <?php foreach ($locations as $loc): ?>
-                                        <option value="<?= esc($loc['id']) ?>">
-                                            <?= esc($loc['id']) ?>. <?= esc($loc['branch']) ?> - <?= esc($loc['location_access']) ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <span class="absolute right-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-[18px] text-slate-400 pointer-events-none">expand_more</span>
+                            <div class="relative" id="locationDropdownContainer">
+                                <!-- Trigger button -->
+                                <button type="button" id="locationDropdownBtn"
+                                    onclick="toggleLocationDropdown(event)"
+                                    class="w-full border border-slate-200 dark:border-slate-700 rounded-lg pl-4 pr-10 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-left cursor-pointer flex items-center justify-between">
+                                    <span id="locationDropdownLabel" class="truncate">-- Select Locations --</span>
+                                    <span class="material-symbols-outlined text-[18px] text-slate-400 flex-shrink-0 ml-2" id="locationDropdownChevron">expand_more</span>
+                                </button>
+
+                                <!-- Dropdown panel -->
+                                <div id="locationDropdownPanel"
+                                    class="hidden absolute z-50 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+                                    <!-- Select All -->
+                                    <div class="px-3 py-2 border-b border-slate-100 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800">
+                                        <label class="flex items-center gap-2 cursor-pointer select-none">
+                                            <input type="checkbox" id="locationSelectAll" onchange="toggleSelectAllLocations(this)"
+                                                class="rounded border-slate-300 text-primary focus:ring-primary/30 h-4 w-4 cursor-pointer">
+                                            <span class="text-sm font-bold text-slate-700 dark:text-slate-200">Select All Locations</span>
+                                        </label>
+                                    </div>
+                                    <!-- Individual locations -->
+                                    <div class="py-1">
+                                        <?php foreach ($locations as $loc): ?>
+                                            <label class="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer select-none">
+                                                <input type="checkbox" name="location_ids[]"
+                                                    value="<?= esc($loc['id']) ?>"
+                                                    class="location-checkbox rounded border-slate-300 text-primary focus:ring-primary/30 h-4 w-4 cursor-pointer"
+                                                    onchange="onLocationCheckboxChange()">
+                                                <span class="text-sm text-slate-700 dark:text-slate-200">
+                                                    <?= esc($loc['id']) ?>. <?= esc($loc['branch']) ?> - <?= esc($loc['location_access']) ?>
+                                                </span>
+                                            </label>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
                             </div>
-                            <p class="text-xs text-slate-400">Select reporting location</p>
+                            <p class="text-xs text-slate-400">Select one or more locations</p>
                         </div>
 
                         <!-- Generate Button -->
@@ -449,10 +473,11 @@
     function generateReport() {
         const fromDatetime = document.getElementById('from_datetime').value;
         const toDatetime   = document.getElementById('to_datetime').value;
-        const locationId   = document.getElementById('location_id').value;
+        const checkedBoxes = document.querySelectorAll('.location-checkbox:checked');
+        const locationIds  = Array.from(checkedBoxes).map(cb => cb.value);
 
-        if (!fromDatetime || !toDatetime || !locationId) {
-            alert('Please fill in all fields before generating the report.');
+        if (!fromDatetime || !toDatetime || locationIds.length === 0) {
+            alert('Please fill in all fields and select at least one location before generating the report.');
             return;
         }
 
@@ -461,7 +486,7 @@
         const formData = new FormData();
         formData.append('from_datetime', fromDatetime);
         formData.append('to_datetime',   toDatetime);
-        formData.append('location_id',   locationId);
+        locationIds.forEach(id => formData.append('location_ids[]', id));
 
         fetch('<?= base_url('report/access/generate') ?>', {
             method: 'POST',
@@ -794,13 +819,16 @@
     }
 
     function openMovementHistory(invitationId, icNo) {
-        const locationId = document.getElementById('location_id').value;
+        const checkedBoxes = document.querySelectorAll('.location-checkbox:checked');
+        const locationIds  = Array.from(checkedBoxes).map(cb => cb.value);
         const fromDatetime = document.getElementById('from_datetime').value;
         const toDatetime = document.getElementById('to_datetime').value;
-        if (!locationId || !fromDatetime || !toDatetime) {
+        if (locationIds.length === 0 || !fromDatetime || !toDatetime) {
             alert('Select location and date range, then generate the report before opening movement history.');
             return;
         }
+        // Use first selected location for movement history detail
+        const locationId = locationIds[0];
 
         document.getElementById('movementModalInvitationId').value = String(invitationId);
         const ic = icNo != null ? String(icNo).trim() : '';
@@ -816,7 +844,7 @@
 
         const formData = new FormData();
         formData.append('invitation_id', invitationId);
-        formData.append('location_id', locationId);
+        locationIds.forEach(id => formData.append('location_ids[]', id));
         formData.append('from_datetime', fromDatetime);
         formData.append('to_datetime', toDatetime);
 
@@ -874,12 +902,13 @@
     document.getElementById('movementModalBtnChronology').addEventListener('click', function () {
         const invitationId = document.getElementById('movementModalInvitationId').value;
         const icRaw = document.getElementById('movementModalIcNo').value;
-        const locationId = document.getElementById('location_id').value;
+        const checkedBoxesC = document.querySelectorAll('.location-checkbox:checked');
+        const locationIdsC  = Array.from(checkedBoxesC).map(cb => cb.value);
         const fromDatetime = document.getElementById('from_datetime').value;
         const toDatetime = document.getElementById('to_datetime').value;
-        if (!locationId || !fromDatetime || !toDatetime) return;
+        if (locationIdsC.length === 0 || !fromDatetime || !toDatetime) return;
         const q = new URLSearchParams();
-        q.set('location_id', locationId);
+        locationIdsC.forEach(id => q.append('location_ids[]', id));
         q.set('from_datetime', fromDatetime);
         q.set('to_datetime', toDatetime);
         q.set('auto_search', '1');
@@ -908,6 +937,62 @@
         if (inv === null || inv === '') return;
         openMovementHistory(parseInt(inv, 10), ic || '');
     });
+
+    // ── Location multi-select dropdown ──────────────────────────────────────
+    function toggleLocationDropdown(e) {
+        e.stopPropagation();
+        const panel   = document.getElementById('locationDropdownPanel');
+        const chevron = document.getElementById('locationDropdownChevron');
+        const isOpen  = !panel.classList.contains('hidden');
+        if (isOpen) {
+            panel.classList.add('hidden');
+            chevron.textContent = 'expand_more';
+        } else {
+            panel.classList.remove('hidden');
+            chevron.textContent = 'expand_less';
+        }
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        const container = document.getElementById('locationDropdownContainer');
+        if (container && !container.contains(e.target)) {
+            document.getElementById('locationDropdownPanel').classList.add('hidden');
+            document.getElementById('locationDropdownChevron').textContent = 'expand_more';
+        }
+    });
+
+    function toggleSelectAllLocations(masterCb) {
+        document.querySelectorAll('.location-checkbox').forEach(cb => {
+            cb.checked = masterCb.checked;
+        });
+        updateLocationLabel();
+    }
+
+    function onLocationCheckboxChange() {
+        const all      = document.querySelectorAll('.location-checkbox');
+        const checked  = document.querySelectorAll('.location-checkbox:checked');
+        const masterCb = document.getElementById('locationSelectAll');
+        masterCb.indeterminate = checked.length > 0 && checked.length < all.length;
+        masterCb.checked       = checked.length === all.length;
+        updateLocationLabel();
+    }
+
+    function updateLocationLabel() {
+        const checked = document.querySelectorAll('.location-checkbox:checked');
+        const total   = document.querySelectorAll('.location-checkbox').length;
+        const label   = document.getElementById('locationDropdownLabel');
+        if (checked.length === 0) {
+            label.textContent = '-- Select Locations --';
+        } else if (checked.length === total) {
+            label.textContent = 'All Locations (' + total + ')';
+        } else if (checked.length === 1) {
+            label.textContent = checked[0].closest('label').querySelector('span').textContent.trim();
+        } else {
+            label.textContent = checked.length + ' Locations selected';
+        }
+    }
+    // ────────────────────────────────────────────────────────────────────────
 </script>
 </body>
 </html>

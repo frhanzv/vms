@@ -29,24 +29,38 @@ class AccessReport extends BaseController
     {
         $fromDatetime = $this->request->getPost('from_datetime');
         $toDatetime   = $this->request->getPost('to_datetime');
-        $locationId   = $this->request->getPost('location_id');
+        $locationIds  = $this->request->getPost('location_ids');  // array from multi-select
 
-        if (empty($fromDatetime) || empty($toDatetime) || empty($locationId)) {
+        // Normalise: accept single location_id for backward compat
+        if (empty($locationIds)) {
+            $single = $this->request->getPost('location_id');
+            $locationIds = $single ? [$single] : [];
+        }
+
+        if (empty($fromDatetime) || empty($toDatetime) || empty($locationIds)) {
             return $this->response->setJSON(['success' => false, 'message' => 'All fields are required.']);
+        }
+
+        // Sanitise to integers
+        $locationIds = array_values(array_filter(array_map('intval', (array) $locationIds)));
+        if (empty($locationIds)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Invalid location selection.']);
         }
 
         $db = \Config\Database::connect();
 
-        // Get location name
-        $location = $this->locationModel->find($locationId);
-        if (!$location) {
+        // Build location name label
+        $locations    = $this->locationModel->whereIn('id', $locationIds)->findAll();
+        if (empty($locations)) {
             return $this->response->setJSON(['success' => false, 'message' => 'Location not found.']);
         }
-        $locationName = $location['branch'] . ' - ' . $location['location_access'];
+        $locationName = count($locations) === 1
+            ? $locations[0]['branch'] . ' - ' . $locations[0]['location_access']
+            : count($locations) . ' Locations';
 
-        // Query: visitors at this location within the time range
-        // Join visitor_card_logs -> lanes -> locations to filter by location
-        // Then join invitation_visitors and invitations for visitor details
+        // Build IN placeholders
+        $placeholders = implode(',', array_fill(0, count($locationIds), '?'));
+
         $sql = "SELECT 
                     i.id               AS invitation_id,
                     i.full_name        AS visitor_name,
@@ -63,7 +77,7 @@ class AccessReport extends BaseController
                 FROM visitor_card_logs vcl
                 LEFT JOIN lanes la ON la.id = vcl.lane_id
                 LEFT JOIN invitations i ON i.id = vcl.invitation_id
-                WHERE la.location_id = ?
+                WHERE la.location_id IN ({$placeholders})
                   AND vcl.scanned_at >= ?
                   AND vcl.scanned_at <= ?
                   AND i.id IS NOT NULL
@@ -79,7 +93,8 @@ class AccessReport extends BaseController
                     i.reason
                 ORDER BY first_access ASC";
 
-        $rows = $db->query($sql, [$locationId, $fromDatetime, $toDatetime])->getResultArray();
+        $params = array_merge($locationIds, [$fromDatetime, $toDatetime]);
+        $rows   = $db->query($sql, $params)->getResultArray();
 
         $visitors = [];
         foreach ($rows as $row) {
@@ -116,10 +131,18 @@ class AccessReport extends BaseController
     {
         $fromDatetime = $this->request->getPost('from_datetime');
         $toDatetime   = $this->request->getPost('to_datetime');
-        $locationId   = $this->request->getPost('location_id');
+        $locationIds  = $this->request->getPost('location_ids');
         $invitationId = $this->request->getPost('invitation_id');
 
-        if (empty($fromDatetime) || empty($toDatetime) || empty($locationId) || empty($invitationId)) {
+        // Backward compat: accept single location_id
+        if (empty($locationIds)) {
+            $single = $this->request->getPost('location_id');
+            $locationIds = $single ? [$single] : [];
+        }
+
+        $locationIds = array_values(array_filter(array_map('intval', (array) $locationIds)));
+
+        if (empty($fromDatetime) || empty($toDatetime) || empty($locationIds) || empty($invitationId)) {
             return $this->response->setJSON(['success' => false, 'message' => 'All fields are required.']);
         }
 
@@ -138,19 +161,21 @@ class AccessReport extends BaseController
             $staffRef = (string) ($inv['full_name'] ?? 'Visitor');
         }
 
-        $sql = 'SELECT vcl.scanned_at, vcl.action,
+        $placeholders = implode(',', array_fill(0, count($locationIds), '?'));
+        $sql = "SELECT vcl.scanned_at, vcl.action,
                        la.id AS lane_id, la.lane AS lane_name,
                        loc.id AS location_id, loc.branch, loc.location_access
                 FROM visitor_card_logs vcl
                 INNER JOIN lanes la ON la.id = vcl.lane_id
                 INNER JOIN locations loc ON loc.id = la.location_id
                 WHERE vcl.invitation_id = ?
-                  AND la.location_id = ?
+                  AND la.location_id IN ({$placeholders})
                   AND vcl.scanned_at >= ?
                   AND vcl.scanned_at <= ?
-                ORDER BY vcl.scanned_at ASC';
+                ORDER BY vcl.scanned_at ASC";
 
-        $rows = $db->query($sql, [(int) $invitationId, (int) $locationId, $fromDatetime, $toDatetime])->getResultArray();
+        $params = array_merge([(int) $invitationId], $locationIds, [$fromDatetime, $toDatetime]);
+        $rows   = $db->query($sql, $params)->getResultArray();
 
         $movements = [];
         foreach ($rows as $row) {
