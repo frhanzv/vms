@@ -2395,7 +2395,13 @@
                             </button>
                         </div>
                         <div class="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
-                            <p class="text-xs text-slate-500 dark:text-slate-400">Placeholders: {{visitor_name}}, {{company}}, {{location}}, {{reason}}, {{invited_by}}, {{link_expiry_date}}</p>
+                            <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-3">
+                                <div class="flex items-center justify-between gap-2 mb-2">
+                                    <p class="text-xs font-semibold text-slate-700 dark:text-slate-200">Placeholder Box</p>
+                                    <p class="text-[11px] text-slate-500 dark:text-slate-400">Click to insert, drag to reorder</p>
+                                </div>
+                                <div id="emailTemplatePlaceholderBox" class="flex flex-wrap gap-2"></div>
+                            </div>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 <div>
                                     <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Subject</label>
@@ -10989,9 +10995,20 @@
             { key: 'rejection', label: 'Rejection Email' },
             { key: 'reminder', label: 'Reminder Email' },
         ];
+        let emailTemplatePlaceholderTokens = [
+            '{{visitor_name}}',
+            '{{company}}',
+            '{{location}}',
+            '{{reason}}',
+            '{{invited_by}}',
+            '{{link_expiry_date}}',
+        ];
         let currentEmailTemplateProcess = 'invitation';
         let currentEmailTemplateSearch = '';
         let currentEmailTemplateSort = 'default';
+        let emailTemplateFocusedInputId = null;
+        let placeholderDragIndex = null;
+        let emailTemplateFocusTrackingBound = false;
 
         function getEmailTemplateProcessLabel(process) {
             const option = emailTemplateProcessOptions.find(item => item.key === process);
@@ -11044,6 +11061,88 @@
             `).join('');
         }
 
+        function renderEmailTemplatePlaceholderBox() {
+            const box = document.getElementById('emailTemplatePlaceholderBox');
+            if (!box) return;
+
+            box.innerHTML = emailTemplatePlaceholderTokens.map((token, index) => `
+                <button
+                    type="button"
+                    draggable="true"
+                    data-index="${index}"
+                    onclick="insertTemplatePlaceholder('${token.replace(/'/g, "\\'")}')"
+                    ondragstart="onPlaceholderDragStart(event, ${index})"
+                    ondragover="onPlaceholderDragOver(event)"
+                    ondrop="onPlaceholderDrop(event, ${index})"
+                    ondragend="onPlaceholderDragEnd()"
+                    class="px-2.5 py-1 rounded-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-move"
+                >${token}</button>
+            `).join('');
+        }
+
+        function onPlaceholderDragStart(event, index) {
+            placeholderDragIndex = index;
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/plain', String(index));
+        }
+
+        function onPlaceholderDragOver(event) {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'move';
+        }
+
+        function onPlaceholderDrop(event, dropIndex) {
+            event.preventDefault();
+            if (placeholderDragIndex === null || placeholderDragIndex === dropIndex) return;
+            const moved = emailTemplatePlaceholderTokens.splice(placeholderDragIndex, 1)[0];
+            emailTemplatePlaceholderTokens.splice(dropIndex, 0, moved);
+            placeholderDragIndex = null;
+            renderEmailTemplatePlaceholderBox();
+        }
+
+        function onPlaceholderDragEnd() {
+            placeholderDragIndex = null;
+        }
+
+        function trackEmailTemplateInputFocus() {
+            if (emailTemplateFocusTrackingBound) return;
+            const fieldIds = [
+                'invitationEmailSubject',
+                'invitationEmailButtonText',
+                'invitationEmailBrandName',
+                'invitationEmailHeaderTitle',
+                'invitationEmailIntroLine',
+                'invitationEmailNotesTitle',
+                'invitationEmailNotesItems',
+                'invitationEmailFooterText',
+            ];
+
+            fieldIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.addEventListener('focus', function () {
+                    emailTemplateFocusedInputId = id;
+                });
+            });
+            emailTemplateFocusTrackingBound = true;
+        }
+
+        function insertTemplatePlaceholder(token) {
+            const targetId = emailTemplateFocusedInputId || 'invitationEmailIntroLine';
+            const input = document.getElementById(targetId);
+            if (!input) return;
+
+            const start = input.selectionStart ?? input.value.length;
+            const end = input.selectionEnd ?? input.value.length;
+            const value = input.value || '';
+            input.value = value.slice(0, start) + token + value.slice(end);
+            const nextPos = start + token.length;
+            if (typeof input.setSelectionRange === 'function') {
+                input.setSelectionRange(nextPos, nextPos);
+            }
+            input.focus();
+        }
+
         function updateCurrentEmailTemplateProcessLabel() {
             const labelEl = document.getElementById('emailTemplateCurrentProcessLabel');
             if (labelEl) {
@@ -11063,6 +11162,8 @@
             const modal = document.getElementById('emailTemplateEditModal');
             modal.classList.remove('hidden');
             modal.classList.add('flex');
+            renderEmailTemplatePlaceholderBox();
+            trackEmailTemplateInputFocus();
         }
 
         function closeEmailTemplateModal() {
