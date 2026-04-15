@@ -201,27 +201,27 @@
                         <h2 class="text-lg font-bold text-slate-900 dark:text-white">Search Visitor</h2>
                     </div>
                     <?php
-                    $searchGrid = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-x-4 gap-y-2';
-                    $fieldLabel = 'text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider';
-                    $fieldInput = 'w-full border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2.5 text-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100';
+                    $searchGrid = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-x-4 gap-y-3';
+                    $fieldLabel = 'text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest';
+                    $fieldInput = 'w-full border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2.5 text-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all';
                     ?>
                     <div class="space-y-2">
                         <div class="<?= $searchGrid ?>">
                             <label class="<?= $fieldLabel ?>">Search By</label>
                             <label class="<?= $fieldLabel ?>">Search Term</label>
-                            <label class="<?= $fieldLabel ?>">From</label>
-                            <label class="<?= $fieldLabel ?>">To</label>
-                            <label class="<?= $fieldLabel ?> xl:col-span-2">Location</label>
+                            <label class="<?= $fieldLabel ?>">From Date/Time</label>
+                            <label class="<?= $fieldLabel ?>">To Date/Time</label>
+                            <label class="<?= $fieldLabel ?>">Location</label>
                         </div>
                         <div class="<?= $searchGrid ?> items-center">
                             <select id="search_by" class="<?= $fieldInput ?> chronology-select">
                                 <option value="ic">IC Number</option>
                                 <option value="staff">Staff No</option>
                             </select>
-                            <input type="text" id="search_term" placeholder="Enter Staff No or IC Number" class="<?= $fieldInput ?>">
-                            <input type="text" id="chronology_from" class="<?= $fieldInput ?> flatpickr-input" readonly>
-                            <input type="text" id="chronology_to" class="<?= $fieldInput ?> flatpickr-input" readonly>
-                            <select id="chronology_location_id" class="<?= $fieldInput ?> chronology-select xl:col-span-2 min-w-0">
+                            <input type="text" id="search_term" placeholder="Enter Staff No or IC" class="<?= $fieldInput ?>">
+                            <input type="text" id="chronology_from" class="<?= $fieldInput ?> flatpickr-input" readonly placeholder="Start Date">
+                            <input type="text" id="chronology_to" class="<?= $fieldInput ?> flatpickr-input" readonly placeholder="End Date">
+                            <select id="chronology_location_id" class="<?= $fieldInput ?> chronology-select min-w-0">
                                 <option value="">All locations</option>
                                 <?php foreach ($locations as $loc): ?>
                                     <option value="<?= esc($loc['id']) ?>"><?= esc($loc['id']) ?>. <?= esc($loc['branch'] . ' - ' . $loc['location_access']) ?></option>
@@ -258,22 +258,14 @@
                 <div id="chronologyResultsWrap" class="hidden flex-col gap-4">
                     <!-- Data Table Header & Actions -->
                     <div class="flex flex-col md:flex-row md:items-end justify-between items-center bg-white dark:bg-slate-900 rounded-t-xl border border-slate-200 dark:border-slate-700 shadow-sm border-b-0 p-5 mt-2">
-<<<<<<< HEAD
-                         <h2 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white mt-1">Access Chronology</h2>
-=======
-                         <h2 id="resultsTableTitle" class="text-xl font-bold tracking-tight text-slate-900 dark:text-white mt-1">Visitor Details</h2>
->>>>>>> b01b73bb80ba235786be955958c37c4cc1d55bf4
+                          <h2 id="resultsTableTitle" class="text-xl font-bold tracking-tight text-slate-900 dark:text-white mt-1">Visitor Details</h2>
                          
                          <div class="flex gap-2">
                              <button type="button" onclick="openColumnsModal()" class="flex items-center gap-2 bg-[#535dec] hover:bg-[#4853e0] text-white px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm">
                                  <span class="material-symbols-outlined text-[18px]">visibility</span>
                                  Show/Hide Columns
                              </button>
-<<<<<<< HEAD
-                             <button type="button" onclick="exportExcel()" class="flex items-center gap-2 bg-[#53b2ec] hover:bg-[#46a2db] text-white px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm">
-=======
                              <button type="button" onclick="exportVisitorsExcel()" class="flex items-center gap-2 bg-[#53b2ec] hover:bg-[#46a2db] text-white px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm">
->>>>>>> b01b73bb80ba235786be955958c37c4cc1d55bf4
                                  <span class="material-symbols-outlined text-[18px]">query_stats</span>
                                  Export
                              </button>
@@ -281,27 +273,7 @@
                     </div>
 
                     <div class="bg-white dark:bg-slate-900 rounded-b-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden border-t-0 p-5 pt-0">
-<<<<<<< HEAD
-                        <div class="overflow-x-auto custom-scrollbar pb-2">
-                        <table id="chronologyTable" class="w-full" style="width:100%">
-                            <thead>
- <tr>
-                                    <th>No</th>
-                                    <th>Visitor Name</th>
-                                    <th>Contact</th>
-                                    <th>IC No</th>
-                                    <th>Person Visited</th>
-                                    <th>Company</th>
-                                    <th>Vehicle</th>
-                                    <th>Reason</th>
-                                    <th>Access Time</th>
-                                    <th>Location</th>
-                                </tr>
-                            </thead>
-                            <tbody id="chronologyTableBody"></tbody>
-                        </table>
-=======
-                        <!-- Visitor Records Table (Image 4) -->
+                        <!-- Visitor Records Table -->
                         <div id="visitorTableWrap" class="overflow-x-auto custom-scrollbar pb-2">
                             <table id="visitorTable" class="w-full" style="width:100%">
                                 <thead>
@@ -319,7 +291,7 @@
                                 </thead>
                                 <tbody id="visitorTableBody"></tbody>
                             </table>
->>>>>>> b01b73bb80ba235786be955958c37c4cc1d55bf4
+                        </div>
                         </div>
                     </div>
                 </div>
@@ -334,7 +306,6 @@
     </div>
 </div>
 
-<<<<<<< HEAD
 <!-- Columns Modal Overlay -->
 <div id="columnsModal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4">
     <div id="columnsModalBackdrop" onclick="closeColumnsModal()" class="absolute inset-0 bg-slate-900/55 dark:bg-black/65 cursor-pointer"></div>
@@ -357,7 +328,10 @@
         <div class="flex justify-end gap-3 border-t border-slate-100 bg-white px-6 py-4 dark:border-slate-700 dark:bg-slate-900 rounded-b-xl border-t-2">
             <button type="button" onclick="closeColumnsModal()" class="rounded-md border border-slate-400 bg-slate-500 hover:bg-slate-600 px-5 py-2 text-sm font-semibold text-white transition-colors">Close</button>
             <button type="button" onclick="applyColumnsVisibility()" class="rounded-md bg-[#535dec] hover:bg-[#4853e0] px-5 py-2 text-sm font-semibold text-white shadow-md transition-colors">Apply Changes</button>
-=======
+        </div>
+    </div>
+</div>
+
 <!-- Visitor Chronology Modal (Image 1 & 2) -->
 <div id="chronologyTimelineModal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4">
     <div id="timelineModalBackdrop" onclick="closeTimelineModal()" class="absolute inset-0 bg-slate-900/55 dark:bg-black/65 cursor-pointer"></div>
@@ -455,13 +429,10 @@
                 <span class="material-symbols-outlined text-[18px]">close</span>
                 Close
             </button>
->>>>>>> b01b73bb80ba235786be955958c37c4cc1d55bf4
         </div>
     </div>
 </div>
 
-<<<<<<< HEAD
-=======
 <!-- Visitor Profile Modal (Image 3) -->
 <div id="detailsModal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4">
     <div id="detailsModalBackdrop" onclick="closeDetailsModal()" class="absolute inset-0 bg-slate-900/55 dark:bg-black/65 cursor-pointer"></div>
@@ -506,11 +477,6 @@
                 <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Visit Reason</span>
                 <span id="mdReason" class="text-sm font-bold text-slate-700 dark:text-slate-200"></span>
             </div>
-            <div class="col-span-2 border-t border-slate-50 pt-4"></div>
-            <div>
-                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">First Scanned At</span>
-                <span id="mdVisitFrom" class="text-xs font-medium text-slate-500"></span>
-            </div>
             <div>
                 <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Last Scanned At</span>
                 <span id="mdVisitTo" class="text-xs font-medium text-slate-500"></span>
@@ -540,21 +506,16 @@
 <script>
 let visitorDt = null;
 let chronologyDt = null;
-<<<<<<< HEAD
+let currentVisitorsData = [];
+let fullChronologyData = [];
 let reportData = [];
 
+const visitorHeaders = ["#", "Full Name", "IC No", "Company", "Contact No", "Visit From", "Visit To", "Status", "Actions"];
+const chronologyHeaders = ["No", "Visitor Name", "Access Time", "Location"];
 const tableHeaders = [
     "No", "Visitor Name", "Contact", "IC No", "Person Visited", 
     "Company", "Vehicle", "Reason", "Access Time", "Location"
 ];
-=======
-let currentVisitorsData = [];
-let fullChronologyData = [];
-
-const visitorHeaders = ["#", "Full Name", "IC No", "Company", "Contact No", "Visit From", "Visit To", "Status", "Actions"];
-const chronologyHeaders = ["No", "Visitor Name", "Access Time", "Location"];
-
->>>>>>> b01b73bb80ba235786be955958c37c4cc1d55bf4
 const todayStr = new Date().getFullYear() + '-' +
     String(new Date().getMonth() + 1).padStart(2, '0') + '-' +
     String(new Date().getDate()).padStart(2, '0');
@@ -655,141 +616,7 @@ function runChronologySearch() {
         document.getElementById('chronologySummaryMeta').textContent =
             data.visitors.length + ' record(s) found · ' + data.location_name + ' · ' + data.from_datetime + ' — ' + data.to_datetime;
 
-<<<<<<< HEAD
-        const tbody = document.getElementById('chronologyTableBody');
-        tbody.innerHTML = '';
-        data.chronology.forEach((row, idx) => {
-            const tr = document.createElement('tr');
-            tr.innerHTML =
-                '<td class="text-center text-slate-400 font-semibold">' + (idx + 1) + '</td>' +
-                '<td class="font-semibold">' + escHtml(row.visitor_name) + '</td>' +
-                '<td>' + escHtml(row.contact_no) + '</td>' +
-                '<td>' + escHtml(row.ic_no) + '</td>' +
-                '<td>' + escHtml(row.person_visited) + '</td>' +
-                '<td>' + escHtml(row.visitor_company) + '</td>' +
-                '<td>' + escHtml(row.vehicle_no) + '</td>' +
-                '<td>' + escHtml(row.visit_reason) + '</td>' +
-                '<td class="whitespace-nowrap">' + escHtml(row.access_time) + '</td>' +
-                '<td class="max-w-xs">' + escHtml(row.location_detail) + '</td>';
-            tbody.appendChild(tr);
-        });
-
-        if (chronologyDt) {
-            chronologyDt.destroy();
-            chronologyDt = null;
-        }
-        chronologyDt = $('#chronologyTable').DataTable({
-            pageLength: 10,
-            lengthMenu: [
-                [10, 25, 50],
-                ['10 ITEMS PER PAGE', '25 ITEMS PER PAGE', '50 ITEMS PER PAGE']
-            ],
-            order: [],
-            dom: '<"flex justify-end items-center mb-5 mt-2"f><"overflow-x-auto"t><"flex flex-col md:flex-row justify-between items-center gap-4 mt-6"p<"ml-auto"l>>',
-            language: { 
-                search: "Filter table:",
-                searchPlaceholder: "",
-                lengthMenu: "_MENU_",
-                paginate: {
-                    previous: "&laquo;",
-                    next: "&raquo;"
-                }
-            },
-            initComplete: function () {
-                var api = this.api();
-                api.columns().every(function () {
-                    var column = this;
-                    var header = $(column.header());
-                    var headerText = header.clone().children().remove().end().text().trim().toUpperCase();
-                    if (headerText !== 'ACTIONS' && headerText !== 'NO' && headerText !== 'NO.') {
-                        header.find('.dt-filter-wrapper').remove();
-                        
-                        var wrapper = $('<div class="dt-filter-wrapper inline-block relative ml-1 align-middle" onclick="event.stopPropagation()"></div>');
-                        var icon = $('<span class="material-symbols-outlined text-[16px] text-slate-300 hover:text-[#535dec] transition-colors cursor-pointer" style="vertical-align: middle;">filter_alt</span>');
-                        var dropdown = $('<div class="filter-dropdown hidden absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded shadow-lg z-[50] p-2 text-left text-sm max-h-[250px] overflow-y-auto" style="min-width: 160px; font-weight: normal;"></div>');
-                        
-                        wrapper.append(icon).append(dropdown);
-                        header.append(wrapper);
-
-                        var options = [];
-                        column.data().unique().sort().each(function (d, j) {
-                            var textVal = $('<div>').html(d).text().trim();
-                            if (textVal && textVal !== '-' && textVal !== 'View' && textVal !== 'NULL' && textVal !== 'null') {
-                                options.push(textVal);
-                            }
-                        });
-
-                        var allLabel = $('<label class="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 cursor-pointer font-semibold text-slate-700 capitalize mb-1"></label>');
-                        var allCb = $('<input type="checkbox" checked class="form-checkbox h-4 w-4 text-[#535dec] accent-[#535dec] rounded border-slate-300 cursor-pointer">');
-                        allLabel.append(allCb).append('<span class="select-none">All</span>');
-                        dropdown.append(allLabel);
-                        dropdown.append('<hr class="my-1 border-slate-200">');
-
-                        var itemCbs = [];
-                        options.forEach(function(val) {
-                            var itemLabel = $('<label class="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 cursor-pointer text-slate-600 capitalize"></label>');
-                            var itemCb = $('<input type="checkbox" checked value="' + val.replace(/"/g, '&quot;') + '" class="form-checkbox h-4 w-4 text-[#535dec] accent-[#535dec] rounded border-slate-300 cursor-pointer">');
-                            itemLabel.append(itemCb).append('<span class="select-none">' + val + '</span>');
-                            dropdown.append(itemLabel);
-                            itemCbs.push(itemCb);
-                        });
-
-                        icon.on('click', function(e) {
-                            e.stopPropagation();
-                            $('.filter-dropdown').not(dropdown).addClass('hidden');
-                            dropdown.toggleClass('hidden');
-                        });
-                        
-                        $(document).on('click', function(e) {
-                            if (!$(e.target).closest(wrapper).length) {
-                                dropdown.addClass('hidden');
-                            }
-                        });
-
-                        function applyFilter() {
-                            var selected = [];
-                            var allChecked = true;
-                            itemCbs.forEach(function(cb) {
-                                if(cb.prop('checked')) {
-                                    selected.push($.fn.dataTable.util.escapeRegex(cb.val()));
-                                } else {
-                                    allChecked = false;
-                                }
-                            });
-                            
-                            allCb.prop('checked', allChecked);
-
-                            if(selected.length > 0 && selected.length < options.length) {
-                                icon.removeClass('text-slate-300 text-red-500').addClass('text-[#535dec]');
-                                var regex = '^(' + selected.join('|') + ')$';
-                                column.search(regex, true, false).draw();
-                            } else if (selected.length === 0) {
-                                icon.removeClass('text-slate-300 text-[#535dec]').addClass('text-red-500');
-                                column.search('^__NON_EXISTENT_MATCH__$', true, false).draw();
-                            } else {
-                                icon.removeClass('text-[#535dec] text-red-500').addClass('text-slate-300');
-                                column.search('', true, false).draw();
-                            }
-                        }
-
-                        allCb.on('change', function() {
-                            var isChecked = $(this).prop('checked');
-                            itemCbs.forEach(function(cb) { cb.prop('checked', isChecked); });
-                            applyFilter();
-                        });
-
-                        itemCbs.forEach(function(cb) {
-                            cb.on('change', applyFilter);
-                        });
-                    }
-                });
-            }
-        });
-        
-        initColumnsCheckboxes();
-=======
         renderVisitorsTable();
->>>>>>> b01b73bb80ba235786be955958c37c4cc1d55bf4
     })
     .catch(err => {
         console.error('Chronology Search Error:', err);
@@ -1115,60 +942,19 @@ document.getElementById('btnChronologyClear').addEventListener('click', () => {
     showChronologyEmpty();
 });
 
-// Modal & Columns Toggle Logic
-function initColumnsCheckboxes() {
-    const container = document.getElementById('columnsCheckboxesList');
-    container.innerHTML = '';
-    let allChecked = true;
+function applyColumnsVisibility() {
+    const isChron = !document.getElementById('chronologyTableWrap').classList.contains('hidden');
+    const table = isChron ? chronologyDt : visitorDt;
     
-    tableHeaders.forEach((colName, idx) => {
-        const isVisible = chronologyDt.column(idx).visible();
-        if(!isVisible) allChecked = false;
-        
-        const div = document.createElement('div');
-        div.className = 'flex items-center gap-2';
-        div.innerHTML = `
-            <input type="checkbox" id="col_${idx}" data-col-idx="${idx}" class="col-toggle-cb rounded border-slate-300 text-[#535dec] focus:ring-[#535dec] h-4 w-4 cursor-pointer" ${isVisible ? 'checked' : ''}>
-            <label for="col_${idx}" class="text-sm text-slate-600 dark:text-slate-300 uppercase cursor-pointer">${colName}</label>
-        `;
-        container.appendChild(div);
-    });
-    
-    document.getElementById('selectAllColumns').checked = allChecked;
-    
-    // Add event listeners
     document.querySelectorAll('.col-toggle-cb').forEach(cb => {
-        cb.addEventListener('change', function() {
-            const total = document.querySelectorAll('.col-toggle-cb').length;
-            const checked = document.querySelectorAll('.col-toggle-cb:checked').length;
-            document.getElementById('selectAllColumns').checked = (total === checked);
-        });
+        const idx = cb.getAttribute('data-col-idx');
+        table.column(idx).visible(cb.checked);
     });
-}
-
-function openColumnsModal() {
-    if(!chronologyDt) return;
-    document.getElementById('columnsModal').classList.remove('hidden');
-}
-
-function closeColumnsModal() {
-    document.getElementById('columnsModal').classList.add('hidden');
-    initColumnsCheckboxes();
+    closeColumnsModal();
 }
 
 function toggleAllColumns(elem) {
-    const isChecked = elem.checked;
-    document.querySelectorAll('.col-toggle-cb').forEach(cb => {
-        cb.checked = isChecked;
-    });
-}
-
-function applyColumnsVisibility() {
-    document.querySelectorAll('.col-toggle-cb').forEach(cb => {
-        const idx = cb.getAttribute('data-col-idx');
-        chronologyDt.column(idx).visible(cb.checked);
-    });
-    document.getElementById('columnsModal').classList.add('hidden');
+    document.querySelectorAll('.col-toggle-cb').forEach(cb => cb.checked = elem.checked);
 }
 
 function exportExcel() {

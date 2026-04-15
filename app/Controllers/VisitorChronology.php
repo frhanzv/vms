@@ -32,6 +32,9 @@ class VisitorChronology extends BaseController
         $searchBy     = $this->request->getPost('search_by');
         $searchTerm   = trim((string) $this->request->getPost('search_term'));
 
+        // Normalize Search Term (Strip dashes for IC/Staff searches)
+        $normalizedSearchTerm = str_replace('-', '', $searchTerm);
+
         if (empty($fromRaw) || empty($toRaw)) {
             return $this->response->setJSON(['success' => false, 'message' => 'Date range is required.']);
         }
@@ -68,11 +71,11 @@ class VisitorChronology extends BaseController
             $whereGrouped[] = 'i.id = ?';
             $paramsGrouped[] = (int)$invitationId;
         } elseif ($searchBy === 'staff') {
-            $whereGrouped[] = 'i.staff_id = ?';
-            $paramsGrouped[] = $searchTerm;
+            $whereGrouped[] = "REPLACE(i.staff_id, '-', '') = ?";
+            $paramsGrouped[] = $normalizedSearchTerm;
         } else {
-            $whereGrouped[] = 'i.ic_passport = ?';
-            $paramsGrouped[] = $searchTerm;
+            $whereGrouped[] = "REPLACE(i.ic_passport, '-', '') = ?";
+            $paramsGrouped[] = $normalizedSearchTerm;
         }
 
         $sqlGrouped = "SELECT 
@@ -146,11 +149,11 @@ class VisitorChronology extends BaseController
             $whereChron[] = 'i.id = ?';
             $paramsChron[] = (int)$invitationId;
         } elseif ($searchBy === 'staff') {
-            $whereChron[] = 'i.staff_id = ?';
-            $paramsChron[] = $searchTerm;
+            $whereChron[] = "REPLACE(i.staff_id, '-', '') = ?";
+            $paramsChron[] = $normalizedSearchTerm;
         } else {
-            $whereChron[] = 'i.ic_passport = ?';
-            $paramsChron[] = $searchTerm;
+            $whereChron[] = "REPLACE(i.ic_passport, '-', '') = ?";
+            $paramsChron[] = $normalizedSearchTerm;
         }
 
         $sqlChron = 'SELECT i.id AS invitation_id,
