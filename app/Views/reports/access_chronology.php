@@ -258,6 +258,7 @@
                 <div id="chronologyResultsWrap" class="hidden flex-col gap-4">
                     <!-- Data Table Header & Actions -->
                     <div class="flex flex-col md:flex-row md:items-end justify-between items-center bg-white dark:bg-slate-900 rounded-t-xl border border-slate-200 dark:border-slate-700 shadow-sm border-b-0 p-5 mt-2">
+                          <h2 id="resultsTableTitle" class="text-xl font-bold tracking-tight text-slate-900 dark:text-white mt-1">Visitor Details</h2>
                          <h2 id="resultsTableTitle" class="text-xl font-bold tracking-tight text-slate-900 dark:text-white mt-1">Visitor Details</h2>
                          
                          <div class="flex gap-2">
@@ -332,6 +333,7 @@
     </div>
 </div>
 
+<!-- Visitor Chronology Modal (Image 1 & 2) -->
 <!-- Visitor Chronology Modal -->
 <div id="chronologyTimelineModal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4">
     <div id="timelineModalBackdrop" onclick="closeTimelineModal()" class="absolute inset-0 bg-slate-900/55 dark:bg-black/65 cursor-pointer"></div>
@@ -433,6 +435,7 @@
     </div>
 </div>
 
+<!-- Visitor Profile Modal (Image 3) -->
 <!-- Visitor Profile Modal -->
 <div id="detailsModal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4">
     <div id="detailsModalBackdrop" onclick="closeDetailsModal()" class="absolute inset-0 bg-slate-900/55 dark:bg-black/65 cursor-pointer"></div>
@@ -476,11 +479,6 @@
             <div class="col-span-2">
                 <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Visit Reason</span>
                 <span id="mdReason" class="text-sm font-bold text-slate-700 dark:text-slate-200"></span>
-            </div>
-            <div class="col-span-2 border-t border-slate-50 pt-4"></div>
-            <div>
-                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">First Scanned At</span>
-                <span id="mdVisitFrom" class="text-xs font-medium text-slate-500"></span>
             </div>
             <div>
                 <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Last Scanned At</span>
