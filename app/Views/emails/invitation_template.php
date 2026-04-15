@@ -5,12 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Visitor Invitation - SafeG</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <?php
+    $template = $template ?? [];
+    $brandName = $template['brand_name'] ?? 'SafeG';
+    $headerTitle = $template['header_title'] ?? 'Visitor Invitation';
+    $introLine = $intro_line ?? ('You have been invited to visit ' . ($company ?? '') . '. Please complete your registration by clicking the button below.');
+    $buttonText = $template['button_text'] ?? 'Complete Registration';
+    $notesTitle = $template['notes_title'] ?? 'Important Notes';
+    $notesItems = $notes_items ?? [];
+    $footerText = $template['footer_text'] ?? 'This is an automated message from SafeG Visitor Management System';
+    $primaryColor = $template['primary_color'] ?? '#137fec';
+    $contentBgColor = $template['content_bg_color'] ?? '#f8f9fa';
+    $textColor = $template['text_color'] ?? '#333333';
+    ?>
     <style>
-        body { font-family: 'Montserrat', Arial, sans-serif; line-height: 1.6; color: #333; }
+        body { font-family: 'Montserrat', Arial, sans-serif; line-height: 1.6; color: <?= esc($textColor) ?>; }
         .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: #137fec; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-        .content { background: #f8f9fa; padding: 30px; border-radius: 0 0 8px 8px; }
-        .btn { background: #137fec; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 20px 0; }
+        .header { background: <?= esc($primaryColor) ?>; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background: <?= esc($contentBgColor) ?>; padding: 30px; border-radius: 0 0 8px 8px; }
+        .btn { background: <?= esc($primaryColor) ?>; color: white !important; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 20px 0; }
         .info-box { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .footer { text-align: center; color: #666; margin-top: 30px; font-size: 12px; }
     </style>
@@ -18,14 +31,14 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🛡️ SafeG</h1>
-            <h2>Visitor Invitation</h2>
+            <h1>🛡️ <?= esc($brandName) ?></h1>
+            <h2><?= esc($headerTitle) ?></h2>
         </div>
         
         <div class="content">
             <p>Dear <strong><?= esc($visitor_name) ?></strong>,</p>
             
-            <p>You have been invited to visit <strong><?= esc($company) ?></strong>. Please complete your registration by clicking the button below.</p>
+            <p><?= esc($introLine) ?></p>
             
             <div class="info-box">
                 <h3>Visit Details:</h3>
@@ -47,21 +60,20 @@
             </div>
             
             <div style="text-align: center;">
-                <a href="<?= $registration_link ?>" class="btn">Complete Registration</a>
+                <a href="<?= esc($registration_link) ?>" class="btn"><?= esc($buttonText) ?></a>
             </div>
             
-            <p><strong>Important Notes:</strong></p>
+            <p><strong><?= esc($notesTitle) ?>:</strong></p>
             <ul>
-                <li>Please complete your registration before your visit</li>
-                <li>Bring a valid ID (IC/Passport) for verification</li>
-                <li>This invitation expires on: <strong><?= date('d/m/Y', strtotime($link_expiry)) ?></strong></li>
-                <li>Contact security if you have any questions</li>
+                <?php foreach ($notesItems as $note): ?>
+                <li><?= esc($note) ?></li>
+                <?php endforeach; ?>
             </ul>
         </div>
         
         <div class="footer">
-            <p>This is an automated message from SafeG Visitor Management System</p>
-            <p>© <?= date('Y') ?> SafeG. All rights reserved.</p>
+            <p><?= esc($footerText) ?></p>
+            <p>© <?= date('Y') ?> <?= esc($brandName) ?>. All rights reserved.</p>
         </div>
     </div>
 </body>

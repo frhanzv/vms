@@ -2329,7 +2329,7 @@
                             </div>
                             <div class="text-left">
                                 <h3 class="text-base font-bold text-gray-800 dark:text-white">Email Template</h3>
-                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Enable or disable visitor form lines shown from the email link</p>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Configure email text and colors for each email process</p>
                             </div>
                         </div>
                         <span id="email-template-icon"
@@ -2338,29 +2338,114 @@
                     <div id="email-template-content" class="hidden border-t border-gray-200 dark:border-slate-700">
                         <div class="p-6 bg-gray-50 dark:bg-slate-800/50 space-y-6">
                             <div>
-                                <p class="text-sm font-semibold text-slate-700 dark:text-slate-300">Visitor registration form from invitation email</p>
-                                <p class="text-xs text-slate-500 mt-1">Manage real form rows with enable/disable, required toggle, CRUD, and sorting.</p>
+                                <p class="text-sm font-semibold text-slate-700 dark:text-slate-300">Email templates by process</p>
+                                <p class="text-xs text-slate-500 mt-1">Configure fixed email text and colors for each email process in the system.</p>
                             </div>
 
-                            <div class="flex flex-wrap items-center justify-between gap-3">
-                                <p class="text-xs text-slate-500 dark:text-slate-400">Tip: toggle at the input side, then move rows using up/down.</p>
-                                <div class="flex items-center gap-2">
-                                    <button
-                                        type="button"
-                                        onclick="openEmailTemplateFieldModal()"
-                                        class="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-sm font-medium">
-                                        Add New Field
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onclick="saveEmailTemplateFormSettings()"
-                                        class="px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary-hover transition-colors text-sm font-medium">
-                                        Save Email Template
-                                    </button>
+                            <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
+                                <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                                    <p class="text-sm font-semibold text-slate-700 dark:text-slate-200">Template Management</p>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">Click Edit to load template details</p>
+                                </div>
+                                <div class="p-4 bg-slate-50 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-700">
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                        <div class="md:col-span-2 flex">
+                                            <input id="emailTemplateSearchInput" oninput="searchEmailTemplates()" type="text" placeholder="Search template..." class="w-full rounded-l-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white px-3 py-2 text-sm">
+                                            <button type="button" onclick="searchEmailTemplates()" class="px-4 rounded-r-lg bg-primary text-white">
+                                                <span class="material-symbols-outlined text-base">search</span>
+                                            </button>
+                                        </div>
+                                        <div>
+                                            <select id="emailTemplateSortSelect" onchange="sortEmailTemplates()" class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white px-3 py-2 text-sm">
+                                                <option value="default">Default Order</option>
+                                                <option value="name_asc">Template (A-Z)</option>
+                                                <option value="name_desc">Template (Z-A)</option>
+                                                <option value="newest">Newest First</option>
+                                                <option value="oldest">Oldest First</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full text-sm">
+                                        <thead class="bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300">
+                                            <tr>
+                                                <th class="px-4 py-2 text-left font-semibold">No</th>
+                                                <th class="px-4 py-2 text-left font-semibold">Template</th>
+                                                <th class="px-4 py-2 text-left font-semibold">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="emailTemplateProcessTableBody" class="divide-y divide-slate-100 dark:divide-slate-700 text-slate-700 dark:text-slate-200"></tbody>
+                                    </table>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
 
-                            <div id="emailTemplateFormFields" class="space-y-3"></div>
+                <div id="emailTemplateEditModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 overflow-y-auto">
+                    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-3xl mx-4 my-8">
+                        <div class="px-6 py-4 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
+                            <div>
+                                <h3 class="text-lg font-bold text-gray-900 dark:text-white">Edit Email Template</h3>
+                                <p id="emailTemplateCurrentProcessLabel" class="text-xs text-slate-500 dark:text-slate-400 mt-0.5"></p>
+                            </div>
+                            <button type="button" onclick="closeEmailTemplateModal()" class="text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <div class="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Placeholders: {{visitor_name}}, {{company}}, {{location}}, {{reason}}, {{invited_by}}, {{link_expiry_date}}</p>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Subject</label>
+                                    <input id="invitationEmailSubject" type="text" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white">
+                                </div>
+                                <div>
+                                    <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Button Text</label>
+                                    <input id="invitationEmailButtonText" type="text" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white">
+                                </div>
+                                <div>
+                                    <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Brand Name</label>
+                                    <input id="invitationEmailBrandName" type="text" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white">
+                                </div>
+                                <div>
+                                    <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Header Title</label>
+                                    <input id="invitationEmailHeaderTitle" type="text" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white">
+                                </div>
+                                <div>
+                                    <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Primary Color</label>
+                                    <input id="invitationEmailPrimaryColor" type="color" class="mt-1 w-full h-10 rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900">
+                                </div>
+                                <div>
+                                    <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Content Background</label>
+                                    <input id="invitationEmailContentBgColor" type="color" class="mt-1 w-full h-10 rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900">
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Text Color</label>
+                                    <input id="invitationEmailTextColor" type="color" class="mt-1 w-full h-10 rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900">
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Intro Line</label>
+                                    <textarea id="invitationEmailIntroLine" rows="3" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white"></textarea>
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Notes Title</label>
+                                    <input id="invitationEmailNotesTitle" type="text" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white">
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Notes Items (one per line)</label>
+                                    <textarea id="invitationEmailNotesItems" rows="4" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white"></textarea>
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Footer Text</label>
+                                    <textarea id="invitationEmailFooterText" rows="2" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="px-6 py-4 border-t border-gray-200 dark:border-slate-700 flex justify-end gap-2">
+                            <button type="button" onclick="closeEmailTemplateModal()" class="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200">Cancel</button>
+                            <button type="button" onclick="saveInvitationEmailTemplateSettings()" class="px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary-hover">Update Template</button>
                         </div>
                     </div>
                 </div>
@@ -10881,6 +10966,194 @@
                 });
         }
 
+        function setInvitationEmailTemplateFormValues(data = {}) {
+            document.getElementById('invitationEmailSubject').value = data.subject || '';
+            document.getElementById('invitationEmailButtonText').value = data.button_text || '';
+            document.getElementById('invitationEmailBrandName').value = data.brand_name || '';
+            document.getElementById('invitationEmailHeaderTitle').value = data.header_title || '';
+            document.getElementById('invitationEmailPrimaryColor').value = data.primary_color || '#137fec';
+            document.getElementById('invitationEmailContentBgColor').value = data.content_bg_color || '#f8f9fa';
+            document.getElementById('invitationEmailTextColor').value = data.text_color || '#333333';
+            document.getElementById('invitationEmailIntroLine').value = data.intro_line || '';
+            document.getElementById('invitationEmailNotesTitle').value = data.notes_title || '';
+            document.getElementById('invitationEmailNotesItems').value = Array.isArray(data.notes_items)
+                ? data.notes_items.join('\n')
+                : (data.notes_items || '');
+            document.getElementById('invitationEmailFooterText').value = data.footer_text || '';
+        }
+
+        let emailTemplateProcessOptions = [
+            { key: 'invitation', label: 'Invitation Email' },
+            { key: 'registration_submitted', label: 'Registration Submitted Email' },
+            { key: 'approval', label: 'Approval Email' },
+            { key: 'rejection', label: 'Rejection Email' },
+            { key: 'reminder', label: 'Reminder Email' },
+        ];
+        let currentEmailTemplateProcess = 'invitation';
+        let currentEmailTemplateSearch = '';
+        let currentEmailTemplateSort = 'default';
+
+        function getEmailTemplateProcessLabel(process) {
+            const option = emailTemplateProcessOptions.find(item => item.key === process);
+            return option ? option.label : process;
+        }
+
+        function renderEmailTemplateProcessTable() {
+            const tbody = document.getElementById('emailTemplateProcessTableBody');
+            if (!tbody) return;
+
+            let rows = [...emailTemplateProcessOptions];
+
+            if (currentEmailTemplateSearch) {
+                const keyword = currentEmailTemplateSearch.toLowerCase();
+                rows = rows.filter(item => item.label.toLowerCase().includes(keyword));
+            }
+
+            if (currentEmailTemplateSort === 'name_asc') {
+                rows.sort((a, b) => a.label.localeCompare(b.label));
+            } else if (currentEmailTemplateSort === 'name_desc') {
+                rows.sort((a, b) => b.label.localeCompare(a.label));
+            } else if (currentEmailTemplateSort === 'newest') {
+                rows = rows.reverse();
+            }
+
+            if (rows.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="3" class="px-4 py-4 text-center text-slate-500 dark:text-slate-400">No templates found</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = rows.map((item, index) => `
+                <tr class="${currentEmailTemplateProcess === item.key ? 'bg-blue-50/60 dark:bg-slate-800/70' : ''}">
+                    <td class="px-4 py-2">${index + 1}</td>
+                    <td class="px-4 py-2 font-medium">${item.label}</td>
+                    <td class="px-4 py-2">
+                        <button
+                            type="button"
+                            onclick="openEmailTemplateModal('${item.key}')"
+                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-slate-300 dark:border-slate-600 text-xs hover:bg-slate-100 dark:hover:bg-slate-700"
+                        >
+                            <span class="material-symbols-outlined text-sm">edit</span>
+                            Edit
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function updateCurrentEmailTemplateProcessLabel() {
+            const labelEl = document.getElementById('emailTemplateCurrentProcessLabel');
+            if (labelEl) {
+                labelEl.textContent = getEmailTemplateProcessLabel(currentEmailTemplateProcess);
+            }
+        }
+
+        function selectEmailTemplateProcess(process) {
+            currentEmailTemplateProcess = process || 'invitation';
+            updateCurrentEmailTemplateProcessLabel();
+            renderEmailTemplateProcessTable();
+            fetchInvitationEmailTemplateSettings();
+        }
+
+        function openEmailTemplateModal(process) {
+            selectEmailTemplateProcess(process);
+            const modal = document.getElementById('emailTemplateEditModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeEmailTemplateModal() {
+            const modal = document.getElementById('emailTemplateEditModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function searchEmailTemplates() {
+            currentEmailTemplateSearch = (document.getElementById('emailTemplateSearchInput')?.value || '').trim();
+            renderEmailTemplateProcessTable();
+        }
+
+        function sortEmailTemplates() {
+            currentEmailTemplateSort = document.getElementById('emailTemplateSortSelect')?.value || 'default';
+            renderEmailTemplateProcessTable();
+        }
+
+        function ensureEmailTemplateProcessOptions(options = [], selectedProcess = 'invitation') {
+            if (Array.isArray(options) && options.length > 0) {
+                const existingValues = emailTemplateProcessOptions.map(option => option.key);
+                options.forEach(option => {
+                    if (!existingValues.includes(option.key)) {
+                        emailTemplateProcessOptions.push({
+                            key: option.key,
+                            label: option.label || option.key,
+                        });
+                    }
+                });
+            }
+
+            currentEmailTemplateProcess = selectedProcess || currentEmailTemplateProcess || 'invitation';
+            updateCurrentEmailTemplateProcessLabel();
+            renderEmailTemplateProcessTable();
+
+            return currentEmailTemplateProcess;
+        }
+
+        function fetchInvitationEmailTemplateSettings() {
+            const process = currentEmailTemplateProcess || 'invitation';
+            fetch(`<?= base_url('config/getInvitationEmailTemplateSettings') ?>?process=${encodeURIComponent(process)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success || !data.data) return;
+                    ensureEmailTemplateProcessOptions(data.meta?.process_options || [], data.meta?.process || process);
+                    setInvitationEmailTemplateFormValues(data.data);
+                })
+                .catch(error => {
+                    console.error('Error loading invitation email template settings:', error);
+                });
+        }
+
+        function saveInvitationEmailTemplateSettings() {
+            const process = currentEmailTemplateProcess || 'invitation';
+            const payload = {
+                process,
+                subject: document.getElementById('invitationEmailSubject').value,
+                button_text: document.getElementById('invitationEmailButtonText').value,
+                brand_name: document.getElementById('invitationEmailBrandName').value,
+                header_title: document.getElementById('invitationEmailHeaderTitle').value,
+                primary_color: document.getElementById('invitationEmailPrimaryColor').value,
+                content_bg_color: document.getElementById('invitationEmailContentBgColor').value,
+                text_color: document.getElementById('invitationEmailTextColor').value,
+                intro_line: document.getElementById('invitationEmailIntroLine').value,
+                notes_title: document.getElementById('invitationEmailNotesTitle').value,
+                notes_items: document.getElementById('invitationEmailNotesItems').value,
+                footer_text: document.getElementById('invitationEmailFooterText').value,
+            };
+
+            fetch('<?= base_url('config/saveInvitationEmailTemplateSettings') ?>', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        showToast(data.message || 'Failed to save invitation email template', 'error');
+                        return;
+                    }
+                    showToast(data.message || 'Email template saved', 'success');
+                    if (data.data) {
+                        setInvitationEmailTemplateFormValues(data.data);
+                    }
+                    closeEmailTemplateModal();
+                })
+                .catch(error => {
+                    console.error('Error saving invitation email template settings:', error);
+                    showToast('Failed to save invitation email template', 'error');
+                });
+        }
+
         function toggleEmailFieldEnabled(id, checked) {
             const normalizedId = Number(id);
             emailTemplateFields = emailTemplateFields.map(field =>
@@ -11090,7 +11363,7 @@
         }
 
         document.addEventListener('DOMContentLoaded', function () {
-            fetchEmailTemplateFormSettings();
+            fetchInvitationEmailTemplateSettings();
         });
     </script>
 </body>

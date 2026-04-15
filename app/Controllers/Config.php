@@ -21,6 +21,7 @@ use App\Models\VisitorTypeModel;
 use App\Models\SettingModel;
 use App\Models\DeviceAssignmentModel;
 use App\Models\EmailTemplateFormFieldModel;
+use App\Libraries\EmailTemplateService;
 
 class Config extends BaseController
 {
@@ -3154,6 +3155,70 @@ class Config extends BaseController
         return $this->response->setJSON([
             'success' => true,
             'data' => $this->emailTemplateFormFieldModel->getOrderedFields()
+        ]);
+    }
+
+    public function getInvitationEmailTemplateSettings()
+    {
+        $emailTemplateService = new EmailTemplateService();
+        $process = (string) ($this->request->getGet('process') ?? EmailTemplateService::PROCESS_INVITATION);
+        if (!$emailTemplateService->isSupportedProcess($process)) {
+            $process = EmailTemplateService::PROCESS_INVITATION;
+        }
+
+        $raw = $this->settingModel->getSetting($emailTemplateService->getStorageKey($process));
+        $decoded = $raw ? json_decode((string) $raw, true) : [];
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => $emailTemplateService->normalizeTemplate($process, $decoded),
+            'meta' => [
+                'process' => $process,
+                'process_options' => $emailTemplateService->getProcessOptions(),
+                'placeholders' => [
+                    '{{visitor_name}}',
+                    '{{company}}',
+                    '{{location}}',
+                    '{{reason}}',
+                    '{{invited_by}}',
+                    '{{link_expiry_date}}',
+                ],
+            ],
+        ]);
+    }
+
+    public function saveInvitationEmailTemplateSettings()
+    {
+        $input = $this->request->getJSON(true);
+        if (!is_array($input)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Invalid template payload',
+            ])->setStatusCode(400);
+        }
+
+        $emailTemplateService = new EmailTemplateService();
+        $process = (string) ($input['process'] ?? EmailTemplateService::PROCESS_INVITATION);
+        if (!$emailTemplateService->isSupportedProcess($process)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Unsupported email process',
+            ])->setStatusCode(400);
+        }
+        unset($input['process']);
+
+        $normalized = $emailTemplateService->normalizeTemplate($process, $input);
+
+        $this->settingModel->setSetting(
+            $emailTemplateService->getStorageKey($process),
+            json_encode($normalized)
+        );
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Email template saved successfully',
+            'data' => $normalized,
+            'meta' => ['process' => $process],
         ]);
     }
 

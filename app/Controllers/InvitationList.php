@@ -10,6 +10,8 @@ use App\Models\VisitReasonModel;
 use App\Models\LocationModel;
 use App\Models\CompanyModel;
 use App\Models\VisitorTypeModel;
+use App\Models\SettingModel;
+use App\Libraries\EmailTemplateService;
 
 class InvitationList extends BaseController
 {
@@ -20,6 +22,8 @@ class InvitationList extends BaseController
     protected $locationModel;
     protected $companyModel;
     protected $visitorTypeModel;
+    protected $settingModel;
+    protected $emailTemplateService;
 
     public function __construct()
     {
@@ -30,6 +34,8 @@ class InvitationList extends BaseController
         $this->locationModel = new LocationModel();
         $this->companyModel = new CompanyModel();
         $this->visitorTypeModel = new VisitorTypeModel();
+        $this->settingModel = new SettingModel();
+        $this->emailTemplateService = new EmailTemplateService();
     }
 
     public function index()
@@ -342,6 +348,23 @@ class InvitationList extends BaseController
             // Generate registration link with invitation token
             $registrationLink = base_url('visitor-registration?token=' . base64_encode($invitationId));
             
+            $templateRaw = $this->settingModel->getSetting(
+                $this->emailTemplateService->getStorageKey(EmailTemplateService::PROCESS_INVITATION)
+            );
+            $templateConfig = $this->emailTemplateService->normalizeTemplate(
+                EmailTemplateService::PROCESS_INVITATION,
+                $templateRaw ? json_decode((string) $templateRaw, true) : []
+            );
+
+            $placeholderContext = [
+                'visitor_name' => $invitation['full_name'],
+                'company' => $invitation['company_name'],
+                'location' => $invitation['location_name'],
+                'reason' => $invitation['reason_name'],
+                'invited_by' => $invitation['invited_by'],
+                'link_expiry_date' => date('d/m/Y', strtotime($invitation['link_expiry'])),
+            ];
+
             // Prepare email data
             $emailData = [
                 'visitor_name' => $invitation['full_name'],
@@ -352,7 +375,13 @@ class InvitationList extends BaseController
                 'invited_by' => $invitation['invited_by'],
                 'schedules' => $invitation['schedules'],
                 'registration_link' => $registrationLink,
-                'link_expiry' => $invitation['link_expiry']
+                'link_expiry' => $invitation['link_expiry'],
+                'template' => $templateConfig,
+                'intro_line' => $this->emailTemplateService->applyPlaceholders($templateConfig['intro_line'], $placeholderContext),
+                'notes_items' => array_map(
+                    fn($item) => $this->emailTemplateService->applyPlaceholders((string) $item, $placeholderContext),
+                    $templateConfig['notes_items']
+                ),
             ];
             
             // Render email template
@@ -360,7 +389,7 @@ class InvitationList extends BaseController
             
             $email->setFrom('noreply@safeg.com', 'SafeG VMS');
             $email->setTo($invitation['visitor_email']);
-            $email->setSubject('Visitor Invitation - Complete Your Registration');
+            $email->setSubject($templateConfig['subject']);
             $email->setMessage($message);
             
             // Always try to send emails (remove development mode restriction)
