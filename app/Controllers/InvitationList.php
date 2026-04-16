@@ -237,6 +237,7 @@ class InvitationList extends BaseController
                 'staff_id' => $this->request->getPost('staff_id'),
                 'company_visited' => $this->request->getPost('company_visited'),
                 'host_contact' => $this->request->getPost('contact_person'),
+                'registration_source' => 'Invitation',
             ];
             if ($this->invitationsSupportVisitorType()) {
                 $shared['visitor_type_id'] = $visitorTypeId;

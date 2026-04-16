@@ -2318,6 +2318,29 @@
                     </div>
                 </div>
 
+                <!-- Visitor QR Code -->
+                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                    <button onclick="toggleSection('visitorqrcode')" class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                        <div class="flex items-center gap-4">
+                            <div class="p-2 bg-primary/10 rounded-lg">
+                                <span class="material-symbols-outlined text-primary text-xl">qr_code</span>
+                            </div>
+                            <div class="text-left">
+                                <h3 class="text-base font-bold text-gray-800 dark:text-white">Visitor QR Code</h3>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Scan to register visitor</p>
+                            </div>
+                        </div>
+                        <span id="visitorqrcode-icon" class="material-symbols-outlined text-gray-400 dark:text-slate-400 transition-transform">expand_more</span>
+                    </button>
+                    <div id="visitorqrcode-content" class="hidden border-t border-gray-200 dark:border-slate-700">
+                        <div class="p-6 bg-gray-50 dark:bg-slate-800/50 flex flex-col items-center justify-center">
+                            <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200" id="qr-code-container">
+                                <img src="<?= base_url('config/generateVisitorQr') ?>" alt="Visitor Registration QR Code" class="w-64 h-64 object-contain">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Email Template Settings -->
                 <div
                     class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
