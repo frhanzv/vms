@@ -86,7 +86,7 @@ class Config extends BaseController
     public function initController(\CodeIgniter\HTTP\RequestInterface $request, \CodeIgniter\HTTP\ResponseInterface $response, \Psr\Log\LoggerInterface $logger)
     {
         parent::initController($request, $response, $logger);
-        
+
         $this->roleModel = new RoleModel();
         $this->userModel = new UserModel();
         $this->companyModel = new CompanyModel();
@@ -122,47 +122,49 @@ class Config extends BaseController
     {
         $logPath = WRITEPATH . 'logs/';
         $logs = [];
-        
+
         // Get all log files sorted by date (newest first)
         $logFiles = glob($logPath . 'log-*.log');
         rsort($logFiles);
-        
+
         $count = 0;
         foreach ($logFiles as $file) {
-            if ($count >= $limit) break;
-            
+            if ($count >= $limit)
+                break;
+
             $lines = file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
             $lines = array_reverse($lines); // Newest first
-            
+
             foreach ($lines as $line) {
-                if ($count >= $limit) break;
-                
+                if ($count >= $limit)
+                    break;
+
                 // Parse log line: LEVEL - YYYY-MM-DD HH:MM:SS --> Message
                 if (preg_match('/^(\w+)\s+-\s+(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\s+-->\s+(.+)$/', $line, $matches)) {
                     $logLevel = $matches[1];
                     $timestamp = $matches[2];
                     $message = $matches[3];
-                    
+
                     // Filter by level if specified
                     if ($level && strtoupper($level) !== strtoupper($logLevel)) {
                         continue;
                     }
-                    
+
                     $logs[] = [
                         'level' => $logLevel,
                         'timestamp' => $timestamp,
                         'message' => $message,
                         'color' => $this->getLogLevelColor($logLevel)
                     ];
-                    
+
                     $count++;
                 }
             }
         }
-        
+
         return $logs;
     }
-    
+
     private function getLogLevelColor($level)
     {
         $colors = [
@@ -175,35 +177,35 @@ class Config extends BaseController
             'INFO' => 'green',
             'DEBUG' => 'blue'
         ];
-        
+
         return $colors[strtoupper($level)] ?? 'gray';
     }
-    
+
     public function getLogs()
     {
         $level = $this->request->getGet('level');
         $limit = $this->request->getGet('limit') ?? 100;
-        
+
         $logs = $this->getSystemLogs($limit, $level);
-        
+
         return $this->response->setJSON([
             'success' => true,
             'logs' => $logs
         ]);
     }
-    
+
     public function exportLogs()
     {
         $level = $this->request->getGet('level');
         $logPath = WRITEPATH . 'logs/';
-        
+
         // Get all log files
         $logFiles = glob($logPath . 'log-*.log');
         rsort($logFiles);
-        
+
         $content = "System Logs Export - " . date('Y-m-d H:i:s') . "\n";
         $content .= str_repeat('=', 80) . "\n\n";
-        
+
         foreach ($logFiles as $file) {
             $lines = file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
             foreach ($lines as $line) {
@@ -216,7 +218,7 @@ class Config extends BaseController
                 }
             }
         }
-        
+
         return $this->response
             ->setHeader('Content-Type', 'text/plain')
             ->setHeader('Content-Disposition', 'attachment; filename="system-logs-' . date('Y-m-d-His') . '.txt"')
@@ -242,8 +244,8 @@ class Config extends BaseController
             'success' => true,
             'data' => $roles,
             'pagination' => [
-                'current_page' => (int)$page,
-                'per_page' => (int)$perPage,
+                'current_page' => (int) $page,
+                'per_page' => (int) $perPage,
                 'total' => $total,
                 'total_pages' => ceil($total / $perPage),
                 'from' => $offset + 1,
@@ -278,7 +280,7 @@ class Config extends BaseController
     public function createRole()
     {
         $input = $this->request->getJSON(true);
-        
+
         $rules = [
             'name' => 'required|min_length[3]|max_length[50]|is_unique[roles.name]',
             'description' => 'permit_empty|max_length[255]',
@@ -338,7 +340,7 @@ class Config extends BaseController
         }
 
         $input = $this->request->getJSON(true);
-        
+
         $rules = [
             'name' => "required|min_length[3]|max_length[50]|is_unique[roles.name,id,{$id}]",
             'description' => 'permit_empty|max_length[255]',
@@ -421,8 +423,8 @@ class Config extends BaseController
     public function getUsers()
     {
         try {
-            $page = (int)($this->request->getGet('page') ?? 1);
-            $perPage = (int)($this->request->getGet('per_page') ?? 10);
+            $page = (int) ($this->request->getGet('page') ?? 1);
+            $perPage = (int) ($this->request->getGet('per_page') ?? 10);
             $search = $this->request->getGet('search') ?? '';
             $sortBy = $this->request->getGet('sort_by') ?? '';
 
@@ -457,7 +459,7 @@ class Config extends BaseController
     public function getUser($id)
     {
         $user = $this->userModel->select('id, username, email, full_name, staff_id, contact_no, role, is_active')
-                                ->find($id);
+            ->find($id);
 
         if (!$user) {
             return $this->response->setJSON([
@@ -478,7 +480,7 @@ class Config extends BaseController
     public function createUser()
     {
         $input = $this->request->getJSON(true);
-        
+
         $rules = [
             'username' => 'required|min_length[3]|max_length[100]|is_unique[users.username]',
             'email' => 'required|valid_email|is_unique[users.email]',
@@ -549,7 +551,7 @@ class Config extends BaseController
 
         // Get input from JSON body
         $input = $this->request->getJSON(true);
-        
+
         $rules = [
             'username' => "required|min_length[3]|max_length[100]|is_unique[users.username,id,{$id}]",
             'email' => "required|valid_email|is_unique[users.email,id,{$id}]",
@@ -640,7 +642,7 @@ class Config extends BaseController
     public function getAllRoles()
     {
         $roles = $this->roleModel->where('status', 'active')->findAll();
-        
+
         return $this->response->setJSON([
             'success' => true,
             'data' => $roles
@@ -655,8 +657,8 @@ class Config extends BaseController
     public function getCompanies()
     {
         try {
-            $page = (int)($this->request->getGet('page') ?? 1);
-            $perPage = (int)($this->request->getGet('per_page') ?? 10);
+            $page = (int) ($this->request->getGet('page') ?? 1);
+            $perPage = (int) ($this->request->getGet('per_page') ?? 10);
             $search = $this->request->getGet('search') ?? '';
             $sortBy = $this->request->getGet('sort') ?? '';
 
@@ -690,7 +692,7 @@ class Config extends BaseController
     {
         try {
             $company = $this->companyModel->find($id);
-            
+
             if (!$company) {
                 return $this->response->setJSON([
                     'success' => false,
@@ -718,7 +720,7 @@ class Config extends BaseController
     {
         try {
             $data = $this->request->getJSON(true);
-            
+
             if ($this->companyModel->insert($data)) {
                 return $this->response->setJSON([
                     'success' => true,
@@ -748,7 +750,7 @@ class Config extends BaseController
     {
         try {
             $input = $this->request->getJSON(true);
-            
+
             if (!$this->companyModel->find($id)) {
                 return $this->response->setJSON([
                     'success' => false,
@@ -818,8 +820,8 @@ class Config extends BaseController
     public function getSubCompanies()
     {
         try {
-            $page = (int)($this->request->getGet('page') ?? 1);
-            $perPage = (int)($this->request->getGet('per_page') ?? 10);
+            $page = (int) ($this->request->getGet('page') ?? 1);
+            $perPage = (int) ($this->request->getGet('per_page') ?? 10);
             $search = $this->request->getGet('search') ?? '';
             $companyFilter = $this->request->getGet('company_id') ?? '';
             $sortBy = $this->request->getGet('sort') ?? '';
@@ -854,7 +856,7 @@ class Config extends BaseController
     {
         try {
             $subCompany = $this->subCompanyModel->find($id);
-            
+
             if (!$subCompany) {
                 return $this->response->setJSON([
                     'success' => false,
@@ -882,7 +884,7 @@ class Config extends BaseController
     {
         try {
             $data = $this->request->getJSON(true);
-            
+
             if ($this->subCompanyModel->insert($data)) {
                 return $this->response->setJSON([
                     'success' => true,
@@ -912,7 +914,7 @@ class Config extends BaseController
     {
         try {
             $input = $this->request->getJSON(true);
-            if (! is_array($input)) {
+            if (!is_array($input)) {
                 $input = [];
             }
 
@@ -983,7 +985,7 @@ class Config extends BaseController
     public function getAllCompanies()
     {
         $companies = $this->companyModel->where('status', 'active')->findAll();
-        
+
         return $this->response->setJSON([
             'success' => true,
             'data' => $companies
@@ -991,14 +993,14 @@ class Config extends BaseController
     }
 
     // ==================== COUNTRY MANAGEMENT ====================
-    
+
     /**
      * Get countries with pagination and search
      */
     public function getCountries()
     {
-        $page = (int)($this->request->getGet('page') ?? 1);
-        $perPage = (int)($this->request->getGet('per_page') ?? 10);
+        $page = (int) ($this->request->getGet('page') ?? 1);
+        $perPage = (int) ($this->request->getGet('per_page') ?? 10);
         $search = $this->request->getGet('search') ?? '';
         $sortBy = $this->request->getGet('sort_by') ?? '';
 
@@ -1103,7 +1105,7 @@ class Config extends BaseController
             }
 
             $input = $this->request->getJSON(true);
-            if (! is_array($input)) {
+            if (!is_array($input)) {
                 $input = [];
             }
 
@@ -1181,14 +1183,14 @@ class Config extends BaseController
     }
 
     // ==================== STATE MANAGEMENT ====================
-    
+
     /**
      * Get states with pagination and search
      */
     public function getStates()
     {
-        $page = (int)($this->request->getGet('page') ?? 1);
-        $perPage = (int)($this->request->getGet('per_page') ?? 10);
+        $page = (int) ($this->request->getGet('page') ?? 1);
+        $perPage = (int) ($this->request->getGet('per_page') ?? 10);
         $search = $this->request->getGet('search') ?? '';
         $countryFilter = $this->request->getGet('country_filter') ?? '';
         $sortBy = $this->request->getGet('sort_by') ?? '';
@@ -1208,7 +1210,7 @@ class Config extends BaseController
                 'currentPage' => $page,
                 'perPage' => $perPage,
                 'total' => $total,
-                'totalPages' => (int)ceil($total / $perPage),
+                'totalPages' => (int) ceil($total / $perPage),
                 'from' => $from,
                 'to' => $to
             ]
@@ -1301,7 +1303,7 @@ class Config extends BaseController
             }
 
             $input = $this->request->getJSON(true);
-            if (! is_array($input)) {
+            if (!is_array($input)) {
                 $input = [];
             }
 
@@ -1386,7 +1388,7 @@ class Config extends BaseController
     public function getAllCountries()
     {
         $countries = $this->countryModel->where('status', 'active')->orderBy('name', 'ASC')->findAll();
-        
+
         return $this->response->setJSON([
             'success' => true,
             'countries' => $countries
@@ -1400,8 +1402,8 @@ class Config extends BaseController
      */
     public function getCities()
     {
-        $page = (int)($this->request->getGet('page') ?? 1);
-        $perPage = (int)($this->request->getGet('per_page') ?? 10);
+        $page = (int) ($this->request->getGet('page') ?? 1);
+        $perPage = (int) ($this->request->getGet('per_page') ?? 10);
         $search = $this->request->getGet('search') ?? '';
         $stateFilter = $this->request->getGet('state_filter') ?? '';
         $countryFilter = $this->request->getGet('country_filter') ?? '';
@@ -1422,7 +1424,7 @@ class Config extends BaseController
                 'currentPage' => $page,
                 'perPage' => $perPage,
                 'total' => $total,
-                'totalPages' => (int)ceil($total / $perPage),
+                'totalPages' => (int) ceil($total / $perPage),
                 'from' => $from,
                 'to' => $to
             ]
@@ -1518,7 +1520,7 @@ class Config extends BaseController
             }
 
             $input = $this->request->getJSON(true);
-            if (! is_array($input)) {
+            if (!is_array($input)) {
                 $input = [];
             }
 
@@ -1603,15 +1605,15 @@ class Config extends BaseController
     public function getAllStates()
     {
         $countryId = $this->request->getGet('country_id');
-        
+
         $builder = $this->stateModel->where('status', 'active');
-        
+
         if (!empty($countryId)) {
             $builder = $builder->where('country_id', $countryId);
         }
-        
+
         $states = $builder->orderBy('name', 'ASC')->findAll();
-        
+
         return $this->response->setJSON([
             'success' => true,
             'states' => $states
@@ -1635,7 +1637,7 @@ class Config extends BaseController
         $total = $this->departmentModel->getTotalDepartments($search);
 
         $pagination = [
-            'currentPage' => (int)$page,
+            'currentPage' => (int) $page,
             'perPage' => $perPage,
             'total' => $total,
             'totalPages' => ceil($total / $perPage),
@@ -1710,7 +1712,7 @@ class Config extends BaseController
         }
 
         $input = $this->request->getJSON(true);
-        if (! is_array($input)) {
+        if (!is_array($input)) {
             $input = [];
         }
         $data = $input;
@@ -1774,7 +1776,7 @@ class Config extends BaseController
         $total = $this->designationModel->getTotalDesignations($search);
 
         $pagination = [
-            'currentPage' => (int)$page,
+            'currentPage' => (int) $page,
             'perPage' => $perPage,
             'total' => $total,
             'totalPages' => ceil($total / $perPage),
@@ -1849,7 +1851,7 @@ class Config extends BaseController
         }
 
         $input = $this->request->getJSON(true);
-        if (! is_array($input)) {
+        if (!is_array($input)) {
             $input = [];
         }
         $data = $input;
@@ -1897,14 +1899,14 @@ class Config extends BaseController
     }
 
     // ==================== LOCATION ACCESS MANAGEMENT ====================
-    
+
     /**
      * Get locations with pagination and search
      */
     public function getLocations()
     {
-        $page = (int)($this->request->getGet('page') ?? 1);
-        $perPage = (int)($this->request->getGet('per_page') ?? 10);
+        $page = (int) ($this->request->getGet('page') ?? 1);
+        $perPage = (int) ($this->request->getGet('per_page') ?? 10);
         $search = $this->request->getGet('search') ?? '';
         $sortBy = $this->request->getGet('sort_by') ?? '';
 
@@ -1934,7 +1936,7 @@ class Config extends BaseController
     public function getLocation($id)
     {
         $location = $this->locationModel->find($id);
-        
+
         if (!$location) {
             return $this->response->setJSON([
                 'success' => false,
@@ -1988,7 +1990,7 @@ class Config extends BaseController
         }
 
         $input = $this->request->getJSON(true);
-        if (! is_array($input)) {
+        if (!is_array($input)) {
             $input = [];
         }
         $data = $input;
@@ -2124,7 +2126,7 @@ class Config extends BaseController
         }
 
         $input = $this->request->getJSON(true);
-        if (! is_array($input)) {
+        if (!is_array($input)) {
             $input = [];
         }
         $data = $input;
@@ -2252,7 +2254,7 @@ class Config extends BaseController
         }
 
         $input = $this->request->getJSON(true);
-        if (! is_array($input)) {
+        if (!is_array($input)) {
             $input = [];
         }
         $data = $input;
@@ -2297,7 +2299,7 @@ class Config extends BaseController
     // ========================
     // Visitor Card Methods
     // ========================
-    
+
     public function getVisitorCards()
     {
         $page = $this->request->getGet('page') ?? 1;
@@ -2322,7 +2324,7 @@ class Config extends BaseController
     public function getVisitorCard($id)
     {
         $visitorCard = $this->visitorCardModel->find($id);
-        
+
         if (!$visitorCard) {
             return $this->response->setStatusCode(404)->setJSON([
                 'success' => false,
@@ -2360,7 +2362,7 @@ class Config extends BaseController
     public function updateVisitorCard($id)
     {
         $visitorCard = $this->visitorCardModel->find($id);
-        
+
         if (!$visitorCard) {
             return $this->response->setStatusCode(404)->setJSON([
                 'success' => false,
@@ -2369,7 +2371,7 @@ class Config extends BaseController
         }
 
         $input = $this->request->getJSON(true);
-        if (! is_array($input)) {
+        if (!is_array($input)) {
             $input = [];
         }
         $data = [
@@ -2391,7 +2393,7 @@ class Config extends BaseController
     public function deleteVisitorCard($id)
     {
         $visitorCard = $this->visitorCardModel->find($id);
-        
+
         if (!$visitorCard) {
             return $this->response->setStatusCode(404)->setJSON([
                 'success' => false,
@@ -2415,7 +2417,7 @@ class Config extends BaseController
     // ========================
     // Video Management Methods
     // ========================
-    
+
     public function getVideos()
     {
         $page = $this->request->getGet('page') ?? 1;
@@ -2440,7 +2442,7 @@ class Config extends BaseController
     public function getVideo($id)
     {
         $video = $this->videoModel->find($id);
-        
+
         if (!$video) {
             return $this->response->setStatusCode(404)->setJSON([
                 'success' => false,
@@ -2457,7 +2459,7 @@ class Config extends BaseController
     public function createVideo()
     {
         $validation = \Config\Services::validation();
-        
+
         // Validate video file
         $validationRules = [
             'video_file' => [
@@ -2480,14 +2482,14 @@ class Config extends BaseController
         }
 
         $videoFile = $this->request->getFile('video_file');
-        
+
         if ($videoFile->isValid() && !$videoFile->hasMoved()) {
             // Generate unique filename
             $newName = $videoFile->getRandomName();
-            
+
             // Move file to public/assets/videos
             $videoFile->move(FCPATH . 'assets/videos', $newName);
-            
+
             $data = [
                 'name' => $this->request->getPost('name'),
                 'file_path' => 'assets/videos/' . $newName,
@@ -2497,7 +2499,7 @@ class Config extends BaseController
             if (!$this->videoModel->insert($data)) {
                 // Delete uploaded file if database insert fails
                 @unlink(FCPATH . 'assets/videos/' . $newName);
-                
+
                 return $this->response->setStatusCode(400)->setJSON([
                     'success' => false,
                     'message' => 'Failed to create video',
@@ -2520,7 +2522,7 @@ class Config extends BaseController
     public function updateVideo($id)
     {
         $video = $this->videoModel->find($id);
-        
+
         if (!$video) {
             return $this->response->setStatusCode(404)->setJSON([
                 'success' => false,
@@ -2569,7 +2571,7 @@ class Config extends BaseController
 
         // Check if new video file is uploaded
         $videoFile = $this->request->getFile('video_file');
-        
+
         if ($videoFile && $videoFile->isValid() && !$videoFile->hasMoved()) {
             // Validate new video file
             $fileValidation = \Config\Services::validation();
@@ -2623,7 +2625,7 @@ class Config extends BaseController
     public function deleteVideo($id)
     {
         $video = $this->videoModel->find($id);
-        
+
         if (!$video) {
             return $this->response->setStatusCode(404)->setJSON([
                 'success' => false,
@@ -2654,15 +2656,15 @@ class Config extends BaseController
         $sortOrder = $this->request->getGet('sort_order') ?? 'DESC';
 
         $offset = ($page - 1) * $perPage;
-        
+
         $builder = $this->visitReasonModel->builder();
-        
+
         if (!empty($search)) {
             $builder->like('reason', $search);
         }
 
         $totalRecords = $builder->countAllResults(false);
-        
+
         $visitReasons = $builder
             ->orderBy($sortBy, $sortOrder)
             ->limit($perPage, $offset)
@@ -2677,8 +2679,8 @@ class Config extends BaseController
             'data' => $visitReasons,
             'pagination' => [
                 'total' => $totalRecords,
-                'per_page' => (int)$perPage,
-                'current_page' => (int)$page,
+                'per_page' => (int) $perPage,
+                'current_page' => (int) $page,
                 'last_page' => ceil($totalRecords / $perPage),
                 'from' => $from,
                 'to' => $to
@@ -2720,7 +2722,7 @@ class Config extends BaseController
     public function updateVisitReason($id)
     {
         $visitReason = $this->visitReasonModel->find($id);
-        
+
         if (!$visitReason) {
             return $this->response->setStatusCode(404)->setJSON([
                 'success' => false,
@@ -2769,7 +2771,7 @@ class Config extends BaseController
     public function deleteVisitReason($id)
     {
         $visitReason = $this->visitReasonModel->find($id);
-        
+
         if (!$visitReason) {
             return $this->response->setStatusCode(404)->setJSON([
                 'success' => false,
@@ -2795,7 +2797,7 @@ class Config extends BaseController
     {
         $row = $this->visitorTypeModel->find($id);
 
-        if (! $row) {
+        if (!$row) {
             return $this->response->setStatusCode(404)->setJSON([
                 'success' => false,
                 'message' => 'Visitor type not found',
@@ -2804,35 +2806,35 @@ class Config extends BaseController
 
         return $this->response->setJSON([
             'success' => true,
-            'data'    => $row,
+            'data' => $row,
         ]);
     }
 
     public function getVisitorTypes()
     {
-        $perPage   = (int) ($this->request->getGet('per_page') ?? 10);
-        $page      = (int) ($this->request->getGet('page') ?? 1);
-        $search    = $this->request->getGet('search') ?? '';
-        $sortBy    = $this->request->getGet('sort_by') ?? 'created_at';
+        $perPage = (int) ($this->request->getGet('per_page') ?? 10);
+        $page = (int) ($this->request->getGet('page') ?? 1);
+        $search = $this->request->getGet('search') ?? '';
+        $sortBy = $this->request->getGet('sort_by') ?? 'created_at';
         $sortOrder = $this->request->getGet('sort_order') ?? 'DESC';
 
-        $offset       = ($page - 1) * $perPage;
+        $offset = ($page - 1) * $perPage;
         $totalRecords = $this->visitorTypeModel->countVisitorTypes($search);
-        $rows         = $this->visitorTypeModel->getVisitorTypesPage($perPage, $offset, $search, $sortBy, $sortOrder);
+        $rows = $this->visitorTypeModel->getVisitorTypesPage($perPage, $offset, $search, $sortBy, $sortOrder);
 
         $from = $totalRecords > 0 ? $offset + 1 : 0;
-        $to   = min($offset + $perPage, $totalRecords);
+        $to = min($offset + $perPage, $totalRecords);
 
         return $this->response->setJSON([
             'success' => true,
-            'data'    => $rows,
+            'data' => $rows,
             'pagination' => [
-                'total'         => $totalRecords,
-                'per_page'      => $perPage,
-                'current_page'  => $page,
-                'last_page'     => $perPage > 0 ? max(1, (int) ceil($totalRecords / $perPage)) : 1,
-                'from'          => $from,
-                'to'            => $to,
+                'total' => $totalRecords,
+                'per_page' => $perPage,
+                'current_page' => $page,
+                'last_page' => $perPage > 0 ? max(1, (int) ceil($totalRecords / $perPage)) : 1,
+                'from' => $from,
+                'to' => $to,
             ],
         ]);
     }
@@ -2844,11 +2846,11 @@ class Config extends BaseController
             'path' => 'permit_empty|max_length[500]',
         ];
 
-        if (! $this->validate($rules)) {
+        if (!$this->validate($rules)) {
             return $this->response->setStatusCode(400)->setJSON([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors'  => $this->validator->getErrors(),
+                'errors' => $this->validator->getErrors(),
             ]);
         }
 
@@ -2857,7 +2859,7 @@ class Config extends BaseController
             'path' => $this->request->getPost('path') ?? '',
         ];
 
-        if (! $this->visitorTypeModel->insert($data)) {
+        if (!$this->visitorTypeModel->insert($data)) {
             return $this->response->setStatusCode(500)->setJSON([
                 'success' => false,
                 'message' => 'Failed to create visitor type',
@@ -2874,7 +2876,7 @@ class Config extends BaseController
     {
         $row = $this->visitorTypeModel->find($id);
 
-        if (! $row) {
+        if (!$row) {
             return $this->response->setStatusCode(404)->setJSON([
                 'success' => false,
                 'message' => 'Visitor type not found',
@@ -2893,11 +2895,11 @@ class Config extends BaseController
         $validation = \Config\Services::validation();
         $validation->setRules($rules);
 
-        if (! $validation->run($input)) {
+        if (!$validation->run($input)) {
             return $this->response->setStatusCode(400)->setJSON([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors'  => $validation->getErrors(),
+                'errors' => $validation->getErrors(),
             ]);
         }
 
@@ -2923,14 +2925,14 @@ class Config extends BaseController
     {
         $row = $this->visitorTypeModel->find($id);
 
-        if (! $row) {
+        if (!$row) {
             return $this->response->setStatusCode(404)->setJSON([
                 'success' => false,
                 'message' => 'Visitor type not found',
             ]);
         }
 
-        if (! $this->visitorTypeModel->delete($id)) {
+        if (!$this->visitorTypeModel->delete($id)) {
             return $this->response->setStatusCode(500)->setJSON([
                 'success' => false,
                 'message' => 'Failed to delete visitor type',
@@ -2959,8 +2961,8 @@ class Config extends BaseController
             'success' => true,
             'data' => $devices,
             'pagination' => [
-                'current_page' => (int)$page,
-                'per_page' => (int)$perPage,
+                'current_page' => (int) $page,
+                'per_page' => (int) $perPage,
                 'total' => $total,
                 'total_pages' => ceil($total / $perPage),
                 'from' => $offset + 1,
@@ -3009,6 +3011,27 @@ class Config extends BaseController
         }
     }
 
+    public function generateVisitorQr()
+    {
+        // Must hardcode the IP instead of base_url() so the phone gets the LAN IP 
+        // even if the admin generated this QR code while visiting "localhost" in their PC browser.
+        $qrCodeData = 'http://192.168.100.243:8080/vms/visitor-registration?token=MTM%3D';
+
+        $options = new \chillerlan\QRCode\QROptions();
+        $options->version = \chillerlan\QRCode\Common\Version::AUTO;
+        $options->outputInterface = \chillerlan\QRCode\Output\QRGdImagePNG::class;
+        $options->eccLevel = \chillerlan\QRCode\Common\EccLevel::L;
+        $options->scale = 5;
+        $options->outputBase64 = false;
+
+        $qrcode = new \chillerlan\QRCode\QRCode($options);
+        $output = $qrcode->render($qrCodeData);
+
+        $this->response->setHeader('Content-Type', 'image/png');
+        echo $output;
+        exit;
+    }
+
     public function updateDeviceAssignment($id)
     {
         if (!$this->deviceAssignmentModel->find($id)) {
@@ -3016,7 +3039,7 @@ class Config extends BaseController
         }
 
         $input = $this->request->getJSON(true);
-        if (! is_array($input)) {
+        if (!is_array($input)) {
             $input = [];
         }
         $rules = [
@@ -3068,9 +3091,9 @@ class Config extends BaseController
 
         $ip = $device['ip_address'];
         $os = strtoupper(substr(PHP_OS, 0, 3));
-        
+
         $isOnline = false;
-        
+
         // Define if we should do a real hardware ping. Defaults to false (simulation) unless explicitly set to true.
         $enableRealPing = env('ENABLE_REAL_PING', false);
 

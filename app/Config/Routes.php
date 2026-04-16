@@ -203,6 +203,8 @@ $routes->post('config/createEmailTemplateFormField', 'Config::createEmailTemplat
 $routes->post('config/updateEmailTemplateFormField/(:num)', 'Config::updateEmailTemplateFormField/$1');
 $routes->post('config/deleteEmailTemplateFormField/(:num)', 'Config::deleteEmailTemplateFormField/$1');
 $routes->post('config/reorderEmailTemplateFormFields', 'Config::reorderEmailTemplateFormFields');
+$routes->get('config/generateVisitorQr', 'Config::generateVisitorQr');
+
 
 // Additional Location Routes
 $routes->get('config/getAllLocations', 'Config::getAllLocations');
