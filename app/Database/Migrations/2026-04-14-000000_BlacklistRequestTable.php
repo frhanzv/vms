@@ -8,6 +8,10 @@ class CreateBlacklistTable extends Migration
 {
     public function up()
     {
+        if ($this->db->tableExists('blacklist')) {
+            return;
+        }
+
         $this->forge->addField([
             'id' => [
                 'type'           => 'INT',
