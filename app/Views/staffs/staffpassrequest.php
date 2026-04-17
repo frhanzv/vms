@@ -335,7 +335,7 @@
                             <!-- Location Access -->
                             <div class="space-y-2">
                                 <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Location Access <span class="text-red-500">*</span></label>
-                                <div class="bg-background-light dark:bg-background-dark p-4 rounded-lg border border-border-color dark:border-gray-700">
+                                <div class="p-4 rounded-lg border border-border-color dark:border-gray-700">
                                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                                     <?php 
                                     $locations = [
@@ -357,7 +357,7 @@
                                     foreach ($locations as $location): 
                                     ?>
                                     <label class="flex items-center gap-2 cursor-pointer p-3 rounded-lg border border-transparent hover:border-primary/20 hover:bg-white dark:hover:bg-gray-800 transition-all">
-                                        <input name="location_access[]" value="<?= $location ?>" class="form-checkbox rounded text-primary border-gray-300 focus:ring-primary h-5 w-5" type="checkbox"/>
+                                        <input name="location_access[]" value="<?= $location ?>" class="form-checkbox rounded text-primary border-2 border-gray-500 focus:ring-primary h-5 w-5" type="checkbox"/>
                                         <span class="text-text-main dark:text-white font-medium font-brand text-sm"><?= $location ?></span>
                                     </label>
                                     <?php endforeach; ?>

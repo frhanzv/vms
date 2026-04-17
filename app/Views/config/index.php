@@ -283,48 +283,49 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Role Management -->
+                
+                <!-- Registration Type -->
                 <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
-                    <button onclick="toggleSection('appconfig')" class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                    <button onclick="toggleSection('regtype')" class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                         <div class="flex items-center gap-4">
                             <div class="p-2 bg-primary/10 rounded-lg">
-                                <span class="material-symbols-outlined text-primary text-xl">app_registration</span>
+                                <span class="material-symbols-outlined text-primary text-xl">badge</span>
                             </div>
                             <div class="text-left">
-                                <h3 class="text-base font-bold text-gray-800 dark:text-white">App Config</h3>
-                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Manage application settings</p>
+                                <h3 class="text-base font-bold text-gray-800 dark:text-white">Registration Type</h3>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Manage registration types</p>
                             </div>
                         </div>
-                        <span id="appconfig-icon" class="material-symbols-outlined text-gray-400 dark:text-slate-400 transition-transform">expand_more</span>
+                        <span id="regtype-icon" class="material-symbols-outlined text-gray-400 dark:text-slate-400 transition-transform">expand_more</span>
                     </button>
-                    <div id="appconfig-content" class="hidden border-t border-gray-200 dark:border-slate-700">
+                    <div id="regtype-content" class="hidden border-t border-gray-200 dark:border-slate-700">
                         <div class="p-6 bg-gray-50 dark:bg-slate-800/50">
-                            <!-- Search and Create -->
+                            <!-- Search -->
                             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                                 <div class="flex shadow-sm w-full sm:w-96">
-                                    <input id="appconfig-search-input" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Search description..." type="text"/>
-                                    <button onclick="searchDesc()" class="bg-primary hover:bg-blue-600 text-white px-6 py-2.5 rounded-r flex items-center justify-center transition-colors">
+                                    <input id="regtype-search-input" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Search registration type..." type="text"/>
+                                    <button onclick="searchRegType()" class="bg-primary hover:bg-blue-600 text-white px-6 py-2.5 rounded-r flex items-center justify-center transition-colors">
                                         <span class="material-symbols-outlined text-white text-[20px]">search</span>
                                     </button>
                                 </div>
                             </div>
 
-                            <!-- App Table -->
+                            <!-- Table -->
                             <div class="overflow-x-auto">
                                 <table class="w-full text-left text-sm">
                                     <thead class="text-xs text-gray-600 dark:text-slate-400 uppercase border-b border-gray-200 dark:border-slate-700">
                                         <tr>
-                                            <th class="px-4 py-3">Description</th>
+                                            <th class="px-4 py-3">Registration Type</th>
+                                            <th class="px-4 py-3 text-center">Can Print CP</th>
                                             <th class="px-4 py-3">Status</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="appconfig-table-body" class="text-gray-700 dark:text-slate-300">
+                                    <tbody id="regtype-table-body" class="text-gray-700 dark:text-slate-300">
                                         <tr>
-                                            <td colspan="2" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
+                                            <td colspan="3" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
                                                 <div class="flex flex-col items-center justify-center">
                                                     <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
-                                                    <span>Loading description...</span>
+                                                    <span>Loading registration types...</span>
                                                 </div>
                                             </td>
                                         </tr>
@@ -334,62 +335,54 @@
 
                             <!-- Pagination -->
                             <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6">
-                                <p id="appconfig-pagination-info" class="text-sm text-gray-600 dark:text-slate-400">
-                                    Loading...
-                                </p>
-                                <div id="appconfig-pagination-buttons" class="flex items-center gap-2">
-                                </div>
+                                <p id="regtype-pagination-info" class="text-sm text-gray-600 dark:text-slate-400">Loading...</p>
+                                <div id="regtype-pagination-buttons" class="flex items-center gap-2"></div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- App Config View Details Modal (outside appconfig section) -->
-                <div id="appConfigModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-                    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-lg mx-4">
+                <!-- Registration Type Modal -->
+                <div id="regtype-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50">
+                    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md mx-4">
                         <!-- Header -->
-                        <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-slate-700">
-                            <h3 class="text-base font-bold text-gray-800 dark:text-white">View Details</h3>
-                            <button onclick="closeAppConfigModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-slate-300">
-                                <span class="material-symbols-outlined">close</span>
+                        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-slate-700">
+                            <h2 class="text-base font-semibold text-gray-800 dark:text-white">Registration Type Details</h2>
+                            <button onclick="closeRegTypeModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 transition-colors">
+                                <span class="material-symbols-outlined text-xl">close</span>
                             </button>
                         </div>
                         <!-- Body -->
-                        <div class="p-6 space-y-4">
+                        <div class="px-6 py-5 space-y-4">
                             <div>
-                                <label class="text-sm font-medium text-gray-700 dark:text-slate-300">*Description:</label>
-                                <input id="appConfigDescription" type="text" readonly
-                                    class="mt-1 w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2 text-sm bg-gray-50"/>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                                    *Registration Type Name:
+                                </label>
+                                <input
+                                    id="regtype-modal-name"
+                                    type="text"
+                                    class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2 text-sm focus:ring-primary focus:border-primary outline-none"
+                                />
                             </div>
                             <div>
-                                <label class="text-sm font-medium text-gray-700 dark:text-slate-300">Active</label>
-                                <input id="appConfigActive" type="text"
-                                    class="mt-1 w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2 text-sm"/>
-                            </div>
-                            <div>
-                                <label class="text-sm font-medium text-gray-700 dark:text-slate-300">Day to Send First Alert</label>
-                                <input id="appConfigFirstAlert" type="number"
-                                    class="mt-1 w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2 text-sm"/>
-                            </div>
-                            <div>
-                                <label class="text-sm font-medium text-gray-700 dark:text-slate-300">Day to Send Second Alert</label>
-                                <input id="appConfigSecondAlert" type="number"
-                                    class="mt-1 w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2 text-sm"/>
-                            </div>
-                            <div>
-                                <label class="text-sm font-medium text-gray-700 dark:text-slate-300">Day to Block</label>
-                                <input id="appConfigDayToBlock" type="number"
-                                    class="mt-1 w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2 text-sm"/>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                                    Status
+                                </label>
+                                <select
+                                    id="regtype-modal-status"
+                                    class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2 text-sm focus:ring-primary focus:border-primary outline-none"
+                                >
+                                    <option value="Active">ACTIVE</option>
+                                    <option value="Inactive">INACTIVE</option>
+                                </select>
                             </div>
                         </div>
                         <!-- Footer -->
-                        <div class="flex items-center justify-between p-4 border-t border-gray-200 dark:border-slate-700">
-                            <button onclick="closeAppConfigModal()"
-                                class="px-4 py-2 rounded-lg bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-medium transition-colors">
+                        <div class="flex justify-between px-6 py-4 border-t border-gray-200 dark:border-slate-700">
+                            <button onclick="closeRegTypeModal()" class="bg-yellow-400 hover:bg-yellow-500 text-white text-sm font-medium px-5 py-2 rounded transition-colors">
                                 Back
                             </button>
-                            <button onclick="saveAppConfig()"
-                                class="px-4 py-2 rounded-lg bg-primary hover:bg-blue-600 text-white text-sm font-medium transition-colors">
+                            <button onclick="saveRegType()" class="bg-primary hover:bg-blue-600 text-white text-sm font-medium px-5 py-2 rounded transition-colors">
                                 Save
                             </button>
                         </div>
@@ -3595,6 +3588,183 @@
             closeAppConfigModal();
             showNotification('App config saved successfully', 'success');
         }
+
+        // ============== REGISTRATION TYPE FUNCTIONS ==============
+
+        let _regTypeCurrentPage = 1;
+        let _regTypeAllData = [];
+        let _regTypeFiltered = [];
+        let _regTypeEditingItem = null;
+        const REG_TYPE_PAGE_SIZE = 10;
+
+        // Close modal on backdrop click
+        document.getElementById('regtype-modal').addEventListener('click', function (e) {
+            if (e.target === this) closeRegTypeModal();
+        });
+
+        async function loadRegType() {
+            try {
+                // TODO: Replace with your actual API call
+                // const res = await fetch('/api/registration-types');
+                // _regTypeAllData = await res.json();
+
+                // ── Placeholder data (remove once API is wired) ──
+                _regTypeAllData = [
+                    { id: 1, name: 'FORWARDING',   canPrintCp: false, status: 'Inactive' },
+                    { id: 2, name: 'GENERAL',      canPrintCp: false, status: 'Inactive' },
+                    { id: 3, name: 'GOVERNMENT',   canPrintCp: false, status: 'Inactive' },
+                    { id: 4, name: 'HAULIER',      canPrintCp: false, status: 'Inactive' },
+                    { id: 5, name: 'PORT USER',    canPrintCp: false, status: 'Inactive' },
+                    { id: 6, name: 'STAFF',        canPrintCp: false, status: 'Active'   },
+                    { id: 7, name: 'TRANSPORTER',  canPrintCp: false, status: 'Inactive' },
+                ];
+
+                _regTypeFiltered = [..._regTypeAllData];
+                _regTypeCurrentPage = 1;
+                renderRegTypeTable();
+            } catch (err) {
+                console.error('Failed to load registration types:', err);
+                document.getElementById('regtype-table-body').innerHTML = `
+                    <tr><td colspan="4" class="px-4 py-8 text-center text-red-500">Failed to load data.</td></tr>`;
+            }
+        }
+
+        function searchRegType() {
+            const query = document.getElementById('regtype-search-input').value.trim().toLowerCase();
+            _regTypeFiltered = query
+                ? _regTypeAllData.filter(i => i.name.toLowerCase().includes(query))
+                : [..._regTypeAllData];
+            _regTypeCurrentPage = 1;
+            renderRegTypeTable();
+        }
+
+        // Allow pressing Enter to search
+        document.getElementById('regtype-search-input').addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') searchRegType();
+        });
+
+        function renderRegTypeTable() {
+            const tbody = document.getElementById('regtype-table-body');
+            const total = _regTypeFiltered.length;
+
+            if (total === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">No records found.</td></tr>`;
+                document.getElementById('regtype-pagination-info').textContent = 'No records found.';
+                document.getElementById('regtype-pagination-buttons').innerHTML = '';
+                return;
+            }
+
+            const totalPages = Math.ceil(total / REG_TYPE_PAGE_SIZE);
+            const start = (_regTypeCurrentPage - 1) * REG_TYPE_PAGE_SIZE;
+            const pageItems = _regTypeFiltered.slice(start, start + REG_TYPE_PAGE_SIZE);
+
+            tbody.innerHTML = pageItems.map(item => {
+                const canPrintIcon = item.canPrintCp
+                    ? `<span class="material-symbols-outlined text-green-500 text-base">check</span>`
+                    : `<span class="material-symbols-outlined text-red-500 text-base">close</span>`;
+
+                const statusText = item.status === 'Active'
+                    ? `<span class="text-green-600 dark:text-green-400 font-medium">Active</span>`
+                    : `<span class="text-gray-500 dark:text-slate-400">Inactive</span>`;
+
+                return `
+                    <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors">
+                        <td class="px-4 py-3">${item.name}</td>
+                        <td class="px-4 py-3 text-center">${canPrintIcon}</td>
+                        <td class="px-4 py-3">${statusText}</td>
+                        <td class="px-4 py-3 text-center">
+                            <button onclick="openRegTypeModal(${item.id})" class="text-gray-400 hover:text-primary transition-colors" title="Edit">
+                                <span class="material-symbols-outlined text-base">edit</span>
+                            </button>
+                        </td>
+                    </tr>`;
+            }).join('');
+
+            // Pagination info
+            document.getElementById('regtype-pagination-info').textContent =
+                `Showing ${start + 1}–${Math.min(start + REG_TYPE_PAGE_SIZE, total)} of ${total} record(s)`;
+
+            // Pagination buttons
+            const btnContainer = document.getElementById('regtype-pagination-buttons');
+            let btns = '';
+
+            btns += `<button onclick="goRegTypePage(${_regTypeCurrentPage - 1})" ${_regTypeCurrentPage === 1 ? 'disabled' : ''}
+                class="px-2 py-1 rounded border border-gray-300 dark:border-slate-600 text-gray-500 dark:text-slate-400 disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors">
+                <span class="material-symbols-outlined text-base">chevron_left</span>
+            </button>`;
+
+            for (let p = 1; p <= totalPages; p++) {
+                btns += `<button onclick="goRegTypePage(${p})"
+                    class="px-3 py-1 rounded border text-sm font-medium transition-colors
+                    ${p === _regTypeCurrentPage
+                        ? 'bg-primary text-white border-primary'
+                        : 'border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700'}">
+                    ${p}
+                </button>`;
+            }
+
+            btns += `<button onclick="goRegTypePage(${_regTypeCurrentPage + 1})" ${_regTypeCurrentPage === totalPages ? 'disabled' : ''}
+                class="px-2 py-1 rounded border border-gray-300 dark:border-slate-600 text-gray-500 dark:text-slate-400 disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors">
+                <span class="material-symbols-outlined text-base">chevron_right</span>
+            </button>`;
+
+            btnContainer.innerHTML = btns;
+        }
+
+        function goRegTypePage(page) {
+            const totalPages = Math.ceil(_regTypeFiltered.length / REG_TYPE_PAGE_SIZE);
+            if (page < 1 || page > totalPages) return;
+            _regTypeCurrentPage = page;
+            renderRegTypeTable();
+        }
+
+        function openRegTypeModal(id) {
+            const item = _regTypeAllData.find(i => i.id === id);
+            if (!item) return;
+            _regTypeEditingItem = item;
+
+            document.getElementById('regtype-modal-name').value = item.name;
+            document.getElementById('regtype-modal-status').value = item.status;
+
+            const modal = document.getElementById('regtype-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeRegTypeModal() {
+            document.getElementById('regtype-modal').classList.add('hidden');
+            document.getElementById('regtype-modal').classList.remove('flex');
+            _regTypeEditingItem = null;
+        }
+
+        function saveRegType() {
+            const name   = document.getElementById('regtype-modal-name').value.trim();
+            const status = document.getElementById('regtype-modal-status').value;
+
+            if (!name) {
+                alert('Registration Type Name is required.');
+                return;
+            }
+
+            // TODO: Replace with your actual API call, e.g.:
+            // await fetch(`/api/registration-types/${_regTypeEditingItem.id}`, {
+            //     method: 'PUT',
+            //     body: JSON.stringify({ name, status })
+            // });
+
+            // Update local data and re-render
+            if (_regTypeEditingItem) {
+                _regTypeEditingItem.name   = name;
+                _regTypeEditingItem.status = status;
+                _regTypeFiltered = [..._regTypeAllData]; // re-sync filtered
+                renderRegTypeTable();
+            }
+
+            closeRegTypeModal();
+        }
+
+        // Call this where you initialise your other modules, e.g. on DOMContentLoaded
+        // loadRegType();
 
         // ============== ROLE MANAGEMENT FUNCTIONS ==============
 

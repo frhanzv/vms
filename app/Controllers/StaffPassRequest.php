@@ -15,56 +15,68 @@ class StaffPassRequest extends BaseController
 
     public function store()
     {
-        // Collect form data
+        $db = \Config\Database::connect();
+
         $formData = [
             // Application Info
-            'location_access'   => $this->request->getPost('company_visiting'),
+            'date_of_application'           => $this->request->getPost('date_of_application'),
+            'type_of_application'           => $this->request->getPost('type_of_application'),
+            'designation'                   => $this->request->getPost('designation'),
+            'resident'                      => $this->request->getPost('resident'),
+            'sub_type'                      => $this->request->getPost('sub_type'),
+            'location_access'               => $this->request->getPost('location_access')
+                                                ? implode(',', $this->request->getPost('location_access'))
+                                                : null,
 
-            // Person Details
-            'resident'          => $this->request->getPost('resident'),
-            'ic_number'         => $this->request->getPost('ic_number'),
-            'date_of_birth'     => $this->request->getPost('date_of_birth'),
-            'sex'               => $this->request->getPost('sex'),
-            'full_name'         => $this->request->getPost('full_name'),
-            'contact_number'    => $this->request->getPost('contact_number'),
-            'email'             => $this->request->getPost('email'),
-            'address_1'         => $this->request->getPost('address_1'),
-            'address_2'         => $this->request->getPost('address_2'),
-            'address_3'         => $this->request->getPost('address_3'),
-            'city'              => $this->request->getPost('city'),
-            'state'             => $this->request->getPost('state'),
-            'postal_code'       => $this->request->getPost('postal_code'),
-            'country'           => $this->request->getPost('country'),
-            'category'          => $this->request->getPost('category'),
-            'vehicle_type'      => $this->request->getPost('vehicle_type'),
-            'vehicle_reg'       => $this->request->getPost('vehicle_registration'),
+            // Staff Details
+            'ic_passport'                   => $this->request->getPost('ic_number'),
+            'date_of_birth'                 => $this->request->getPost('date_of_birth'),
+            'sex'                           => $this->request->getPost('sex'),
+            'full_name'                     => $this->request->getPost('full_name'),
+            'name_on_staff_pass'            => $this->request->getPost('name_on_staff_pass'),
+            'staff_no'                      => $this->request->getPost('staff_no'),
+            'contact_number'                => $this->request->getPost('contact_number'),
+            'email'                         => $this->request->getPost('email'),
+            'department'                    => $this->request->getPost('department'),
+            'address_1'                     => $this->request->getPost('address_1'),
+            'address_2'                     => $this->request->getPost('address_2'),
+            'address_3'                     => $this->request->getPost('address_3'),
+            'country'                       => $this->request->getPost('country'),
+            'state'                         => $this->request->getPost('state'),
+            'city'                          => $this->request->getPost('city'),
+            'postal_code'                   => $this->request->getPost('postal_code'),
 
-            // Company Details
-            'company_reg_id'    => $this->request->getPost('company_reg_id'),
-            'company_name'      => $this->request->getPost('company_name'),
+            // CSP
+            'csp_number'                    => $this->request->getPost('company_reg_id'),
+            'csp_expiry_date'               => $this->request->getPost('csp_expiry_date') ?: null,
+
+            // E-Vetting
+            'evetting_date_of_application'  => $this->request->getPost('evetting_date_of_application') ?: null,
+            'evetting_date_of_result'       => $this->request->getPost('evetting_date_of_result') ?: null,
+            'evetting_result'               => $this->request->getPost('evetting_result'),
+
+            'created_at'                    => date('Y-m-d H:i:s'),
         ];
 
-        // Handle file uploads
+        // Government ID upload
         $governmentId = $this->request->getFile('government_id');
-        $otherDoc     = $this->request->getFile('invitation_letter');
+        if ($governmentId && $governmentId->isValid() && !$governmentId->hasMoved()) {
+            $newName = $governmentId->getRandomName();
+            $governmentId->move('uploads/government_ids', $newName);
+            $formData['government_id'] = $newName;
+        }
 
-        // if ($governmentId && $governmentId->isValid()) {
-        //     $governmentId->move(WRITEPATH . 'uploads/government_ids');
-        //     $formData['government_id'] = $governmentId->getName();
-        // }
+        // Other document upload
+        $otherDoc = $this->request->getFile('invitation_letter');
+        if ($otherDoc && $otherDoc->isValid() && !$otherDoc->hasMoved()) {
+            $newName = $otherDoc->getRandomName();
+            $otherDoc->move('uploads/other_docs', $newName);
+            $formData['other_doc'] = $newName;
+        }
 
-        // if ($otherDoc && $otherDoc->isValid()) {
-        //     $otherDoc->move(WRITEPATH . 'uploads/other_docs');
-        //     $formData['other_doc'] = $otherDoc->getName();
-        // }
+        $db->table('staff')->insert($formData);
 
-        // Save to database
-        // $model = new \App\Models\StaffPassRequestModel();
-        // $model->insert($formData);
-
-        // Redirect after successful submission
-        // return redirect()->to(base_url('staffs'))->with('success', 'Staff pass request submitted successfully.');
-
-        return redirect()->to(base_url('staffs'));
+        return redirect()->to(base_url('staffs'))
+            ->with('success', 'Staff pass request submitted successfully.');
     }
 }
