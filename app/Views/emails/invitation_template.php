@@ -14,9 +14,10 @@
     $notesTitle = $template['notes_title'] ?? 'Important Notes';
     $notesItems = $notes_items ?? [];
     $footerText = $template['footer_text'] ?? 'This is an automated message from SafeG Visitor Management System';
-    $primaryColor = $template['primary_color'] ?? '#137fec';
-    $contentBgColor = $template['content_bg_color'] ?? '#f8f9fa';
-    $textColor = $template['text_color'] ?? '#333333';
+    $crudColors = $custom_colors ?? [];
+    $primaryColor = $crudColors['primary_color'] ?? ($template['primary_color'] ?? '#137fec');
+    $contentBgColor = $crudColors['content_bg_color'] ?? ($template['content_bg_color'] ?? '#f8f9fa');
+    $textColor = $crudColors['text_color'] ?? ($template['text_color'] ?? '#333333');
     ?>
     <style>
         body { font-family: 'Montserrat', Arial, sans-serif; line-height: 1.6; color: <?= esc($textColor) ?>; }
@@ -37,8 +38,12 @@
         
         <div class="content">
             <p>Dear <strong><?= esc($visitor_name) ?></strong>,</p>
-            
-            <p><?= esc($introLine) ?></p>
+
+            <?php if (!empty($custom_body_html)): ?>
+                <div><?= $custom_body_html ?></div>
+            <?php else: ?>
+                <p><?= esc($introLine) ?></p>
+            <?php endif; ?>
             
             <div class="info-box">
                 <h3>Visit Details:</h3>

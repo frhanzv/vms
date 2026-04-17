@@ -2363,9 +2363,13 @@
                         <div id="emailTemplateListView" class="p-6 bg-gray-50 dark:bg-slate-800/50 space-y-6">
                             <div class="flex items-center justify-between">
                                 <div>
-                                    <p class="text-sm font-semibold text-slate-700 dark:text-slate-300">Email templates by process</p>
-                                    <p class="text-xs text-slate-500 mt-1">Configure fixed email text and colors for each email process in the system.</p>
+                                        <p class="text-sm font-semibold text-slate-700 dark:text-slate-300">Email templates</p>
+                                        <p class="text-xs text-slate-500 mt-1">Create and manage email templates by code.</p>
                                 </div>
+                                    <button type="button" onclick="openEmailTemplateModalForCreate()" class="px-4 py-2 rounded-lg bg-primary text-white text-xs font-bold hover:bg-blue-600 transition-all shadow-sm active:scale-95 inline-flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-base">add</span>
+                                        Create
+                                    </button>
                             </div>
 
                             <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
@@ -2397,12 +2401,61 @@
                                         <thead class="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px] tracking-widest">
                                             <tr>
                                                 <th class="px-6 py-4 text-left">No</th>
-                                                <th class="px-6 py-4 text-left">Template</th>
+                                                <th class="px-6 py-4 text-left">Code</th>
                                                 <th class="px-6 py-4 text-center">Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody id="emailTemplateProcessTableBody" class="divide-y divide-slate-100 dark:divide-slate-700 text-slate-700 dark:text-slate-200"></tbody>
                                     </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Create / Update Modal -->
+                        <div id="emailTemplateCrudModal" class="hidden fixed inset-0 z-[80] overflow-y-auto">
+                            <div class="flex min-h-screen items-center justify-center px-4 py-8">
+                                <div class="fixed inset-0 bg-black/40" onclick="closeEmailTemplateCrudModal()"></div>
+                                <div class="relative w-full max-w-3xl rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xl">
+                                    <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+                                        <h3 id="emailTemplateCrudModalTitle" class="text-lg font-bold text-slate-800 dark:text-white">Create Email Template</h3>
+                                        <button type="button" onclick="closeEmailTemplateCrudModal()" class="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
+                                            <span class="material-symbols-outlined">close</span>
+                                        </button>
+                                    </div>
+                                    <form id="emailTemplateCrudForm" onsubmit="submitEmailTemplateCrudForm(event)" class="p-6 space-y-4">
+                                        <input type="hidden" id="emailTemplateCrudId">
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Code</label>
+                                            <input id="emailTemplateCrudCode" type="text" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-primary focus:border-primary text-sm p-2.5 shadow-sm" required placeholder="e.g. VISITOR_INVITE">
+                                            <p class="mt-1 text-[11px] text-slate-500 dark:text-slate-400">Use uppercase letters, numbers, and underscore only.</p>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Subject</label>
+                                            <input id="emailTemplateCrudSubject" type="text" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-primary focus:border-primary text-sm p-2.5 shadow-sm" required>
+                                        </div>
+                                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Primary Color</label>
+                                                <input id="emailTemplateCrudPrimaryColor" type="color" class="h-10 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-1 cursor-pointer">
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Content Background</label>
+                                                <input id="emailTemplateCrudContentBgColor" type="color" class="h-10 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-1 cursor-pointer">
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Text Color</label>
+                                                <input id="emailTemplateCrudTextColor" type="color" class="h-10 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-1 cursor-pointer">
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Body</label>
+                                            <textarea id="emailTemplateCrudBody" rows="12" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-primary focus:border-primary text-sm p-2.5 shadow-sm custom-scrollbar" required></textarea>
+                                        </div>
+                                        <div class="flex justify-end gap-2 pt-2">
+                                            <button type="button" onclick="closeEmailTemplateCrudModal()" class="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200">Back</button>
+                                            <button id="emailTemplateCrudSubmitBtn" type="submit" class="px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary-hover">Save</button>
+                                        </div>
+                                    </form>
                                 </div>
                             </div>
                         </div>
@@ -3365,8 +3418,7 @@
                 }
                 // Load email templates when Email Template section is opened
                 if (section === 'email-template') {
-                    renderEmailTemplateProcessTable();
-                    fetchInvitationEmailTemplateSettings();
+                    fetchEmailTemplates();
                 }
                 // Load companies when Company Management section is opened
                 if (section === 'company') {
@@ -11147,6 +11199,10 @@
             updateEmailPreview();
         }
 
+        let emailTemplates = [];
+        let currentEmailTemplateSearch = '';
+        let currentEmailTemplateSort = 'default';
+        // Legacy visual editor state (kept for backward compatibility in this page JS).
         let emailTemplateProcessOptions = [
             { key: 'invitation', label: 'Invitation Email' },
             { key: 'registration_submitted', label: 'Registration Submitted Email' },
@@ -11163,34 +11219,44 @@
             '{{link_expiry_date}}',
         ];
         let currentEmailTemplateProcess = 'invitation';
-        let currentEmailTemplateSearch = '';
-        let currentEmailTemplateSort = 'default';
         let emailTemplateFocusedInputId = null;
         let placeholderDragIndex = null;
         let emailTemplateFocusTrackingBound = false;
 
-        function getEmailTemplateProcessLabel(process) {
-            const option = emailTemplateProcessOptions.find(item => item.key === process);
-            return option ? option.label : process;
+        function fetchEmailTemplates() {
+            fetch('<?= base_url('config/getEmailTemplates') ?>')
+                .then(res => res.json())
+                .then(data => {
+                    emailTemplates = Array.isArray(data.data) ? data.data : [];
+                    renderEmailTemplateTable();
+                })
+                .catch(() => {
+                    showToast('Failed to load email templates', 'error');
+                });
         }
 
-        function renderEmailTemplateProcessTable() {
+        function renderEmailTemplateTable() {
             const tbody = document.getElementById('emailTemplateProcessTableBody');
             if (!tbody) return;
 
-            let rows = [...emailTemplateProcessOptions];
+            let rows = [...emailTemplates];
 
             if (currentEmailTemplateSearch) {
                 const keyword = currentEmailTemplateSearch.toLowerCase();
-                rows = rows.filter(item => item.label.toLowerCase().includes(keyword));
+                rows = rows.filter(item =>
+                    String(item.code || '').toLowerCase().includes(keyword) ||
+                    String(item.subject || '').toLowerCase().includes(keyword)
+                );
             }
 
             if (currentEmailTemplateSort === 'name_asc') {
-                rows.sort((a, b) => a.label.localeCompare(b.label));
+                rows.sort((a, b) => String(a.code || '').localeCompare(String(b.code || '')));
             } else if (currentEmailTemplateSort === 'name_desc') {
-                rows.sort((a, b) => b.label.localeCompare(a.label));
+                rows.sort((a, b) => String(b.code || '').localeCompare(String(a.code || '')));
             } else if (currentEmailTemplateSort === 'newest') {
-                rows = rows.reverse();
+                rows.sort((a, b) => (new Date(b.created_at || 0)) - (new Date(a.created_at || 0)));
+            } else if (currentEmailTemplateSort === 'oldest') {
+                rows.sort((a, b) => (new Date(a.created_at || 0)) - (new Date(b.created_at || 0)));
             }
 
             if (rows.length === 0) {
@@ -11209,12 +11275,13 @@
                 <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
                     <td class="px-6 py-4 text-slate-500 font-medium">${index + 1}</td>
                     <td class="px-6 py-4">
-                        <div class="font-bold text-slate-800 dark:text-slate-200">${item.label}</div>
+                        <div class="font-bold text-slate-800 dark:text-slate-200">${item.code || ''}</div>
+                        ${item.subject ? `<div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 truncate max-w-[520px]">${item.subject}</div>` : ''}
                     </td>
                     <td class="px-6 py-4 text-center">
                         <button
                             type="button"
-                            onclick="openVisualEditor('${item.key}')"
+                            onclick="openEmailTemplateModalForEdit(${item.id})"
                             class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 text-xs font-bold hover:bg-primary hover:text-white hover:border-primary transition-all shadow-sm group-hover:shadow-md active:scale-95"
                         >
                             <span class="material-symbols-outlined text-sm">edit</span>
@@ -11225,19 +11292,114 @@
             `).join('');
         }
 
-        function openVisualEditor(process) {
-            // Switch views
-            document.getElementById('emailTemplateListView').classList.add('hidden');
-            document.getElementById('emailTemplateEditorView').classList.remove('hidden');
-            
-            // Initial load
-            selectEmailTemplateProcess(process);
+        function searchEmailTemplates() {
+            currentEmailTemplateSearch = document.getElementById('emailTemplateSearchInput')?.value?.trim() || '';
+            renderEmailTemplateTable();
         }
 
-        function closeVisualEditor() {
-            document.getElementById('emailTemplateEditorView').classList.add('hidden');
-            document.getElementById('emailTemplateListView').classList.remove('hidden');
-            renderEmailTemplateProcessTable();
+        function sortEmailTemplates() {
+            currentEmailTemplateSort = document.getElementById('emailTemplateSortSelect')?.value || 'default';
+            renderEmailTemplateTable();
+        }
+
+        function openEmailTemplateModalForCreate() {
+            const modal = document.getElementById('emailTemplateCrudModal');
+            if (!modal) return;
+
+            document.getElementById('emailTemplateCrudModalTitle').textContent = 'Create Email Template';
+            document.getElementById('emailTemplateCrudSubmitBtn').textContent = 'Save';
+
+            document.getElementById('emailTemplateCrudId').value = '';
+            const codeEl = document.getElementById('emailTemplateCrudCode');
+            codeEl.value = '';
+            codeEl.disabled = false;
+            codeEl.classList.remove('opacity-70', 'cursor-not-allowed');
+
+            document.getElementById('emailTemplateCrudSubject').value = '';
+            document.getElementById('emailTemplateCrudPrimaryColor').value = '#137FEC';
+            document.getElementById('emailTemplateCrudContentBgColor').value = '#F8F9FA';
+            document.getElementById('emailTemplateCrudTextColor').value = '#333333';
+            document.getElementById('emailTemplateCrudBody').value = '';
+
+            modal.classList.remove('hidden');
+            setTimeout(() => codeEl.focus(), 0);
+        }
+
+        function openEmailTemplateModalForEdit(id) {
+            fetch(`<?= base_url('config/getEmailTemplate') ?>/${id}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (!data.success) {
+                        showToast(data.message || 'Failed to load email template', 'error');
+                        return;
+                    }
+
+                    const row = data.data || {};
+                    const modal = document.getElementById('emailTemplateCrudModal');
+                    if (!modal) return;
+
+                    document.getElementById('emailTemplateCrudModalTitle').textContent = 'Update Email Template';
+                    document.getElementById('emailTemplateCrudSubmitBtn').textContent = 'Update';
+
+                    document.getElementById('emailTemplateCrudId').value = row.id || '';
+                    const codeEl = document.getElementById('emailTemplateCrudCode');
+                    codeEl.value = row.code || '';
+                    codeEl.disabled = true;
+                    codeEl.classList.add('opacity-70', 'cursor-not-allowed');
+
+                    document.getElementById('emailTemplateCrudSubject').value = row.subject || '';
+                    document.getElementById('emailTemplateCrudPrimaryColor').value = row.primary_color || '#137FEC';
+                    document.getElementById('emailTemplateCrudContentBgColor').value = row.content_bg_color || '#F8F9FA';
+                    document.getElementById('emailTemplateCrudTextColor').value = row.text_color || '#333333';
+                    document.getElementById('emailTemplateCrudBody').value = row.body || '';
+
+                    modal.classList.remove('hidden');
+                    setTimeout(() => document.getElementById('emailTemplateCrudSubject').focus(), 0);
+                })
+                .catch(() => showToast('Failed to load email template', 'error'));
+        }
+
+        function closeEmailTemplateCrudModal() {
+            document.getElementById('emailTemplateCrudModal')?.classList.add('hidden');
+        }
+
+        function submitEmailTemplateCrudForm(event) {
+            event.preventDefault();
+
+            const id = document.getElementById('emailTemplateCrudId')?.value?.trim();
+            const code = (document.getElementById('emailTemplateCrudCode')?.value || '').trim().toUpperCase();
+            const subject = (document.getElementById('emailTemplateCrudSubject')?.value || '').trim();
+            const primary_color = document.getElementById('emailTemplateCrudPrimaryColor')?.value || '';
+            const content_bg_color = document.getElementById('emailTemplateCrudContentBgColor')?.value || '';
+            const text_color = document.getElementById('emailTemplateCrudTextColor')?.value || '';
+            const body = (document.getElementById('emailTemplateCrudBody')?.value || '').trim();
+
+            if (!code || !subject || !body) {
+                showToast('Code, Subject, and Body are required', 'error');
+                return;
+            }
+
+            const payload = { code, subject, body, primary_color, content_bg_color, text_color };
+            const url = id
+                ? `<?= base_url('config/updateEmailTemplate') ?>/${encodeURIComponent(id)}`
+                : '<?= base_url('config/createEmailTemplate') ?>';
+
+            fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            })
+                .then(res => res.json().then(json => ({ ok: res.ok, json })))
+                .then(({ ok, json }) => {
+                    if (!ok || !json.success) {
+                        showToast(json.message || 'Failed to save email template', 'error');
+                        return;
+                    }
+                    showToast(json.message || 'Saved', 'success');
+                    closeEmailTemplateCrudModal();
+                    fetchEmailTemplates();
+                })
+                .catch(() => showToast('Failed to save email template', 'error'));
         }
 
         function renderEmailTemplatePlaceholderBox() {
@@ -11434,12 +11596,12 @@
 
         function searchEmailTemplates() {
             currentEmailTemplateSearch = (document.getElementById('emailTemplateSearchInput')?.value || '').trim();
-            renderEmailTemplateProcessTable();
+            renderEmailTemplateTable();
         }
 
         function sortEmailTemplates() {
             currentEmailTemplateSort = document.getElementById('emailTemplateSortSelect')?.value || 'default';
-            renderEmailTemplateProcessTable();
+            renderEmailTemplateTable();
         }
 
         function ensureEmailTemplateProcessOptions(options = [], selectedProcess = 'invitation') {
@@ -11458,7 +11620,7 @@
             currentEmailTemplateProcess = selectedProcess || currentEmailTemplateProcess || 'invitation';
             
             // Populate the table if it's visible
-            renderEmailTemplateProcessTable();
+            renderEmailTemplateTable();
 
             return currentEmailTemplateProcess;
         }

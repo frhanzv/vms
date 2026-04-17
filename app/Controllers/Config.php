@@ -21,6 +21,7 @@ use App\Models\VisitorTypeModel;
 use App\Models\SettingModel;
 use App\Models\DeviceAssignmentModel;
 use App\Models\EmailTemplateFormFieldModel;
+use App\Models\EmailTemplateModel;
 use App\Libraries\EmailTemplateService;
 
 class Config extends BaseController
@@ -44,6 +45,7 @@ class Config extends BaseController
     protected $settingModel;
     protected $deviceAssignmentModel;
     protected $emailTemplateFormFieldModel;
+    protected $emailTemplateModel;
 
     /**
      * Version-checked update for config entities.
@@ -107,6 +109,7 @@ class Config extends BaseController
         $this->settingModel = new SettingModel();
         $this->deviceAssignmentModel = new DeviceAssignmentModel();
         $this->emailTemplateFormFieldModel = new EmailTemplateFormFieldModel();
+        $this->emailTemplateModel = new EmailTemplateModel();
     }
 
     public function index()
@@ -3243,6 +3246,159 @@ class Config extends BaseController
             'data' => $normalized,
             'meta' => ['process' => $process],
         ]);
+    }
+
+    public function getEmailTemplates()
+    {
+        $rows = $this->emailTemplateModel
+            ->orderBy('code', 'ASC')
+            ->findAll();
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => $rows,
+        ]);
+    }
+
+    public function getEmailTemplate($id)
+    {
+        $row = $this->emailTemplateModel->find((int) $id);
+        if (! $row) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Email template not found',
+            ])->setStatusCode(404);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => $row,
+        ]);
+    }
+
+    public function createEmailTemplate()
+    {
+        $input = $this->request->getJSON(true);
+        if (! is_array($input)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Invalid payload',
+            ])->setStatusCode(400);
+        }
+
+        $code = strtoupper(trim((string) ($input['code'] ?? '')));
+        $subject = isset($input['subject']) ? trim((string) $input['subject']) : null;
+        $body = isset($input['body']) ? (string) $input['body'] : null;
+        $primaryColor = isset($input['primary_color']) ? trim((string) $input['primary_color']) : null;
+        $contentBgColor = isset($input['content_bg_color']) ? trim((string) $input['content_bg_color']) : null;
+        $textColor = isset($input['text_color']) ? trim((string) $input['text_color']) : null;
+
+        if ($code === '') {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Code is required',
+            ])->setStatusCode(400);
+        }
+
+        // Allow only safe code format (matches screenshot style).
+        if (! preg_match('/^[A-Z0-9_]+$/', $code)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Code can contain only A-Z, 0-9 and underscore',
+            ])->setStatusCode(400);
+        }
+
+        if ($this->emailTemplateModel->where('code', $code)->first()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Code already exists',
+            ])->setStatusCode(409);
+        }
+
+        $primaryColor = $this->normalizeHexColorOrNull($primaryColor);
+        $contentBgColor = $this->normalizeHexColorOrNull($contentBgColor);
+        $textColor = $this->normalizeHexColorOrNull($textColor);
+
+        $id = $this->emailTemplateModel->insert([
+            'code' => $code,
+            'subject' => $subject,
+            'body' => $body,
+            'primary_color' => $primaryColor,
+            'content_bg_color' => $contentBgColor,
+            'text_color' => $textColor,
+        ], true);
+
+        if (! $id) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to create email template',
+                'errors' => $this->emailTemplateModel->errors(),
+            ])->setStatusCode(500);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Email template created',
+            'data' => $this->emailTemplateModel->find((int) $id),
+        ]);
+    }
+
+    public function updateEmailTemplate($id)
+    {
+        $row = $this->emailTemplateModel->find((int) $id);
+        if (! $row) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Email template not found',
+            ])->setStatusCode(404);
+        }
+
+        $input = $this->request->getJSON(true);
+        if (! is_array($input)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Invalid payload',
+            ])->setStatusCode(400);
+        }
+
+        // Code is immutable from UI (edit modal locks it).
+        $subject = array_key_exists('subject', $input) ? trim((string) $input['subject']) : $row['subject'];
+        $body = array_key_exists('body', $input) ? (string) $input['body'] : $row['body'];
+        $primaryColor = array_key_exists('primary_color', $input) ? $this->normalizeHexColorOrNull($input['primary_color']) : ($row['primary_color'] ?? null);
+        $contentBgColor = array_key_exists('content_bg_color', $input) ? $this->normalizeHexColorOrNull($input['content_bg_color']) : ($row['content_bg_color'] ?? null);
+        $textColor = array_key_exists('text_color', $input) ? $this->normalizeHexColorOrNull($input['text_color']) : ($row['text_color'] ?? null);
+
+        if (! $this->emailTemplateModel->update((int) $id, [
+            'subject' => $subject,
+            'body' => $body,
+            'primary_color' => $primaryColor,
+            'content_bg_color' => $contentBgColor,
+            'text_color' => $textColor,
+        ])) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to update email template',
+                'errors' => $this->emailTemplateModel->errors(),
+            ])->setStatusCode(500);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Email template updated',
+            'data' => $this->emailTemplateModel->find((int) $id),
+        ]);
+    }
+
+    private function normalizeHexColorOrNull($value): ?string
+    {
+        $color = trim((string) $value);
+        if ($color === '') {
+            return null;
+        }
+        if (preg_match('/^#[0-9a-fA-F]{6}$/', $color)) {
+            return strtoupper($color);
+        }
+        return null;
     }
 
     public function saveEmailTemplateFormSettings()

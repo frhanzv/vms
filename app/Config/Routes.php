@@ -201,6 +201,10 @@ $routes->get('config/getEmailTemplateFormSettings', 'Config::getEmailTemplateFor
 $routes->post('config/saveEmailTemplateFormSettings', 'Config::saveEmailTemplateFormSettings');
 $routes->get('config/getInvitationEmailTemplateSettings', 'Config::getInvitationEmailTemplateSettings');
 $routes->post('config/saveInvitationEmailTemplateSettings', 'Config::saveInvitationEmailTemplateSettings');
+$routes->get('config/getEmailTemplates', 'Config::getEmailTemplates');
+$routes->get('config/getEmailTemplate/(:num)', 'Config::getEmailTemplate/$1');
+$routes->post('config/createEmailTemplate', 'Config::createEmailTemplate');
+$routes->post('config/updateEmailTemplate/(:num)', 'Config::updateEmailTemplate/$1');
 $routes->post('config/createEmailTemplateFormField', 'Config::createEmailTemplateFormField');
 $routes->post('config/updateEmailTemplateFormField/(:num)', 'Config::updateEmailTemplateFormField/$1');
 $routes->post('config/deleteEmailTemplateFormField/(:num)', 'Config::deleteEmailTemplateFormField/$1');
