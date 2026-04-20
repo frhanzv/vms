@@ -244,3 +244,13 @@ $routes->group('blacklist', function ($routes) {
     $routes->get('closedlist', 'BlacklistClosedList::index');
 });
 $routes->get('blacklist/entry', 'BlacklistEntry::index');
+
+// Registration Type config
+$routes->get('config/getRegTypes',       'Config::getRegTypes');
+$routes->get('config/getRegType/(:num)', 'Config::getRegType/$1');
+$routes->post('config/createRegType',    'Config::createRegType');
+$routes->post('config/updateRegType/(:num)', 'Config::updateRegType/$1');
+$routes->post('config/deleteRegType/(:num)', 'Config::deleteRegType/$1');
+
+// Blacklist Reason config
+$routes->get('blacklist/reason', 'Config::blacklistReason');

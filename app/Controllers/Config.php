@@ -21,6 +21,11 @@ use App\Models\VisitorTypeModel;
 use App\Models\SettingModel;
 use App\Models\DeviceAssignmentModel;
 use App\Models\EmailTemplateFormFieldModel;
+use App\Models\RegTypeModel;
+use App\Models\BusinessTypeModel;
+use App\Models\BlacklistReasonModel;
+
+
 
 class Config extends BaseController
 {
@@ -43,6 +48,11 @@ class Config extends BaseController
     protected $settingModel;
     protected $deviceAssignmentModel;
     protected $emailTemplateFormFieldModel;
+    protected $regTypeModel;
+    protected $bizTypeModel;
+    protected $blacklistReasonModel;
+
+
 
     /**
      * Version-checked update for config entities.
@@ -106,16 +116,73 @@ class Config extends BaseController
         $this->settingModel = new SettingModel();
         $this->deviceAssignmentModel = new DeviceAssignmentModel();
         $this->emailTemplateFormFieldModel = new EmailTemplateFormFieldModel();
+        $this->regTypeModel = new RegTypeModel();
+        $this->bizTypeModel = new BusinessTypeModel();
+        $this->blacklistReasonModel = new BlacklistReasonModel();
+
+
+
     }
 
     public function index()
     {
-        $data = [
-            'pageTitle' => 'System Configuration - SafeG',
-            'logs' => $this->getSystemLogs()
-        ];
+        // =========================
+        // REG TYPE SECTION
+        // =========================
+        $regSearch  = $this->request->getGet('regtype_search') ?? '';
+        $regPage    = (int)($this->request->getGet('regtype_page') ?? 1);
+        $regPerPage = 10;
+        $regOffset  = ($regPage - 1) * $regPerPage;
 
-        return view('config/index', $data);
+        $regBuilder = $this->regTypeModel->orderBy('name', 'ASC');
+
+        if ($regSearch) {
+            $regBuilder->like('name', $regSearch);
+        }
+
+        $regTotal    = (clone $regBuilder)->countAllResults();
+        $regTypes    = $regBuilder->findAll($regPerPage, $regOffset);
+
+
+        // =========================
+        // BUSINESS TYPE SECTION
+        // =========================
+        $bizSearch  = $this->request->getGet('biztype_search') ?? '';
+        $bizPage    = (int)($this->request->getGet('biztype_page') ?? 1);
+        $bizPerPage = 10;
+        $bizOffset  = ($bizPage - 1) * $bizPerPage;
+
+        $bizBuilder = $this->bizTypeModel->orderBy('business_type', 'ASC');
+
+        if ($bizSearch) {
+            $bizBuilder->like('business_type', $bizSearch);
+        }
+
+        $bizTotal = (clone $bizBuilder)->countAllResults();
+        $bizTypes = $bizBuilder->findAll($bizPerPage, $bizOffset);
+
+
+        // =========================
+        // PASS DATA TO VIEW
+        // =========================
+        return view('config/index', [
+            'pageTitle' => 'System Configuration - SafeG',
+            'logs' => $this->getSystemLogs(),
+
+            // Reg Type
+            'reg_types'        => $regTypes,
+            'regtype_total'    => $regTotal,
+            'regtype_page'     => $regPage,
+            'regtype_per_page' => $regPerPage,
+            'regtype_search'   => $regSearch,
+
+            // Business Type
+            'biz_types'        => $bizTypes,
+            'biztype_total'    => $bizTotal,
+            'biztype_page'     => $bizPage,
+            'biztype_per_page' => $bizPerPage,
+            'biztype_search'   => $bizSearch,
+        ]);
     }
 
     private function getSystemLogs($limit = 100, $level = null)
@@ -3340,4 +3407,174 @@ class Config extends BaseController
             'message' => 'Field order updated successfully'
         ]);
     }
+
+    // ============== REGISTRATION TYPE METHODS ==============
+
+    public function getRegTypes()
+    {
+        $page    = (int)($this->request->getGet('page') ?? 1);
+        $perPage = (int)($this->request->getGet('per_page') ?? 10);
+        $search  = $this->request->getGet('search') ?? '';
+
+        $offset  = ($page - 1) * $perPage;
+
+        $builder = $this->regTypeModel->orderBy('name', 'ASC');
+
+        if ($search) {
+            $builder->like('name', $search);
+        }
+
+        $total = $builder->countAllResults(false);
+        $data  = $builder->findAll($perPage, $offset);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data'    => $data,
+            'pagination' => [
+                'current_page' => $page,
+                'per_page'     => $perPage,
+                'total'        => $total,
+                'total_pages'  => (int) ceil($total / $perPage),
+                'from'         => $total > 0 ? $offset + 1 : 0,
+                'to'           => min($offset + $perPage, $total),
+            ],
+        ]);
+    }
+
+    public function getRegType($id)
+    {
+        $row = $this->regTypeModel->find($id);
+
+        if (!$row) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'success' => false,
+                'message' => 'Registration type not found',
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data'    => $row,
+        ]);
+    }
+
+    public function createRegType()
+    {
+        $input = $this->request->getJSON(true);
+
+        $validation = \Config\Services::validation();
+        $validation->setRules([
+            'name'         => 'required|min_length[2]|max_length[100]|is_unique[reg_type.name]',
+            'can_print_cp' => 'permit_empty|in_list[0,1]',
+            'status'       => 'required|in_list[Active,Inactive]',
+        ]);
+
+        if (!$validation->run($input)) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors'  => $validation->getErrors(),
+            ]);
+        }
+
+        $data = [
+            'name'         => strtoupper($input['name']),
+            'can_print_cp' => $input['can_print_cp'] ?? 0,
+            'status'       => $input['status'],
+        ];
+
+        if (!$this->regTypeModel->insert($data)) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'Failed to create registration type',
+                'errors'  => $this->regTypeModel->errors(),
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Registration type created successfully',
+            'data'    => ['id' => $this->regTypeModel->getInsertID()],
+        ]);
+    }
+
+    public function updateRegType($id)
+    {
+        $row = $this->regTypeModel->find($id);
+
+        if (!$row) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'success' => false,
+                'message' => 'Registration type not found',
+            ]);
+        }
+
+        $input = $this->request->getJSON(true);
+        if (!is_array($input)) {
+            $input = [];
+        }
+
+        $validation = \Config\Services::validation();
+        $validation->setRules([
+            'name'         => "required|min_length[2]|max_length[100]|is_unique[reg_type.name,id,{$id}]",
+            'can_print_cp' => 'permit_empty|in_list[0,1]',
+            'status'       => 'required|in_list[Active,Inactive]',
+        ]);
+
+        if (!$validation->run($input)) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors'  => $validation->getErrors(),
+            ]);
+        }
+
+        $data = [
+            'name'         => strtoupper($input['name']),
+            'can_print_cp' => $input['can_print_cp'] ?? 0,
+            'status'       => $input['status'],
+        ];
+
+        $error = $this->versionedUpdate($this->regTypeModel, $id, $data, $input, 'registration type');
+        if ($error) {
+            return $error;
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Registration type updated successfully',
+        ]);
+    }
+
+    public function deleteRegType($id)
+    {
+        $row = $this->regTypeModel->find($id);
+
+        if (!$row) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'success' => false,
+                'message' => 'Registration type not found',
+            ]);
+        }
+
+        if (!$this->regTypeModel->delete($id)) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'Failed to delete registration type',
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Registration type deleted successfully',
+        ]);
+    }
+
+    public function blacklistReason()
+    {
+        $data['blacklist_reasons'] = $this->blacklistReasonModel->findAll();
+
+        return view('blacklist/closedlist', $data);
+    }
+
 }
