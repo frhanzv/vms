@@ -169,6 +169,8 @@ $routes->delete('config/deleteRejectReason/(:num)', 'Config::deleteRejectReason/
 $routes->get('staffs', 'StaffList::index');
 $routes->get('staffs/staffpassrequest', 'StaffPassRequest::index');
 $routes->post('staffs/staffpassrequest/store', 'StaffPassRequest::store');
+//$routes->get('staff-pass-request', 'StaffList::downloadTemplate');
+
 
 
 // Visitor Card Management Routes
@@ -211,10 +213,16 @@ $routes->get('config/getEmailTemplateFormSettings', 'Config::getEmailTemplateFor
 $routes->post('config/saveEmailTemplateFormSettings', 'Config::saveEmailTemplateFormSettings');
 $routes->get('config/getInvitationEmailTemplateSettings', 'Config::getInvitationEmailTemplateSettings');
 $routes->post('config/saveInvitationEmailTemplateSettings', 'Config::saveInvitationEmailTemplateSettings');
+$routes->get('config/getEmailTemplates', 'Config::getEmailTemplates');
+$routes->get('config/getEmailTemplate/(:num)', 'Config::getEmailTemplate/$1');
+$routes->post('config/createEmailTemplate', 'Config::createEmailTemplate');
+$routes->post('config/updateEmailTemplate/(:num)', 'Config::updateEmailTemplate/$1');
 $routes->post('config/createEmailTemplateFormField', 'Config::createEmailTemplateFormField');
 $routes->post('config/updateEmailTemplateFormField/(:num)', 'Config::updateEmailTemplateFormField/$1');
 $routes->post('config/deleteEmailTemplateFormField/(:num)', 'Config::deleteEmailTemplateFormField/$1');
 $routes->post('config/reorderEmailTemplateFormFields', 'Config::reorderEmailTemplateFormFields');
+$routes->get('config/generateVisitorQr', 'Config::generateVisitorQr');
+
 
 // Pathway Management Routes
 $routes->get('config/getPathways', 'Config::getPathways');
@@ -248,6 +256,19 @@ $routes->post('report/visitor/movement', 'VisitorChronology::movementTimeline');
 
 
 // Blacklist Routes
-$routes->get('blacklist/blacklistrequest', 'BlacklistRequest::requestList');
-$routes->get('blacklist/entry', 'BlacklistEntry::index');
-$routes->get('blacklist/closedlist', 'BlacklistClosedList::index');
+$routes->group('blacklist', function ($routes) {
+    // Blacklist Request
+    $routes->get('blacklistrequest', 'BlacklistRequest::index');
+    $routes->get('blacklistrequest/create', 'BlacklistRequest::create');
+    $routes->post('blacklistrequest', 'BlacklistRequest::store');
+    $routes->get('blacklistrequest/(:num)', 'BlacklistRequest::view/$1');
+    $routes->get('blacklistrequest/(:num)/edit', 'BlacklistRequest::edit/$1');
+    $routes->post('blacklistrequest/(:num)/update', 'BlacklistRequest::update/$1');
+    $routes->post('blacklistrequest/(:num)/delete', 'BlacklistRequest::delete/$1');
+
+    // Blacklist Entry (directly in Controllers/)
+    $routes->get('entry', 'BlacklistEntry::index');
+
+    // Blacklist Closed List (directly in Controllers/)
+    $routes->get('closedlist', 'BlacklistClosedList::index');
+});

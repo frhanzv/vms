@@ -339,48 +339,49 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Role Management -->
+                
+                <!-- Registration Type -->
                 <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
-                    <button onclick="toggleSection('appconfig')" class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                    <button onclick="toggleSection('regtype')" class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                         <div class="flex items-center gap-4">
                             <div class="p-2 bg-primary/10 rounded-lg">
-                                <span class="material-symbols-outlined text-primary text-xl">app_registration</span>
+                                <span class="material-symbols-outlined text-primary text-xl">badge</span>
                             </div>
                             <div class="text-left">
-                                <h3 class="text-base font-bold text-gray-800 dark:text-white">App Config</h3>
-                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Manage application settings</p>
+                                <h3 class="text-base font-bold text-gray-800 dark:text-white">Registration Type</h3>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Manage registration types</p>
                             </div>
                         </div>
-                        <span id="appconfig-icon" class="material-symbols-outlined text-gray-400 dark:text-slate-400 transition-transform">expand_more</span>
+                        <span id="regtype-icon" class="material-symbols-outlined text-gray-400 dark:text-slate-400 transition-transform">expand_more</span>
                     </button>
-                    <div id="appconfig-content" class="hidden border-t border-gray-200 dark:border-slate-700">
+                    <div id="regtype-content" class="hidden border-t border-gray-200 dark:border-slate-700">
                         <div class="p-6 bg-gray-50 dark:bg-slate-800/50">
-                            <!-- Search and Create -->
+                            <!-- Search -->
                             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                                 <div class="flex shadow-sm w-full sm:w-96">
-                                    <input id="appconfig-search-input" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Search description..." type="text"/>
-                                    <button onclick="searchDesc()" class="bg-primary hover:bg-blue-600 text-white px-6 py-2.5 rounded-r flex items-center justify-center transition-colors">
+                                    <input id="regtype-search-input" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Search registration type..." type="text"/>
+                                    <button onclick="searchRegType()" class="bg-primary hover:bg-blue-600 text-white px-6 py-2.5 rounded-r flex items-center justify-center transition-colors">
                                         <span class="material-symbols-outlined text-white text-[20px]">search</span>
                                     </button>
                                 </div>
                             </div>
 
-                            <!-- App Table -->
+                            <!-- Table -->
                             <div class="overflow-x-auto">
                                 <table class="w-full text-left text-sm">
                                     <thead class="text-xs text-gray-600 dark:text-slate-400 uppercase border-b border-gray-200 dark:border-slate-700">
                                         <tr>
-                                            <th class="px-4 py-3">Description</th>
+                                            <th class="px-4 py-3">Registration Type</th>
+                                            <th class="px-4 py-3 text-center">Can Print CP</th>
                                             <th class="px-4 py-3">Status</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="appconfig-table-body" class="text-gray-700 dark:text-slate-300">
+                                    <tbody id="regtype-table-body" class="text-gray-700 dark:text-slate-300">
                                         <tr>
-                                            <td colspan="2" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
+                                            <td colspan="3" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
                                                 <div class="flex flex-col items-center justify-center">
                                                     <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
-                                                    <span>Loading description...</span>
+                                                    <span>Loading registration types...</span>
                                                 </div>
                                             </td>
                                         </tr>
@@ -390,62 +391,54 @@
 
                             <!-- Pagination -->
                             <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6">
-                                <p id="appconfig-pagination-info" class="text-sm text-gray-600 dark:text-slate-400">
-                                    Loading...
-                                </p>
-                                <div id="appconfig-pagination-buttons" class="flex items-center gap-2">
-                                </div>
+                                <p id="regtype-pagination-info" class="text-sm text-gray-600 dark:text-slate-400">Loading...</p>
+                                <div id="regtype-pagination-buttons" class="flex items-center gap-2"></div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- App Config View Details Modal (outside appconfig section) -->
-                <div id="appConfigModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-                    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-lg mx-4">
+                <!-- Registration Type Modal -->
+                <div id="regtype-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50">
+                    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md mx-4">
                         <!-- Header -->
-                        <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-slate-700">
-                            <h3 class="text-base font-bold text-gray-800 dark:text-white">View Details</h3>
-                            <button onclick="closeAppConfigModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-slate-300">
-                                <span class="material-symbols-outlined">close</span>
+                        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-slate-700">
+                            <h2 class="text-base font-semibold text-gray-800 dark:text-white">Registration Type Details</h2>
+                            <button onclick="closeRegTypeModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 transition-colors">
+                                <span class="material-symbols-outlined text-xl">close</span>
                             </button>
                         </div>
                         <!-- Body -->
-                        <div class="p-6 space-y-4">
+                        <div class="px-6 py-5 space-y-4">
                             <div>
-                                <label class="text-sm font-medium text-gray-700 dark:text-slate-300">*Description:</label>
-                                <input id="appConfigDescription" type="text" readonly
-                                    class="mt-1 w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2 text-sm bg-gray-50"/>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                                    *Registration Type Name:
+                                </label>
+                                <input
+                                    id="regtype-modal-name"
+                                    type="text"
+                                    class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2 text-sm focus:ring-primary focus:border-primary outline-none"
+                                />
                             </div>
                             <div>
-                                <label class="text-sm font-medium text-gray-700 dark:text-slate-300">Active</label>
-                                <input id="appConfigActive" type="text"
-                                    class="mt-1 w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2 text-sm"/>
-                            </div>
-                            <div>
-                                <label class="text-sm font-medium text-gray-700 dark:text-slate-300">Day to Send First Alert</label>
-                                <input id="appConfigFirstAlert" type="number"
-                                    class="mt-1 w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2 text-sm"/>
-                            </div>
-                            <div>
-                                <label class="text-sm font-medium text-gray-700 dark:text-slate-300">Day to Send Second Alert</label>
-                                <input id="appConfigSecondAlert" type="number"
-                                    class="mt-1 w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2 text-sm"/>
-                            </div>
-                            <div>
-                                <label class="text-sm font-medium text-gray-700 dark:text-slate-300">Day to Block</label>
-                                <input id="appConfigDayToBlock" type="number"
-                                    class="mt-1 w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2 text-sm"/>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                                    Status
+                                </label>
+                                <select
+                                    id="regtype-modal-status"
+                                    class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2 text-sm focus:ring-primary focus:border-primary outline-none"
+                                >
+                                    <option value="Active">ACTIVE</option>
+                                    <option value="Inactive">INACTIVE</option>
+                                </select>
                             </div>
                         </div>
                         <!-- Footer -->
-                        <div class="flex items-center justify-between p-4 border-t border-gray-200 dark:border-slate-700">
-                            <button onclick="closeAppConfigModal()"
-                                class="px-4 py-2 rounded-lg bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-medium transition-colors">
+                        <div class="flex justify-between px-6 py-4 border-t border-gray-200 dark:border-slate-700">
+                            <button onclick="closeRegTypeModal()" class="bg-yellow-400 hover:bg-yellow-500 text-white text-sm font-medium px-5 py-2 rounded transition-colors">
                                 Back
                             </button>
-                            <button onclick="saveAppConfig()"
-                                class="px-4 py-2 rounded-lg bg-primary hover:bg-blue-600 text-white text-sm font-medium transition-colors">
+                            <button onclick="saveRegType()" class="bg-primary hover:bg-blue-600 text-white text-sm font-medium px-5 py-2 rounded transition-colors">
                                 Save
                             </button>
                         </div>
@@ -2374,6 +2367,29 @@
                     </div>
                 </div>
 
+                <!-- Visitor QR Code -->
+                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                    <button onclick="toggleSection('visitorqrcode')" class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                        <div class="flex items-center gap-4">
+                            <div class="p-2 bg-primary/10 rounded-lg">
+                                <span class="material-symbols-outlined text-primary text-xl">qr_code</span>
+                            </div>
+                            <div class="text-left">
+                                <h3 class="text-base font-bold text-gray-800 dark:text-white">Visitor QR Code</h3>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Scan to register visitor</p>
+                            </div>
+                        </div>
+                        <span id="visitorqrcode-icon" class="material-symbols-outlined text-gray-400 dark:text-slate-400 transition-transform">expand_more</span>
+                    </button>
+                    <div id="visitorqrcode-content" class="hidden border-t border-gray-200 dark:border-slate-700">
+                        <div class="p-6 bg-gray-50 dark:bg-slate-800/50 flex flex-col items-center justify-center">
+                            <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200" id="qr-code-container">
+                                <img src="<?= base_url('config/generateVisitorQr') ?>" alt="Visitor Registration QR Code" class="w-64 h-64 object-contain">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Email Template Settings -->
                 <div
                     class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
@@ -2392,27 +2408,34 @@
                             class="material-symbols-outlined text-gray-400 dark:text-slate-400 transition-transform">expand_more</span>
                     </button>
                     <div id="email-template-content" class="hidden border-t border-gray-200 dark:border-slate-700">
-                        <div class="p-6 bg-gray-50 dark:bg-slate-800/50 space-y-6">
-                            <div>
-                                <p class="text-sm font-semibold text-slate-700 dark:text-slate-300">Email templates by process</p>
-                                <p class="text-xs text-slate-500 mt-1">Configure fixed email text and colors for each email process in the system.</p>
+                        <!-- List View (Table) -->
+                        <div id="emailTemplateListView" class="p-6 bg-gray-50 dark:bg-slate-800/50 space-y-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                        <p class="text-sm font-semibold text-slate-700 dark:text-slate-300">Email templates</p>
+                                        <p class="text-xs text-slate-500 mt-1">Create and manage email templates by code.</p>
+                                </div>
+                                    <button type="button" onclick="openEmailTemplateModalForCreate()" class="px-4 py-2 rounded-lg bg-primary text-white text-xs font-bold hover:bg-blue-600 transition-all shadow-sm active:scale-95 inline-flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-base">add</span>
+                                        Create
+                                    </button>
                             </div>
 
-                            <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
-                                <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
-                                    <p class="text-sm font-semibold text-slate-700 dark:text-slate-200">Template Management</p>
-                                    <p class="text-xs text-slate-500 dark:text-slate-400">Click Edit to load template details</p>
+                            <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
+                                <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between bg-white dark:bg-slate-900">
+                                    <p class="text-sm font-bold text-slate-800 dark:text-200 uppercase tracking-wider">Template Management</p>
+                                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Click Edit to load template details</p>
                                 </div>
                                 <div class="p-4 bg-slate-50 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-700">
                                     <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                                         <div class="md:col-span-2 flex">
-                                            <input id="emailTemplateSearchInput" oninput="searchEmailTemplates()" type="text" placeholder="Search template..." class="w-full rounded-l-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white px-3 py-2 text-sm">
-                                            <button type="button" onclick="searchEmailTemplates()" class="px-4 rounded-r-lg bg-primary text-white">
+                                            <input id="emailTemplateSearchInput" oninput="searchEmailTemplates()" type="text" placeholder="Search template..." class="w-full rounded-l-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white px-3 py-2 text-sm focus:ring-primary focus:border-primary">
+                                            <button type="button" onclick="searchEmailTemplates()" class="px-4 rounded-r-lg bg-primary text-white hover:bg-blue-600 transition-colors">
                                                 <span class="material-symbols-outlined text-base">search</span>
                                             </button>
                                         </div>
                                         <div>
-                                            <select id="emailTemplateSortSelect" onchange="sortEmailTemplates()" class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white px-3 py-2 text-sm">
+                                            <select id="emailTemplateSortSelect" onchange="sortEmailTemplates()" class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white px-3 py-2 text-sm focus:ring-primary focus:border-primary">
                                                 <option value="default">Default Order</option>
                                                 <option value="name_asc">Template (A-Z)</option>
                                                 <option value="name_desc">Template (Z-A)</option>
@@ -2424,11 +2447,11 @@
                                 </div>
                                 <div class="overflow-x-auto">
                                     <table class="min-w-full text-sm">
-                                        <thead class="bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300">
+                                        <thead class="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px] tracking-widest">
                                             <tr>
-                                                <th class="px-4 py-2 text-left font-semibold">No</th>
-                                                <th class="px-4 py-2 text-left font-semibold">Template</th>
-                                                <th class="px-4 py-2 text-left font-semibold">Actions</th>
+                                                <th class="px-6 py-4 text-left">No</th>
+                                                <th class="px-6 py-4 text-left">Code</th>
+                                                <th class="px-6 py-4 text-center">Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody id="emailTemplateProcessTableBody" class="divide-y divide-slate-100 dark:divide-slate-700 text-slate-700 dark:text-slate-200"></tbody>
@@ -2436,81 +2459,255 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Create / Update Modal -->
+                        <div id="emailTemplateCrudModal" class="hidden fixed inset-0 z-[80] overflow-y-auto">
+                            <div class="flex min-h-screen items-center justify-center px-4 py-8">
+                                <div class="fixed inset-0 bg-black/40" onclick="closeEmailTemplateCrudModal()"></div>
+                                <div class="relative w-full max-w-3xl rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xl">
+                                    <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+                                        <h3 id="emailTemplateCrudModalTitle" class="text-lg font-bold text-slate-800 dark:text-white">Create Email Template</h3>
+                                        <button type="button" onclick="closeEmailTemplateCrudModal()" class="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
+                                            <span class="material-symbols-outlined">close</span>
+                                        </button>
+                                    </div>
+                                    <form id="emailTemplateCrudForm" onsubmit="submitEmailTemplateCrudForm(event)" class="p-6 space-y-4">
+                                        <input type="hidden" id="emailTemplateCrudId">
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Code</label>
+                                            <input id="emailTemplateCrudCode" type="text" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-primary focus:border-primary text-sm p-2.5 shadow-sm" required placeholder="e.g. VISITOR_INVITE">
+                                            <p class="mt-1 text-[11px] text-slate-500 dark:text-slate-400">Use uppercase letters, numbers, and underscore only.</p>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Subject</label>
+                                            <input id="emailTemplateCrudSubject" type="text" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-primary focus:border-primary text-sm p-2.5 shadow-sm" required>
+                                        </div>
+                                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Primary Color</label>
+                                                <input id="emailTemplateCrudPrimaryColor" type="color" class="h-10 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-1 cursor-pointer">
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Content Background</label>
+                                                <input id="emailTemplateCrudContentBgColor" type="color" class="h-10 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-1 cursor-pointer">
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Text Color</label>
+                                                <input id="emailTemplateCrudTextColor" type="color" class="h-10 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-1 cursor-pointer">
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Body</label>
+                                            <textarea id="emailTemplateCrudBody" rows="12" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-primary focus:border-primary text-sm p-2.5 shadow-sm custom-scrollbar" required></textarea>
+                                        </div>
+                                        <div class="flex justify-end gap-2 pt-2">
+                                            <button type="button" onclick="closeEmailTemplateCrudModal()" class="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200">Back</button>
+                                            <button id="emailTemplateCrudSubmitBtn" type="submit" class="px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary-hover">Save</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Editor View (Visual Editor) -->
+                        <div id="emailTemplateEditorView" class="hidden p-6 bg-gray-50 dark:bg-slate-800/50">
+                            <div class="grid grid-cols-1 xl:grid-cols-12 gap-8 h-full">
+                                <!-- Preview Column (Now on Left) -->
+                                <div class="xl:col-span-12 2xl:col-span-7 order-1 2xl:order-1">
+                                    <div class="sticky top-8 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-2xl overflow-hidden">
+                                        <div class="px-5 py-4 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                                            <div class="flex gap-2">
+                                                <div class="w-3.5 h-3.5 rounded-full bg-[#ff5f56]"></div>
+                                                <div class="w-3.5 h-3.5 rounded-full bg-[#ffbd2e]"></div>
+                                                <div class="w-3.5 h-3.5 rounded-full bg-[#27c93f]"></div>
+                                            </div>
+                                            <div class="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Live Visual Preview</div>
+                                        </div>
+                                        
+                                        <!-- Mockup Content -->
+                                        <div class="p-8 bg-[#f8fafc] overflow-y-auto max-h-[85vh] custom-scrollbar">
+                                            <div class="max-w-[550px] mx-auto bg-white rounded-2xl shadow-xl border border-slate-100/50 overflow-hidden ring-1 ring-slate-900/5">
+                                                <div id="previewHeader" class="bg-primary p-12 text-center text-white transition-all duration-500">
+                                                    <div class="mb-5 inline-block animate-pulse-subtle">
+                                                        <svg width="48" height="48" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                            <path d="M20 2L4 9V18C4 28.5 10.5 35 20 38C29.5 35 36 28.5 36 18V9L20 2Z" fill="white" fill-opacity="0.2"/>
+                                                            <path d="M20 6L8 11.25V18C8 25.875 12.875 31.5 20 34C27.125 31.5 32 25.875 32 18V11.25L20 6Z" fill="white" fill-opacity="0.5"/>
+                                                            <path d="M20 10L12 13.5V18C12 23.25 15.25 27 20 29C24.75 27 28 23.25 28 18V13.5L20 10Z" fill="white"/>
+                                                        </svg>
+                                                    </div>
+                                                    <h1 id="previewBrandName" class="text-3xl font-black block mb-1 drop-shadow-md tracking-tight">SafeG</h1>
+                                                    <h2 id="previewHeaderTitle" class="text-xl font-semibold opacity-90 tracking-wide">Visitor Invitation</h2>
+                                                </div>
+                                                
+                                                <div id="previewContent" class="p-12 transition-all duration-500">
+                                                    <p class="mb-5 font-medium text-lg" id="previewDear">Dear <strong id="previewDearName">John Doe</strong>,</p>
+                                                    <p class="leading-relaxed text-base mb-8" id="previewIntro">You have been invited to visit SafeG. Please complete your registration by clicking the button below.</p>
+                                                    
+                                                    <div class="bg-slate-50/50 border border-slate-100 rounded-2xl p-8 mb-10 shadow-inner">
+                                                        <h3 class="text-sm font-black mb-6 pb-4 border-b border-slate-200/50 uppercase tracking-widest" id="previewDetailsTitle">Visit Details:</h3>
+                                                        <div class="space-y-4">
+                                                            <div class="grid grid-cols-12 gap-3 text-sm">
+                                                                <span class="col-span-4 font-bold opacity-60 uppercase text-[10px] tracking-wider mt-0.5">Company</span>
+                                                                <span class="col-span-8 font-bold">SafeG Enterprise</span>
+                                                            </div>
+                                                            <div class="grid grid-cols-12 gap-3 text-sm">
+                                                                <span class="col-span-4 font-bold opacity-60 uppercase text-[10px] tracking-wider mt-0.5">Location</span>
+                                                                <span class="col-span-8 font-bold">Main Reception</span>
+                                                            </div>
+                                                            <div class="grid grid-cols-12 gap-3 text-sm">
+                                                                <span class="col-span-4 font-bold opacity-60 uppercase text-[10px] tracking-wider mt-0.5">Purpose</span>
+                                                                <span class="col-span-8 font-bold">Official Meeting</span>
+                                                            </div>
+                                                            <div class="grid grid-cols-12 gap-3 text-sm">
+                                                                <span class="col-span-4 font-bold opacity-60 uppercase text-[10px] tracking-wider mt-0.5">Invited By</span>
+                                                                <span class="col-span-8 font-bold">Manager Name</span>
+                                                            </div>
+                                                            <div class="mt-6 pt-6 border-t border-slate-200/50">
+                                                                <span class="block font-bold opacity-60 uppercase text-[10px] tracking-widest mb-3">Visit Schedule(s)</span>
+                                                                <div class="bg-white p-4 rounded-xl flex items-center gap-3 text-[11px] border border-slate-100 shadow-sm transition-all hover:shadow-md">
+                                                                    <div class="p-2 bg-primary/10 rounded-lg text-primary">📅</div>
+                                                                    <div>
+                                                                        <div class="font-bold">16/04/2026 10:00 AM</div>
+                                                                        <div class="opacity-60">Total Duration: 1 Hour</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div class="text-center my-10">
+                                                        <a href="javascript:void(0)" id="previewButton" class="bg-primary hover:scale-[1.02] active:scale-[0.98] transition-all inline-block px-12 py-4.5 rounded-xl text-white font-black text-lg shadow-2xl shadow-primary/30 tracking-tight">Complete Registration</a>
+                                                    </div>
+                                                    
+                                                    <div class="mt-12 pt-10 border-t border-slate-100">
+                                                        <h4 id="previewNotesTitle" class="text-xs font-black mb-5 uppercase tracking-[0.2em] flex items-center gap-2">
+                                                            <span class="w-1.5 h-1.5 rounded-full bg-primary/50"></span>
+                                                            Important Notes
+                                                        </h4>
+                                                        <ul id="previewNotesList" class="space-y-4 text-xs font-medium">
+                                                            <li class="flex gap-3 leading-relaxed">
+                                                                <span class="text-primary font-bold">•</span> 
+                                                                <span>Please arrive 10 minutes early for security check-in.</span>
+                                                            </li>
+                                                            <li class="flex gap-3 leading-relaxed">
+                                                                <span class="text-primary font-bold">•</span> 
+                                                                <span>A valid photo ID is required for entry into the building.</span>
+                                                            </li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="text-center mt-12 text-[11px] mb-8 leading-relaxed font-medium" id="previewFooterSection">
+                                                <p id="previewFooter" class="mb-1 opacity-80">This is an automated message from <span class="font-bold opacity-100">SafeG</span> Visitor Management</p>
+                                                <p class="opacity-60">&copy; 2026 <span id="previewFooterBrand" class="font-bold">SafeG</span>. All rights reserved.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Config Column (Now on Right) -->
+                                <div class="xl:col-span-12 2xl:col-span-5 space-y-6 order-2 2xl:order-2">
+                                    <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm space-y-4">
+                                        <div class="flex items-center justify-between">
+                                            <h4 class="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider">Email Content</h4>
+                                            <span class="px-2 py-1 text-[10px] bg-primary/10 text-primary font-bold rounded uppercase" id="currentProcessBadge">Invitation</span>
+                                        </div>
+
+                                        <div class="space-y-4">
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Subject Line</label>
+                                                <input id="invitationEmailSubject" oninput="updateEmailPreview()" type="text" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:ring-primary focus:border-primary text-sm p-2.5 shadow-sm">
+                                            </div>
+
+                                            <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-3">
+                                                <div class="flex items-center justify-between gap-2 mb-2">
+                                                    <p class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Tokens</p>
+                                                    <p class="text-[10px] text-slate-400 dark:text-slate-500 italic">Click to insert at cursor</p>
+                                                </div>
+                                                <div id="emailTemplatePlaceholderBox" class="flex flex-wrap gap-1.5"></div>
+                                            </div>
+
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Introductory Line</label>
+                                                <textarea id="invitationEmailIntroLine" oninput="updateEmailPreview()" rows="8" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:ring-primary focus:border-primary text-sm p-2.5 shadow-sm custom-scrollbar"></textarea>
+                                            </div>
+
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Button Text</label>
+                                                    <input id="invitationEmailButtonText" oninput="updateEmailPreview()" type="text" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:ring-primary focus:border-primary text-sm p-2.5 shadow-sm">
+                                                </div>
+                                                <div>
+                                                    <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Header Title</label>
+                                                    <input id="invitationEmailHeaderTitle" oninput="updateEmailPreview()" type="text" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:ring-primary focus:border-primary text-sm p-2.5 shadow-sm">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm space-y-4">
+                                        <h4 class="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider">Branding & Colors</h4>
+                                        <div class="grid grid-cols-3 gap-4">
+                                            <div class="col-span-3">
+                                                <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Brand Name</label>
+                                                <input id="invitationEmailBrandName" oninput="updateEmailPreview()" type="text" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:ring-primary focus:border-primary text-sm p-2.5 shadow-sm">
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Primary</label>
+                                                <div class="relative h-10 w-full overflow-hidden rounded-lg border border-slate-300 dark:border-slate-700 shadow-sm transition-transform active:scale-95">
+                                                    <input id="invitationEmailPrimaryColor" oninput="updateEmailPreview()" type="color" class="absolute -inset-1 h-14 w-14 cursor-pointer p-0 border-none bg-transparent">
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Text</label>
+                                                <div class="relative h-10 w-full overflow-hidden rounded-lg border border-slate-300 dark:border-slate-700 shadow-sm transition-transform active:scale-95">
+                                                    <input id="invitationEmailTextColor" oninput="updateEmailPreview()" type="color" class="absolute -inset-1 h-14 w-14 cursor-pointer p-0 border-none bg-transparent">
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Content BG</label>
+                                                <div class="relative h-10 w-full overflow-hidden rounded-lg border border-slate-300 dark:border-slate-700 shadow-sm transition-transform active:scale-95">
+                                                    <input id="invitationEmailContentBgColor" oninput="updateEmailPreview()" type="color" class="absolute -inset-1 h-14 w-14 cursor-pointer p-0 border-none bg-transparent">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm space-y-4">
+                                        <h4 class="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider">Additional Sections</h4>
+                                        <div class="space-y-4">
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Notes List Title</label>
+                                                <input id="invitationEmailNotesTitle" oninput="updateEmailPreview()" type="text" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:ring-primary focus:border-primary text-sm p-2.5 shadow-sm">
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Notes (One per line)</label>
+                                                <textarea id="invitationEmailNotesItems" oninput="updateEmailPreview()" rows="10" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:ring-primary focus:border-primary text-sm p-2.5 shadow-sm custom-scrollbar"></textarea>
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Footer Text</label>
+                                                <textarea id="invitationEmailFooterText" oninput="updateEmailPreview()" rows="4" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:ring-primary focus:border-primary text-sm p-2.5 shadow-sm custom-scrollbar"></textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex justify-start gap-4 py-6">
+                                        <button type="button" onclick="saveInvitationEmailTemplateSettings()" class="px-8 py-3.5 rounded-xl bg-primary text-white font-bold hover:bg-blue-600 transition-all shadow-xl shadow-primary/20 flex items-center gap-2 active:scale-95">
+                                            <span class="material-symbols-outlined text-xl">save</span>
+                                            Update Template
+                                        </button>
+                                        <button type="button" onclick="closeVisualEditor()" class="px-6 py-3.5 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition-all active:scale-95 flex items-center gap-2">
+                                            <span class="material-symbols-outlined text-xl">arrow_back</span>
+                                            Back to List
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div id="emailTemplateEditModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 overflow-y-auto">
-                    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-3xl mx-4 my-8">
-                        <div class="px-6 py-4 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
-                            <div>
-                                <h3 class="text-lg font-bold text-gray-900 dark:text-white">Edit Email Template</h3>
-                                <p id="emailTemplateCurrentProcessLabel" class="text-xs text-slate-500 dark:text-slate-400 mt-0.5"></p>
-                            </div>
-                            <button type="button" onclick="closeEmailTemplateModal()" class="text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200">
-                                <span class="material-symbols-outlined">close</span>
-                            </button>
-                        </div>
-                        <div class="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
-                            <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-3">
-                                <div class="flex items-center justify-between gap-2 mb-2">
-                                    <p class="text-xs font-semibold text-slate-700 dark:text-slate-200">Placeholder Box</p>
-                                    <p class="text-[11px] text-slate-500 dark:text-slate-400">Click to insert, drag to reorder</p>
-                                </div>
-                                <div id="emailTemplatePlaceholderBox" class="flex flex-wrap gap-2"></div>
-                            </div>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <div>
-                                    <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Subject</label>
-                                    <input id="invitationEmailSubject" type="text" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white">
-                                </div>
-                                <div>
-                                    <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Button Text</label>
-                                    <input id="invitationEmailButtonText" type="text" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white">
-                                </div>
-                                <div>
-                                    <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Brand Name</label>
-                                    <input id="invitationEmailBrandName" type="text" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white">
-                                </div>
-                                <div>
-                                    <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Header Title</label>
-                                    <input id="invitationEmailHeaderTitle" type="text" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white">
-                                </div>
-                                <div>
-                                    <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Primary Color</label>
-                                    <input id="invitationEmailPrimaryColor" type="color" class="mt-1 w-full h-10 rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900">
-                                </div>
-                                <div>
-                                    <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Content Background</label>
-                                    <input id="invitationEmailContentBgColor" type="color" class="mt-1 w-full h-10 rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900">
-                                </div>
-                                <div class="md:col-span-2">
-                                    <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Text Color</label>
-                                    <input id="invitationEmailTextColor" type="color" class="mt-1 w-full h-10 rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900">
-                                </div>
-                                <div class="md:col-span-2">
-                                    <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Intro Line</label>
-                                    <textarea id="invitationEmailIntroLine" rows="3" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white"></textarea>
-                                </div>
-                                <div class="md:col-span-2">
-                                    <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Notes Title</label>
-                                    <input id="invitationEmailNotesTitle" type="text" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white">
-                                </div>
-                                <div class="md:col-span-2">
-                                    <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Notes Items (one per line)</label>
-                                    <textarea id="invitationEmailNotesItems" rows="4" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white"></textarea>
-                                </div>
-                                <div class="md:col-span-2">
-                                    <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Footer Text</label>
-                                    <textarea id="invitationEmailFooterText" rows="2" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white"></textarea>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="px-6 py-4 border-t border-gray-200 dark:border-slate-700 flex justify-end gap-2">
-                            <button type="button" onclick="closeEmailTemplateModal()" class="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200">Cancel</button>
-                            <button type="button" onclick="saveInvitationEmailTemplateSettings()" class="px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary-hover">Update Template</button>
-                        </div>
-                    </div>
-                </div>
 
                 <div id="emailTemplateFieldModal" class="hidden fixed inset-0 z-[60] overflow-y-auto">
                     <div class="flex min-h-screen items-center justify-center px-4 py-8">
@@ -3342,6 +3539,10 @@
                 if (section === 'user') {
                     loadUsers();
                 }
+                // Load email templates when Email Template section is opened
+                if (section === 'email-template') {
+                    fetchEmailTemplates();
+                }
                 // Load companies when Company Management section is opened
                 if (section === 'company') {
                     loadCompanies();
@@ -3523,6 +3724,183 @@
             closeAppConfigModal();
             showNotification('App config saved successfully', 'success');
         }
+
+        // ============== REGISTRATION TYPE FUNCTIONS ==============
+
+        let _regTypeCurrentPage = 1;
+        let _regTypeAllData = [];
+        let _regTypeFiltered = [];
+        let _regTypeEditingItem = null;
+        const REG_TYPE_PAGE_SIZE = 10;
+
+        // Close modal on backdrop click
+        document.getElementById('regtype-modal').addEventListener('click', function (e) {
+            if (e.target === this) closeRegTypeModal();
+        });
+
+        async function loadRegType() {
+            try {
+                // TODO: Replace with your actual API call
+                // const res = await fetch('/api/registration-types');
+                // _regTypeAllData = await res.json();
+
+                // ── Placeholder data (remove once API is wired) ──
+                _regTypeAllData = [
+                    { id: 1, name: 'FORWARDING',   canPrintCp: false, status: 'Inactive' },
+                    { id: 2, name: 'GENERAL',      canPrintCp: false, status: 'Inactive' },
+                    { id: 3, name: 'GOVERNMENT',   canPrintCp: false, status: 'Inactive' },
+                    { id: 4, name: 'HAULIER',      canPrintCp: false, status: 'Inactive' },
+                    { id: 5, name: 'PORT USER',    canPrintCp: false, status: 'Inactive' },
+                    { id: 6, name: 'STAFF',        canPrintCp: false, status: 'Active'   },
+                    { id: 7, name: 'TRANSPORTER',  canPrintCp: false, status: 'Inactive' },
+                ];
+
+                _regTypeFiltered = [..._regTypeAllData];
+                _regTypeCurrentPage = 1;
+                renderRegTypeTable();
+            } catch (err) {
+                console.error('Failed to load registration types:', err);
+                document.getElementById('regtype-table-body').innerHTML = `
+                    <tr><td colspan="4" class="px-4 py-8 text-center text-red-500">Failed to load data.</td></tr>`;
+            }
+        }
+
+        function searchRegType() {
+            const query = document.getElementById('regtype-search-input').value.trim().toLowerCase();
+            _regTypeFiltered = query
+                ? _regTypeAllData.filter(i => i.name.toLowerCase().includes(query))
+                : [..._regTypeAllData];
+            _regTypeCurrentPage = 1;
+            renderRegTypeTable();
+        }
+
+        // Allow pressing Enter to search
+        document.getElementById('regtype-search-input').addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') searchRegType();
+        });
+
+        function renderRegTypeTable() {
+            const tbody = document.getElementById('regtype-table-body');
+            const total = _regTypeFiltered.length;
+
+            if (total === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">No records found.</td></tr>`;
+                document.getElementById('regtype-pagination-info').textContent = 'No records found.';
+                document.getElementById('regtype-pagination-buttons').innerHTML = '';
+                return;
+            }
+
+            const totalPages = Math.ceil(total / REG_TYPE_PAGE_SIZE);
+            const start = (_regTypeCurrentPage - 1) * REG_TYPE_PAGE_SIZE;
+            const pageItems = _regTypeFiltered.slice(start, start + REG_TYPE_PAGE_SIZE);
+
+            tbody.innerHTML = pageItems.map(item => {
+                const canPrintIcon = item.canPrintCp
+                    ? `<span class="material-symbols-outlined text-green-500 text-base">check</span>`
+                    : `<span class="material-symbols-outlined text-red-500 text-base">close</span>`;
+
+                const statusText = item.status === 'Active'
+                    ? `<span class="text-green-600 dark:text-green-400 font-medium">Active</span>`
+                    : `<span class="text-gray-500 dark:text-slate-400">Inactive</span>`;
+
+                return `
+                    <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors">
+                        <td class="px-4 py-3">${item.name}</td>
+                        <td class="px-4 py-3 text-center">${canPrintIcon}</td>
+                        <td class="px-4 py-3">${statusText}</td>
+                        <td class="px-4 py-3 text-center">
+                            <button onclick="openRegTypeModal(${item.id})" class="text-gray-400 hover:text-primary transition-colors" title="Edit">
+                                <span class="material-symbols-outlined text-base">edit</span>
+                            </button>
+                        </td>
+                    </tr>`;
+            }).join('');
+
+            // Pagination info
+            document.getElementById('regtype-pagination-info').textContent =
+                `Showing ${start + 1}–${Math.min(start + REG_TYPE_PAGE_SIZE, total)} of ${total} record(s)`;
+
+            // Pagination buttons
+            const btnContainer = document.getElementById('regtype-pagination-buttons');
+            let btns = '';
+
+            btns += `<button onclick="goRegTypePage(${_regTypeCurrentPage - 1})" ${_regTypeCurrentPage === 1 ? 'disabled' : ''}
+                class="px-2 py-1 rounded border border-gray-300 dark:border-slate-600 text-gray-500 dark:text-slate-400 disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors">
+                <span class="material-symbols-outlined text-base">chevron_left</span>
+            </button>`;
+
+            for (let p = 1; p <= totalPages; p++) {
+                btns += `<button onclick="goRegTypePage(${p})"
+                    class="px-3 py-1 rounded border text-sm font-medium transition-colors
+                    ${p === _regTypeCurrentPage
+                        ? 'bg-primary text-white border-primary'
+                        : 'border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700'}">
+                    ${p}
+                </button>`;
+            }
+
+            btns += `<button onclick="goRegTypePage(${_regTypeCurrentPage + 1})" ${_regTypeCurrentPage === totalPages ? 'disabled' : ''}
+                class="px-2 py-1 rounded border border-gray-300 dark:border-slate-600 text-gray-500 dark:text-slate-400 disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors">
+                <span class="material-symbols-outlined text-base">chevron_right</span>
+            </button>`;
+
+            btnContainer.innerHTML = btns;
+        }
+
+        function goRegTypePage(page) {
+            const totalPages = Math.ceil(_regTypeFiltered.length / REG_TYPE_PAGE_SIZE);
+            if (page < 1 || page > totalPages) return;
+            _regTypeCurrentPage = page;
+            renderRegTypeTable();
+        }
+
+        function openRegTypeModal(id) {
+            const item = _regTypeAllData.find(i => i.id === id);
+            if (!item) return;
+            _regTypeEditingItem = item;
+
+            document.getElementById('regtype-modal-name').value = item.name;
+            document.getElementById('regtype-modal-status').value = item.status;
+
+            const modal = document.getElementById('regtype-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeRegTypeModal() {
+            document.getElementById('regtype-modal').classList.add('hidden');
+            document.getElementById('regtype-modal').classList.remove('flex');
+            _regTypeEditingItem = null;
+        }
+
+        function saveRegType() {
+            const name   = document.getElementById('regtype-modal-name').value.trim();
+            const status = document.getElementById('regtype-modal-status').value;
+
+            if (!name) {
+                alert('Registration Type Name is required.');
+                return;
+            }
+
+            // TODO: Replace with your actual API call, e.g.:
+            // await fetch(`/api/registration-types/${_regTypeEditingItem.id}`, {
+            //     method: 'PUT',
+            //     body: JSON.stringify({ name, status })
+            // });
+
+            // Update local data and re-render
+            if (_regTypeEditingItem) {
+                _regTypeEditingItem.name   = name;
+                _regTypeEditingItem.status = status;
+                _regTypeFiltered = [..._regTypeAllData]; // re-sync filtered
+                renderRegTypeTable();
+            }
+
+            closeRegTypeModal();
+        }
+
+        // Call this where you initialise your other modules, e.g. on DOMContentLoaded
+        // loadRegType();
 
         // ============== ROLE MANAGEMENT FUNCTIONS ==============
 
@@ -11114,16 +11492,23 @@
             document.getElementById('invitationEmailBrandName').value = data.brand_name || '';
             document.getElementById('invitationEmailHeaderTitle').value = data.header_title || '';
             document.getElementById('invitationEmailPrimaryColor').value = data.primary_color || '#137fec';
-            document.getElementById('invitationEmailContentBgColor').value = data.content_bg_color || '#f8f9fa';
-            document.getElementById('invitationEmailTextColor').value = data.text_color || '#333333';
+            document.getElementById('invitationEmailContentBgColor').value = data.content_bg_color || '#ffffff';
+            document.getElementById('invitationEmailTextColor').value = data.text_color || '#374151';
             document.getElementById('invitationEmailIntroLine').value = data.intro_line || '';
             document.getElementById('invitationEmailNotesTitle').value = data.notes_title || '';
             document.getElementById('invitationEmailNotesItems').value = Array.isArray(data.notes_items)
                 ? data.notes_items.join('\n')
                 : (data.notes_items || '');
             document.getElementById('invitationEmailFooterText').value = data.footer_text || '';
+            
+            // Trigger preview update after values are set
+            updateEmailPreview();
         }
 
+        let emailTemplates = [];
+        let currentEmailTemplateSearch = '';
+        let currentEmailTemplateSort = 'default';
+        // Legacy visual editor state (kept for backward compatibility in this page JS).
         let emailTemplateProcessOptions = [
             { key: 'invitation', label: 'Invitation Email' },
             { key: 'registration_submitted', label: 'Registration Submitted Email' },
@@ -11140,54 +11525,70 @@
             '{{link_expiry_date}}',
         ];
         let currentEmailTemplateProcess = 'invitation';
-        let currentEmailTemplateSearch = '';
-        let currentEmailTemplateSort = 'default';
         let emailTemplateFocusedInputId = null;
         let placeholderDragIndex = null;
         let emailTemplateFocusTrackingBound = false;
 
-        function getEmailTemplateProcessLabel(process) {
-            const option = emailTemplateProcessOptions.find(item => item.key === process);
-            return option ? option.label : process;
+        function fetchEmailTemplates() {
+            fetch('<?= base_url('config/getEmailTemplates') ?>')
+                .then(res => res.json())
+                .then(data => {
+                    emailTemplates = Array.isArray(data.data) ? data.data : [];
+                    renderEmailTemplateTable();
+                })
+                .catch(() => {
+                    showToast('Failed to load email templates', 'error');
+                });
         }
 
-        function renderEmailTemplateProcessTable() {
+        function renderEmailTemplateTable() {
             const tbody = document.getElementById('emailTemplateProcessTableBody');
             if (!tbody) return;
 
-            let rows = [...emailTemplateProcessOptions];
+            let rows = [...emailTemplates];
 
             if (currentEmailTemplateSearch) {
                 const keyword = currentEmailTemplateSearch.toLowerCase();
-                rows = rows.filter(item => item.label.toLowerCase().includes(keyword));
+                rows = rows.filter(item =>
+                    String(item.code || '').toLowerCase().includes(keyword) ||
+                    String(item.subject || '').toLowerCase().includes(keyword)
+                );
             }
 
             if (currentEmailTemplateSort === 'name_asc') {
-                rows.sort((a, b) => a.label.localeCompare(b.label));
+                rows.sort((a, b) => String(a.code || '').localeCompare(String(b.code || '')));
             } else if (currentEmailTemplateSort === 'name_desc') {
-                rows.sort((a, b) => b.label.localeCompare(a.label));
+                rows.sort((a, b) => String(b.code || '').localeCompare(String(a.code || '')));
             } else if (currentEmailTemplateSort === 'newest') {
-                rows = rows.reverse();
+                rows.sort((a, b) => (new Date(b.created_at || 0)) - (new Date(a.created_at || 0)));
+            } else if (currentEmailTemplateSort === 'oldest') {
+                rows.sort((a, b) => (new Date(a.created_at || 0)) - (new Date(b.created_at || 0)));
             }
 
             if (rows.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="3" class="px-4 py-4 text-center text-slate-500 dark:text-slate-400">No templates found</td>
+                        <td colspan="3" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
+                            <span class="material-symbols-outlined text-4xl block mb-2 opacity-20">search_off</span>
+                            No templates found matching your search
+                        </td>
                     </tr>
                 `;
                 return;
             }
 
             tbody.innerHTML = rows.map((item, index) => `
-                <tr class="${currentEmailTemplateProcess === item.key ? 'bg-blue-50/60 dark:bg-slate-800/70' : ''}">
-                    <td class="px-4 py-2">${index + 1}</td>
-                    <td class="px-4 py-2 font-medium">${item.label}</td>
-                    <td class="px-4 py-2">
+                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                    <td class="px-6 py-4 text-slate-500 font-medium">${index + 1}</td>
+                    <td class="px-6 py-4">
+                        <div class="font-bold text-slate-800 dark:text-slate-200">${item.code || ''}</div>
+                        ${item.subject ? `<div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 truncate max-w-[520px]">${item.subject}</div>` : ''}
+                    </td>
+                    <td class="px-6 py-4 text-center">
                         <button
                             type="button"
-                            onclick="openEmailTemplateModal('${item.key}')"
-                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-slate-300 dark:border-slate-600 text-xs hover:bg-slate-100 dark:hover:bg-slate-700"
+                            onclick="openEmailTemplateModalForEdit(${item.id})"
+                            class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 text-xs font-bold hover:bg-primary hover:text-white hover:border-primary transition-all shadow-sm group-hover:shadow-md active:scale-95"
                         >
                             <span class="material-symbols-outlined text-sm">edit</span>
                             Edit
@@ -11195,6 +11596,116 @@
                     </td>
                 </tr>
             `).join('');
+        }
+
+        function searchEmailTemplates() {
+            currentEmailTemplateSearch = document.getElementById('emailTemplateSearchInput')?.value?.trim() || '';
+            renderEmailTemplateTable();
+        }
+
+        function sortEmailTemplates() {
+            currentEmailTemplateSort = document.getElementById('emailTemplateSortSelect')?.value || 'default';
+            renderEmailTemplateTable();
+        }
+
+        function openEmailTemplateModalForCreate() {
+            const modal = document.getElementById('emailTemplateCrudModal');
+            if (!modal) return;
+
+            document.getElementById('emailTemplateCrudModalTitle').textContent = 'Create Email Template';
+            document.getElementById('emailTemplateCrudSubmitBtn').textContent = 'Save';
+
+            document.getElementById('emailTemplateCrudId').value = '';
+            const codeEl = document.getElementById('emailTemplateCrudCode');
+            codeEl.value = '';
+            codeEl.disabled = false;
+            codeEl.classList.remove('opacity-70', 'cursor-not-allowed');
+
+            document.getElementById('emailTemplateCrudSubject').value = '';
+            document.getElementById('emailTemplateCrudPrimaryColor').value = '#137FEC';
+            document.getElementById('emailTemplateCrudContentBgColor').value = '#F8F9FA';
+            document.getElementById('emailTemplateCrudTextColor').value = '#333333';
+            document.getElementById('emailTemplateCrudBody').value = '';
+
+            modal.classList.remove('hidden');
+            setTimeout(() => codeEl.focus(), 0);
+        }
+
+        function openEmailTemplateModalForEdit(id) {
+            fetch(`<?= base_url('config/getEmailTemplate') ?>/${id}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (!data.success) {
+                        showToast(data.message || 'Failed to load email template', 'error');
+                        return;
+                    }
+
+                    const row = data.data || {};
+                    const modal = document.getElementById('emailTemplateCrudModal');
+                    if (!modal) return;
+
+                    document.getElementById('emailTemplateCrudModalTitle').textContent = 'Update Email Template';
+                    document.getElementById('emailTemplateCrudSubmitBtn').textContent = 'Update';
+
+                    document.getElementById('emailTemplateCrudId').value = row.id || '';
+                    const codeEl = document.getElementById('emailTemplateCrudCode');
+                    codeEl.value = row.code || '';
+                    codeEl.disabled = true;
+                    codeEl.classList.add('opacity-70', 'cursor-not-allowed');
+
+                    document.getElementById('emailTemplateCrudSubject').value = row.subject || '';
+                    document.getElementById('emailTemplateCrudPrimaryColor').value = row.primary_color || '#137FEC';
+                    document.getElementById('emailTemplateCrudContentBgColor').value = row.content_bg_color || '#F8F9FA';
+                    document.getElementById('emailTemplateCrudTextColor').value = row.text_color || '#333333';
+                    document.getElementById('emailTemplateCrudBody').value = row.body || '';
+
+                    modal.classList.remove('hidden');
+                    setTimeout(() => document.getElementById('emailTemplateCrudSubject').focus(), 0);
+                })
+                .catch(() => showToast('Failed to load email template', 'error'));
+        }
+
+        function closeEmailTemplateCrudModal() {
+            document.getElementById('emailTemplateCrudModal')?.classList.add('hidden');
+        }
+
+        function submitEmailTemplateCrudForm(event) {
+            event.preventDefault();
+
+            const id = document.getElementById('emailTemplateCrudId')?.value?.trim();
+            const code = (document.getElementById('emailTemplateCrudCode')?.value || '').trim().toUpperCase();
+            const subject = (document.getElementById('emailTemplateCrudSubject')?.value || '').trim();
+            const primary_color = document.getElementById('emailTemplateCrudPrimaryColor')?.value || '';
+            const content_bg_color = document.getElementById('emailTemplateCrudContentBgColor')?.value || '';
+            const text_color = document.getElementById('emailTemplateCrudTextColor')?.value || '';
+            const body = (document.getElementById('emailTemplateCrudBody')?.value || '').trim();
+
+            if (!code || !subject || !body) {
+                showToast('Code, Subject, and Body are required', 'error');
+                return;
+            }
+
+            const payload = { code, subject, body, primary_color, content_bg_color, text_color };
+            const url = id
+                ? `<?= base_url('config/updateEmailTemplate') ?>/${encodeURIComponent(id)}`
+                : '<?= base_url('config/createEmailTemplate') ?>';
+
+            fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            })
+                .then(res => res.json().then(json => ({ ok: res.ok, json })))
+                .then(({ ok, json }) => {
+                    if (!ok || !json.success) {
+                        showToast(json.message || 'Failed to save email template', 'error');
+                        return;
+                    }
+                    showToast(json.message || 'Saved', 'success');
+                    closeEmailTemplateCrudModal();
+                    fetchEmailTemplates();
+                })
+                .catch(() => showToast('Failed to save email template', 'error'));
         }
 
         function renderEmailTemplatePlaceholderBox() {
@@ -11279,43 +11790,124 @@
             input.focus();
         }
 
-        function updateCurrentEmailTemplateProcessLabel() {
-            const labelEl = document.getElementById('emailTemplateCurrentProcessLabel');
-            if (labelEl) {
-                labelEl.textContent = getEmailTemplateProcessLabel(currentEmailTemplateProcess);
-            }
-        }
+        // Label update integrated into selectEmailTemplateProcess
 
         function selectEmailTemplateProcess(process) {
             currentEmailTemplateProcess = process || 'invitation';
-            updateCurrentEmailTemplateProcessLabel();
-            renderEmailTemplateProcessTable();
+            
+            // Update Tab UI
+            document.querySelectorAll('.template-tab').forEach(tab => {
+                const isActive = tab.getAttribute('data-process') === currentEmailTemplateProcess;
+                if (isActive) {
+                    tab.classList.remove('border-transparent', 'text-slate-500', 'dark:text-slate-400');
+                    tab.classList.add('border-primary', 'text-primary');
+                } else {
+                    tab.classList.remove('border-primary', 'text-primary');
+                    tab.classList.add('border-transparent', 'text-slate-500', 'dark:text-slate-400');
+                }
+            });
+
+            // Update Badge
+            const badge = document.getElementById('currentProcessBadge');
+            if (badge) badge.textContent = getEmailTemplateProcessLabel(currentEmailTemplateProcess);
+
+            renderEmailTemplatePlaceholderBox();
+            trackEmailTemplateInputFocus();
             fetchInvitationEmailTemplateSettings();
         }
 
-        function openEmailTemplateModal(process) {
-            selectEmailTemplateProcess(process);
-            const modal = document.getElementById('emailTemplateEditModal');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            renderEmailTemplatePlaceholderBox();
-            trackEmailTemplateInputFocus();
+        function updateEmailPreview() {
+            const getValue = (id) => document.getElementById(id)?.value || '';
+            
+            const brandName = getValue('invitationEmailBrandName');
+            const headerTitle = getValue('invitationEmailHeaderTitle');
+            const introLine = getValue('invitationEmailIntroLine');
+            const buttonText = getValue('invitationEmailButtonText');
+            const notesTitle = getValue('invitationEmailNotesTitle');
+            const notesItems = getValue('invitationEmailNotesItems');
+            const footerText = getValue('invitationEmailFooterText');
+            const primaryColor = getValue('invitationEmailPrimaryColor');
+            const contentBgColor = getValue('invitationEmailContentBgColor');
+            const textColor = getValue('invitationEmailTextColor');
+
+            // Sample data for tokens
+            const samples = {
+                '{{visitor_name}}': 'John Doe',
+                '{{company}}': 'SafeG Enterprise',
+                '{{location}}': 'Main Reception',
+                '{{reason}}': 'Official Meeting',
+                '{{invited_by}}': 'Sarah Connor',
+                '{{link_expiry_date}}': '20/04/2026 18:00',
+                '{{link_expiry_time}}': '18:00'
+            };
+
+            const processTokens = (text) => {
+                let processed = text;
+                Object.keys(samples).forEach(token => {
+                    processed = processed.split(token).join(samples[token]);
+                });
+                return processed;
+            };
+
+            // Update Header
+            const header = document.getElementById('previewHeader');
+            if (header) header.style.backgroundColor = primaryColor;
+            
+            document.getElementById('previewBrandName').textContent = brandName || 'SafeG';
+            document.getElementById('previewFooterBrand').textContent = brandName || 'SafeG';
+            document.getElementById('previewHeaderTitle').textContent = headerTitle || 'Visitor Invitation';
+
+            // Update Content Area
+            const content = document.getElementById('previewContent');
+            const footerSection = document.getElementById('previewFooterSection');
+            if (content) {
+                content.style.backgroundColor = contentBgColor;
+                content.style.color = textColor;
+            }
+            if (footerSection) {
+                footerSection.style.color = textColor;
+            }
+
+            document.getElementById('previewIntro').textContent = processTokens(introLine || 'Your introduction text will appear here...');
+            
+            // Update Button
+            const btn = document.getElementById('previewButton');
+            if (btn) {
+                btn.textContent = buttonText || 'Action Button';
+                btn.style.backgroundColor = primaryColor;
+            }
+
+            // Update Notes
+            document.getElementById('previewNotesTitle').textContent = notesTitle || 'Important Notes';
+            const notesList = document.getElementById('previewNotesList');
+            if (notesList) {
+                const items = notesItems.split('\n').filter(i => i.trim() !== '');
+                if (items.length > 0) {
+                    notesList.innerHTML = items.map(item => `
+                        <li class="flex gap-3 leading-relaxed">
+                            <span style="color: ${primaryColor}" class="font-bold">•</span> 
+                            <span>${processTokens(item)}</span>
+                        </li>
+                    `).join('');
+                } else {
+                    notesList.innerHTML = '<li class="italic text-slate-400">No notes added</li>';
+                }
+            }
+
+            // Update Footer
+            document.getElementById('previewFooter').textContent = processTokens(footerText || 'Footer contact information here');
         }
 
-        function closeEmailTemplateModal() {
-            const modal = document.getElementById('emailTemplateEditModal');
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-        }
+        // Modal logic removed as process select is now direct
 
         function searchEmailTemplates() {
             currentEmailTemplateSearch = (document.getElementById('emailTemplateSearchInput')?.value || '').trim();
-            renderEmailTemplateProcessTable();
+            renderEmailTemplateTable();
         }
 
         function sortEmailTemplates() {
             currentEmailTemplateSort = document.getElementById('emailTemplateSortSelect')?.value || 'default';
-            renderEmailTemplateProcessTable();
+            renderEmailTemplateTable();
         }
 
         function ensureEmailTemplateProcessOptions(options = [], selectedProcess = 'invitation') {
@@ -11332,8 +11924,9 @@
             }
 
             currentEmailTemplateProcess = selectedProcess || currentEmailTemplateProcess || 'invitation';
-            updateCurrentEmailTemplateProcessLabel();
-            renderEmailTemplateProcessTable();
+            
+            // Populate the table if it's visible
+            renderEmailTemplateTable();
 
             return currentEmailTemplateProcess;
         }
@@ -11383,7 +11976,6 @@
                     if (data.data) {
                         setInvitationEmailTemplateFormValues(data.data);
                     }
-                    closeEmailTemplateModal();
                 })
                 .catch(error => {
                     console.error('Error saving invitation email template settings:', error);

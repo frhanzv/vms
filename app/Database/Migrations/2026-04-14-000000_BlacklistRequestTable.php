@@ -4,10 +4,14 @@ namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
-class CreateBlacklistTable extends Migration
+class BlacklistRequestTable extends Migration
 {
     public function up()
     {
+        if ($this->db->tableExists('blacklist')) {
+            return;
+        }
+
         $this->forge->addField([
             'id' => [
                 'type'           => 'INT',
