@@ -557,7 +557,8 @@
                     </section>
 
                     <!-- CSP Details -->
-                    <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8">
+
+                    <!-- <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8">
                         <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
                             <div class="size-10 rounded-full bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center text-orange-600 dark:text-orange-400">
                                 <span class="material-symbols-outlined">apartment</span>
@@ -581,7 +582,7 @@
                         </div>
                     </section>
 
-                    <!-- E-Vetting -->
+                    E-Vetting
 
                     <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8">
                         <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
@@ -635,7 +636,7 @@
                                 </select>
                             </div>
                         </div>
-                    </section>
+                    </section> -->
                     
                     
                     <!-- Document Upload -->
