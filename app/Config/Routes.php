@@ -238,6 +238,19 @@ $routes->post('report/visitor/movement', 'VisitorChronology::movementTimeline');
 
 
 // Blacklist Routes
-$routes->get('blacklist/blacklistrequest', 'BlacklistRequest::requestList');
-$routes->get('blacklist/entry', 'BlacklistEntry::index');
-$routes->get('blacklist/closedlist', 'BlacklistClosedList::index');
+$routes->group('blacklist', function ($routes) {
+    // Blacklist Request
+    $routes->get('blacklistrequest', 'BlacklistRequest::index');
+    $routes->get('blacklistrequest/create', 'BlacklistRequest::create');
+    $routes->post('blacklistrequest', 'BlacklistRequest::store');
+    $routes->get('blacklistrequest/(:num)', 'BlacklistRequest::view/$1');
+    $routes->get('blacklistrequest/(:num)/edit', 'BlacklistRequest::edit/$1');
+    $routes->post('blacklistrequest/(:num)/update', 'BlacklistRequest::update/$1');
+    $routes->post('blacklistrequest/(:num)/delete', 'BlacklistRequest::delete/$1');
+
+    // Blacklist Entry (directly in Controllers/)
+    $routes->get('entry', 'BlacklistEntry::index');
+
+    // Blacklist Closed List (directly in Controllers/)
+    $routes->get('closedlist', 'BlacklistClosedList::index');
+});

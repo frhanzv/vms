@@ -34,6 +34,16 @@
             },
         }
     </script>
+    <script>
+        function doSearch() {
+            const ic = document.querySelector('input[placeholder]').value.trim();
+            if (!ic) {
+                alert('Please enter an IC / Passport number.');
+                return;
+            }
+            window.location.href = '<?= base_url('blacklist/blacklistrequest') ?>?search=' + encodeURIComponent(ic);
+        }
+    </script>
     <style>
         body { font-family: 'Montserrat', sans-serif; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -226,7 +236,7 @@
                         />
                     </div>
 
-                    <button type="button"
+                    <button type="button" onclick="doSearch()"
                         class="h-[42px] px-8 bg-[#1e90ff] hover:bg-[#007bff] text-white text-[13px] font-semibold rounded-md transition-colors shadow-sm">
                         Search
                     </button>
