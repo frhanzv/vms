@@ -575,6 +575,10 @@
                     </button>
                 </div>
                 <div class="flex flex-wrap gap-2">
+                    <button type="button" id="btnReturnCardFromDetail" onclick="returnCardFromDetail()" class="hidden px-4 py-2.5 bg-success hover:bg-emerald-600 text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-lg">assignment_return</span>
+                        Return Card
+                    </button>
                     <button onclick="openCardBindingModal()" class="px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
                         <span class="material-symbols-outlined text-lg">badge</span>
                         i Card Details
@@ -711,6 +715,12 @@
             const allowed = ['active', 'in_use', 'lost', 'inactive'];
             document.getElementById('editCardStatusRaw').value = raw && allowed.includes(raw) ? raw : 'active';
 
+            const returnBtn = document.getElementById('btnReturnCardFromDetail');
+            const normalizedCardStatus = String(visitor.card_status || '').toLowerCase().trim();
+            const showReturnButton = raw === 'in_use' || normalizedCardStatus === 'in use' || normalizedCardStatus === 'in_use';
+            returnBtn.classList.toggle('hidden', !showReturnButton);
+            returnBtn.disabled = false;
+
             const statusBadge = document.getElementById('statusBadge');
             if (visitor.card_status === 'Active' || visitor.card_status === 'In Use') {
                 statusBadge.innerHTML = '<span class="inline-flex items-center gap-2 px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg text-sm font-semibold border border-green-200 dark:border-green-800"><span class="material-symbols-outlined text-base">check_circle</span>Card ' + (visitor.card_status === 'In Use' ? 'In Use' : 'Active') + '</span>';
@@ -809,6 +819,50 @@
         function closeCardBindingModal() {
             document.getElementById('cardBindingModal').classList.add('hidden');
             document.getElementById('cardBindingModal').classList.remove('flex');
+        }
+
+        function returnCardFromDetail() {
+            if (!currentInvitationVisitorId) {
+                alert('No visitor selected.');
+                return;
+            }
+
+            if (!confirm('Return this card and mark it as available?')) {
+                return;
+            }
+
+            const returnBtn = document.getElementById('btnReturnCardFromDetail');
+            const originalText = returnBtn.innerHTML;
+            returnBtn.disabled = true;
+            returnBtn.innerHTML = '<span class="material-symbols-outlined text-lg animate-spin">progress_activity</span> Returning...';
+
+            fetch('<?= base_url('visitors/unbindCard') ?>', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    invitation_visitor_id: currentInvitationVisitorId
+                })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    alert(result.message || 'Card returned successfully');
+                    closeDetailModal();
+                    location.reload();
+                    return;
+                }
+
+                alert(result.message || 'Failed to return card');
+                returnBtn.disabled = false;
+                returnBtn.innerHTML = originalText;
+            })
+            .catch(() => {
+                alert('An error occurred while returning the card');
+                returnBtn.disabled = false;
+                returnBtn.innerHTML = originalText;
+            });
         }
 
         function showCardBindingError(message) {

@@ -21,6 +21,8 @@ use App\Models\VisitorTypeModel;
 use App\Models\SettingModel;
 use App\Models\DeviceAssignmentModel;
 use App\Models\EmailTemplateFormFieldModel;
+use App\Models\PathwayModel;
+use App\Models\SecurityAlertPriorityModel;
 use App\Libraries\EmailTemplateService;
 
 class Config extends BaseController
@@ -44,6 +46,8 @@ class Config extends BaseController
     protected $settingModel;
     protected $deviceAssignmentModel;
     protected $emailTemplateFormFieldModel;
+    protected $pathwayModel;
+    protected $alertPriorityModel;
 
     /**
      * Version-checked update for config entities.
@@ -107,6 +111,8 @@ class Config extends BaseController
         $this->settingModel = new SettingModel();
         $this->deviceAssignmentModel = new DeviceAssignmentModel();
         $this->emailTemplateFormFieldModel = new EmailTemplateFormFieldModel();
+        $this->pathwayModel = new PathwayModel();
+        $this->alertPriorityModel = new SecurityAlertPriorityModel();
     }
 
     public function index()
@@ -3403,6 +3409,239 @@ class Config extends BaseController
         return $this->response->setJSON([
             'success' => true,
             'message' => 'Field order updated successfully'
+        ]);
+    }
+
+    // ============================================
+    // Pathway Management
+    // ============================================
+
+    public function getPathways()
+    {
+        $page   = (int) ($this->request->getGet('page') ?? 1);
+        $limit  = (int) ($this->request->getGet('limit') ?? 10);
+        $search = $this->request->getGet('search') ?? '';
+        $sortBy = $this->request->getGet('sortBy') ?? '';
+
+        $offset = ($page - 1) * $limit;
+
+        $pathways = $this->pathwayModel->getPathwaysWithPagination($search, $sortBy, $limit, $offset);
+        $total    = $this->pathwayModel->getTotalPathways($search);
+
+        $pathwayIds = array_column($pathways, 'id');
+        $allLanes   = $this->pathwayModel->getLanesForPathways($pathwayIds);
+
+        $lanesMap = [];
+        foreach ($allLanes as $row) {
+            $lanesMap[$row['pathway_id']][] = $row;
+        }
+
+        foreach ($pathways as &$p) {
+            $p['lanes'] = $lanesMap[$p['id']] ?? [];
+        }
+        unset($p);
+
+        return $this->response->setJSON([
+            'success'    => true,
+            'data'       => $pathways,
+            'pagination' => [
+                'page'       => $page,
+                'limit'      => $limit,
+                'total'      => $total,
+                'totalPages' => ceil($total / $limit),
+            ],
+        ]);
+    }
+
+    public function getPathway($id)
+    {
+        $pathway = $this->pathwayModel->getPathwayWithLanes($id);
+
+        if (!$pathway) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Pathway not found',
+            ])->setStatusCode(404);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data'    => $pathway,
+        ]);
+    }
+
+    public function createPathway()
+    {
+        $input = $this->request->getJSON(true);
+
+        $data = [
+            'name'   => $input['name'] ?? '',
+            'status' => $input['status'] ?? 'active',
+        ];
+
+        if (!$this->pathwayModel->insert($data)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to create pathway',
+                'errors'  => $this->pathwayModel->errors(),
+            ])->setStatusCode(400);
+        }
+
+        $pathwayId = $this->pathwayModel->getInsertID();
+
+        if (!empty($input['lane_ids']) && is_array($input['lane_ids'])) {
+            $this->pathwayModel->syncLanes($pathwayId, $input['lane_ids']);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Pathway created successfully',
+        ]);
+    }
+
+    public function updatePathway($id)
+    {
+        if (!$this->pathwayModel->find($id)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Pathway not found',
+            ])->setStatusCode(404);
+        }
+
+        $input = $this->request->getJSON(true);
+        if (!is_array($input)) {
+            $input = [];
+        }
+
+        $data = [
+            'name'   => $input['name'] ?? '',
+            'status' => $input['status'] ?? 'active',
+        ];
+
+        $error = $this->versionedUpdate($this->pathwayModel, $id, $data, $input, 'pathway');
+        if ($error) {
+            return $error;
+        }
+
+        if (isset($input['lane_ids']) && is_array($input['lane_ids'])) {
+            $this->pathwayModel->syncLanes($id, $input['lane_ids']);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Pathway updated successfully',
+        ]);
+    }
+
+    public function deletePathway($id)
+    {
+        if (!$this->pathwayModel->find($id)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Pathway not found',
+            ])->setStatusCode(404);
+        }
+
+        if (!$this->pathwayModel->delete($id)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to delete pathway',
+            ])->setStatusCode(500);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Pathway deleted successfully',
+        ]);
+    }
+
+    public function getAllLanes()
+    {
+        $lanes = $this->laneModel->where('status', 'active')
+            ->orderBy('CAST(lane AS UNSIGNED) = 0', 'ASC')
+            ->orderBy('CAST(lane AS UNSIGNED)', 'ASC')
+            ->orderBy('lane', 'ASC')
+            ->findAll();
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data'    => $lanes,
+        ]);
+    }
+
+    // ============== ALERT PRIORITY MANAGEMENT METHODS ==============
+
+    public function getAlertPriorities()
+    {
+        $page    = (int) ($this->request->getGet('page') ?? 1);
+        $perPage = (int) ($this->request->getGet('per_page') ?? 10);
+        $offset  = ($page - 1) * $perPage;
+
+        $total = $this->alertPriorityModel->countAllResults(false);
+        $items = $this->alertPriorityModel
+            ->orderBy('id', 'ASC')
+            ->findAll($perPage, $offset);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => $items,
+            'pagination' => [
+                'current_page' => $page,
+                'per_page' => $perPage,
+                'total' => $total,
+                'last_page' => (int) ceil($total / $perPage),
+                'from' => $total > 0 ? $offset + 1 : 0,
+                'to' => min($offset + $perPage, $total),
+            ],
+        ]);
+    }
+
+    public function updateAlertPriority($id)
+    {
+        $item = $this->alertPriorityModel->find($id);
+        if (!$item) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'success' => false,
+                'message' => 'Alert priority not found',
+            ]);
+        }
+
+        $input = $this->request->getJSON(true);
+        if (!is_array($input)) {
+            $input = $this->request->getPost();
+        }
+
+        $validation = \Config\Services::validation();
+        $validation->setRules([
+            'priority' => 'required|in_list[low,medium,high]',
+            'response_time' => 'required|max_length[80]',
+            'notification_scope' => 'required|max_length[100]',
+        ]);
+
+        if (!$validation->run($input)) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validation->getErrors(),
+            ]);
+        }
+
+        $data = [
+            'priority' => $input['priority'],
+            'response_time' => $input['response_time'],
+            'notification_scope' => $input['notification_scope'],
+        ];
+
+        $this->alertPriorityModel->skipValidation(true);
+        $error = $this->versionedUpdate($this->alertPriorityModel, $id, $data, $input, 'alert priority');
+        $this->alertPriorityModel->skipValidation(false);
+        if ($error) {
+            return $error;
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Alert priority updated successfully',
         ]);
     }
 }

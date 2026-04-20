@@ -490,6 +490,12 @@ class VisitorList extends BaseController
     public function unbindCard()
     {
         $invitationVisitorId = $this->request->getPost('invitation_visitor_id');
+        if (! $invitationVisitorId) {
+            $json = $this->request->getJSON(true);
+            if (is_array($json)) {
+                $invitationVisitorId = $json['invitation_visitor_id'] ?? null;
+            }
+        }
 
         if (!$invitationVisitorId) {
             return $this->response->setJSON([
