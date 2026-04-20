@@ -481,6 +481,10 @@
                 <span id="mdReason" class="text-sm font-bold text-slate-700 dark:text-slate-200"></span>
             </div>
             <div>
+                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">First Scanned At</span>
+                <span id="mdVisitFrom" class="text-xs font-medium text-slate-500"></span>
+            </div>
+            <div>
                 <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Last Scanned At</span>
                 <span id="mdVisitTo" class="text-xs font-medium text-slate-500"></span>
             </div>
@@ -854,17 +858,22 @@ function openDetailsModal(invId) {
     const v = currentVisitorsData.find(x => x.invitation_id == invId);
     if (!v) return;
 
-    document.getElementById('mdFullname').textContent = v.visitor_name;
-    document.getElementById('mdIcno').textContent = v.ic_no;
-    document.getElementById('mdPersonVisited').textContent = v.person_visited;
-    document.getElementById('mdVisitFrom').textContent = v.visit_from + ' (From device_access_logs)';
-    document.getElementById('mdReason').textContent = v.visit_reason;
-    document.getElementById('mdStaffno').textContent = v.staff_id;
-    document.getElementById('mdContactno').textContent = v.contact_no;
-    document.getElementById('mdVisitTo').textContent = v.visit_to + ' (From device_access_logs)';
-    document.getElementById('mdLastUpdated').textContent = v.last_updated;
-    document.getElementById('mdDuration').textContent = v.visit_duration;
-    document.getElementById('mdCompany').textContent = v.visitor_company;
+    const setText = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = value ?? '';
+    };
+
+    setText('mdFullname', v.visitor_name);
+    setText('mdIcno', v.ic_no);
+    setText('mdPersonVisited', v.person_visited);
+    setText('mdVisitFrom', v.visit_from);
+    setText('mdReason', v.visit_reason);
+    setText('mdStaffno', v.staff_id);
+    setText('mdContactno', v.contact_no);
+    setText('mdVisitTo', v.visit_to);
+    setText('mdLastUpdated', v.last_updated);
+    setText('mdDuration', v.visit_duration);
+    setText('mdCompany', v.visitor_company);
     
     const badge = document.getElementById('mdStatusBadge');
     badge.textContent = v.status;
