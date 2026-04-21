@@ -3716,6 +3716,14 @@ class Config extends BaseController
                 'success' => false,
                 'message' => 'Registration type not found',
             ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data'    => $row,
+        ]);
+    }
+
     // ============================================
     // Pathway Management
     // ============================================
@@ -3770,7 +3778,7 @@ class Config extends BaseController
 
         return $this->response->setJSON([
             'success' => true,
-            'data'    => $row,
+            'data'    => $pathway,
         ]);
     }
 
@@ -3805,7 +3813,12 @@ class Config extends BaseController
                 'message' => 'Failed to create registration type',
                 'errors'  => $this->regTypeModel->errors(),
             ]);
-            'data'    => $pathway,
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Registration type created successfully',
+            'data'    => ['id' => $this->regTypeModel->getInsertID()],
         ]);
     }
 
@@ -3834,8 +3847,8 @@ class Config extends BaseController
 
         return $this->response->setJSON([
             'success' => true,
-            'message' => 'Registration type created successfully',
-            'data'    => ['id' => $this->regTypeModel->getInsertID()],
+            'message' => 'Pathway created successfully',
+            'data'    => ['id' => $pathwayId],
         ]);
     }
 
@@ -3848,17 +3861,6 @@ class Config extends BaseController
                 'success' => false,
                 'message' => 'Registration type not found',
             ]);
-            'message' => 'Pathway created successfully',
-        ]);
-    }
-
-    public function updatePathway($id)
-    {
-        if (!$this->pathwayModel->find($id)) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Pathway not found',
-            ])->setStatusCode(404);
         }
 
         $input = $this->request->getJSON(true);
@@ -3888,6 +3890,44 @@ class Config extends BaseController
         ];
 
         $error = $this->versionedUpdate($this->regTypeModel, $id, $data, $input, 'registration type');
+        if ($error) {
+            return $error;
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Registration type updated successfully',
+        ]);
+    }
+
+    public function updatePathway($id)
+    {
+        if (!$this->pathwayModel->find($id)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Pathway not found',
+            ])->setStatusCode(404);
+        }
+
+        $input = $this->request->getJSON(true);
+        if (!is_array($input)) {
+            $input = [];
+        }
+
+        $validation = \Config\Services::validation();
+        $validation->setRules([
+            'name'   => 'required|min_length[2]|max_length[255]',
+            'status' => 'required|in_list[active,inactive]',
+        ]);
+
+        if (!$validation->run($input)) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors'  => $validation->getErrors(),
+            ]);
+        }
+
         $data = [
             'name'   => $input['name'] ?? '',
             'status' => $input['status'] ?? 'active',
@@ -3898,9 +3938,13 @@ class Config extends BaseController
             return $error;
         }
 
+        if (isset($input['lane_ids']) && is_array($input['lane_ids'])) {
+            $this->pathwayModel->syncLanes($id, $input['lane_ids']);
+        }
+
         return $this->response->setJSON([
             'success' => true,
-            'message' => 'Registration type updated successfully',
+            'message' => 'Pathway updated successfully',
         ]);
     }
 
@@ -3920,13 +3964,11 @@ class Config extends BaseController
                 'success' => false,
                 'message' => 'Failed to delete registration type',
             ]);
-        if (isset($input['lane_ids']) && is_array($input['lane_ids'])) {
-            $this->pathwayModel->syncLanes($id, $input['lane_ids']);
         }
 
         return $this->response->setJSON([
             'success' => true,
-            'message' => 'Pathway updated successfully',
+            'message' => 'Registration type deleted successfully',
         ]);
     }
 
@@ -3948,7 +3990,7 @@ class Config extends BaseController
 
         return $this->response->setJSON([
             'success' => true,
-            'message' => 'Registration type deleted successfully',
+            'message' => 'Pathway deleted successfully',
         ]);
     }
 
@@ -3990,11 +4032,6 @@ class Config extends BaseController
         $this->bizTypeModel->update($id, $data);
 
         return redirect()->to(base_url('config'))->with('success', 'Business type updated successfully.');
-    }
-
-
-            'message' => 'Pathway deleted successfully',
-        ]);
     }
 
     public function getAllLanes()
