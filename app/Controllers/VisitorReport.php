@@ -26,12 +26,14 @@ class VisitorReport extends BaseController
                     i.invited_by       AS person_visited,
                     i.staff_id         AS staff_id,
                     i.reason           AS visit_reason,
-                    i.location         AS location,
+                    i.location         AS i_location,
                     i.status           AS visit_status,
                     DATE(i.created_at) AS visit_date,
-                    MIN(vcl.scanned_at) AS checkin_time,
-                    MAX(vcl.scanned_at) AS checkout_time,
-                    COUNT(vcl.id)       AS total_scans
+                    MIN(CASE WHEN vcl.action = 'checkin' THEN vcl.scanned_at ELSE NULL END) AS checkin_time,
+                    MAX(CASE WHEN vcl.action = 'checkout' THEN vcl.scanned_at ELSE NULL END) AS checkout_time,
+                    COUNT(vcl.id)       AS total_scans,
+                    (SELECT CONCAT(l.id, '. ', l.lane) FROM visitor_card_logs vcl2 LEFT JOIN lanes l ON l.id = vcl2.lane_id WHERE vcl2.invitation_id = i.id ORDER BY vcl2.scanned_at DESC LIMIT 1) AS last_lane_full,
+                    (SELECT GROUP_CONCAT(DISTINCT CONCAT(l.id, '. ', l.lane) SEPARATOR ', ') FROM visitor_card_logs vcl2 LEFT JOIN lanes l ON l.id = vcl2.lane_id WHERE vcl2.invitation_id = i.id) AS all_lanes
                 FROM invitations i
                 LEFT JOIN visitor_card_logs vcl ON vcl.invitation_id = i.id
                 GROUP BY
@@ -50,8 +52,6 @@ class VisitorReport extends BaseController
         $todayStr = date('Y-m-d');
 
         foreach ($rows as $row) {
-            $currentLocation = $row['location'] ?? 'N/A';
-            
             $checkinTimeStr = $row['checkin_time'] ? date('H:i:s', strtotime($row['checkin_time'])) : '-';
             $checkoutTimeStr = $row['checkout_time'] ? date('H:i:s', strtotime($row['checkout_time'])) : '-';
             
@@ -70,14 +70,18 @@ class VisitorReport extends BaseController
             if ($row['checkout_time']) {
                 $completedCount++;
                 $visitStatus = 'Completed';
+                $currentLocation = 'Out';
             } else {
                 $activeCount++;
                 $visitStatus = 'Active';
+                $currentLocation = $row['last_lane_full'] ?? 'N/A';
             }
             
             if ($row['visit_date'] === $todayStr) {
                 $todayVisitors++;
             }
+            
+            $locationAccessed = $row['all_lanes'] ?? 'N/A';
 
             $visitors[] = [
                 'visitor_name'      => $row['visitor_name']    ?? 'N/A',
@@ -93,6 +97,7 @@ class VisitorReport extends BaseController
                 'checkout_time'     => $checkoutTimeStr,
                 'duration'          => $durationStr,
                 'current_location'  => $currentLocation,
+                'location_accessed' => $locationAccessed,
                 'total_scans'       => (int) $row['total_scans'],
             ];
         }

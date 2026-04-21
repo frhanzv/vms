@@ -192,12 +192,16 @@ class AccessReport extends BaseController
 
             $action = strtolower((string) ($row['action'] ?? 'checkin'));
             $typeLabel = $action === 'checkout' ? 'Checkout' : 'Checkin';
+            
+            $currentLocation = $action === 'checkout' ? 'Out' : $laneLabel;
+            $locationAccessed = $laneLabel;
 
             $movements[] = [
                 'date_time' => ! empty($row['scanned_at'])
                     ? date('d M Y h:i:s A', strtotime($row['scanned_at']))
                     : '—',
-                'location'        => $locationDisplay,
+                'current_location'  => $currentLocation,
+                'location_accessed' => $locationAccessed,
                 'access'          => 'Yes',
                 'access_granted'  => true,
                 'reason'          => '—',
