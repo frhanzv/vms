@@ -241,11 +241,13 @@
                         Staff List
                     </h1>
                     <div class="flex gap-2">
-                        <button class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
+                        <button onclick="document.getElementById('uploadModal').classList.toggle('hidden')" class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
                             <span class="material-icons text-sm mr-1">add</span>
                             Import
                         </button>
-                        <a href="<?= base_url('staff-pass-request') ?>" class="bg-primary hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
+                        <a href="<?= base_url('files/StaffTemplate.xlsx') ?>" 
+                            download="StaffTemplate.xlsx" 
+                            class="bg-primary hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
                             <span class="material-icons text-sm mr-1">file_download</span>
                             Template
                         </a>
@@ -317,7 +319,10 @@
                                 <td class="p-4"><?= $staff['no'] ?></td>
                                 <td class="p-4">
                                     <div class="flex items-center gap-2">
-                                        <button onclick="event.stopPropagation(); window.location.href='<?= base_url('staffpassrequest') ?>'" class="text-primary hover:text-blue-700 transition-colors" title="View Details">
+                                        <button 
+                                            onclick="event.stopPropagation(); window.location.href='<?= base_url('staffpassrequest/view/') ?><?= $staff['id'] ?>'" 
+                                            class="text-primary hover:text-blue-700 transition-colors" 
+                                            title="View Details">
                                             <span class="material-symbols-outlined text-[20px]">search</span>
                                         </button>
                                         <button onclick="event.stopPropagation(); printStaff(<?= json_encode($staff) ?>)" class="text-primary hover:text-blue-700 transition-colors" title="Print">
@@ -347,6 +352,37 @@
                             </tr>
                             <?php endforeach; ?>
                         <?php endif; ?>
+                        <div id="uploadModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                            <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md mx-4">
+                                
+                                <div class="flex items-center justify-between p-4 border-b dark:border-slate-700">
+                                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">UPLOAD FILE</h3>
+                                    <button onclick="document.getElementById('uploadModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600">
+                                        <span class="material-icons">close</span>
+                                    </button>
+                                </div>
+
+                                <form action="<?= base_url('staff-pass/import') ?>" method="post" enctype="multipart/form-data">
+                                    <?= csrf_field() ?>
+                                    <div class="p-6">
+                                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">Choose Excel File</label>
+                                        <input name="upload_file" type="file" accept=".xlsx, .xls" required 
+                                            class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none dark:bg-slate-700 dark:border-slate-600 dark:placeholder-gray-400">
+                                        <p class="mt-2 text-xs text-gray-500">Only .xlsx or .xls files allowed.</p>
+                                    </div>
+                                    
+                                    <div class="flex justify-end gap-2 p-4 border-t dark:border-slate-700">
+                                        <button type="button" onclick="document.getElementById('uploadModal').classList.add('hidden')" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200">
+                                            Cancel
+                                        </button>
+                                        <button type="submit" class="bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-2 rounded text-sm font-medium flex items-center transition-colors">
+                                            <span class="material-icons text-sm mr-1">publish</span>
+                                            Import
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
                     </tbody>
                 </table>
             </div>
