@@ -479,6 +479,18 @@
                     <span id="modalStatus" class="px-4 py-2 rounded-full text-sm font-bold"></span>
                 </div>
 
+                <!-- Link expiry + visitor count (preview summary) -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 border border-gray-100 dark:border-gray-700">
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium mb-1">Link expiry</p>
+                        <p id="modalLinkExpiry" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium mb-1">Number of visitors</p>
+                        <p id="modalVisitorCount" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
+                    </div>
+                </div>
+
                 <!-- Visitor Information -->
                 <div>
                     <h4 class="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase mb-3 flex items-center gap-2">
@@ -502,6 +514,14 @@
                             <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium mb-1">Company</p>
                             <p id="modalCompany" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
                         </div>
+                        <div class="md:col-span-2">
+                            <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium mb-1">Email</p>
+                            <p id="modalVisitorEmail" class="text-sm font-semibold text-gray-900 dark:text-white break-all"></p>
+                        </div>
+                        <div class="md:col-span-2">
+                            <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium mb-1">Registration link</p>
+                            <a id="modalRegistrationLink" href="#" target="_blank" rel="noopener noreferrer" class="text-sm font-medium text-primary hover:underline break-all block"></a>
+                        </div>
                     </div>
                 </div>
 
@@ -513,8 +533,12 @@
                     </h4>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4">
                         <div>
-                            <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium mb-1">Visit Date</p>
-                            <p id="modalDate" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium mb-1">Visit date (from)</p>
+                            <p id="modalVisitFrom" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium mb-1">Visit date (to)</p>
+                            <p id="modalVisitTo" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
                         </div>
                         <div>
                             <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium mb-1">Location</p>
@@ -647,11 +671,25 @@
             }
 
             // Fill in the details
+            document.getElementById('modalLinkExpiry').textContent = invitation.link_expiry || '—';
+            document.getElementById('modalVisitorCount').textContent = String(invitation.visitor_count != null ? invitation.visitor_count : 1);
             document.getElementById('modalFullName').textContent = invitation.full_name;
             document.getElementById('modalIcPassport').textContent = invitation.ic_passport || 'NULL';
             document.getElementById('modalContact').textContent = invitation.contact;
             document.getElementById('modalCompany').textContent = invitation.company;
-            document.getElementById('modalDate').textContent = invitation.date;
+            document.getElementById('modalVisitorEmail').textContent = invitation.visitor_email || '—';
+            const regLink = document.getElementById('modalRegistrationLink');
+            if (regLink && invitation.registration_link) {
+                regLink.href = invitation.registration_link;
+                regLink.textContent = invitation.registration_link;
+            } else if (regLink) {
+                regLink.removeAttribute('href');
+                regLink.textContent = '—';
+            }
+            const vf = document.getElementById('modalVisitFrom');
+            const vt = document.getElementById('modalVisitTo');
+            if (vf) vf.textContent = invitation.visit_from || invitation.date || '—';
+            if (vt) vt.textContent = invitation.visit_to || '—';
             document.getElementById('modalLocation').textContent = invitation.location;
             document.getElementById('modalReason').textContent = invitation.reason;
             document.getElementById('modalVehicle').textContent = invitation.vehicle_reg || 'Not Provided';
