@@ -233,6 +233,31 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
             </p>
         </div>
 
+        <?php
+        $canDelegateInvite = ! empty($invitation) && ! empty($token)
+            && ! empty($invitation['allow_sub_invites'])
+            && empty($invitation['parent_invitation_id'] ?? null)
+            && in_array($invitation['status'] ?? '', ['Pending', 'Submitted'], true);
+        $csrfFieldName = config('Security')->tokenName;
+        ?>
+        <?php if ($canDelegateInvite): ?>
+        <section class="bg-blue-50/90 dark:bg-blue-950/40 rounded-xl border border-primary/25 p-6 mb-8" id="delegate-invite-anchor">
+            <div class="flex items-start gap-3 mb-4">
+                <span class="material-symbols-outlined text-primary text-2xl shrink-0">group_add</span>
+                <div>
+                    <h2 class="text-lg font-bold text-text-main dark:text-white font-brand">Invite additional guests</h2>
+                    <p class="text-sm text-text-sub dark:text-gray-400 font-brand mt-1">Your host enabled <strong>multiple invitation per mail</strong>. Add colleagues below — each receives their own registration link with the same visit details and schedule. This cannot be forwarded again from those links.</p>
+                </div>
+            </div>
+            <div id="delegate-rows" class="space-y-4"></div>
+            <div class="flex flex-wrap gap-3 mt-4">
+                <button type="button" id="delegate-add-row" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-primary text-primary font-semibold text-sm hover:bg-primary/10 transition-colors font-brand">Add guest</button>
+                <button type="button" id="delegate-send" class="inline-flex items-center gap-2 px-6 py-2 rounded-lg bg-primary text-white font-semibold text-sm hover:bg-primary-hover shadow-sm font-brand">Send invitations</button>
+            </div>
+            <p id="delegate-status" class="text-sm mt-3 font-brand hidden" role="status"></p>
+        </section>
+        <?php endif; ?>
+
         <form action="<?= base_url('visitor-registration/submit') ?>" class="space-y-8" method="POST" id="registrationForm">
             <?= csrf_field() ?>
             <?php if (isset($token) && $token): ?>
@@ -1715,6 +1740,120 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
             }
             });
         }
+
+        <?php if (! empty($canDelegateInvite)): ?>
+        (function() {
+            const panel = document.getElementById('delegate-invite-anchor');
+            const rows = document.getElementById('delegate-rows');
+            const statusEl = document.getElementById('delegate-status');
+            if (!panel || !rows || !statusEl) return;
+
+            const token = <?= json_encode($token ?? '') ?>;
+            const csrfFieldName = <?= json_encode($csrfFieldName ?? 'csrf_test_name') ?>;
+
+            function rowHtml() {
+                return '<div class="delegate-row grid grid-cols-1 md:grid-cols-3 gap-3 p-4 rounded-lg bg-white dark:bg-surface-dark border border-border-color dark:border-gray-700">' +
+                    '<div><label class="text-xs font-semibold text-text-sub dark:text-gray-400 font-brand">Full name</label>' +
+                    '<input type="text" class="dg-fn w-full h-11 mt-1 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark px-3 text-sm font-brand" maxlength="255"/></div>' +
+                    '<div><label class="text-xs font-semibold text-text-sub dark:text-gray-400 font-brand">Contact</label>' +
+                    '<input type="tel" class="dg-co w-full h-11 mt-1 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark px-3 text-sm font-brand" maxlength="20"/></div>' +
+                    '<div class="flex gap-2 items-end">' +
+                    '<div class="flex-1 min-w-0"><label class="text-xs font-semibold text-text-sub dark:text-gray-400 font-brand">Email</label>' +
+                    '<input type="email" class="dg-em w-full h-11 mt-1 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark px-3 text-sm font-brand" maxlength="255"/></div>' +
+                    '<button type="button" class="dg-remove shrink-0 rounded-lg p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20" title="Remove row"><span class="material-symbols-outlined text-[22px]">close</span></button>' +
+                    '</div></div>';
+            }
+
+            function syncRemoveButtons() {
+                const all = rows.querySelectorAll('.delegate-row');
+                all.forEach((row) => {
+                    const rm = row.querySelector('.dg-remove');
+                    if (rm) rm.style.visibility = all.length > 1 ? 'visible' : 'hidden';
+                });
+            }
+
+            function addRow() {
+                rows.insertAdjacentHTML('beforeend', rowHtml());
+                syncRemoveButtons();
+            }
+
+            rows.addEventListener('click', function(e) {
+                const btn = e.target.closest('.dg-remove');
+                if (!btn) return;
+                const all = rows.querySelectorAll('.delegate-row');
+                if (all.length <= 1) return;
+                btn.closest('.delegate-row').remove();
+                syncRemoveButtons();
+            });
+
+            document.getElementById('delegate-add-row').addEventListener('click', addRow);
+            addRow();
+
+            document.getElementById('delegate-send').addEventListener('click', async function() {
+                const guestRows = rows.querySelectorAll('.delegate-row');
+                const guests = [];
+                guestRows.forEach(function(row) {
+                    const fn = (row.querySelector('.dg-fn') || {}).value || '';
+                    const co = (row.querySelector('.dg-co') || {}).value || '';
+                    const em = (row.querySelector('.dg-em') || {}).value || '';
+                    if (fn.trim() || co.trim() || em.trim()) {
+                        guests.push({ full_name: fn.trim(), contact: co.trim(), visitor_email: em.trim() });
+                    }
+                });
+                if (!guests.length) {
+                    alert('Add at least one guest with name, contact, and email.');
+                    return;
+                }
+
+                const regForm = document.getElementById('registrationForm');
+                const csrfInput = regForm ? regForm.querySelector('input[name="' + csrfFieldName + '"]') : null;
+                if (!csrfInput) {
+                    alert('Security token missing. Please refresh the page.');
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('token', token);
+                formData.append(csrfInput.name, csrfInput.value);
+                guests.forEach(function(g, i) {
+                    formData.append('guests[' + i + '][full_name]', g.full_name);
+                    formData.append('guests[' + i + '][contact]', g.contact);
+                    formData.append('guests[' + i + '][visitor_email]', g.visitor_email);
+                });
+
+                const sendBtn = this;
+                const prev = sendBtn.innerHTML;
+                sendBtn.disabled = true;
+                sendBtn.innerHTML = '<span class="material-symbols-outlined animate-spin text-[20px]">progress_activity</span> Sending...';
+                statusEl.classList.add('hidden');
+
+                try {
+                    const response = await fetch('<?= base_url('visitor-registration/inviteAdditionalGuests') ?>', {
+                        method: 'POST',
+                        body: formData,
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    const result = await response.json();
+                    statusEl.classList.remove('hidden');
+                    if (result.success) {
+                        statusEl.textContent = result.message || 'Invitations sent.';
+                        statusEl.className = 'text-sm mt-3 font-brand text-green-700 dark:text-green-400';
+                        rows.querySelectorAll('.delegate-row .dg-fn, .delegate-row .dg-co, .delegate-row .dg-em').forEach(function(el) { el.value = ''; });
+                    } else {
+                        statusEl.textContent = result.message || 'Request failed.';
+                        statusEl.className = 'text-sm mt-3 font-brand text-red-600 dark:text-red-400';
+                    }
+                } catch (err) {
+                    statusEl.classList.remove('hidden');
+                    statusEl.textContent = 'Network error. Please try again.';
+                    statusEl.className = 'text-sm mt-3 font-brand text-red-600 dark:text-red-400';
+                } finally {
+                    sendBtn.disabled = false;
+                    sendBtn.innerHTML = prev;
+                }
+            });
+        })();
+        <?php endif; ?>
 
         // Form submission
         document.getElementById('registrationForm').addEventListener('submit', function(e) {

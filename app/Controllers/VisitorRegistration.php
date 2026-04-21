@@ -12,6 +12,7 @@ use App\Models\CompanyModel;
 use App\Models\VisitorLicenseModel;
 use App\Models\VisitorEquipmentModel;
 use App\Models\EmailTemplateFormFieldModel;
+use App\Libraries\InvitationEmailSender;
 
 class VisitorRegistration extends BaseController
 {
@@ -25,6 +26,7 @@ class VisitorRegistration extends BaseController
     protected $licenseModel;
     protected $equipmentModel;
     protected $emailTemplateFormFieldModel;
+    protected InvitationEmailSender $invitationEmailSender;
 
     public function initController(\CodeIgniter\HTTP\RequestInterface $request, \CodeIgniter\HTTP\ResponseInterface $response, \Psr\Log\LoggerInterface $logger)
     {
@@ -40,6 +42,7 @@ class VisitorRegistration extends BaseController
         $this->licenseModel = new VisitorLicenseModel();
         $this->equipmentModel = new VisitorEquipmentModel();
         $this->emailTemplateFormFieldModel = new EmailTemplateFormFieldModel();
+        $this->invitationEmailSender = new InvitationEmailSender();
     }
 
     public function index()
@@ -1068,6 +1071,228 @@ class VisitorRegistration extends BaseController
         ];
         
         return str_replace(array_keys($replacements), array_values($replacements), $text);
+    }
+
+    /**
+     * Create additional invitations from a registration link when the host enabled "multiple invitation per mail".
+     */
+    public function inviteAdditionalGuests()
+    {
+        $token = (string) $this->request->getPost('token');
+        if ($token === '') {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Token is required',
+            ]);
+        }
+
+        $decoded = base64_decode($token, true);
+        if ($decoded === false || ! ctype_digit((string) $decoded)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Invalid token',
+            ]);
+        }
+
+        $parentId = (int) $decoded;
+        $parent = $this->invitationModel->find($parentId);
+        if (! $parent) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Invitation not found',
+            ]);
+        }
+
+        if (! isset($parent['allow_sub_invites']) || ! (int) $parent['allow_sub_invites']) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Additional invitations are not enabled for this invitation',
+            ]);
+        }
+
+        if (! empty($parent['parent_invitation_id'])) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'You cannot invite others from this link',
+            ]);
+        }
+
+        if (! in_array($parent['status'] ?? '', ['Pending', 'Submitted'], true)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'This invitation can no longer be used to invite others',
+            ]);
+        }
+
+        if (! empty($parent['link_expiry'])) {
+            $exp = strtotime($parent['link_expiry'] . ' 23:59:59');
+            if ($exp !== false && $exp < time()) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'This invitation link has expired',
+                ]);
+            }
+        }
+
+        $guests = $this->request->getPost('guests');
+        if (! is_array($guests) || $guests === []) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Add at least one guest',
+            ]);
+        }
+
+        if (count($guests) > 15) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Too many guests (maximum 15 per request)',
+            ]);
+        }
+
+        $parsed = [];
+        foreach ($guests as $i => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $fullName = trim((string) ($row['full_name'] ?? ''));
+            $contact = trim((string) ($row['contact'] ?? ''));
+            $visitorEmail = trim((string) ($row['visitor_email'] ?? ''));
+            if ($fullName === '' && $contact === '' && $visitorEmail === '') {
+                continue;
+            }
+
+            $rowValidation = \Config\Services::validation();
+            if (! $rowValidation->setRules([
+                'full_name' => 'required|max_length[255]',
+                'contact' => 'required|max_length[20]',
+                'visitor_email' => 'required|valid_email|max_length[255]',
+            ])->run([
+                'full_name' => $fullName,
+                'contact' => $contact,
+                'visitor_email' => $visitorEmail,
+            ])) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Guest row ' . ($i + 1) . ' is incomplete or invalid.',
+                    'errors' => $rowValidation->getErrors(),
+                ]);
+            }
+
+            $parsed[] = [
+                'full_name' => $fullName,
+                'contact' => $contact,
+                'visitor_email' => $visitorEmail,
+            ];
+        }
+
+        if ($parsed === []) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Add at least one guest with full name, contact, and email',
+            ]);
+        }
+
+        $schedules = $this->scheduleModel->where('invitation_id', $parentId)->findAll();
+        if ($schedules === []) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'No visit schedule was found for the original invitation',
+            ]);
+        }
+
+        $supportsVisitorType = $this->invitationsSupportVisitorType();
+        $companyValue = $parent['company'] ?? $parent['company_visited'] ?? '';
+
+        $db = \Config\Database::connect();
+        $db->transStart();
+
+        $createdIds = [];
+        try {
+            foreach ($parsed as $guest) {
+                if (strtolower($guest['visitor_email']) === strtolower((string) ($parent['visitor_email'] ?? ''))) {
+                    continue;
+                }
+
+                $shared = [
+                    'ic_passport' => null,
+                    'company' => $companyValue,
+                    'vehicle_registration' => null,
+                    'location' => $parent['location'],
+                    'invited_by' => $parent['invited_by'],
+                    'reason' => $parent['reason'],
+                    'other_reason' => $parent['other_reason'] ?? null,
+                    'link_expiry' => $parent['link_expiry'],
+                    'status' => 'Pending',
+                    'staff_id' => $parent['staff_id'],
+                    'company_visited' => $parent['company_visited'],
+                    'host_contact' => $parent['host_contact'],
+                    'registration_source' => 'Invitation',
+                    'allow_sub_invites' => 0,
+                    'parent_invitation_id' => $parentId,
+                    'full_name' => $guest['full_name'],
+                    'contact' => $guest['contact'],
+                    'visitor_email' => $guest['visitor_email'],
+                ];
+                if ($supportsVisitorType) {
+                    $shared['visitor_type_id'] = $parent['visitor_type_id'] ?? null;
+                }
+
+                $newId = $this->invitationModel->insert($shared);
+                if (! $newId) {
+                    throw new \RuntimeException('Failed to create invitation: ' . json_encode($this->invitationModel->errors()));
+                }
+
+                $newId = (int) $newId;
+                foreach ($schedules as $schedule) {
+                    $this->scheduleModel->insert([
+                        'invitation_id' => $newId,
+                        'date_from' => $schedule['date_from'],
+                        'date_to' => $schedule['date_to'],
+                    ]);
+                }
+
+                $createdIds[] = $newId;
+            }
+
+            $db->transComplete();
+
+            if ($db->transStatus() === false) {
+                throw new \RuntimeException('Database transaction failed');
+            }
+        } catch (\Throwable $e) {
+            $db->transRollback();
+            log_message('error', 'inviteAdditionalGuests failed: ' . $e->getMessage());
+
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Could not create invitations. Please try again.',
+            ]);
+        }
+
+        if ($createdIds === []) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'No invitations were created. Guest emails must differ from your invitation email.',
+            ]);
+        }
+
+        $emailsSent = 0;
+        foreach ($createdIds as $newId) {
+            if ($this->invitationEmailSender->send($newId)) {
+                $emailsSent++;
+            }
+        }
+
+        $n = count($createdIds);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => $n === 1
+                ? '1 invitation created. Email sent: ' . ($emailsSent === 1 ? 'yes' : 'failed — you can resend from the host invitation list.')
+                : $n . ' invitations created. Emails sent: ' . $emailsSent . ' of ' . $n . '.',
+            'created' => $n,
+            'emails_sent' => $emailsSent,
+        ]);
     }
 
     public function updateEmail()

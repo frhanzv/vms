@@ -140,50 +140,114 @@ class RequestList extends BaseController
     public function approve()
     {
         $json = $this->request->getJSON();
-        $id = $json->id ?? null;
+        $id = isset($json->id) ? (int) $json->id : 0;
 
-        if (!$id) {
+        if ($id <= 0) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Invalid request ID'
+                'message' => 'Invalid request ID',
             ]);
         }
 
+        $result = $this->approveInvitationById($id);
+
+        return $this->response->setJSON($result);
+    }
+
+    /**
+     * Approve multiple submitted requests in one action.
+     */
+    public function batchApprove()
+    {
+        $payload = $this->request->getJSON(true);
+        $rawIds = $payload['ids'] ?? [];
+        if (! is_array($rawIds) || $rawIds === []) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'No requests selected',
+            ]);
+        }
+
+        $ids = array_values(array_unique(array_filter(
+            array_map(static fn ($v) => (int) $v, $rawIds),
+            static fn ($id) => $id > 0
+        )));
+
+        if ($ids === []) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'No valid request IDs',
+            ]);
+        }
+
+        $approved = 0;
+        $failed = [];
+        foreach ($ids as $id) {
+            $result = $this->approveInvitationById($id);
+            if (! empty($result['success'])) {
+                $approved++;
+            } else {
+                $failed[] = [
+                    'id' => $id,
+                    'message' => $result['message'] ?? 'Failed',
+                ];
+            }
+        }
+
+        $msg = $approved === 1
+            ? '1 request approved successfully.'
+            : $approved . ' requests approved successfully.';
+        if ($failed !== []) {
+            $msg .= ' ' . count($failed) . ' could not be approved (already processed or invalid).';
+        }
+
+        return $this->response->setJSON([
+            'success' => $approved > 0,
+            'approved' => $approved,
+            'failed' => $failed,
+            'message' => $msg,
+        ]);
+    }
+
+    /**
+     * @return array{success:bool,message:string}
+     */
+    private function approveInvitationById(int $id): array
+    {
         try {
             $invitation = $this->invitationModel->find($id);
-            
-            if (!$invitation) {
-                return $this->response->setJSON([
+
+            if (! $invitation) {
+                return [
                     'success' => false,
-                    'message' => 'Invitation not found'
-                ]);
+                    'message' => 'Invitation not found',
+                ];
             }
 
             if ($invitation['status'] === 'Approved') {
-                return $this->response->setJSON([
+                return [
                     'success' => false,
-                    'message' => 'This request has already been approved'
-                ]);
+                    'message' => 'This request has already been approved',
+                ];
             }
 
             if ($invitation['status'] === 'Rejected') {
-                return $this->response->setJSON([
+                return [
                     'success' => false,
-                    'message' => 'This request has already been rejected and cannot be approved'
-                ]);
+                    'message' => 'This request has already been rejected and cannot be approved',
+                ];
             }
 
             if ($invitation['status'] !== 'Submitted') {
-                return $this->response->setJSON([
+                return [
                     'success' => false,
-                    'message' => 'Only submitted requests can be approved (current status: ' . $invitation['status'] . ')'
-                ]);
+                    'message' => 'Only submitted requests can be approved (current status: ' . $invitation['status'] . ')',
+                ];
             }
 
             $db = \Config\Database::connect();
             $db->transStart();
 
-            // Atomic update: only succeeds if status is still 'Submitted'
             $db->table('invitations')
                 ->where('id', $id)
                 ->where('status', 'Submitted')
@@ -196,20 +260,21 @@ class RequestList extends BaseController
 
             if ($db->affectedRows() === 0) {
                 $db->transRollback();
-                return $this->response->setJSON([
+
+                return [
                     'success' => false,
-                    'message' => 'This request has already been processed by another user. Please refresh the page.'
-                ]);
+                    'message' => 'This request has already been processed by another user. Please refresh the page.',
+                ];
             }
 
             $invitationVisitorModel = new \App\Models\InvitationVisitorModel();
             $existing = $invitationVisitorModel->where('invitation_id', $id)->first();
-            
-            if (!$existing) {
+
+            if (! $existing) {
                 $invitationVisitorModel->insert([
                     'invitation_id' => $id,
                     'full_name' => $invitation['full_name'] ?? 'Visitor',
-                    'ic_passport' => !empty($invitation['ic_passport']) ? $invitation['ic_passport'] : 'PENDING',
+                    'ic_passport' => ! empty($invitation['ic_passport']) ? $invitation['ic_passport'] : 'PENDING',
                     'contact' => $invitation['contact'] ?? 'N/A',
                     'visitor_card_id' => null,
                     'check_in_time' => null,
@@ -220,21 +285,21 @@ class RequestList extends BaseController
             $db->transComplete();
 
             if ($db->transStatus() === false) {
-                return $this->response->setJSON([
+                return [
                     'success' => false,
-                    'message' => 'Failed to approve request due to a database error'
-                ]);
+                    'message' => 'Failed to approve request due to a database error',
+                ];
             }
-                
-            return $this->response->setJSON([
+
+            return [
                 'success' => true,
-                'message' => 'Request approved successfully'
-            ]);
+                'message' => 'Request approved successfully',
+            ];
         } catch (\Exception $e) {
-            return $this->response->setJSON([
+            return [
                 'success' => false,
-                'message' => 'An error occurred: ' . $e->getMessage()
-            ]);
+                'message' => 'An error occurred: ' . $e->getMessage(),
+            ];
         }
     }
 

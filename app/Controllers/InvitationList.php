@@ -2,43 +2,33 @@
 
 namespace App\Controllers;
 
-use CodeIgniter\Email\Email;
 use App\Models\InvitationModel;
 use App\Models\InvitationScheduleModel;
-use App\Models\InvitationVisitorModel;
 use App\Models\VisitReasonModel;
 use App\Models\LocationModel;
 use App\Models\CompanyModel;
 use App\Models\VisitorTypeModel;
-use App\Models\SettingModel;
-use App\Libraries\EmailTemplateService;
-use App\Models\EmailTemplateModel;
+use App\Libraries\InvitationEmailSender;
 
 class InvitationList extends BaseController
 {
     protected $invitationModel;
     protected $scheduleModel;
-    protected $visitorModel;
     protected $visitReasonModel;
     protected $locationModel;
     protected $companyModel;
     protected $visitorTypeModel;
-    protected $settingModel;
-    protected $emailTemplateService;
-    protected $emailTemplateModel;
+    protected InvitationEmailSender $invitationEmailSender;
 
     public function __construct()
     {
         $this->invitationModel = new InvitationModel();
         $this->scheduleModel = new InvitationScheduleModel();
-        $this->visitorModel = new InvitationVisitorModel();
         $this->visitReasonModel = new VisitReasonModel();
         $this->locationModel = new LocationModel();
         $this->companyModel = new CompanyModel();
         $this->visitorTypeModel = new VisitorTypeModel();
-        $this->settingModel = new SettingModel();
-        $this->emailTemplateService = new EmailTemplateService();
-        $this->emailTemplateModel = new EmailTemplateModel();
+        $this->invitationEmailSender = new InvitationEmailSender();
     }
 
     public function index()
@@ -58,19 +48,26 @@ class InvitationList extends BaseController
                                           ->orderBy('date_from', 'ASC')
                                           ->first();
             
+            $linkExpiry = $invitation['link_expiry'] ?? null;
             $invitations[] = [
                 'id' => $invitation['id'],  // Add the ID for resending emails
                 'no' => ($page - 1) * 10 + $index + 1,
                 'date' => $schedule ? date('d/m/Y', strtotime($schedule['date_from'])) : '-',
+                'visit_from' => $schedule ? date('d/m/Y H:i', strtotime((string) $schedule['date_from'])) : '-',
+                'visit_to' => $schedule ? date('d/m/Y H:i', strtotime((string) $schedule['date_to'])) : '-',
                 'full_name' => $invitation['full_name'],
                 'ic_passport' => $invitation['ic_passport'],
                 'contact' => $invitation['contact'],
+                'visitor_email' => $invitation['visitor_email'] ?? '',
                 'vehicle_reg' => $invitation['vehicle_registration'] ?: '',
                 'location' => $invitation['location'] ?: '-',
                 'company' => $invitation['company'] ?: '-',
                 'invited_by' => $invitation['invited_by'] ?: '-',
                 'status' => $invitation['status'],
-                'reason' => $invitation['reason'] === 'OTHER' ? ($invitation['other_reason'] ?: 'OTHER') : $invitation['reason']
+                'reason' => $invitation['reason'] === 'OTHER' ? ($invitation['other_reason'] ?: 'OTHER') : $invitation['reason'],
+                'link_expiry' => $linkExpiry ? date('d/m/Y', strtotime((string) $linkExpiry)) : '-',
+                'visitor_count' => 1,
+                'registration_link' => base_url('visitor-registration?token=' . base64_encode((string) $invitation['id'])),
             ];
         }
         
@@ -132,6 +129,155 @@ class InvitationList extends BaseController
         return view('invitations/create', $data);
     }
 
+    /**
+     * JSON list for invitation history modal.
+     * Uses the same scope as the invitation list (all invitation records), so older rows
+     * without registration_source / with different invited_by still appear.
+     */
+    public function historyRows()
+    {
+        $page = max(1, (int) $this->request->getGet('page'));
+        $perPage = min(50, max(5, (int) ($this->request->getGet('per_page') ?? 10)));
+        $search = trim((string) $this->request->getGet('search'));
+        $sort = (string) ($this->request->getGet('sort') ?? 'created_at');
+        $order = strtoupper((string) ($this->request->getGet('order') ?? 'DESC'));
+        if (! in_array($order, ['ASC', 'DESC'], true)) {
+            $order = 'DESC';
+        }
+        $allowedSort = ['created_at', 'link_expiry', 'full_name', 'status'];
+        if (! in_array($sort, $allowedSort, true)) {
+            $sort = 'created_at';
+        }
+
+        $builder = $this->invitationModel->builder();
+
+        if ($search !== '') {
+            $builder->groupStart()
+                ->like('full_name', $search)
+                ->orLike('company', $search)
+                ->orLike('company_visited', $search)
+                ->groupEnd();
+        }
+
+        $total = $builder->countAllResults(false);
+        $offset = ($page - 1) * $perPage;
+        $rows = $builder->orderBy($sort, $order)->limit($perPage, $offset)->get()->getResultArray();
+
+        $ids = array_column($rows, 'id');
+        $firstScheduleDate = [];
+        if ($ids !== []) {
+            $schedules = $this->scheduleModel->whereIn('invitation_id', $ids)
+                ->orderBy('date_from', 'ASC')
+                ->findAll();
+            foreach ($schedules as $sch) {
+                $iid = (int) $sch['invitation_id'];
+                if (! isset($firstScheduleDate[$iid])) {
+                    $firstScheduleDate[$iid] = $sch['date_from'];
+                }
+            }
+        }
+
+        $today = strtotime('today');
+        $out = [];
+        foreach ($rows as $i => $row) {
+            $id = (int) $row['id'];
+            $le = $row['link_expiry'] ?? null;
+            $leTs = $le ? strtotime($le . ' 23:59:59') : false;
+            $out[] = [
+                'id' => $id,
+                'no' => $offset + $i + 1,
+                'date' => isset($firstScheduleDate[$id])
+                    ? date('d/m/Y', strtotime((string) $firstScheduleDate[$id]))
+                    : (! empty($row['created_at']) ? date('d/m/Y', strtotime((string) $row['created_at'])) : '-'),
+                'full_name' => $row['full_name'] ?? '',
+                'link_expiry' => $le ? date('d/m/Y', strtotime((string) $le)) : '-',
+                'link_expired' => $leTs !== false && $leTs < $today,
+                'status' => $row['status'] ?? '',
+                'company' => $row['company_visited'] ?: ($row['company'] ?? ''),
+                'invited_by' => $row['invited_by'] ?? '',
+            ];
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => $out,
+            'pagination' => [
+                'current_page' => $page,
+                'last_page' => max(1, (int) ceil($total / $perPage)),
+                'total' => $total,
+                'per_page' => $perPage,
+            ],
+        ]);
+    }
+
+    /**
+     * JSON payload to autofill the create-invitation form from a past invitation.
+     */
+    public function historyForForm($id)
+    {
+        $id = (int) $id;
+        if ($id <= 0) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Invalid invitation']);
+        }
+
+        $row = $this->invitationModel->find($id);
+        if (! $row) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Invitation not found']);
+        }
+
+        $schedules = $this->scheduleModel->where('invitation_id', $id)->orderBy('date_from', 'ASC')->findAll();
+        $schedOut = [];
+        foreach ($schedules as $sch) {
+            $schedOut[] = [
+                'date_from' => $this->formatForDatetimeLocal($sch['date_from'] ?? null),
+                'date_to' => $this->formatForDatetimeLocal($sch['date_to'] ?? null),
+            ];
+        }
+
+        $visitorTypeId = isset($row['visitor_type_id']) ? (int) $row['visitor_type_id'] : null;
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => [
+                'staff_id' => (string) ($row['staff_id'] ?? ''),
+                'visitor_type_id' => $visitorTypeId > 0 ? $visitorTypeId : null,
+                'company_visited' => (string) ($row['company_visited'] ?? $row['company'] ?? ''),
+                'contact_person' => (string) ($row['host_contact'] ?? ''),
+                'link_expiry' => $this->formatForDateInput($row['link_expiry'] ?? null),
+                'reason' => (string) ($row['reason'] ?? ''),
+                'other_reason' => (string) ($row['other_reason'] ?? ''),
+                'location' => (string) ($row['location'] ?? ''),
+                'allow_sub_invites' => ! empty($row['allow_sub_invites']),
+                'visitors' => [[
+                    'full_name' => (string) ($row['full_name'] ?? ''),
+                    'contact' => (string) ($row['contact'] ?? ''),
+                    'visitor_email' => (string) ($row['visitor_email'] ?? ''),
+                ]],
+                'schedules' => $schedOut,
+            ],
+        ]);
+    }
+
+    private function formatForDatetimeLocal($value): string
+    {
+        if ($value === null || $value === '') {
+            return '';
+        }
+        $ts = strtotime((string) $value);
+
+        return $ts ? date('Y-m-d\TH:i', $ts) : '';
+    }
+
+    private function formatForDateInput($value): string
+    {
+        if ($value === null || $value === '') {
+            return '';
+        }
+        $ts = strtotime((string) $value);
+
+        return $ts ? date('Y-m-d', $ts) : '';
+    }
+
     public function store()
     {
         $validation = \Config\Services::validation();
@@ -141,6 +287,8 @@ class InvitationList extends BaseController
             'schedules' => 'required',
             'schedules.*.date_from' => 'required',
             'schedules.*.date_to' => 'required',
+            'staff_id' => 'required|max_length[50]',
+            'contact_person' => 'required|max_length[20]',
         ];
 
         $visitorTypeCount = $this->invitationsSupportVisitorType()
@@ -237,10 +385,11 @@ class InvitationList extends BaseController
                 'other_reason' => $this->request->getPost('other_reason'),
                 'link_expiry' => $this->request->getPost('link_expiry'),
                 'status' => 'Pending',
-                'staff_id' => $this->request->getPost('staff_id'),
+                'staff_id' => trim((string) $this->request->getPost('staff_id')),
                 'company_visited' => $this->request->getPost('company_visited'),
-                'host_contact' => $this->request->getPost('contact_person'),
+                'host_contact' => trim((string) $this->request->getPost('contact_person')),
                 'registration_source' => 'Invitation',
+                'allow_sub_invites' => $this->request->getPost('allow_sub_invites') ? 1 : 0,
             ];
             if ($this->invitationsSupportVisitorType()) {
                 $shared['visitor_type_id'] = $visitorTypeId;
@@ -294,7 +443,7 @@ class InvitationList extends BaseController
             $n = count($createdIds);
             $emailsSent = 0;
             foreach ($createdIds as $invitationId) {
-                if ($this->sendInvitationEmail($invitationId)) {
+                if ($this->invitationEmailSender->send($invitationId)) {
                     $emailsSent++;
                 } else {
                     log_message('warning', 'Invitation created but email sending failed for invitation ID: ' . $invitationId);
@@ -328,174 +477,11 @@ class InvitationList extends BaseController
     }
 
     /**
-     * Send invitation email to visitor
-     */
-    private function sendInvitationEmail($invitationId)
-    {
-        try {
-            // Get invitation details with related data
-            $invitation = $this->getInvitationDetails($invitationId);
-            
-            if (!$invitation) {
-                log_message('error', 'Invitation not found for ID: ' . $invitationId);
-                return false;
-            }
-
-            // Check if visitor email is available
-            if (empty($invitation['visitor_email'])) {
-                log_message('warning', 'No visitor email found for invitation ID: ' . $invitationId);
-                return false;
-            }
-
-            $email = new Email();
-            $email->setMailType('html');
-            
-            // Generate registration link with invitation token
-            $registrationLink = base_url('visitor-registration?token=' . base64_encode($invitationId));
-            
-            $templateRaw = $this->settingModel->getSetting(
-                $this->emailTemplateService->getStorageKey(EmailTemplateService::PROCESS_INVITATION)
-            );
-            $templateConfig = $this->emailTemplateService->normalizeTemplate(
-                EmailTemplateService::PROCESS_INVITATION,
-                $templateRaw ? json_decode((string) $templateRaw, true) : []
-            );
-
-            $placeholderContext = [
-                'visitor_name' => $invitation['full_name'],
-                'company' => $invitation['company_name'],
-                'location' => $invitation['location_name'],
-                'reason' => $invitation['reason_name'],
-                'invited_by' => $invitation['invited_by'],
-                'link_expiry_date' => date('d/m/Y', strtotime($invitation['link_expiry'])),
-                'registration_link' => $registrationLink,
-            ];
-
-            // Optional: if CRUD email template exists (code: INVITATION), use its Subject/Body.
-            $crudTemplate = $this->emailTemplateModel
-                ->where('code', 'INVITATION')
-                ->first();
-            if (! $crudTemplate) {
-                // Backward compat with earlier seeded code naming.
-                $crudTemplate = $this->emailTemplateModel
-                    ->where('code', 'VISITOR_INVITE')
-                    ->first();
-            }
-
-            $customSubject = null;
-            $customBodyHtml = null;
-            $customColors = null;
-            if (is_array($crudTemplate)) {
-                $rawSubject = trim((string) ($crudTemplate['subject'] ?? ''));
-                $rawBody = (string) ($crudTemplate['body'] ?? '');
-                if ($rawSubject !== '') {
-                    $customSubject = $this->emailTemplateService->applyPlaceholders($rawSubject, $placeholderContext);
-                }
-                if (trim($rawBody) !== '') {
-                    $customBodyText = $this->emailTemplateService->applyPlaceholders($rawBody, $placeholderContext);
-                    // Keep it safe: escape then convert newlines to <br>.
-                    $customBodyHtml = nl2br(esc($customBodyText));
-                }
-                $customColors = [
-                    'primary_color' => $crudTemplate['primary_color'] ?? null,
-                    'content_bg_color' => $crudTemplate['content_bg_color'] ?? null,
-                    'text_color' => $crudTemplate['text_color'] ?? null,
-                ];
-            }
-
-            // Prepare email data
-            $emailData = [
-                'visitor_name' => $invitation['full_name'],
-                'company' => $invitation['company_name'],
-                'location' => $invitation['location_name'],
-                'reason' => $invitation['reason_name'],
-                'other_reason' => $invitation['other_reason'],
-                'invited_by' => $invitation['invited_by'],
-                'schedules' => $invitation['schedules'],
-                'registration_link' => $registrationLink,
-                'link_expiry' => $invitation['link_expiry'],
-                'template' => $templateConfig,
-                'intro_line' => $this->emailTemplateService->applyPlaceholders($templateConfig['intro_line'], $placeholderContext),
-                'notes_items' => array_map(
-                    fn($item) => $this->emailTemplateService->applyPlaceholders((string) $item, $placeholderContext),
-                    $templateConfig['notes_items']
-                ),
-                'custom_body_html' => $customBodyHtml,
-                'custom_colors' => $customColors,
-            ];
-            
-            // Render email template
-            $message = view('emails/invitation_template', $emailData);
-            
-            $email->setFrom('noreply@safeg.com', 'SafeG VMS');
-            $email->setTo($invitation['visitor_email']);
-            $email->setSubject($customSubject ?: $templateConfig['subject']);
-            $email->setMessage($message);
-            
-            // Always try to send emails (remove development mode restriction)
-            $result = $email->send();
-            
-            // Log for debugging
-            if ($result) {
-                log_message('info', 'Email sent successfully to: ' . $invitation['visitor_email']);
-            } else {
-                log_message('error', 'Email sending failed to: ' . $invitation['visitor_email']);
-                log_message('error', 'Email error: ' . $email->printDebugger());
-            }
-            
-            return $result;
-            
-        } catch (\Exception $e) {
-            log_message('error', 'Email sending failed: ' . $e->getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * Get invitation details with related data for email
-     */
-    private function getInvitationDetails($invitationId)
-    {
-        // Get invitation with related data
-        $invitation = $this->invitationModel->find($invitationId);
-        if (!$invitation) {
-            return null;
-        }
-
-        // Get company name
-        $company = $this->companyModel->find($invitation['company']);
-        $invitation['company_name'] = $company ? $company['name'] : $invitation['company'];
-
-        // Get location name
-        $location = $this->locationModel->find($invitation['location']);
-        $invitation['location_name'] = $location ? $location['name'] : $invitation['location'];
-
-        // Get reason name
-        $reason = $this->visitReasonModel->find($invitation['reason']);
-        $invitation['reason_name'] = $reason ? $reason['reason'] : $invitation['reason'];
-
-        $invitation['visitor_type_name'] = '';
-        if ($this->invitationsSupportVisitorType() && ! empty($invitation['visitor_type_id'])) {
-            $vt = $this->visitorTypeModel->find((int) $invitation['visitor_type_id']);
-            $invitation['visitor_type_name'] = $vt ? $vt['name'] : '';
-        }
-
-        // Get schedules
-        $schedules = $this->scheduleModel->where('invitation_id', $invitationId)->findAll();
-        $invitation['schedules'] = $schedules;
-
-        // Visitor email should be stored in the invitation record
-        $invitation['visitor_email'] = $invitation['visitor_email'] ?? $invitation['contact'] . '@example.com';
-
-        return $invitation;
-    }
-
-    /**
      * Resend invitation email
      */
     public function resend($id)
     {
-        if ($this->sendInvitationEmail($id)) {
+        if ($this->invitationEmailSender->send((int) $id)) {
             return $this->response->setJSON([
                 'success' => true,
                 'message' => 'Invitation email sent successfully'

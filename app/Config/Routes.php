@@ -35,8 +35,11 @@ $routes->get('invitations', 'InvitationList::index');
 $routes->get('invitations/create', 'InvitationList::create');
 $routes->post('invitations/store', 'InvitationList::store');
 $routes->post('invitations/resend/(:num)', 'InvitationList::resend/$1');
+$routes->get('invitations/history-rows', 'InvitationList::historyRows');
+$routes->get('invitations/history-for-form/(:num)', 'InvitationList::historyForForm/$1');
 $routes->get('requests', 'RequestList::index');
 $routes->post('requests/approve', 'RequestList::approve');
+$routes->post('requests/batchApprove', 'RequestList::batchApprove');
 $routes->post('requests/reject', 'RequestList::reject');
 $routes->post('requests/pastVisits', 'RequestList::pastVisits');
 $routes->get('visitors', 'VisitorList::index');
@@ -54,6 +57,7 @@ $routes->get('visitor-registration', 'VisitorRegistration::index');
 $routes->post('visitor-registration/submit', 'VisitorRegistration::submit');
 $routes->post('visitor-registration/processMyKad', 'VisitorRegistration::processMyKad');
 $routes->post('visitor-registration/updateEmail', 'VisitorRegistration::updateEmail');
+$routes->post('visitor-registration/inviteAdditionalGuests', 'VisitorRegistration::inviteAdditionalGuests');
 
 // File serving route (for uploaded files)
 $routes->get('uploads/(:segment)/(:segment)', 'FileServer::serve/$1/$2');
