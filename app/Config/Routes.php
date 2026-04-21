@@ -290,3 +290,10 @@ $routes->post('config/saveBlacklistReason', 'BlacklistReasonCreate::save');
 
 // Business Type Config
 $routes->post('config/updateBusinessType', 'Config::updateBusinessType');
+
+// API Key Management
+$routes->get('config/getApiKeys',             'Config::getApiKeys');
+$routes->get('config/getApiKey/(:num)',        'Config::getApiKey/$1');
+$routes->post('config/createApiKey',           'Config::createApiKey');
+$routes->post('config/updateApiKey/(:num)',    'Config::updateApiKey/$1');
+$routes->delete('config/deleteApiKey/(:num)',  'Config::deleteApiKey/$1');
