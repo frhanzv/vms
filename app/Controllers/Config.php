@@ -3716,6 +3716,8 @@ class Config extends BaseController
                 'success' => false,
                 'message' => 'Registration type not found',
             ]);
+        }
+    }
     // ============================================
     // Pathway Management
     // ============================================
@@ -3805,9 +3807,14 @@ class Config extends BaseController
                 'message' => 'Failed to create registration type',
                 'errors'  => $this->regTypeModel->errors(),
             ]);
-            'data'    => $pathway,
+        }  // ← closes the if block
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Registration type created successfully',
+            'data'    => ['id' => $this->regTypeModel->getInsertID()],
         ]);
-    }
+    }  
 
     public function createPathway()
     {
@@ -3848,8 +3855,7 @@ class Config extends BaseController
                 'success' => false,
                 'message' => 'Registration type not found',
             ]);
-            'message' => 'Pathway created successfully',
-        ]);
+        }
     }
 
     public function updatePathway($id)

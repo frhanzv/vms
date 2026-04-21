@@ -319,7 +319,10 @@
                                 <td class="p-4"><?= $staff['no'] ?></td>
                                 <td class="p-4">
                                     <div class="flex items-center gap-2">
-                                        <button onclick="event.stopPropagation(); window.location.href='<?= base_url('staffpassrequest') ?>'" class="text-primary hover:text-blue-700 transition-colors" title="View Details">
+                                        <button 
+                                            onclick="event.stopPropagation(); window.location.href='<?= base_url('staffpassrequest/view/') ?><?= $staff['id'] ?>'" 
+                                            class="text-primary hover:text-blue-700 transition-colors" 
+                                            title="View Details">
                                             <span class="material-symbols-outlined text-[20px]">search</span>
                                         </button>
                                         <button onclick="event.stopPropagation(); printStaff(<?= json_encode($staff) ?>)" class="text-primary hover:text-blue-700 transition-colors" title="Print">

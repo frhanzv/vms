@@ -171,6 +171,7 @@ $routes->get('staffs/staffpassrequest', 'StaffPassRequest::index');
 $routes->post('staffs/staffpassrequest/store', 'StaffPassRequest::store');
 //$routes->get('staff-pass-request', 'StaffList::downloadTemplate');
 $routes->post('staff-pass/import', 'StaffController::import');
+$routes->get('staffpassrequest/view/(:any)', 'StaffPassRequest::view/$1');
 
 
 
