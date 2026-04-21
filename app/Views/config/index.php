@@ -145,7 +145,7 @@
                     </div>
                 </div>
 
-                <!-- API Management -->
+                <!-- Kiosk API Management -->
                 <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('apimanagement')"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
@@ -155,7 +155,7 @@
                             </div>
                             <div class="text-left">
                                 <h3 class="text-base font-bold text-gray-800 dark:text-white">API Management</h3>
-                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Manage API keys for external integrations</p>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Manage kiosk API call mapping for frontend integration</p>
                             </div>
                         </div>
                         <span id="apimanagement-icon"
@@ -169,7 +169,7 @@
                                 <div class="flex border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden w-full sm:w-72">
                                     <input id="apikey-search-input"
                                         class="w-full border-0 dark:bg-gray-800 dark:text-white px-4 py-2.5 text-sm focus:ring-0 outline-none"
-                                        placeholder="Search by name or service..."
+                                        placeholder="Search by API name or module..."
                                         type="text"
                                         oninput="searchApiKeys()" />
                                     <button class="px-3 bg-gray-100 dark:bg-gray-700 border-l border-gray-300 dark:border-gray-600">
@@ -179,7 +179,7 @@
                                 <button onclick="openApiKeyModal()"
                                     class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium whitespace-nowrap">
                                     <span class="material-symbols-outlined text-base">add</span>
-                                    New API Key
+                                    New API Call
                                 </button>
                             </div>
 
@@ -189,11 +189,11 @@
                                     <thead class="text-xs text-gray-600 dark:text-slate-400 uppercase bg-gray-100 dark:bg-slate-700/50 border-b border-gray-200 dark:border-slate-700">
                                         <tr>
                                             <th class="px-4 py-3">No</th>
-                                            <th class="px-4 py-3">Name</th>
-                                            <th class="px-4 py-3">Service</th>
-                                            <th class="px-4 py-3">API Key</th>
+                                            <th class="px-4 py-3">Call Key</th>
+                                            <th class="px-4 py-3">Method</th>
+                                            <th class="px-4 py-3">Endpoint Path</th>
                                             <th class="px-4 py-3">Status</th>
-                                            <th class="px-4 py-3">Last Viewed</th>
+                                            <th class="px-4 py-3">Call Preview</th>
                                             <th class="px-4 py-3">Actions</th>
                                         </tr>
                                     </thead>
@@ -203,7 +203,7 @@
                                             <td colspan="7" class="px-4 py-8 text-center text-gray-400 dark:text-slate-500">
                                                 <div class="flex flex-col items-center gap-2">
                                                     <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                                                    <span>Loading API keys...</span>
+                                                    <span>Loading API calls...</span>
                                                 </div>
                                             </td>
                                         </tr>
@@ -3609,11 +3609,11 @@
                 </div>
 
 
-                <!-- API Key Create/Edit Modal -->
+                <!-- API Call Create/Edit Modal -->
                 <div id="apikeyModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
                     <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-lg mx-4">
                         <div class="px-6 py-4 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
-                            <h3 id="apikeyModalTitle" class="text-lg font-bold text-gray-800 dark:text-white">New API Key</h3>
+                            <h3 id="apikeyModalTitle" class="text-lg font-bold text-gray-800 dark:text-white">New API Call Mapping</h3>
                             <button onclick="closeApiKeyModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                                 <span class="material-symbols-outlined">close</span>
                             </button>
@@ -3621,34 +3621,33 @@
                         <div class="p-6 space-y-4">
                             <input type="hidden" id="apikeyId">
                             <div>
-                                <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Name <span class="text-red-500">*</span></label>
+                                <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Call Key <span class="text-red-500">*</span></label>
                                 <input id="apikeyName" type="text"
                                     class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary outline-none"
-                                    placeholder="e.g. Google Vision Production" />
+                                    placeholder="e.g. getLocationAccessList" />
                             </div>
                             <div>
-                                <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Service / Provider <span class="text-red-500">*</span></label>
-                                <input id="apikeyService" type="text"
-                                    class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary outline-none"
-                                    placeholder="e.g. Google Vision, Telegram, SMTP" />
+                                <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">HTTP Method <span class="text-red-500">*</span></label>
+                                <select id="apikeyService"
+                                    class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary outline-none">
+                                    <option value="GET">GET</option>
+                                    <option value="POST">POST</option>
+                                    <option value="PUT">PUT</option>
+                                    <option value="PATCH">PATCH</option>
+                                    <option value="DELETE">DELETE</option>
+                                </select>
                             </div>
                             <div>
-                                <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">API Key / Token <span class="text-red-500">*</span></label>
-                                <div class="relative">
-                                    <input id="apikeyValue" type="password"
-                                        class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2.5 pr-12 text-sm focus:ring-2 focus:ring-primary outline-none font-mono"
-                                        placeholder="Paste your API key here" />
-                                    <button type="button" onclick="toggleApikeyVisibility()"
-                                        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                                        <span id="apikeyEyeIcon" class="material-symbols-outlined text-base">visibility</span>
-                                    </button>
-                                </div>
+                                <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">API Call URL <span class="text-red-500">*</span></label>
+                                <input id="apikeyValue" type="text"
+                                    class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary outline-none font-mono"
+                                    placeholder="/api/packageDetail" />
                             </div>
                             <div>
-                                <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Description</label>
+                                <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Description / Usage</label>
                                 <textarea id="apikeyDescription" rows="2"
                                     class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary outline-none resize-none"
-                                    placeholder="Optional notes about this key..."></textarea>
+                                    placeholder="Optional notes about where frontend uses this call..."></textarea>
                             </div>
                             <div class="flex items-center gap-3">
                                 <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300">Status</label>
@@ -3668,11 +3667,11 @@
                     </div>
                 </div>
 
-                <!-- API Key View Modal -->
+                <!-- API Call View Modal -->
                 <div id="apikeyViewModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
                     <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-lg mx-4">
                         <div class="px-6 py-4 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
-                            <h3 class="text-lg font-bold text-gray-800 dark:text-white">View API Key</h3>
+                            <h3 class="text-lg font-bold text-gray-800 dark:text-white">View API Call Mapping</h3>
                             <button onclick="closeApiKeyViewModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                                 <span class="material-symbols-outlined">close</span>
                             </button>
@@ -3683,11 +3682,11 @@
                                 <p id="viewApiKeyName" class="text-sm text-gray-800 dark:text-white font-medium"></p>
                             </div>
                             <div>
-                                <p class="text-xs text-gray-500 dark:text-slate-400 uppercase font-semibold mb-1">Service</p>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 uppercase font-semibold mb-1">HTTP Method</p>
                                 <p id="viewApiKeyService" class="text-sm text-gray-800 dark:text-white"></p>
                             </div>
                             <div>
-                                <p class="text-xs text-gray-500 dark:text-slate-400 uppercase font-semibold mb-1">API Key</p>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 uppercase font-semibold mb-1">API Call URL</p>
                                 <div class="flex items-center gap-2">
                                     <code id="viewApiKeyValue"
                                         class="flex-1 bg-gray-100 dark:bg-slate-900 text-gray-800 dark:text-green-400 px-3 py-2 rounded-lg text-xs font-mono break-all"></code>
@@ -13498,7 +13497,7 @@
             });
         }
 
-        // ===================== API KEY MANAGEMENT =====================
+        // ===================== KIOSK API CALL MANAGEMENT =====================
 
         let apikeyCurrentPage = 1;
         const apikeyPerPage   = 10;
@@ -13522,11 +13521,11 @@
                         renderApiKeyTable(res.data, res.pagination);
                         return;
                     }
-                    throw new Error(res.message || 'Failed to load API keys');
+                    throw new Error(res.message || 'Failed to load API calls');
                 })
                 .catch(() => {
                     document.getElementById('apikey-table-body').innerHTML =
-                        `<tr><td colspan="7" class="px-4 py-6 text-center text-red-500">Failed to load API keys.</td></tr>`;
+                        `<tr><td colspan="7" class="px-4 py-6 text-center text-red-500">Failed to load API calls.</td></tr>`;
                     document.getElementById('apikey-pagination-info').textContent = 'Failed to load';
                     document.getElementById('apikey-pagination-buttons').innerHTML = '';
                 });
@@ -13535,7 +13534,7 @@
         function renderApiKeyTable(keys, pagination) {
             const tbody = document.getElementById('apikey-table-body');
             if (!keys.length) {
-                tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-8 text-center text-gray-400 dark:text-slate-500">No API keys found.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-8 text-center text-gray-400 dark:text-slate-500">No API calls found.</td></tr>`;
             } else {
                 const offset = (pagination.current_page - 1) * pagination.per_page;
                 tbody.innerHTML = keys.map((k, i) => `
@@ -13544,11 +13543,11 @@
                         <td class="px-4 py-3 font-medium">${apkEsc(k.name)}</td>
                         <td class="px-4 py-3">
                             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
-                                ${apkEsc(k.service)}
+                                ${apkEsc((k.service || '').toUpperCase())}
                             </span>
                         </td>
-                        <td class="px-4 py-3 font-mono text-xs text-gray-500 dark:text-slate-400">
-                            ${apkMask(k.api_key)}
+                        <td class="px-4 py-3 font-mono text-xs text-gray-500 dark:text-slate-400 max-w-[360px] truncate" title="${apkEsc(k.api_key || '')}">
+                            ${apkEsc(k.api_key || '')}
                         </td>
                         <td class="px-4 py-3">
                             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${k.status === 'active'
@@ -13557,7 +13556,9 @@
                                 ${k.status === 'active' ? 'Active' : 'Inactive'}
                             </span>
                         </td>
-                        <td class="px-4 py-3 text-xs text-gray-500 dark:text-slate-400">${k.last_used_at ?? '—'}</td>
+                        <td class="px-4 py-3 text-xs text-gray-500 dark:text-slate-400 font-mono max-w-[280px] truncate" title="${apkEsc(buildCallPreview(k.api_key || ''))}">
+                            ${apkEsc(buildCallPreview(k.api_key || ''))}
+                        </td>
                         <td class="px-4 py-3">
                             <div class="flex items-center gap-2">
                                 <button onclick="viewApiKey(${k.id})"
@@ -13579,7 +13580,7 @@
 
             document.getElementById('apikey-pagination-info').textContent =
                 pagination.total > 0
-                    ? `Showing ${pagination.from} to ${pagination.to} of ${pagination.total} keys`
+                    ? `Showing ${pagination.from} to ${pagination.to} of ${pagination.total} API calls`
                     : 'No results';
 
             const btnContainer = document.getElementById('apikey-pagination-buttons');
@@ -13595,6 +13596,14 @@
                 btn.onclick = () => loadApiKeys(p);
                 btnContainer.appendChild(btn);
             }
+        }
+
+        function buildCallPreview(endpoint) {
+            const raw = String(endpoint || '').trim();
+            if (!raw) return '—';
+            if (/^https?:\/\//i.test(raw)) return raw;
+            const normalized = raw.startsWith('/') ? raw : ('/' + raw);
+            return window.location.origin + normalized;
         }
 
         function apkMask(key) {
@@ -13616,14 +13625,12 @@
         function openApiKeyModal(data = null) {
             document.getElementById('apikeyId').value          = data ? data.id : '';
             document.getElementById('apikeyName').value        = data ? data.name : '';
-            document.getElementById('apikeyService').value     = data ? data.service : '';
+            document.getElementById('apikeyService').value     = data ? String(data.service || 'GET').toUpperCase() : 'GET';
             document.getElementById('apikeyValue').value       = data ? data.api_key : '';
             document.getElementById('apikeyDescription').value = data ? (data.description ?? '') : '';
             document.getElementById('apikeyStatus').checked    = data ? data.status === 'active' : true;
             document.getElementById('apikeyStatusLabel').textContent = (data && data.status !== 'active') ? 'Inactive' : 'Active';
-            document.getElementById('apikeyModalTitle').textContent  = data ? 'Edit API Key' : 'New API Key';
-            document.getElementById('apikeyValue').type = 'password';
-            document.getElementById('apikeyEyeIcon').textContent = 'visibility';
+            document.getElementById('apikeyModalTitle').textContent  = data ? 'Edit API Call Mapping' : 'New API Call Mapping';
             const modal = document.getElementById('apikeyModal');
             modal.classList.remove('hidden');
             modal.classList.add('flex');
@@ -13633,18 +13640,6 @@
             const modal = document.getElementById('apikeyModal');
             modal.classList.add('hidden');
             modal.classList.remove('flex');
-        }
-
-        function toggleApikeyVisibility() {
-            const input = document.getElementById('apikeyValue');
-            const icon  = document.getElementById('apikeyEyeIcon');
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.textContent = 'visibility_off';
-            } else {
-                input.type = 'password';
-                icon.textContent = 'visibility';
-            }
         }
 
         document.getElementById('apikeyStatus').addEventListener('change', function () {
@@ -13660,7 +13655,11 @@
             const status      = document.getElementById('apikeyStatus').checked ? 'active' : 'inactive';
 
             if (!name || !service || !api_key) {
-                alert('Name, Service and API Key are required.');
+                alert('Name, Module and API Call URL are required.');
+                return;
+            }
+            if (!api_key.startsWith('/') && !/^https?:\/\//i.test(api_key)) {
+                alert('Endpoint must start with "/" or full "http(s)://".');
                 return;
             }
 
@@ -13684,7 +13683,7 @@
                     const detail = res.errors
                         ? '\n' + (typeof res.errors === 'string' ? res.errors : JSON.stringify(res.errors))
                         : '';
-                    alert((res.message || 'Failed to save API key.') + detail);
+                    alert((res.message || 'Failed to save API call.') + detail);
                 }
             })
             .catch(() => alert('Network error. Please try again.'));
@@ -13695,7 +13694,7 @@
                 .then(r => r.json())
                 .then(res => {
                     if (res.success) openApiKeyModal(res.data);
-                    else alert('Failed to load API key details.');
+                    else alert('Failed to load API call details.');
                 });
         }
 
@@ -13703,7 +13702,7 @@
             fetch(`${configBaseUrl}/getApiKey/${id}`)
                 .then(r => r.json())
                 .then(res => {
-                    if (!res.success) { alert('Failed to load key.'); return; }
+                    if (!res.success) { alert('Failed to load API call.'); return; }
                     const k = res.data;
                     document.getElementById('viewApiKeyName').textContent        = k.name;
                     document.getElementById('viewApiKeyService').textContent     = k.service;
@@ -13723,11 +13722,11 @@
 
         function copyApiKey() {
             const val = document.getElementById('viewApiKeyValue').textContent;
-            navigator.clipboard.writeText(val).then(() => apkToast('API key copied!'));
+            navigator.clipboard.writeText(val).then(() => apkToast('API URL copied!'));
         }
 
         function deleteApiKey(id, name) {
-            if (!confirm(`Delete API key "${name}"? This cannot be undone.`)) return;
+            if (!confirm(`Delete API call "${name}"? This cannot be undone.`)) return;
             fetch(`${configBaseUrl}/deleteApiKey/${id}`, {
                 method: 'DELETE',
                 headers: {
@@ -13754,15 +13753,6 @@
             setTimeout(() => t.remove(), 3000);
         }
 
-        // Keep API Management directly under Alert Priority in Config list.
-        window.addEventListener('DOMContentLoaded', () => {
-            const alertBtn = document.querySelector("button[onclick=\"toggleSection('alertpriority')\"]");
-            const apiBtn = document.querySelector("button[onclick=\"toggleSection('apimanagement')\"]");
-            const alertCard = alertBtn ? alertBtn.closest('.bg-white') : null;
-            const apiCard = apiBtn ? apiBtn.closest('.bg-white') : null;
-            if (alertCard && apiCard && alertCard.nextElementSibling !== apiCard) {
-                alertCard.insertAdjacentElement('afterend', apiCard);
-            }
-        });
+        
     </script>
 </body>
