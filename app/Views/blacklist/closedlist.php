@@ -205,7 +205,8 @@
                         </h2>
 
                         <div class="flex items-center gap-2">
-                            <a href="<?= base_url('blacklist/closedlist/export') ?>"
+                            <a href="<?= base_url('files/Blacklist_Individual_Closed_List.xlsx') ?>"
+                                download="Blacklist_Individual_Closed_List.xlsx"
                                 class="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary hover:bg-primary-dark text-white text-sm font-bold transition-colors shadow-sm">
                                 <span class="material-symbols-outlined text-[18px]">download</span>
                                 Export

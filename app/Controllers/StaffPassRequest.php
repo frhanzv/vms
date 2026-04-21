@@ -79,4 +79,10 @@ class StaffPassRequest extends BaseController
         return redirect()->to(base_url('staffs'))
             ->with('success', 'Staff pass request submitted successfully.');
     }
+
+    public function view($id) {
+        $staffModel = new \App\Models\StaffModel();
+        $data['staff'] = $staffModel->find($id);
+        return view('staffs/staffpassrequest_detail', $data);
+    }
 }
