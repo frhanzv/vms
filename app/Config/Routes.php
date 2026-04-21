@@ -35,8 +35,11 @@ $routes->get('invitations', 'InvitationList::index');
 $routes->get('invitations/create', 'InvitationList::create');
 $routes->post('invitations/store', 'InvitationList::store');
 $routes->post('invitations/resend/(:num)', 'InvitationList::resend/$1');
+$routes->get('invitations/history-rows', 'InvitationList::historyRows');
+$routes->get('invitations/history-for-form/(:num)', 'InvitationList::historyForForm/$1');
 $routes->get('requests', 'RequestList::index');
 $routes->post('requests/approve', 'RequestList::approve');
+$routes->post('requests/batchApprove', 'RequestList::batchApprove');
 $routes->post('requests/reject', 'RequestList::reject');
 $routes->post('requests/pastVisits', 'RequestList::pastVisits');
 $routes->get('visitors', 'VisitorList::index');
@@ -54,6 +57,7 @@ $routes->get('visitor-registration', 'VisitorRegistration::index');
 $routes->post('visitor-registration/submit', 'VisitorRegistration::submit');
 $routes->post('visitor-registration/processMyKad', 'VisitorRegistration::processMyKad');
 $routes->post('visitor-registration/updateEmail', 'VisitorRegistration::updateEmail');
+$routes->post('visitor-registration/inviteAdditionalGuests', 'VisitorRegistration::inviteAdditionalGuests');
 
 // File serving route (for uploaded files)
 $routes->get('uploads/(:segment)/(:segment)', 'FileServer::serve/$1/$2');
@@ -272,3 +276,17 @@ $routes->group('blacklist', function ($routes) {
     // Blacklist Closed List (directly in Controllers/)
     $routes->get('closedlist', 'BlacklistClosedList::index');
 });
+$routes->get('blacklist/entry', 'BlacklistEntry::index');
+
+// Registration Type config
+$routes->get('config/getRegTypes',       'Config::getRegTypes');
+$routes->get('config/getRegType/(:num)', 'Config::getRegType/$1');
+$routes->post('config/createRegType',    'Config::createRegType');
+$routes->post('config/updateRegType/(:num)', 'Config::updateRegType/$1');
+$routes->post('config/deleteRegType/(:num)', 'Config::deleteRegType/$1');
+
+// Blacklist Reason config
+$routes->post('config/saveBlacklistReason', 'BlacklistReasonCreate::save');
+
+// Business Type Config
+$routes->post('config/updateBusinessType', 'Config::updateBusinessType');

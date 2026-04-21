@@ -278,6 +278,21 @@
     </div>
 <?php endif; ?>
 
+<!-- Visitor count + history (reference: new invitation header row) -->
+<section class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden mb-6">
+<div class="p-6 flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-4">
+<div class="flex flex-col gap-2">
+<label class="text-sm font-semibold text-slate-700 dark:text-slate-300" for="visitor-count">Number of visitors</label>
+<input id="visitor-count" type="number" min="1" max="30" value="1" class="w-28 rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white"/>
+<p class="text-xs text-slate-500 dark:text-slate-400 max-w-xs">Sets how many visitor rows appear below. Changing this adds or removes rows from the bottom.</p>
+</div>
+<button type="button" id="btn-invitation-history" class="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-primary text-white text-sm font-bold hover:bg-blue-600 shadow-sm shrink-0">
+<span class="material-symbols-outlined text-[20px]">history</span>
+History
+</button>
+</div>
+</section>
+
 <!-- Visit Context Section -->
 <section class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
 <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
@@ -285,16 +300,10 @@
 <span class="material-symbols-outlined text-slate-400">info</span>
 </div>
 <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-<!-- Staff ID (Auto-filled, Read-only) -->
+<!-- Staff ID (defaults from account; editable e.g. when using a manager login) -->
 <div class="flex flex-col gap-2">
-<label class="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-Staff ID
-<span class="text-xs font-normal text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">Auto-filled</span>
-</label>
-<div class="relative">
-<input name="staff_id" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white cursor-not-allowed" value="<?= esc($staff_id ?? '') ?>" type="text" readonly/>
-<span class="material-symbols-outlined absolute right-3 top-3 text-slate-400 text-[20px]">lock</span>
-</div>
+<label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Staff ID <span class="text-red-500">*</span></label>
+<input name="staff_id" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white" value="<?= esc(old('staff_id', $staff_id ?? '')) ?>" type="text" maxlength="50" required/>
 </div>
 
 <!-- Visitor Type -->
@@ -327,16 +336,10 @@ Staff ID
 </select>
 </div>
 
-<!-- Contact No Of Person Visited (Auto-filled, Read-only) -->
+<!-- Contact No Of Person Visited (defaults from account; editable) -->
 <div class="flex flex-col gap-2">
-<label class="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-Contact No Of Person Visited
-<span class="text-xs font-normal text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">Auto-filled</span>
-</label>
-<div class="relative">
-<input name="contact_person" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white cursor-not-allowed" value="<?= esc($contact_no ?? '') ?>" type="tel" readonly/>
-<span class="material-symbols-outlined absolute right-3 top-3 text-slate-400 text-[20px]">lock</span>
-</div>
+<label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Contact No Of Person Visited <span class="text-red-500">*</span></label>
+<input name="contact_person" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white" value="<?= esc(old('contact_person', $contact_no ?? '')) ?>" type="tel" maxlength="20" required/>
 </div>
 
 <!-- Link Expiry -->
@@ -393,6 +396,15 @@ Add Visitor
 <span class="material-symbols-outlined text-[20px]">person_remove</span>
 </button>
 </div>
+</div>
+<div class="px-6 pt-2 pb-2 border-b border-slate-200 dark:border-slate-800">
+<label class="flex items-start gap-3 cursor-pointer group">
+<input type="checkbox" name="allow_sub_invites" value="1" class="mt-1 rounded border-slate-300 text-primary focus:ring-primary" <?= old('allow_sub_invites') ? 'checked' : '' ?>/>
+<span class="text-sm text-slate-700 dark:text-slate-300">
+<span class="font-semibold block group-hover:text-primary transition-colors">Multiple invitation per mail</span>
+<span class="text-xs text-slate-500 dark:text-slate-400 font-normal block mt-1">When enabled, each invitee can open their registration link and send invitations to additional guests using the same visit details and schedule. Sub-invitations cannot chain further.</span>
+</span>
+</label>
 </div>
 <div id="visitors-container" class="p-6 flex flex-col gap-4">
 <div class="visitor-item flex flex-col lg:flex-row lg:items-end gap-4 p-4 border border-slate-200 dark:border-slate-700 rounded-lg">
@@ -459,6 +471,66 @@ Back
 </form>
         </div>
     </main>
+
+<!-- Invitation history modal -->
+<div id="invitation-history-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" aria-hidden="true">
+<div class="bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-5xl max-h-[90vh] flex flex-col">
+<div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0">
+<h2 class="text-lg font-bold text-slate-900 dark:text-white uppercase tracking-tight">Invitation history</h2>
+<button type="button" id="invitation-history-close" class="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Close">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex flex-col lg:flex-row gap-3 lg:items-center shrink-0">
+<input type="search" id="history-search" class="flex-1 rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm dark:text-white" placeholder="Full name / company name"/>
+<button type="button" id="history-search-btn" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold shrink-0">
+<span class="material-symbols-outlined text-[20px]">search</span>
+Search
+</button>
+<div class="flex items-center gap-2 lg:ml-auto">
+<label class="text-xs font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap">Sort by</label>
+<select id="history-sort" class="rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm dark:text-white">
+<option value="created_at|DESC">Newest first</option>
+<option value="created_at|ASC">Oldest first</option>
+<option value="link_expiry|ASC">Link expiry (soonest)</option>
+<option value="full_name|ASC">Name A–Z</option>
+<option value="status|ASC">Status A–Z</option>
+</select>
+</div>
+<div class="flex items-center gap-2">
+<label class="text-xs font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap">Per page</label>
+<select id="history-per-page" class="rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm dark:text-white">
+<option value="10">10</option>
+<option value="20">20</option>
+<option value="30">30</option>
+</select>
+</div>
+</div>
+<div class="overflow-auto flex-1 min-h-0 px-6 py-2">
+<table class="w-full text-sm text-left">
+<thead class="text-xs uppercase text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-900 z-10">
+<tr>
+<th class="py-3 pr-2">No</th>
+<th class="py-3 pr-2">Date</th>
+<th class="py-3 pr-2">Full name</th>
+<th class="py-3 pr-2">Link expiry</th>
+<th class="py-3 pr-2">Status</th>
+<th class="py-3 pr-2">Company</th>
+<th class="py-3">Created by</th>
+</tr>
+</thead>
+<tbody id="history-table-body" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
+</table>
+<p id="history-empty" class="hidden py-8 text-center text-slate-500 dark:text-slate-400 text-sm">No invitations found.</p>
+<p id="history-loading" class="hidden py-8 text-center text-slate-500 text-sm">Loading…</p>
+<p id="history-error" class="hidden py-8 text-center text-red-600 text-sm"></p>
+</div>
+<div class="px-6 py-4 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 shrink-0">
+<div id="history-pagination" class="flex flex-wrap items-center gap-2 text-sm text-slate-600 dark:text-slate-300"></div>
+<p class="text-xs text-slate-500 dark:text-slate-400">Click a row to load that invitation into the form (you can still edit before sending).</p>
+</div>
+</div>
+</div>
 
 <script>
 // Enable/Disable "Other Reason" field based on "Reason for Visit" selection
@@ -572,41 +644,308 @@ document.addEventListener('click', function(e) {
 
 updateVisitorRemoveButtons();
 
-// Dynamic schedule addition
-let scheduleCount = 1;
-document.getElementById('add-schedule').addEventListener('click', function() {
-    const container = document.getElementById('schedule-container');
-    scheduleCount++;
-    
-    const scheduleHTML = `
+function scheduleRowTemplate(index) {
+    return `
         <div class="schedule-item flex items-end gap-4 p-4 border border-slate-200 dark:border-slate-700 rounded-lg">
             <div class="flex-1 space-y-2">
                 <label class="block text-sm font-semibold text-slate-600 dark:text-slate-400">Date From <span class="text-red-500">*</span></label>
-                <input name="schedules[${scheduleCount-1}][date_from]" class="w-full h-12 rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none" placeholder="dd/mm/yyyy --:-- --" type="datetime-local" required/>
+                <input name="schedules[${index}][date_from]" class="w-full h-12 rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none" placeholder="dd/mm/yyyy --:-- --" type="datetime-local" required/>
             </div>
             <div class="flex-1 space-y-2">
                 <label class="block text-sm font-semibold text-slate-600 dark:text-slate-400">Date To <span class="text-red-500">*</span></label>
-                <input name="schedules[${scheduleCount-1}][date_to]" class="w-full h-12 rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none" placeholder="dd/mm/yyyy --:-- --" type="datetime-local" required/>
+                <input name="schedules[${index}][date_to]" class="w-full h-12 rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none" placeholder="dd/mm/yyyy --:-- --" type="datetime-local" required/>
             </div>
             <div class="flex items-center pb-2">
                 <button type="button" class="remove-schedule text-slate-400 hover:text-red-500 transition-colors p-2 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20" title="Remove Slot">
                     <span class="material-symbols-outlined">remove_circle_outline</span>
                 </button>
             </div>
-        </div>
-    `;
-    
-    container.insertAdjacentHTML('beforeend', scheduleHTML);
+        </div>`;
+}
+
+function reindexScheduleRows() {
+    const items = document.querySelectorAll('#schedule-container .schedule-item');
+    items.forEach((item, index) => {
+        item.querySelectorAll('input[type="datetime-local"]').forEach((input) => {
+            const n = input.getAttribute('name');
+            if (!n || !n.startsWith('schedules[')) return;
+            const m = n.match(/^schedules\[\d+\]\[(date_from|date_to)\]$/);
+            if (m) input.setAttribute('name', 'schedules[' + index + '][' + m[1] + ']');
+        });
+    });
+}
+
+document.getElementById('add-schedule').addEventListener('click', function() {
+    const container = document.getElementById('schedule-container');
+    const idx = container.querySelectorAll('.schedule-item').length;
+    container.insertAdjacentHTML('beforeend', scheduleRowTemplate(idx));
 });
 
-// Remove schedule slot
 document.addEventListener('click', function(e) {
     if (e.target.closest('.remove-schedule')) {
         const scheduleItems = document.querySelectorAll('.schedule-item');
         if (scheduleItems.length > 1) {
             e.target.closest('.schedule-item').remove();
-            scheduleCount--;
+            reindexScheduleRows();
         }
+    }
+});
+
+function setVisitorSectionCount(target) {
+    const n = Math.min(30, Math.max(1, parseInt(String(target), 10) || 1));
+    const container = document.getElementById('visitors-container');
+    let items = container.querySelectorAll('.visitor-item');
+    while (items.length < n) {
+        document.getElementById('add-visitor').click();
+        items = container.querySelectorAll('.visitor-item');
+    }
+    while (items.length > n) {
+        if (items.length <= 1) break;
+        items[items.length - 1].remove();
+        items = container.querySelectorAll('.visitor-item');
+    }
+    reindexVisitorRows();
+    const vc = document.getElementById('visitor-count');
+    if (vc && parseInt(vc.value, 10) !== n) vc.value = String(n);
+}
+
+const visitorCountInput = document.getElementById('visitor-count');
+if (visitorCountInput) {
+    visitorCountInput.addEventListener('change', function() {
+        setVisitorSectionCount(this.value);
+    });
+}
+
+const INVITATION_HISTORY_LIST_URL = <?= json_encode(base_url('invitations/history-rows')) ?>;
+const INVITATION_HISTORY_FORM_BASE = <?= json_encode(base_url('invitations/history-for-form')) ?>;
+
+let historyState = { page: 1, search: '', sort: 'created_at', order: 'DESC', perPage: 10 };
+
+function setSelectValue(selectEl, value) {
+    if (!selectEl) return;
+    const v = String(value ?? '');
+    if (v === '') {
+        selectEl.selectedIndex = 0;
+        return;
+    }
+    for (let i = 0; i < selectEl.options.length; i++) {
+        if (selectEl.options[i].value === v) {
+            selectEl.selectedIndex = i;
+            return;
+        }
+    }
+    for (let i = 0; i < selectEl.options.length; i++) {
+        if (String(selectEl.options[i].value).toLowerCase() === v.toLowerCase()) {
+            selectEl.selectedIndex = i;
+            return;
+        }
+    }
+}
+
+function rebuildSchedulesFromData(schedules) {
+    const container = document.getElementById('schedule-container');
+    const list = Array.isArray(schedules) && schedules.length ? schedules : [{ date_from: '', date_to: '' }];
+    container.innerHTML = '';
+    list.forEach((row, index) => {
+        container.insertAdjacentHTML('beforeend', scheduleRowTemplate(index));
+        const items = container.querySelectorAll('.schedule-item');
+        const last = items[items.length - 1];
+        const fromIn = last.querySelector('input[name="schedules[' + index + '][date_from]"]');
+        const toIn = last.querySelector('input[name="schedules[' + index + '][date_to]"]');
+        if (fromIn) fromIn.value = row.date_from || '';
+        if (toIn) toIn.value = row.date_to || '';
+    });
+    reindexScheduleRows();
+}
+
+function applyInvitationHistoryPayload(d) {
+    const staff = document.querySelector('input[name="staff_id"]');
+    if (staff) staff.value = d.staff_id || '';
+    setSelectValue(document.querySelector('select[name="visitor_type_id"]'), d.visitor_type_id != null ? String(d.visitor_type_id) : '');
+    setSelectValue(document.querySelector('select[name="company_visited"]'), d.company_visited || '');
+    const contactPerson = document.querySelector('input[name="contact_person"]');
+    if (contactPerson) contactPerson.value = d.contact_person || '';
+    // From history: leave blank — host sets fresh expiry, reason, location, and visit dates
+    const linkExp = document.querySelector('input[name="link_expiry"]');
+    if (linkExp) linkExp.value = '';
+    setSelectValue(document.getElementById('visit-reason'), '');
+    visitReasonSelect.dispatchEvent(new Event('change'));
+    setSelectValue(document.querySelector('select[name="location"]'), '');
+    const allowSub = document.querySelector('input[name="allow_sub_invites"]');
+    if (allowSub) allowSub.checked = !!d.allow_sub_invites;
+
+    const visitors = Array.isArray(d.visitors) && d.visitors.length ? d.visitors : [{ full_name: '', contact: '', visitor_email: '' }];
+    setVisitorSectionCount(visitors.length);
+    const rows = document.querySelectorAll('#visitors-container .visitor-item');
+    visitors.forEach((v, i) => {
+        const row = rows[i];
+        if (!row) return;
+        const fn = row.querySelector('input[name*="[full_name]"]');
+        const co = row.querySelector('input[name*="[contact]"]');
+        const em = row.querySelector('input[name*="[visitor_email]"]');
+        if (fn) fn.value = v.full_name || '';
+        if (co) co.value = v.contact || '';
+        if (em) em.value = v.visitor_email || '';
+    });
+
+    rebuildSchedulesFromData([{ date_from: '', date_to: '' }]);
+}
+
+function openHistoryModal() {
+    const modal = document.getElementById('invitation-history-modal');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+    historyState.page = 1;
+    loadHistoryPage();
+}
+
+function closeHistoryModal() {
+    const modal = document.getElementById('invitation-history-modal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.setAttribute('aria-hidden', 'true');
+}
+
+async function loadHistoryPage() {
+    const tbody = document.getElementById('history-table-body');
+    const empty = document.getElementById('history-empty');
+    const loading = document.getElementById('history-loading');
+    const errEl = document.getElementById('history-error');
+    const pag = document.getElementById('history-pagination');
+    if (!tbody) return;
+    errEl.classList.add('hidden');
+    empty.classList.add('hidden');
+    loading.classList.remove('hidden');
+    tbody.innerHTML = '';
+
+    const params = new URLSearchParams({
+        page: String(historyState.page),
+        per_page: String(historyState.perPage),
+        search: historyState.search,
+        sort: historyState.sort,
+        order: historyState.order,
+    });
+    try {
+        const res = await fetch(INVITATION_HISTORY_LIST_URL + '?' + params.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        const json = await res.json();
+        loading.classList.add('hidden');
+        if (!json.success) {
+            errEl.textContent = json.message || 'Failed to load history';
+            errEl.classList.remove('hidden');
+            return;
+        }
+        if (!json.data || json.data.length === 0) {
+            empty.classList.remove('hidden');
+        } else {
+            json.data.forEach((row) => {
+                const tr = document.createElement('tr');
+                tr.className = 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors';
+                tr.dataset.id = String(row.id);
+                const expClass = row.link_expired ? 'text-red-600 font-semibold' : '';
+                tr.innerHTML =
+                    '<td class="py-2 pr-2">' + row.no + '</td>' +
+                    '<td class="py-2 pr-2">' + escapeHtml(row.date) + '</td>' +
+                    '<td class="py-2 pr-2">' + escapeHtml(row.full_name) + '</td>' +
+                    '<td class="py-2 pr-2 ' + expClass + '">' + escapeHtml(row.link_expiry) + '</td>' +
+                    '<td class="py-2 pr-2">' + escapeHtml(row.status) + '</td>' +
+                    '<td class="py-2 pr-2">' + escapeHtml(row.company) + '</td>' +
+                    '<td class="py-2">' + escapeHtml(row.invited_by) + '</td>';
+                tbody.appendChild(tr);
+            });
+        }
+        renderHistoryPagination(json.pagination || {});
+    } catch (e) {
+        loading.classList.add('hidden');
+        errEl.textContent = 'Network error loading history.';
+        errEl.classList.remove('hidden');
+    }
+}
+
+function escapeHtml(s) {
+    const t = document.createElement('div');
+    t.textContent = s;
+    return t.innerHTML;
+}
+
+function renderHistoryPagination(p) {
+    const pag = document.getElementById('history-pagination');
+    if (!pag) return;
+    const cur = p.current_page || 1;
+    const last = p.last_page || 1;
+    const total = p.total || 0;
+    pag.innerHTML = '';
+    if (last <= 1) {
+        pag.textContent = total ? (total + ' record(s)') : '';
+        return;
+    }
+    const addBtn = (label, page, disabled) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'px-2 py-1 rounded border border-slate-300 dark:border-slate-600 text-sm ' + (disabled ? 'opacity-40 cursor-not-allowed' : 'hover:bg-slate-100 dark:hover:bg-slate-800');
+        b.textContent = label;
+        if (!disabled) b.addEventListener('click', () => { historyState.page = page; loadHistoryPage(); });
+        pag.appendChild(b);
+    };
+    addBtn('«', 1, cur <= 1);
+    addBtn('‹', cur - 1, cur <= 1);
+    const span = document.createElement('span');
+    span.className = 'px-2 text-sm';
+    span.textContent = 'Page ' + cur + ' / ' + last;
+    pag.appendChild(span);
+    addBtn('›', cur + 1, cur >= last);
+    addBtn('»', last, cur >= last);
+}
+
+document.getElementById('btn-invitation-history')?.addEventListener('click', openHistoryModal);
+document.getElementById('invitation-history-close')?.addEventListener('click', closeHistoryModal);
+document.getElementById('invitation-history-modal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeHistoryModal();
+});
+
+document.getElementById('history-search-btn')?.addEventListener('click', function() {
+    historyState.search = (document.getElementById('history-search')?.value || '').trim();
+    historyState.page = 1;
+    loadHistoryPage();
+});
+document.getElementById('history-search')?.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        historyState.search = this.value.trim();
+        historyState.page = 1;
+        loadHistoryPage();
+    }
+});
+
+document.getElementById('history-sort')?.addEventListener('change', function() {
+    const parts = this.value.split('|');
+    historyState.sort = parts[0] || 'created_at';
+    historyState.order = parts[1] || 'DESC';
+    historyState.page = 1;
+    loadHistoryPage();
+});
+
+document.getElementById('history-per-page')?.addEventListener('change', function() {
+    historyState.perPage = parseInt(this.value, 10) || 10;
+    historyState.page = 1;
+    loadHistoryPage();
+});
+
+document.getElementById('history-table-body')?.addEventListener('click', async function(e) {
+    const tr = e.target.closest('tr[data-id]');
+    if (!tr) return;
+    const id = tr.dataset.id;
+    try {
+        const res = await fetch(INVITATION_HISTORY_FORM_BASE + '/' + encodeURIComponent(id), { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        const json = await res.json();
+        if (!json.success || !json.data) {
+            alert(json.message || 'Could not load invitation');
+            return;
+        }
+        applyInvitationHistoryPayload(json.data);
+        closeHistoryModal();
+    } catch (err) {
+        alert('Could not load invitation');
     }
 });
 

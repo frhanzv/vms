@@ -239,6 +239,18 @@
                 <button class="bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 px-3 py-1.5 rounded-full font-medium transition-colors">VIP</button>
                 <button class="bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 px-3 py-1.5 rounded-full font-medium transition-colors">Flagged</button>
             </div>
+            <?php if (! empty($queueRequests)): ?>
+            <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-800 flex items-center gap-2 flex-wrap">
+                <label class="inline-flex items-center gap-2 text-xs font-medium text-gray-600 dark:text-gray-300 cursor-pointer select-none">
+                    <input type="checkbox" id="select-all-requests" class="rounded border-gray-300 dark:border-gray-600 text-primary focus:ring-primary" title="Select all in queue"/>
+                    <span>Select all</span>
+                </label>
+                <button type="button" id="batch-approve-btn" class="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-bold shadow-sm hover:bg-blue-600 transition-colors">
+                    <span class="material-symbols-outlined text-[16px]">check_circle</span>
+                    Approve
+                </button>
+            </div>
+            <?php endif; ?>
         </div>
         <div class="flex-1 overflow-y-auto scrollbar-hide p-2 space-y-2">
             <?php foreach ($queueRequests as $index => $request): ?>
@@ -246,6 +258,7 @@
                 <?php if ($index === 0): ?>
                 <div class="absolute left-0 top-0 bottom-0 w-1 bg-primary"></div>
                 <?php endif; ?>
+                <input type="checkbox" name="request_batch[]" value="<?= (int) $request['id'] ?>" class="request-select-cb mt-2.5 shrink-0 rounded border-gray-300 dark:border-gray-600 text-primary focus:ring-primary" title="Select for batch approve" onclick="event.stopPropagation()"/>
                 <div class="relative size-10 rounded-full overflow-hidden shrink-0">
                     <?php if (!empty($request['photo'])): ?>
                     <img alt="<?= esc($request['name']) ?> Portrait" class="w-full h-full object-cover" src="<?= esc($request['photo']) ?>"/>
@@ -1065,6 +1078,71 @@ document.getElementById('confirmModal').addEventListener('click', function(e) {
         closeConfirmModal();
     }
 });
+
+(function initBatchApprove() {
+    const selectAll = document.getElementById('select-all-requests');
+    const batchBtn = document.getElementById('batch-approve-btn');
+    const listCbs = () => Array.from(document.querySelectorAll('.request-select-cb'));
+
+    function syncSelectAllState() {
+        if (!selectAll) return;
+        const boxes = listCbs();
+        if (boxes.length === 0) return;
+        const allOn = boxes.every(function (b) { return b.checked; });
+        const noneOn = boxes.every(function (b) { return !b.checked; });
+        selectAll.checked = allOn;
+        selectAll.indeterminate = !allOn && !noneOn;
+    }
+
+    if (selectAll) {
+        selectAll.addEventListener('change', function () {
+            listCbs().forEach(function (cb) { cb.checked = selectAll.checked; });
+            selectAll.indeterminate = false;
+        });
+    }
+
+    listCbs().forEach(function (cb) {
+        cb.addEventListener('change', syncSelectAllState);
+    });
+    syncSelectAllState();
+
+    if (batchBtn) {
+        batchBtn.addEventListener('click', function () {
+            const ids = listCbs().filter(function (cb) { return cb.checked; }).map(function (cb) { return parseInt(cb.value, 10); });
+            if (ids.length === 0) {
+                showAlert('No selection', 'Select at least one request in the queue, then click Approve.', 'warning');
+                return;
+            }
+            showConfirm(
+                'Batch approve',
+                'Approve ' + ids.length + ' selected request(s)?',
+                'approve',
+                function () {
+                    fetch('<?= base_url('requests/batchApprove') ?>', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({ ids: ids })
+                    })
+                        .then(function (r) { return r.json(); })
+                        .then(function (data) {
+                            if (data.success) {
+                                showAlert('Success', data.message || 'Requests approved', 'success');
+                                setTimeout(function () { location.reload(); }, 1500);
+                            } else {
+                                showAlert('Could not approve', data.message || 'Batch approve failed', 'error');
+                            }
+                        })
+                        .catch(function (err) {
+                            showAlert('Error', err.message || 'Request failed', 'error');
+                        });
+                }
+            );
+        });
+    }
+})();
 <?php endif; ?>
 </script>
 </body>

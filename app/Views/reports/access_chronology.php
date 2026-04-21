@@ -951,25 +951,35 @@
             const v = currentVisitorsData.find(x => x.invitation_id == invId);
             if (!v) return;
 
-            document.getElementById('mdFullname').textContent = v.visitor_name;
-            document.getElementById('mdIcno').textContent = v.ic_no;
-            document.getElementById('mdPersonVisited').textContent = v.person_visited;
-            document.getElementById('mdVisitFrom').textContent = v.visit_from + ' (From device_access_logs)';
-            document.getElementById('mdReason').textContent = v.visit_reason;
-            document.getElementById('mdStaffno').textContent = v.staff_id;
-            document.getElementById('mdContactno').textContent = v.contact_no;
-            document.getElementById('mdVisitTo').textContent = v.visit_to + ' (From device_access_logs)';
-            document.getElementById('mdLastUpdated').textContent = v.last_updated;
-            document.getElementById('mdDuration').textContent = v.visit_duration;
-            document.getElementById('mdCompany').textContent = v.visitor_company;
-
-            const badge = document.getElementById('mdStatusBadge');
-            badge.textContent = v.status;
-            badge.className = 'ml-2 px-2 py-0.5 rounded text-[10px] font-black uppercase text-white ' + (v.status === 'Checked Out' ? 'bg-red-500' : 'bg-emerald-500');
-
-            document.getElementById('btnPrintDetails').onclick = () => {
-                window.open('<?= base_url('report/visitor/details') ?>/' + invId, '_blank');
+            const setText = (id, value) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = value ?? '';
             };
+
+            setText('mdFullname', v.visitor_name);
+            setText('mdIcno', v.ic_no);
+            setText('mdPersonVisited', v.person_visited);
+            setText('mdVisitFrom', v.visit_from);
+            setText('mdReason', v.visit_reason);
+            setText('mdStaffno', v.staff_id);
+            setText('mdContactno', v.contact_no);
+            setText('mdVisitTo', v.visit_to);
+            setText('mdLastUpdated', v.last_updated);
+            setText('mdDuration', v.visit_duration);
+            setText('mdCompany', v.visitor_company);
+            
+            const badge = document.getElementById('mdStatusBadge');
+            if (badge) {
+                badge.textContent = v.status;
+                badge.className = 'ml-2 px-2 py-0.5 rounded text-[10px] font-black uppercase text-white ' + (v.status === 'Checked Out' ? 'bg-red-500' : 'bg-emerald-500');
+            }
+
+            const printBtn = document.getElementById('btnPrintDetails');
+            if (printBtn) {
+                printBtn.onclick = () => {
+                    window.open('<?= base_url('report/visitor/details') ?>/' + invId, '_blank');
+                };
+            }
 
             document.getElementById('detailsModal').classList.remove('hidden');
             document.body.classList.add('overflow-hidden');
@@ -1104,7 +1114,7 @@ function openColumnsModal() {
         function exportVisitorsExcel() {
             const name = "Visitor_Details";
             const data = currentVisitorsData;
-            if (!data.length) return;
+            if (!data || !data.length) return;
 
             const ws = XLSX.utils.json_to_sheet(data);
             const wb = XLSX.utils.book_new();
@@ -1210,9 +1220,4 @@ function openColumnsModal() {
         });
     </script>
 </body>
-
-</html>
-
-</body>
-
 </html>

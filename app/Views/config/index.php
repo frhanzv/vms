@@ -357,13 +357,19 @@
                     <div id="regtype-content" class="hidden border-t border-gray-200 dark:border-slate-700">
                         <div class="p-6 bg-gray-50 dark:bg-slate-800/50">
                             <!-- Search -->
+                            <div class="flex items-center gap-2 w-full sm:w-auto">
+                                <form method="GET" action="" class="flex shadow-sm w-full sm:w-96">
+                                    <input name="regtype_search" id="regtype-search-input" value="<?= esc($regtype_search) ?>"
+                                        class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none"
+                                        placeholder="Search registration type..." type="text"/>
+                                    <button type="submit" class="bg-primary hover:bg-blue-600 text-white px-6 py-2.5 rounded-r flex items-center justify-center transition-colors">
                             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                                 <div class="flex shadow-sm w-full sm:w-96">
                                     <input id="regtype-search-input" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Search registration type..." type="text"/>
                                     <button onclick="searchRegType()" class="bg-primary hover:bg-blue-600 text-white px-6 py-2.5 rounded-r flex items-center justify-center transition-colors">
                                         <span class="material-symbols-outlined text-white text-[20px]">search</span>
                                     </button>
-                                </div>
+                                </form>
                             </div>
 
                             <!-- Table -->
@@ -377,6 +383,35 @@
                                         </tr>
                                     </thead>
                                     <tbody id="regtype-table-body" class="text-gray-700 dark:text-slate-300">
+                                        <?php if (!empty($reg_types)): ?>
+                                            <?php foreach ($reg_types as $row): ?>
+                                                <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700/50 cursor-pointer"
+                                                    onclick="openRegTypeModal(<?= $row['id'] ?>)">
+                                                    <td class="px-4 py-3"><?= esc($row['name']) ?></td>
+                                                    <td class="px-4 py-3 text-center">
+                                                        <?php if ($row['can_print_cp']): ?>
+                                                            <span class="material-symbols-outlined text-green-500">check</span>
+                                                        <?php else: ?>
+                                                            <span class="material-symbols-outlined text-red-500">close</span>
+                                                        <?php endif; ?>
+                                                    </td>
+                                                    <td class="px-4 py-3">
+                                                        <span class="px-2 py-1 rounded-full text-xs font-medium
+                                                            <?= $row['status'] === 'Active'
+                                                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                                                : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' ?>">
+                                                            <?= esc($row['status']) ?>
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        <?php else: ?>
+                                            <tr>
+                                                <td colspan="3" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
+                                                    No registration types found.
+                                                </td>
+                                            </tr>
+                                        <?php endif; ?>
                                         <tr>
                                             <td colspan="3" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
                                                 <div class="flex flex-col items-center justify-center">
@@ -390,7 +425,37 @@
                             </div>
 
                             <!-- Pagination -->
+                            <?php
+                                $totalPages = (int) ceil($regtype_total / $regtype_per_page);
+                                $from = $regtype_total > 0 ? ($regtype_page - 1) * $regtype_per_page + 1 : 0;
+                                $to   = min($regtype_page * $regtype_per_page, $regtype_total);
+                            ?>
                             <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6">
+                                <p class="text-sm text-gray-600 dark:text-slate-400">
+                                    <?= $regtype_total > 0 ? "Showing {$from} to {$to} of {$regtype_total} entries" : 'No entries found' ?>
+                                </p>
+                                <div class="flex items-center gap-2">
+                                    <?php if ($regtype_page > 1): ?>
+                                        <a href="?regtype_page=<?= $regtype_page - 1 ?>&regtype_search=<?= esc($regtype_search) ?>#regtype-content"
+                                        class="px-3 py-1 rounded text-sm border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700">
+                                            Prev
+                                        </a>
+                                    <?php endif; ?>
+
+                                    <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                                        <a href="?regtype_page=<?= $i ?>&regtype_search=<?= esc($regtype_search) ?>#regtype-content"
+                                        class="px-3 py-1 rounded text-sm border <?= $i === $regtype_page ? 'bg-primary text-white border-primary' : 'border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700' ?>">
+                                            <?= $i ?>
+                                        </a>
+                                    <?php endfor; ?>
+
+                                    <?php if ($regtype_page < $totalPages): ?>
+                                        <a href="?regtype_page=<?= $regtype_page + 1 ?>&regtype_search=<?= esc($regtype_search) ?>#regtype-content"
+                                        class="px-3 py-1 rounded text-sm border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700">
+                                            Next
+                                        </a>
+                                    <?php endif; ?>
+                                </div>
                                 <p id="regtype-pagination-info" class="text-sm text-gray-600 dark:text-slate-400">Loading...</p>
                                 <div id="regtype-pagination-buttons" class="flex items-center gap-2"></div>
                             </div>
@@ -444,6 +509,409 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Business Type -->
+                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                    <button onclick="toggleSection('biztype')" class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                        <div class="flex items-center gap-4">
+                            <div class="p-2 bg-primary/10 rounded-lg">
+                                <span class="material-symbols-outlined text-primary text-xl">business_center</span>
+                            </div>
+                            <div class="text-left">
+                                <h3 class="text-base font-bold text-gray-800 dark:text-white">Business Type</h3>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Manage business types</p>
+                            </div>
+                        </div>
+                        <span id="biztype-icon" class="material-symbols-outlined text-gray-400 dark:text-slate-400 transition-transform">expand_more</span>
+                    </button>
+                    <div id="biztype-content" class="hidden border-t border-gray-200 dark:border-slate-700">
+                        <div class="p-6 bg-gray-50 dark:bg-slate-800/50">
+                            <!-- Search -->
+                            <div class="flex items-center gap-2 w-full sm:w-auto mb-4">
+                                <form method="GET" action="" class="flex shadow-sm w-full sm:w-96">
+                                    <input name="biztype_search" id="biztype-search-input" value="<?= esc($biztype_search ?? '') ?>"
+                                        class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none"
+                                        placeholder="Search business type..." type="text"/>
+                                    <button type="submit" class="bg-primary hover:bg-blue-600 text-white px-6 py-2.5 rounded-r flex items-center justify-center transition-colors">
+                                        <span class="material-symbols-outlined text-white text-[20px]">search</span>
+                                    </button>
+                                </form>
+                            </div>
+
+                            <!-- Table -->
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-sm">
+                                    <thead class="text-xs text-gray-600 dark:text-slate-400 uppercase border-b border-gray-200 dark:border-slate-700">
+                                        <tr>
+                                            <th class="px-4 py-3">Business Type</th>
+                                            <th class="px-4 py-3">Reg Type</th>
+                                            <th class="px-4 py-3 text-center">Ledger</th>
+                                            <th class="px-4 py-3 text-center">Haulier</th>
+                                            <th class="px-4 py-3 text-center">LPK License No</th>
+                                            <th class="px-4 py-3 text-center">LPK Optional</th>
+                                            <th class="px-4 py-3 text-center">LPK Ancillary</th>
+                                            <th class="px-4 py-3 text-center">Customs License</th>
+                                            <th class="px-4 py-3 text-center">SST Reg No</th>
+                                            <th class="px-4 py-3 text-center">Business Vol</th>
+                                            <th class="px-4 py-3 text-center">Trade Ref No</th>
+                                            <th class="px-4 py-3 text-center">Bank Info</th>
+                                            <th class="px-4 py-3 text-center">Operator Code</th>
+                                            <th class="px-4 py-3 text-center">Board Director IC</th>
+                                            <th class="px-4 py-3 text-center">APAD Cert No</th>
+                                            <th class="px-4 py-3 text-center">License Expiry</th>
+                                            <th class="px-4 py-3 text-center">Warehouse Info</th>
+                                            <th class="px-4 py-3 text-center">Nature of Business</th>
+                                            <th class="px-4 py-3 text-center">PLI</th>
+                                            <th class="px-4 py-3">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="text-gray-700 dark:text-slate-300">
+                                        <?php if (!empty($biz_types)): ?>
+                                            <?php foreach ($biz_types as $row): ?>
+                                                <tr
+                                                    class="biztype-row border-b border-gray-100 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700/50 cursor-pointer transition"
+                                                    data-id="<?= esc($row['id']) ?>"
+                                                    data-business_type="<?= esc($row['business_type']) ?>"
+                                                    data-reg_type="<?= esc($row['reg_type']) ?>"
+                                                    data-ledger="<?= (int)$row['ledger'] ?>"
+                                                    data-haulier="<?= (int)$row['haulier'] ?>"
+                                                    data-lpk_license_no="<?= (int)$row['lpk_license_no'] ?>"
+                                                    data-lpk_license_no_optional="<?= (int)$row['lpk_license_no_optional'] ?>"
+                                                    data-lpk_ancillary_contractor="<?= (int)$row['lpk_ancillary_contractor'] ?>"
+                                                    data-customs_license_no="<?= (int)$row['customs_license_no'] ?>"
+                                                    data-sst_reg_no="<?= (int)$row['sst_reg_no'] ?>"
+                                                    data-business_vol="<?= (int)$row['business_vol'] ?>"
+                                                    data-trade_ref_no="<?= (int)$row['trade_ref_no'] ?>"
+                                                    data-bank_info="<?= (int)$row['bank_info'] ?>"
+                                                    data-operator_code="<?= (int)$row['operator_code'] ?>"
+                                                    data-copy_board_director_ic="<?= (int)$row['copy_board_director_ic'] ?>"
+                                                    data-apad_certificate_no="<?= (int)$row['apad_certificate_no'] ?>"
+                                                    data-license_expiry_date="<?= (int)$row['license_expiry_date'] ?>"
+                                                    data-warehouse_info="<?= (int)$row['warehouse_info'] ?>"
+                                                    data-nature_of_business="<?= (int)$row['nature_of_business'] ?>"
+                                                    data-pli="<?= (int)$row['pli'] ?>"
+                                                    data-status="<?= esc($row['status']) ?>"
+                                                >
+                                                    <td class="px-4 py-3 font-medium"><?= esc($row['business_type']) ?></td>
+                                                    <td class="px-4 py-3"><?= esc($row['reg_type']) ?></td>
+
+                                                    <?php
+                                                    $checkFields = [
+                                                        'ledger',
+                                                        'haulier',
+                                                        'lpk_license_no',
+                                                        'lpk_license_no_optional',
+                                                        'lpk_ancillary_contractor',
+                                                        'customs_license_no',
+                                                        'sst_reg_no',
+                                                        'business_vol',
+                                                        'trade_ref_no',
+                                                        'bank_info',
+                                                        'operator_code',
+                                                        'copy_board_director_ic',
+                                                        'apad_certificate_no',
+                                                        'license_expiry_date',
+                                                        'warehouse_info',
+                                                        'nature_of_business',
+                                                        'pli'
+                                                    ];
+                                                    foreach ($checkFields as $field):
+                                                    ?>
+                                                        <td class="px-4 py-3 text-center">
+                                                            <?php if (!empty($row[$field])): ?>
+                                                                <span class="material-symbols-outlined text-green-500 text-base">check</span>
+                                                            <?php else: ?>
+                                                                <span class="material-symbols-outlined text-red-500 text-base">close</span>
+                                                            <?php endif; ?>
+                                                        </td>
+                                                    <?php endforeach; ?>
+
+                                                    <td class="px-4 py-3">
+                                                        <?php $status = strtoupper($row['status'] ?? 'ACTIVE'); ?>
+                                                        <span class="px-2 py-1 rounded-full text-xs font-medium
+                                                            <?= $status === 'ACTIVE'
+                                                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                                                : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' ?>">
+                                                            <?= esc($row['status']) ?>
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        <?php else: ?>
+                                            <tr>
+                                                <td colspan="20" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
+                                                    No business types found.
+                                                </td>
+                                            </tr>
+                                        <?php endif; ?>
+                                    </tbody>
+
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Business Type Edit Modal -->
+                <div id="biztype-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 px-4">
+                    <div class="w-full max-w-5xl rounded-lg bg-white dark:bg-slate-800 shadow-xl overflow-hidden">
+                        <div class="flex items-center justify-between border-b border-gray-200 dark:border-slate-700 px-6 py-4">
+                            <h3 class="text-xl font-semibold text-gray-800 dark:text-white">Business Type Details</h3>
+                            <button type="button" id="close-biztype-modal" class="text-gray-500 hover:text-red-500 text-xl">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+
+                        <form method="post" action="<?= base_url('config/updateBusinessType') ?>" class="p-6">
+                            <?= csrf_field() ?>
+
+                            <input type="hidden" name="id" id="edit-id">
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                                        <span class="text-red-500">*</span>Business Type Name
+                                    </label>
+                                    <input type="text" name="business_type" id="edit-business_type"
+                                        class="w-full rounded border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5"
+                                        required>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                                        <span class="text-red-500">*</span>Registration Type
+                                    </label>
+                                    <select name="reg_type" id="edit-reg_type"
+                                        class="w-full rounded border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5"
+                                        required>
+                                        <option value="">Select Registration Type</option>
+                                        <?php foreach ($reg_types as $reg): ?>
+                                            <option value="<?= esc($reg['name']) ?>"><?= esc($reg['name']) ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+
+                                <?php
+                                $formFields = [
+                                    'ledger' => 'Ledger Required',
+                                    'haulier' => 'Haulier Required',
+                                    'lpk_license_no' => 'LPK License No',
+                                    'lpk_license_no_optional' => 'LPK License No (Optional)',
+                                    'lpk_ancillary_contractor' => 'LPK Ancillary Contractor',
+                                    'customs_license_no' => 'Customs License No',
+                                    'sst_reg_no' => 'SST Reg No',
+                                    'business_vol' => 'Business Vol',
+                                    'trade_ref_no' => 'Trade Ref No',
+                                    'bank_info' => 'Bank Info',
+                                    'operator_code' => 'Operator Code',
+                                    'copy_board_director_ic' => 'Copy of Board Director IC',
+                                    'apad_certificate_no' => 'APAD Certificate No',
+                                    'license_expiry_date' => 'License Expiry Date',
+                                    'warehouse_info' => 'Warehouse Info',
+                                    'nature_of_business' => 'Nature Of Business',
+                                    'pli' => 'PLI'
+                                ];
+                                ?>
+
+                                <?php foreach ($formFields as $field => $label): ?>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                                            <?= esc($label) ?>
+                                        </label>
+                                        <select name="<?= esc($field) ?>" id="edit-<?= esc($field) ?>"
+                                            class="w-full rounded border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5">
+                                            <option value="1">YES</option>
+                                            <option value="0">NO</option>
+                                        </select>
+                                    </div>
+                                <?php endforeach; ?>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Status</label>
+                                    <select name="status" id="edit-status"
+                                        class="w-full rounded border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5">
+                                        <option value="ACTIVE">ACTIVE</option>
+                                        <option value="INACTIVE">INACTIVE</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="mt-6 flex items-center justify-between">
+                                <button type="button" id="back-biztype-modal"
+                                    class="px-5 py-2.5 rounded bg-yellow-400 hover:bg-yellow-500 text-white font-medium">
+                                    Back
+                                </button>
+
+                                <button type="submit"
+                                    class="px-5 py-2.5 rounded bg-primary hover:bg-blue-600 text-white font-medium">
+                                    Save
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+
+                <!-- Blacklist Reason -->                        
+                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                    <button onclick="toggleSection('blacklist')" class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                        <div class="flex items-center gap-4">
+                            <div class="p-2 bg-primary/10 rounded-lg">
+                                <span class="material-symbols-outlined text-primary text-xl">block</span>
+                            </div>
+                            <div class="text-left">
+                                <h3 class="text-base font-bold text-gray-800 dark:text-white">Blacklist Reason</h3>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Manage blacklist / suspend reasons</p>
+                            </div>
+                        </div>
+                        <span id="blacklist-icon" class="material-symbols-outlined text-gray-400 dark:text-slate-400 transition-transform">
+                            expand_more
+                        </span>
+                    </button>
+
+                    <div id="blacklist-content" class="hidden border-t border-gray-200 dark:border-slate-700">
+                        <div class="p-6 bg-gray-50 dark:bg-slate-800/50">
+
+                            <!-- SEARCH + CREATE -->
+                            <div class="flex items-center gap-3 mb-4">
+                                <form method="GET" class="flex shadow-sm w-full sm:w-96">
+                                    <input name="blacklist_search"
+                                        value="<?= esc($blacklist_search ?? '') ?>"
+                                        class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm"
+                                        placeholder="Search reason..." type="text"/>
+                                    <button type="submit" class="bg-primary text-white px-6 py-2.5 rounded-r">
+                                        <span class="material-symbols-outlined text-[20px]">search</span>
+                                    </button>
+                                </form>
+
+                                <!-- CREATE BUTTON -->
+                                <button type="button" onclick="openBlacklistModal(null)"
+                                    class="flex items-center gap-2 bg-primary hover:bg-blue-600 text-white px-4 py-2.5 rounded text-sm font-medium whitespace-nowrap">
+                                    <span class="material-symbols-outlined text-[18px]">add</span>
+                                    Create
+                                </button>
+                            </div>
+
+                            <!-- TABLE -->
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-sm">
+                                    <thead class="text-xs text-gray-600 dark:text-slate-400 uppercase border-b">
+                                        <tr>
+                                            <th class="px-4 py-3">Reason</th>
+                                            <th class="px-4 py-3">Type</th>
+                                            <th class="px-4 py-3">Status</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody class="text-gray-700 dark:text-slate-300">
+                                        <?php if (!empty($blacklist_reasons)): ?>
+                                            <?php foreach ($blacklist_reasons as $row): ?>
+                                                <tr class="border-b hover:bg-gray-50 cursor-pointer"
+                                                    onclick="openBlacklistModal(<?= $row['id'] ?>)">
+                                                    <td class="px-4 py-3"><?= esc($row['reason']) ?></td>
+                                                    <td class="px-4 py-3"><?= esc($row['type']) ?></td>
+                                                    <td class="px-4 py-3">
+                                                        <span class="px-2 py-1 rounded-full text-xs
+                                                            <?= $row['status'] === 'Active'
+                                                                ? 'bg-green-100 text-green-700'
+                                                                : 'bg-red-100 text-red-700' ?>">
+                                                            <?= esc($row['status']) ?>
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        <?php else: ?>
+                                            <tr>
+                                                <td colspan="3" class="text-center py-6 text-gray-500">
+                                                    No records found.
+                                                </td>
+                                            </tr>
+                                        <?php endif; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Blacklist Modal -->
+                <div id="blacklist-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50">
+                    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md mx-4">
+
+                        <!-- HEADER -->
+                        <div class="flex justify-between px-6 py-4 border-b border-gray-200 dark:border-slate-700">
+                            <h2 id="blacklist-modal-title" class="text-base font-semibold text-gray-800 dark:text-white">
+                                Blacklist / Suspend Reason
+                            </h2>
+                            <button type="button" onclick="closeBlacklistModal()">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+
+                        <!-- FORM -->
+                        <form method="POST" action="<?= base_url('config/saveBlacklistReason') ?>">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="id" id="blacklist-id">
+
+                            <div class="px-6 py-5 space-y-4">
+
+                                <!-- Reason -->
+                                <div>
+                                    <label class="text-sm font-medium text-gray-700 dark:text-slate-300">
+                                        *Reason
+                                    </label>
+                                    <input name="reason" id="blacklist-reason" type="text"
+                                        class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2 text-sm"
+                                        required>
+                                </div>
+
+                                <!-- Type -->
+                                <div>
+                                    <label class="text-sm font-medium text-gray-700 dark:text-slate-300">
+                                        Type
+                                    </label>
+                                    <select name="type" id="blacklist-type"
+                                        class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2 text-sm">
+                                        <option value="SUSPEND">SUSPEND</option>
+                                        <option value="BLACKLIST">BLACKLIST</option>
+                                    </select>
+                                </div>
+
+                                <!-- Status -->
+                                <div>
+                                    <label class="text-sm font-medium text-gray-700 dark:text-slate-300">
+                                        Status
+                                    </label>
+                                    <select name="status" id="blacklist-status"
+                                        class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2 text-sm">
+                                        <option value="Active">Active</option>
+                                        <option value="Inactive">Inactive</option>
+                                    </select>
+                                </div>
+
+                            </div>
+
+                            <!-- FOOTER -->
+                            <div class="flex justify-between px-6 py-4 border-t border-gray-200 dark:border-slate-700">
+
+                                <button type="button" onclick="closeBlacklistModal()"
+                                    class="bg-yellow-400 hover:bg-yellow-500 text-white px-4 py-2 rounded">
+                                    Back
+                                </button>
+
+                                <button type="submit"
+                                    class="bg-primary hover:bg-blue-600 text-white px-4 py-2 rounded">
+                                    Save
+                                </button>
+
+                            </div>
+
+                        </form>
+                    </div>
+                </div>
+                
+
 
                 <!-- Role Management -->
                 <div
@@ -12195,6 +12663,19 @@
             fetchInvitationEmailTemplateSettings();
         });
 
+        function openBlacklistModal(id = null) {
+            document.getElementById('blacklist-modal').classList.remove('hidden');
+            document.getElementById('blacklist-modal').classList.add('flex');
+
+            // optional: you can later load data via PHP page reload for edit
+        }
+
+        function closeBlacklistModal() {
+            document.getElementById('blacklist-modal').classList.add('hidden');
+            document.getElementById('blacklist-modal').classList.remove('flex');
+        }                                    
+
+        
         // ============== PATHWAY MANAGEMENT FUNCTIONS ==============
 
         let currentPathwayPage = 1;

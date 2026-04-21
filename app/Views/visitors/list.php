@@ -444,7 +444,7 @@
             </div>
 
             <!-- Modal Content -->
-            <div class="flex-1 overflow-y-auto px-6 py-6">
+            <div id="detailModalScroll" class="flex-1 overflow-y-auto px-6 py-6">
                 <!-- Status Badge -->
                 <div id="statusBadge" class="mb-6"></div>
 
@@ -493,8 +493,8 @@
                             <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Visit Type (from check-in)</p>
                             <p id="detailType" class="text-sm font-semibold text-gray-900 dark:text-white py-2"></p>
                         </div>
+                        <div id="visitorTypeFieldWrap" class="min-w-0 transition-shadow duration-300">
                         <?php if (! empty($showVisitorTypes)): ?>
-                        <div>
                             <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Visitor Type</label>
                             <select id="editVisitorTypeId" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary">
                                 <option value="">— None —</option>
@@ -502,13 +502,11 @@
                                 <option value="<?= (int) $vt['id'] ?>"><?= esc($vt['name']) ?></option>
                                 <?php endforeach; ?>
                             </select>
-                        </div>
                         <?php else: ?>
-                        <div>
                             <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Visitor Type</p>
-                            <p id="detailVisitorTypeReadonly" class="text-sm font-semibold text-gray-900 dark:text-white py-2"></p>
-                        </div>
+                            <p id="detailVisitorTypeReadonly" class="text-sm font-semibold text-gray-900 dark:text-white py-2 min-h-[2.5rem]"></p>
                         <?php endif; ?>
+                        </div>
                         <div>
                             <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Host / Invited By</label>
                             <input type="text" id="editInvitedBy" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
@@ -575,6 +573,17 @@
                     </button>
                 </div>
                 <div class="flex flex-wrap gap-2">
+                    <?php if (! empty($showVisitorTypes)): ?>
+                    <button type="button" id="btnVisitorTypeFooter" onclick="openVisitorTypeFromFooter()" class="px-4 py-2.5 bg-primary hover:bg-blue-600 text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2" title="Jump to visitor type and open the list">
+                        <span class="material-symbols-outlined text-lg">category</span>
+                        Visitor Type
+                    </button>
+                    <?php else: ?>
+                    <button type="button" disabled class="px-4 py-2.5 bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 font-medium rounded-lg cursor-not-allowed flex items-center gap-2" title="Visitor types are not enabled (database migrations for visitor_types and invitations.visitor_type_id).">
+                        <span class="material-symbols-outlined text-lg">category</span>
+                        Visitor Type
+                    </button>
+                    <?php endif; ?>
                     <button type="button" id="btnReturnCardFromDetail" onclick="returnCardFromDetail()" class="hidden px-4 py-2.5 bg-success hover:bg-emerald-600 text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
                         <span class="material-symbols-outlined text-lg">assignment_return</span>
                         Return Card
@@ -667,6 +676,28 @@
         function mysqlToDatetimeLocal(v) {
             if (!v) return '';
             return String(v).replace(' ', 'T').slice(0, 16);
+        }
+
+        /** Match pass-list UX: footer “Visitor Type” jumps to the type field and opens the picker when supported. */
+        function openVisitorTypeFromFooter() {
+            const sel = document.getElementById('editVisitorTypeId');
+            const wrap = document.getElementById('visitorTypeFieldWrap');
+            if (!sel || !wrap) {
+                return;
+            }
+            wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            wrap.classList.add('ring-2', 'ring-primary', 'ring-offset-2', 'dark:ring-offset-slate-900', 'rounded-lg');
+            window.setTimeout(function () {
+                sel.focus();
+                if (typeof sel.showPicker === 'function') {
+                    try {
+                        sel.showPicker();
+                    } catch (e) { /* some browsers restrict showPicker on select */ }
+                }
+            }, 280);
+            window.setTimeout(function () {
+                wrap.classList.remove('ring-2', 'ring-primary', 'ring-offset-2', 'dark:ring-offset-slate-900', 'rounded-lg');
+            }, 2200);
         }
 
         function openDetailModal(visitor) {
