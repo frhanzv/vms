@@ -253,4 +253,7 @@ $routes->post('config/updateRegType/(:num)', 'Config::updateRegType/$1');
 $routes->post('config/deleteRegType/(:num)', 'Config::deleteRegType/$1');
 
 // Blacklist Reason config
-$routes->get('blacklist/reason', 'Config::blacklistReason');
+$routes->post('config/saveBlacklistReason', 'BlacklistReasonCreate::save');
+
+// Business Type Config
+$routes->post('config/updateBusinessType', 'Config::updateBusinessType');

@@ -310,11 +310,6 @@
                                         <span class="material-symbols-outlined text-white text-[20px]">search</span>
                                     </button>
                                 </form>
-                                <button onclick="openRegTypeModal()"
-                                    class="bg-primary hover:bg-blue-600 text-white text-sm font-medium px-4 py-2.5 rounded flex items-center gap-1 transition-colors whitespace-nowrap">
-                                    <span class="material-symbols-outlined text-[18px]">add</span>
-                                    Add
-                                </button>
                             </div>
 
                             <!-- Table -->
@@ -503,24 +498,68 @@
                                     <tbody class="text-gray-700 dark:text-slate-300">
                                         <?php if (!empty($biz_types)): ?>
                                             <?php foreach ($biz_types as $row): ?>
-                                                <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700/50">
+                                                <tr
+                                                    class="biztype-row border-b border-gray-100 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700/50 cursor-pointer transition"
+                                                    data-id="<?= esc($row['id']) ?>"
+                                                    data-business_type="<?= esc($row['business_type']) ?>"
+                                                    data-reg_type="<?= esc($row['reg_type']) ?>"
+                                                    data-ledger="<?= (int)$row['ledger'] ?>"
+                                                    data-haulier="<?= (int)$row['haulier'] ?>"
+                                                    data-lpk_license_no="<?= (int)$row['lpk_license_no'] ?>"
+                                                    data-lpk_license_no_optional="<?= (int)$row['lpk_license_no_optional'] ?>"
+                                                    data-lpk_ancillary_contractor="<?= (int)$row['lpk_ancillary_contractor'] ?>"
+                                                    data-customs_license_no="<?= (int)$row['customs_license_no'] ?>"
+                                                    data-sst_reg_no="<?= (int)$row['sst_reg_no'] ?>"
+                                                    data-business_vol="<?= (int)$row['business_vol'] ?>"
+                                                    data-trade_ref_no="<?= (int)$row['trade_ref_no'] ?>"
+                                                    data-bank_info="<?= (int)$row['bank_info'] ?>"
+                                                    data-operator_code="<?= (int)$row['operator_code'] ?>"
+                                                    data-copy_board_director_ic="<?= (int)$row['copy_board_director_ic'] ?>"
+                                                    data-apad_certificate_no="<?= (int)$row['apad_certificate_no'] ?>"
+                                                    data-license_expiry_date="<?= (int)$row['license_expiry_date'] ?>"
+                                                    data-warehouse_info="<?= (int)$row['warehouse_info'] ?>"
+                                                    data-nature_of_business="<?= (int)$row['nature_of_business'] ?>"
+                                                    data-pli="<?= (int)$row['pli'] ?>"
+                                                    data-status="<?= esc($row['status']) ?>"
+                                                >
                                                     <td class="px-4 py-3 font-medium"><?= esc($row['business_type']) ?></td>
                                                     <td class="px-4 py-3"><?= esc($row['reg_type']) ?></td>
+
                                                     <?php
-                                                    $checkFields = ['ledger','haulier','lpk_license_no','lpk_license_no_optional','lpk_ancillary_contractor','customs_license_no','sst_reg_no','business_vol','trade_ref_no','bank_info','operator_code','copy_board_director_ic','apad_certificate_no','license_expiry_date','warehouse_info','nature_of_business','pli'];
+                                                    $checkFields = [
+                                                        'ledger',
+                                                        'haulier',
+                                                        'lpk_license_no',
+                                                        'lpk_license_no_optional',
+                                                        'lpk_ancillary_contractor',
+                                                        'customs_license_no',
+                                                        'sst_reg_no',
+                                                        'business_vol',
+                                                        'trade_ref_no',
+                                                        'bank_info',
+                                                        'operator_code',
+                                                        'copy_board_director_ic',
+                                                        'apad_certificate_no',
+                                                        'license_expiry_date',
+                                                        'warehouse_info',
+                                                        'nature_of_business',
+                                                        'pli'
+                                                    ];
                                                     foreach ($checkFields as $field):
                                                     ?>
-                                                    <td class="px-4 py-3 text-center">
-                                                        <?php if ($row[$field]): ?>
-                                                            <span class="material-symbols-outlined text-green-500 text-base">check</span>
-                                                        <?php else: ?>
-                                                            <span class="material-symbols-outlined text-red-500 text-base">close</span>
-                                                        <?php endif; ?>
-                                                    </td>
+                                                        <td class="px-4 py-3 text-center">
+                                                            <?php if (!empty($row[$field])): ?>
+                                                                <span class="material-symbols-outlined text-green-500 text-base">check</span>
+                                                            <?php else: ?>
+                                                                <span class="material-symbols-outlined text-red-500 text-base">close</span>
+                                                            <?php endif; ?>
+                                                        </td>
                                                     <?php endforeach; ?>
+
                                                     <td class="px-4 py-3">
+                                                        <?php $status = strtoupper($row['status'] ?? 'ACTIVE'); ?>
                                                         <span class="px-2 py-1 rounded-full text-xs font-medium
-                                                            <?= $row['status'] === 'Active'
+                                                            <?= $status === 'ACTIVE'
                                                                 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
                                                                 : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' ?>">
                                                             <?= esc($row['status']) ?>
@@ -536,11 +575,112 @@
                                             </tr>
                                         <?php endif; ?>
                                     </tbody>
+
                                 </table>
                             </div>
                         </div>
                     </div>
                 </div>
+
+                <!-- Business Type Edit Modal -->
+                <div id="biztype-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 px-4">
+                    <div class="w-full max-w-5xl rounded-lg bg-white dark:bg-slate-800 shadow-xl overflow-hidden">
+                        <div class="flex items-center justify-between border-b border-gray-200 dark:border-slate-700 px-6 py-4">
+                            <h3 class="text-xl font-semibold text-gray-800 dark:text-white">Business Type Details</h3>
+                            <button type="button" id="close-biztype-modal" class="text-gray-500 hover:text-red-500 text-xl">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+
+                        <form method="post" action="<?= base_url('config/updateBusinessType') ?>" class="p-6">
+                            <?= csrf_field() ?>
+
+                            <input type="hidden" name="id" id="edit-id">
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                                        <span class="text-red-500">*</span>Business Type Name
+                                    </label>
+                                    <input type="text" name="business_type" id="edit-business_type"
+                                        class="w-full rounded border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5"
+                                        required>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                                        <span class="text-red-500">*</span>Registration Type
+                                    </label>
+                                    <select name="reg_type" id="edit-reg_type"
+                                        class="w-full rounded border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5"
+                                        required>
+                                        <option value="">Select Registration Type</option>
+                                        <?php foreach ($reg_types as $reg): ?>
+                                            <option value="<?= esc($reg['name']) ?>"><?= esc($reg['name']) ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+
+                                <?php
+                                $formFields = [
+                                    'ledger' => 'Ledger Required',
+                                    'haulier' => 'Haulier Required',
+                                    'lpk_license_no' => 'LPK License No',
+                                    'lpk_license_no_optional' => 'LPK License No (Optional)',
+                                    'lpk_ancillary_contractor' => 'LPK Ancillary Contractor',
+                                    'customs_license_no' => 'Customs License No',
+                                    'sst_reg_no' => 'SST Reg No',
+                                    'business_vol' => 'Business Vol',
+                                    'trade_ref_no' => 'Trade Ref No',
+                                    'bank_info' => 'Bank Info',
+                                    'operator_code' => 'Operator Code',
+                                    'copy_board_director_ic' => 'Copy of Board Director IC',
+                                    'apad_certificate_no' => 'APAD Certificate No',
+                                    'license_expiry_date' => 'License Expiry Date',
+                                    'warehouse_info' => 'Warehouse Info',
+                                    'nature_of_business' => 'Nature Of Business',
+                                    'pli' => 'PLI'
+                                ];
+                                ?>
+
+                                <?php foreach ($formFields as $field => $label): ?>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                                            <?= esc($label) ?>
+                                        </label>
+                                        <select name="<?= esc($field) ?>" id="edit-<?= esc($field) ?>"
+                                            class="w-full rounded border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5">
+                                            <option value="1">YES</option>
+                                            <option value="0">NO</option>
+                                        </select>
+                                    </div>
+                                <?php endforeach; ?>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Status</label>
+                                    <select name="status" id="edit-status"
+                                        class="w-full rounded border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5">
+                                        <option value="ACTIVE">ACTIVE</option>
+                                        <option value="INACTIVE">INACTIVE</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="mt-6 flex items-center justify-between">
+                                <button type="button" id="back-biztype-modal"
+                                    class="px-5 py-2.5 rounded bg-yellow-400 hover:bg-yellow-500 text-white font-medium">
+                                    Back
+                                </button>
+
+                                <button type="submit"
+                                    class="px-5 py-2.5 rounded bg-primary hover:bg-blue-600 text-white font-medium">
+                                    Save
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
 
                 <!-- Blacklist Reason -->                        
                 <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
@@ -562,17 +702,25 @@
                     <div id="blacklist-content" class="hidden border-t border-gray-200 dark:border-slate-700">
                         <div class="p-6 bg-gray-50 dark:bg-slate-800/50">
 
-                            <!-- SEARCH -->
-                            <form method="GET" class="flex shadow-sm w-full sm:w-96 mb-4">
-                                <input name="blacklist_search"
-                                    value="<?= esc($blacklist_search ?? '') ?>"
-                                    class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm"
-                                    placeholder="Search reason..." type="text"/>
+                            <!-- SEARCH + CREATE -->
+                            <div class="flex items-center gap-3 mb-4">
+                                <form method="GET" class="flex shadow-sm w-full sm:w-96">
+                                    <input name="blacklist_search"
+                                        value="<?= esc($blacklist_search ?? '') ?>"
+                                        class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm"
+                                        placeholder="Search reason..." type="text"/>
+                                    <button type="submit" class="bg-primary text-white px-6 py-2.5 rounded-r">
+                                        <span class="material-symbols-outlined text-[20px]">search</span>
+                                    </button>
+                                </form>
 
-                                <button type="submit" class="bg-primary text-white px-6 py-2.5 rounded-r">
-                                    <span class="material-symbols-outlined text-[20px]">search</span>
+                                <!-- CREATE BUTTON -->
+                                <button type="button" onclick="openBlacklistModal(null)"
+                                    class="flex items-center gap-2 bg-primary hover:bg-blue-600 text-white px-4 py-2.5 rounded text-sm font-medium whitespace-nowrap">
+                                    <span class="material-symbols-outlined text-[18px]">add</span>
+                                    Create
                                 </button>
-                            </form>
+                            </div>
 
                             <!-- TABLE -->
                             <div class="overflow-x-auto">
@@ -616,25 +764,24 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Blacklist Modal -->
                 <div id="blacklist-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50">
                     <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md mx-4">
 
                         <!-- HEADER -->
                         <div class="flex justify-between px-6 py-4 border-b border-gray-200 dark:border-slate-700">
-                            <h2 class="text-base font-semibold text-gray-800 dark:text-white">
+                            <h2 id="blacklist-modal-title" class="text-base font-semibold text-gray-800 dark:text-white">
                                 Blacklist / Suspend Reason
                             </h2>
-
                             <button type="button" onclick="closeBlacklistModal()">
                                 <span class="material-symbols-outlined">close</span>
                             </button>
                         </div>
 
                         <!-- FORM -->
-                        <form method="POST" action="/config/saveBlacklist">
-
+                        <form method="POST" action="<?= base_url('config/saveBlacklistReason') ?>">
+                            <?= csrf_field() ?>
                             <input type="hidden" name="id" id="blacklist-id">
 
                             <div class="px-6 py-5 space-y-4">
@@ -691,7 +838,6 @@
                             </div>
 
                         </form>
-
                     </div>
                 </div>
                 

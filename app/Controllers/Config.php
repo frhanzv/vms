@@ -161,6 +161,18 @@ class Config extends BaseController
         $bizTotal = (clone $bizBuilder)->countAllResults();
         $bizTypes = $bizBuilder->findAll($bizPerPage, $bizOffset);
 
+        // =========================
+        // BLACKLIST REASON SECTION
+        // =========================
+        $blacklistSearch  = $this->request->getGet('blacklist_search') ?? '';
+        $blacklistBuilder = $this->blacklistReasonModel->orderBy('reason', 'ASC');
+
+        if ($blacklistSearch) {
+            $blacklistBuilder->like('reason', $blacklistSearch);
+        }
+
+        $blacklistReasons = $blacklistBuilder->findAll();
+
 
         // =========================
         // PASS DATA TO VIEW
@@ -182,6 +194,10 @@ class Config extends BaseController
             'biztype_page'     => $bizPage,
             'biztype_per_page' => $bizPerPage,
             'biztype_search'   => $bizSearch,
+
+            // Blacklist Reason
+            'blacklist_reasons' => $blacklistReasons,
+            'blacklist_search'  => $blacklistSearch,
         ]);
     }
 
@@ -3572,9 +3588,43 @@ class Config extends BaseController
 
     public function blacklistReason()
     {
-        $data['blacklist_reasons'] = $this->blacklistReasonModel->findAll();
+       $data['blacklist_reasons'] = $this->blacklistReasonModel->findAll();
 
-        return view('blacklist/closedlist', $data);
+        return view('config/index', $data);
     }
+
+    // Update Business Type in Config
+    public function updateBusinessType()
+    {
+        $id = $this->request->getPost('id');
+
+        $data = [
+            'business_type' => $this->request->getPost('business_type'),
+            'reg_type' => $this->request->getPost('reg_type'),
+            'ledger' => $this->request->getPost('ledger'),
+            'haulier' => $this->request->getPost('haulier'),
+            'lpk_license_no' => $this->request->getPost('lpk_license_no'),
+            'lpk_license_no_optional' => $this->request->getPost('lpk_license_no_optional'),
+            'lpk_ancillary_contractor' => $this->request->getPost('lpk_ancillary_contractor'),
+            'customs_license_no' => $this->request->getPost('customs_license_no'),
+            'sst_reg_no' => $this->request->getPost('sst_reg_no'),
+            'business_vol' => $this->request->getPost('business_vol'),
+            'trade_ref_no' => $this->request->getPost('trade_ref_no'),
+            'bank_info' => $this->request->getPost('bank_info'),
+            'operator_code' => $this->request->getPost('operator_code'),
+            'copy_board_director_ic' => $this->request->getPost('copy_board_director_ic'),
+            'apad_certificate_no' => $this->request->getPost('apad_certificate_no'),
+            'license_expiry_date' => $this->request->getPost('license_expiry_date'),
+            'warehouse_info' => $this->request->getPost('warehouse_info'),
+            'nature_of_business' => $this->request->getPost('nature_of_business'),
+            'pli' => $this->request->getPost('pli'),
+            'status' => strtoupper($this->request->getPost('status')),
+        ];
+
+        $this->bizTypeModel->update($id, $data);
+
+        return redirect()->to(base_url('config'))->with('success', 'Business type updated successfully.');
+    }
+
 
 }
