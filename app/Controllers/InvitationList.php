@@ -10,6 +10,9 @@ use App\Models\VisitReasonModel;
 use App\Models\LocationModel;
 use App\Models\CompanyModel;
 use App\Models\VisitorTypeModel;
+use App\Models\SettingModel;
+use App\Libraries\EmailTemplateService;
+use App\Models\EmailTemplateModel;
 
 class InvitationList extends BaseController
 {
@@ -20,6 +23,9 @@ class InvitationList extends BaseController
     protected $locationModel;
     protected $companyModel;
     protected $visitorTypeModel;
+    protected $settingModel;
+    protected $emailTemplateService;
+    protected $emailTemplateModel;
 
     public function __construct()
     {
@@ -30,6 +36,9 @@ class InvitationList extends BaseController
         $this->locationModel = new LocationModel();
         $this->companyModel = new CompanyModel();
         $this->visitorTypeModel = new VisitorTypeModel();
+        $this->settingModel = new SettingModel();
+        $this->emailTemplateService = new EmailTemplateService();
+        $this->emailTemplateModel = new EmailTemplateModel();
     }
 
     public function index()
@@ -231,6 +240,7 @@ class InvitationList extends BaseController
                 'staff_id' => $this->request->getPost('staff_id'),
                 'company_visited' => $this->request->getPost('company_visited'),
                 'host_contact' => $this->request->getPost('contact_person'),
+                'registration_source' => 'Invitation',
             ];
             if ($this->invitationsSupportVisitorType()) {
                 $shared['visitor_type_id'] = $visitorTypeId;
@@ -338,10 +348,61 @@ class InvitationList extends BaseController
             }
 
             $email = new Email();
+            $email->setMailType('html');
             
             // Generate registration link with invitation token
             $registrationLink = base_url('visitor-registration?token=' . base64_encode($invitationId));
             
+            $templateRaw = $this->settingModel->getSetting(
+                $this->emailTemplateService->getStorageKey(EmailTemplateService::PROCESS_INVITATION)
+            );
+            $templateConfig = $this->emailTemplateService->normalizeTemplate(
+                EmailTemplateService::PROCESS_INVITATION,
+                $templateRaw ? json_decode((string) $templateRaw, true) : []
+            );
+
+            $placeholderContext = [
+                'visitor_name' => $invitation['full_name'],
+                'company' => $invitation['company_name'],
+                'location' => $invitation['location_name'],
+                'reason' => $invitation['reason_name'],
+                'invited_by' => $invitation['invited_by'],
+                'link_expiry_date' => date('d/m/Y', strtotime($invitation['link_expiry'])),
+                'registration_link' => $registrationLink,
+            ];
+
+            // Optional: if CRUD email template exists (code: INVITATION), use its Subject/Body.
+            $crudTemplate = $this->emailTemplateModel
+                ->where('code', 'INVITATION')
+                ->first();
+            if (! $crudTemplate) {
+                // Backward compat with earlier seeded code naming.
+                $crudTemplate = $this->emailTemplateModel
+                    ->where('code', 'VISITOR_INVITE')
+                    ->first();
+            }
+
+            $customSubject = null;
+            $customBodyHtml = null;
+            $customColors = null;
+            if (is_array($crudTemplate)) {
+                $rawSubject = trim((string) ($crudTemplate['subject'] ?? ''));
+                $rawBody = (string) ($crudTemplate['body'] ?? '');
+                if ($rawSubject !== '') {
+                    $customSubject = $this->emailTemplateService->applyPlaceholders($rawSubject, $placeholderContext);
+                }
+                if (trim($rawBody) !== '') {
+                    $customBodyText = $this->emailTemplateService->applyPlaceholders($rawBody, $placeholderContext);
+                    // Keep it safe: escape then convert newlines to <br>.
+                    $customBodyHtml = nl2br(esc($customBodyText));
+                }
+                $customColors = [
+                    'primary_color' => $crudTemplate['primary_color'] ?? null,
+                    'content_bg_color' => $crudTemplate['content_bg_color'] ?? null,
+                    'text_color' => $crudTemplate['text_color'] ?? null,
+                ];
+            }
+
             // Prepare email data
             $emailData = [
                 'visitor_name' => $invitation['full_name'],
@@ -352,7 +413,15 @@ class InvitationList extends BaseController
                 'invited_by' => $invitation['invited_by'],
                 'schedules' => $invitation['schedules'],
                 'registration_link' => $registrationLink,
-                'link_expiry' => $invitation['link_expiry']
+                'link_expiry' => $invitation['link_expiry'],
+                'template' => $templateConfig,
+                'intro_line' => $this->emailTemplateService->applyPlaceholders($templateConfig['intro_line'], $placeholderContext),
+                'notes_items' => array_map(
+                    fn($item) => $this->emailTemplateService->applyPlaceholders((string) $item, $placeholderContext),
+                    $templateConfig['notes_items']
+                ),
+                'custom_body_html' => $customBodyHtml,
+                'custom_colors' => $customColors,
             ];
             
             // Render email template
@@ -360,7 +429,7 @@ class InvitationList extends BaseController
             
             $email->setFrom('noreply@safeg.com', 'SafeG VMS');
             $email->setTo($invitation['visitor_email']);
-            $email->setSubject('Visitor Invitation - Complete Your Registration');
+            $email->setSubject($customSubject ?: $templateConfig['subject']);
             $email->setMessage($message);
             
             // Always try to send emails (remove development mode restriction)

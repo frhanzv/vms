@@ -8,6 +8,13 @@ class BlacklistClosedTable extends Migration
 {
     public function up()
     {
+        if (! $this->db->tableExists('blacklist')) {
+            return;
+        }
+        if ($this->db->fieldExists('released_date', 'blacklist')) {
+            return;
+        }
+
         $this->forge->addColumn('blacklist', [
             'released_date' => [
                 'type'  => 'DATE',

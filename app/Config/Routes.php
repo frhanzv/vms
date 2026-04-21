@@ -24,6 +24,13 @@ $routes->get('/', 'Dashboard::index');
 $routes->get('dashboard', 'Dashboard::index');
 $routes->post('dashboard/acknowledgeAlert', 'Dashboard::acknowledgeAlert');
 $routes->get('dashboard/trafficData', 'Dashboard::trafficData');
+$routes->get('dashboard/accessDeniedData', 'Dashboard::accessDeniedData');
+$routes->get('dashboard/overstayData', 'Dashboard::overstayData');
+$routes->get('dashboard/alertDetailData/(:num)', 'Dashboard::alertDetailData/$1');
+$routes->get('dashboard/onSiteData', 'Dashboard::onSiteData');
+$routes->get('dashboard/expectedTodayData', 'Dashboard::expectedTodayData');
+$routes->get('dashboard/checkedOutData', 'Dashboard::checkedOutData');
+$routes->get('dashboard/activeAlertsData', 'Dashboard::activeAlertsData');
 $routes->get('invitations', 'InvitationList::index');
 $routes->get('invitations/create', 'InvitationList::create');
 $routes->post('invitations/store', 'InvitationList::store');
@@ -62,6 +69,9 @@ $routes->post('security/confirmCheckin', 'SecurityBriefing::confirmCheckin');
 $routes->get('config', 'Config::index');
 $routes->get('config/getLogs', 'Config::getLogs');
 $routes->get('config/exportLogs', 'Config::exportLogs');
+// Alert Priority Management Routes
+$routes->get('config/getAlertPriorities', 'Config::getAlertPriorities');
+$routes->post('config/updateAlertPriority/(:num)', 'Config::updateAlertPriority/$1');
 
 // App Config Routes
 $routes->get('config/getAppConfigs', 'Config::getAppConfigs');
@@ -201,10 +211,26 @@ $routes->get('config/getIpRangeSettings', 'Config::getIpRangeSettings');
 $routes->post('config/saveIpRangeSettings', 'Config::saveIpRangeSettings');
 $routes->get('config/getEmailTemplateFormSettings', 'Config::getEmailTemplateFormSettings');
 $routes->post('config/saveEmailTemplateFormSettings', 'Config::saveEmailTemplateFormSettings');
+$routes->get('config/getInvitationEmailTemplateSettings', 'Config::getInvitationEmailTemplateSettings');
+$routes->post('config/saveInvitationEmailTemplateSettings', 'Config::saveInvitationEmailTemplateSettings');
+$routes->get('config/getEmailTemplates', 'Config::getEmailTemplates');
+$routes->get('config/getEmailTemplate/(:num)', 'Config::getEmailTemplate/$1');
+$routes->post('config/createEmailTemplate', 'Config::createEmailTemplate');
+$routes->post('config/updateEmailTemplate/(:num)', 'Config::updateEmailTemplate/$1');
 $routes->post('config/createEmailTemplateFormField', 'Config::createEmailTemplateFormField');
 $routes->post('config/updateEmailTemplateFormField/(:num)', 'Config::updateEmailTemplateFormField/$1');
 $routes->post('config/deleteEmailTemplateFormField/(:num)', 'Config::deleteEmailTemplateFormField/$1');
 $routes->post('config/reorderEmailTemplateFormFields', 'Config::reorderEmailTemplateFormFields');
+$routes->get('config/generateVisitorQr', 'Config::generateVisitorQr');
+
+
+// Pathway Management Routes
+$routes->get('config/getPathways', 'Config::getPathways');
+$routes->get('config/getPathway/(:num)', 'Config::getPathway/$1');
+$routes->post('config/createPathway', 'Config::createPathway');
+$routes->post('config/updatePathway/(:num)', 'Config::updatePathway/$1');
+$routes->delete('config/deletePathway/(:num)', 'Config::deletePathway/$1');
+$routes->get('config/getAllLanes', 'Config::getAllLanes');
 
 // Additional Location Routes
 $routes->get('config/getAllLocations', 'Config::getAllLocations');
@@ -225,6 +251,9 @@ $routes->get('report/chronology', 'VisitorChronology::index');
 $routes->post('report/chronology/generate', 'VisitorChronology::generate');
 $routes->get('report/bydoor', 'VisitorInfoByDoor::index');
 $routes->post('report/bydoor/generate', 'VisitorInfoByDoor::generate');
+$routes->get('report/visitor/details/(:num)', 'VisitorChronology::details/$1');
+$routes->post('report/visitor/movement', 'VisitorChronology::movementTimeline');
+
 
 // Blacklist Routes
 $routes->group('blacklist', function ($routes) {

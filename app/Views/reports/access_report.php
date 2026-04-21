@@ -36,6 +36,8 @@
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <!-- SheetJS with Styles for Excel Export -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <style>
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
@@ -44,14 +46,44 @@
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
         /* Override DataTables to match VMS style */
-        .dataTables_wrapper .dataTables_length select,
-        .dataTables_wrapper .dataTables_filter input {
-            border: 1px solid #e2e8f0;
+        .dataTables_wrapper .dataTables_length select {
+            appearance: none;
+            background-color: white;
+            border: 1px solid #d1d5db;
+            color: #374151;
+            padding: 0.375rem 2rem 0.375rem 0.75rem;
             border-radius: 0.375rem;
-            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+            cursor: pointer;
+            outline: none;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236b7280'%3e%3cpath d='M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 0.5rem center;
+            background-size: 1.25em;
+        }
+        .dataTables_wrapper .dataTables_length label {
+            margin: 0;
+            color: transparent;
+        }
+        .dataTables_wrapper .dataTables_filter label {
+            font-size: 1rem;
+            color: #334155;
+            display: flex;
+            align-items: center;
+            font-family: inherit;
+        }
+        .dataTables_wrapper .dataTables_filter input {
+            border: 1px solid #cbd5e1;
+            border-radius: 0.375rem;
+            padding: 0.375rem 0.75rem;
             font-size: 0.875rem;
             font-family: 'Montserrat', sans-serif;
             outline: none;
+            min-width: 200px;
+            margin-left: 0.5rem;
         }
         .dataTables_wrapper .dataTables_filter input:focus {
             border-color: #137fec;
@@ -65,10 +97,14 @@
             font-family: 'Montserrat', sans-serif;
         }
         .dataTables_wrapper .dataTables_paginate .paginate_button {
-            border-radius: 0.375rem !important;
+            border-radius: 0.25rem !important;
+            border: 1px solid #e2e8f0 !important;
             font-size: 0.8rem;
             font-family: 'Montserrat', sans-serif;
-            padding: 0.3rem 0.7rem !important;
+            padding: 0.3rem 0.85rem !important;
+            margin: 0 0.15rem;
+            background: white !important;
+            color: #64748b !important;
         }
         .dataTables_wrapper .dataTables_paginate .paginate_button.current,
         .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
@@ -90,6 +126,7 @@
             letter-spacing: 0.05em;
             border-bottom: 2px solid #e2e8f0 !important;
             padding: 0.85rem 1rem;
+            white-space: nowrap;
         }
         table.dataTable tbody td {
             font-size: 0.82rem;
@@ -97,6 +134,7 @@
             border-bottom: 1px solid #f1f5f9;
             color: #334155;
             vertical-align: middle;
+            white-space: nowrap;
         }
         table.dataTable tbody tr:hover td { background: #f0f7ff; }
         table.dataTable { border-collapse: collapse !important; width: 100% !important; }
@@ -164,22 +202,46 @@
                             <p class="text-xs text-slate-400">End date and time</p>
                         </div>
 
-                        <!-- Select Location -->
-                        <div class="flex flex-col gap-1.5 flex-1 min-w-0">
+                        <!-- Select Locations (multi-select checkbox dropdown) -->
+                        <div class="flex flex-col gap-1.5 flex-1 min-w-0" id="locationDropdownWrapper">
                             <label class="text-xs font-semibold text-slate-500 tracking-wider">Select Locations</label>
-                            <div class="relative">
-                                <select id="location_id" name="location_id"
-                                    class="w-full border border-slate-200 dark:border-slate-700 rounded-lg pl-4 pr-10 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary appearance-none bg-none cursor-pointer">
-                                    <option value="">-- Select Location --</option>
-                                    <?php foreach ($locations as $loc): ?>
-                                        <option value="<?= esc($loc['id']) ?>">
-                                            <?= esc($loc['id']) ?>. <?= esc($loc['branch']) ?> - <?= esc($loc['location_access']) ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <span class="absolute right-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-[18px] text-slate-400 pointer-events-none">expand_more</span>
+                            <div class="relative" id="locationDropdownContainer">
+                                <!-- Trigger button -->
+                                <button type="button" id="locationDropdownBtn"
+                                    onclick="toggleLocationDropdown(event)"
+                                    class="w-full border border-slate-200 dark:border-slate-700 rounded-lg pl-4 pr-10 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-left cursor-pointer flex items-center justify-between">
+                                    <span id="locationDropdownLabel" class="truncate">-- Select Locations --</span>
+                                    <span class="material-symbols-outlined text-[18px] text-slate-400 flex-shrink-0 ml-2" id="locationDropdownChevron">expand_more</span>
+                                </button>
+
+                                <!-- Dropdown panel -->
+                                <div id="locationDropdownPanel"
+                                    class="hidden absolute z-50 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+                                    <!-- Select All -->
+                                    <div class="px-3 py-2 border-b border-slate-100 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800">
+                                        <label class="flex items-center gap-2 cursor-pointer select-none">
+                                            <input type="checkbox" id="locationSelectAll" onchange="toggleSelectAllLocations(this)"
+                                                class="rounded border-slate-300 text-primary focus:ring-primary/30 h-4 w-4 cursor-pointer">
+                                            <span class="text-sm font-bold text-slate-700 dark:text-slate-200">Select All Locations</span>
+                                        </label>
+                                    </div>
+                                    <!-- Individual locations -->
+                                    <div class="py-1">
+                                        <?php foreach ($locations as $loc): ?>
+                                            <label class="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer select-none">
+                                                <input type="checkbox" name="location_ids[]"
+                                                    value="<?= esc($loc['id']) ?>"
+                                                    class="location-checkbox rounded border-slate-300 text-primary focus:ring-primary/30 h-4 w-4 cursor-pointer"
+                                                    onchange="onLocationCheckboxChange()">
+                                                <span class="text-sm text-slate-700 dark:text-slate-200">
+                                                    <?= esc($loc['id']) ?>. <?= esc($loc['branch']) ?> - <?= esc($loc['location_access']) ?>
+                                                </span>
+                                            </label>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
                             </div>
-                            <p class="text-xs text-slate-400">Select reporting location</p>
+                            <p class="text-xs text-slate-400">Select one or more locations</p>
                         </div>
 
                         <!-- Generate Button -->
@@ -214,21 +276,27 @@
                                 <span id="reportLocation" class="text-sm text-slate-500"></span>
                             </div>
                         </div>
-                        <!-- Export Button -->
-                        <div class="flex items-center">
-                            <button onclick="exportCSV()"
-                                class="flex items-center gap-2 px-5 py-2.5 rounded-lg border border-primary text-primary bg-primary/5 hover:bg-primary/10 font-bold text-sm transition-colors shadow-sm whitespace-nowrap">
-                                <span class="material-symbols-outlined text-[18px]">download</span>
-                                Export CSV
-                            </button>
-                        </div>
+
+                    </div>
+
+                    <!-- Data Table Header & Actions -->
+                    <div class="flex flex-col md:flex-row md:items-end justify-between items-center bg-white dark:bg-slate-900 rounded-t-xl border border-slate-200 dark:border-slate-700 shadow-sm border-b-0 p-5 mt-2">
+                         <h2 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white mt-1">Visitor Details</h2>
+                         
+                         <div class="flex gap-2">
+                             <button type="button" onclick="openColumnsModal()" class="flex items-center gap-2 bg-[#535dec] hover:bg-[#4853e0] text-white px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm">
+                                 <span class="material-symbols-outlined text-[18px]">visibility</span>
+                                 Show/Hide Columns
+                             </button>
+                             <button type="button" onclick="exportExcel()" class="flex items-center gap-2 bg-[#53b2ec] hover:bg-[#46a2db] text-white px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm">
+                                 <span class="material-symbols-outlined text-[18px]">query_stats</span>
+                                 Export
+                             </button>
+                         </div>
                     </div>
 
                     <!-- Data Table Card -->
-                    <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-                        <div class="p-5 border-b border-slate-100 dark:border-slate-700">
-                            <h3 class="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">Visitor Details</h3>
-                        </div>
+                    <div class="bg-white dark:bg-slate-900 rounded-b-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden border-t-0 p-5 pt-0">
                         <div class="p-5 overflow-x-auto">
                             <table id="accessTable" class="w-full" style="width:100%">
                                 <thead>
@@ -299,7 +367,8 @@
                 <thead>
                     <tr class="border-b-2 border-slate-200 bg-slate-50 text-left text-xs font-bold uppercase tracking-wider text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
                         <th class="px-3 py-3">Date &amp; Time</th>
-                        <th class="px-3 py-3">Location</th>
+                        <th class="px-3 py-3">Current Location</th>
+                        <th class="px-3 py-3">Location Accessed</th>
                         <th class="px-3 py-3 text-center">Access</th>
                         <th class="px-3 py-3">Reason</th>
                         <th class="px-3 py-3 text-center">Type</th>
@@ -323,9 +392,41 @@
 <input type="hidden" id="movementModalInvitationId" value="">
 <input type="hidden" id="movementModalIcNo" value="">
 
+<!-- Columns Modal Overlay -->
+<div id="columnsModal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div id="columnsModalBackdrop" onclick="closeColumnsModal()" class="absolute inset-0 bg-slate-900/55 dark:bg-black/65 cursor-pointer"></div>
+    <div class="relative flex w-full max-w-[600px] flex-col rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+        <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4 dark:border-slate-700">
+            <h2 class="text-lg font-bold tracking-tight text-[#3b5998] dark:text-white">Show/Hide Columns</h2>
+            <button type="button" onclick="closeColumnsModal()" class="text-slate-300 hover:text-slate-500">
+                <span class="material-symbols-outlined text-[20px]">close</span>
+            </button>
+        </div>
+        <div class="px-6 py-5 overflow-y-auto max-h-[60vh] custom-scrollbar">
+            <div class="mb-5 flex items-center gap-2">
+                <input type="checkbox" id="selectAllColumns" onchange="toggleAllColumns(this)" class="rounded border-slate-300 text-[#535dec] focus:ring-[#535dec] h-4 w-4 cursor-pointer" checked>
+                <label for="selectAllColumns" class="text-sm font-bold text-slate-700 dark:text-slate-300 cursor-pointer">Select All Columns</label>
+            </div>
+            <div class="grid grid-cols-2 gap-y-3 gap-x-4" id="columnsCheckboxesList">
+                <!-- Checkboxes populated here -->
+            </div>
+        </div>
+        <div class="flex justify-end gap-3 border-t border-slate-100 bg-white px-6 py-4 dark:border-slate-700 dark:bg-slate-900 rounded-b-xl border-t-2">
+            <button type="button" onclick="closeColumnsModal()" class="rounded-md border border-slate-400 bg-slate-500 hover:bg-slate-600 px-5 py-2 text-sm font-semibold text-white transition-colors">Close</button>
+            <button type="button" onclick="applyColumnsVisibility()" class="rounded-md bg-[#535dec] hover:bg-[#4853e0] px-5 py-2 text-sm font-semibold text-white shadow-md transition-colors">Apply Changes</button>
+        </div>
+    </div>
+</div>
+
 <script>
     let dtTable = null;
     let reportData = [];
+    
+    const tableHeaders = [
+        "No", "Visitor Name", "Contact No", "IC No", "Person Visited", 
+        "Company", "Vehicle No", "Visit Reason", "Total Access", "First Access", 
+        "Last Access", "Actions"
+    ];
 
     /** Escape for use inside double-quoted HTML attributes */
     function escAttr(str) {
@@ -373,10 +474,11 @@
     function generateReport() {
         const fromDatetime = document.getElementById('from_datetime').value;
         const toDatetime   = document.getElementById('to_datetime').value;
-        const locationId   = document.getElementById('location_id').value;
+        const checkedBoxes = document.querySelectorAll('.location-checkbox:checked');
+        const locationIds  = Array.from(checkedBoxes).map(cb => cb.value);
 
-        if (!fromDatetime || !toDatetime || !locationId) {
-            alert('Please fill in all fields before generating the report.');
+        if (!fromDatetime || !toDatetime || locationIds.length === 0) {
+            alert('Please fill in all fields and select at least one location before generating the report.');
             return;
         }
 
@@ -385,7 +487,7 @@
         const formData = new FormData();
         formData.append('from_datetime', fromDatetime);
         formData.append('to_datetime',   toDatetime);
-        formData.append('location_id',   locationId);
+        locationIds.forEach(id => formData.append('location_ids[]', id));
 
         fetch('<?= base_url('report/access/generate') ?>', {
             method: 'POST',
@@ -465,20 +567,119 @@
         // Init DataTable
         dtTable = $('#accessTable').DataTable({
             pageLength: 10,
-            lengthMenu: [10, 25, 50, 100],
+            lengthMenu: [
+                [10, 25, 50],
+                ['10 ITEMS PER PAGE', '25 ITEMS PER PAGE', '50 ITEMS PER PAGE']
+            ],
             ordering: true,
             responsive: false,
+            dom: '<"flex justify-end items-center mb-5 mt-2"f><"overflow-x-auto"t><"flex flex-col md:flex-row justify-between items-center gap-4 mt-6"p<"ml-auto"l>>',
             language: {
                 search: 'Search records:',
-                lengthMenu: 'Show _MENU_ entries',
+                searchPlaceholder: "",
+                lengthMenu: '_MENU_',
                 info: 'Showing _START_ to _END_ of _TOTAL_ entries',
-                paginate: { previous: 'Previous', next: 'Next' }
+                paginate: {
+                    previous: "&laquo;",
+                    next: "&raquo;"
+                }
             },
             columnDefs: [
                 { orderable: false, targets: [0, 11] },
                 { className: 'text-center', targets: [0, 8, 11] }
-            ]
+            ],
+            initComplete: function () {
+                var api = this.api();
+                api.columns().every(function () {
+                    var column = this;
+                    var header = $(column.header());
+                    var headerText = header.clone().children().remove().end().text().trim().toUpperCase();
+                    if (headerText !== 'ACTIONS' && headerText !== 'NO' && headerText !== 'NO.') {
+                        header.find('.dt-filter-wrapper').remove();
+                        
+                        var wrapper = $('<div class="dt-filter-wrapper inline-block relative ml-1 align-middle" onclick="event.stopPropagation()"></div>');
+                        var icon = $('<span class="material-symbols-outlined text-[16px] text-slate-300 hover:text-[#535dec] transition-colors cursor-pointer" style="vertical-align: middle;">filter_alt</span>');
+                        var dropdown = $('<div class="filter-dropdown hidden absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded shadow-lg z-[50] p-2 text-left text-sm max-h-[250px] overflow-y-auto" style="min-width: 160px; font-weight: normal;"></div>');
+                        
+                        wrapper.append(icon).append(dropdown);
+                        header.append(wrapper);
+
+                        var options = [];
+                        column.data().unique().sort().each(function (d, j) {
+                            var textVal = $('<div>').html(d).text().trim();
+                            if (textVal && textVal !== '-' && textVal !== 'View' && textVal !== 'NULL' && textVal !== 'null') {
+                                options.push(textVal);
+                            }
+                        });
+
+                        var allLabel = $('<label class="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 cursor-pointer font-semibold text-slate-700 capitalize mb-1"></label>');
+                        var allCb = $('<input type="checkbox" checked class="form-checkbox h-4 w-4 text-[#535dec] accent-[#535dec] rounded border-slate-300 cursor-pointer">');
+                        allLabel.append(allCb).append('<span class="select-none">All</span>');
+                        dropdown.append(allLabel);
+                        dropdown.append('<hr class="my-1 border-slate-200">');
+
+                        var itemCbs = [];
+                        options.forEach(function(val) {
+                            var itemLabel = $('<label class="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 cursor-pointer text-slate-600 capitalize"></label>');
+                            var itemCb = $('<input type="checkbox" checked value="' + val.replace(/"/g, '&quot;') + '" class="form-checkbox h-4 w-4 text-[#535dec] accent-[#535dec] rounded border-slate-300 cursor-pointer">');
+                            itemLabel.append(itemCb).append('<span class="select-none">' + val + '</span>');
+                            dropdown.append(itemLabel);
+                            itemCbs.push(itemCb);
+                        });
+
+                        icon.on('click', function(e) {
+                            e.stopPropagation();
+                            $('.filter-dropdown').not(dropdown).addClass('hidden');
+                            dropdown.toggleClass('hidden');
+                        });
+                        
+                        $(document).on('click', function(e) {
+                            if (!$(e.target).closest(wrapper).length) {
+                                dropdown.addClass('hidden');
+                            }
+                        });
+
+                        function applyFilter() {
+                            var selected = [];
+                            var allChecked = true;
+                            itemCbs.forEach(function(cb) {
+                                if(cb.prop('checked')) {
+                                    selected.push($.fn.dataTable.util.escapeRegex(cb.val()));
+                                } else {
+                                    allChecked = false;
+                                }
+                            });
+                            
+                            allCb.prop('checked', allChecked);
+
+                            if(selected.length > 0 && selected.length < options.length) {
+                                icon.removeClass('text-slate-300 text-red-500').addClass('text-[#535dec]');
+                                var regex = '^(' + selected.join('|') + ')$';
+                                column.search(regex, true, false).draw();
+                            } else if (selected.length === 0) {
+                                icon.removeClass('text-slate-300 text-[#535dec]').addClass('text-red-500');
+                                column.search('^__NON_EXISTENT_MATCH__$', true, false).draw();
+                            } else {
+                                icon.removeClass('text-[#535dec] text-red-500').addClass('text-slate-300');
+                                column.search('', true, false).draw();
+                            }
+                        }
+
+                        allCb.on('change', function() {
+                            var isChecked = $(this).prop('checked');
+                            itemCbs.forEach(function(cb) { cb.prop('checked', isChecked); });
+                            applyFilter();
+                        });
+
+                        itemCbs.forEach(function(cb) {
+                            cb.on('change', applyFilter);
+                        });
+                    }
+                });
+            }
         });
+
+        initColumnsCheckboxes();
 
         showState('results');
     }
@@ -492,37 +693,107 @@
             .replace(/"/g, '&quot;');
     }
 
-    function exportCSV() {
-        if (!reportData || reportData.length === 0) return;
+    // Modal & Columns Toggle Logic
+    function initColumnsCheckboxes() {
+        const container = document.getElementById('columnsCheckboxesList');
+        container.innerHTML = '';
+        let allChecked = true;
+        
+        tableHeaders.forEach((colName, idx) => {
+            const isVisible = dtTable.column(idx).visible();
+            if(!isVisible) allChecked = false;
+            
+            const div = document.createElement('div');
+            div.className = 'flex items-center gap-2';
+            div.innerHTML = `
+                <input type="checkbox" id="col_${idx}" data-col-idx="${idx}" class="col-toggle-cb rounded border-slate-300 text-[#535dec] focus:ring-[#535dec] h-4 w-4 cursor-pointer" ${isVisible ? 'checked' : ''}>
+                <label for="col_${idx}" class="text-sm text-slate-600 dark:text-slate-300 uppercase cursor-pointer">${colName}</label>
+            `;
+            container.appendChild(div);
+        });
+        
+        document.getElementById('selectAllColumns').checked = allChecked;
+        
+        // Add event listeners
+        document.querySelectorAll('.col-toggle-cb').forEach(cb => {
+            cb.addEventListener('change', function() {
+                const total = document.querySelectorAll('.col-toggle-cb').length;
+                const checked = document.querySelectorAll('.col-toggle-cb:checked').length;
+                document.getElementById('selectAllColumns').checked = (total === checked);
+            });
+        });
+    }
+    
+    function openColumnsModal() {
+        if(!dtTable) return;
+        document.getElementById('columnsModal').classList.remove('hidden');
+    }
+    
+    function closeColumnsModal() {
+        document.getElementById('columnsModal').classList.add('hidden');
+        initColumnsCheckboxes();
+    }
+    
+    function toggleAllColumns(elem) {
+        const isChecked = elem.checked;
+        document.querySelectorAll('.col-toggle-cb').forEach(cb => {
+            cb.checked = isChecked;
+        });
+    }
+    
+    function applyColumnsVisibility() {
+        document.querySelectorAll('.col-toggle-cb').forEach(cb => {
+            const idx = cb.getAttribute('data-col-idx');
+            dtTable.column(idx).visible(cb.checked);
+        });
+        document.getElementById('columnsModal').classList.add('hidden');
+    }
 
-        const headers = ['No','Visitor Name','Contact No','IC No','Person Visited','Company','Vehicle No','Visit Reason','Total Access','First Access','Last Access','Invitation ID'];
-        const rows = reportData.map((v, i) => [
-            i + 1,
-            v.visitor_name,
-            v.contact_no,
-            v.ic_no,
-            v.person_visited,
-            v.visitor_company,
-            v.vehicle_no,
-            v.visit_reason,
-            v.total_access,
-            v.first_access,
-            v.last_access,
-            v.invitation_id
-        ]);
+    function exportExcel() {
+        if (!reportData || reportData.length === 0 || !dtTable) return;
 
-        let csv = headers.join(',') + '\n';
-        rows.forEach(r => {
-            csv += r.map(c => '"' + String(c ?? '').replace(/"/g, '""') + '"').join(',') + '\n';
+        // Find visible columns to determine which to export (exclude Action column 11 if desired, but we'll respect visibility)
+        const visibleIndices = dtTable.columns().visible().toArray().map((v, i) => v && i !== 11 ? i : -1).filter(v => v !== -1);
+        const expHeaders = visibleIndices.map(i => tableHeaders[i]);
+        
+        const exportData = [expHeaders];
+        
+        reportData.forEach((v, i) => {
+            const fullRowData = [
+                i + 1,
+                v.visitor_name || '-',
+                v.contact_no || '-',
+                v.ic_no || '-',
+                v.person_visited || '-',
+                v.visitor_company || '-',
+                v.vehicle_no || '-',
+                v.visit_reason || '-',
+                v.total_access || '-',
+                v.first_access || '-',
+                v.last_access || '-'
+            ];
+            
+            const rowData = visibleIndices.map(idx => fullRowData[idx]);
+            exportData.push(rowData);
         });
 
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const url  = URL.createObjectURL(blob);
-        const a    = document.createElement('a');
-        a.href     = url;
-        a.download = 'access_report_' + new Date().toISOString().slice(0,10) + '.csv';
-        a.click();
-        URL.revokeObjectURL(url);
+        const ws = XLSX.utils.aoa_to_sheet(exportData);
+        
+        for (let C = 0; C < expHeaders.length; ++C) {
+            const cell_ref = XLSX.utils.encode_cell({c: C, r: 0});
+            if (!ws[cell_ref]) continue;
+            ws[cell_ref].s = {
+                fill: { fgColor: { rgb: "FF535DEC" } },
+                font: { color: { rgb: "FFFFFFFF" }, bold: true }
+            };
+        }
+
+        const wscols = visibleIndices.map(() => ({wch: 18}));
+        ws['!cols'] = wscols;
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Access Report");
+        XLSX.writeFile(wb, "Access_Report_" + new Date().toISOString().slice(0, 10) + ".xlsx");
     }
 
     function closeMovementModal() {
@@ -549,13 +820,16 @@
     }
 
     function openMovementHistory(invitationId, icNo) {
-        const locationId = document.getElementById('location_id').value;
+        const checkedBoxes = document.querySelectorAll('.location-checkbox:checked');
+        const locationIds  = Array.from(checkedBoxes).map(cb => cb.value);
         const fromDatetime = document.getElementById('from_datetime').value;
         const toDatetime = document.getElementById('to_datetime').value;
-        if (!locationId || !fromDatetime || !toDatetime) {
+        if (locationIds.length === 0 || !fromDatetime || !toDatetime) {
             alert('Select location and date range, then generate the report before opening movement history.');
             return;
         }
+        // Use first selected location for movement history detail
+        const locationId = locationIds[0];
 
         document.getElementById('movementModalInvitationId').value = String(invitationId);
         const ic = icNo != null ? String(icNo).trim() : '';
@@ -571,7 +845,7 @@
 
         const formData = new FormData();
         formData.append('invitation_id', invitationId);
-        formData.append('location_id', locationId);
+        locationIds.forEach(id => formData.append('location_ids[]', id));
         formData.append('from_datetime', fromDatetime);
         formData.append('to_datetime', toDatetime);
 
@@ -607,7 +881,8 @@
                 const actOk = row.action_allowed !== false && row.action !== 'Not Allowed';
                 tr.innerHTML =
                     '<td class="whitespace-nowrap px-3 py-3 font-medium">' + escHtml(row.date_time) + '</td>' +
-                    '<td class="px-3 py-3">' + escHtml(row.location) + '</td>' +
+                    '<td class="px-3 py-3">' + escHtml(row.current_location) + '</td>' +
+                    '<td class="px-3 py-3">' + escHtml(row.location_accessed) + '</td>' +
                     '<td class="px-3 py-3 text-center">' + movementBadgeYesNo(accessYes) + '</td>' +
                     '<td class="max-w-[200px] px-3 py-3 text-slate-600 dark:text-slate-400">' + escHtml(row.reason || '—') + '</td>' +
                     '<td class="px-3 py-3 text-center">' + movementTypeBadge(row.type || 'Checkin') + '</td>' +
@@ -629,12 +904,13 @@
     document.getElementById('movementModalBtnChronology').addEventListener('click', function () {
         const invitationId = document.getElementById('movementModalInvitationId').value;
         const icRaw = document.getElementById('movementModalIcNo').value;
-        const locationId = document.getElementById('location_id').value;
+        const checkedBoxesC = document.querySelectorAll('.location-checkbox:checked');
+        const locationIdsC  = Array.from(checkedBoxesC).map(cb => cb.value);
         const fromDatetime = document.getElementById('from_datetime').value;
         const toDatetime = document.getElementById('to_datetime').value;
-        if (!locationId || !fromDatetime || !toDatetime) return;
+        if (locationIdsC.length === 0 || !fromDatetime || !toDatetime) return;
         const q = new URLSearchParams();
-        q.set('location_id', locationId);
+        locationIdsC.forEach(id => q.append('location_ids[]', id));
         q.set('from_datetime', fromDatetime);
         q.set('to_datetime', toDatetime);
         q.set('auto_search', '1');
@@ -663,6 +939,62 @@
         if (inv === null || inv === '') return;
         openMovementHistory(parseInt(inv, 10), ic || '');
     });
+
+    // ── Location multi-select dropdown ──────────────────────────────────────
+    function toggleLocationDropdown(e) {
+        e.stopPropagation();
+        const panel   = document.getElementById('locationDropdownPanel');
+        const chevron = document.getElementById('locationDropdownChevron');
+        const isOpen  = !panel.classList.contains('hidden');
+        if (isOpen) {
+            panel.classList.add('hidden');
+            chevron.textContent = 'expand_more';
+        } else {
+            panel.classList.remove('hidden');
+            chevron.textContent = 'expand_less';
+        }
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        const container = document.getElementById('locationDropdownContainer');
+        if (container && !container.contains(e.target)) {
+            document.getElementById('locationDropdownPanel').classList.add('hidden');
+            document.getElementById('locationDropdownChevron').textContent = 'expand_more';
+        }
+    });
+
+    function toggleSelectAllLocations(masterCb) {
+        document.querySelectorAll('.location-checkbox').forEach(cb => {
+            cb.checked = masterCb.checked;
+        });
+        updateLocationLabel();
+    }
+
+    function onLocationCheckboxChange() {
+        const all      = document.querySelectorAll('.location-checkbox');
+        const checked  = document.querySelectorAll('.location-checkbox:checked');
+        const masterCb = document.getElementById('locationSelectAll');
+        masterCb.indeterminate = checked.length > 0 && checked.length < all.length;
+        masterCb.checked       = checked.length === all.length;
+        updateLocationLabel();
+    }
+
+    function updateLocationLabel() {
+        const checked = document.querySelectorAll('.location-checkbox:checked');
+        const total   = document.querySelectorAll('.location-checkbox').length;
+        const label   = document.getElementById('locationDropdownLabel');
+        if (checked.length === 0) {
+            label.textContent = '-- Select Locations --';
+        } else if (checked.length === total) {
+            label.textContent = 'All Locations (' + total + ')';
+        } else if (checked.length === 1) {
+            label.textContent = checked[0].closest('label').querySelector('span').textContent.trim();
+        } else {
+            label.textContent = checked.length + ' Locations selected';
+        }
+    }
+    // ────────────────────────────────────────────────────────────────────────
 </script>
 </body>
 </html>

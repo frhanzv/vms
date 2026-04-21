@@ -597,6 +597,200 @@ class Dashboard extends BaseController
         return $this->response->setJSON(['success' => true, 'data' => $trafficHours]);
     }
     
+    /**
+     * AJAX: Access Denied Incidents
+     */
+    public function accessDeniedData()
+    {
+        $db = \Config\Database::connect();
+        $since24h = date('Y-m-d H:i:s', strtotime('-24 hours'));
+
+        $alerts = [];
+        if ($db->tableExists('security_alerts')) {
+            $alerts = $db->query(
+                "SELECT sa.id, sa.incident_type, sa.severity, sa.visitor_name,
+                        sa.location, sa.description, sa.is_acknowledged,
+                        sa.created_at, sa.acknowledged_at,
+                        u.full_name as acknowledged_by_name
+                 FROM security_alerts sa
+                 LEFT JOIN users u ON u.id = sa.acknowledged_by
+                 WHERE sa.created_at >= ?
+                 AND (
+                     LOWER(sa.incident_type) LIKE '%access%denied%'
+                     OR LOWER(sa.incident_type) LIKE '%unauthorized%access%'
+                     OR LOWER(sa.incident_type) LIKE '%access%refused%'
+                 )
+                 ORDER BY sa.created_at DESC",
+                [$since24h]
+            )->getResultArray();
+        }
+
+        return $this->response->setJSON(['success' => true, 'data' => $alerts]);
+    }
+
+    /**
+     * AJAX: Visitor Overstay Alerts
+     */
+    public function overstayData()
+    {
+        $db = \Config\Database::connect();
+        $now = date('Y-m-d H:i:s');
+
+        $alertRows = [];
+        if ($db->tableExists('security_alerts')) {
+            $alertRows = $db->query(
+                "SELECT sa.id, sa.incident_type, sa.severity, sa.visitor_name,
+                        sa.location, sa.description, sa.created_at
+                 FROM security_alerts sa
+                 WHERE sa.is_acknowledged = 0
+                 AND LOWER(sa.incident_type) LIKE '%overstay%'
+                 ORDER BY sa.created_at DESC"
+            )->getResultArray();
+        }
+
+        $physicalOverstays = $db->query(
+            "SELECT iv.id, COALESCE(iv.full_name, i.full_name) as visitor_name,
+                    COALESCE(u.full_name, 'N/A') as host_name,
+                    iv.check_in_time, COALESCE(i.location, 'N/A') as location,
+                    (SELECT MAX(s.date_to) FROM invitation_schedules s WHERE s.invitation_id = i.id) as schedule_end
+             FROM invitation_visitors iv
+             INNER JOIN invitations i ON i.id = iv.invitation_id
+             LEFT JOIN users u ON u.id = i.invited_by
+             WHERE i.status = 'Approved'
+             AND iv.check_in_time IS NOT NULL
+             AND iv.check_out_time IS NULL
+             AND (SELECT MAX(s.date_to) FROM invitation_schedules s WHERE s.invitation_id = i.id) < ?
+             ORDER BY iv.check_in_time ASC",
+            [$now]
+        )->getResultArray();
+
+        return $this->response->setJSON([
+            'success'           => true,
+            'alertRows'         => $alertRows,
+            'physicalOverstays' => $physicalOverstays,
+        ]);
+    }
+
+    /**
+     * AJAX: Security alert detail
+     */
+    public function alertDetailData($id)
+    {
+        $db = \Config\Database::connect();
+        $alert = null;
+        if ($db->tableExists('security_alerts')) {
+            $alert = $db->query(
+                "SELECT sa.*, u.full_name as acknowledged_by_name
+                 FROM security_alerts sa
+                 LEFT JOIN users u ON u.id = sa.acknowledged_by
+                 WHERE sa.id = ?",
+                [$id]
+            )->getRowArray();
+        }
+
+        if (!$alert) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Alert not found']);
+        }
+
+        return $this->response->setJSON(['success' => true, 'data' => $alert]);
+    }
+
+    /**
+     * AJAX: Currently On-Site visitors
+     */
+    public function onSiteData()
+    {
+        $db = \Config\Database::connect();
+        $visitors = $db->query(
+            "SELECT iv.id, COALESCE(iv.full_name, i.full_name) as visitor_name,
+                    i.company, COALESCE(u.full_name, 'N/A') as host_name,
+                    iv.check_in_time, COALESCE(i.location, 'N/A') as location,
+                    i.visitor_email
+             FROM invitation_visitors iv
+             JOIN invitations i ON i.id = iv.invitation_id
+             LEFT JOIN users u ON u.id = i.invited_by
+             WHERE i.status = 'Approved'
+             AND iv.check_in_time IS NOT NULL
+             AND iv.check_out_time IS NULL
+             ORDER BY iv.check_in_time DESC"
+        )->getResultArray();
+
+        return $this->response->setJSON(['success' => true, 'data' => $visitors]);
+    }
+
+    /**
+     * AJAX: Expected Today visitors
+     */
+    public function expectedTodayData()
+    {
+        $db = \Config\Database::connect();
+        $today = date('Y-m-d');
+
+        $visitors = $db->query(
+            "SELECT i.full_name, i.visitor_email, i.company,
+                    iv.check_in_time, iv.check_out_time,
+                    u.full_name as host_name,
+                    s.date_from, s.date_to
+             FROM invitations i
+             JOIN invitation_schedules s ON s.invitation_id = i.id
+             LEFT JOIN invitation_visitors iv ON iv.id = (
+                 SELECT iv2.id FROM invitation_visitors iv2
+                 WHERE iv2.invitation_id = i.id ORDER BY iv2.id DESC LIMIT 1
+             )
+             LEFT JOIN users u ON u.id = i.invited_by
+             WHERE i.status = 'Approved'
+             AND DATE(s.date_from) <= ? AND DATE(s.date_to) >= ?
+             ORDER BY s.date_from ASC",
+            [$today, $today]
+        )->getResultArray();
+
+        return $this->response->setJSON(['success' => true, 'data' => $visitors]);
+    }
+
+    /**
+     * AJAX: Checked Out Today visitors
+     */
+    public function checkedOutData()
+    {
+        $db = \Config\Database::connect();
+        $today = date('Y-m-d');
+
+        $visitors = $db->query(
+            "SELECT iv.id, COALESCE(iv.full_name, i.full_name) as visitor_name,
+                    i.company, COALESCE(u.full_name, 'N/A') as host_name,
+                    iv.check_in_time, iv.check_out_time, COALESCE(i.location, 'N/A') as location
+             FROM invitation_visitors iv
+             JOIN invitations i ON i.id = iv.invitation_id
+             LEFT JOIN users u ON u.id = i.invited_by
+             WHERE i.status = 'Approved'
+             AND DATE(iv.check_out_time) = ?
+             ORDER BY iv.check_out_time DESC",
+            [$today]
+        )->getResultArray();
+
+        return $this->response->setJSON(['success' => true, 'data' => $visitors]);
+    }
+
+    /**
+     * AJAX: Active Security Alerts
+     */
+    public function activeAlertsData()
+    {
+        $db = \Config\Database::connect();
+        $alerts = [];
+        if ($db->tableExists('security_alerts')) {
+            $alerts = $db->query(
+                "SELECT sa.id, sa.incident_type, sa.severity, sa.visitor_name,
+                        sa.location, sa.description, sa.created_at
+                 FROM security_alerts sa
+                 WHERE sa.is_acknowledged = 0
+                 ORDER BY sa.created_at DESC"
+            )->getResultArray();
+        }
+
+        return $this->response->setJSON(['success' => true, 'data' => $alerts]);
+    }
+
     private function getTimeAgo($datetime)
     {
         $timestamp = strtotime($datetime);

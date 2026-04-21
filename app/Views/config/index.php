@@ -89,6 +89,62 @@
 
             <!-- Configuration Sections -->
             <div class="space-y-4">
+                <!-- Alert Priority -->
+                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                    <button onclick="toggleSection('alertpriority')"
+                        class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                        <div class="flex items-center gap-4">
+                            <div class="p-2 bg-primary/10 rounded-lg">
+                                <span class="material-symbols-outlined text-primary text-xl">notification_important</span>
+                            </div>
+                            <div class="text-left">
+                                <h3 class="text-base font-bold text-gray-800 dark:text-white">Alert Priority</h3>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Manage security alert priority levels</p>
+                            </div>
+                        </div>
+                        <span id="alertpriority-icon"
+                            class="material-symbols-outlined text-gray-400 dark:text-slate-400 transition-transform">expand_more</span>
+                    </button>
+                    <div id="alertpriority-content" class="hidden border-t border-gray-200 dark:border-slate-700">
+                        <div class="p-6 bg-gray-50 dark:bg-slate-800/50">
+                            <!-- Table -->
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-sm">
+                                    <thead class="text-xs text-gray-600 dark:text-slate-400 uppercase border-b border-gray-200 dark:border-slate-700">
+                                        <tr>
+                                            <th class="px-4 py-3">No</th>
+                                            <th class="px-4 py-3">Security Alert</th>
+                                            <th class="px-4 py-3">Priority</th>
+                                            <th class="px-4 py-3">Response Time</th>
+                                            <th class="px-4 py-3">Notification</th>
+                                            <th class="px-4 py-3">Updated At</th>
+                                            <th class="px-4 py-3 w-32">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="alertPriorityTableBody" class="text-gray-700 dark:text-slate-300">
+                                        <tr>
+                                            <td colspan="7" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
+                                                <div class="flex flex-col items-center justify-center">
+                                                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
+                                                    <span>Loading alert priorities...</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <!-- Pagination -->
+                            <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6">
+                                <p class="text-sm text-gray-600 dark:text-slate-400">
+                                    Showing <span id="alertPriorityFrom">0</span> to <span id="alertPriorityTo">0</span> of
+                                    <span id="alertPriorityTotal">0</span> alerts
+                                </p>
+                                <div id="alertPriorityPaginationButtons" class="flex items-center gap-2"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- General Settings -->
                 <div
                     class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
@@ -307,6 +363,10 @@
                                         class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none"
                                         placeholder="Search registration type..." type="text"/>
                                     <button type="submit" class="bg-primary hover:bg-blue-600 text-white px-6 py-2.5 rounded-r flex items-center justify-center transition-colors">
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                                <div class="flex shadow-sm w-full sm:w-96">
+                                    <input id="regtype-search-input" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Search registration type..." type="text"/>
+                                    <button onclick="searchRegType()" class="bg-primary hover:bg-blue-600 text-white px-6 py-2.5 rounded-r flex items-center justify-center transition-colors">
                                         <span class="material-symbols-outlined text-white text-[20px]">search</span>
                                     </button>
                                 </form>
@@ -352,6 +412,14 @@
                                                 </td>
                                             </tr>
                                         <?php endif; ?>
+                                        <tr>
+                                            <td colspan="3" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
+                                                <div class="flex flex-col items-center justify-center">
+                                                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
+                                                    <span>Loading registration types...</span>
+                                                </div>
+                                            </td>
+                                        </tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -388,6 +456,8 @@
                                         </a>
                                     <?php endif; ?>
                                 </div>
+                                <p id="regtype-pagination-info" class="text-sm text-gray-600 dark:text-slate-400">Loading...</p>
+                                <div id="regtype-pagination-buttons" class="flex items-center gap-2"></div>
                             </div>
                         </div>
                     </div>
@@ -2765,6 +2835,29 @@
                     </div>
                 </div>
 
+                <!-- Visitor QR Code -->
+                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                    <button onclick="toggleSection('visitorqrcode')" class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                        <div class="flex items-center gap-4">
+                            <div class="p-2 bg-primary/10 rounded-lg">
+                                <span class="material-symbols-outlined text-primary text-xl">qr_code</span>
+                            </div>
+                            <div class="text-left">
+                                <h3 class="text-base font-bold text-gray-800 dark:text-white">Visitor QR Code</h3>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Scan to register visitor</p>
+                            </div>
+                        </div>
+                        <span id="visitorqrcode-icon" class="material-symbols-outlined text-gray-400 dark:text-slate-400 transition-transform">expand_more</span>
+                    </button>
+                    <div id="visitorqrcode-content" class="hidden border-t border-gray-200 dark:border-slate-700">
+                        <div class="p-6 bg-gray-50 dark:bg-slate-800/50 flex flex-col items-center justify-center">
+                            <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200" id="qr-code-container">
+                                <img src="<?= base_url('config/generateVisitorQr') ?>" alt="Visitor Registration QR Code" class="w-64 h-64 object-contain">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Email Template Settings -->
                 <div
                     class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
@@ -2776,41 +2869,313 @@
                             </div>
                             <div class="text-left">
                                 <h3 class="text-base font-bold text-gray-800 dark:text-white">Email Template</h3>
-                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Enable or disable visitor form lines shown from the email link</p>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Configure email text and colors for each email process</p>
                             </div>
                         </div>
                         <span id="email-template-icon"
                             class="material-symbols-outlined text-gray-400 dark:text-slate-400 transition-transform">expand_more</span>
                     </button>
                     <div id="email-template-content" class="hidden border-t border-gray-200 dark:border-slate-700">
-                        <div class="p-6 bg-gray-50 dark:bg-slate-800/50 space-y-6">
-                            <div>
-                                <p class="text-sm font-semibold text-slate-700 dark:text-slate-300">Visitor registration form from invitation email</p>
-                                <p class="text-xs text-slate-500 mt-1">Manage real form rows with enable/disable, required toggle, CRUD, and sorting.</p>
+                        <!-- List View (Table) -->
+                        <div id="emailTemplateListView" class="p-6 bg-gray-50 dark:bg-slate-800/50 space-y-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                        <p class="text-sm font-semibold text-slate-700 dark:text-slate-300">Email templates</p>
+                                        <p class="text-xs text-slate-500 mt-1">Create and manage email templates by code.</p>
+                                </div>
+                                    <button type="button" onclick="openEmailTemplateModalForCreate()" class="px-4 py-2 rounded-lg bg-primary text-white text-xs font-bold hover:bg-blue-600 transition-all shadow-sm active:scale-95 inline-flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-base">add</span>
+                                        Create
+                                    </button>
                             </div>
 
-                            <div class="flex flex-wrap items-center justify-between gap-3">
-                                <p class="text-xs text-slate-500 dark:text-slate-400">Tip: toggle at the input side, then move rows using up/down.</p>
-                                <div class="flex items-center gap-2">
-                                    <button
-                                        type="button"
-                                        onclick="openEmailTemplateFieldModal()"
-                                        class="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-sm font-medium">
-                                        Add New Field
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onclick="saveEmailTemplateFormSettings()"
-                                        class="px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary-hover transition-colors text-sm font-medium">
-                                        Save Email Template
-                                    </button>
+                            <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
+                                <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between bg-white dark:bg-slate-900">
+                                    <p class="text-sm font-bold text-slate-800 dark:text-200 uppercase tracking-wider">Template Management</p>
+                                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Click Edit to load template details</p>
+                                </div>
+                                <div class="p-4 bg-slate-50 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-700">
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                        <div class="md:col-span-2 flex">
+                                            <input id="emailTemplateSearchInput" oninput="searchEmailTemplates()" type="text" placeholder="Search template..." class="w-full rounded-l-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white px-3 py-2 text-sm focus:ring-primary focus:border-primary">
+                                            <button type="button" onclick="searchEmailTemplates()" class="px-4 rounded-r-lg bg-primary text-white hover:bg-blue-600 transition-colors">
+                                                <span class="material-symbols-outlined text-base">search</span>
+                                            </button>
+                                        </div>
+                                        <div>
+                                            <select id="emailTemplateSortSelect" onchange="sortEmailTemplates()" class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white px-3 py-2 text-sm focus:ring-primary focus:border-primary">
+                                                <option value="default">Default Order</option>
+                                                <option value="name_asc">Template (A-Z)</option>
+                                                <option value="name_desc">Template (Z-A)</option>
+                                                <option value="newest">Newest First</option>
+                                                <option value="oldest">Oldest First</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full text-sm">
+                                        <thead class="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px] tracking-widest">
+                                            <tr>
+                                                <th class="px-6 py-4 text-left">No</th>
+                                                <th class="px-6 py-4 text-left">Code</th>
+                                                <th class="px-6 py-4 text-center">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="emailTemplateProcessTableBody" class="divide-y divide-slate-100 dark:divide-slate-700 text-slate-700 dark:text-slate-200"></tbody>
+                                    </table>
                                 </div>
                             </div>
+                        </div>
 
-                            <div id="emailTemplateFormFields" class="space-y-3"></div>
+                        <!-- Create / Update Modal -->
+                        <div id="emailTemplateCrudModal" class="hidden fixed inset-0 z-[80] overflow-y-auto">
+                            <div class="flex min-h-screen items-center justify-center px-4 py-8">
+                                <div class="fixed inset-0 bg-black/40" onclick="closeEmailTemplateCrudModal()"></div>
+                                <div class="relative w-full max-w-3xl rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xl">
+                                    <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+                                        <h3 id="emailTemplateCrudModalTitle" class="text-lg font-bold text-slate-800 dark:text-white">Create Email Template</h3>
+                                        <button type="button" onclick="closeEmailTemplateCrudModal()" class="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
+                                            <span class="material-symbols-outlined">close</span>
+                                        </button>
+                                    </div>
+                                    <form id="emailTemplateCrudForm" onsubmit="submitEmailTemplateCrudForm(event)" class="p-6 space-y-4">
+                                        <input type="hidden" id="emailTemplateCrudId">
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Code</label>
+                                            <input id="emailTemplateCrudCode" type="text" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-primary focus:border-primary text-sm p-2.5 shadow-sm" required placeholder="e.g. VISITOR_INVITE">
+                                            <p class="mt-1 text-[11px] text-slate-500 dark:text-slate-400">Use uppercase letters, numbers, and underscore only.</p>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Subject</label>
+                                            <input id="emailTemplateCrudSubject" type="text" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-primary focus:border-primary text-sm p-2.5 shadow-sm" required>
+                                        </div>
+                                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Primary Color</label>
+                                                <input id="emailTemplateCrudPrimaryColor" type="color" class="h-10 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-1 cursor-pointer">
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Content Background</label>
+                                                <input id="emailTemplateCrudContentBgColor" type="color" class="h-10 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-1 cursor-pointer">
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Text Color</label>
+                                                <input id="emailTemplateCrudTextColor" type="color" class="h-10 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-1 cursor-pointer">
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Body</label>
+                                            <textarea id="emailTemplateCrudBody" rows="12" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-primary focus:border-primary text-sm p-2.5 shadow-sm custom-scrollbar" required></textarea>
+                                        </div>
+                                        <div class="flex justify-end gap-2 pt-2">
+                                            <button type="button" onclick="closeEmailTemplateCrudModal()" class="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200">Back</button>
+                                            <button id="emailTemplateCrudSubmitBtn" type="submit" class="px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary-hover">Save</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Editor View (Visual Editor) -->
+                        <div id="emailTemplateEditorView" class="hidden p-6 bg-gray-50 dark:bg-slate-800/50">
+                            <div class="grid grid-cols-1 xl:grid-cols-12 gap-8 h-full">
+                                <!-- Preview Column (Now on Left) -->
+                                <div class="xl:col-span-12 2xl:col-span-7 order-1 2xl:order-1">
+                                    <div class="sticky top-8 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-2xl overflow-hidden">
+                                        <div class="px-5 py-4 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                                            <div class="flex gap-2">
+                                                <div class="w-3.5 h-3.5 rounded-full bg-[#ff5f56]"></div>
+                                                <div class="w-3.5 h-3.5 rounded-full bg-[#ffbd2e]"></div>
+                                                <div class="w-3.5 h-3.5 rounded-full bg-[#27c93f]"></div>
+                                            </div>
+                                            <div class="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Live Visual Preview</div>
+                                        </div>
+                                        
+                                        <!-- Mockup Content -->
+                                        <div class="p-8 bg-[#f8fafc] overflow-y-auto max-h-[85vh] custom-scrollbar">
+                                            <div class="max-w-[550px] mx-auto bg-white rounded-2xl shadow-xl border border-slate-100/50 overflow-hidden ring-1 ring-slate-900/5">
+                                                <div id="previewHeader" class="bg-primary p-12 text-center text-white transition-all duration-500">
+                                                    <div class="mb-5 inline-block animate-pulse-subtle">
+                                                        <svg width="48" height="48" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                            <path d="M20 2L4 9V18C4 28.5 10.5 35 20 38C29.5 35 36 28.5 36 18V9L20 2Z" fill="white" fill-opacity="0.2"/>
+                                                            <path d="M20 6L8 11.25V18C8 25.875 12.875 31.5 20 34C27.125 31.5 32 25.875 32 18V11.25L20 6Z" fill="white" fill-opacity="0.5"/>
+                                                            <path d="M20 10L12 13.5V18C12 23.25 15.25 27 20 29C24.75 27 28 23.25 28 18V13.5L20 10Z" fill="white"/>
+                                                        </svg>
+                                                    </div>
+                                                    <h1 id="previewBrandName" class="text-3xl font-black block mb-1 drop-shadow-md tracking-tight">SafeG</h1>
+                                                    <h2 id="previewHeaderTitle" class="text-xl font-semibold opacity-90 tracking-wide">Visitor Invitation</h2>
+                                                </div>
+                                                
+                                                <div id="previewContent" class="p-12 transition-all duration-500">
+                                                    <p class="mb-5 font-medium text-lg" id="previewDear">Dear <strong id="previewDearName">John Doe</strong>,</p>
+                                                    <p class="leading-relaxed text-base mb-8" id="previewIntro">You have been invited to visit SafeG. Please complete your registration by clicking the button below.</p>
+                                                    
+                                                    <div class="bg-slate-50/50 border border-slate-100 rounded-2xl p-8 mb-10 shadow-inner">
+                                                        <h3 class="text-sm font-black mb-6 pb-4 border-b border-slate-200/50 uppercase tracking-widest" id="previewDetailsTitle">Visit Details:</h3>
+                                                        <div class="space-y-4">
+                                                            <div class="grid grid-cols-12 gap-3 text-sm">
+                                                                <span class="col-span-4 font-bold opacity-60 uppercase text-[10px] tracking-wider mt-0.5">Company</span>
+                                                                <span class="col-span-8 font-bold">SafeG Enterprise</span>
+                                                            </div>
+                                                            <div class="grid grid-cols-12 gap-3 text-sm">
+                                                                <span class="col-span-4 font-bold opacity-60 uppercase text-[10px] tracking-wider mt-0.5">Location</span>
+                                                                <span class="col-span-8 font-bold">Main Reception</span>
+                                                            </div>
+                                                            <div class="grid grid-cols-12 gap-3 text-sm">
+                                                                <span class="col-span-4 font-bold opacity-60 uppercase text-[10px] tracking-wider mt-0.5">Purpose</span>
+                                                                <span class="col-span-8 font-bold">Official Meeting</span>
+                                                            </div>
+                                                            <div class="grid grid-cols-12 gap-3 text-sm">
+                                                                <span class="col-span-4 font-bold opacity-60 uppercase text-[10px] tracking-wider mt-0.5">Invited By</span>
+                                                                <span class="col-span-8 font-bold">Manager Name</span>
+                                                            </div>
+                                                            <div class="mt-6 pt-6 border-t border-slate-200/50">
+                                                                <span class="block font-bold opacity-60 uppercase text-[10px] tracking-widest mb-3">Visit Schedule(s)</span>
+                                                                <div class="bg-white p-4 rounded-xl flex items-center gap-3 text-[11px] border border-slate-100 shadow-sm transition-all hover:shadow-md">
+                                                                    <div class="p-2 bg-primary/10 rounded-lg text-primary">📅</div>
+                                                                    <div>
+                                                                        <div class="font-bold">16/04/2026 10:00 AM</div>
+                                                                        <div class="opacity-60">Total Duration: 1 Hour</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div class="text-center my-10">
+                                                        <a href="javascript:void(0)" id="previewButton" class="bg-primary hover:scale-[1.02] active:scale-[0.98] transition-all inline-block px-12 py-4.5 rounded-xl text-white font-black text-lg shadow-2xl shadow-primary/30 tracking-tight">Complete Registration</a>
+                                                    </div>
+                                                    
+                                                    <div class="mt-12 pt-10 border-t border-slate-100">
+                                                        <h4 id="previewNotesTitle" class="text-xs font-black mb-5 uppercase tracking-[0.2em] flex items-center gap-2">
+                                                            <span class="w-1.5 h-1.5 rounded-full bg-primary/50"></span>
+                                                            Important Notes
+                                                        </h4>
+                                                        <ul id="previewNotesList" class="space-y-4 text-xs font-medium">
+                                                            <li class="flex gap-3 leading-relaxed">
+                                                                <span class="text-primary font-bold">•</span> 
+                                                                <span>Please arrive 10 minutes early for security check-in.</span>
+                                                            </li>
+                                                            <li class="flex gap-3 leading-relaxed">
+                                                                <span class="text-primary font-bold">•</span> 
+                                                                <span>A valid photo ID is required for entry into the building.</span>
+                                                            </li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="text-center mt-12 text-[11px] mb-8 leading-relaxed font-medium" id="previewFooterSection">
+                                                <p id="previewFooter" class="mb-1 opacity-80">This is an automated message from <span class="font-bold opacity-100">SafeG</span> Visitor Management</p>
+                                                <p class="opacity-60">&copy; 2026 <span id="previewFooterBrand" class="font-bold">SafeG</span>. All rights reserved.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Config Column (Now on Right) -->
+                                <div class="xl:col-span-12 2xl:col-span-5 space-y-6 order-2 2xl:order-2">
+                                    <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm space-y-4">
+                                        <div class="flex items-center justify-between">
+                                            <h4 class="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider">Email Content</h4>
+                                            <span class="px-2 py-1 text-[10px] bg-primary/10 text-primary font-bold rounded uppercase" id="currentProcessBadge">Invitation</span>
+                                        </div>
+
+                                        <div class="space-y-4">
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Subject Line</label>
+                                                <input id="invitationEmailSubject" oninput="updateEmailPreview()" type="text" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:ring-primary focus:border-primary text-sm p-2.5 shadow-sm">
+                                            </div>
+
+                                            <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-3">
+                                                <div class="flex items-center justify-between gap-2 mb-2">
+                                                    <p class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Tokens</p>
+                                                    <p class="text-[10px] text-slate-400 dark:text-slate-500 italic">Click to insert at cursor</p>
+                                                </div>
+                                                <div id="emailTemplatePlaceholderBox" class="flex flex-wrap gap-1.5"></div>
+                                            </div>
+
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Introductory Line</label>
+                                                <textarea id="invitationEmailIntroLine" oninput="updateEmailPreview()" rows="8" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:ring-primary focus:border-primary text-sm p-2.5 shadow-sm custom-scrollbar"></textarea>
+                                            </div>
+
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Button Text</label>
+                                                    <input id="invitationEmailButtonText" oninput="updateEmailPreview()" type="text" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:ring-primary focus:border-primary text-sm p-2.5 shadow-sm">
+                                                </div>
+                                                <div>
+                                                    <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Header Title</label>
+                                                    <input id="invitationEmailHeaderTitle" oninput="updateEmailPreview()" type="text" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:ring-primary focus:border-primary text-sm p-2.5 shadow-sm">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm space-y-4">
+                                        <h4 class="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider">Branding & Colors</h4>
+                                        <div class="grid grid-cols-3 gap-4">
+                                            <div class="col-span-3">
+                                                <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Brand Name</label>
+                                                <input id="invitationEmailBrandName" oninput="updateEmailPreview()" type="text" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:ring-primary focus:border-primary text-sm p-2.5 shadow-sm">
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Primary</label>
+                                                <div class="relative h-10 w-full overflow-hidden rounded-lg border border-slate-300 dark:border-slate-700 shadow-sm transition-transform active:scale-95">
+                                                    <input id="invitationEmailPrimaryColor" oninput="updateEmailPreview()" type="color" class="absolute -inset-1 h-14 w-14 cursor-pointer p-0 border-none bg-transparent">
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Text</label>
+                                                <div class="relative h-10 w-full overflow-hidden rounded-lg border border-slate-300 dark:border-slate-700 shadow-sm transition-transform active:scale-95">
+                                                    <input id="invitationEmailTextColor" oninput="updateEmailPreview()" type="color" class="absolute -inset-1 h-14 w-14 cursor-pointer p-0 border-none bg-transparent">
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Content BG</label>
+                                                <div class="relative h-10 w-full overflow-hidden rounded-lg border border-slate-300 dark:border-slate-700 shadow-sm transition-transform active:scale-95">
+                                                    <input id="invitationEmailContentBgColor" oninput="updateEmailPreview()" type="color" class="absolute -inset-1 h-14 w-14 cursor-pointer p-0 border-none bg-transparent">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm space-y-4">
+                                        <h4 class="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider">Additional Sections</h4>
+                                        <div class="space-y-4">
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Notes List Title</label>
+                                                <input id="invitationEmailNotesTitle" oninput="updateEmailPreview()" type="text" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:ring-primary focus:border-primary text-sm p-2.5 shadow-sm">
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Notes (One per line)</label>
+                                                <textarea id="invitationEmailNotesItems" oninput="updateEmailPreview()" rows="10" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:ring-primary focus:border-primary text-sm p-2.5 shadow-sm custom-scrollbar"></textarea>
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Footer Text</label>
+                                                <textarea id="invitationEmailFooterText" oninput="updateEmailPreview()" rows="4" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:ring-primary focus:border-primary text-sm p-2.5 shadow-sm custom-scrollbar"></textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex justify-start gap-4 py-6">
+                                        <button type="button" onclick="saveInvitationEmailTemplateSettings()" class="px-8 py-3.5 rounded-xl bg-primary text-white font-bold hover:bg-blue-600 transition-all shadow-xl shadow-primary/20 flex items-center gap-2 active:scale-95">
+                                            <span class="material-symbols-outlined text-xl">save</span>
+                                            Update Template
+                                        </button>
+                                        <button type="button" onclick="closeVisualEditor()" class="px-6 py-3.5 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition-all active:scale-95 flex items-center gap-2">
+                                            <span class="material-symbols-outlined text-xl">arrow_back</span>
+                                            Back to List
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
+
 
                 <div id="emailTemplateFieldModal" class="hidden fixed inset-0 z-[60] overflow-y-auto">
                     <div class="flex min-h-screen items-center justify-center px-4 py-8">
@@ -3093,6 +3458,80 @@
                     </div>
                 </div>
 
+                <!-- Pathway Management -->
+                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                    <button onclick="toggleSection('pathway')" class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                        <div class="flex items-center gap-4">
+                            <div class="p-2 bg-primary/10 rounded-lg">
+                                <span class="material-symbols-outlined text-primary text-xl">route</span>
+                            </div>
+                            <div class="text-left">
+                                <h3 class="text-base font-bold text-gray-800 dark:text-white">Pathway Management</h3>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Define visitor pathways through doors/lanes</p>
+                            </div>
+                        </div>
+                        <span id="pathway-icon" class="material-symbols-outlined text-gray-400 dark:text-slate-400 transition-transform">expand_more</span>
+                    </button>
+                    <div id="pathway-content" class="hidden border-t border-gray-200 dark:border-slate-700">
+                        <div class="p-6 bg-gray-50 dark:bg-slate-800/50">
+                            <!-- Search, Sort and Create -->
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                                <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                                    <div class="flex shadow-sm w-full sm:w-96">
+                                        <input id="pathwaySearchInput" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Search pathway name..." type="text" onkeyup="if(event.key==='Enter') searchPathways()" />
+                                        <button onclick="searchPathways()" class="bg-primary hover:bg-blue-600 text-white px-6 py-2.5 rounded-r flex items-center justify-center transition-colors">
+                                            <span class="material-symbols-outlined text-white text-[20px]">search</span>
+                                        </button>
+                                    </div>
+                                    <div class="relative w-full sm:w-48">
+                                        <select id="pathwaySortSelect" onchange="sortPathways()" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm appearance-none focus:ring-primary focus:border-primary text-gray-700 dark:text-gray-300">
+                                            <option value="">Sort By</option>
+                                            <option value="name_asc">Name (A-Z)</option>
+                                            <option value="name_desc">Name (Z-A)</option>
+                                            <option value="status">Status</option>
+                                        </select>
+                                        <span class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-symbols-outlined text-[20px]">expand_more</span>
+                                    </div>
+                                </div>
+                                <button onclick="openCreatePathwayModal()" class="px-4 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm flex items-center gap-2 w-full sm:w-auto">
+                                    <span class="material-symbols-outlined text-base">add</span>
+                                    Create Pathway
+                                </button>
+                            </div>
+
+                            <!-- Pathway Table -->
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-sm">
+                                    <thead class="text-xs text-gray-600 dark:text-slate-400 uppercase border-b border-gray-200 dark:border-slate-700">
+                                        <tr>
+                                            <th class="px-4 py-3">Pathway Name</th>
+                                            <th class="px-4 py-3">Doors / Lanes</th>
+                                            <th class="px-4 py-3">Status</th>
+                                            <th class="px-4 py-3 w-32">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="pathwayTableBody" class="text-gray-700 dark:text-slate-300">
+                                        <tr>
+                                            <td colspan="4" class="px-4 py-8 text-center">
+                                                <div class="flex justify-center items-center">
+                                                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Pagination -->
+                            <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6">
+                                <p class="text-sm text-gray-600 dark:text-slate-400">
+                                    Showing <span id="pathwayShowingFrom" class="font-medium">0</span> to <span id="pathwayShowingTo" class="font-medium">0</span> of <span id="pathwayTotalCount" class="font-medium">0</span> pathways
+                                </p>
+                                <div id="pathwayPaginationButtons" class="flex items-center gap-2"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- System Logs -->
                 <div
@@ -3568,6 +4007,10 @@
                 if (section === 'user') {
                     loadUsers();
                 }
+                // Load email templates when Email Template section is opened
+                if (section === 'email-template') {
+                    fetchEmailTemplates();
+                }
                 // Load companies when Company Management section is opened
                 if (section === 'company') {
                     loadCompanies();
@@ -3626,6 +4069,12 @@
                 }
                 if (section === 'visitortype') {
                     loadVisitorTypes();
+                }
+                if (section === 'alertpriority') {
+                    loadAlertPriorities();
+                }
+                if (section === 'pathway') {
+                    loadPathways();
                 }
             } else {
                 content.classList.add('hidden');
@@ -11505,6 +11954,503 @@
                 });
         }
 
+        function setInvitationEmailTemplateFormValues(data = {}) {
+            document.getElementById('invitationEmailSubject').value = data.subject || '';
+            document.getElementById('invitationEmailButtonText').value = data.button_text || '';
+            document.getElementById('invitationEmailBrandName').value = data.brand_name || '';
+            document.getElementById('invitationEmailHeaderTitle').value = data.header_title || '';
+            document.getElementById('invitationEmailPrimaryColor').value = data.primary_color || '#137fec';
+            document.getElementById('invitationEmailContentBgColor').value = data.content_bg_color || '#ffffff';
+            document.getElementById('invitationEmailTextColor').value = data.text_color || '#374151';
+            document.getElementById('invitationEmailIntroLine').value = data.intro_line || '';
+            document.getElementById('invitationEmailNotesTitle').value = data.notes_title || '';
+            document.getElementById('invitationEmailNotesItems').value = Array.isArray(data.notes_items)
+                ? data.notes_items.join('\n')
+                : (data.notes_items || '');
+            document.getElementById('invitationEmailFooterText').value = data.footer_text || '';
+            
+            // Trigger preview update after values are set
+            updateEmailPreview();
+        }
+
+        let emailTemplates = [];
+        let currentEmailTemplateSearch = '';
+        let currentEmailTemplateSort = 'default';
+        // Legacy visual editor state (kept for backward compatibility in this page JS).
+        let emailTemplateProcessOptions = [
+            { key: 'invitation', label: 'Invitation Email' },
+            { key: 'registration_submitted', label: 'Registration Submitted Email' },
+            { key: 'approval', label: 'Approval Email' },
+            { key: 'rejection', label: 'Rejection Email' },
+            { key: 'reminder', label: 'Reminder Email' },
+        ];
+        let emailTemplatePlaceholderTokens = [
+            '{{visitor_name}}',
+            '{{company}}',
+            '{{location}}',
+            '{{reason}}',
+            '{{invited_by}}',
+            '{{link_expiry_date}}',
+        ];
+        let currentEmailTemplateProcess = 'invitation';
+        let emailTemplateFocusedInputId = null;
+        let placeholderDragIndex = null;
+        let emailTemplateFocusTrackingBound = false;
+
+        function fetchEmailTemplates() {
+            fetch('<?= base_url('config/getEmailTemplates') ?>')
+                .then(res => res.json())
+                .then(data => {
+                    emailTemplates = Array.isArray(data.data) ? data.data : [];
+                    renderEmailTemplateTable();
+                })
+                .catch(() => {
+                    showToast('Failed to load email templates', 'error');
+                });
+        }
+
+        function renderEmailTemplateTable() {
+            const tbody = document.getElementById('emailTemplateProcessTableBody');
+            if (!tbody) return;
+
+            let rows = [...emailTemplates];
+
+            if (currentEmailTemplateSearch) {
+                const keyword = currentEmailTemplateSearch.toLowerCase();
+                rows = rows.filter(item =>
+                    String(item.code || '').toLowerCase().includes(keyword) ||
+                    String(item.subject || '').toLowerCase().includes(keyword)
+                );
+            }
+
+            if (currentEmailTemplateSort === 'name_asc') {
+                rows.sort((a, b) => String(a.code || '').localeCompare(String(b.code || '')));
+            } else if (currentEmailTemplateSort === 'name_desc') {
+                rows.sort((a, b) => String(b.code || '').localeCompare(String(a.code || '')));
+            } else if (currentEmailTemplateSort === 'newest') {
+                rows.sort((a, b) => (new Date(b.created_at || 0)) - (new Date(a.created_at || 0)));
+            } else if (currentEmailTemplateSort === 'oldest') {
+                rows.sort((a, b) => (new Date(a.created_at || 0)) - (new Date(b.created_at || 0)));
+            }
+
+            if (rows.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="3" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
+                            <span class="material-symbols-outlined text-4xl block mb-2 opacity-20">search_off</span>
+                            No templates found matching your search
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = rows.map((item, index) => `
+                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                    <td class="px-6 py-4 text-slate-500 font-medium">${index + 1}</td>
+                    <td class="px-6 py-4">
+                        <div class="font-bold text-slate-800 dark:text-slate-200">${item.code || ''}</div>
+                        ${item.subject ? `<div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 truncate max-w-[520px]">${item.subject}</div>` : ''}
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <button
+                            type="button"
+                            onclick="openEmailTemplateModalForEdit(${item.id})"
+                            class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 text-xs font-bold hover:bg-primary hover:text-white hover:border-primary transition-all shadow-sm group-hover:shadow-md active:scale-95"
+                        >
+                            <span class="material-symbols-outlined text-sm">edit</span>
+                            Edit
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function searchEmailTemplates() {
+            currentEmailTemplateSearch = document.getElementById('emailTemplateSearchInput')?.value?.trim() || '';
+            renderEmailTemplateTable();
+        }
+
+        function sortEmailTemplates() {
+            currentEmailTemplateSort = document.getElementById('emailTemplateSortSelect')?.value || 'default';
+            renderEmailTemplateTable();
+        }
+
+        function openEmailTemplateModalForCreate() {
+            const modal = document.getElementById('emailTemplateCrudModal');
+            if (!modal) return;
+
+            document.getElementById('emailTemplateCrudModalTitle').textContent = 'Create Email Template';
+            document.getElementById('emailTemplateCrudSubmitBtn').textContent = 'Save';
+
+            document.getElementById('emailTemplateCrudId').value = '';
+            const codeEl = document.getElementById('emailTemplateCrudCode');
+            codeEl.value = '';
+            codeEl.disabled = false;
+            codeEl.classList.remove('opacity-70', 'cursor-not-allowed');
+
+            document.getElementById('emailTemplateCrudSubject').value = '';
+            document.getElementById('emailTemplateCrudPrimaryColor').value = '#137FEC';
+            document.getElementById('emailTemplateCrudContentBgColor').value = '#F8F9FA';
+            document.getElementById('emailTemplateCrudTextColor').value = '#333333';
+            document.getElementById('emailTemplateCrudBody').value = '';
+
+            modal.classList.remove('hidden');
+            setTimeout(() => codeEl.focus(), 0);
+        }
+
+        function openEmailTemplateModalForEdit(id) {
+            fetch(`<?= base_url('config/getEmailTemplate') ?>/${id}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (!data.success) {
+                        showToast(data.message || 'Failed to load email template', 'error');
+                        return;
+                    }
+
+                    const row = data.data || {};
+                    const modal = document.getElementById('emailTemplateCrudModal');
+                    if (!modal) return;
+
+                    document.getElementById('emailTemplateCrudModalTitle').textContent = 'Update Email Template';
+                    document.getElementById('emailTemplateCrudSubmitBtn').textContent = 'Update';
+
+                    document.getElementById('emailTemplateCrudId').value = row.id || '';
+                    const codeEl = document.getElementById('emailTemplateCrudCode');
+                    codeEl.value = row.code || '';
+                    codeEl.disabled = true;
+                    codeEl.classList.add('opacity-70', 'cursor-not-allowed');
+
+                    document.getElementById('emailTemplateCrudSubject').value = row.subject || '';
+                    document.getElementById('emailTemplateCrudPrimaryColor').value = row.primary_color || '#137FEC';
+                    document.getElementById('emailTemplateCrudContentBgColor').value = row.content_bg_color || '#F8F9FA';
+                    document.getElementById('emailTemplateCrudTextColor').value = row.text_color || '#333333';
+                    document.getElementById('emailTemplateCrudBody').value = row.body || '';
+
+                    modal.classList.remove('hidden');
+                    setTimeout(() => document.getElementById('emailTemplateCrudSubject').focus(), 0);
+                })
+                .catch(() => showToast('Failed to load email template', 'error'));
+        }
+
+        function closeEmailTemplateCrudModal() {
+            document.getElementById('emailTemplateCrudModal')?.classList.add('hidden');
+        }
+
+        function submitEmailTemplateCrudForm(event) {
+            event.preventDefault();
+
+            const id = document.getElementById('emailTemplateCrudId')?.value?.trim();
+            const code = (document.getElementById('emailTemplateCrudCode')?.value || '').trim().toUpperCase();
+            const subject = (document.getElementById('emailTemplateCrudSubject')?.value || '').trim();
+            const primary_color = document.getElementById('emailTemplateCrudPrimaryColor')?.value || '';
+            const content_bg_color = document.getElementById('emailTemplateCrudContentBgColor')?.value || '';
+            const text_color = document.getElementById('emailTemplateCrudTextColor')?.value || '';
+            const body = (document.getElementById('emailTemplateCrudBody')?.value || '').trim();
+
+            if (!code || !subject || !body) {
+                showToast('Code, Subject, and Body are required', 'error');
+                return;
+            }
+
+            const payload = { code, subject, body, primary_color, content_bg_color, text_color };
+            const url = id
+                ? `<?= base_url('config/updateEmailTemplate') ?>/${encodeURIComponent(id)}`
+                : '<?= base_url('config/createEmailTemplate') ?>';
+
+            fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            })
+                .then(res => res.json().then(json => ({ ok: res.ok, json })))
+                .then(({ ok, json }) => {
+                    if (!ok || !json.success) {
+                        showToast(json.message || 'Failed to save email template', 'error');
+                        return;
+                    }
+                    showToast(json.message || 'Saved', 'success');
+                    closeEmailTemplateCrudModal();
+                    fetchEmailTemplates();
+                })
+                .catch(() => showToast('Failed to save email template', 'error'));
+        }
+
+        function renderEmailTemplatePlaceholderBox() {
+            const box = document.getElementById('emailTemplatePlaceholderBox');
+            if (!box) return;
+
+            box.innerHTML = emailTemplatePlaceholderTokens.map((token, index) => `
+                <button
+                    type="button"
+                    draggable="true"
+                    data-index="${index}"
+                    onclick="insertTemplatePlaceholder('${token.replace(/'/g, "\\'")}')"
+                    ondragstart="onPlaceholderDragStart(event, ${index})"
+                    ondragover="onPlaceholderDragOver(event)"
+                    ondrop="onPlaceholderDrop(event, ${index})"
+                    ondragend="onPlaceholderDragEnd()"
+                    class="px-2.5 py-1 rounded-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-move"
+                >${token}</button>
+            `).join('');
+        }
+
+        function onPlaceholderDragStart(event, index) {
+            placeholderDragIndex = index;
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/plain', String(index));
+        }
+
+        function onPlaceholderDragOver(event) {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'move';
+        }
+
+        function onPlaceholderDrop(event, dropIndex) {
+            event.preventDefault();
+            if (placeholderDragIndex === null || placeholderDragIndex === dropIndex) return;
+            const moved = emailTemplatePlaceholderTokens.splice(placeholderDragIndex, 1)[0];
+            emailTemplatePlaceholderTokens.splice(dropIndex, 0, moved);
+            placeholderDragIndex = null;
+            renderEmailTemplatePlaceholderBox();
+        }
+
+        function onPlaceholderDragEnd() {
+            placeholderDragIndex = null;
+        }
+
+        function trackEmailTemplateInputFocus() {
+            if (emailTemplateFocusTrackingBound) return;
+            const fieldIds = [
+                'invitationEmailSubject',
+                'invitationEmailButtonText',
+                'invitationEmailBrandName',
+                'invitationEmailHeaderTitle',
+                'invitationEmailIntroLine',
+                'invitationEmailNotesTitle',
+                'invitationEmailNotesItems',
+                'invitationEmailFooterText',
+            ];
+
+            fieldIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.addEventListener('focus', function () {
+                    emailTemplateFocusedInputId = id;
+                });
+            });
+            emailTemplateFocusTrackingBound = true;
+        }
+
+        function insertTemplatePlaceholder(token) {
+            const targetId = emailTemplateFocusedInputId || 'invitationEmailIntroLine';
+            const input = document.getElementById(targetId);
+            if (!input) return;
+
+            const start = input.selectionStart ?? input.value.length;
+            const end = input.selectionEnd ?? input.value.length;
+            const value = input.value || '';
+            input.value = value.slice(0, start) + token + value.slice(end);
+            const nextPos = start + token.length;
+            if (typeof input.setSelectionRange === 'function') {
+                input.setSelectionRange(nextPos, nextPos);
+            }
+            input.focus();
+        }
+
+        // Label update integrated into selectEmailTemplateProcess
+
+        function selectEmailTemplateProcess(process) {
+            currentEmailTemplateProcess = process || 'invitation';
+            
+            // Update Tab UI
+            document.querySelectorAll('.template-tab').forEach(tab => {
+                const isActive = tab.getAttribute('data-process') === currentEmailTemplateProcess;
+                if (isActive) {
+                    tab.classList.remove('border-transparent', 'text-slate-500', 'dark:text-slate-400');
+                    tab.classList.add('border-primary', 'text-primary');
+                } else {
+                    tab.classList.remove('border-primary', 'text-primary');
+                    tab.classList.add('border-transparent', 'text-slate-500', 'dark:text-slate-400');
+                }
+            });
+
+            // Update Badge
+            const badge = document.getElementById('currentProcessBadge');
+            if (badge) badge.textContent = getEmailTemplateProcessLabel(currentEmailTemplateProcess);
+
+            renderEmailTemplatePlaceholderBox();
+            trackEmailTemplateInputFocus();
+            fetchInvitationEmailTemplateSettings();
+        }
+
+        function updateEmailPreview() {
+            const getValue = (id) => document.getElementById(id)?.value || '';
+            
+            const brandName = getValue('invitationEmailBrandName');
+            const headerTitle = getValue('invitationEmailHeaderTitle');
+            const introLine = getValue('invitationEmailIntroLine');
+            const buttonText = getValue('invitationEmailButtonText');
+            const notesTitle = getValue('invitationEmailNotesTitle');
+            const notesItems = getValue('invitationEmailNotesItems');
+            const footerText = getValue('invitationEmailFooterText');
+            const primaryColor = getValue('invitationEmailPrimaryColor');
+            const contentBgColor = getValue('invitationEmailContentBgColor');
+            const textColor = getValue('invitationEmailTextColor');
+
+            // Sample data for tokens
+            const samples = {
+                '{{visitor_name}}': 'John Doe',
+                '{{company}}': 'SafeG Enterprise',
+                '{{location}}': 'Main Reception',
+                '{{reason}}': 'Official Meeting',
+                '{{invited_by}}': 'Sarah Connor',
+                '{{link_expiry_date}}': '20/04/2026 18:00',
+                '{{link_expiry_time}}': '18:00'
+            };
+
+            const processTokens = (text) => {
+                let processed = text;
+                Object.keys(samples).forEach(token => {
+                    processed = processed.split(token).join(samples[token]);
+                });
+                return processed;
+            };
+
+            // Update Header
+            const header = document.getElementById('previewHeader');
+            if (header) header.style.backgroundColor = primaryColor;
+            
+            document.getElementById('previewBrandName').textContent = brandName || 'SafeG';
+            document.getElementById('previewFooterBrand').textContent = brandName || 'SafeG';
+            document.getElementById('previewHeaderTitle').textContent = headerTitle || 'Visitor Invitation';
+
+            // Update Content Area
+            const content = document.getElementById('previewContent');
+            const footerSection = document.getElementById('previewFooterSection');
+            if (content) {
+                content.style.backgroundColor = contentBgColor;
+                content.style.color = textColor;
+            }
+            if (footerSection) {
+                footerSection.style.color = textColor;
+            }
+
+            document.getElementById('previewIntro').textContent = processTokens(introLine || 'Your introduction text will appear here...');
+            
+            // Update Button
+            const btn = document.getElementById('previewButton');
+            if (btn) {
+                btn.textContent = buttonText || 'Action Button';
+                btn.style.backgroundColor = primaryColor;
+            }
+
+            // Update Notes
+            document.getElementById('previewNotesTitle').textContent = notesTitle || 'Important Notes';
+            const notesList = document.getElementById('previewNotesList');
+            if (notesList) {
+                const items = notesItems.split('\n').filter(i => i.trim() !== '');
+                if (items.length > 0) {
+                    notesList.innerHTML = items.map(item => `
+                        <li class="flex gap-3 leading-relaxed">
+                            <span style="color: ${primaryColor}" class="font-bold">•</span> 
+                            <span>${processTokens(item)}</span>
+                        </li>
+                    `).join('');
+                } else {
+                    notesList.innerHTML = '<li class="italic text-slate-400">No notes added</li>';
+                }
+            }
+
+            // Update Footer
+            document.getElementById('previewFooter').textContent = processTokens(footerText || 'Footer contact information here');
+        }
+
+        // Modal logic removed as process select is now direct
+
+        function searchEmailTemplates() {
+            currentEmailTemplateSearch = (document.getElementById('emailTemplateSearchInput')?.value || '').trim();
+            renderEmailTemplateTable();
+        }
+
+        function sortEmailTemplates() {
+            currentEmailTemplateSort = document.getElementById('emailTemplateSortSelect')?.value || 'default';
+            renderEmailTemplateTable();
+        }
+
+        function ensureEmailTemplateProcessOptions(options = [], selectedProcess = 'invitation') {
+            if (Array.isArray(options) && options.length > 0) {
+                const existingValues = emailTemplateProcessOptions.map(option => option.key);
+                options.forEach(option => {
+                    if (!existingValues.includes(option.key)) {
+                        emailTemplateProcessOptions.push({
+                            key: option.key,
+                            label: option.label || option.key,
+                        });
+                    }
+                });
+            }
+
+            currentEmailTemplateProcess = selectedProcess || currentEmailTemplateProcess || 'invitation';
+            
+            // Populate the table if it's visible
+            renderEmailTemplateTable();
+
+            return currentEmailTemplateProcess;
+        }
+
+        function fetchInvitationEmailTemplateSettings() {
+            const process = currentEmailTemplateProcess || 'invitation';
+            fetch(`<?= base_url('config/getInvitationEmailTemplateSettings') ?>?process=${encodeURIComponent(process)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success || !data.data) return;
+                    ensureEmailTemplateProcessOptions(data.meta?.process_options || [], data.meta?.process || process);
+                    setInvitationEmailTemplateFormValues(data.data);
+                })
+                .catch(error => {
+                    console.error('Error loading invitation email template settings:', error);
+                });
+        }
+
+        function saveInvitationEmailTemplateSettings() {
+            const process = currentEmailTemplateProcess || 'invitation';
+            const payload = {
+                process,
+                subject: document.getElementById('invitationEmailSubject').value,
+                button_text: document.getElementById('invitationEmailButtonText').value,
+                brand_name: document.getElementById('invitationEmailBrandName').value,
+                header_title: document.getElementById('invitationEmailHeaderTitle').value,
+                primary_color: document.getElementById('invitationEmailPrimaryColor').value,
+                content_bg_color: document.getElementById('invitationEmailContentBgColor').value,
+                text_color: document.getElementById('invitationEmailTextColor').value,
+                intro_line: document.getElementById('invitationEmailIntroLine').value,
+                notes_title: document.getElementById('invitationEmailNotesTitle').value,
+                notes_items: document.getElementById('invitationEmailNotesItems').value,
+                footer_text: document.getElementById('invitationEmailFooterText').value,
+            };
+
+            fetch('<?= base_url('config/saveInvitationEmailTemplateSettings') ?>', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        showToast(data.message || 'Failed to save invitation email template', 'error');
+                        return;
+                    }
+                    showToast(data.message || 'Email template saved', 'success');
+                    if (data.data) {
+                        setInvitationEmailTemplateFormValues(data.data);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error saving invitation email template settings:', error);
+                    showToast('Failed to save invitation email template', 'error');
+                });
+        }
+
         function toggleEmailFieldEnabled(id, checked) {
             const normalizedId = Number(id);
             emailTemplateFields = emailTemplateFields.map(field =>
@@ -11714,7 +12660,7 @@
         }
 
         document.addEventListener('DOMContentLoaded', function () {
-            fetchEmailTemplateFormSettings();
+            fetchInvitationEmailTemplateSettings();
         });
 
         function openBlacklistModal(id = null) {
@@ -11730,6 +12676,647 @@
         }                                    
 
         
+        // ============== PATHWAY MANAGEMENT FUNCTIONS ==============
+
+        let currentPathwayPage = 1;
+        let currentPathwaySearch = '';
+        let currentPathwaySort = '';
+        let currentPathwayId = null;
+
+        function loadPathways(page = 1, search = '', sortBy = '') {
+            currentPathwayPage = page;
+            currentPathwaySearch = search;
+            currentPathwaySort = sortBy;
+
+            const tbody = document.getElementById('pathwayTableBody');
+            tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-8 text-center"><div class="flex justify-center items-center"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div></td></tr>';
+
+            const params = new URLSearchParams({ page, limit: 10, search, sortBy });
+
+            fetch(`<?= base_url('config/getPathways') ?>?${params}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        displayPathways(data.data);
+                        updatePathwayPagination(data.pagination);
+                    } else {
+                        tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-8 text-center text-red-500">Failed to load pathways</td></tr>';
+                    }
+                })
+                .catch(() => {
+                    tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-8 text-center text-red-500">An error occurred while loading pathways</td></tr>';
+                });
+        }
+
+        function displayPathways(pathways) {
+            const tbody = document.getElementById('pathwayTableBody');
+
+            if (pathways.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">No pathways found</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = pathways.map(pw => {
+                const statusBadge = pw.status === 'active'
+                    ? '<span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span>'
+                    : '<span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">Inactive</span>';
+
+                const laneBadges = (pw.lanes || []).map(l =>
+                    `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">${escapeHtml(l.lane)}</span>`
+                ).join(' ');
+
+                return `
+                    <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
+                        <td class="px-4 py-3 font-medium">${escapeHtml(pw.name)}</td>
+                        <td class="px-4 py-3">
+                            <div class="flex flex-wrap gap-1.5">${laneBadges || '<span class="text-gray-400 text-xs">No doors assigned</span>'}</div>
+                        </td>
+                        <td class="px-4 py-3">${statusBadge}</td>
+                        <td class="px-4 py-3 w-32">
+                            <div class="flex gap-2">
+                                <button onclick="openEditPathwayModal(${pw.id})" class="text-primary hover:text-primary/80" title="Edit">
+                                    <span class="material-symbols-outlined text-xl">edit</span>
+                                </button>
+                                <button onclick="openDeletePathwayModal(${pw.id}, '${escapeHtml(pw.name)}')" class="text-red-500 hover:text-red-400" title="Delete">
+                                    <span class="material-symbols-outlined text-xl">delete</span>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function updatePathwayPagination(pagination) {
+            const showingFrom = pagination.total === 0 ? 0 : ((pagination.page - 1) * pagination.limit) + 1;
+            const showingTo = Math.min(pagination.page * pagination.limit, pagination.total);
+
+            document.getElementById('pathwayShowingFrom').textContent = showingFrom;
+            document.getElementById('pathwayShowingTo').textContent = showingTo;
+            document.getElementById('pathwayTotalCount').textContent = pagination.total;
+
+            const container = document.getElementById('pathwayPaginationButtons');
+            let html = '';
+
+            html += `<button onclick="loadPathways(${pagination.page - 1}, currentPathwaySearch, currentPathwaySort)" class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" ${pagination.page === 1 ? 'disabled' : ''}><span class="material-symbols-outlined text-base">chevron_left</span></button>`;
+
+            for (let i = 1; i <= pagination.totalPages; i++) {
+                if (i === pagination.page) {
+                    html += `<button class="px-3 py-2 rounded-lg bg-primary text-white font-medium text-sm min-w-[40px]">${i}</button>`;
+                } else {
+                    html += `<button onclick="loadPathways(${i}, currentPathwaySearch, currentPathwaySort)" class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors font-medium text-sm min-w-[40px]">${i}</button>`;
+                }
+            }
+
+            html += `<button onclick="loadPathways(${pagination.page + 1}, currentPathwaySearch, currentPathwaySort)" class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" ${pagination.page === pagination.totalPages || pagination.totalPages === 0 ? 'disabled' : ''}><span class="material-symbols-outlined text-base">chevron_right</span></button>`;
+
+            container.innerHTML = html;
+        }
+
+        function searchPathways() {
+            const search = document.getElementById('pathwaySearchInput').value;
+            const sort = document.getElementById('pathwaySortSelect').value;
+            loadPathways(1, search, sort);
+        }
+
+        function sortPathways() {
+            const search = document.getElementById('pathwaySearchInput').value;
+            const sort = document.getElementById('pathwaySortSelect').value;
+            loadPathways(1, search, sort);
+        }
+
+        function buildPathwayModalHTML(title, buttonText, pathway = null) {
+            const selectedLanes = pathway ? (pathway.lanes || []) : [];
+            const isEdit = !!pathway;
+
+            return `
+            <div id="pathwayModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                <div class="bg-white dark:bg-slate-800 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+                    <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-700">
+                        <h3 class="text-lg font-bold text-gray-800 dark:text-white">${title}</h3>
+                        <button onclick="closePathwayModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                            <span class="material-symbols-outlined">close</span>
+                        </button>
+                    </div>
+                    <form onsubmit="savePathway(event)" class="p-6">
+                        <div id="pathwayErrorContainer" class="hidden mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-300 rounded-lg text-sm"></div>
+
+                        <div class="space-y-5">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Pathway Name <span class="text-red-500">*</span></label>
+                                <input type="text" id="pathwayName" required value="${isEdit ? escapeHtml(pathway.name) : ''}" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2.5 text-sm focus:ring-primary focus:border-primary" placeholder="e.g. Route for VIP Visitors" />
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Status <span class="text-red-500">*</span></label>
+                                <select id="pathwayStatus" required class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2.5 text-sm focus:ring-primary focus:border-primary">
+                                    <option value="active" ${isEdit && pathway.status === 'active' ? 'selected' : ''}>Active</option>
+                                    <option value="inactive" ${isEdit && pathway.status === 'inactive' ? 'selected' : ''}>Inactive</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Select & Order Doors / Lanes</label>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <!-- Available Lanes -->
+                                    <div>
+                                        <p class="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-2">Available Doors</p>
+                                        <div class="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 overflow-hidden">
+                                            <input type="text" id="pathwayLaneFilter" placeholder="Filter doors..." oninput="filterAvailableLanes()" class="w-full border-b border-gray-200 dark:border-gray-700 px-3 py-2 text-sm focus:outline-none dark:bg-gray-800 dark:text-white" />
+                                            <div id="pathwayAvailableLanes" class="max-h-48 overflow-y-auto p-1">
+                                                <div class="px-3 py-4 text-center text-gray-400 text-xs">Loading lanes...</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Selected Lanes -->
+                                    <div>
+                                        <p class="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-2">Selected Doors <span class="text-gray-400 font-normal">(drag to reorder)</span></p>
+                                        <div id="pathwaySelectedLanes" class="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 min-h-[200px] max-h-48 overflow-y-auto p-1">
+                                            <div id="pathwaySelectedEmpty" class="px-3 py-4 text-center text-gray-400 text-xs">Click doors on the left to add them</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-3 justify-end pt-5 mt-5 border-t border-gray-200 dark:border-slate-700">
+                            <button type="button" onclick="closePathwayModal()" class="px-4 py-2.5 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">Cancel</button>
+                            <button type="submit" class="px-5 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm">${buttonText}</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            `;
+        }
+
+        let pathwayAllLanes = [];
+        let pathwaySelectedIds = [];
+
+        function openCreatePathwayModal() {
+            currentPathwayId = null;
+            pathwaySelectedIds = [];
+
+            fetch('<?= base_url('config/getAllLanes') ?>')
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.success) {
+                        showNotification('Failed to load lanes', 'error');
+                        return;
+                    }
+                    pathwayAllLanes = data.data;
+                    document.body.insertAdjacentHTML('beforeend', buildPathwayModalHTML('Create New Pathway', 'Create Pathway'));
+                    renderAvailableLanes();
+                    renderSelectedLanes();
+                })
+                .catch(() => showNotification('Failed to load lanes', 'error'));
+        }
+
+        function openEditPathwayModal(id) {
+            currentPathwayId = id;
+
+            Promise.all([
+                fetch('<?= base_url('config/getAllLanes') ?>').then(r => r.json()),
+                fetch(`<?= base_url('config/getPathway') ?>/${id}`).then(r => r.json())
+            ])
+            .then(([lanesData, pwData]) => {
+                if (!lanesData.success || !pwData.success) {
+                    showNotification('Failed to load data', 'error');
+                    return;
+                }
+                pathwayAllLanes = lanesData.data;
+                const pathway = pwData.data;
+                pathwaySelectedIds = (pathway.lanes || []).map(l => String(l.lane_id));
+
+                document.body.insertAdjacentHTML('beforeend', buildPathwayModalHTML('Edit Pathway', 'Update Pathway', pathway));
+                renderAvailableLanes();
+                renderSelectedLanes();
+            })
+            .catch(() => showNotification('Failed to load data', 'error'));
+        }
+
+        function renderAvailableLanes() {
+            const container = document.getElementById('pathwayAvailableLanes');
+            const filter = (document.getElementById('pathwayLaneFilter')?.value || '').toLowerCase();
+
+            const available = pathwayAllLanes.filter(l => !pathwaySelectedIds.includes(String(l.id)));
+            const filtered = available.filter(l => l.lane.toLowerCase().includes(filter));
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<div class="px-3 py-4 text-center text-gray-400 text-xs">No available doors</div>';
+                return;
+            }
+
+            container.innerHTML = filtered.map(l => `
+                <button type="button" onclick="pathwayAddLane('${l.id}')" class="w-full text-left px-3 py-2 text-sm rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-700 dark:text-slate-300 flex items-center gap-2 transition-colors">
+                    <span class="material-symbols-outlined text-base text-blue-500">add_circle</span>
+                    ${escapeHtml(l.lane)}
+                </button>
+            `).join('');
+        }
+
+        function renderSelectedLanes() {
+            const container = document.getElementById('pathwaySelectedLanes');
+            const emptyMsg = document.getElementById('pathwaySelectedEmpty');
+
+            if (pathwaySelectedIds.length === 0) {
+                container.innerHTML = '<div id="pathwaySelectedEmpty" class="px-3 py-4 text-center text-gray-400 text-xs">Click doors on the left to add them</div>';
+                return;
+            }
+
+            container.innerHTML = pathwaySelectedIds.map((id, idx) => {
+                const lane = pathwayAllLanes.find(l => String(l.id) === String(id));
+                const name = lane ? lane.lane : `Lane #${id}`;
+                return `
+                <div class="flex items-center gap-2 px-3 py-2 rounded bg-blue-50 dark:bg-blue-900/20 mb-1 group" draggable="true" ondragstart="pathwayDragStart(event, ${idx})" ondragover="pathwayDragOver(event)" ondrop="pathwayDrop(event, ${idx})" data-idx="${idx}">
+                    <span class="material-symbols-outlined text-base text-gray-400 cursor-grab">drag_indicator</span>
+                    <span class="flex-1 text-sm font-medium text-gray-700 dark:text-slate-300">${escapeHtml(name)}</span>
+                    <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-800 text-blue-600 dark:text-blue-300 text-xs font-bold">${idx + 1}</span>
+                    <button type="button" onclick="pathwayRemoveLane(${idx})" class="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span class="material-symbols-outlined text-base">close</span>
+                    </button>
+                </div>
+                `;
+            }).join('');
+        }
+
+        function pathwayAddLane(laneId) {
+            pathwaySelectedIds.push(String(laneId));
+            renderAvailableLanes();
+            renderSelectedLanes();
+        }
+
+        function pathwayRemoveLane(idx) {
+            pathwaySelectedIds.splice(idx, 1);
+            renderAvailableLanes();
+            renderSelectedLanes();
+        }
+
+        let pathwayDragIdx = null;
+        function pathwayDragStart(e, idx) {
+            pathwayDragIdx = idx;
+            e.dataTransfer.effectAllowed = 'move';
+        }
+        function pathwayDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+        }
+        function pathwayDrop(e, dropIdx) {
+            e.preventDefault();
+            if (pathwayDragIdx === null || pathwayDragIdx === dropIdx) return;
+            const [moved] = pathwaySelectedIds.splice(pathwayDragIdx, 1);
+            pathwaySelectedIds.splice(dropIdx, 0, moved);
+            pathwayDragIdx = null;
+            renderSelectedLanes();
+        }
+
+        function filterAvailableLanes() {
+            renderAvailableLanes();
+        }
+
+        function closePathwayModal() {
+            document.getElementById('pathwayModal')?.remove();
+        }
+
+        function savePathway(e) {
+            e.preventDefault();
+
+            const formData = {
+                name: document.getElementById('pathwayName').value,
+                status: document.getElementById('pathwayStatus').value,
+                lane_ids: pathwaySelectedIds.map(Number),
+            };
+
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.textContent = currentPathwayId ? 'Updating...' : 'Creating...';
+
+            const url = currentPathwayId
+                ? `<?= base_url('config/updatePathway') ?>/${currentPathwayId}`
+                : '<?= base_url('config/createPathway') ?>';
+
+            fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData),
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    closePathwayModal();
+                    loadPathways(currentPathwayPage, currentPathwaySearch, currentPathwaySort);
+                } else {
+                    const ec = document.getElementById('pathwayErrorContainer');
+                    if (data.errors) {
+                        ec.innerHTML = Object.values(data.errors).flat().map(m => `<div>• ${m}</div>`).join('');
+                    } else {
+                        ec.innerHTML = data.message || 'Failed to save pathway';
+                    }
+                    ec.classList.remove('hidden');
+                    submitBtn.textContent = currentPathwayId ? 'Update Pathway' : 'Create Pathway';
+                    submitBtn.disabled = false;
+                }
+            })
+            .catch(() => {
+                showNotification('An error occurred while saving the pathway', 'error');
+                submitBtn.textContent = currentPathwayId ? 'Update Pathway' : 'Create Pathway';
+                submitBtn.disabled = false;
+            });
+        }
+
+        function openDeletePathwayModal(id, name) {
+            currentPathwayId = id;
+            const modalHTML = `
+            <div id="pathwayDeleteModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                <div class="bg-white dark:bg-slate-800 rounded-xl max-w-md w-full shadow-2xl">
+                    <div class="p-6">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
+                                <span class="material-symbols-outlined text-red-500 text-xl">warning</span>
+                            </div>
+                            <h3 class="text-lg font-bold text-gray-800 dark:text-white">Delete Pathway</h3>
+                        </div>
+                        <p class="text-sm text-gray-600 dark:text-slate-400 mb-6">Are you sure you want to delete <strong>${escapeHtml(name)}</strong>? This action cannot be undone.</p>
+                        <div class="flex gap-3 justify-end">
+                            <button onclick="closeDeletePathwayModal()" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">Cancel</button>
+                            <button onclick="deletePathway()" class="px-4 py-2 rounded-lg bg-red-500 text-white font-medium hover:bg-red-600 transition-colors text-sm">Delete</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+        }
+
+        function closeDeletePathwayModal() {
+            document.getElementById('pathwayDeleteModal')?.remove();
+        }
+
+        function deletePathway() {
+            fetch(`<?= base_url('config/deletePathway') ?>/${currentPathwayId}`, { method: 'DELETE' })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification(data.message, 'success');
+                        closeDeletePathwayModal();
+                        loadPathways(currentPathwayPage, currentPathwaySearch, currentPathwaySort);
+                    } else {
+                        showNotification(data.message || 'Failed to delete pathway', 'error');
+                    }
+                })
+                .catch(() => showNotification('An error occurred while deleting the pathway', 'error'));
+        }
+        // ====================================================================================
+        // Alert Priority Management
+        // ====================================================================================
+        let currentAlertPriorityPage = 1;
+        let alertPriorityPerPage = 10;
+
+        function loadAlertPriorities(page = 1) {
+            currentAlertPriorityPage = page;
+
+            fetch(`<?= base_url('config/getAlertPriorities') ?>?page=${page}&per_page=${alertPriorityPerPage}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayAlertPriorities(data.data, data.pagination);
+                    } else {
+                        showAlertPriorityNoData();
+                    }
+                })
+                .catch(() => showAlertPriorityNoData());
+        }
+
+        function showAlertPriorityNoData() {
+            const tbody = document.getElementById('alertPriorityTableBody');
+            if (!tbody) return;
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
+                        <div class="flex flex-col items-center gap-2">
+                            <span class="material-symbols-outlined text-4xl">error</span>
+                            <p>Failed to load alert priorities</p>
+                        </div>
+                    </td>
+                </tr>`;
+        }
+
+        function getPriorityBadge(priority) {
+            const map = {
+                high: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+                medium: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+                low: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+            };
+            return map[priority] || 'bg-gray-100 text-gray-700';
+        }
+
+        function displayAlertPriorities(items, pagination) {
+            const tbody = document.getElementById('alertPriorityTableBody');
+            if (!tbody) return;
+
+            if (items.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
+                            <div class="flex flex-col items-center gap-2">
+                                <span class="material-symbols-outlined text-4xl">search_off</span>
+                                <p>No alert priorities found</p>
+                            </div>
+                        </td>
+                    </tr>`;
+                return;
+            }
+
+            tbody.innerHTML = items.map((item, index) => `
+                <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
+                    <td class="px-4 py-3 font-medium">${pagination.from + index}</td>
+                    <td class="px-4 py-3 font-medium">${escapeHtml(item.alert_name)}</td>
+                    <td class="px-4 py-3">
+                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${getPriorityBadge(item.priority)}">
+                            ${escapeHtml(item.priority.charAt(0).toUpperCase() + item.priority.slice(1))}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3">${escapeHtml(item.response_time)}</td>
+                    <td class="px-4 py-3">${escapeHtml(item.notification_scope)}</td>
+                    <td class="px-4 py-3 text-xs text-gray-500">${item.updated_at || item.created_at || '-'}</td>
+                    <td class="px-4 py-3 w-32">
+                        <button onclick='openEditAlertPriorityModal(${JSON.stringify(item)})' class="text-primary hover:text-primary/80" title="Set Priority">
+                            <span class="material-symbols-outlined text-xl">edit</span>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+
+            document.getElementById('alertPriorityFrom').textContent = pagination.from;
+            document.getElementById('alertPriorityTo').textContent = pagination.to;
+            document.getElementById('alertPriorityTotal').textContent = pagination.total;
+            updateAlertPriorityPaginationButtons(pagination);
+        }
+
+        function updateAlertPriorityPaginationButtons(pagination) {
+            const container = document.getElementById('alertPriorityPaginationButtons');
+            if (!container) return;
+            let buttons = '';
+
+            buttons += `<button onclick="loadAlertPriorities(${pagination.current_page - 1})"
+                class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors ${pagination.current_page === 1 ? 'opacity-50 cursor-not-allowed' : ''}"
+                ${pagination.current_page === 1 ? 'disabled' : ''}>
+                <span class="material-symbols-outlined text-base">chevron_left</span>
+            </button>`;
+
+            for (let i = 1; i <= pagination.last_page; i++) {
+                buttons += `<button onclick="loadAlertPriorities(${i})"
+                    class="px-3 py-2 rounded-lg ${i === pagination.current_page ? 'bg-primary text-white' : 'border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700'} font-medium text-sm min-w-[40px] transition-colors">
+                    ${i}
+                </button>`;
+            }
+
+            buttons += `<button onclick="loadAlertPriorities(${pagination.current_page + 1})"
+                class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors ${pagination.current_page === pagination.last_page ? 'opacity-50 cursor-not-allowed' : ''}"
+                ${pagination.current_page === pagination.last_page ? 'disabled' : ''}>
+                <span class="material-symbols-outlined text-base">chevron_right</span>
+            </button>`;
+
+            container.innerHTML = buttons;
+        }
+
+        function openEditAlertPriorityModal(item) {
+            document.body.insertAdjacentHTML('beforeend', `
+                <div id="alertPriorityModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-lg overflow-hidden">
+                        <div class="sticky top-0 bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between rounded-t-lg">
+                            <h3 class="text-lg font-bold text-gray-800 dark:text-white">Set Priority: ${escapeHtml(item.alert_name)}</h3>
+                            <button onclick="closeAlertPriorityModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <form id="alertPriorityForm" class="p-6">
+                            <input type="hidden" id="apId" value="${item.id}">
+                            <input type="hidden" id="apVersion" value="${item.version}">
+
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Security Alert</label>
+                                <input type="text" value="${escapeHtml(item.alert_name)}" readonly
+                                    class="w-full rounded-lg border border-gray-300 dark:border-slate-600 bg-gray-100 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm">
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Priority Level <span class="text-red-500">*</span></label>
+                                <div class="grid grid-cols-3 gap-3">
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="priority" value="low" class="peer sr-only" ${item.priority === 'low' ? 'checked' : ''}>
+                                        <div class="rounded-lg border-2 border-green-200 bg-green-50 dark:bg-green-900/20 px-3 py-3 text-center transition-all peer-checked:ring-2 peer-checked:ring-green-400 peer-checked:border-green-500">
+                                            <span class="material-symbols-outlined text-green-600 text-xl">check_circle</span>
+                                            <p class="text-sm font-bold text-green-700 dark:text-green-400 mt-1">Low</p>
+                                            <p class="text-xs text-green-600/80 dark:text-green-400/70">Standard</p>
+                                        </div>
+                                    </label>
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="priority" value="medium" class="peer sr-only" ${item.priority === 'medium' ? 'checked' : ''}>
+                                        <div class="rounded-lg border-2 border-yellow-200 bg-yellow-50 dark:bg-yellow-900/20 px-3 py-3 text-center transition-all peer-checked:ring-2 peer-checked:ring-yellow-400 peer-checked:border-yellow-500">
+                                            <span class="material-symbols-outlined text-yellow-600 text-xl">warning</span>
+                                            <p class="text-sm font-bold text-yellow-700 dark:text-yellow-400 mt-1">Medium</p>
+                                            <p class="text-xs text-yellow-600/80 dark:text-yellow-400/70">Important</p>
+                                        </div>
+                                    </label>
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="priority" value="high" class="peer sr-only" ${item.priority === 'high' ? 'checked' : ''}>
+                                        <div class="rounded-lg border-2 border-red-200 bg-red-50 dark:bg-red-900/20 px-3 py-3 text-center transition-all peer-checked:ring-2 peer-checked:ring-red-400 peer-checked:border-red-500">
+                                            <span class="material-symbols-outlined text-red-600 text-xl">notification_important</span>
+                                            <p class="text-sm font-bold text-red-700 dark:text-red-400 mt-1">High</p>
+                                            <p class="text-xs text-red-600/80 dark:text-red-400/70">Critical</p>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Response Time <span class="text-red-500">*</span></label>
+                                    <input type="text" id="apResponseTime" value="${escapeHtml(item.response_time)}"
+                                        class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Notification Scope <span class="text-red-500">*</span></label>
+                                    <input type="text" id="apNotificationScope" value="${escapeHtml(item.notification_scope)}"
+                                        class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none">
+                                </div>
+                            </div>
+
+                            <div class="bg-gray-50 dark:bg-slate-700/30 rounded-lg p-3 mb-4 text-xs text-gray-500 dark:text-slate-400">
+                                <p><strong>Created:</strong> ${item.created_at || '-'}</p>
+                                <p class="mt-1"><strong>Last Updated:</strong> ${item.updated_at || '-'}</p>
+                            </div>
+
+                            <span id="apError" class="text-red-500 text-xs mb-2 hidden block"></span>
+
+                            <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-slate-700">
+                                <button type="button" onclick="closeAlertPriorityModal()" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">
+                                    Cancel
+                                </button>
+                                <button type="submit" class="px-4 py-2 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm flex items-center gap-1.5">
+                                    <span class="material-symbols-outlined text-base">save</span>
+                                    Update Priority
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `);
+
+            document.getElementById('alertPriorityForm').addEventListener('submit', function (e) {
+                e.preventDefault();
+                submitAlertPriority();
+            });
+        }
+
+        function closeAlertPriorityModal() {
+            const modal = document.getElementById('alertPriorityModal');
+            if (modal) modal.remove();
+        }
+
+        function submitAlertPriority() {
+            const id = document.getElementById('apId').value;
+            const priority = document.querySelector('#alertPriorityForm input[name="priority"]:checked');
+            if (!priority) {
+                document.getElementById('apError').textContent = 'Please select a priority level.';
+                document.getElementById('apError').classList.remove('hidden');
+                return;
+            }
+
+            const payload = {
+                priority: priority.value,
+                response_time: document.getElementById('apResponseTime').value,
+                notification_scope: document.getElementById('apNotificationScope').value,
+                version: parseInt(document.getElementById('apVersion').value),
+            };
+
+            fetch(`<?= base_url('config/updateAlertPriority/') ?>${id}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    closeAlertPriorityModal();
+                    loadAlertPriorities(currentAlertPriorityPage);
+                    showToast('Alert priority updated successfully', 'success');
+                } else {
+                    if (data.errors) {
+                        const firstError = Object.values(data.errors)[0];
+                        document.getElementById('apError').textContent = firstError;
+                    } else {
+                        document.getElementById('apError').textContent = data.message || 'Update failed';
+                    }
+                    document.getElementById('apError').classList.remove('hidden');
+                }
+            })
+            .catch(() => {
+                document.getElementById('apError').textContent = 'An error occurred. Please try again.';
+                document.getElementById('apError').classList.remove('hidden');
+            });
+        }
     </script>
 </body>
 

@@ -2,34 +2,34 @@
 
 namespace App\Controllers;
 
-use App\Models\LocationModel;
+use App\Models\LaneModel;
 
 class VisitorInfoByDoor extends BaseController
 {
-    protected $locationModel;
+    protected $laneModel;
 
     public function __construct()
     {
-        $this->locationModel = new LocationModel();
+        $this->laneModel = new LaneModel();
     }
 
     public function index()
     {
         return view('reports/visitor_info_by_door', [
             'pageTitle' => 'Visitor Info By Door - SafeG',
-            'locations' => $this->locationModel->orderBy('branch', 'ASC')->orderBy('location_access', 'ASC')->findAll(),
+            'lanes' => $this->laneModel->where('status', 'active')->orderBy('lane', 'ASC')->findAll(),
         ]);
     }
 
     public function generate()
     {
-        $locationId = $this->request->getPost('location');
+        $laneId = $this->request->getPost('lane_id');
         $date       = $this->request->getPost('date'); // default is YYYY-MM-DD from flatpickr value
 
-        if (empty($locationId) || empty($date)) {
+        if (empty($laneId) || empty($date)) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Please select a Location and a Date.',
+                'message' => 'Please select a Lane and a Date.',
             ]);
         }
 
@@ -59,14 +59,14 @@ class VisitorInfoByDoor extends BaseController
         
         $builder->where('vcl.action', 'checkin');
         $builder->where("DATE(vcl.scanned_at)", $date);
-        $builder->where('la.location_id', $locationId);
+        $builder->where('la.id', $laneId);
         
         $builder->orderBy('vcl.scanned_at', 'ASC');
         
         $rows = $builder->get()->getResultArray();
         
-        $locRec = $this->locationModel->find($locationId);
-        $locName = $locRec ? $locRec['id'] . '.' . strtoupper($locRec['location_access']) : 'UNKNOWN';
+        $locRec = $this->laneModel->find($laneId);
+        $locName = $locRec ? $locRec['id'] . '.' . strtoupper($locRec['lane']) : 'UNKNOWN';
 
         $records = [];
         foreach ($rows as $row) {

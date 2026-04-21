@@ -316,6 +316,9 @@
                         </div>
                     </div>
                     <div class="flex items-center gap-2 flex-shrink-0">
+                        <button onclick="openAlertFromBanner(<?= $alert['id'] ?>)" class="flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-500 border border-red-500 text-white text-sm font-bold rounded-lg transition-colors">
+                            <span class="material-symbols-outlined text-[18px]">visibility</span> View Incident
+                        </button>
                         <button onclick="acknowledgeAlert(<?= $alert['id'] ?>)" class="flex items-center gap-1.5 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-sm font-bold rounded-lg transition-colors backdrop-blur-sm">
                             <span class="material-symbols-outlined text-[18px]">check</span> Acknowledge
                         </button>
@@ -323,6 +326,22 @@
                 </div>
             </div>
             <?php endforeach; ?>
+            <?php else: ?>
+            <div class="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 rounded-xl p-5 border border-slate-600 shadow-sm relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-slate-600/20 rounded-full -mr-10 -mt-10"></div>
+                <div class="flex items-center gap-4 relative z-10">
+                    <div class="size-10 rounded-lg bg-green-700/30 flex items-center justify-center text-green-300 flex-shrink-0">
+                        <span class="material-symbols-outlined fill-1">verified_user</span>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-white font-bold text-base">Critical Security Alert</h3>
+                        <p class="text-slate-300 text-sm mt-0.5">No critical security alerts at this time. All clear.</p>
+                    </div>
+                    <button onclick="openModal('activeAlerts')" class="flex items-center gap-1.5 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-sm font-bold rounded-lg transition-colors backdrop-blur-sm flex-shrink-0">
+                        <span class="material-symbols-outlined text-[18px]">shield</span> View All Alerts
+                    </button>
+                </div>
+            </div>
             <?php endif; ?>
 
             <!-- Recent Alerts Summary -->
@@ -332,17 +351,19 @@
                     <h2 class="text-lg font-bold text-slate-900 dark:text-white">Recent Alerts</h2>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="bg-gradient-to-br from-red-800 to-red-900 rounded-xl p-6 border border-red-700 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow cursor-pointer">
+                    <div onclick="openModal('accessDenied')" class="bg-gradient-to-br from-red-800 to-red-900 rounded-xl p-6 border border-red-700 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow cursor-pointer">
                         <div class="absolute top-3 right-3"><span class="px-2 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full">Access Denied</span></div>
                         <p class="text-4xl font-black text-white mb-1"><?= $accessDeniedCount ?></p>
                         <p class="text-red-100 font-semibold text-sm">Access Denied Incidents</p>
                         <p class="text-red-300 text-xs mt-1">Last 24 hours only</p>
+                        <div class="flex items-center gap-1 mt-3 text-red-200 text-xs font-medium group-hover:text-white transition-colors"><span class="material-symbols-outlined text-[14px]">arrow_forward</span> View all incidents</div>
                     </div>
-                    <div class="bg-gradient-to-br from-amber-700 to-amber-800 rounded-xl p-6 border border-amber-600 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow cursor-pointer">
+                    <div onclick="openModal('overstay')" class="bg-gradient-to-br from-amber-700 to-amber-800 rounded-xl p-6 border border-amber-600 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow cursor-pointer">
                         <div class="absolute top-3 right-3"><span class="px-2 py-0.5 bg-amber-500 text-white text-[10px] font-bold rounded-full">Overstay</span></div>
                         <p class="text-4xl font-black text-white mb-1"><?= $overstayCount ?></p>
                         <p class="text-amber-100 font-semibold text-sm">Visitor Overstay Alerts</p>
                         <p class="text-amber-300 text-xs mt-1">Active alerts</p>
+                        <div class="flex items-center gap-1 mt-3 text-amber-200 text-xs font-medium group-hover:text-white transition-colors"><span class="material-symbols-outlined text-[14px]">arrow_forward</span> View all alerts</div>
                     </div>
                 </div>
             </div>
@@ -350,7 +371,7 @@
             <!-- Stats Cards -->
             <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                 <!-- Expected Today Card -->
-                <div class="bg-surface-light dark:bg-surface-dark rounded-xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col gap-4 relative overflow-hidden group cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-800 hover:ring-1 hover:ring-indigo-100 dark:hover:ring-indigo-900/50 transition-all">
+                <div onclick="openModal('expectedToday')" class="bg-surface-light dark:bg-surface-dark rounded-xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col gap-4 relative overflow-hidden group cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-800 hover:ring-1 hover:ring-indigo-100 dark:hover:ring-indigo-900/50 transition-all">
                     <div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                         <span class="material-symbols-outlined text-6xl text-slate-900 dark:text-white">calendar_today</span>
                     </div>
@@ -371,7 +392,7 @@
                 </div>
 
                 <!-- Currently On-Site Card -->
-                <div class="bg-surface-light dark:bg-surface-dark rounded-xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col gap-4 relative overflow-hidden group cursor-pointer hover:border-primary/50 dark:hover:border-primary/50 hover:ring-1 hover:ring-primary/10 transition-all">
+                <div onclick="openModal('onSite')" class="bg-surface-light dark:bg-surface-dark rounded-xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col gap-4 relative overflow-hidden group cursor-pointer hover:border-primary/50 dark:hover:border-primary/50 hover:ring-1 hover:ring-primary/10 transition-all">
                     <div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                         <span class="material-symbols-outlined text-6xl text-primary">group</span>
                     </div>
@@ -388,7 +409,7 @@
                 </div>
 
                 <!-- Checked Out Card -->
-                <div class="bg-surface-light dark:bg-surface-dark rounded-xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col gap-4 relative overflow-hidden group cursor-pointer hover:border-slate-400 dark:hover:border-slate-600 hover:ring-1 hover:ring-slate-200 dark:hover:ring-slate-700/50 transition-all">
+                <div onclick="openModal('checkedOut')" class="bg-surface-light dark:bg-surface-dark rounded-xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col gap-4 relative overflow-hidden group cursor-pointer hover:border-slate-400 dark:hover:border-slate-600 hover:ring-1 hover:ring-slate-200 dark:hover:ring-slate-700/50 transition-all">
                     <div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                         <span class="material-symbols-outlined text-6xl text-slate-900 dark:text-white">logout</span>
                     </div>
@@ -401,22 +422,17 @@
                     </div>
                 </div>
 
-                <!-- Out of Window Card -->
-                <div class="bg-surface-light dark:bg-surface-dark rounded-xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col gap-4 relative overflow-hidden group cursor-pointer hover:border-red-300 dark:hover:border-red-800 transition-colors">
+                <!-- Active Security Alerts Card -->
+                <div onclick="openModal('activeAlerts')" class="bg-surface-light dark:bg-surface-dark rounded-xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col gap-4 relative overflow-hidden group cursor-pointer hover:border-red-300 dark:hover:border-red-800 transition-colors">
                     <div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <span class="material-symbols-outlined text-6xl text-slate-900 dark:text-white">timer_off</span>
+                        <span class="material-symbols-outlined text-6xl text-slate-900 dark:text-white">shield</span>
                     </div>
                     <div class="size-10 rounded-lg bg-red-50 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-400">
-                        <span class="material-symbols-outlined">timer_off</span>
+                        <span class="material-symbols-outlined fill-1">shield</span>
                     </div>
                     <div>
-                        <p class="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Out of Window</p>
-                        <div class="flex items-center gap-3">
-                            <p class="text-3xl font-bold text-slate-900 dark:text-white"><?= $stats['outOfWindow'] ?></p>
-                            <button class="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 text-xs font-bold transition-colors z-20" onclick="event.stopPropagation()">
-                                Reset
-                            </button>
-                        </div>
+                        <p class="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Active Security Alerts</p>
+                        <p class="text-3xl font-bold text-slate-900 dark:text-white"><?= $activeSecurityAlertCount ?></p>
                     </div>
                 </div>
             </div>
@@ -741,12 +757,310 @@
         </div>
     </main>
 </div>
+
+<!-- Dashboard Drill-Down Modal -->
+<div id="dash-modal" class="fixed inset-0 z-[100] hidden">
+    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeModal()"></div>
+    <div class="absolute inset-4 md:inset-y-8 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-4xl bg-surface-light dark:bg-surface-dark rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-slate-200 dark:border-slate-700">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex-shrink-0">
+            <div class="flex items-center gap-3">
+                <div id="modal-icon" class="size-9 rounded-lg flex items-center justify-center"></div>
+                <div>
+                    <h3 id="modal-title" class="text-base font-bold text-slate-900 dark:text-white"></h3>
+                    <p id="modal-subtitle" class="text-xs text-slate-500"></p>
+                </div>
+            </div>
+            <button onclick="closeModal()" class="size-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+                <span class="material-symbols-outlined text-[20px]">close</span>
+            </button>
+        </div>
+        <div id="modal-body" class="flex-1 overflow-y-auto p-6">
+            <div class="flex items-center justify-center py-12">
+                <div class="flex items-center gap-3 text-slate-400">
+                    <svg class="animate-spin size-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                    <span class="text-sm font-medium">Loading...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
-function acknowledgeAlert(id){fetch('<?= base_url('dashboard/acknowledgeAlert') ?>',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-Requested-With':'XMLHttpRequest'},body:'alert_id='+id}).then(r=>r.json()).then(d=>{if(d.success){const b=document.getElementById('alert-banner-'+id);if(b){b.style.transition='opacity .4s,transform .4s';b.style.opacity='0';b.style.transform='translateY(-10px)';setTimeout(()=>b.remove(),400)}}else{const b=document.getElementById('alert-banner-'+id);if(b){b.style.transition='opacity .4s,transform .4s';b.style.opacity='0';setTimeout(()=>b.remove(),400)}if(d.message)console.log(d.message)}})}
-function updateTrafficGraph(){const f=document.getElementById('traffic-from').value,t=document.getElementById('traffic-to').value;fetch(`<?= base_url('dashboard/trafficData') ?>?from=${f}&to=${t}`).then(r=>r.json()).then(d=>{if(d.success){const c=document.getElementById('traffic-chart'),l=document.getElementById('traffic-x-labels');c.querySelectorAll('.traffic-bar-container').forEach(e=>e.remove());l.innerHTML='';const m=Math.max(1,...d.data.map(x=>x.count));d.data.forEach(x=>{const p=(x.count/m)*100,cn=document.createElement('div');cn.className='flex-1 flex flex-col items-center justify-end h-full gap-1 group cursor-pointer traffic-bar-container';cn.dataset.count=x.count;cn.innerHTML=`<div class="w-full max-w-[28px] mx-auto bg-primary/80 hover:bg-primary rounded-t transition-all duration-300 relative" style="height:${p}%"><div class="absolute -top-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[9px] py-0.5 px-1.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">${x.count}</div></div>`;c.appendChild(cn);const lb=document.createElement('div');lb.className='flex-1 text-center text-[9px] text-slate-400 font-medium truncate';lb.textContent=x.label;l.appendChild(lb)});renderYAxis(m)}})}
-document.getElementById('onsite-search')?.addEventListener('input',function(){const q=this.value.toLowerCase();document.querySelectorAll('#onsite-table tbody tr').forEach(r=>{r.style.display=r.textContent.toLowerCase().includes(q)?'':'none'})});
-function renderYAxis(m){const y=document.getElementById('traffic-y-axis');if(!y)return;y.innerHTML='';for(let i=4;i>=0;i--){const s=document.createElement('span');s.textContent=Math.round((m/4)*i);y.appendChild(s)}}
-document.addEventListener('DOMContentLoaded',function(){const bars=document.querySelectorAll('.traffic-bar-container');let mx=1;bars.forEach(b=>{const c=parseInt(b.dataset.count||0);if(c>mx)mx=c});renderYAxis(mx);setTimeout(()=>{bars.forEach(b=>{const bar=b.querySelector('div'),c=parseInt(b.dataset.count||0),p=mx>0?(c/mx)*100:0;if(bar)bar.style.height=Math.max(p,c>0?3:0)+'%'})},100)})
+const BASE = '<?= base_url() ?>';
+
+function acknowledgeAlert(id) {
+    fetch(BASE + '/dashboard/acknowledgeAlert', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest'},
+        body: 'alert_id=' + id
+    }).then(r => r.json()).then(d => {
+        const b = document.getElementById('alert-banner-' + id);
+        if (b) { b.style.transition = 'opacity .4s,transform .4s'; b.style.opacity = '0'; b.style.transform = 'translateY(-10px)'; setTimeout(() => b.remove(), 400); }
+    });
+}
+
+function updateTrafficGraph() {
+    const f = document.getElementById('traffic-from').value, t = document.getElementById('traffic-to').value;
+    fetch(BASE + '/dashboard/trafficData?from=' + f + '&to=' + t).then(r => r.json()).then(d => {
+        if (!d.success) return;
+        const c = document.getElementById('traffic-chart'), l = document.getElementById('traffic-x-labels');
+        c.querySelectorAll('.traffic-bar-container').forEach(e => e.remove()); l.innerHTML = '';
+        const m = Math.max(1, ...d.data.map(x => x.count));
+        d.data.forEach(x => {
+            const p = (x.count / m) * 100, cn = document.createElement('div');
+            cn.className = 'flex-1 flex flex-col items-center justify-end h-full gap-1 group cursor-pointer traffic-bar-container';
+            cn.dataset.count = x.count;
+            cn.innerHTML = '<div class="w-full max-w-[28px] mx-auto bg-primary/80 hover:bg-primary rounded-t transition-all duration-300 relative" style="height:' + p + '%"><div class="absolute -top-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[9px] py-0.5 px-1.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">' + x.count + '</div></div>';
+            c.appendChild(cn);
+            const lb = document.createElement('div');
+            lb.className = 'flex-1 text-center text-[9px] text-slate-400 font-medium truncate';
+            lb.textContent = x.label; l.appendChild(lb);
+        });
+        renderYAxis(m);
+    });
+}
+
+document.getElementById('onsite-search')?.addEventListener('input', function () {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('#onsite-table tbody tr').forEach(r => { r.style.display = r.textContent.toLowerCase().includes(q) ? '' : 'none'; });
+});
+
+function renderYAxis(m) {
+    const y = document.getElementById('traffic-y-axis'); if (!y) return; y.innerHTML = '';
+    for (let i = 4; i >= 0; i--) { const s = document.createElement('span'); s.textContent = Math.round((m / 4) * i); y.appendChild(s); }
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    const bars = document.querySelectorAll('.traffic-bar-container'); let mx = 1;
+    bars.forEach(b => { const c = parseInt(b.dataset.count || 0); if (c > mx) mx = c; }); renderYAxis(mx);
+    setTimeout(() => { bars.forEach(b => { const bar = b.querySelector('div'), c = parseInt(b.dataset.count || 0), p = mx > 0 ? (c / mx) * 100 : 0; if (bar) bar.style.height = Math.max(p, c > 0 ? 3 : 0) + '%'; }); }, 100);
+});
+
+/* ========== MODAL SYSTEM ========== */
+const modalEl = document.getElementById('dash-modal');
+const modalTitle = document.getElementById('modal-title');
+const modalSubtitle = document.getElementById('modal-subtitle');
+const modalIcon = document.getElementById('modal-icon');
+const modalBody = document.getElementById('modal-body');
+const LOADER = '<div class="flex items-center justify-center py-12"><div class="flex items-center gap-3 text-slate-400"><svg class="animate-spin size-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg><span class="text-sm font-medium">Loading...</span></div></div>';
+const EMPTY = (msg) => '<div class="flex flex-col items-center justify-center py-12 text-center"><span class="material-symbols-outlined text-5xl text-slate-300 dark:text-slate-600 mb-3">inbox</span><p class="text-slate-400 font-medium">' + msg + '</p></div>';
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+function fmtTime(dt) { if (!dt) return 'N/A'; const d = new Date(dt.replace(' ', 'T')); return d.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit', hour12: true}); }
+function fmtDateTime(dt) { if (!dt) return 'N/A'; const d = new Date(dt.replace(' ', 'T')); return d.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'}) + ' ' + d.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit', hour12: true}); }
+function initials(n) { return (n || 'NA').substring(0, 2).toUpperCase(); }
+function sevBadge(s) { const c = {critical:'bg-red-100 text-red-700',high:'bg-orange-100 text-orange-700',medium:'bg-amber-100 text-amber-700',low:'bg-slate-100 text-slate-600'}; return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold ' + (c[s] || c.low) + '">' + esc((s||'').charAt(0).toUpperCase()+(s||'').slice(1)) + '</span>'; }
+
+function openModal(type) {
+    modalBody.innerHTML = LOADER;
+    modalEl.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    const cfg = modalConfigs[type];
+    if (!cfg) return;
+    modalTitle.textContent = cfg.title;
+    modalSubtitle.textContent = cfg.subtitle;
+    modalIcon.className = 'size-9 rounded-lg flex items-center justify-center ' + cfg.iconCls;
+    modalIcon.innerHTML = '<span class="material-symbols-outlined fill-1">' + cfg.icon + '</span>';
+    fetch(BASE + cfg.url).then(r => r.json()).then(d => cfg.render(d)).catch(() => { modalBody.innerHTML = EMPTY('Failed to load data'); });
+}
+
+function closeModal() {
+    modalEl.classList.add('hidden');
+    document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+function buildTable(headers, rows) {
+    if (!rows.length) return '';
+    let h = '<table class="w-full text-left border-collapse"><thead><tr class="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">';
+    headers.forEach(th => { h += '<th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">' + th + '</th>'; });
+    h += '</tr></thead><tbody class="divide-y divide-slate-200 dark:divide-slate-700">';
+    rows.forEach(tr => { h += '<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">'; tr.forEach(td => { h += '<td class="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 whitespace-nowrap">' + td + '</td>'; }); h += '</tr>'; });
+    h += '</tbody></table>';
+    return '<div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700">' + h + '</div>';
+}
+
+function ackFromModal(id, btn) {
+    btn.disabled = true; btn.innerHTML = '<svg class="animate-spin size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>';
+    fetch(BASE + '/dashboard/acknowledgeAlert', { method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest'}, body: 'alert_id=' + id })
+    .then(r => r.json()).then(d => {
+        const row = btn.closest('tr'); if (row) { row.style.transition = 'opacity .3s'; row.style.opacity = '0'; setTimeout(() => row.remove(), 300); }
+        const banner = document.getElementById('alert-banner-' + id);
+        if (banner) { banner.style.transition = 'opacity .4s,transform .4s'; banner.style.opacity = '0'; banner.style.transform = 'translateY(-10px)'; setTimeout(() => banner.remove(), 400); }
+    });
+}
+
+const modalConfigs = {
+    accessDenied: {
+        title: 'Access Denied Incidents', subtitle: 'Last 24 hours',
+        icon: 'gpp_bad', iconCls: 'bg-red-100 text-red-600',
+        url: '/dashboard/accessDeniedData',
+        render(d) {
+            if (!d.success || !d.data.length) { modalBody.innerHTML = EMPTY('No access denied incidents in the last 24 hours'); return; }
+            const rows = d.data.map(a => [
+                '<div class="flex items-center gap-2"><span class="material-symbols-outlined text-red-500 text-[16px]">block</span>' + esc(a.incident_type) + '</div>',
+                sevBadge(a.severity),
+                esc(a.visitor_name || 'Unknown'),
+                esc(a.location || 'N/A'),
+                fmtDateTime(a.created_at),
+                a.is_acknowledged == 1
+                    ? '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700"><span class="material-symbols-outlined text-[12px]">check_circle</span>Acknowledged</span>'
+                    : '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700"><span class="material-symbols-outlined text-[12px]">error</span>Pending</span>',
+            ]);
+            modalBody.innerHTML = '<p class="text-sm text-slate-500 mb-4">' + d.data.length + ' incident' + (d.data.length !== 1 ? 's' : '') + ' found</p>' + buildTable(['Incident', 'Severity', 'Visitor', 'Location', 'Time', 'Status'], rows);
+        }
+    },
+    overstay: {
+        title: 'Visitor Overstay Alerts', subtitle: 'Visitors past scheduled window',
+        icon: 'timer_off', iconCls: 'bg-amber-100 text-amber-600',
+        url: '/dashboard/overstayData',
+        render(d) {
+            if (!d.success) { modalBody.innerHTML = EMPTY('Failed to load data'); return; }
+            let html = '';
+            if (d.physicalOverstays && d.physicalOverstays.length) {
+                html += '<h4 class="text-sm font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2"><span class="material-symbols-outlined text-amber-500 text-[18px] fill-1">warning</span>Currently Overstaying (' + d.physicalOverstays.length + ')</h4>';
+                const rows = d.physicalOverstays.map(v => {
+                    const endTs = new Date(v.schedule_end.replace(' ', 'T')).getTime();
+                    const overMin = Math.max(0, Math.floor((Date.now() - endTs) / 60000));
+                    const overH = Math.floor(overMin / 60), overM = overMin % 60;
+                    const overLabel = overH > 0 ? overH + 'h ' + overM + 'm' : overM + 'm';
+                    return [
+                        '<div class="flex items-center gap-2"><div class="size-7 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 text-[10px] font-bold">' + initials(v.visitor_name) + '</div>' + esc(v.visitor_name) + '</div>',
+                        esc(v.host_name), fmtTime(v.check_in_time), fmtDateTime(v.schedule_end), esc(v.location),
+                        '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700"><span class="material-symbols-outlined text-[12px]">schedule</span>+' + overLabel + '</span>'
+                    ];
+                });
+                html += buildTable(['Visitor', 'Host', 'Check-in', 'Schedule End', 'Location', 'Overstay'], rows);
+            }
+            if (d.alertRows && d.alertRows.length) {
+                html += '<h4 class="text-sm font-bold text-slate-900 dark:text-white mt-6 mb-3 flex items-center gap-2"><span class="material-symbols-outlined text-amber-500 text-[18px]">notifications_active</span>Overstay Alert Records (' + d.alertRows.length + ')</h4>';
+                const rows = d.alertRows.map(a => [esc(a.incident_type), sevBadge(a.severity), esc(a.visitor_name || 'Unknown'), esc(a.location || 'N/A'), fmtDateTime(a.created_at)]);
+                html += buildTable(['Incident', 'Severity', 'Visitor', 'Location', 'Time'], rows);
+            }
+            if (!html) html = EMPTY('No visitor overstay alerts at this time');
+            modalBody.innerHTML = html;
+        }
+    },
+    alertDetail: {
+        title: 'Security Alert Detail', subtitle: 'Incident information',
+        icon: 'warning', iconCls: 'bg-red-100 text-red-600',
+        url: '',
+        render(d) {
+            if (!d.success || !d.data) { modalBody.innerHTML = EMPTY('Alert not found'); return; }
+            const a = d.data;
+            let html = '<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">';
+            const fields = [['Incident Type', a.incident_type], ['Severity', null], ['Location', a.location || 'N/A'], ['Time', fmtDateTime(a.created_at)], ['Visitor Name', a.visitor_name || 'Unknown'], ['Status', null]];
+            fields.forEach(([label, val]) => {
+                html += '<div class="p-4 rounded-lg bg-slate-50 dark:bg-slate-800/50"><p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">' + label + '</p>';
+                if (label === 'Severity') html += sevBadge(a.severity);
+                else if (label === 'Status') html += a.is_acknowledged == 1 ? '<span class="inline-flex items-center gap-1 text-sm font-medium text-green-600"><span class="material-symbols-outlined text-[16px] fill-1">check_circle</span>Acknowledged</span>' : '<span class="inline-flex items-center gap-1 text-sm font-medium text-red-600"><span class="material-symbols-outlined text-[16px] fill-1">error</span>Pending</span>';
+                else html += '<p class="text-sm font-medium text-slate-900 dark:text-white">' + esc(val) + '</p>';
+                html += '</div>';
+            });
+            html += '</div>';
+            if (a.description) html += '<div class="mt-4 p-4 rounded-lg bg-slate-50 dark:bg-slate-800/50"><p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Description</p><p class="text-sm text-slate-700 dark:text-slate-300">' + esc(a.description) + '</p></div>';
+            if (a.is_acknowledged == 1 && a.acknowledged_by_name) html += '<div class="mt-4 p-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800"><p class="text-sm text-green-700 dark:text-green-400 font-medium">Acknowledged by ' + esc(a.acknowledged_by_name) + ' on ' + fmtDateTime(a.acknowledged_at) + '</p></div>';
+            if (a.is_acknowledged == 0) html += '<div class="mt-4 flex justify-end"><button onclick="ackFromDetail(' + a.id + ', this)" class="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-dark text-white text-sm font-bold rounded-lg transition-colors"><span class="material-symbols-outlined text-[18px]">check</span>Acknowledge</button></div>';
+            modalBody.innerHTML = html;
+        }
+    },
+    expectedToday: {
+        title: 'Expected Today', subtitle: new Date().toLocaleDateString('en-US', {month: 'long', day: 'numeric', year: 'numeric'}),
+        icon: 'calendar_month', iconCls: 'bg-indigo-100 text-indigo-600',
+        url: '/dashboard/expectedTodayData',
+        render(d) {
+            if (!d.success || !d.data.length) { modalBody.innerHTML = EMPTY('No visitors expected today'); return; }
+            const rows = d.data.map(v => {
+                let status, cls;
+                if (v.check_in_time) { if (v.check_out_time) { status = 'Checked Out'; cls = 'bg-slate-100 text-slate-600'; } else { status = 'On-Site'; cls = 'bg-green-100 text-green-700'; } } else { status = 'Pre-Arrival'; cls = 'bg-amber-100 text-amber-700'; }
+                return [
+                    '<div class="flex items-center gap-2"><div class="size-7 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-[10px] font-bold">' + initials(v.full_name) + '</div><div><p class="font-medium text-slate-900 dark:text-white">' + esc(v.full_name || 'N/A') + '</p></div></div>',
+                    esc(v.company || 'N/A'), esc(v.host_name || 'N/A'),
+                    fmtTime(v.date_from) + ' - ' + fmtTime(v.date_to),
+                    '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold ' + cls + '">' + status + '</span>'
+                ];
+            });
+            modalBody.innerHTML = '<p class="text-sm text-slate-500 mb-4">' + d.data.length + ' visitor' + (d.data.length !== 1 ? 's' : '') + ' expected</p>' + buildTable(['Visitor', 'Company', 'Host', 'Schedule', 'Status'], rows);
+        }
+    },
+    onSite: {
+        title: 'Currently On-Site', subtitle: 'Visitors currently on premises',
+        icon: 'group', iconCls: 'bg-primary/10 text-primary',
+        url: '/dashboard/onSiteData',
+        render(d) {
+            if (!d.success || !d.data.length) { modalBody.innerHTML = EMPTY('No visitors currently on-site'); return; }
+            const rows = d.data.map(v => [
+                '<div class="flex items-center gap-2"><div class="size-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px] font-bold">' + initials(v.visitor_name) + '</div><div><p class="font-medium text-slate-900 dark:text-white">' + esc(v.visitor_name) + '</p><p class="text-[11px] text-slate-400">' + esc(v.visitor_email || '') + '</p></div></div>',
+                esc(v.company || 'N/A'), esc(v.host_name), fmtTime(v.check_in_time), esc(v.location)
+            ]);
+            modalBody.innerHTML = '<p class="text-sm text-slate-500 mb-4">' + d.data.length + ' visitor' + (d.data.length !== 1 ? 's' : '') + ' on-site</p>' + buildTable(['Visitor', 'Company', 'Host', 'Check-in', 'Location'], rows);
+        }
+    },
+    checkedOut: {
+        title: 'Checked Out Today', subtitle: new Date().toLocaleDateString('en-US', {month: 'long', day: 'numeric', year: 'numeric'}),
+        icon: 'logout', iconCls: 'bg-slate-200 text-slate-600',
+        url: '/dashboard/checkedOutData',
+        render(d) {
+            if (!d.success || !d.data.length) { modalBody.innerHTML = EMPTY('No visitors checked out today'); return; }
+            const rows = d.data.map(v => {
+                let dur = '';
+                if (v.check_in_time && v.check_out_time) {
+                    const m = Math.floor((new Date(v.check_out_time.replace(' ','T')) - new Date(v.check_in_time.replace(' ','T'))) / 60000);
+                    const h = Math.floor(m / 60), mm = m % 60;
+                    dur = h > 0 ? h + 'h ' + mm + 'm' : mm + 'm';
+                }
+                return [
+                    '<div class="flex items-center gap-2"><div class="size-7 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 text-[10px] font-bold">' + initials(v.visitor_name) + '</div>' + esc(v.visitor_name) + '</div>',
+                    esc(v.company || 'N/A'), esc(v.host_name), fmtTime(v.check_in_time), fmtTime(v.check_out_time), dur, esc(v.location)
+                ];
+            });
+            modalBody.innerHTML = '<p class="text-sm text-slate-500 mb-4">' + d.data.length + ' checked out today</p>' + buildTable(['Visitor', 'Company', 'Host', 'Check-in', 'Check-out', 'Duration', 'Location'], rows);
+        }
+    },
+    activeAlerts: {
+        title: 'Active Security Alerts', subtitle: 'Unacknowledged alerts',
+        icon: 'shield', iconCls: 'bg-red-100 text-red-600',
+        url: '/dashboard/activeAlertsData',
+        render(d) {
+            if (!d.success || !d.data.length) { modalBody.innerHTML = EMPTY('All security alerts have been acknowledged'); return; }
+            const rows = d.data.map(a => [
+                '<div class="flex items-center gap-2"><span class="material-symbols-outlined text-red-500 text-[16px] fill-1">warning</span>' + esc(a.incident_type) + '</div>',
+                sevBadge(a.severity),
+                esc(a.visitor_name || 'Unknown'),
+                esc(a.location || 'N/A'),
+                fmtDateTime(a.created_at),
+                '<div class="flex gap-1"><button onclick="openAlertDetail(' + a.id + ')" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold rounded transition-colors">View</button><button onclick="ackFromModal(' + a.id + ', this)" class="px-2 py-1 bg-primary hover:bg-primary-dark text-white text-[10px] font-bold rounded transition-colors">Acknowledge</button></div>'
+            ]);
+            modalBody.innerHTML = '<p class="text-sm text-slate-500 mb-4">' + d.data.length + ' active alert' + (d.data.length !== 1 ? 's' : '') + '</p>' + buildTable(['Incident', 'Severity', 'Visitor', 'Location', 'Time', 'Actions'], rows);
+        }
+    }
+};
+
+function openAlertDetail(id) {
+    modalBody.innerHTML = LOADER;
+    modalTitle.textContent = 'Security Alert #' + id;
+    modalSubtitle.textContent = 'Incident detail';
+    modalIcon.className = 'size-9 rounded-lg flex items-center justify-center bg-red-100 text-red-600';
+    modalIcon.innerHTML = '<span class="material-symbols-outlined fill-1">warning</span>';
+    fetch(BASE + '/dashboard/alertDetailData/' + id).then(r => r.json()).then(d => modalConfigs.alertDetail.render(d)).catch(() => { modalBody.innerHTML = EMPTY('Failed to load alert'); });
+}
+
+function openAlertFromBanner(id) {
+    openAlertDetail(id);
+    modalEl.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function ackFromDetail(id, btn) {
+    btn.disabled = true; btn.textContent = 'Acknowledging...';
+    fetch(BASE + '/dashboard/acknowledgeAlert', { method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest'}, body: 'alert_id=' + id })
+    .then(r => r.json()).then(() => {
+        openAlertDetail(id);
+        const banner = document.getElementById('alert-banner-' + id);
+        if (banner) { banner.style.transition = 'opacity .4s,transform .4s'; banner.style.opacity = '0'; banner.style.transform = 'translateY(-10px)'; setTimeout(() => banner.remove(), 400); }
+    });
+}
 </script>
 </body>
 </html>

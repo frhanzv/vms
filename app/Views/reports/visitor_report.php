@@ -217,7 +217,8 @@
                                         <th>IC / PASSPORT NO</th>
                                         <th>CONTACT NO</th>
                                         <th>COMPANY</th>
-                                        <th>LOCATION</th>
+                                        <th>CURRENT LOCATION</th>
+                                        <th>LOCATION ACCESSED</th>
                                         <th>TIME IN</th>
                                         <th>TIME OUT</th>
                                         <th>PURPOSE OF VISIT</th>
@@ -284,7 +285,7 @@
     
     const tableHeaders = [
         "NO", "DATE", "FULL NAME", "IC / PASSPORT NO", "CONTACT NO", 
-        "COMPANY", "LOCATION", "TIME IN", "TIME OUT", "PURPOSE", "HOST NAME", 
+        "COMPANY", "CURRENT LOCATION", "LOCATION ACCESSED", "TIME IN", "TIME OUT", "PURPOSE", "HOST NAME", 
         "DURATION", "STATUS"
     ];
 
@@ -346,6 +347,7 @@
                 <td class="text-slate-500 py-4">${val(v.contact_no)}</td>
                 <td class="text-slate-500 py-4">${val(v.visitor_company)}</td>
                 <td class="text-slate-500 py-4">${val(v.current_location)}</td>
+                <td class="text-slate-500 py-4">${val(v.location_accessed)}</td>
                 <td class="text-slate-500 font-medium py-4">${val(v.checkin_time)}</td>
                 <td class="text-slate-500 font-medium py-4">${val(v.checkout_time)}</td>
                 <td class="text-slate-500 py-4">${val(v.visit_reason)}</td>
@@ -376,6 +378,97 @@
             },
             scrollX: false, // Handled implicitly by overflow wrapper
             autoWidth: false,
+            initComplete: function () {
+                var api = this.api();
+                api.columns().every(function () {
+                    var column = this;
+                    var header = $(column.header());
+                    // Extract text before appending select
+                    var headerText = header.clone().children().remove().end().text().trim().toUpperCase();
+                    if (headerText !== 'ACTIONS' && headerText !== 'NO' && headerText !== 'NO.') {
+                        header.find('.dt-filter-wrapper').remove();
+                        
+                        var wrapper = $('<div class="dt-filter-wrapper inline-block relative ml-1 align-middle" onclick="event.stopPropagation()"></div>');
+                        var icon = $('<span class="material-symbols-outlined text-[16px] text-slate-300 hover:text-[#535dec] transition-colors cursor-pointer" style="vertical-align: middle;">filter_alt</span>');
+                        var dropdown = $('<div class="filter-dropdown hidden absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded shadow-lg z-[50] p-2 text-left text-sm max-h-[250px] overflow-y-auto" style="min-width: 160px; font-weight: normal;"></div>');
+                        
+                        wrapper.append(icon).append(dropdown);
+                        header.append(wrapper);
+
+                        // Only add unique non-empty string values
+                        var options = [];
+                        column.data().unique().sort().each(function (d, j) {
+                            var textVal = $('<div>').html(d).text().trim();
+                            if (textVal && textVal !== '-' && textVal !== 'View' && textVal !== 'NULL' && textVal !== 'null') {
+                                options.push(textVal);
+                            }
+                        });
+
+                        var allLabel = $('<label class="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 cursor-pointer font-semibold text-slate-700 capitalize mb-1"></label>');
+                        var allCb = $('<input type="checkbox" checked class="form-checkbox h-4 w-4 text-[#535dec] accent-[#535dec] rounded border-slate-300 cursor-pointer">');
+                        allLabel.append(allCb).append('<span class="select-none">All</span>');
+                        dropdown.append(allLabel);
+                        dropdown.append('<hr class="my-1 border-slate-200">');
+
+                        var itemCbs = [];
+                        options.forEach(function(val) {
+                            var itemLabel = $('<label class="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 cursor-pointer text-slate-600 capitalize"></label>');
+                            var itemCb = $('<input type="checkbox" checked value="' + val.replace(/"/g, '&quot;') + '" class="form-checkbox h-4 w-4 text-[#535dec] accent-[#535dec] rounded border-slate-300 cursor-pointer">');
+                            itemLabel.append(itemCb).append('<span class="select-none">' + val + '</span>');
+                            dropdown.append(itemLabel);
+                            itemCbs.push(itemCb);
+                        });
+
+                        icon.on('click', function(e) {
+                            e.stopPropagation();
+                            $('.filter-dropdown').not(dropdown).addClass('hidden');
+                            dropdown.toggleClass('hidden');
+                        });
+                        
+                        $(document).on('click', function(e) {
+                            if (!$(e.target).closest(wrapper).length) {
+                                dropdown.addClass('hidden');
+                            }
+                        });
+
+                        function applyFilter() {
+                            var selected = [];
+                            var allChecked = true;
+                            itemCbs.forEach(function(cb) {
+                                if(cb.prop('checked')) {
+                                    selected.push($.fn.dataTable.util.escapeRegex(cb.val()));
+                                } else {
+                                    allChecked = false;
+                                }
+                            });
+                            
+                            allCb.prop('checked', allChecked);
+
+                            if(selected.length > 0 && selected.length < options.length) {
+                                icon.removeClass('text-slate-300 text-red-500').addClass('text-[#535dec]');
+                                var regex = '^(' + selected.join('|') + ')$';
+                                column.search(regex, true, false).draw();
+                            } else if (selected.length === 0) {
+                                icon.removeClass('text-slate-300 text-[#535dec]').addClass('text-red-500');
+                                column.search('^__NON_EXISTENT_MATCH__$', true, false).draw();
+                            } else {
+                                icon.removeClass('text-[#535dec] text-red-500').addClass('text-slate-300');
+                                column.search('', true, false).draw();
+                            }
+                        }
+
+                        allCb.on('change', function() {
+                            var isChecked = $(this).prop('checked');
+                            itemCbs.forEach(function(cb) { cb.prop('checked', isChecked); });
+                            applyFilter();
+                        });
+
+                        itemCbs.forEach(function(cb) {
+                            cb.on('change', applyFilter);
+                        });
+                    }
+                });
+            }
         });
         
         initColumnsCheckboxes();
@@ -473,27 +566,21 @@
         
         const exportData = [expHeaders];
         
-        // Use DataTable data to get all rows currently across pages, filtered
-        reportData.forEach((v, i) => {
-            // Need to map data to table layout
-             const fullRowData = [
-                i + 1,
-                v.visit_date || '-',
-                v.visitor_name || '-',
-                v.ic_no || '-',
-                v.contact_no || '-',
-                v.visitor_company || '-',
-                v.current_location || '-',
-                v.checkin_time || '-',
-                v.checkout_time || '-',
-                v.visit_reason || '-',
-                v.person_visited || '-',
-                v.duration || '-',
-                v.visit_status || '-'
-            ];
+        let exportIndex = 1;
+        dtTable.rows({search: 'applied'}).every(function() {
+            var tr = this.node();
+            var tds = $(tr).find('td');
             
-            // Only push visible data
-            const rowData = visibleIndices.map(idx => fullRowData[idx]);
+            const fullRowData = [];
+            tds.each(function(index) {
+                if (index === 0) {
+                    fullRowData.push(exportIndex++);
+                } else {
+                    fullRowData.push($(this).text().trim());
+                }
+            });
+            
+            const rowData = visibleIndices.map(idx => fullRowData[idx] || '-');
             exportData.push(rowData);
         });
 

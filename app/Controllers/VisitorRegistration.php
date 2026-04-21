@@ -248,6 +248,7 @@ class VisitorRegistration extends BaseController
                 'location' => $companyVisitingStr,
                 'reason' => $this->getConfiguredPostValue('visit_reason', $formConfig),
                 'status' => 'Submitted',
+                'registration_source' => 'Invitation',
                 'government_id_path' => $this->isFormFieldEnabled('document_upload_section', $formConfig) ? $governmentIdPath : null,
                 'invitation_letter_path' => $this->isFormFieldEnabled('document_upload_section', $formConfig) ? $invitationLetterPath : null,
                 'profile_photo_path' => $this->isFormFieldEnabled('profile_photo_section', $formConfig) ? $profilePhotoPath : null,
