@@ -354,22 +354,20 @@
                         </div>
                         <span id="regtype-icon" class="material-symbols-outlined text-gray-400 dark:text-slate-400 transition-transform">expand_more</span>
                     </button>
+
                     <div id="regtype-content" class="hidden border-t border-gray-200 dark:border-slate-700">
                         <div class="p-6 bg-gray-50 dark:bg-slate-800/50">
+
                             <!-- Search -->
-                            <div class="flex items-center gap-2 w-full sm:w-auto">
-                                <form method="GET" action="" class="flex shadow-sm w-full sm:w-96">
-                                    <input name="regtype_search" id="regtype-search-input" value="<?= esc($regtype_search) ?>"
-                                        class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none"
-                                        placeholder="Search registration type..." type="text"/>
-                                    <button type="submit" class="bg-primary hover:bg-blue-600 text-white px-6 py-2.5 rounded-r flex items-center justify-center transition-colors">
                             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                                 <div class="flex shadow-sm w-full sm:w-96">
-                                    <input id="regtype-search-input" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Search registration type..." type="text"/>
+                                    <input id="regtype-search-input" value="<?= esc($regtype_search) ?>"
+                                        class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none"
+                                        placeholder="Search registration type..." type="text"/>
                                     <button onclick="searchRegType()" class="bg-primary hover:bg-blue-600 text-white px-6 py-2.5 rounded-r flex items-center justify-center transition-colors">
                                         <span class="material-symbols-outlined text-white text-[20px]">search</span>
                                     </button>
-                                </form>
+                                </div>
                             </div>
 
                             <!-- Table -->
@@ -412,14 +410,6 @@
                                                 </td>
                                             </tr>
                                         <?php endif; ?>
-                                        <tr>
-                                            <td colspan="3" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
-                                                <div class="flex flex-col items-center justify-center">
-                                                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
-                                                    <span>Loading registration types...</span>
-                                                </div>
-                                            </td>
-                                        </tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -456,9 +446,8 @@
                                         </a>
                                     <?php endif; ?>
                                 </div>
-                                <p id="regtype-pagination-info" class="text-sm text-gray-600 dark:text-slate-400">Loading...</p>
-                                <div id="regtype-pagination-buttons" class="flex items-center gap-2"></div>
                             </div>
+
                         </div>
                     </div>
                 </div>
@@ -479,20 +468,15 @@
                                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
                                     *Registration Type Name:
                                 </label>
-                                <input
-                                    id="regtype-modal-name"
-                                    type="text"
-                                    class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2 text-sm focus:ring-primary focus:border-primary outline-none"
-                                />
+                                <input id="regtype-modal-name" type="text"
+                                    class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2 text-sm focus:ring-primary focus:border-primary outline-none"/>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
                                     Status
                                 </label>
-                                <select
-                                    id="regtype-modal-status"
-                                    class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2 text-sm focus:ring-primary focus:border-primary outline-none"
-                                >
+                                <select id="regtype-modal-status"
+                                    class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2 text-sm focus:ring-primary focus:border-primary outline-none">
                                     <option value="Active">ACTIVE</option>
                                     <option value="Inactive">INACTIVE</option>
                                 </select>

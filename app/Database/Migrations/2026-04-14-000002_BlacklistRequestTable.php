@@ -57,11 +57,11 @@ class BlacklistRequestTable extends Migration
             ],
         ]);
 
-        $this->forge->addKey('id', true);
-        $this->forge->addKey('ic_passport_no');
-        $this->forge->addKey('staff_id');
-        $this->forge->addKey('status');
-        $this->forge->addKey('blacklist_date');
+        $this->forge->addKey('id', true);           // primary key
+        $this->forge->addKey('ic_passport_no', false); // index
+        $this->forge->addKey('staff_id', false);       // index
+        $this->forge->addKey('status', false);         // index
+        $this->forge->addKey('blacklist_date', false); // index
         $this->forge->createTable('blacklist');
     }
 
