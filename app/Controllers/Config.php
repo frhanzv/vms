@@ -136,52 +136,49 @@ class Config extends BaseController
 
     public function index()
     {
-        // =========================
-        // REG TYPE SECTION
-        // =========================
         $regSearch  = $this->request->getGet('regtype_search') ?? '';
         $regPage    = (int)($this->request->getGet('regtype_page') ?? 1);
         $regPerPage = 10;
         $regOffset  = ($regPage - 1) * $regPerPage;
+        $regTotal   = 0;
+        $regTypes   = [];
 
-        $regBuilder = $this->regTypeModel->orderBy('name', 'ASC');
-
-        if ($regSearch) {
-            $regBuilder->like('name', $regSearch);
-        }
-
-        $regTotal    = (clone $regBuilder)->countAllResults();
-        $regTypes    = $regBuilder->findAll($regPerPage, $regOffset);
-
-
-        // =========================
-        // BUSINESS TYPE SECTION
-        // =========================
         $bizSearch  = $this->request->getGet('biztype_search') ?? '';
         $bizPage    = (int)($this->request->getGet('biztype_page') ?? 1);
         $bizPerPage = 10;
         $bizOffset  = ($bizPage - 1) * $bizPerPage;
+        $bizTotal   = 0;
+        $bizTypes   = [];
 
-        $bizBuilder = $this->bizTypeModel->orderBy('business_type', 'ASC');
-
-        if ($bizSearch) {
-            $bizBuilder->like('business_type', $bizSearch);
-        }
-
-        $bizTotal = (clone $bizBuilder)->countAllResults();
-        $bizTypes = $bizBuilder->findAll($bizPerPage, $bizOffset);
-
-        // =========================
-        // BLACKLIST REASON SECTION
-        // =========================
         $blacklistSearch  = $this->request->getGet('blacklist_search') ?? '';
-        $blacklistBuilder = $this->blacklistReasonModel->orderBy('reason', 'ASC');
+        $blacklistReasons = [];
 
-        if ($blacklistSearch) {
-            $blacklistBuilder->like('reason', $blacklistSearch);
+        try {
+            // REG TYPE SECTION
+            $regBuilder = $this->regTypeModel->orderBy('name', 'ASC');
+            if ($regSearch) {
+                $regBuilder->like('name', $regSearch);
+            }
+            $regTotal = (clone $regBuilder)->countAllResults();
+            $regTypes = $regBuilder->findAll($regPerPage, $regOffset);
+
+            // BUSINESS TYPE SECTION
+            $bizBuilder = $this->bizTypeModel->orderBy('business_type', 'ASC');
+            if ($bizSearch) {
+                $bizBuilder->like('business_type', $bizSearch);
+            }
+            $bizTotal = (clone $bizBuilder)->countAllResults();
+            $bizTypes = $bizBuilder->findAll($bizPerPage, $bizOffset);
+
+            // BLACKLIST REASON SECTION
+            $blacklistBuilder = $this->blacklistReasonModel->orderBy('reason', 'ASC');
+            if ($blacklistSearch) {
+                $blacklistBuilder->like('reason', $blacklistSearch);
+            }
+            $blacklistReasons = $blacklistBuilder->findAll();
+        } catch (\Throwable $e) {
+            log_message('error', 'Config::index data preload failed: {error}', ['error' => $e->getMessage()]);
         }
-
-        $blacklistReasons = $blacklistBuilder->findAll();
 
 
         // =========================
