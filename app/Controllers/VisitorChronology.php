@@ -2,32 +2,30 @@
 
 namespace App\Controllers;
 
-use App\Models\LocationModel;
+use App\Models\LaneModel;
 
 class VisitorChronology extends BaseController
 {
-    protected $locationModel;
+    protected $laneModel;
 
     public function __construct()
     {
-        $this->locationModel = new LocationModel();
+        $this->laneModel = new LaneModel();
     }
 
     public function index()
     {
-        $locations = $this->locationModel->orderBy('branch', 'ASC')->orderBy('location_access', 'ASC')->findAll();
-
         return view('reports/access_chronology', [
-            'pageTitle'   => 'Visitor Details - SafeG',
-            'locations'   => $locations,
+            'pageTitle' => 'Visitor Details - SafeG',
+            'lanes'     => $this->laneModel->where('status', 'active')->orderBy('lane', 'ASC')->findAll(),
         ]);
     }
 
     public function generate()
     {
-        $fromRaw = $this->request->getPost('from_datetime');
-        $toRaw   = $this->request->getPost('to_datetime');
-        $locationId   = $this->request->getPost('location_id');
+        $fromRaw      = $this->request->getPost('from_datetime');
+        $toRaw        = $this->request->getPost('to_datetime');
+        $laneId       = $this->request->getPost('lane_id');
         $invitationId = $this->request->getPost('invitation_id');
         $searchBy     = $this->request->getPost('search_by');
         $searchTerm   = trim((string) $this->request->getPost('search_term'));
@@ -54,16 +52,16 @@ class VisitorChronology extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'Enter IC number or staff number.']);
         }
 
-        if ($locationId !== null && $locationId !== '') {
-            $location = $this->locationModel->find((int)$locationId);
-            $locationName = $location ? trim($location['branch'] . ' - ' . $location['location_access']) : 'Unknown';
+        if ($laneId !== null && $laneId !== '') {
+            $lane = $this->laneModel->find((int)$laneId);
+            $locationName = $lane ? $lane['lane'] : 'Unknown Lane';
         } else {
-            $locationName = 'All locations';
+            $locationName = 'All Lanes';
         }
 
         $db = db_connect();
 
-        // 1. Grouped Visitor Summary (for the main table - Image 4)
+        // 1. Grouped Visitor Summary
         $whereGrouped = ['i.id IS NOT NULL'];
         $paramsGrouped = [];
 
@@ -103,9 +101,6 @@ class VisitorChronology extends BaseController
             if ($v['visit_from'] && !$v['visit_to']) {
                 $status = 'Checked In';
             } elseif ($v['visit_from'] && $v['visit_to']) {
-                // If the last scan was recent or if we want to check something specific...
-                // Usually logic is based on checkin/checkout action field if exists.
-                // For now, if there is a 'visit_to' (last scan), we consider them Checked Out or OUT.
                 $status = 'Checked Out';
             }
 
@@ -132,17 +127,17 @@ class VisitorChronology extends BaseController
                 'visit_duration'  => $duration,
                 'status'          => $status,
                 'last_updated'    => date('n/j/Y, g:i:s A', strtotime($v['updated_at'] ?? 'now')),
-                'search_type'     => 'Auto Detect' // Placeholder as in Image 3
+                'search_type'     => 'Auto Detect'
             ];
         }
 
-        // 2. Full Chronology (for the "Chrono" action - Image 5)
+        // 2. Full Chronology
         $whereChron = ['vcl.scanned_at >= ?', 'vcl.scanned_at <= ?', 'i.id IS NOT NULL'];
         $paramsChron = [$fromDatetime, $toDatetime];
         
-        if ($locationId !== null && $locationId !== '') {
-            $whereChron[] = 'la.location_id = ?';
-            $paramsChron[] = $locationId;
+        if ($laneId !== null && $laneId !== '') {
+            $whereChron[] = 'vcl.lane_id = ?';
+            $paramsChron[] = $laneId;
         }
 
         if ($hasInvitation) {

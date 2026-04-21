@@ -367,7 +367,8 @@
                 <thead>
                     <tr class="border-b-2 border-slate-200 bg-slate-50 text-left text-xs font-bold uppercase tracking-wider text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
                         <th class="px-3 py-3">Date &amp; Time</th>
-                        <th class="px-3 py-3">Location</th>
+                        <th class="px-3 py-3">Current Location</th>
+                        <th class="px-3 py-3">Location Accessed</th>
                         <th class="px-3 py-3 text-center">Access</th>
                         <th class="px-3 py-3">Reason</th>
                         <th class="px-3 py-3 text-center">Type</th>
@@ -880,7 +881,8 @@
                 const actOk = row.action_allowed !== false && row.action !== 'Not Allowed';
                 tr.innerHTML =
                     '<td class="whitespace-nowrap px-3 py-3 font-medium">' + escHtml(row.date_time) + '</td>' +
-                    '<td class="px-3 py-3">' + escHtml(row.location) + '</td>' +
+                    '<td class="px-3 py-3">' + escHtml(row.current_location) + '</td>' +
+                    '<td class="px-3 py-3">' + escHtml(row.location_accessed) + '</td>' +
                     '<td class="px-3 py-3 text-center">' + movementBadgeYesNo(accessYes) + '</td>' +
                     '<td class="max-w-[200px] px-3 py-3 text-slate-600 dark:text-slate-400">' + escHtml(row.reason || '—') + '</td>' +
                     '<td class="px-3 py-3 text-center">' + movementTypeBadge(row.type || 'Checkin') + '</td>' +

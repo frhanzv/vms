@@ -217,7 +217,8 @@
                                         <th>IC / PASSPORT NO</th>
                                         <th>CONTACT NO</th>
                                         <th>COMPANY</th>
-                                        <th>LOCATION</th>
+                                        <th>CURRENT LOCATION</th>
+                                        <th>LOCATION ACCESSED</th>
                                         <th>TIME IN</th>
                                         <th>TIME OUT</th>
                                         <th>PURPOSE OF VISIT</th>
@@ -284,7 +285,7 @@
     
     const tableHeaders = [
         "NO", "DATE", "FULL NAME", "IC / PASSPORT NO", "CONTACT NO", 
-        "COMPANY", "LOCATION", "TIME IN", "TIME OUT", "PURPOSE", "HOST NAME", 
+        "COMPANY", "CURRENT LOCATION", "LOCATION ACCESSED", "TIME IN", "TIME OUT", "PURPOSE", "HOST NAME", 
         "DURATION", "STATUS"
     ];
 
@@ -346,6 +347,7 @@
                 <td class="text-slate-500 py-4">${val(v.contact_no)}</td>
                 <td class="text-slate-500 py-4">${val(v.visitor_company)}</td>
                 <td class="text-slate-500 py-4">${val(v.current_location)}</td>
+                <td class="text-slate-500 py-4">${val(v.location_accessed)}</td>
                 <td class="text-slate-500 font-medium py-4">${val(v.checkin_time)}</td>
                 <td class="text-slate-500 font-medium py-4">${val(v.checkout_time)}</td>
                 <td class="text-slate-500 py-4">${val(v.visit_reason)}</td>
