@@ -225,16 +225,15 @@
                                             <span class="text-sm font-bold text-slate-700 dark:text-slate-200">Select All Locations</span>
                                         </label>
                                     </div>
-                                    <!-- Individual locations -->
                                     <div class="py-1">
-                                        <?php foreach ($locations as $loc): ?>
+                                        <?php foreach ($lanes as $lane): ?>
                                             <label class="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer select-none">
-                                                <input type="checkbox" name="location_ids[]"
-                                                    value="<?= esc($loc['id']) ?>"
+                                                <input type="checkbox" name="lane_ids[]"
+                                                    value="<?= esc($lane['id']) ?>"
                                                     class="location-checkbox rounded border-slate-300 text-primary focus:ring-primary/30 h-4 w-4 cursor-pointer"
                                                     onchange="onLocationCheckboxChange()">
                                                 <span class="text-sm text-slate-700 dark:text-slate-200">
-                                                    <?= esc($loc['id']) ?>. <?= esc($loc['branch']) ?> - <?= esc($loc['location_access']) ?>
+                                                    <?= esc($lane['lane']) ?>
                                                 </span>
                                             </label>
                                         <?php endforeach; ?>
@@ -475,9 +474,9 @@
         const fromDatetime = document.getElementById('from_datetime').value;
         const toDatetime   = document.getElementById('to_datetime').value;
         const checkedBoxes = document.querySelectorAll('.location-checkbox:checked');
-        const locationIds  = Array.from(checkedBoxes).map(cb => cb.value);
+        const laneIds  = Array.from(checkedBoxes).map(cb => cb.value);
 
-        if (!fromDatetime || !toDatetime || locationIds.length === 0) {
+        if (!fromDatetime || !toDatetime || laneIds.length === 0) {
             alert('Please fill in all fields and select at least one location before generating the report.');
             return;
         }
@@ -487,7 +486,7 @@
         const formData = new FormData();
         formData.append('from_datetime', fromDatetime);
         formData.append('to_datetime',   toDatetime);
-        locationIds.forEach(id => formData.append('location_ids[]', id));
+        laneIds.forEach(id => formData.append('lane_ids[]', id));
 
         fetch('<?= base_url('report/access/generate') ?>', {
             method: 'POST',
@@ -821,15 +820,15 @@
 
     function openMovementHistory(invitationId, icNo) {
         const checkedBoxes = document.querySelectorAll('.location-checkbox:checked');
-        const locationIds  = Array.from(checkedBoxes).map(cb => cb.value);
+        const laneIds  = Array.from(checkedBoxes).map(cb => cb.value);
         const fromDatetime = document.getElementById('from_datetime').value;
         const toDatetime = document.getElementById('to_datetime').value;
-        if (locationIds.length === 0 || !fromDatetime || !toDatetime) {
+        if (laneIds.length === 0 || !fromDatetime || !toDatetime) {
             alert('Select location and date range, then generate the report before opening movement history.');
             return;
         }
         // Use first selected location for movement history detail
-        const locationId = locationIds[0];
+        const laneId = laneIds[0];
 
         document.getElementById('movementModalInvitationId').value = String(invitationId);
         const ic = icNo != null ? String(icNo).trim() : '';
@@ -845,7 +844,7 @@
 
         const formData = new FormData();
         formData.append('invitation_id', invitationId);
-        locationIds.forEach(id => formData.append('location_ids[]', id));
+        laneIds.forEach(id => formData.append('lane_ids[]', id));
         formData.append('from_datetime', fromDatetime);
         formData.append('to_datetime', toDatetime);
 
@@ -905,12 +904,12 @@
         const invitationId = document.getElementById('movementModalInvitationId').value;
         const icRaw = document.getElementById('movementModalIcNo').value;
         const checkedBoxesC = document.querySelectorAll('.location-checkbox:checked');
-        const locationIdsC  = Array.from(checkedBoxesC).map(cb => cb.value);
+        const laneIdsC  = Array.from(checkedBoxesC).map(cb => cb.value);
         const fromDatetime = document.getElementById('from_datetime').value;
         const toDatetime = document.getElementById('to_datetime').value;
-        if (locationIdsC.length === 0 || !fromDatetime || !toDatetime) return;
+        if (laneIdsC.length === 0 || !fromDatetime || !toDatetime) return;
         const q = new URLSearchParams();
-        locationIdsC.forEach(id => q.append('location_ids[]', id));
+        laneIdsC.forEach(id => q.append('lane_ids[]', id));
         q.set('from_datetime', fromDatetime);
         q.set('to_datetime', toDatetime);
         q.set('auto_search', '1');
