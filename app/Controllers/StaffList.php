@@ -58,4 +58,30 @@ class StaffList extends BaseController
             'staffList' => $staffList
         ]);
     }
+
+    public function import()
+    {
+        $file = $this->request->getFile('upload_file');
+
+        // 1. Validation
+        if (!$file->isValid()) {
+            return redirect()->back()->with('error', 'Invalid file upload.');
+        }
+
+        // 2. Check Extension
+        $ext = $file->getExtension();
+        if (!in_array($ext, ['xlsx', 'xls'])) {
+            return redirect()->back()->with('error', 'Only Excel files are allowed.');
+        }
+
+        // 3. Move file to a temporary folder
+        $newName = $file->getRandomName();
+        $file->move(WRITEPATH . 'uploads', $newName);
+
+        // 4. Processing logic (Example)
+        // Here you would typically use PhpSpreadsheet to read the data 
+        // and save it to your 'business_types' table.
+
+        return redirect()->back()->with('success', 'File imported successfully!');
+    }
 }

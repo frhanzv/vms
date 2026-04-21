@@ -170,6 +170,7 @@ $routes->get('staffs', 'StaffList::index');
 $routes->get('staffs/staffpassrequest', 'StaffPassRequest::index');
 $routes->post('staffs/staffpassrequest/store', 'StaffPassRequest::store');
 //$routes->get('staff-pass-request', 'StaffList::downloadTemplate');
+$routes->post('staff-pass/import', 'StaffController::import');
 
 
 
@@ -286,3 +287,5 @@ $routes->post('config/saveBlacklistReason', 'BlacklistReasonCreate::save');
 
 // Business Type Config
 $routes->post('config/updateBusinessType', 'Config::updateBusinessType');
+
+
