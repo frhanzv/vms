@@ -523,7 +523,6 @@
         </div>
     </div>
 
-    <!-- Visitor Profile Modal (Image 3) -->
     <!-- Visitor Profile Modal -->
     <div id="detailsModal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4">
         <div id="detailsModalBackdrop" onclick="closeDetailsModal()"
@@ -541,123 +540,56 @@
                     class="text-slate-400 hover:text-slate-600 transition-colors">
                     <span class="material-symbols-outlined text-[20px]">close</span>
                 </button>
-</div>
-
-<!-- Visitor Profile Modal (Image 3) -->
-<!-- Visitor Profile Modal -->
-<div id="detailsModal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4">
-    <div id="detailsModalBackdrop" onclick="closeDetailsModal()" class="absolute inset-0 bg-slate-900/55 dark:bg-black/65 cursor-pointer"></div>
-    <div class="relative flex w-full max-w-2xl flex-col rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900 overflow-hidden">
-        <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
-            <h2 class="text-lg font-bold tracking-tight text-slate-800 dark:text-white flex items-center gap-2">
-                <span class="material-symbols-outlined text-primary">person</span>
-                Visitor Profile Details
-                <span id="mdStatusBadge"></span>
-            </h2>
-            <button type="button" onclick="closeDetailsModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
-                <span class="material-symbols-outlined text-[20px]">close</span>
-            </button>
-        </div>
-        
-        <div class="px-6 py-6 grid grid-cols-2 gap-y-6 gap-x-4 max-h-[70vh] overflow-y-auto custom-scrollbar bg-white dark:bg-slate-900">
-            <div>
-                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Full Name</span>
-                <span id="mdFullname" class="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase"></span>
-            </div>
-            <div>
-                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">IC Number</span>
-                <span id="mdIcno" class="text-sm font-bold text-slate-700 dark:text-slate-200"></span>
-            </div>
-            <div>
-                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Company Name</span>
-                <span id="mdCompany" class="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase"></span>
-            </div>
-            <div>
-                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Contact No</span>
-                <span id="mdContactno" class="text-sm font-bold text-slate-700 dark:text-slate-200"></span>
-            </div>
-            <div>
-                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Person Visited</span>
-                <span id="mdPersonVisited" class="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase"></span>
-            </div>
-            <div>
-                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Staff No</span>
-                <span id="mdStaffno" class="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase"></span>
-            </div>
-            <div class="col-span-2">
-                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Visit Reason</span>
-                <span id="mdReason" class="text-sm font-bold text-slate-700 dark:text-slate-200"></span>
-            </div>
-            <div>
-                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">First Scanned At</span>
-                <span id="mdVisitFrom" class="text-xs font-medium text-slate-500"></span>
-            </div>
-            <div>
-                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Last Scanned At</span>
-                <span id="mdVisitTo" class="text-xs font-medium text-slate-500"></span>
-            </div>
-            <div>
-                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Stay Duration</span>
-                <span id="mdDuration" class="text-xs font-black text-primary"></span>
             </div>
 
-            <div
-                class="px-6 py-6 grid grid-cols-2 gap-y-6 gap-x-4 max-h-[70vh] overflow-y-auto custom-scrollbar bg-white dark:bg-slate-900">
+            <div class="px-6 py-6 grid grid-cols-2 gap-y-6 gap-x-4 max-h-[70vh] overflow-y-auto custom-scrollbar bg-white dark:bg-slate-900">
                 <div>
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Full
-                        Name</span>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Full Name</span>
                     <span id="mdFullname" class="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase"></span>
                 </div>
                 <div>
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">IC
-                        Number</span>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">IC Number</span>
                     <span id="mdIcno" class="text-sm font-bold text-slate-700 dark:text-slate-200"></span>
                 </div>
                 <div>
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Company
-                        Name</span>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Company Name</span>
                     <span id="mdCompany" class="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase"></span>
                 </div>
                 <div>
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Contact
-                        No</span>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Contact No</span>
                     <span id="mdContactno" class="text-sm font-bold text-slate-700 dark:text-slate-200"></span>
                 </div>
                 <div>
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Person
-                        Visited</span>
-                    <span id="mdPersonVisited"
-                        class="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase"></span>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Person Visited</span>
+                    <span id="mdPersonVisited" class="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase"></span>
                 </div>
                 <div>
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Staff
-                        No</span>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Staff No</span>
                     <span id="mdStaffno" class="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase"></span>
                 </div>
                 <div class="col-span-2">
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Visit
-                        Reason</span>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Visit Reason</span>
                     <span id="mdReason" class="text-sm font-bold text-slate-700 dark:text-slate-200"></span>
                 </div>
                 <div>
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Last
-                        Scanned At</span>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">First Scanned At</span>
+                    <span id="mdVisitFrom" class="text-xs font-medium text-slate-500"></span>
+                </div>
+                <div>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Last Scanned At</span>
                     <span id="mdVisitTo" class="text-xs font-medium text-slate-500"></span>
                 </div>
                 <div>
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Stay
-                        Duration</span>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Stay Duration</span>
                     <span id="mdDuration" class="text-xs font-black text-primary"></span>
                 </div>
                 <div>
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Last
-                        Database Update</span>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Last Database Update</span>
                     <span id="mdLastUpdated" class="text-[10px] text-slate-400 italic"></span>
                 </div>
             </div>
 
-            <div
-                class="flex justify-end gap-3 border-t border-slate-100 bg-slate-50/50 px-6 py-4 dark:border-slate-800">
+            <div class="flex justify-end gap-3 border-t border-slate-100 bg-slate-50/50 px-6 py-4 dark:border-slate-800">
                 <button type="button" onclick="closeDetailsModal()"
                     class="px-5 py-2 text-sm font-bold text-slate-500 hover:text-slate-700 transition-colors">Close</button>
                 <button type="button" id="btnPrintDetails"
@@ -1059,21 +991,102 @@
         }
 
         function openColumnsModal() {
-            const isChron = !document.getElementById('chronologyTableWrap').classList.contains('hidden');
-            const table = isChron ? chronologyDt : visitorDt;
-            const headers = isChron ? chronologyHeaders : visitorHeaders;
-            
-            const container = document.getElementById('columnsCheckboxesList');
-            container.innerHTML = '';
-            
-            headers.forEach((colName, idx) => {
-                const isVisible = table.column(idx).visible();
-                const div = document.createElement('div');
-                div.className = 'flex items-center gap-2';
-                div.innerHTML = `
-                    <input type="checkbox" id="col_${idx}" data-col-idx="${idx}" class="col-toggle-cb rounded border-slate-300 text-[#535dec] focus:ring-[#535dec] h-4 w-4 cursor-pointer" ${isVisible ? 'checked' : ''}>
-                    <label for="col_${idx}" class="text-sm text-slate-600 dark:text-slate-300 uppercase cursor-pointer">${colName}</label>
-                `;
+            // Intentionally empty: this file contains a later, correct `openColumnsModal()` implementation.
+            // A previous copy-paste left an unterminated template literal here which broke all JS parsing.
+        }
+
+function closeTimelineModal() {
+    document.getElementById('chronologyTimelineModal').classList.add('hidden');
+    document.body.classList.remove('overflow-hidden');
+}
+
+function downloadChronologyExcel(data) {
+    const rows = [];
+    rows.push(["Movement Summary"]);
+    rows.push(["Full Name", data.summary.full_name]);
+    rows.push(["IC No", data.summary.ic_no]);
+    rows.push(["Total Time", data.summary.total_time]);
+    rows.push(["Total Visits", data.summary.total_visits]);
+    rows.push(["Total Scans", data.summary.total_scans]);
+    rows.push([""]);
+    
+    rows.push(["Date", "Movement #", "From", "To", "Entry Time", "Exit Time", "Time Spent", "Status"]);
+    
+    data.dates.forEach(d => {
+        d.movements.forEach(m => {
+            rows.push([
+                d.display_date,
+                m.movement_index,
+                m.from,
+                m.to,
+                m.entry_time,
+                m.exit_time,
+                m.time_spent,
+                m.status
+            ]);
+        });
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Chronology");
+    XLSX.writeFile(wb, "Visitor_Chronology_" + data.summary.full_name.replace(/\s+/g, '_') + ".xlsx");
+}
+
+function openDetailsModal(invId) {
+    const v = currentVisitorsData.find(x => x.invitation_id == invId);
+    if (!v) return;
+
+    const setText = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = value ?? '';
+    };
+
+    setText('mdFullname', v.visitor_name);
+    setText('mdIcno', v.ic_no);
+    setText('mdPersonVisited', v.person_visited);
+    setText('mdVisitFrom', v.visit_from);
+    setText('mdReason', v.visit_reason);
+    setText('mdStaffno', v.staff_id);
+    setText('mdContactno', v.contact_no);
+    setText('mdVisitTo', v.visit_to);
+    setText('mdLastUpdated', v.last_updated);
+    setText('mdDuration', v.visit_duration);
+    setText('mdCompany', v.visitor_company);
+    
+    const badge = document.getElementById('mdStatusBadge');
+    badge.textContent = v.status;
+    badge.className = 'ml-2 px-2 py-0.5 rounded text-[10px] font-black uppercase text-white ' + (v.status === 'Checked Out' ? 'bg-red-500' : 'bg-emerald-500');
+
+    document.getElementById('btnPrintDetails').onclick = () => {
+        window.open('<?= base_url('report/visitor/details') ?>/' + invId, '_blank');
+    };
+
+    document.getElementById('detailsModal').classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+}
+
+function closeDetailsModal() {
+    document.getElementById('detailsModal').classList.add('hidden');
+    document.body.classList.remove('overflow-hidden');
+}
+
+function openColumnsModal() {
+    const table = visitorDt;
+    const headers = visitorHeaders;
+    
+    const container = document.getElementById('columnsCheckboxesList');
+    container.innerHTML = '';
+    
+    headers.forEach((colName, idx) => {
+        const isVisible = table.column(idx).visible();
+        const div = document.createElement('div');
+        div.className = 'flex items-center gap-2';
+        div.innerHTML = `
+
+            <input type="checkbox" id="col_${idx}" data-col-idx="${idx}" class="col-toggle-cb rounded border-slate-300 text-[#535dec] focus:ring-[#535dec] h-4 w-4 cursor-pointer" ${isVisible ? 'checked' : ''}>
+            <label for="col_${idx}" class="text-sm text-slate-600 dark:text-slate-300 uppercase cursor-pointer">${colName}</label>
+        `;
                 container.appendChild(div);
             });
 
@@ -1085,8 +1098,7 @@
         }
 
         function applyColumnsVisibility() {
-            const isChron = !document.getElementById('chronologyTableWrap').classList.contains('hidden');
-            const table = isChron ? chronologyDt : visitorDt;
+            const table = visitorDt;
 
             document.querySelectorAll('.col-toggle-cb').forEach(cb => {
                 const idx = cb.getAttribute('data-col-idx');
@@ -1116,6 +1128,20 @@
             document.getElementById('invitation_id').value = '';
             showChronologyEmpty();
         });
+
+        function applyColumnsVisibility() {
+            const table = visitorDt;
+
+            document.querySelectorAll('.col-toggle-cb').forEach(cb => {
+                const idx = cb.getAttribute('data-col-idx');
+                table.column(idx).visible(cb.checked);
+            });
+            closeColumnsModal();
+        }
+
+        function toggleAllColumns(elem) {
+            document.querySelectorAll('.col-toggle-cb').forEach(cb => cb.checked = elem.checked);
+        }
 
         function exportExcel() {
             if (!reportData || reportData.length === 0 || !chronologyDt) return;
@@ -1168,15 +1194,11 @@
             const invId = p.get('invitation_id');
             const from = p.get('from_datetime');
             const to = p.get('to_datetime');
-            const locId = p.get('location_id') || p.get('location_ids[]') || p.get('location_ids');
+            const auto = p.get('auto_search') === '1';
 
-            if (from && typeof fpChronFrom !== 'undefined') fpChronFrom.setDate(from);
-            if (to && typeof fpChronTo !== 'undefined') fpChronTo.setDate(to);
-
-            if (locId) {
-                const sel = document.getElementById('chronology_location_id');
-                if (sel) sel.value = locId;
-            }
+            // Accept Access Report format: "Y-m-d H:i"
+            if (from && typeof fpChronFrom !== 'undefined') fpChronFrom.setDate(from, true, 'Y-m-d H:i');
+            if (to && typeof fpChronTo !== 'undefined') fpChronTo.setDate(to, true, 'Y-m-d H:i');
 
             if (ic || invId) {
                 if (ic) {
@@ -1191,7 +1213,9 @@
                 }
 
                 // Slight delay to ensure elements are ready
-                setTimeout(runChronologySearch, 100);
+                if (auto) {
+                    setTimeout(runChronologySearch, 150);
+                }
             }
         });
     </script>
