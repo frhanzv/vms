@@ -3105,7 +3105,16 @@ class Config extends BaseController
     {
         // Must hardcode the IP instead of base_url() so the phone gets the LAN IP 
         // even if the admin generated this QR code while visiting "localhost" in their PC browser.
-        $qrCodeData = 'http://192.168.100.243:8080/vms/visitor-registration?token=MTM%3D';
+        $host = getHostByName(getHostName());
+        $port = isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] != '80' && $_SERVER['SERVER_PORT'] != '443' ? ':' . $_SERVER['SERVER_PORT'] : '';
+        
+        $domain = $host . $port;
+        if (isset($_SERVER['HTTP_HOST']) && strpos($_SERVER['HTTP_HOST'], 'localhost') === false && strpos($_SERVER['HTTP_HOST'], '127.0.0.1') === false) {
+            $domain = $_SERVER['HTTP_HOST'];
+        }
+
+        // Point to visitor registration URL
+        $qrCodeData = 'http://' . $domain . '/vms/visitor-registration?token=MTM%3D';
 
         $options = new \chillerlan\QRCode\QROptions();
         $options->version = \chillerlan\QRCode\Common\Version::AUTO;
