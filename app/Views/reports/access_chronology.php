@@ -1019,25 +1019,35 @@
             const v = currentVisitorsData.find(x => x.invitation_id == invId);
             if (!v) return;
 
-            document.getElementById('mdFullname').textContent = v.visitor_name;
-            document.getElementById('mdIcno').textContent = v.ic_no;
-            document.getElementById('mdPersonVisited').textContent = v.person_visited;
-            document.getElementById('mdVisitFrom').textContent = v.visit_from + ' (From device_access_logs)';
-            document.getElementById('mdReason').textContent = v.visit_reason;
-            document.getElementById('mdStaffno').textContent = v.staff_id;
-            document.getElementById('mdContactno').textContent = v.contact_no;
-            document.getElementById('mdVisitTo').textContent = v.visit_to + ' (From device_access_logs)';
-            document.getElementById('mdLastUpdated').textContent = v.last_updated;
-            document.getElementById('mdDuration').textContent = v.visit_duration;
-            document.getElementById('mdCompany').textContent = v.visitor_company;
-
-            const badge = document.getElementById('mdStatusBadge');
-            badge.textContent = v.status;
-            badge.className = 'ml-2 px-2 py-0.5 rounded text-[10px] font-black uppercase text-white ' + (v.status === 'Checked Out' ? 'bg-red-500' : 'bg-emerald-500');
-
-            document.getElementById('btnPrintDetails').onclick = () => {
-                window.open('<?= base_url('report/visitor/details') ?>/' + invId, '_blank');
+            const setText = (id, value) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = value ?? '';
             };
+
+            setText('mdFullname', v.visitor_name);
+            setText('mdIcno', v.ic_no);
+            setText('mdPersonVisited', v.person_visited);
+            setText('mdVisitFrom', v.visit_from);
+            setText('mdReason', v.visit_reason);
+            setText('mdStaffno', v.staff_id);
+            setText('mdContactno', v.contact_no);
+            setText('mdVisitTo', v.visit_to);
+            setText('mdLastUpdated', v.last_updated);
+            setText('mdDuration', v.visit_duration);
+            setText('mdCompany', v.visitor_company);
+            
+            const badge = document.getElementById('mdStatusBadge');
+            if (badge) {
+                badge.textContent = v.status;
+                badge.className = 'ml-2 px-2 py-0.5 rounded text-[10px] font-black uppercase text-white ' + (v.status === 'Checked Out' ? 'bg-red-500' : 'bg-emerald-500');
+            }
+
+            const printBtn = document.getElementById('btnPrintDetails');
+            if (printBtn) {
+                printBtn.onclick = () => {
+                    window.open('<?= base_url('report/visitor/details') ?>/' + invId, '_blank');
+                };
+            }
 
             document.getElementById('detailsModal').classList.remove('hidden');
             document.body.classList.add('overflow-hidden');
@@ -1052,112 +1062,18 @@
             const isChron = !document.getElementById('chronologyTableWrap').classList.contains('hidden');
             const table = isChron ? chronologyDt : visitorDt;
             const headers = isChron ? chronologyHeaders : visitorHeaders;
-
+            
             const container = document.getElementById('columnsCheckboxesList');
             container.innerHTML = '';
-
+            
             headers.forEach((colName, idx) => {
                 const isVisible = table.column(idx).visible();
                 const div = document.createElement('div');
                 div.className = 'flex items-center gap-2';
                 div.innerHTML = `
-        list.appendChild(div);
-    });
-}
-
-function closeTimelineModal() {
-    document.getElementById('chronologyTimelineModal').classList.add('hidden');
-    document.body.classList.remove('overflow-hidden');
-}
-
-function downloadChronologyExcel(data) {
-    const rows = [];
-    rows.push(["Movement Summary"]);
-    rows.push(["Full Name", data.summary.full_name]);
-    rows.push(["IC No", data.summary.ic_no]);
-    rows.push(["Total Time", data.summary.total_time]);
-    rows.push(["Total Visits", data.summary.total_visits]);
-    rows.push(["Total Scans", data.summary.total_scans]);
-    rows.push([""]);
-    
-    rows.push(["Date", "Movement #", "From", "To", "Entry Time", "Exit Time", "Time Spent", "Status"]);
-    
-    data.dates.forEach(d => {
-        d.movements.forEach(m => {
-            rows.push([
-                d.display_date,
-                m.movement_index,
-                m.from,
-                m.to,
-                m.entry_time,
-                m.exit_time,
-                m.time_spent,
-                m.status
-            ]);
-        });
-    });
-
-    const ws = XLSX.utils.aoa_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Chronology");
-    XLSX.writeFile(wb, "Visitor_Chronology_" + data.summary.full_name.replace(/\s+/g, '_') + ".xlsx");
-}
-
-function openDetailsModal(invId) {
-    const v = currentVisitorsData.find(x => x.invitation_id == invId);
-    if (!v) return;
-
-    const setText = (id, value) => {
-        const el = document.getElementById(id);
-        if (el) el.textContent = value ?? '';
-    };
-
-    setText('mdFullname', v.visitor_name);
-    setText('mdIcno', v.ic_no);
-    setText('mdPersonVisited', v.person_visited);
-    setText('mdVisitFrom', v.visit_from);
-    setText('mdReason', v.visit_reason);
-    setText('mdStaffno', v.staff_id);
-    setText('mdContactno', v.contact_no);
-    setText('mdVisitTo', v.visit_to);
-    setText('mdLastUpdated', v.last_updated);
-    setText('mdDuration', v.visit_duration);
-    setText('mdCompany', v.visitor_company);
-    
-    const badge = document.getElementById('mdStatusBadge');
-    badge.textContent = v.status;
-    badge.className = 'ml-2 px-2 py-0.5 rounded text-[10px] font-black uppercase text-white ' + (v.status === 'Checked Out' ? 'bg-red-500' : 'bg-emerald-500');
-
-    document.getElementById('btnPrintDetails').onclick = () => {
-        window.open('<?= base_url('report/visitor/details') ?>/' + invId, '_blank');
-    };
-
-    document.getElementById('detailsModal').classList.remove('hidden');
-    document.body.classList.add('overflow-hidden');
-}
-
-function closeDetailsModal() {
-    document.getElementById('detailsModal').classList.add('hidden');
-    document.body.classList.remove('overflow-hidden');
-}
-
-function openColumnsModal() {
-    const isChron = !document.getElementById('chronologyTableWrap').classList.contains('hidden');
-    const table = isChron ? chronologyDt : visitorDt;
-    const headers = isChron ? chronologyHeaders : visitorHeaders;
-    
-    const container = document.getElementById('columnsCheckboxesList');
-    container.innerHTML = '';
-    
-    headers.forEach((colName, idx) => {
-        const isVisible = table.column(idx).visible();
-        const div = document.createElement('div');
-        div.className = 'flex items-center gap-2';
-        div.innerHTML = `
-
-            <input type="checkbox" id="col_${idx}" data-col-idx="${idx}" class="col-toggle-cb rounded border-slate-300 text-[#535dec] focus:ring-[#535dec] h-4 w-4 cursor-pointer" ${isVisible ? 'checked' : ''}>
-            <label for="col_${idx}" class="text-sm text-slate-600 dark:text-slate-300 uppercase cursor-pointer">${colName}</label>
-        `;
+                    <input type="checkbox" id="col_${idx}" data-col-idx="${idx}" class="col-toggle-cb rounded border-slate-300 text-[#535dec] focus:ring-[#535dec] h-4 w-4 cursor-pointer" ${isVisible ? 'checked' : ''}>
+                    <label for="col_${idx}" class="text-sm text-slate-600 dark:text-slate-300 uppercase cursor-pointer">${colName}</label>
+                `;
                 container.appendChild(div);
             });
 
@@ -1186,7 +1102,7 @@ function openColumnsModal() {
         function exportVisitorsExcel() {
             const name = "Visitor_Details";
             const data = currentVisitorsData;
-            if (!data.length) return;
+            if (!data || !data.length) return;
 
             const ws = XLSX.utils.json_to_sheet(data);
             const wb = XLSX.utils.book_new();
@@ -1200,21 +1116,6 @@ function openColumnsModal() {
             document.getElementById('invitation_id').value = '';
             showChronologyEmpty();
         });
-
-        function applyColumnsVisibility() {
-            const isChron = !document.getElementById('chronologyTableWrap').classList.contains('hidden');
-            const table = isChron ? chronologyDt : visitorDt;
-
-            document.querySelectorAll('.col-toggle-cb').forEach(cb => {
-                const idx = cb.getAttribute('data-col-idx');
-                table.column(idx).visible(cb.checked);
-            });
-            closeColumnsModal();
-        }
-
-        function toggleAllColumns(elem) {
-            document.querySelectorAll('.col-toggle-cb').forEach(cb => cb.checked = elem.checked);
-        }
 
         function exportExcel() {
             if (!reportData || reportData.length === 0 || !chronologyDt) return;
@@ -1295,9 +1196,4 @@ function openColumnsModal() {
         });
     </script>
 </body>
-
-</html>
-
-</body>
-
 </html>
