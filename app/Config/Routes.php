@@ -31,6 +31,7 @@ $routes->get('dashboard/onSiteData', 'Dashboard::onSiteData');
 $routes->get('dashboard/expectedTodayData', 'Dashboard::expectedTodayData');
 $routes->get('dashboard/checkedOutData', 'Dashboard::checkedOutData');
 $routes->get('dashboard/activeAlertsData', 'Dashboard::activeAlertsData');
+$routes->get('dashboard/widgetSnapshot', 'Dashboard::widgetSnapshot');
 $routes->get('invitations', 'InvitationList::index');
 $routes->get('invitations/create', 'InvitationList::create');
 $routes->post('invitations/store', 'InvitationList::store');

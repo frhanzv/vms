@@ -305,68 +305,11 @@ class Dashboard extends BaseController
         $companyList = array_column($companies, 'company');
         
         // ===== NEW SECTIONS DATA =====
-        
-        // 1. Critical Security Alerts (unacknowledged, high/critical severity)
-        $criticalAlerts = [];
-        if ($db->tableExists('security_alerts')) {
-            $criticalAlertsData = $db->query(
-                "SELECT * FROM security_alerts 
-                 WHERE is_acknowledged = 0 
-                 AND severity IN ('high', 'critical')
-                 ORDER BY created_at DESC
-                 LIMIT 5"
-            )->getResultArray();
-            
-            foreach ($criticalAlertsData as $alert) {
-                $criticalAlerts[] = [
-                    'id' => $alert['id'],
-                    'incident_type' => $alert['incident_type'],
-                    'severity' => $alert['severity'],
-                    'location' => $alert['location'] ?? 'Unknown',
-                    'description' => $alert['description'] ?? '',
-                    'visitor_name' => $alert['visitor_name'] ?? '',
-                    'time' => !empty($alert['created_at']) ? date('Y-m-d h:i A', strtotime($alert['created_at'])) : 'N/A',
-                    'time_ago' => !empty($alert['created_at']) ? $this->getTimeAgo($alert['created_at']) : 'N/A',
-                ];
-            }
-        }
-        
-        // 2. Recent Alerts Summary: Access Denied (last 24h) & Visitor Overstay (active)
-        $accessDeniedCount = 0;
-        $overstayCount = 0;
-        $activeSecurityAlertCount = 0;
-        
-        if ($db->tableExists('security_alerts')) {
-            $since24h = date('Y-m-d H:i:s', strtotime('-24 hours'));
-
-            // Access-related denials (incident_type strings vary by integration)
-            $accessDeniedCount = (int) ($db->query(
-                "SELECT COUNT(*) AS c FROM security_alerts
-                 WHERE created_at >= ?
-                 AND (
-                     LOWER(incident_type) LIKE '%access%denied%'
-                     OR LOWER(incident_type) LIKE '%unauthorized%access%'
-                     OR LOWER(incident_type) LIKE '%access%refused%'
-                 )",
-                [$since24h]
-            )->getRow()->c ?? 0);
-
-            // Visitor overstay from alerts (unacknowledged; match flexible wording)
-            $overstayCount = (int) ($db->query(
-                "SELECT COUNT(*) AS c FROM security_alerts
-                 WHERE is_acknowledged = 0
-                 AND LOWER(incident_type) LIKE '%overstay%'",
-                []
-            )->getRow()->c ?? 0);
-            
-            // Total active security alerts
-            $activeSecurityAlertCount = $db->table('security_alerts')
-                ->where('is_acknowledged', 0)
-                ->countAllResults();
-        }
-        
-        // Physical overstays (on-site past window) vs alert rows — show the higher so the card reflects real risk
-        $overstayCount = max($overstayCount, $outOfWindow);
+        $widgets = $this->getSecurityAlertWidgets($outOfWindow);
+        $criticalAlerts = $widgets['criticalAlerts'];
+        $accessDeniedCount = $widgets['accessDeniedCount'];
+        $overstayCount = $widgets['overstayCount'];
+        $activeSecurityAlertCount = $widgets['activeSecurityAlertCount'];
         
         // 3. Currently On-Site visitors table (detailed, for the new section)
         $onSiteVisitorsQuery = "SELECT iv.id as visitor_id,
@@ -557,8 +500,23 @@ class Dashboard extends BaseController
             }
             return $this->response->setJSON(['success' => false, 'message' => 'This alert has already been acknowledged']);
         }
-        
-        return $this->response->setJSON(['success' => true, 'message' => 'Alert acknowledged']);
+
+        $now = date('Y-m-d H:i:s');
+        $outOfWindow = (int) ($db->query(
+            'SELECT COUNT(*) AS c
+             FROM invitation_visitors iv
+             INNER JOIN invitations i ON i.id = iv.invitation_id
+             WHERE i.status = ?
+             AND iv.check_in_time IS NOT NULL
+             AND iv.check_out_time IS NULL
+             AND (
+                 SELECT MAX(s.date_to) FROM invitation_schedules s WHERE s.invitation_id = i.id
+             ) < ?',
+            ['Approved', $now]
+        )->getRow()->c ?? 0);
+        $widgets = $this->getSecurityAlertWidgets($outOfWindow);
+
+        return $this->response->setJSON(['success' => true, 'message' => 'Alert acknowledged'] + $widgets);
     }
     
     /**
@@ -615,12 +573,13 @@ class Dashboard extends BaseController
                  FROM security_alerts sa
                  LEFT JOIN users u ON u.id = sa.acknowledged_by
                  WHERE sa.created_at >= ?
+                 AND sa.is_acknowledged = 1
                  AND (
                      LOWER(sa.incident_type) LIKE '%access%denied%'
                      OR LOWER(sa.incident_type) LIKE '%unauthorized%access%'
                      OR LOWER(sa.incident_type) LIKE '%access%refused%'
                  )
-                 ORDER BY sa.created_at DESC",
+                 ORDER BY sa.acknowledged_at DESC, sa.created_at DESC",
                 [$since24h]
             )->getResultArray();
         }
@@ -789,6 +748,106 @@ class Dashboard extends BaseController
         }
 
         return $this->response->setJSON(['success' => true, 'data' => $alerts]);
+    }
+
+    /**
+     * AJAX: refresh security-related dashboard numbers + critical alert queue (no full page reload).
+     */
+    public function widgetSnapshot()
+    {
+        $db = \Config\Database::connect();
+        $now = date('Y-m-d H:i:s');
+
+        $outOfWindow = (int) ($db->query(
+            'SELECT COUNT(*) AS c
+             FROM invitation_visitors iv
+             INNER JOIN invitations i ON i.id = iv.invitation_id
+             WHERE i.status = ?
+             AND iv.check_in_time IS NOT NULL
+             AND iv.check_out_time IS NULL
+             AND (
+                 SELECT MAX(s.date_to) FROM invitation_schedules s WHERE s.invitation_id = i.id
+             ) < ?',
+            ['Approved', $now]
+        )->getRow()->c ?? 0);
+
+        $widgets = $this->getSecurityAlertWidgets($outOfWindow);
+
+        return $this->response->setJSON(['success' => true] + $widgets);
+    }
+
+    /**
+     * Critical banner queue + Recent Alerts / Active counts (shared by index and widgetSnapshot).
+     *
+     * @param int $outOfWindow physical on-site past schedule (from invitation_visitors)
+     *
+     * @return array{criticalAlerts: list<array>, accessDeniedCount: int, overstayCount: int, activeSecurityAlertCount: int}
+     */
+    protected function getSecurityAlertWidgets(int $outOfWindow): array
+    {
+        $db = \Config\Database::connect();
+
+        $criticalAlerts = [];
+        $accessDeniedCount = 0;
+        $overstayCount = 0;
+        $activeSecurityAlertCount = 0;
+
+        if ($db->tableExists('security_alerts')) {
+            $criticalAlertsData = $db->query(
+                "SELECT * FROM security_alerts 
+                 WHERE is_acknowledged = 0 
+                 AND severity IN ('high', 'critical')
+                 ORDER BY created_at DESC
+                 LIMIT 5"
+            )->getResultArray();
+
+            foreach ($criticalAlertsData as $alert) {
+                $criticalAlerts[] = [
+                    'id' => $alert['id'],
+                    'incident_type' => $alert['incident_type'],
+                    'severity' => $alert['severity'],
+                    'location' => $alert['location'] ?? 'Unknown',
+                    'description' => $alert['description'] ?? '',
+                    'visitor_name' => $alert['visitor_name'] ?? '',
+                    'time' => !empty($alert['created_at']) ? date('Y-m-d h:i A', strtotime($alert['created_at'])) : 'N/A',
+                    'time_ago' => !empty($alert['created_at']) ? $this->getTimeAgo($alert['created_at']) : 'N/A',
+                ];
+            }
+
+            $since24h = date('Y-m-d H:i:s', strtotime('-24 hours'));
+
+            $accessDeniedCount = (int) ($db->query(
+                "SELECT COUNT(*) AS c FROM security_alerts
+                 WHERE created_at >= ?
+                 AND is_acknowledged = 1
+                 AND (
+                     LOWER(incident_type) LIKE '%access%denied%'
+                     OR LOWER(incident_type) LIKE '%unauthorized%access%'
+                     OR LOWER(incident_type) LIKE '%access%refused%'
+                 )",
+                [$since24h]
+            )->getRow()->c ?? 0);
+
+            $overstayCount = (int) ($db->query(
+                "SELECT COUNT(*) AS c FROM security_alerts
+                 WHERE is_acknowledged = 0
+                 AND LOWER(incident_type) LIKE '%overstay%'",
+                []
+            )->getRow()->c ?? 0);
+
+            $activeSecurityAlertCount = $db->table('security_alerts')
+                ->where('is_acknowledged', 0)
+                ->countAllResults();
+        }
+
+        $overstayCount = max($overstayCount, $outOfWindow);
+
+        return [
+            'criticalAlerts' => $criticalAlerts,
+            'accessDeniedCount' => $accessDeniedCount,
+            'overstayCount' => $overstayCount,
+            'activeSecurityAlertCount' => $activeSecurityAlertCount,
+        ];
     }
 
     private function getTimeAgo($datetime)

@@ -54,7 +54,8 @@ class CreateApiKeysTable extends Migration
         ]);
 
         $this->forge->addKey('id', true);
-        $this->forge->createTable('api_keys');
+        // Match ensureApiKeysTable() in Config / ApiManagement: table may already exist.
+        $this->forge->createTable('api_keys', true);
     }
 
     public function down()
