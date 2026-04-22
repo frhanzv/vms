@@ -263,22 +263,21 @@ $routes->post('report/visitor/movement', 'VisitorChronology::movementTimeline');
 
 // Blacklist Routes
 $routes->group('blacklist', function ($routes) {
-    // Blacklist Request
+ 
+    // --- Blacklist Request List (empty by default) ---
     $routes->get('blacklistrequest', 'BlacklistRequest::index');
-    $routes->get('blacklistrequest/create', 'BlacklistRequest::create');
-    $routes->post('blacklistrequest', 'BlacklistRequest::store');
-    $routes->get('blacklistrequest/(:num)', 'BlacklistRequest::view/$1');
-    $routes->get('blacklistrequest/(:num)/edit', 'BlacklistRequest::edit/$1');
-    $routes->post('blacklistrequest/(:num)/update', 'BlacklistRequest::update/$1');
-    $routes->post('blacklistrequest/(:num)/delete', 'BlacklistRequest::delete/$1');
-
-    // Blacklist Entry (directly in Controllers/)
-    $routes->get('entry', 'BlacklistEntry::index');
-
-    // Blacklist Closed List (directly in Controllers/)
-    $routes->get('closedlist', 'BlacklistClosedList::index');
+ 
+    // --- Blacklist Entry ---
+    $routes->get('entry', 'BlacklistEntry::index');               // Search page
+    $routes->get('entry/search', 'BlacklistEntry::search');       // AJAX search
+    $routes->get('entry/proceed', 'BlacklistEntry::proceed');     // Pre-filled form
+    $routes->post('entry/store', 'BlacklistEntry::store');        // Submit/save
+ 
+    // --- Blacklist Closed List ---
+    $routes->get('closedlist', 'BlacklistClosedList::index');          // List page
+    $routes->get('closedlist/view/(:num)', 'BlacklistClosedList::view/$1');    // AJAX: get record JSON
+    $routes->post('closedlist/release/(:num)', 'BlacklistClosedList::release/$1'); // Release
 });
-$routes->get('blacklist/entry', 'BlacklistEntry::index');
 
 
 // Registration Type config

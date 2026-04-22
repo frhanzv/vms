@@ -26,9 +26,7 @@
                         "surface-dark": "#1a2634",
                     },
                     fontFamily: {
-                        "display": ["Montserrat", "sans-serif"],
                         "sans": ["Montserrat", "sans-serif"],
-                        "brand": ["Montserrat", "sans-serif"],
                     },
                 },
             },
@@ -44,223 +42,71 @@
 <div class="flex h-screen w-full">
 
     <!-- Sidebar -->
-    <aside class="w-64 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-surface-light dark:bg-surface-dark flex flex-col p-4 hidden md:flex h-full overflow-hidden">
-        <div class="flex flex-col gap-8 flex-1 min-h-0">
-            <div class="flex items-center gap-3 px-2">
-                <div class="bg-center bg-no-repeat bg-cover rounded-lg size-10 bg-primary/10 flex items-center justify-center text-primary">
-                    <span class="material-symbols-outlined text-3xl">shield_person</span>
-                </div>
-                <h1 class="text-lg font-bold tracking-tight text-slate-900 dark:text-white">SafeG</h1>
-            </div>
-            <nav class="flex flex-col gap-2 overflow-y-auto pr-1 custom-scrollbar">
-                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('dashboard') ?>">
-                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">dashboard</span>
-                    <p class="text-sm font-medium">Dashboard</p>
-                </a>
-                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('compliance') ?>">
-                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">health_and_safety</span>
-                    <p class="text-sm font-medium">Compliance</p>
-                </a>
-                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('invitations') ?>">
-                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">mail</span>
-                    <p class="text-sm font-medium">Invitations</p>
-                </a>
-                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('requests') ?>">
-                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">assignment</span>
-                    <p class="text-sm font-medium">Request List</p>
-                </a>
-                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('staffs') ?>">
-                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">badge</span>
-                    <p class="text-sm font-medium">Staff Pass List</p>
-                </a>
-                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('visitors') ?>">
-                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">group</span>
-                    <p class="text-sm font-medium">Visitors List</p>
-                </a>
-                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('logbook') ?>">
-                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">menu_book</span>
-                    <p class="text-sm font-medium">Visitor Logbook</p>
-                </a>
-                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('workflow') ?>">
-                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">account_tree</span>
-                    <p class="text-sm font-medium">Visitor Workflow</p>
-                </a>
-
-                <!-- Blacklist Dropdown (active) -->
-                <div x-data="{ openBlacklist: true, openIndividual: true }">
-                    <button type="button" @click="openBlacklist = !openBlacklist"
-                        class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-primary/10 text-primary transition-colors group">
-                        <div class="flex items-center gap-3">
-                            <span class="material-symbols-outlined text-[22px]">person_cancel</span>
-                            <p class="text-sm font-semibold">Blacklist</p>
-                        </div>
-                        <span class="material-symbols-outlined text-[18px] transition-transform duration-200" :class="openBlacklist ? 'rotate-180' : ''">expand_more</span>
-                    </button>
-                    <div x-show="openBlacklist" class="ml-4 mt-1 flex flex-col gap-1">
-                        <div>
-                            <button type="button" @click="openIndividual = !openIndividual"
-                                class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-primary bg-primary/5 transition-colors group">
-                                <div class="flex items-center gap-3">
-                                    <span class="material-symbols-outlined text-[18px]">person</span>
-                                    <p class="text-sm font-semibold">Individual</p>
-                                </div>
-                                <span class="material-symbols-outlined text-[16px] transition-transform duration-200" :class="openIndividual ? 'rotate-180' : ''">expand_more</span>
-                            </button>
-                            <div x-show="openIndividual" class="ml-4 mt-1 flex flex-col gap-1">
-                                <a href="<?= base_url('blacklist/blacklistrequest') ?>"
-                                    class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 text-primary text-sm font-semibold">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0"></span>
-                                    Request List
-                                </a>
-                                <a href="<?= base_url('blacklist/closedlist') ?>"
-                                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary transition-colors text-sm font-medium">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-slate-400 flex-shrink-0"></span>
-                                    Closed List
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Report Dropdown -->
-                <div x-data="{ openReport: <?= str_contains($current, 'report') ? 'true' : 'false' ?> }">
-                    <button type="button" @click="openReport = !openReport"
-                        class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= str_contains($current, 'report') ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
-                        <div class="flex items-center gap-3">
-                            <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">description</span>
-                            <p class="text-sm font-medium">Report</p>
-                        </div>
-                        <span class="material-symbols-outlined text-[18px] transition-transform duration-200" :class="openReport ? 'rotate-180' : ''">expand_more</span>
-                    </button>
-                    <div x-show="openReport"
-                        x-transition:enter="transition ease-out duration-200"
-                        x-transition:enter-start="opacity-0 -translate-y-1"
-                        x-transition:enter-end="opacity-100 translate-y-0"
-                        x-transition:leave="transition ease-in duration-150"
-                        x-transition:leave-start="opacity-100 translate-y-0"
-                        x-transition:leave-end="opacity-0 -translate-y-1"
-                        class="ml-4 mt-1 flex flex-col gap-1">
-                        <a href="<?= base_url('report/access') ?>"
-                            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'report/access' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
-                            <span class="w-1.5 h-1.5 rounded-full <?= $current == 'report/access' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
-                            Access Report
-                        </a>
-                        <a href="<?= base_url('report/visitor') ?>"
-                            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'report/visitor' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
-                            <span class="w-1.5 h-1.5 rounded-full <?= $current == 'report/visitor' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
-                            Visitor Report
-                        </a>
-                        <a href="<?= base_url('report/chronology') ?>"
-                            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= str_contains($current, 'report/chronology') ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
-                            <span class="w-1.5 h-1.5 rounded-full <?= str_contains($current, 'report/chronology') ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
-                            Visitor Chronology
-                        </a>
-                        <a href="<?= base_url('report/bydoor') ?>"
-                            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= str_contains($current, 'report/bydoor') ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
-                            <span class="w-1.5 h-1.5 rounded-full <?= str_contains($current, 'report/bydoor') ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
-                            Visitor Info By Door
-                        </a>
-                    </div>
-                </div>
-
-                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('config') ?>">
-                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">tune</span>
-                    <p class="text-sm font-medium">Config</p>
-                </a>
-                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('settings') ?>">
-                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">settings</span>
-                    <p class="text-sm font-medium">Settings</p>
-                </a>
-            </nav>
-        </div>
-        <div class="border-t border-slate-200 dark:border-slate-700 pt-4 px-2">
-            <div class="flex items-center gap-3">
-                <div class="size-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shadow-sm ring-2 ring-white dark:ring-slate-900">
-                    <?= strtoupper(substr(session()->get('full_name') ?? 'U', 0, 2)) ?>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <p class="text-sm font-semibold text-slate-900 dark:text-white truncate"><?= esc(session()->get('full_name') ?? 'User') ?></p>
-                    <p class="text-xs text-slate-500 dark:text-slate-400 truncate"><?= esc(ucfirst(session()->get('role') ?? 'User')) ?></p>
-                </div>
-                <a href="<?= base_url('auth/logout') ?>" class="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                    <span class="material-symbols-outlined text-xl">logout</span>
-                </a>
-            </div>
-        </div>
-    </aside>
+    <?= view('partials/sidebar') ?>
 
     <!-- Main Content -->
     <main class="flex-1 flex flex-col h-screen overflow-hidden">
         <div class="flex-1 overflow-y-auto p-6 md:p-8 no-scrollbar">
 
-            <!-- White Card Container -->
+            <?php if (session()->getFlashdata('success')): ?>
+            <div class="mb-4 px-4 py-3 rounded-lg bg-green-50 border border-green-200 text-green-700 text-sm font-medium flex items-center gap-2">
+                <span class="material-symbols-outlined text-[18px]">check_circle</span>
+                <?= esc(session()->getFlashdata('success')) ?>
+            </div>
+            <?php endif; ?>
+
+            <?php if (session()->getFlashdata('error')): ?>
+            <div class="mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm font-medium flex items-center gap-2">
+                <span class="material-symbols-outlined text-[18px]">error</span>
+                <?= esc(session()->getFlashdata('error')) ?>
+            </div>
+            <?php endif; ?>
+
             <div class="bg-surface-light dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 space-y-5">
 
-                <!-- Header: Title + Actions -->
+                <!-- Header -->
                 <div class="flex items-center justify-between mb-4">
-                    
-                    <!-- Title -->
-                    <h2 class="text-lg font-semibold text-gray-700">
-                        BLACKLIST INDIVIDUAL REQUEST LIST
+                    <h2 class="text-lg font-semibold text-gray-700 uppercase tracking-tight">
+                        Blacklist Individual Request List
                     </h2>
-
-                    <!-- Action Buttons -->
                     <div class="flex items-center gap-2">
                         <a href="<?= base_url('files/Blacklist_Individual_Request_List.xlsx') ?>"
-                            download="Blacklist_Individual_Request_List.xlsx"
+                            download
                             class="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary hover:bg-primary-dark text-white text-sm font-bold transition-colors shadow-sm">
                             <span class="material-symbols-outlined text-[18px]">download</span>
                             Export
                         </a>
-                         <a href="<?= site_url('blacklist/entry') ?>"
+                        <a href="<?= site_url('blacklist/entry') ?>"
                             class="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary hover:bg-primary-dark text-white text-sm font-bold transition-colors shadow-sm">
                             <span class="material-symbols-outlined text-[18px]">add</span>
                             Entry
                         </a>
                     </div>
-
                 </div>
 
-
-                <!-- Search + Sort Row -->
+                <!-- Search + Filters (decorative, no data) -->
                 <div class="flex items-center gap-3">
                     <div class="flex flex-1 gap-0">
-                        <input
-                            type="text"
-                            name="search"
+                        <input type="text"
                             placeholder="IC / PASSPORT / FULL NAME / STAFF NO"
-                            class="flex-1 h-10 px-4 text-sm bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-slate-900 dark:text-white placeholder-slate-400 font-sans uppercase placeholder:normal-case"
-                        />
-                        <button type="button"
-                            class="flex items-center justify-center h-10 w-10 bg-primary hover:bg-primary-dark text-white rounded-r-lg transition-colors flex-shrink-0">
+                            disabled
+                            class="flex-1 h-10 px-4 text-sm bg-slate-50 border border-slate-200 rounded-l-lg text-slate-400 placeholder-slate-300 font-sans uppercase placeholder:normal-case cursor-not-allowed"/>
+                        <button type="button" disabled
+                            class="flex items-center justify-center h-10 w-10 bg-slate-200 text-slate-400 rounded-r-lg cursor-not-allowed flex-shrink-0">
                             <span class="material-symbols-outlined text-[20px]">search</span>
                         </button>
                     </div>
-                 </div>
+                </div>
 
-                <!-- Filter Row -->
                 <div class="flex flex-wrap gap-3">
-                    <select name="type_of_blacklist"
-                        class="h-10 pl-3 pr-8 text-sm bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-600 dark:text-slate-300 font-sans appearance-none cursor-pointer min-w-[180px]">
-                        <option value="">TYPE OF BLACKLIST</option>
-                        <option value="visitor">Visitor</option>
-                        <option value="staff">Staff</option>
-                        <option value="contractor">Contractor</option>
+                    <select disabled class="h-10 pl-3 pr-8 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-400 font-sans appearance-none cursor-not-allowed min-w-[180px]">
+                        <option>TYPE OF BLACKLIST</option>
                     </select>
-                    <select name="status"
-                        class="h-10 pl-3 pr-8 text-sm bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-600 dark:text-slate-300 font-sans appearance-none cursor-pointer min-w-[160px]">
-                        <option value="">STATUS</option>
-                        <option value="active">Active</option>
-                        <option value="pending">Pending</option>
-                        <option value="closed">Closed</option>
+                    <select disabled class="h-10 pl-3 pr-8 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-400 font-sans appearance-none cursor-not-allowed min-w-[160px]">
+                        <option>STATUS</option>
                     </select>
-                    <select name="sort_by"
-                        class="h-10 pl-3 pr-8 text-sm bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-600 dark:text-slate-300 font-sans appearance-none cursor-pointer min-w-[180px]">
-                        <option value="">SORT BY</option>
-                        <option value="created_desc">Created Date (Newest)</option>
-                        <option value="created_asc">Created Date (Oldest)</option>
-                        <option value="blacklist_desc">Blacklist Date (Newest)</option>
-                        <option value="name_asc">Name (A-Z)</option>
+                    <select disabled class="h-10 pl-3 pr-8 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-400 font-sans appearance-none cursor-not-allowed min-w-[180px]">
+                        <option>SORT BY</option>
                     </select>
                 </div>
 
@@ -270,7 +116,6 @@
                         <thead>
                             <tr class="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
                                 <th class="px-4 py-3 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">No</th>
-                                <th class="px-4 py-3 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Action</th>
                                 <th class="px-4 py-3 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Created Date</th>
                                 <th class="px-4 py-3 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Blacklist Date</th>
                                 <th class="px-4 py-3 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">IC / Passport No</th>
@@ -281,89 +126,29 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-surface-dark">
-                            <?php if (!empty($blacklist)): ?>
-                                <?php foreach ($blacklist as $index => $entry): ?>
-                                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-                                    <td class="px-4 py-3.5 text-sm text-slate-500 dark:text-slate-400 font-medium"><?= $index + 1 ?></td>
-                                    <td class="px-4 py-3.5">
-                                        <div class="flex items-center gap-1">
-                                            <a href="<?= base_url('blacklist/blacklistrequest/' . $entry['id']) ?>"
-                                                class="p-1.5 rounded-lg text-slate-400 hover:text-primary hover:bg-primary/10 transition-colors" title="View">
-                                                <span class="material-symbols-outlined text-[18px]">visibility</span>
-                                            </a>
-                                            <a href="<?= base_url('blacklist/blacklistrequest/' . $entry['id'] . '/edit') ?>"
-                                                class="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-colors" title="Edit">
-                                                <span class="material-symbols-outlined text-[18px]">edit</span>
-                                            </a>
-                                            <button type="button" onclick="confirmDelete(<?= $entry['id'] ?>)"
-                                                class="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="Delete">
-                                                <span class="material-symbols-outlined text-[18px]">delete</span>
-                                            </button>
+                            <tr>
+                                <td colspan="8" class="px-6 py-20 text-center">
+                                    <div class="flex flex-col items-center gap-3">
+                                        <div class="size-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                                            <span class="material-symbols-outlined text-4xl text-slate-300 dark:text-slate-600">person_cancel</span>
                                         </div>
-                                    </td>
-                                    <td class="px-4 py-3.5 text-sm text-slate-600 dark:text-slate-300"><?= esc($entry['created_date']) ?></td>
-                                    <td class="px-4 py-3.5 text-sm text-slate-600 dark:text-slate-300"><?= esc($entry['blacklist_date']) ?></td>
-                                    <td class="px-4 py-3.5 text-sm text-slate-600 dark:text-slate-300 font-mono"><?= esc($entry['ic_passport_no']) ?></td>
-                                    <td class="px-4 py-3.5 text-sm text-slate-600 dark:text-slate-300"><?= esc($entry['staff_id'] ?? '—') ?></td>
-                                    <td class="px-4 py-3.5 text-sm font-semibold text-slate-900 dark:text-white"><?= esc($entry['name']) ?></td>
-                                    <td class="px-4 py-3.5">
-                                        <?php
-                                        $status = strtolower($entry['status']);
-                                        $statusStyle = match($status) {
-                                            'active'  => 'bg-red-50 text-red-700 border-red-200',
-                                            'pending' => 'bg-amber-50 text-amber-700 border-amber-200',
-                                            'closed'  => 'bg-slate-100 text-slate-600 border-slate-200',
-                                            default   => 'bg-slate-100 text-slate-600 border-slate-200',
-                                        };
-                                        $dotStyle = match($status) {
-                                            'active'  => 'bg-red-500',
-                                            'pending' => 'bg-amber-400',
-                                            default   => 'bg-slate-400',
-                                        };
-                                        ?>
-                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border <?= $statusStyle ?>">
-                                            <span class="size-1.5 rounded-full <?= $dotStyle ?>"></span>
-                                            <?= esc(ucfirst($entry['status'])) ?>
-                                        </span>
-                                    </td>
-                                    <td class="px-4 py-3.5 text-sm text-slate-600 dark:text-slate-300"><?= esc($entry['type']) ?></td>
-                                </tr>
-                                <?php endforeach; ?>
-                            <?php else: ?>
-                                <tr>
-                                    <td colspan="9" class="px-6 py-20 text-center">
-                                        <div class="flex flex-col items-center gap-3">
-                                            <div class="size-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                                                <span class="material-symbols-outlined text-4xl text-slate-300 dark:text-slate-600">person_cancel</span>
-                                            </div>
-                                            <p class="text-sm font-bold text-slate-500 dark:text-slate-400">No Data Available</p>
-                                            <p class="text-xs text-slate-400 dark:text-slate-500">There are no blacklist records at the moment.</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                            <?php endif; ?>
+                                        <p class="text-sm font-bold text-slate-500 dark:text-slate-400">No Data Available</p>
+                                        <p class="text-xs text-slate-400 dark:text-slate-500">Click <strong>+ Entry</strong> to blacklist an individual.</p>
+                                    </div>
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
 
-                <!-- Pagination -->
+                <!-- Pagination (decorative) -->
                 <div class="flex items-center justify-between pt-2">
                     <div class="flex items-center gap-1">
-                        <button class="flex items-center justify-center size-8 rounded border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-bold transition-colors" disabled>«</button>
-                        <button class="flex items-center justify-center size-8 rounded border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors" disabled>
-                            <span class="material-symbols-outlined text-[16px]">chevron_left</span>
-                        </button>
+                        <button disabled class="flex items-center justify-center size-8 rounded border border-slate-200 text-slate-300 cursor-not-allowed text-xs font-bold">«</button>
                         <button class="flex items-center justify-center size-8 rounded border border-primary bg-primary text-white text-xs font-bold">1</button>
-                        <button class="flex items-center justify-center size-8 rounded border border-slate-200 dark:border-slate-700 text-slate-600 hover:bg-slate-100 text-xs font-medium transition-colors">2</button>
-                        <button class="flex items-center justify-center size-8 rounded border border-slate-200 dark:border-slate-700 text-slate-600 hover:bg-slate-100 text-xs font-medium transition-colors">3</button>
-                        <span class="flex items-center justify-center size-8 text-slate-400 text-xs">...</span>
-                        <button class="flex items-center justify-center size-8 rounded border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-100 transition-colors">
-                            <span class="material-symbols-outlined text-[16px]">chevron_right</span>
-                        </button>
-                        <button class="flex items-center justify-center size-8 rounded border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-100 text-xs font-bold transition-colors">»</button>
+                        <button disabled class="flex items-center justify-center size-8 rounded border border-slate-200 text-slate-300 cursor-not-allowed text-xs font-bold">»</button>
                     </div>
-                    <select name="per_page"
-                        class="h-9 pl-3 pr-7 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-300 outline-none font-sans appearance-none cursor-pointer">
+                    <select class="h-9 pl-3 pr-7 text-xs bg-white border border-slate-200 rounded-lg text-slate-600 outline-none font-sans appearance-none cursor-pointer">
                         <option value="10">10 ITEMS PER PAGE</option>
                         <option value="25">25 ITEMS PER PAGE</option>
                         <option value="50">50 ITEMS PER PAGE</option>
@@ -374,13 +159,5 @@
         </div>
     </main>
 </div>
-
-<script>
-function confirmDelete(id) {
-    if (confirm('Are you sure you want to remove this blacklist entry?')) {
-        window.location.href = `<?= base_url('blacklist/blacklistrequest/') ?>${id}/delete`;
-    }
-}
-</script>
 </body>
 </html>
