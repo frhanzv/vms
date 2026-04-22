@@ -13871,6 +13871,92 @@
             setTimeout(() => t.remove(), 3000);
         }
 
+        // Function to Edit Business Type
+        document.addEventListener('DOMContentLoaded', function () {
+ 
+            const modal       = document.getElementById('biztype-modal');
+            const closeBtn    = document.getElementById('close-biztype-modal');
+            const backBtn     = document.getElementById('back-biztype-modal');
         
+            // Boolean fields that use 1/0 dropdowns
+            const boolFields = [
+                'ledger',
+                'haulier',
+                'lpk_license_no',
+                'lpk_license_no_optional',
+                'lpk_ancillary_contractor',
+                'customs_license_no',
+                'sst_reg_no',
+                'business_vol',
+                'trade_ref_no',
+                'bank_info',
+                'operator_code',
+                'copy_board_director_ic',
+                'apad_certificate_no',
+                'license_expiry_date',
+                'warehouse_info',
+                'nature_of_business',
+                'pli'
+            ];
+        
+            // Open modal and populate fields when a row is clicked
+            document.querySelectorAll('.biztype-row').forEach(function (row) {
+                row.addEventListener('click', function () {
+        
+                    // Text / select fields
+                    document.getElementById('edit-id').value            = this.dataset.id;
+                    document.getElementById('edit-business_type').value = this.dataset.business_type;
+        
+                    // Reg Type dropdown — match by value
+                    const regSelect = document.getElementById('edit-reg_type');
+                    for (let i = 0; i < regSelect.options.length; i++) {
+                        if (regSelect.options[i].value === this.dataset.reg_type) {
+                            regSelect.selectedIndex = i;
+                            break;
+                        }
+                    }
+        
+                    // Boolean dropdowns (1 = YES, 0 = NO)
+                    boolFields.forEach(function (field) {
+                        const el = document.getElementById('edit-' + field);
+                        if (el) {
+                            el.value = row.dataset[field]; // '1' or '0'
+                        }
+                    });
+        
+                    // Status dropdown
+                    const statusSelect = document.getElementById('edit-status');
+                    for (let i = 0; i < statusSelect.options.length; i++) {
+                        if (statusSelect.options[i].value === this.dataset.status.toUpperCase()) {
+                            statusSelect.selectedIndex = i;
+                            break;
+                        }
+                    }
+        
+                    // Show modal
+                    modal.classList.remove('hidden');
+                    modal.classList.add('flex');
+                });
+            });
+        
+            // Close modal
+            function closeModal() {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        
+            closeBtn.addEventListener('click', closeModal);
+            backBtn.addEventListener('click', closeModal);
+        
+            // Close on backdrop click
+            modal.addEventListener('click', function (e) {
+                if (e.target === modal) closeModal();
+            });
+        
+            // Close on Escape key
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') closeModal();
+            });
+        });
     </script>
 </body>

@@ -141,7 +141,7 @@
 
                             <div>
                                 <label class="block text-xs text-slate-400 mb-1.5 font-medium">Country</label>
-                                <input type="text" value="<?= esc($invitation['country'] ?? '—') ?>" readonly
+                                <input type="text" value="<?= esc($country_name) ?>" readonly
                                     class="w-full h-10 px-4 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-700 focus:outline-none cursor-not-allowed"/>
                             </div>
 

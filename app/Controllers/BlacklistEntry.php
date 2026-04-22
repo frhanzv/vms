@@ -118,6 +118,16 @@ class BlacklistEntry extends BaseController
         $staffNo     = $staff ? ($staff['staff_no'] ?? '') : '';
         $designation = $staff ? ($staff['designation'] ?? '') : '';
 
+        // Resolve country name from countries table
+        $countryName = '—';
+        if (!empty($invitation['country'])) {
+            $countryRow = $db->table('countries')
+                ->where('id', $invitation['country'])
+                ->get()
+                ->getRowArray();
+            $countryName = $countryRow ? $countryRow['name'] : $invitation['country'];
+        }
+
         // Load blacklist reasons
         $reasons = $db->table('blacklistreason')
             ->where('status', 'Active')
@@ -125,12 +135,13 @@ class BlacklistEntry extends BaseController
             ->getResultArray();
 
         return view('blacklist/entry_form', [
-            'pageTitle'   => 'Blacklist Entry',
-            'invitation'  => $invitation,
-            'type'        => $type,
-            'staff_no'    => $staffNo,
-            'designation' => $designation,
-            'reasons'     => $reasons,
+            'pageTitle'    => 'Blacklist Entry',
+            'invitation'   => $invitation,
+            'type'         => $type,
+            'staff_no'     => $staffNo,
+            'designation'  => $designation,
+            'country_name' => $countryName,
+            'reasons'      => $reasons,
         ]);
     }
 
