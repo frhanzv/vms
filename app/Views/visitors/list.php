@@ -74,10 +74,6 @@
                     <span class="material-symbols-outlined text-[22px] font-medium fill-1 group-hover:scale-110 transition-transform">group</span>
                     <p class="text-sm font-semibold">Visitors List</p>
                 </a>
-                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('logbook') ?>">
-                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">menu_book</span>
-                    <p class="text-sm font-medium">Visitor Logbook</p>
-                </a>
                 <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('workflow') ?>">
                     <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">account_tree</span>
                     <p class="text-sm font-medium">Visitor Workflow</p>
@@ -236,10 +232,10 @@
                     Visitor Past List
                 </h1>
                 <div class="flex gap-2">
-                    <button class="bg-secondary hover:bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
+                    <a href="<?= base_url('visitors/export') ?>" class="bg-secondary hover:bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
                         <span class="material-icons text-sm mr-1">file_download</span>
                         Export
-                    </button>
+                    </a>
                     <a href="<?= base_url('visitor-pass-request') ?>" class="bg-primary hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
                         <span class="material-icons text-sm mr-1">add</span>
                         Request

@@ -94,6 +94,106 @@ class InvitationList extends BaseController
         return view('invitations/list', $data);
     }
 
+    public function export()
+    {
+        $search = trim((string) ($this->request->getGet('search') ?? ''));
+        $status = trim((string) ($this->request->getGet('status') ?? ''));
+
+        $builder = $this->invitationModel->builder();
+
+        if ($search !== '') {
+            $builder->groupStart()
+                ->like('full_name', $search)
+                ->orLike('ic_passport', $search)
+                ->orLike('contact', $search)
+                ->orLike('company', $search)
+                ->orLike('reason', $search)
+                ->groupEnd();
+        }
+
+        $allowedStatuses = ['Pending', 'Submitted', 'Approved', 'Rejected'];
+        if ($status !== '' && in_array($status, $allowedStatuses, true)) {
+            $builder->where('status', $status);
+        }
+
+        $rows = $builder->orderBy('created_at', 'DESC')->get()->getResultArray();
+        $ids = array_map('intval', array_column($rows, 'id'));
+
+        $firstScheduleByInvitation = [];
+        if ($ids !== []) {
+            $schedules = $this->scheduleModel
+                ->whereIn('invitation_id', $ids)
+                ->orderBy('date_from', 'ASC')
+                ->findAll();
+
+            foreach ($schedules as $schedule) {
+                $invitationId = (int) $schedule['invitation_id'];
+                if (! isset($firstScheduleByInvitation[$invitationId])) {
+                    $firstScheduleByInvitation[$invitationId] = $schedule;
+                }
+            }
+        }
+
+        $handle = fopen('php://temp', 'w+');
+        fwrite($handle, "\xEF\xBB\xBF");
+        fputcsv($handle, [
+            'No',
+            'Invitation Date',
+            'Visit From',
+            'Visit To',
+            'Full Name',
+            'IC/Passport',
+            'Contact',
+            'Visitor Email',
+            'Company',
+            'Vehicle Registration',
+            'Location',
+            'Invited By',
+            'Status',
+            'Reason',
+            'Link Expiry',
+            'Created At',
+        ]);
+
+        foreach ($rows as $index => $row) {
+            $invitationId = (int) $row['id'];
+            $schedule = $firstScheduleByInvitation[$invitationId] ?? null;
+            $dateFrom = $schedule['date_from'] ?? null;
+            $dateTo = $schedule['date_to'] ?? null;
+            $reason = ($row['reason'] ?? '') === 'OTHER'
+                ? ($row['other_reason'] ?? 'OTHER')
+                : ($row['reason'] ?? '');
+
+            fputcsv($handle, [
+                $index + 1,
+                $dateFrom ? date('d/m/Y', strtotime((string) $dateFrom)) : '-',
+                $dateFrom ? date('d/m/Y H:i', strtotime((string) $dateFrom)) : '-',
+                $dateTo ? date('d/m/Y H:i', strtotime((string) $dateTo)) : '-',
+                $row['full_name'] ?? '',
+                $row['ic_passport'] ?? '',
+                $row['contact'] ?? '',
+                $row['visitor_email'] ?? '',
+                $row['company'] ?? '',
+                $row['vehicle_registration'] ?? '',
+                $row['location'] ?? '',
+                $row['invited_by'] ?? '',
+                $row['status'] ?? '',
+                $reason,
+                ! empty($row['link_expiry']) ? date('d/m/Y', strtotime((string) $row['link_expiry'])) : '',
+                ! empty($row['created_at']) ? date('d/m/Y H:i:s', strtotime((string) $row['created_at'])) : '',
+            ]);
+        }
+
+        rewind($handle);
+        $csvContent = stream_get_contents($handle);
+        fclose($handle);
+
+        return $this->response
+            ->setHeader('Content-Type', 'text/csv; charset=UTF-8')
+            ->setHeader('Content-Disposition', 'attachment; filename="invitations-' . date('Y-m-d-His') . '.csv"')
+            ->setBody((string) $csvContent);
+    }
+
     public function create()
     {
         // Get visit reasons from database

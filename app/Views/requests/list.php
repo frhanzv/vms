@@ -73,10 +73,6 @@
                     <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">group</span>
                     <p class="text-sm font-medium">Visitors List</p>
                 </a>
-                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('logbook') ?>">
-                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">menu_book</span>
-                    <p class="text-sm font-medium">Visitor Logbook</p>
-                </a>
                 <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('workflow') ?>">
                     <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">account_tree</span>
                     <p class="text-sm font-medium">Visitor Workflow</p>
