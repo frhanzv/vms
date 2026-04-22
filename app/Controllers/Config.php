@@ -4693,4 +4693,22 @@ class Config extends BaseController
             'message' => 'API key deleted successfully',
         ]);
     }
+
+    public function getBlacklistReason($id)
+    {
+        $db  = \Config\Database::connect();
+        $row = $db->table('blacklistreason')->where('id', $id)->get()->getRowArray();
+
+        if (!$row) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'success' => false,
+                'message' => 'Record not found.',
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data'    => $row,
+        ]);
+    }
 }
