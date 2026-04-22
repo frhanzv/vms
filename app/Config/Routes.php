@@ -79,8 +79,9 @@ $routes->get('config/getAlertPriorities', 'Config::getAlertPriorities');
 $routes->post('config/updateAlertPriority/(:num)', 'Config::updateAlertPriority/$1');
 
 // App Config Routes
-$routes->get('config/getAppConfigs', 'Config::getAppConfigs');
-$routes->post('config/updateAppConfig/(:num)', 'Config::updateAppConfig/$1');
+$routes->get('config/getAppConfigs',          'AppConfig::getAll');
+$routes->get('config/getAppConfig/(:num)',     'AppConfig::get/$1');
+$routes->post('config/updateAppConfig/(:num)', 'AppConfig::update/$1');
 
 // Role Management Routes
 $routes->get('config/getRoles', 'Config::getRoles');
@@ -291,6 +292,7 @@ $routes->post('config/deleteRegType/(:num)', 'Config::deleteRegType/$1');
 
 // Blacklist Reason config
 $routes->post('config/saveBlacklistReason', 'BlacklistReasonCreate::save');
+$routes->get('config/getBlacklistReason/(:num)', 'Config::getBlacklistReason/$1');
 
 
 // Business Type Config

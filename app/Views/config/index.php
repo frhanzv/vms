@@ -368,7 +368,7 @@
                     </div>
                 </div>
 
-                <!-- App Config View Details Modal (outside appconfig section) -->
+                <!-- App Config View Details Modal -->
                 <div id="appConfigModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
                     <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-lg mx-4">
                         <!-- Header -->
@@ -380,31 +380,53 @@
                         </div>
                         <!-- Body -->
                         <div class="p-6 space-y-4">
+
+                            <!-- Hidden ID -->
+                            <input type="hidden" id="appConfigId"/>
+
                             <div>
-                                <label class="text-sm font-medium text-gray-700 dark:text-slate-300">*Description:</label>
-                                <input id="appConfigDescription" type="text" readonly
-                                    class="mt-1 w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2 text-sm bg-gray-50"/>
+                                <label class="text-sm font-medium text-gray-700 dark:text-slate-300">
+                                    *Description:
+                                </label>
+                                <input id="appConfigDescription" type="text"
+                                    class="mt-1 w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"/>
                             </div>
+
                             <div>
-                                <label class="text-sm font-medium text-gray-700 dark:text-slate-300">Active</label>
-                                <input id="appConfigActive" type="text"
-                                    class="mt-1 w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2 text-sm"/>
+                                <label class="text-sm font-medium text-gray-700 dark:text-slate-300">
+                                    Active
+                                </label>
+                                <select id="appConfigActive"
+                                    class="mt-1 w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+                                    <option value="YES">YES</option>
+                                    <option value="NO">NO</option>
+                                </select>
                             </div>
+
                             <div>
-                                <label class="text-sm font-medium text-gray-700 dark:text-slate-300">Day to Send First Alert</label>
-                                <input id="appConfigFirstAlert" type="number"
-                                    class="mt-1 w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2 text-sm"/>
+                                <label class="text-sm font-medium text-gray-700 dark:text-slate-300">
+                                    Day to Send First Alert
+                                </label>
+                                <input id="appConfigFirstAlert" type="number" min="0"
+                                    class="mt-1 w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"/>
                             </div>
+
                             <div>
-                                <label class="text-sm font-medium text-gray-700 dark:text-slate-300">Day to Send Second Alert</label>
-                                <input id="appConfigSecondAlert" type="number"
-                                    class="mt-1 w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2 text-sm"/>
+                                <label class="text-sm font-medium text-gray-700 dark:text-slate-300">
+                                    Day to Send Second Alert
+                                </label>
+                                <input id="appConfigSecondAlert" type="number" min="0"
+                                    class="mt-1 w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"/>
                             </div>
+
                             <div>
-                                <label class="text-sm font-medium text-gray-700 dark:text-slate-300">Day to Block</label>
-                                <input id="appConfigDayToBlock" type="number"
-                                    class="mt-1 w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2 text-sm"/>
+                                <label class="text-sm font-medium text-gray-700 dark:text-slate-300">
+                                    Day to Block
+                                </label>
+                                <input id="appConfigDayToBlock" type="number" min="0"
+                                    class="mt-1 w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"/>
                             </div>
+
                         </div>
                         <!-- Footer -->
                         <div class="flex items-center justify-between p-4 border-t border-gray-200 dark:border-slate-700">
@@ -413,7 +435,8 @@
                                 Back
                             </button>
                             <button onclick="saveAppConfig()"
-                                class="px-4 py-2 rounded-lg bg-primary hover:bg-blue-600 text-white text-sm font-medium transition-colors">
+                                class="px-4 py-2 rounded-lg bg-primary hover:bg-blue-600 text-white text-sm font-medium transition-colors flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[18px]">save</span>
                                 Save
                             </button>
                         </div>
@@ -4314,7 +4337,9 @@
             }
         }
 
-        // ============== APP CONFIG FUNCTIONS ==============
+        
+        // APP CONFIG FUNCTIONS
+        // ====================
 
         let appConfigCurrentPage = 1;
         let appConfigCurrentSearch = '';
@@ -4323,64 +4348,184 @@
             appConfigCurrentPage = page;
             appConfigCurrentSearch = search;
 
-            const staticData = [
-                {
-                    description: 'VALIDATE CP BEFORE ACCESS PORT PASS / VEHICLE STICKER MODULE',
-                    status: 'active',
-                    day_first_alert: 1,
-                    day_second_alert: 15,
-                    day_to_block: 21
-                }
-            ];
+            const tbody   = document.getElementById('appconfig-table-body');
+            const infoEl  = document.getElementById('appconfig-pagination-info');
+            const btnsEl  = document.getElementById('appconfig-pagination-buttons');
 
-            const filtered = staticData.filter(config =>
-                config.description.toLowerCase().includes(search.toLowerCase())
-            );
+            // Show loading spinner
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="2" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
+                        <div class="flex flex-col items-center justify-center">
+                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
+                            <span>Loading...</span>
+                        </div>
+                    </td>
+                </tr>`;
+            infoEl.textContent = 'Loading...';
+            btnsEl.innerHTML   = '';
 
-            displayAppConfigs(filtered);
+            fetch(`<?= base_url('config/getAppConfigs') ?>?page=${page}&per_page=10&search=${encodeURIComponent(search)}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (!data.success) {
+                        tbody.innerHTML = `<tr><td colspan="2" class="px-4 py-8 text-center text-gray-500">Failed to load data.</td></tr>`;
+                        return;
+                    }
 
-            const infoEl = document.getElementById('appconfig-pagination-info');
-            const buttonsEl = document.getElementById('appconfig-pagination-buttons');
-            infoEl.textContent = filtered.length > 0 ? `Showing 1 to ${filtered.length} of ${filtered.length} configs` : 'No app configs found';
-            buttonsEl.innerHTML = '';
+                    displayAppConfigs(data.data);
+
+                    // Pagination info
+                    const p = data.pagination;
+                    infoEl.textContent = p.total > 0
+                        ? `Showing ${p.from} to ${p.to} of ${p.total} entries`
+                        : 'No app configs found';
+
+                    // Pagination buttons
+                    btnsEl.innerHTML = '';
+                    for (let i = 1; i <= p.total_pages; i++) {
+                        const btn = document.createElement('button');
+                        btn.textContent = i;
+                        btn.className   = `px-3 py-1 rounded text-sm border ${
+                            i === p.current_page
+                                ? 'bg-primary text-white border-primary'
+                                : 'border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700'
+                        }`;
+                        btn.onclick = () => loadAppConfigs(i, appConfigCurrentSearch);
+                        btnsEl.appendChild(btn);
+                    }
+                })
+                .catch(() => {
+                    tbody.innerHTML = `<tr><td colspan="2" class="px-4 py-8 text-center text-red-500">An error occurred. Please try again.</td></tr>`;
+                });
         }
 
         function displayAppConfigs(configs) {
             const tbody = document.getElementById('appconfig-table-body');
 
-            if (configs.length === 0) {
+            if (!configs || configs.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="2" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">No app configs found</td>
-                    </tr>
-                `;
+                        <td colspan="2" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
+                            No app configs found.
+                        </td>
+                    </tr>`;
                 return;
             }
 
-            // Store configs globally so onclick can reference by index
-            window.appConfigData = configs;
-
             tbody.innerHTML = configs.map((config, index) => {
-                const borderClass = index < configs.length - 1 ? 'border-b border-gray-100 dark:border-slate-700' : '';
-                const activeIcon = config.status === 'active'
+                const borderClass  = index < configs.length - 1 ? 'border-b border-gray-100 dark:border-slate-700' : '';
+                const activeIcon   = (config.active === 'YES')
                     ? '<span class="material-symbols-outlined text-green-500 text-base">check</span>'
-                    : '';
+                    : '<span class="material-symbols-outlined text-red-500 text-base">close</span>';
 
                 return `
-                    <tr class="${borderClass} hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                        <td class="px-4 py-3 text-xs cursor-pointer hover:text-primary" onclick="openAppConfigModal(${index})">${escapeHtml(config.description || '-')}</td>
+                    <tr class="${borderClass} hover:bg-gray-100 dark:hover:bg-slate-700/30 cursor-pointer"
+                        onclick="openAppConfigModal(${config.id})">
+                        <td class="px-4 py-3 text-sm hover:text-primary">${escapeHtml(config.description || '-')}</td>
                         <td class="px-4 py-3">${activeIcon}</td>
-                    </tr>
-                `;
+                    </tr>`;
             }).join('');
         }
 
         function searchDesc() {
-            const searchInput = document.getElementById('appconfig-search-input');
-            loadAppConfigs(1, searchInput.value.trim());
+            const search = document.getElementById('appconfig-search-input').value.trim();
+            loadAppConfigs(1, search);
         }
 
+        function openAppConfigModal(id) {
+            const modal = document.getElementById('appConfigModal');
+
+            // Reset fields
+            document.getElementById('appConfigId').value          = '';
+            document.getElementById('appConfigDescription').value = '';
+            document.getElementById('appConfigActive').value      = 'YES';
+            document.getElementById('appConfigFirstAlert').value  = '';
+            document.getElementById('appConfigSecondAlert').value = '';
+            document.getElementById('appConfigDayToBlock').value  = '';
+
+            // Show modal
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+
+            // Fetch record
+            fetch(`<?= base_url('config/getAppConfig/') ?>${id}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (!data.success) {
+                        alert('Failed to load record.');
+                        closeAppConfigModal();
+                        return;
+                    }
+
+                    const row = data.data;
+                    document.getElementById('appConfigId').value          = row.id;
+                    document.getElementById('appConfigDescription').value = row.description;
+                    document.getElementById('appConfigActive').value      = row.active ?? 'YES';
+                    document.getElementById('appConfigFirstAlert').value  = row.day_to_send_first_alert ?? '';
+                    document.getElementById('appConfigSecondAlert').value = row.day_to_send_second_alert ?? '';
+                    document.getElementById('appConfigDayToBlock').value  = row.day_to_block ?? '';
+                })
+                .catch(() => {
+                    alert('An error occurred. Please try again.');
+                    closeAppConfigModal();
+                });
+        }
+
+        function closeAppConfigModal() {
+            document.getElementById('appConfigModal').classList.add('hidden');
+            document.getElementById('appConfigModal').classList.remove('flex');
+        }
+
+        function saveAppConfig() {
+            const id = document.getElementById('appConfigId').value;
+
+            if (!id) {
+                alert('No record selected.');
+                return;
+            }
+
+            const description = document.getElementById('appConfigDescription').value.trim();
+            if (!description) {
+                alert('Description is required.');
+                document.getElementById('appConfigDescription').focus();
+                return;
+            }
+
+            fetch(`<?= base_url('config/updateAppConfig/') ?>${id}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
+                                ?? '<?= csrf_hash() ?>',
+                },
+                body: JSON.stringify({
+                    description:              description,
+                    active:                   document.getElementById('appConfigActive').value,
+                    day_to_send_first_alert:  document.getElementById('appConfigFirstAlert').value,
+                    day_to_send_second_alert: document.getElementById('appConfigSecondAlert').value,
+                    day_to_block:             document.getElementById('appConfigDayToBlock').value,
+                }),
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    closeAppConfigModal();
+                    loadAppConfigs(appConfigCurrentPage, appConfigCurrentSearch);
+                    showNotification('App config updated successfully.', 'success');
+                } else {
+                    alert(data.message ?? 'Failed to update.');
+                }
+            })
+            .catch(() => {
+                alert('An error occurred. Please try again.');
+            });
+        }
+
+        // Auto-load when section is opened
         document.addEventListener('DOMContentLoaded', function () {
+            // Search on Enter key
             const searchInput = document.getElementById('appconfig-search-input');
             if (searchInput) {
                 searchInput.addEventListener('keypress', function (e) {
@@ -4390,40 +4535,15 @@
                     }
                 });
             }
+
+            // Close modal on backdrop click
+            document.getElementById('appConfigModal').addEventListener('click', function (e) {
+                if (e.target === this) closeAppConfigModal();
+            });
+
+            // Load data on page load
+            loadAppConfigs();
         });
-
-        // Modal Function for App Config View details
-
-        function openAppConfigModal(index) {
-            const config = window.appConfigData[index];
-            document.getElementById('appConfigDescription').value = config.description;
-            document.getElementById('appConfigActive').value = config.status === 'active' ? 'YES' : 'NO';
-            document.getElementById('appConfigFirstAlert').value = config.day_first_alert;
-            document.getElementById('appConfigSecondAlert').value = config.day_second_alert;
-            document.getElementById('appConfigDayToBlock').value = config.day_to_block;
-            document.getElementById('appConfigModal').classList.remove('hidden');
-            document.getElementById('appConfigModal').classList.add('flex');
-        }
-
-        function closeAppConfigModal() {
-            document.getElementById('appConfigModal').classList.add('hidden');
-            document.getElementById('appConfigModal').classList.remove('flex');
-        }
-
-        function saveAppConfig() {
-            const data = {
-                description: document.getElementById('appConfigDescription').value,
-                active: document.getElementById('appConfigActive').value,
-                day_first_alert: document.getElementById('appConfigFirstAlert').value,
-                day_second_alert: document.getElementById('appConfigSecondAlert').value,
-                day_to_block: document.getElementById('appConfigDayToBlock').value
-            };
-
-            // Save logic here
-            console.log('Saving app config:', data);
-            closeAppConfigModal();
-            showNotification('App config saved successfully', 'success');
-        }
 
         // ============== REGISTRATION TYPE FUNCTIONS ==============
 
@@ -12905,11 +13025,40 @@
             fetchInvitationEmailTemplateSettings();
         });
 
-        function openBlacklistModal(id = null) {
-            document.getElementById('blacklist-modal').classList.remove('hidden');
-            document.getElementById('blacklist-modal').classList.add('flex');
+        // Blacklist Reason Modal 
 
-            // optional: you can later load data via PHP page reload for edit
+        function openBlacklistModal(id = null) {
+            const modal = document.getElementById('blacklist-modal');
+
+            // Reset form first
+            document.getElementById('blacklist-id').value     = '';
+            document.getElementById('blacklist-reason').value = '';
+            document.getElementById('blacklist-type').value   = 'SUSPEND';
+            document.getElementById('blacklist-status').value = 'Active';
+
+            if (id) {
+                // Edit mode — fetch existing record
+                fetch(`<?= base_url('config/getBlacklistReason/') ?>${id}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (!data.success) {
+                            alert('Failed to load record.');
+                            return;
+                        }
+
+                        const row = data.data;
+                        document.getElementById('blacklist-id').value     = row.id;
+                        document.getElementById('blacklist-reason').value = row.reason;
+                        document.getElementById('blacklist-type').value   = row.type;
+                        document.getElementById('blacklist-status').value = row.status;
+                    })
+                    .catch(() => {
+                        alert('An error occurred. Please try again.');
+                    });
+            }
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
         }
 
         function closeBlacklistModal() {
