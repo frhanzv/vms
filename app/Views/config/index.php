@@ -297,12 +297,114 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="flex justify-end gap-3 mt-6">
-                                <button
-                                    class="px-5 py-2.5 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">Cancel</button>
-                                <button
-                                    class="px-5 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm">Save
-                                    Changes</button>
+                            <div class="mt-8 border-t border-gray-200 dark:border-slate-700 pt-6">
+                                <div class="mb-4">
+                                    <h4 class="text-sm font-bold text-slate-800 dark:text-white">Login Page Customization</h4>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Update the login background image and all visible login texts for each new client.</p>
+                                </div>
+
+                                <form id="loginPageSettingsForm" class="space-y-4" enctype="multipart/form-data">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div class="md:col-span-2">
+                                            <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Page Title</label>
+                                            <input id="login_page_title" name="page_title" type="text" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2.5 text-sm focus:border-primary focus:ring-primary text-gray-800 dark:text-white" />
+                                        </div>
+                                        <div>
+                                            <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Brand Name</label>
+                                            <input id="login_brand_name" name="brand_name" type="text" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2.5 text-sm focus:border-primary focus:ring-primary text-gray-800 dark:text-white" />
+                                        </div>
+                                        <div>
+                                            <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Heading</label>
+                                            <input id="login_heading" name="heading" type="text" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2.5 text-sm focus:border-primary focus:ring-primary text-gray-800 dark:text-white" />
+                                        </div>
+                                        <div class="md:col-span-2">
+                                            <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Subheading</label>
+                                            <textarea id="login_subheading" name="subheading" rows="2" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2.5 text-sm focus:border-primary focus:ring-primary text-gray-800 dark:text-white"></textarea>
+                                        </div>
+                                        <div>
+                                            <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Username Label</label>
+                                            <input id="login_username_label" name="username_label" type="text" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2.5 text-sm focus:border-primary focus:ring-primary text-gray-800 dark:text-white" />
+                                        </div>
+                                        <div>
+                                            <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Username Placeholder</label>
+                                            <input id="login_username_placeholder" name="username_placeholder" type="text" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2.5 text-sm focus:border-primary focus:ring-primary text-gray-800 dark:text-white" />
+                                        </div>
+                                        <div>
+                                            <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Password Label</label>
+                                            <input id="login_password_label" name="password_label" type="text" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2.5 text-sm focus:border-primary focus:ring-primary text-gray-800 dark:text-white" />
+                                        </div>
+                                        <div>
+                                            <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Password Placeholder</label>
+                                            <input id="login_password_placeholder" name="password_placeholder" type="text" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2.5 text-sm focus:border-primary focus:ring-primary text-gray-800 dark:text-white" />
+                                        </div>
+                                        <div>
+                                            <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Remember Text</label>
+                                            <input id="login_remember_text" name="remember_text" type="text" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2.5 text-sm focus:border-primary focus:ring-primary text-gray-800 dark:text-white" />
+                                        </div>
+                                        <div>
+                                            <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Forgot Password Text</label>
+                                            <input id="login_forgot_password_text" name="forgot_password_text" type="text" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2.5 text-sm focus:border-primary focus:ring-primary text-gray-800 dark:text-white" />
+                                        </div>
+                                        <div>
+                                            <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Login Button Text</label>
+                                            <input id="login_button_text" name="login_button_text" type="text" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2.5 text-sm focus:border-primary focus:ring-primary text-gray-800 dark:text-white" />
+                                        </div>
+                                        <div>
+                                            <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Demo Title</label>
+                                            <input id="login_demo_title" name="demo_title" type="text" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2.5 text-sm focus:border-primary focus:ring-primary text-gray-800 dark:text-white" />
+                                        </div>
+                                        <div>
+                                            <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Demo Admin Text</label>
+                                            <input id="login_demo_admin_text" name="demo_admin_text" type="text" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2.5 text-sm focus:border-primary focus:ring-primary text-gray-800 dark:text-white" />
+                                        </div>
+                                        <div>
+                                            <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Demo Host Text</label>
+                                            <input id="login_demo_host_text" name="demo_host_text" type="text" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2.5 text-sm focus:border-primary focus:ring-primary text-gray-800 dark:text-white" />
+                                        </div>
+                                        <div>
+                                            <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Contact Prompt</label>
+                                            <input id="login_contact_prompt" name="contact_prompt" type="text" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2.5 text-sm focus:border-primary focus:ring-primary text-gray-800 dark:text-white" />
+                                        </div>
+                                        <div>
+                                            <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Contact Link Text</label>
+                                            <input id="login_contact_link_text" name="contact_link_text" type="text" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2.5 text-sm focus:border-primary focus:ring-primary text-gray-800 dark:text-white" />
+                                        </div>
+                                        <div class="md:col-span-2">
+                                            <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Footer Text</label>
+                                            <input id="login_footer_text" name="footer_text" type="text" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2.5 text-sm focus:border-primary focus:ring-primary text-gray-800 dark:text-white" />
+                                        </div>
+                                        <div>
+                                            <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Hero Title</label>
+                                            <input id="login_hero_title" name="hero_title" type="text" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2.5 text-sm focus:border-primary focus:ring-primary text-gray-800 dark:text-white" />
+                                        </div>
+                                        <div>
+                                            <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Hero Badge Text</label>
+                                            <input id="login_hero_badge_text" name="hero_badge_text" type="text" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2.5 text-sm focus:border-primary focus:ring-primary text-gray-800 dark:text-white" />
+                                        </div>
+                                        <div class="md:col-span-2">
+                                            <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Hero Subtitle</label>
+                                            <textarea id="login_hero_subtitle" name="hero_subtitle" rows="2" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2.5 text-sm focus:border-primary focus:ring-primary text-gray-800 dark:text-white"></textarea>
+                                        </div>
+                                        <div class="md:col-span-2">
+                                            <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Background Image</label>
+                                            <input id="login_background_image" name="login_background_image" type="file" accept=".jpg,.jpeg,.png,.webp,image/*" class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2.5 text-sm text-gray-700 dark:text-slate-200" />
+                                            <div class="mt-2 flex items-center gap-3">
+                                                <img id="loginBackgroundPreview" src="" alt="Login background preview" class="h-14 w-24 rounded object-cover border border-slate-200 dark:border-slate-700 hidden" />
+                                                <p id="loginBackgroundPathText" class="text-xs text-slate-500 dark:text-slate-400"></p>
+                                            </div>
+                                            <label class="mt-2 inline-flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                                                <input id="remove_login_background_image" type="checkbox" class="rounded border-slate-300 text-primary focus:ring-primary/20" />
+                                                Remove current background image (revert to default)
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex justify-end">
+                                        <button type="button" onclick="saveLoginPageSettings()" class="px-5 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm">
+                                            Save Login Page Settings
+                                        </button>
+                                    </div>
+                                </form>
                             </div>
                         </div>
                     </div>
@@ -2478,6 +2580,100 @@
                     </div>
                 </div>
 
+                <!-- Location Visited Management -->
+                <div
+                    class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                    <button onclick="toggleSection('location-visited')"
+                        class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                        <div class="flex items-center gap-4">
+                            <div class="p-2 bg-primary/10 rounded-lg">
+                                <span class="material-symbols-outlined text-primary text-xl">pin_drop</span>
+                            </div>
+                            <div class="text-left">
+                                <h3 class="text-base font-bold text-gray-800 dark:text-white">Location Visited Management
+                                </h3>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Manage visited location options
+                                </p>
+                            </div>
+                        </div>
+                        <span id="location-visited-icon"
+                            class="material-symbols-outlined text-gray-400 dark:text-slate-400 transition-transform">expand_more</span>
+                    </button>
+                    <div id="location-visited-content" class="hidden border-t border-gray-200 dark:border-slate-700">
+                        <div class="p-6 bg-gray-50 dark:bg-slate-800/50">
+                            <div
+                                class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                                <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                                    <div class="flex shadow-sm w-full sm:w-96">
+                                        <input id="locationVisitedSearchInput"
+                                            class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none"
+                                            placeholder="Search location visited..." type="text"
+                                            onkeyup="searchLocationVisited()" />
+                                        <button onclick="searchLocationVisited()"
+                                            class="bg-primary hover:bg-blue-600 text-white px-6 py-2.5 rounded-r flex items-center justify-center transition-colors">
+                                            <span class="material-symbols-outlined text-white text-[20px]">search</span>
+                                        </button>
+                                    </div>
+                                    <div class="relative w-full sm:w-48">
+                                        <select id="locationVisitedSortSelect" onchange="sortLocationVisited()"
+                                            class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm appearance-none focus:ring-primary focus:border-primary text-gray-700 dark:text-gray-300">
+                                            <option value="created_at_desc">Newest First</option>
+                                            <option value="created_at_asc">Oldest First</option>
+                                            <option value="name_asc">Name (A-Z)</option>
+                                            <option value="name_desc">Name (Z-A)</option>
+                                            <option value="status_asc">Status (A-Z)</option>
+                                            <option value="status_desc">Status (Z-A)</option>
+                                        </select>
+                                        <span
+                                            class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-symbols-outlined text-[20px]">expand_more</span>
+                                    </div>
+                                </div>
+                                <button onclick="openCreateLocationVisitedModal()"
+                                    class="px-4 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm flex items-center gap-2 w-full sm:w-auto">
+                                    <span class="material-symbols-outlined text-base">add</span>
+                                    Create Location Visited
+                                </button>
+                            </div>
+
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-sm">
+                                    <thead
+                                        class="text-xs text-gray-600 dark:text-slate-400 uppercase border-b border-gray-200 dark:border-slate-700">
+                                        <tr>
+                                            <th class="px-4 py-3">No</th>
+                                            <th class="px-4 py-3">Location Visited</th>
+                                            <th class="px-4 py-3">Status</th>
+                                            <th class="px-4 py-3 w-32">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="locationVisitedTableBody" class="text-gray-700 dark:text-slate-300">
+                                        <tr>
+                                            <td colspan="4"
+                                                class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
+                                                <div class="flex flex-col items-center justify-center">
+                                                    <div
+                                                        class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2">
+                                                    </div>
+                                                    <span>Loading location visited...</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div id="locationVisitedPagination"
+                                class="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6">
+                                <p class="text-sm text-gray-600 dark:text-slate-400">
+                                    Showing <span id="locationVisitedFrom">0</span> to <span id="locationVisitedTo">0</span> of
+                                    <span id="locationVisitedTotal">0</span> locations
+                                </p>
+                                <div id="locationVisitedPaginationButtons" class="flex items-center gap-2"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Visitor Type Management -->
                 <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('visitortype')" class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
@@ -4285,6 +4481,9 @@
                 // Load visit reasons when Visit Reason Management section is opened
                 if (section === 'reason') {
                     loadVisitReasons();
+                }
+                if (section === 'location-visited') {
+                    loadLocationVisited();
                 }
                 if (section === 'visitortype') {
                     loadVisitorTypes();
@@ -11376,6 +11575,374 @@
             }
         }
 
+        // ====================================================================================
+        // Location Visited Management
+        // ====================================================================================
+        let currentLocationVisitedPage = 1;
+        let locationVisitedPerPage = 10;
+        let currentLocationVisitedSearch = '';
+        let currentLocationVisitedSort = 'created_at_desc';
+
+        function loadLocationVisited(page = 1) {
+            currentLocationVisitedPage = page;
+
+            let sortBy = 'created_at';
+            let sortOrder = 'DESC';
+            if (currentLocationVisitedSort === 'created_at_asc') {
+                sortBy = 'created_at';
+                sortOrder = 'ASC';
+            } else if (currentLocationVisitedSort === 'name_asc') {
+                sortBy = 'name';
+                sortOrder = 'ASC';
+            } else if (currentLocationVisitedSort === 'name_desc') {
+                sortBy = 'name';
+                sortOrder = 'DESC';
+            } else if (currentLocationVisitedSort === 'status_asc') {
+                sortBy = 'status';
+                sortOrder = 'ASC';
+            } else if (currentLocationVisitedSort === 'status_desc') {
+                sortBy = 'status';
+                sortOrder = 'DESC';
+            }
+
+            fetch(`<?= base_url('config/getLocationVisited') ?>?page=${page}&per_page=${locationVisitedPerPage}&search=${encodeURIComponent(currentLocationVisitedSearch)}&sort_by=${sortBy}&sort_order=${sortOrder}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayLocationVisited(data.data, data.pagination);
+                    } else {
+                        showLocationVisitedNoData('Failed to load location visited.');
+                    }
+                })
+                .catch(() => {
+                    showLocationVisitedNoData('Failed to load location visited.');
+                });
+        }
+
+        function showLocationVisitedNoData(message = 'No data found') {
+            const tbody = document.getElementById('locationVisitedTableBody');
+            if (!tbody) return;
+
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="4" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
+                        <div class="flex flex-col items-center gap-2">
+                            <span class="material-symbols-outlined text-4xl">search_off</span>
+                            <p>${escapeHtml(message)}</p>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+
+        function getLocationVisitedStatusBadge(status) {
+            const normalized = (status || '').toLowerCase();
+            if (normalized === 'active') {
+                return '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300">Active</span>';
+            }
+            return '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">Inactive</span>';
+        }
+
+        function displayLocationVisited(rows, pagination) {
+            const tbody = document.getElementById('locationVisitedTableBody');
+            if (!tbody) return;
+
+            if (!rows || rows.length === 0) {
+                showLocationVisitedNoData('No location visited found');
+                document.getElementById('locationVisitedFrom').textContent = '0';
+                document.getElementById('locationVisitedTo').textContent = '0';
+                document.getElementById('locationVisitedTotal').textContent = '0';
+                document.getElementById('locationVisitedPaginationButtons').innerHTML = '';
+                return;
+            }
+
+            tbody.innerHTML = rows.map((row, index) => {
+                const safeName = JSON.stringify(row.name || '');
+                const safeStatus = JSON.stringify(row.status || 'active');
+                const version = Number(row.version || 1);
+                return `
+                    <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
+                        <td class="px-4 py-3 font-medium">${pagination.from + index}</td>
+                        <td class="px-4 py-3">${escapeHtml(row.name || '')}</td>
+                        <td class="px-4 py-3">${getLocationVisitedStatusBadge(row.status)}</td>
+                        <td class="px-4 py-3 w-32">
+                            <div class="flex gap-2">
+                                <button onclick="openEditLocationVisitedModal(${row.id}, ${safeName}, ${safeStatus}, ${version})" class="text-primary hover:text-primary/80">
+                                    <span class="material-symbols-outlined text-xl">edit</span>
+                                </button>
+                                <button onclick="deleteLocationVisited(${row.id})" class="text-red-500 hover:text-red-400">
+                                    <span class="material-symbols-outlined text-xl">delete</span>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            document.getElementById('locationVisitedFrom').textContent = pagination.from;
+            document.getElementById('locationVisitedTo').textContent = pagination.to;
+            document.getElementById('locationVisitedTotal').textContent = pagination.total;
+            updateLocationVisitedPaginationButtons(pagination);
+        }
+
+        function updateLocationVisitedPaginationButtons(pagination) {
+            const container = document.getElementById('locationVisitedPaginationButtons');
+            if (!container) return;
+
+            let buttons = '';
+            buttons += `
+                <button onclick="loadLocationVisited(${pagination.current_page - 1})"
+                        class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors ${pagination.current_page === 1 ? 'opacity-50 cursor-not-allowed' : ''}"
+                        ${pagination.current_page === 1 ? 'disabled' : ''}>
+                    <span class="material-symbols-outlined text-base">chevron_left</span>
+                </button>
+            `;
+
+            buttons += `
+                <button onclick="loadLocationVisited(1)"
+                        class="px-3 py-2 rounded-lg ${1 === pagination.current_page ? 'bg-primary text-white' : 'border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700'} font-medium text-sm min-w-[40px] transition-colors">
+                    1
+                </button>
+            `;
+
+            if (pagination.current_page > 3) {
+                buttons += `<span class="px-2 text-gray-400">...</span>`;
+            }
+
+            for (let i = Math.max(2, pagination.current_page - 1); i <= Math.min(pagination.last_page - 1, pagination.current_page + 1); i++) {
+                buttons += `
+                    <button onclick="loadLocationVisited(${i})"
+                            class="px-3 py-2 rounded-lg ${i === pagination.current_page ? 'bg-primary text-white' : 'border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700'} font-medium text-sm min-w-[40px] transition-colors">
+                        ${i}
+                    </button>
+                `;
+            }
+
+            if (pagination.current_page < pagination.last_page - 2) {
+                buttons += `<span class="px-2 text-gray-400">...</span>`;
+            }
+
+            if (pagination.last_page > 1) {
+                buttons += `
+                    <button onclick="loadLocationVisited(${pagination.last_page})"
+                            class="px-3 py-2 rounded-lg ${pagination.last_page === pagination.current_page ? 'bg-primary text-white' : 'border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700'} font-medium text-sm min-w-[40px] transition-colors">
+                        ${pagination.last_page}
+                    </button>
+                `;
+            }
+
+            buttons += `
+                <button onclick="loadLocationVisited(${pagination.current_page + 1})"
+                        class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors ${pagination.current_page === pagination.last_page ? 'opacity-50 cursor-not-allowed' : ''}"
+                        ${pagination.current_page === pagination.last_page ? 'disabled' : ''}>
+                    <span class="material-symbols-outlined text-base">chevron_right</span>
+                </button>
+            `;
+
+            container.innerHTML = buttons;
+        }
+
+        function searchLocationVisited() {
+            currentLocationVisitedSearch = document.getElementById('locationVisitedSearchInput').value;
+            loadLocationVisited(1);
+        }
+
+        function sortLocationVisited() {
+            currentLocationVisitedSort = document.getElementById('locationVisitedSortSelect').value;
+            loadLocationVisited(1);
+        }
+
+        function openCreateLocationVisitedModal() {
+            document.body.insertAdjacentHTML('beforeend', `
+                <div id="locationVisitedModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md overflow-hidden">
+                        <div class="sticky top-0 bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between rounded-t-lg">
+                            <h3 class="text-lg font-bold text-gray-800 dark:text-white">Create Location Visited</h3>
+                            <button onclick="closeLocationVisitedModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <form id="locationVisitedForm" class="p-6 space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Location Visited <span class="text-red-500">*</span></label>
+                                <input type="text" id="locationVisitedName" name="name" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Enter location visited" required>
+                                <span id="locationVisitedNameError" class="text-red-500 text-xs mt-1 hidden"></span>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Status <span class="text-red-500">*</span></label>
+                                <select id="locationVisitedStatus" name="status" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none">
+                                    <option value="active">Active</option>
+                                    <option value="inactive">Inactive</option>
+                                </select>
+                                <span id="locationVisitedStatusError" class="text-red-500 text-xs mt-1 hidden"></span>
+                            </div>
+                            <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-slate-700">
+                                <button type="button" onclick="closeLocationVisitedModal()" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">
+                                    Cancel
+                                </button>
+                                <button type="submit" class="px-4 py-2 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm">
+                                    Create Location
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `);
+
+            document.getElementById('locationVisitedForm').addEventListener('submit', function (e) {
+                e.preventDefault();
+                createLocationVisited();
+            });
+        }
+
+        function openEditLocationVisitedModal(id, name, status, version = 1) {
+            document.body.insertAdjacentHTML('beforeend', `
+                <div id="locationVisitedModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md overflow-hidden">
+                        <div class="sticky top-0 bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between rounded-t-lg">
+                            <h3 class="text-lg font-bold text-gray-800 dark:text-white">Edit Location Visited</h3>
+                            <button onclick="closeLocationVisitedModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <form id="locationVisitedForm" class="p-6 space-y-4">
+                            <input type="hidden" id="locationVisitedId" value="${id}">
+                            <input type="hidden" id="locationVisitedVersion" value="${Number(version || 1)}">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Location Visited <span class="text-red-500">*</span></label>
+                                <input type="text" id="locationVisitedName" name="name" value="${escapeHtml(name || '')}" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Enter location visited" required>
+                                <span id="locationVisitedNameError" class="text-red-500 text-xs mt-1 hidden"></span>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Status <span class="text-red-500">*</span></label>
+                                <select id="locationVisitedStatus" name="status" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none">
+                                    <option value="active" ${(status || '').toLowerCase() === 'active' ? 'selected' : ''}>Active</option>
+                                    <option value="inactive" ${(status || '').toLowerCase() === 'inactive' ? 'selected' : ''}>Inactive</option>
+                                </select>
+                                <span id="locationVisitedStatusError" class="text-red-500 text-xs mt-1 hidden"></span>
+                            </div>
+                            <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-slate-700">
+                                <button type="button" onclick="closeLocationVisitedModal()" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">
+                                    Cancel
+                                </button>
+                                <button type="submit" class="px-4 py-2 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm">
+                                    Update Location
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `);
+
+            document.getElementById('locationVisitedForm').addEventListener('submit', function (e) {
+                e.preventDefault();
+                updateLocationVisited();
+            });
+        }
+
+        function createLocationVisited() {
+            const formData = new FormData();
+            formData.append('name', document.getElementById('locationVisitedName').value.trim());
+            formData.append('status', document.getElementById('locationVisitedStatus').value);
+
+            fetch('<?= base_url('config/createLocationVisited') ?>', {
+                method: 'POST',
+                body: formData,
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        closeLocationVisitedModal();
+                        loadLocationVisited(currentLocationVisitedPage);
+                        showToast('Location visited created successfully', 'success');
+                        return;
+                    }
+                    document.getElementById('locationVisitedNameError').classList.add('hidden');
+                    document.getElementById('locationVisitedStatusError').classList.add('hidden');
+                    if (data.errors?.name) {
+                        document.getElementById('locationVisitedNameError').textContent = data.errors.name;
+                        document.getElementById('locationVisitedNameError').classList.remove('hidden');
+                    }
+                    if (data.errors?.status) {
+                        document.getElementById('locationVisitedStatusError').textContent = data.errors.status;
+                        document.getElementById('locationVisitedStatusError').classList.remove('hidden');
+                    }
+                    if (!data.errors) {
+                        showToast(data.message || 'Failed to create location visited', 'error');
+                    }
+                })
+                .catch(() => {
+                    showToast('An error occurred. Please try again.', 'error');
+                });
+        }
+
+        function updateLocationVisited() {
+            const id = document.getElementById('locationVisitedId').value;
+            const formData = new FormData();
+            formData.append('name', document.getElementById('locationVisitedName').value.trim());
+            formData.append('status', document.getElementById('locationVisitedStatus').value);
+            formData.append('version', document.getElementById('locationVisitedVersion').value || '1');
+
+            fetch(`<?= base_url('config/updateLocationVisited/') ?>${id}`, {
+                method: 'POST',
+                body: formData,
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        closeLocationVisitedModal();
+                        loadLocationVisited(currentLocationVisitedPage);
+                        showToast('Location visited updated successfully', 'success');
+                        return;
+                    }
+                    document.getElementById('locationVisitedNameError').classList.add('hidden');
+                    document.getElementById('locationVisitedStatusError').classList.add('hidden');
+                    if (data.errors?.name) {
+                        document.getElementById('locationVisitedNameError').textContent = data.errors.name;
+                        document.getElementById('locationVisitedNameError').classList.remove('hidden');
+                    }
+                    if (data.errors?.status) {
+                        document.getElementById('locationVisitedStatusError').textContent = data.errors.status;
+                        document.getElementById('locationVisitedStatusError').classList.remove('hidden');
+                    }
+                    if (!data.errors) {
+                        showToast(data.message || 'Failed to update location visited', 'error');
+                    }
+                })
+                .catch(() => {
+                    showToast('An error occurred. Please try again.', 'error');
+                });
+        }
+
+        function deleteLocationVisited(id) {
+            if (!confirm('Are you sure you want to delete this location visited?')) {
+                return;
+            }
+
+            fetch(`<?= base_url('config/deleteLocationVisited/') ?>${id}`, {
+                method: 'DELETE',
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        loadLocationVisited(currentLocationVisitedPage);
+                        showToast('Location visited deleted successfully', 'success');
+                    } else {
+                        showToast(data.message || 'Failed to delete location visited', 'error');
+                    }
+                })
+                .catch(() => {
+                    showToast('An error occurred. Please try again.', 'error');
+                });
+        }
+
+        function closeLocationVisitedModal() {
+            const modal = document.getElementById('locationVisitedModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
         // Visitor Type Management
         let currentVisitorTypePage = 1;
         let visitorTypePerPage = 10;
@@ -11662,6 +12229,135 @@
                 searchVisitReasons();
             }
         });
+
+        document.addEventListener('keypress', function (e) {
+            if (e.target && e.target.id === 'locationVisitedSearchInput' && e.key === 'Enter') {
+                e.preventDefault();
+                searchLocationVisited();
+            }
+        });
+
+        // ============== LOGIN PAGE SETTINGS ==============
+
+        let currentLoginBackgroundImageUrl = '';
+
+        const loginSettingsFieldMap = {
+            page_title: 'login_page_title',
+            brand_name: 'login_brand_name',
+            heading: 'login_heading',
+            subheading: 'login_subheading',
+            username_label: 'login_username_label',
+            username_placeholder: 'login_username_placeholder',
+            password_label: 'login_password_label',
+            password_placeholder: 'login_password_placeholder',
+            remember_text: 'login_remember_text',
+            forgot_password_text: 'login_forgot_password_text',
+            login_button_text: 'login_button_text',
+            demo_title: 'login_demo_title',
+            demo_admin_text: 'login_demo_admin_text',
+            demo_host_text: 'login_demo_host_text',
+            contact_prompt: 'login_contact_prompt',
+            contact_link_text: 'login_contact_link_text',
+            footer_text: 'login_footer_text',
+            hero_title: 'login_hero_title',
+            hero_subtitle: 'login_hero_subtitle',
+            hero_badge_text: 'login_hero_badge_text',
+        };
+
+        function updateLoginBackgroundPreview(url, rawValue = '') {
+            const preview = document.getElementById('loginBackgroundPreview');
+            const pathText = document.getElementById('loginBackgroundPathText');
+            if (!preview || !pathText) return;
+
+            if (url) {
+                preview.src = url;
+                preview.classList.remove('hidden');
+            } else {
+                preview.src = '';
+                preview.classList.add('hidden');
+            }
+
+            pathText.textContent = rawValue ? `Current: ${rawValue}` : 'Current: Default background image';
+        }
+
+        function populateLoginPageSettings(settings) {
+            Object.entries(loginSettingsFieldMap).forEach(([key, elementId]) => {
+                const element = document.getElementById(elementId);
+                if (!element) return;
+                element.value = settings[key] ?? '';
+            });
+
+            currentLoginBackgroundImageUrl = settings.background_image_url || '';
+            updateLoginBackgroundPreview(currentLoginBackgroundImageUrl, settings.background_image || '');
+
+            const removeCheckbox = document.getElementById('remove_login_background_image');
+            if (removeCheckbox) {
+                removeCheckbox.checked = false;
+            }
+        }
+
+        function fetchLoginPageSettings() {
+            fetch('<?= base_url('config/getLoginPageSettings') ?>')
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success || !data.data) {
+                        showToast(data.message || 'Failed to load login page settings', 'error');
+                        return;
+                    }
+                    populateLoginPageSettings(data.data);
+                })
+                .catch(() => {
+                    showToast('Failed to load login page settings', 'error');
+                });
+        }
+
+        function saveLoginPageSettings() {
+            const form = document.getElementById('loginPageSettingsForm');
+            if (!form) return;
+
+            const payload = new FormData(form);
+            const removeBackground = document.getElementById('remove_login_background_image')?.checked;
+            payload.append('remove_background_image', removeBackground ? '1' : '0');
+
+            fetch('<?= base_url('config/saveLoginPageSettings') ?>', {
+                method: 'POST',
+                body: payload,
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        const details = data.errors ? Object.values(data.errors).join(', ') : '';
+                        showToast(details || data.message || 'Failed to save login page settings', 'error');
+                        return;
+                    }
+
+                    showToast(data.message || 'Login page settings saved', 'success');
+                    fetchLoginPageSettings();
+                })
+                .catch(() => {
+                    showToast('Failed to save login page settings', 'error');
+                });
+        }
+
+        document.getElementById('login_background_image')?.addEventListener('change', function (event) {
+            const file = event.target?.files?.[0];
+            if (!file) {
+                updateLoginBackgroundPreview(currentLoginBackgroundImageUrl, '');
+                return;
+            }
+            const objectUrl = URL.createObjectURL(file);
+            updateLoginBackgroundPreview(objectUrl, file.name);
+        });
+
+        document.getElementById('remove_login_background_image')?.addEventListener('change', function (event) {
+            if (event.target?.checked) {
+                updateLoginBackgroundPreview('', '');
+            } else {
+                updateLoginBackgroundPreview(currentLoginBackgroundImageUrl, '');
+            }
+        });
+
+        fetchLoginPageSettings();
 
         // ============== DEVICE ASSIGNMENTS & IP RANGE ==============
 

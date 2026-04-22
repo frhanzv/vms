@@ -201,6 +201,10 @@ $routes->get('config/getVisitReasons', 'Config::getVisitReasons');
 $routes->post('config/createVisitReason', 'Config::createVisitReason');
 $routes->post('config/updateVisitReason/(:num)', 'Config::updateVisitReason/$1');
 $routes->delete('config/deleteVisitReason/(:num)', 'Config::deleteVisitReason/$1');
+$routes->get('config/getLocationVisited', 'Config::getLocationVisited');
+$routes->post('config/createLocationVisited', 'Config::createLocationVisited');
+$routes->post('config/updateLocationVisited/(:num)', 'Config::updateLocationVisited/$1');
+$routes->delete('config/deleteLocationVisited/(:num)', 'Config::deleteLocationVisited/$1');
 
 $routes->get('config/getVisitorTypes', 'Config::getVisitorTypes');
 $routes->get('config/getVisitorType/(:num)', 'Config::getVisitorType/$1');
@@ -218,6 +222,8 @@ $routes->post('config/deleteDeviceAssignment/(:num)', 'Config::deleteDeviceAssig
 // IP Range Settings
 $routes->get('config/getIpRangeSettings', 'Config::getIpRangeSettings');
 $routes->post('config/saveIpRangeSettings', 'Config::saveIpRangeSettings');
+$routes->get('config/getLoginPageSettings', 'Config::getLoginPageSettings');
+$routes->post('config/saveLoginPageSettings', 'Config::saveLoginPageSettings');
 $routes->get('config/getEmailTemplateFormSettings', 'Config::getEmailTemplateFormSettings');
 $routes->post('config/saveEmailTemplateFormSettings', 'Config::saveEmailTemplateFormSettings');
 $routes->get('config/getInvitationEmailTemplateSettings', 'Config::getInvitationEmailTemplateSettings');
