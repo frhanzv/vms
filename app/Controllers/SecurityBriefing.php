@@ -4,16 +4,19 @@ namespace App\Controllers;
 
 use App\Models\VideoModel;
 use App\Models\InvitationModel;
+use App\Libraries\InvitationProcessFlowService;
 
 class SecurityBriefing extends BaseController
 {
     protected $videoModel;
     protected $invitationModel;
+    protected InvitationProcessFlowService $invitationProcessFlowService;
 
     public function __construct()
     {
         $this->videoModel = new VideoModel();
         $this->invitationModel = new InvitationModel();
+        $this->invitationProcessFlowService = new InvitationProcessFlowService();
     }
 
     public function index()
@@ -73,10 +76,13 @@ class SecurityBriefing extends BaseController
 
                     // Idempotent: if already completed, just redirect
                     if (!empty($invitation['video_watched'])) {
+                        $nextUrl = $this->invitationProcessFlowService->getNextStepUrl('security_briefing', $token)
+                            ?? base_url('security/facial-verification?token=' . $token);
+
                         return $this->response->setJSON([
                             'success' => true,
                             'message' => 'Video briefing was already completed',
-                            'redirect_url' => base_url('security/facial-verification?token=' . $token)
+                            'redirect_url' => $nextUrl
                         ]);
                     }
 
@@ -97,10 +103,13 @@ class SecurityBriefing extends BaseController
                         ]);
                 }
                 
+                $nextUrl = $this->invitationProcessFlowService->getNextStepUrl('security_briefing', $token)
+                    ?? base_url('security/facial-verification?token=' . $token);
+
                 return $this->response->setJSON([
                     'success' => true,
                     'message' => 'Briefing completed successfully',
-                    'redirect_url' => base_url('security/facial-verification?token=' . $token)
+                    'redirect_url' => $nextUrl
                 ]);
             } else {
                 return $this->response->setJSON([
@@ -149,10 +158,13 @@ class SecurityBriefing extends BaseController
 
                 // Idempotent: if already verified, just redirect
                 if (!empty($invitation['facial_verified_at'])) {
+                    $nextUrl = $this->invitationProcessFlowService->getNextStepUrl('facial_verification', $token)
+                        ?? base_url('security/completed?token=' . $token);
+
                     return $this->response->setJSON([
                         'success' => true,
                         'message' => 'Facial verification was already completed',
-                        'redirect_url' => base_url('security/completed?token=' . $token)
+                        'redirect_url' => $nextUrl
                     ]);
                 }
 
@@ -183,10 +195,13 @@ class SecurityBriefing extends BaseController
                     ]);
             }
             
+            $nextUrl = $this->invitationProcessFlowService->getNextStepUrl('facial_verification', $token)
+                ?? base_url('security/completed?token=' . $token);
+
             return $this->response->setJSON([
                 'success' => true,
                 'message' => 'Facial verification completed successfully',
-                'redirect_url' => base_url('security/completed?token=' . $token)
+                'redirect_url' => $nextUrl
             ]);
         } catch (\Exception $e) {
             log_message('error', 'Facial verification error: ' . $e->getMessage());

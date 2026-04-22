@@ -53,6 +53,7 @@ $routes->get('visitor-pass-request', 'VisitorPassRequest::index');
 $routes->post('visitor-pass-request/store', 'VisitorPassRequest::store');
 $routes->get('workflow', 'VisitorWorkflow::index');
 $routes->get('workflow/create', 'VisitorWorkflow::create');
+$routes->post('workflow/save', 'VisitorWorkflow::save');
 
 // Visitor Registration Routes (Public - no menu)
 $routes->get('visitor-registration', 'VisitorRegistration::index');
