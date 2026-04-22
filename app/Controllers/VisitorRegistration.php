@@ -13,6 +13,7 @@ use App\Models\VisitorLicenseModel;
 use App\Models\VisitorEquipmentModel;
 use App\Models\EmailTemplateFormFieldModel;
 use App\Libraries\InvitationEmailSender;
+use App\Libraries\InvitationProcessFlowService;
 
 class VisitorRegistration extends BaseController
 {
@@ -27,6 +28,7 @@ class VisitorRegistration extends BaseController
     protected $equipmentModel;
     protected $emailTemplateFormFieldModel;
     protected InvitationEmailSender $invitationEmailSender;
+    protected InvitationProcessFlowService $invitationProcessFlowService;
 
     public function initController(\CodeIgniter\HTTP\RequestInterface $request, \CodeIgniter\HTTP\ResponseInterface $response, \Psr\Log\LoggerInterface $logger)
     {
@@ -43,6 +45,7 @@ class VisitorRegistration extends BaseController
         $this->equipmentModel = new VisitorEquipmentModel();
         $this->emailTemplateFormFieldModel = new EmailTemplateFormFieldModel();
         $this->invitationEmailSender = new InvitationEmailSender();
+        $this->invitationProcessFlowService = new InvitationProcessFlowService();
     }
 
     public function index()
@@ -360,10 +363,13 @@ class VisitorRegistration extends BaseController
             // Generate token for next step
             $token = base64_encode($invitationId);
 
+            $nextUrl = $this->invitationProcessFlowService->getFirstStepAfterRegistrationUrl($token)
+                ?? base_url('security/briefing?token=' . $token);
+
             return $this->response->setJSON([
                 'success' => true,
                 'message' => 'Registration completed successfully',
-                'redirect' => base_url('security/briefing?token=' . $token)
+                'redirect' => $nextUrl
             ]);
 
         } catch (\Exception $e) {

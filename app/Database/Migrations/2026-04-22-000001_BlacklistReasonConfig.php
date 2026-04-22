@@ -3,6 +3,7 @@
 namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
+use CodeIgniter\Database\RawSql;
 
 class BlacklistReasonConfig extends Migration
 {
@@ -35,11 +36,13 @@ class BlacklistReasonConfig extends Migration
                 'type' => 'TIMESTAMP',
                 'null' => true,
                 'default' => 'CURRENT_TIMESTAMP',
+                'default' => new RawSql('CURRENT_TIMESTAMP'),
             ],
             'updated_at' => [
                 'type' => 'TIMESTAMP',
                 'null' => true,
                 'default' => 'CURRENT_TIMESTAMP',
+                'default' => new RawSql('CURRENT_TIMESTAMP'),
                 'extra' => 'on update CURRENT_TIMESTAMP',
             ],
         ]);

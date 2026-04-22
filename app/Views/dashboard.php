@@ -68,25 +68,43 @@
                     <p class="text-sm font-semibold">Dashboard</p>
                 </a>
 
-                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('invitations') ?>">
-                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">mail</span>
-                    <p class="text-sm font-medium">Invitations</p>
-                </a>
-                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('requests') ?>">
-                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">assignment</span>
-                    <p class="text-sm font-medium">Request List</p>
-                </a>
+                <div x-data="{ openVisitorPass: <?= (str_contains($current, 'invitations') || str_contains($current, 'requests') || str_contains($current, 'visitors')) ? 'true' : 'false' ?> }">
+                    <button type="button" @click="openVisitorPass = !openVisitorPass"
+                        class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= (str_contains($current, 'invitations') || str_contains($current, 'requests') || str_contains($current, 'visitors')) ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
+                        <div class="flex items-center gap-3">
+                            <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">badge</span>
+                            <p class="text-sm font-medium">Visitor Pass List</p>
+                        </div>
+                        <span class="material-symbols-outlined text-[18px] transition-transform duration-200" :class="openVisitorPass ? 'rotate-180' : ''">expand_more</span>
+                    </button>
+                    <div x-show="openVisitorPass"
+                        x-transition:enter="transition ease-out duration-200"
+                        x-transition:enter-start="opacity-0 -translate-y-1"
+                        x-transition:enter-end="opacity-100 translate-y-0"
+                        x-transition:leave="transition ease-in duration-150"
+                        x-transition:leave-start="opacity-100 translate-y-0"
+                        x-transition:leave-end="opacity-0 -translate-y-1"
+                        class="ml-4 mt-1 flex flex-col gap-1">
+                        <a href="<?= base_url('invitations') ?>"
+                            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= str_contains($current, 'invitations') ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
+                            <span class="w-1.5 h-1.5 rounded-full <?= str_contains($current, 'invitations') ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
+                            Invitations
+                        </a>
+                        <a href="<?= base_url('requests') ?>"
+                            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= str_contains($current, 'requests') ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
+                            <span class="w-1.5 h-1.5 rounded-full <?= str_contains($current, 'requests') ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
+                            Request List
+                        </a>
+                        <a href="<?= base_url('visitors') ?>"
+                            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= str_contains($current, 'visitors') ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
+                            <span class="w-1.5 h-1.5 rounded-full <?= str_contains($current, 'visitors') ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
+                            Visitors List
+                        </a>
+                    </div>
+                </div>
                 <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('staffs') ?>">
                     <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">badge</span>
                     <p class="text-sm font-medium">Staff Pass List</p>
-                </a>
-                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('visitors') ?>">
-                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">group</span>
-                    <p class="text-sm font-medium">Visitors List</p>
-                </a>
-                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('logbook') ?>">
-                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">menu_book</span>
-                    <p class="text-sm font-medium">Visitor Logbook</p>
                 </a>
                 <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('workflow') ?>">
                     <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">account_tree</span>
@@ -421,7 +439,7 @@
                             <p class="text-sm text-slate-500 dark:text-slate-400">Real-time capacity tracking</p>
                         </div>
                         <div class="text-right">
-                            <p class="text-2xl font-bold text-primary"><?= $stats['currentlyOnSite'] ?><span class="text-slate-400 text-lg font-normal">/50</span></p>
+                            <p class="text-2xl font-bold text-primary"><?= $stats['currentlyOnSite'] ?></p>
                             <p class="text-xs text-slate-400">Capacity</p>
                         </div>
                     </div>
@@ -486,22 +504,22 @@
                 <!-- Tabs -->
                 <div class="border-b border-slate-200 dark:border-slate-700 px-6 pt-2">
                     <div class="flex gap-8 overflow-x-auto no-scrollbar">
-                        <a class="flex items-center gap-2 border-b-[3px] border-primary text-primary pb-3 pt-2 cursor-pointer group whitespace-nowrap">
+                        <button type="button" data-visitor-tab="all" class="flex items-center gap-2 border-b-[3px] border-primary text-primary pb-3 pt-2 cursor-pointer group whitespace-nowrap">
                             <p class="text-sm font-bold">All Visitors</p>
-                            <span class="bg-primary/10 text-primary text-[10px] px-1.5 py-0.5 rounded-full font-bold"><?= $tabCounts['all'] ?></span>
-                        </a>
-                        <a class="flex items-center gap-2 border-b-[3px] border-transparent hover:border-slate-300 dark:hover:border-slate-600 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 pb-3 pt-2 cursor-pointer transition-all whitespace-nowrap">
+                            <span data-tab-count class="bg-primary/10 text-primary text-[10px] px-1.5 py-0.5 rounded-full font-bold"><?= $tabCounts['all'] ?></span>
+                        </button>
+                        <button type="button" data-visitor-tab="prearrival" class="flex items-center gap-2 border-b-[3px] border-transparent hover:border-slate-300 dark:hover:border-slate-600 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 pb-3 pt-2 cursor-pointer transition-all whitespace-nowrap">
                             <p class="text-sm font-medium">Pre-Arrival</p>
-                            <span class="bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] px-1.5 py-0.5 rounded-full font-bold"><?= $tabCounts['preArrival'] ?></span>
-                        </a>
-                        <a class="flex items-center gap-2 border-b-[3px] border-transparent hover:border-slate-300 dark:hover:border-slate-600 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 pb-3 pt-2 cursor-pointer transition-all whitespace-nowrap">
+                            <span data-tab-count class="bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] px-1.5 py-0.5 rounded-full font-bold"><?= $tabCounts['preArrival'] ?></span>
+                        </button>
+                        <button type="button" data-visitor-tab="checkedin" class="flex items-center gap-2 border-b-[3px] border-transparent hover:border-slate-300 dark:hover:border-slate-600 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 pb-3 pt-2 cursor-pointer transition-all whitespace-nowrap">
                             <p class="text-sm font-medium">Checked In</p>
-                            <span class="bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] px-1.5 py-0.5 rounded-full font-bold"><?= $tabCounts['checkedIn'] ?></span>
-                        </a>
-                        <a class="flex items-center gap-2 border-b-[3px] border-transparent hover:border-slate-300 dark:hover:border-slate-600 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 pb-3 pt-2 cursor-pointer transition-all whitespace-nowrap">
+                            <span data-tab-count class="bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] px-1.5 py-0.5 rounded-full font-bold"><?= $tabCounts['checkedIn'] ?></span>
+                        </button>
+                        <button type="button" data-visitor-tab="checkedout" class="flex items-center gap-2 border-b-[3px] border-transparent hover:border-slate-300 dark:hover:border-slate-600 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 pb-3 pt-2 cursor-pointer transition-all whitespace-nowrap">
                             <p class="text-sm font-medium">Checked Out</p>
-                            <span class="bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] px-1.5 py-0.5 rounded-full font-bold"><?= $tabCounts['checkedOut'] ?></span>
-                        </a>
+                            <span data-tab-count class="bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] px-1.5 py-0.5 rounded-full font-bold"><?= $tabCounts['checkedOut'] ?></span>
+                        </button>
                     </div>
                 </div>
 
@@ -548,9 +566,17 @@
                                 <th class="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-surface-dark">
+                        <tbody id="visitors-table-body" class="divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-surface-dark">
                             <?php foreach ($visitors as $visitor): ?>
-                            <tr class="group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                            <?php
+                                $statusToken = 'prearrival';
+                                if ($visitor['status'] === 'On-Site') {
+                                    $statusToken = 'checkedin';
+                                } elseif ($visitor['status'] === 'Checked Out') {
+                                    $statusToken = 'checkedout';
+                                }
+                            ?>
+                            <tr data-visitor-status="<?= $statusToken ?>" class="visitor-row group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="flex items-center gap-3">
                                         <?php if ($visitor['hasImage']): ?>
@@ -612,7 +638,7 @@
 
                 <!-- Pagination -->
                 <div class="flex items-center justify-between border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-surface-dark px-6 py-3">
-                    <p class="text-xs text-slate-500 dark:text-slate-400">Showing <span class="font-bold">1-<?= count($visitors) ?></span> of <span class="font-bold"><?= $tabCounts['all'] ?></span> visitors</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Showing <span id="visitors-showing-range" class="font-bold">1-<?= count($visitors) ?></span> of <span id="visitors-total-count" class="font-bold"><?= $tabCounts['all'] ?></span> visitors</p>
                     <div class="flex gap-2">
                         <button class="px-3 py-1 text-xs border border-slate-200 dark:border-slate-700 rounded hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 disabled:opacity-50" disabled>Previous</button>
                         <button class="px-3 py-1 text-xs border border-slate-200 dark:border-slate-700 rounded hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400">Next</button>
@@ -903,6 +929,62 @@ document.getElementById('onsite-search')?.addEventListener('input', function () 
     document.querySelectorAll('#onsite-table tbody tr').forEach(r => { r.style.display = r.textContent.toLowerCase().includes(q) ? '' : 'none'; });
 });
 
+function initVisitorStatusTabs() {
+    const tabButtons = document.querySelectorAll('[data-visitor-tab]');
+    const rows = Array.from(document.querySelectorAll('#visitors-table-body .visitor-row'));
+    const showingRange = document.getElementById('visitors-showing-range');
+    const totalCount = document.getElementById('visitors-total-count');
+    if (!tabButtons.length || !rows.length || !showingRange || !totalCount) return;
+
+    const updateTabStyles = (activeTab) => {
+        tabButtons.forEach((btn) => {
+            const isActive = btn.dataset.visitorTab === activeTab;
+            const label = btn.querySelector('p');
+            const badge = btn.querySelector('[data-tab-count]');
+
+            btn.classList.toggle('border-primary', isActive);
+            btn.classList.toggle('text-primary', isActive);
+            btn.classList.toggle('border-transparent', !isActive);
+            btn.classList.toggle('text-slate-500', !isActive);
+            btn.classList.toggle('dark:text-slate-400', !isActive);
+
+            if (label) {
+                label.classList.toggle('font-bold', isActive);
+                label.classList.toggle('font-medium', !isActive);
+            }
+
+            if (badge) {
+                badge.classList.toggle('bg-primary/10', isActive);
+                badge.classList.toggle('text-primary', isActive);
+                badge.classList.toggle('bg-slate-100', !isActive);
+                badge.classList.toggle('dark:bg-slate-800', !isActive);
+                badge.classList.toggle('text-slate-500', !isActive);
+            }
+        });
+    };
+
+    const applyFilter = (activeTab) => {
+        const tabTotal = activeTab === 'all'
+            ? rows.length
+            : rows.filter((row) => row.dataset.visitorStatus === activeTab).length;
+
+        let visibleCount = 0;
+        rows.forEach((row) => {
+            const shouldShow = activeTab === 'all' || row.dataset.visitorStatus === activeTab;
+            row.style.display = shouldShow ? '' : 'none';
+            if (shouldShow) visibleCount++;
+        });
+
+        showingRange.textContent = visibleCount > 0 ? `1-${visibleCount}` : '0-0';
+        totalCount.textContent = String(tabTotal);
+        updateTabStyles(activeTab);
+    };
+
+    tabButtons.forEach((btn) => {
+        btn.addEventListener('click', () => applyFilter(btn.dataset.visitorTab || 'all'));
+    });
+}
+
 function renderYAxis(m) {
     const y = document.getElementById('traffic-y-axis'); if (!y) return; y.innerHTML = '';
     for (let i = 4; i >= 0; i--) { const s = document.createElement('span'); s.textContent = Math.round((m / 4) * i); y.appendChild(s); }
@@ -910,6 +992,7 @@ function renderYAxis(m) {
 
 document.addEventListener('DOMContentLoaded', function () {
     initCriticalAlerts();
+    initVisitorStatusTabs();
     const bars = document.querySelectorAll('.traffic-bar-container'); let mx = 1;
     bars.forEach(b => { const c = parseInt(b.dataset.count || 0); if (c > mx) mx = c; }); renderYAxis(mx);
     setTimeout(() => { bars.forEach(b => { const bar = b.querySelector('div'), c = parseInt(b.dataset.count || 0), p = mx > 0 ? (c / mx) * 100 : 0; if (bar) bar.style.height = Math.max(p, c > 0 ? 3 : 0) + '%'; }); }, 100);

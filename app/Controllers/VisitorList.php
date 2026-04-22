@@ -183,6 +183,113 @@ class VisitorList extends BaseController
         return view('visitors/list', $data);
     }
 
+    public function export()
+    {
+        $db = \Config\Database::connect();
+        $builder = $db->table('invitation_visitors iv');
+        $baseSelect = 'iv.*, 
+                          i.full_name as visitor_name, 
+                          i.ic_passport as visitor_ic_passport,
+                          i.contact as visitor_contact,
+                          i.company as visitor_company,
+                          i.invited_by as host_name,
+                          i.reason as visit_purpose,
+                          i.vehicle_registration as vehicle_reg,
+                          i.location,
+                          i.registration_source,
+                          i.created_at as invitation_created_at,
+                          sch.date_from as sch_date_from,
+                          sch.date_to as sch_date_to,
+                          vc.card_id as card_epc,
+                          vc.status as card_status';
+
+        if ($this->invitationsSupportVisitorType()) {
+            $builder->select($baseSelect . ',
+                          vt.name as visitor_type_name');
+            $builder->join('invitations i', 'i.id = iv.invitation_id');
+            $builder->join('visitor_types vt', 'vt.id = i.visitor_type_id', 'left');
+        } else {
+            $builder->select($baseSelect);
+            $builder->join('invitations i', 'i.id = iv.invitation_id');
+        }
+
+        $builder->join(
+            '(SELECT invitation_id, MIN(id) AS id FROM invitation_schedules GROUP BY invitation_id) sch_pick',
+            'sch_pick.invitation_id = i.id',
+            'left'
+        );
+        $builder->join('invitation_schedules sch', 'sch.id = sch_pick.id', 'left');
+        $builder->join('visitor_cards vc', 'vc.id = iv.visitor_card_id', 'left');
+        $builder->where('i.status', 'Approved');
+        $builder->orderBy('i.created_at', 'DESC');
+
+        $rows = $builder->get()->getResultArray();
+
+        $handle = fopen('php://temp', 'w+');
+        fwrite($handle, "\xEF\xBB\xBF");
+        fputcsv($handle, [
+            'No',
+            'Date',
+            'Full Name',
+            'IC/Passport',
+            'Contact',
+            'Company',
+            'Vehicle Registration',
+            'Location',
+            'Visitor Type',
+            'Type',
+            'Card Status',
+            'Visitor Pass No',
+            'Reason',
+            'Check In Time',
+            'Check Out Time',
+        ]);
+
+        foreach ($rows as $index => $row) {
+            $dateSrc = ! empty($row['sch_date_from'])
+                ? $row['sch_date_from']
+                : ($row['invitation_created_at'] ?? $row['created_at'] ?? null);
+
+            $cardStatus = '-';
+            if (! empty($row['card_status'])) {
+                if ($row['card_status'] === 'in_use') {
+                    $cardStatus = 'In Use';
+                } elseif ($row['card_status'] === 'active') {
+                    $cardStatus = 'Active';
+                } else {
+                    $cardStatus = ucfirst((string) $row['card_status']);
+                }
+            }
+
+            fputcsv($handle, [
+                $index + 1,
+                $dateSrc ? date('d/m/Y', strtotime((string) $dateSrc)) : '',
+                $row['visitor_name'] ?? '',
+                $row['visitor_ic_passport'] ?? '',
+                $row['visitor_contact'] ?? '',
+                $row['visitor_company'] ?? '',
+                $row['vehicle_reg'] ?? '',
+                $row['location'] ?? '',
+                $row['visitor_type_name'] ?? '-',
+                $row['registration_source'] ?? 'Walk-In',
+                $cardStatus,
+                $row['card_epc'] ?? '',
+                $row['visit_purpose'] ?? '',
+                ! empty($row['check_in_time']) ? date('d/m/Y H:i:s', strtotime((string) $row['check_in_time'])) : '',
+                ! empty($row['check_out_time']) ? date('d/m/Y H:i:s', strtotime((string) $row['check_out_time'])) : '',
+            ]);
+        }
+
+        rewind($handle);
+        $csvContent = stream_get_contents($handle);
+        fclose($handle);
+
+        return $this->response
+            ->setHeader('Content-Type', 'text/csv; charset=UTF-8')
+            ->setHeader('Content-Disposition', 'attachment; filename="visitors-' . date('Y-m-d-His') . '.csv"')
+            ->setBody((string) $csvContent);
+    }
+
     /**
      * Update invitation visitor record and related invitation / schedule / card fields.
      * Uses optimistic locking via version column to prevent lost updates.

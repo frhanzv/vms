@@ -18,6 +18,7 @@ use App\Models\VisitorCardModel;
 use App\Models\VideoModel;
 use App\Models\VisitReasonModel;
 use App\Models\VisitorTypeModel;
+use App\Models\LocationVisitedModel;
 use App\Models\SettingModel;
 use App\Models\DeviceAssignmentModel;
 use App\Models\EmailTemplateFormFieldModel;
@@ -50,6 +51,7 @@ class Config extends BaseController
     protected $videoModel;
     protected $visitReasonModel;
     protected $visitorTypeModel;
+    protected $locationVisitedModel;
     protected $settingModel;
     protected $deviceAssignmentModel;
     protected $emailTemplateFormFieldModel;
@@ -122,6 +124,7 @@ class Config extends BaseController
         $this->videoModel = new VideoModel();
         $this->visitReasonModel = new VisitReasonModel();
         $this->visitorTypeModel = new VisitorTypeModel();
+        $this->locationVisitedModel = new LocationVisitedModel();
         $this->settingModel = new SettingModel();
         $this->deviceAssignmentModel = new DeviceAssignmentModel();
         $this->emailTemplateFormFieldModel = new EmailTemplateFormFieldModel();
@@ -2885,6 +2888,142 @@ class Config extends BaseController
         ]);
     }
 
+    // Location Visited Management
+    public function getLocationVisited()
+    {
+        $perPage = (int) ($this->request->getGet('per_page') ?? 10);
+        $page = (int) ($this->request->getGet('page') ?? 1);
+        $search = $this->request->getGet('search') ?? '';
+        $sortBy = $this->request->getGet('sort_by') ?? 'created_at';
+        $sortOrder = $this->request->getGet('sort_order') ?? 'DESC';
+
+        $offset = ($page - 1) * $perPage;
+        $totalRecords = $this->locationVisitedModel->countRows($search);
+        $rows = $this->locationVisitedModel->getRowsPage($perPage, $offset, $search, $sortBy, $sortOrder);
+
+        $from = $totalRecords > 0 ? $offset + 1 : 0;
+        $to = min($offset + $perPage, $totalRecords);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => $rows,
+            'pagination' => [
+                'total' => $totalRecords,
+                'per_page' => $perPage,
+                'current_page' => $page,
+                'last_page' => $perPage > 0 ? max(1, (int) ceil($totalRecords / $perPage)) : 1,
+                'from' => $from,
+                'to' => $to,
+            ],
+        ]);
+    }
+
+    public function createLocationVisited()
+    {
+        $rules = [
+            'name' => 'required|min_length[2]|max_length[255]|is_unique[location_visited.name]',
+            'status' => 'required|in_list[active,inactive]',
+        ];
+
+        if (!$this->validate($rules)) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $this->validator->getErrors(),
+            ]);
+        }
+
+        $data = [
+            'name' => trim((string) $this->request->getPost('name')),
+            'status' => (string) $this->request->getPost('status'),
+        ];
+
+        if (!$this->locationVisitedModel->insert($data)) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'Failed to create location visited',
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Location visited created successfully',
+        ]);
+    }
+
+    public function updateLocationVisited($id)
+    {
+        $row = $this->locationVisitedModel->find($id);
+
+        if (!$row) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'success' => false,
+                'message' => 'Location visited not found',
+            ]);
+        }
+
+        $jsonInput = $this->request->getJSON(true);
+        $input = is_array($jsonInput) ? $jsonInput : [];
+        $input = array_merge($input, $this->request->getPost() ?? []);
+
+        $rules = [
+            'name' => "required|min_length[2]|max_length[255]|is_unique[location_visited.name,id,{$id}]",
+            'status' => 'required|in_list[active,inactive]',
+        ];
+
+        $validation = \Config\Services::validation();
+        $validation->setRules($rules);
+
+        if (!$validation->run($input)) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validation->getErrors(),
+            ]);
+        }
+
+        $data = [
+            'name' => trim((string) $input['name']),
+            'status' => (string) $input['status'],
+        ];
+
+        $this->locationVisitedModel->skipValidation(true);
+        $error = $this->versionedUpdate($this->locationVisitedModel, $id, $data, $input, 'location visited');
+        $this->locationVisitedModel->skipValidation(false);
+        if ($error) {
+            return $error;
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Location visited updated successfully',
+        ]);
+    }
+
+    public function deleteLocationVisited($id)
+    {
+        $row = $this->locationVisitedModel->find($id);
+
+        if (!$row) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'success' => false,
+                'message' => 'Location visited not found',
+            ]);
+        }
+
+        if (!$this->locationVisitedModel->delete($id)) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'Failed to delete location visited',
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Location visited deleted successfully',
+        ]);
+    }
+
     // Visitor Type Management
     public function getVisitorType($id)
     {
@@ -3230,6 +3369,169 @@ class Config extends BaseController
     }
 
     // ============== SETTINGS METHODS ==============
+
+    private function getDefaultLoginPageSettings(): array
+    {
+        return [
+            'page_title' => 'SafeG - Visitor Management System Login',
+            'brand_name' => 'SafeG',
+            'heading' => 'Welcome back',
+            'subheading' => 'Please enter your details to sign in.',
+            'username_label' => 'Username or Email',
+            'username_placeholder' => 'Enter your username or email',
+            'password_label' => 'Password',
+            'password_placeholder' => 'Enter your password',
+            'remember_text' => 'Remember me',
+            'forgot_password_text' => 'Forgot Password?',
+            'login_button_text' => 'Login',
+            'demo_title' => 'Demo Credentials:',
+            'demo_admin_text' => 'Admin: admin / admin123',
+            'demo_host_text' => 'Host: host / host123',
+            'contact_prompt' => "Don't have an account?",
+            'contact_link_text' => 'Contact Administrator',
+            'footer_text' => 'SafeG Visitor Management System.',
+            'hero_title' => 'Secure, Seamless Visitor Management.',
+            'hero_subtitle' => "Safety Without the Hassle with SafeG's Intelligent Visitor Management System",
+            'hero_badge_text' => 'A Malaysian Product',
+            'background_image' => 'https://lh3.googleusercontent.com/aida-public/AB6AXuCMW9bMBWzlF_H5fr9w7w3EWL0xxvt6SL3WOWhab785VAq-rPN7ObkIsyr14Mt_qViRpBCsWeGiJy_MvZtevN5n7tZw-bEZ5gGzGS2KQKwDBo8Tn69WH_kATZaaiyZsJGR9HjJoetsBEwp1g9XBSxn7zDaU-iPaepoY4EqrJGMvx8MR2FGxM9MzfDj0bLLzMBl0EAhlHtGT5a3UQyiNcsJ6_IRtUWS8HkpAFoMcKYbXFM3murPhLrKZYTSGa2hSBA4v8ggyH-BBtQ',
+        ];
+    }
+
+    private function resolveLoginBackgroundImageUrl(?string $rawPath): string
+    {
+        $default = $this->getDefaultLoginPageSettings()['background_image'];
+        $path = trim((string) $rawPath);
+
+        if ($path === '') {
+            return $default;
+        }
+
+        if (preg_match('/^https?:\/\//i', $path)) {
+            return $path;
+        }
+
+        return base_url(ltrim($path, '/'));
+    }
+
+    public function getLoginPageSettings()
+    {
+        $defaults = $this->getDefaultLoginPageSettings();
+
+        $data = [];
+        foreach ($defaults as $key => $defaultValue) {
+            $storedValue = $this->settingModel->getSetting('login_' . $key);
+            $data[$key] = ($storedValue !== null && trim((string) $storedValue) !== '')
+                ? (string) $storedValue
+                : $defaultValue;
+        }
+
+        $data['background_image_url'] = $this->resolveLoginBackgroundImageUrl($data['background_image'] ?? null);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => $data,
+        ]);
+    }
+
+    public function saveLoginPageSettings()
+    {
+        $rules = [
+            'page_title' => 'required|max_length[255]',
+            'brand_name' => 'required|max_length[100]',
+            'heading' => 'required|max_length[255]',
+            'subheading' => 'permit_empty|max_length[500]',
+            'username_label' => 'required|max_length[100]',
+            'username_placeholder' => 'required|max_length[255]',
+            'password_label' => 'required|max_length[100]',
+            'password_placeholder' => 'required|max_length[255]',
+            'remember_text' => 'required|max_length[100]',
+            'forgot_password_text' => 'required|max_length[100]',
+            'login_button_text' => 'required|max_length[50]',
+            'demo_title' => 'required|max_length[255]',
+            'demo_admin_text' => 'required|max_length[255]',
+            'demo_host_text' => 'required|max_length[255]',
+            'contact_prompt' => 'required|max_length[255]',
+            'contact_link_text' => 'required|max_length[255]',
+            'footer_text' => 'required|max_length[255]',
+            'hero_title' => 'required|max_length[255]',
+            'hero_subtitle' => 'required|max_length[500]',
+            'hero_badge_text' => 'required|max_length[100]',
+            'login_background_image' => 'permit_empty|is_image[login_background_image]|mime_in[login_background_image,image/jpg,image/jpeg,image/png,image/webp]|max_size[login_background_image,4096]',
+        ];
+
+        if (!$this->validate($rules)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $this->validator->getErrors(),
+            ])->setStatusCode(400);
+        }
+
+        $textKeys = [
+            'page_title',
+            'brand_name',
+            'heading',
+            'subheading',
+            'username_label',
+            'username_placeholder',
+            'password_label',
+            'password_placeholder',
+            'remember_text',
+            'forgot_password_text',
+            'login_button_text',
+            'demo_title',
+            'demo_admin_text',
+            'demo_host_text',
+            'contact_prompt',
+            'contact_link_text',
+            'footer_text',
+            'hero_title',
+            'hero_subtitle',
+            'hero_badge_text',
+        ];
+
+        foreach ($textKeys as $key) {
+            $this->settingModel->setSetting('login_' . $key, trim((string) $this->request->getPost($key)));
+        }
+
+        $currentBackground = (string) $this->settingModel->getSetting('login_background_image');
+        $upload = $this->request->getFile('login_background_image');
+        $removeBackground = $this->request->getPost('remove_background_image') === '1';
+
+        if ($removeBackground && $currentBackground !== '') {
+            if (str_starts_with($currentBackground, 'assets/uploads/login/')) {
+                $absolutePath = FCPATH . str_replace('/', DIRECTORY_SEPARATOR, $currentBackground);
+                if (is_file($absolutePath)) {
+                    @unlink($absolutePath);
+                }
+            }
+            $this->settingModel->setSetting('login_background_image', '');
+            $currentBackground = '';
+        }
+
+        if ($upload && $upload->isValid() && !$upload->hasMoved()) {
+            $uploadDir = FCPATH . 'assets/uploads/login/';
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0755, true);
+            }
+
+            if ($currentBackground !== '' && str_starts_with($currentBackground, 'assets/uploads/login/')) {
+                $oldPath = FCPATH . str_replace('/', DIRECTORY_SEPARATOR, $currentBackground);
+                if (is_file($oldPath)) {
+                    @unlink($oldPath);
+                }
+            }
+
+            $newFilename = 'login_bg_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $upload->getExtension();
+            $upload->move($uploadDir, $newFilename);
+            $this->settingModel->setSetting('login_background_image', 'assets/uploads/login/' . $newFilename);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Login page settings saved successfully',
+        ]);
+    }
 
     public function getIpRangeSettings()
     {

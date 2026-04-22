@@ -33,6 +33,7 @@ $routes->get('dashboard/checkedOutData', 'Dashboard::checkedOutData');
 $routes->get('dashboard/activeAlertsData', 'Dashboard::activeAlertsData');
 $routes->get('dashboard/widgetSnapshot', 'Dashboard::widgetSnapshot');
 $routes->get('invitations', 'InvitationList::index');
+$routes->get('invitations/export', 'InvitationList::export');
 $routes->get('invitations/create', 'InvitationList::create');
 $routes->post('invitations/store', 'InvitationList::store');
 $routes->post('invitations/resend/(:num)', 'InvitationList::resend/$1');
@@ -44,14 +45,15 @@ $routes->post('requests/batchApprove', 'RequestList::batchApprove');
 $routes->post('requests/reject', 'RequestList::reject');
 $routes->post('requests/pastVisits', 'RequestList::pastVisits');
 $routes->get('visitors', 'VisitorList::index');
+$routes->get('visitors/export', 'VisitorList::export');
 $routes->post('visitors/update', 'VisitorList::updateVisitor');
 $routes->post('visitors/bindCard', 'VisitorList::bindCard');
 $routes->post('visitors/unbindCard', 'VisitorList::unbindCard');
 $routes->get('visitor-pass-request', 'VisitorPassRequest::index');
 $routes->post('visitor-pass-request/store', 'VisitorPassRequest::store');
-$routes->get('logbook', 'VisitorLogbook::index');
 $routes->get('workflow', 'VisitorWorkflow::index');
 $routes->get('workflow/create', 'VisitorWorkflow::create');
+$routes->post('workflow/save', 'VisitorWorkflow::save');
 
 // Visitor Registration Routes (Public - no menu)
 $routes->get('visitor-registration', 'VisitorRegistration::index');
@@ -200,6 +202,10 @@ $routes->get('config/getVisitReasons', 'Config::getVisitReasons');
 $routes->post('config/createVisitReason', 'Config::createVisitReason');
 $routes->post('config/updateVisitReason/(:num)', 'Config::updateVisitReason/$1');
 $routes->delete('config/deleteVisitReason/(:num)', 'Config::deleteVisitReason/$1');
+$routes->get('config/getLocationVisited', 'Config::getLocationVisited');
+$routes->post('config/createLocationVisited', 'Config::createLocationVisited');
+$routes->post('config/updateLocationVisited/(:num)', 'Config::updateLocationVisited/$1');
+$routes->delete('config/deleteLocationVisited/(:num)', 'Config::deleteLocationVisited/$1');
 
 $routes->get('config/getVisitorTypes', 'Config::getVisitorTypes');
 $routes->get('config/getVisitorType/(:num)', 'Config::getVisitorType/$1');
@@ -217,6 +223,8 @@ $routes->post('config/deleteDeviceAssignment/(:num)', 'Config::deleteDeviceAssig
 // IP Range Settings
 $routes->get('config/getIpRangeSettings', 'Config::getIpRangeSettings');
 $routes->post('config/saveIpRangeSettings', 'Config::saveIpRangeSettings');
+$routes->get('config/getLoginPageSettings', 'Config::getLoginPageSettings');
+$routes->post('config/saveLoginPageSettings', 'Config::saveLoginPageSettings');
 $routes->get('config/getEmailTemplateFormSettings', 'Config::getEmailTemplateFormSettings');
 $routes->post('config/saveEmailTemplateFormSettings', 'Config::saveEmailTemplateFormSettings');
 $routes->get('config/getInvitationEmailTemplateSettings', 'Config::getInvitationEmailTemplateSettings');
