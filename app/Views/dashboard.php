@@ -290,59 +290,33 @@
                 <p class="text-slate-500 dark:text-slate-400 text-base">Here's what's happening at your facility today.</p>
             </div>
 
-            <!-- Critical Security Alert Banner -->
-            <?php if (!empty($criticalAlerts)): ?>
-            <?php foreach ($criticalAlerts as $alert): ?>
-            <div class="bg-gradient-to-r from-red-900 via-red-800 to-red-900 rounded-xl p-5 border border-red-700 shadow-lg relative overflow-hidden" id="alert-banner-<?= $alert['id'] ?>">
-                <div class="absolute top-0 right-0 w-32 h-32 bg-red-700/20 rounded-full -mr-10 -mt-10"></div>
-                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
-                    <div class="flex items-start gap-4">
-                        <div class="size-10 rounded-lg bg-red-700/50 flex items-center justify-center text-red-200 flex-shrink-0 mt-0.5">
-                            <span class="material-symbols-outlined fill-1">warning</span>
+            <!-- Critical Security Alert: one card; multiple alerts rotate here after each Acknowledge -->
+            <div id="critical-alert-section">
+                <div id="critical-alert-active-wrapper" class="<?= !empty($criticalAlerts) ? '' : 'hidden' ?> bg-gradient-to-r from-red-900 via-red-800 to-red-900 rounded-xl p-5 border border-red-700 shadow-lg relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-red-700/20 rounded-full -mr-10 -mt-10"></div>
+                    <div id="critical-alert-card-content" class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10"></div>
+                </div>
+                <div id="critical-alert-all-clear-wrapper" class="<?= !empty($criticalAlerts) ? 'hidden' : '' ?> bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 rounded-xl p-5 border border-slate-600 shadow-sm relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-slate-600/20 rounded-full -mr-10 -mt-10"></div>
+                    <div class="flex items-center gap-4 relative z-10">
+                        <div class="size-10 rounded-lg bg-green-700/30 flex items-center justify-center text-green-300 flex-shrink-0">
+                            <span class="material-symbols-outlined fill-1">verified_user</span>
                         </div>
                         <div class="flex-1">
-                            <div class="flex items-center gap-3 mb-1.5">
-                                <h3 class="text-white font-bold text-base">Critical Security Alert</h3>
-                                <span class="px-2 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full uppercase tracking-wider"><?= esc(ucfirst($alert['severity'])) ?></span>
-                            </div>
-                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-x-8 gap-y-1 text-sm mb-2">
-                                <div><span class="text-red-300 font-medium">INCIDENT TYPE</span><p class="text-white font-semibold"><?= esc($alert['incident_type']) ?></p></div>
-                                <div><span class="text-red-300 font-medium">LOCATION</span><p class="text-white font-semibold"><?= esc($alert['location']) ?></p></div>
-                                <div><span class="text-red-300 font-medium">TIME</span><p class="text-white font-semibold"><?= esc($alert['time']) ?></p></div>
-                            </div>
-                            <?php if (!empty($alert['description'])): ?>
-                            <p class="text-red-200 text-sm"><?= esc($alert['description']) ?></p>
-                            <?php endif; ?>
+                            <h3 class="text-white font-bold text-base">Critical Security Alert</h3>
+                            <p class="text-slate-300 text-sm mt-0.5">No critical security alerts at this time. All clear.</p>
                         </div>
-                    </div>
-                    <div class="flex items-center gap-2 flex-shrink-0">
-                        <button onclick="openAlertFromBanner(<?= $alert['id'] ?>)" class="flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-500 border border-red-500 text-white text-sm font-bold rounded-lg transition-colors">
-                            <span class="material-symbols-outlined text-[18px]">visibility</span> View Incident
-                        </button>
-                        <button onclick="acknowledgeAlert(<?= $alert['id'] ?>)" class="flex items-center gap-1.5 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-sm font-bold rounded-lg transition-colors backdrop-blur-sm">
-                            <span class="material-symbols-outlined text-[18px]">check</span> Acknowledge
+                        <button type="button" onclick="openModal('activeAlerts')" class="flex items-center gap-1.5 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-sm font-bold rounded-lg transition-colors backdrop-blur-sm flex-shrink-0">
+                            <span class="material-symbols-outlined text-[18px]">shield</span> View All Alerts
                         </button>
                     </div>
                 </div>
             </div>
-            <?php endforeach; ?>
-            <?php else: ?>
-            <div class="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 rounded-xl p-5 border border-slate-600 shadow-sm relative overflow-hidden">
-                <div class="absolute top-0 right-0 w-32 h-32 bg-slate-600/20 rounded-full -mr-10 -mt-10"></div>
-                <div class="flex items-center gap-4 relative z-10">
-                    <div class="size-10 rounded-lg bg-green-700/30 flex items-center justify-center text-green-300 flex-shrink-0">
-                        <span class="material-symbols-outlined fill-1">verified_user</span>
-                    </div>
-                    <div class="flex-1">
-                        <h3 class="text-white font-bold text-base">Critical Security Alert</h3>
-                        <p class="text-slate-300 text-sm mt-0.5">No critical security alerts at this time. All clear.</p>
-                    </div>
-                    <button onclick="openModal('activeAlerts')" class="flex items-center gap-1.5 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-sm font-bold rounded-lg transition-colors backdrop-blur-sm flex-shrink-0">
-                        <span class="material-symbols-outlined text-[18px]">shield</span> View All Alerts
-                    </button>
-                </div>
-            </div>
+            <?php if (!empty($criticalAlerts)): ?>
+            <script type="application/json" id="critical-alerts-json"><?= json_encode($criticalAlerts, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?></script>
             <?php endif; ?>
+
+            <div id="ack-access-denied-prompt" class="hidden"></div>
 
             <!-- Recent Alerts Summary -->
             <div>
@@ -353,14 +327,14 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div onclick="openModal('accessDenied')" class="bg-gradient-to-br from-red-800 to-red-900 rounded-xl p-6 border border-red-700 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow cursor-pointer">
                         <div class="absolute top-3 right-3"><span class="px-2 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full">Access Denied</span></div>
-                        <p class="text-4xl font-black text-white mb-1"><?= $accessDeniedCount ?></p>
+                        <p class="text-4xl font-black text-white mb-1" id="dash-widget-access-denied"><?= $accessDeniedCount ?></p>
                         <p class="text-red-100 font-semibold text-sm">Access Denied Incidents</p>
-                        <p class="text-red-300 text-xs mt-1">Last 24 hours only</p>
+                        <p class="text-red-300 text-xs mt-1">Acknowledged — last 24 hours</p>
                         <div class="flex items-center gap-1 mt-3 text-red-200 text-xs font-medium group-hover:text-white transition-colors"><span class="material-symbols-outlined text-[14px]">arrow_forward</span> View all incidents</div>
                     </div>
                     <div onclick="openModal('overstay')" class="bg-gradient-to-br from-amber-700 to-amber-800 rounded-xl p-6 border border-amber-600 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow cursor-pointer">
                         <div class="absolute top-3 right-3"><span class="px-2 py-0.5 bg-amber-500 text-white text-[10px] font-bold rounded-full">Overstay</span></div>
-                        <p class="text-4xl font-black text-white mb-1"><?= $overstayCount ?></p>
+                        <p class="text-4xl font-black text-white mb-1" id="dash-widget-overstay"><?= $overstayCount ?></p>
                         <p class="text-amber-100 font-semibold text-sm">Visitor Overstay Alerts</p>
                         <p class="text-amber-300 text-xs mt-1">Active alerts</p>
                         <div class="flex items-center gap-1 mt-3 text-amber-200 text-xs font-medium group-hover:text-white transition-colors"><span class="material-symbols-outlined text-[14px]">arrow_forward</span> View all alerts</div>
@@ -432,7 +406,7 @@
                     </div>
                     <div>
                         <p class="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Active Security Alerts</p>
-                        <p class="text-3xl font-bold text-slate-900 dark:text-white"><?= $activeSecurityAlertCount ?></p>
+                        <p class="text-3xl font-bold text-slate-900 dark:text-white" id="dash-widget-active-alerts"><?= $activeSecurityAlertCount ?></p>
                     </div>
                 </div>
             </div>
@@ -787,6 +761,109 @@
 
 <script>
 const BASE = '<?= base_url() ?>';
+function esc(s) { const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+let criticalAlertQueue = [];
+
+function parseCriticalAlertsJson() {
+    const el = document.getElementById('critical-alerts-json');
+    if (!el) return;
+    try {
+        const raw = JSON.parse(el.textContent || '[]');
+        criticalAlertQueue = Array.isArray(raw) ? raw : [];
+    } catch (e) {
+        criticalAlertQueue = [];
+    }
+    el.remove();
+}
+
+function buildCriticalAlertCardHtml(a) {
+    const sev = esc((String(a.severity || '')).charAt(0).toUpperCase() + String(a.severity || '').slice(1));
+    const n = criticalAlertQueue.length;
+    const queueLine = n > 1
+        ? '<p class="text-red-300/90 text-xs font-medium mt-2">' + esc('1 of ' + n + ' — acknowledge to review the next alert') + '</p>'
+        : '';
+    let inner = '<div class="flex items-start gap-4 flex-1 min-w-0">';
+    inner += '<div class="size-10 rounded-lg bg-red-700/50 flex items-center justify-center text-red-200 flex-shrink-0 mt-0.5"><span class="material-symbols-outlined fill-1">warning</span></div>';
+    inner += '<div class="flex-1 min-w-0"><div class="flex items-center gap-3 mb-1.5 flex-wrap">';
+    inner += '<h3 class="text-white font-bold text-base">Critical Security Alert</h3>';
+    inner += '<span class="px-2 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full uppercase tracking-wider">' + sev + '</span></div>';
+    inner += '<div class="grid grid-cols-1 sm:grid-cols-3 gap-x-8 gap-y-1 text-sm mb-2">';
+    inner += '<div><span class="text-red-300 font-medium">INCIDENT TYPE</span><p class="text-white font-semibold break-words">' + esc(a.incident_type) + '</p></div>';
+    inner += '<div><span class="text-red-300 font-medium">LOCATION</span><p class="text-white font-semibold break-words">' + esc(a.location) + '</p></div>';
+    inner += '<div><span class="text-red-300 font-medium">TIME</span><p class="text-white font-semibold break-words">' + esc(a.time) + '</p></div></div>';
+    if (a.description) inner += '<p class="text-red-200 text-sm break-words">' + esc(a.description) + '</p>';
+    inner += queueLine + '</div></div>';
+    inner += '<div class="flex items-center gap-2 flex-shrink-0">';
+    inner += '<button type="button" onclick="openAlertFromBanner(' + Number(a.id) + ')" class="flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-500 border border-red-500 text-white text-sm font-bold rounded-lg transition-colors">';
+    inner += '<span class="material-symbols-outlined text-[18px]">visibility</span> View Incident</button>';
+    inner += '<button type="button" onclick="acknowledgeAlert(' + Number(a.id) + ')" class="flex items-center gap-1.5 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-sm font-bold rounded-lg transition-colors backdrop-blur-sm">';
+    inner += '<span class="material-symbols-outlined text-[18px]">check</span> Acknowledge</button></div>';
+    return inner;
+}
+
+function renderCriticalAlertCard() {
+    const content = document.getElementById('critical-alert-card-content');
+    const activeW = document.getElementById('critical-alert-active-wrapper');
+    const clearW = document.getElementById('critical-alert-all-clear-wrapper');
+    if (!content || !activeW || !clearW) return;
+    if (criticalAlertQueue.length === 0) {
+        activeW.classList.add('hidden');
+        clearW.classList.remove('hidden');
+        content.innerHTML = '';
+        return;
+    }
+    clearW.classList.add('hidden');
+    activeW.classList.remove('hidden');
+    content.innerHTML = buildCriticalAlertCardHtml(criticalAlertQueue[0]);
+}
+
+function applySecurityWidgetPayload(d) {
+    if (!d || d.success === false) return;
+    if (Array.isArray(d.criticalAlerts)) {
+        criticalAlertQueue = d.criticalAlerts;
+        renderCriticalAlertCard();
+    }
+    const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = String(v); };
+    if (d.accessDeniedCount !== undefined) setText('dash-widget-access-denied', d.accessDeniedCount);
+    if (d.overstayCount !== undefined) setText('dash-widget-overstay', d.overstayCount);
+    if (d.activeSecurityAlertCount !== undefined) setText('dash-widget-active-alerts', d.activeSecurityAlertCount);
+}
+
+function refreshDashboardWidgets() {
+    return fetch(BASE + '/dashboard/widgetSnapshot', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(r => r.json())
+        .then(d => { applySecurityWidgetPayload(d); })
+        .catch(() => {});
+}
+
+function initCriticalAlerts() {
+    parseCriticalAlertsJson();
+    renderCriticalAlertCard();
+}
+
+function clearAckAccessDeniedPrompt() {
+    const host = document.getElementById('ack-access-denied-prompt');
+    if (!host) return;
+    host.className = 'hidden';
+    host.innerHTML = '';
+}
+
+function showAckAccessDeniedPrompt() {
+    const host = document.getElementById('ack-access-denied-prompt');
+    if (!host) return;
+    host.className = 'rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800/80 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3';
+    host.innerHTML = '<p class="text-sm text-slate-700 dark:text-slate-300"><span class="font-semibold text-slate-900 dark:text-white">Alert acknowledged.</span> Open Access Denied Incidents when you are ready.</p>'
+        + '<div class="flex flex-wrap items-center gap-2 shrink-0">'
+        + '<button type="button" class="px-3 py-1.5 text-xs font-bold rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">Dismiss</button>'
+        + '<button type="button" class="px-3 py-1.5 text-xs font-bold rounded-lg bg-primary hover:bg-primary-dark text-white transition-colors">View Access Denied Incidents</button>'
+        + '</div>';
+    const btns = host.querySelectorAll('button');
+    btns[0].addEventListener('click', clearAckAccessDeniedPrompt);
+    btns[1].addEventListener('click', function () {
+        clearAckAccessDeniedPrompt();
+        openModal('accessDenied');
+    });
+}
 
 function acknowledgeAlert(id) {
     fetch(BASE + '/dashboard/acknowledgeAlert', {
@@ -794,8 +871,9 @@ function acknowledgeAlert(id) {
         headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest'},
         body: 'alert_id=' + id
     }).then(r => r.json()).then(d => {
-        const b = document.getElementById('alert-banner-' + id);
-        if (b) { b.style.transition = 'opacity .4s,transform .4s'; b.style.opacity = '0'; b.style.transform = 'translateY(-10px)'; setTimeout(() => b.remove(), 400); }
+        if (!d.success) return;
+        showAckAccessDeniedPrompt();
+        applySecurityWidgetPayload(d);
     });
 }
 
@@ -831,6 +909,7 @@ function renderYAxis(m) {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
+    initCriticalAlerts();
     const bars = document.querySelectorAll('.traffic-bar-container'); let mx = 1;
     bars.forEach(b => { const c = parseInt(b.dataset.count || 0); if (c > mx) mx = c; }); renderYAxis(mx);
     setTimeout(() => { bars.forEach(b => { const bar = b.querySelector('div'), c = parseInt(b.dataset.count || 0), p = mx > 0 ? (c / mx) * 100 : 0; if (bar) bar.style.height = Math.max(p, c > 0 ? 3 : 0) + '%'; }); }, 100);
@@ -845,7 +924,6 @@ const modalBody = document.getElementById('modal-body');
 const LOADER = '<div class="flex items-center justify-center py-12"><div class="flex items-center gap-3 text-slate-400"><svg class="animate-spin size-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg><span class="text-sm font-medium">Loading...</span></div></div>';
 const EMPTY = (msg) => '<div class="flex flex-col items-center justify-center py-12 text-center"><span class="material-symbols-outlined text-5xl text-slate-300 dark:text-slate-600 mb-3">inbox</span><p class="text-slate-400 font-medium">' + msg + '</p></div>';
 
-function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
 function fmtTime(dt) { if (!dt) return 'N/A'; const d = new Date(dt.replace(' ', 'T')); return d.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit', hour12: true}); }
 function fmtDateTime(dt) { if (!dt) return 'N/A'; const d = new Date(dt.replace(' ', 'T')); return d.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'}) + ' ' + d.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit', hour12: true}); }
 function initials(n) { return (n || 'NA').substring(0, 2).toUpperCase(); }
@@ -885,19 +963,19 @@ function ackFromModal(id, btn) {
     btn.disabled = true; btn.innerHTML = '<svg class="animate-spin size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>';
     fetch(BASE + '/dashboard/acknowledgeAlert', { method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest'}, body: 'alert_id=' + id })
     .then(r => r.json()).then(d => {
+        if (!d.success) { btn.disabled = false; btn.textContent = 'Acknowledge'; return; }
         const row = btn.closest('tr'); if (row) { row.style.transition = 'opacity .3s'; row.style.opacity = '0'; setTimeout(() => row.remove(), 300); }
-        const banner = document.getElementById('alert-banner-' + id);
-        if (banner) { banner.style.transition = 'opacity .4s,transform .4s'; banner.style.opacity = '0'; banner.style.transform = 'translateY(-10px)'; setTimeout(() => banner.remove(), 400); }
+        applySecurityWidgetPayload(d);
     });
 }
 
 const modalConfigs = {
     accessDenied: {
-        title: 'Access Denied Incidents', subtitle: 'Last 24 hours',
+        title: 'Access Denied Incidents', subtitle: 'Acknowledged — last 24 hours',
         icon: 'gpp_bad', iconCls: 'bg-red-100 text-red-600',
         url: '/dashboard/accessDeniedData',
         render(d) {
-            if (!d.success || !d.data.length) { modalBody.innerHTML = EMPTY('No access denied incidents in the last 24 hours'); return; }
+            if (!d.success || !d.data.length) { modalBody.innerHTML = EMPTY('No acknowledged access denied incidents in the last 24 hours'); return; }
             const rows = d.data.map(a => [
                 '<div class="flex items-center gap-2"><span class="material-symbols-outlined text-red-500 text-[16px]">block</span>' + esc(a.incident_type) + '</div>',
                 sevBadge(a.severity),
@@ -1055,10 +1133,9 @@ function openAlertFromBanner(id) {
 function ackFromDetail(id, btn) {
     btn.disabled = true; btn.textContent = 'Acknowledging...';
     fetch(BASE + '/dashboard/acknowledgeAlert', { method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest'}, body: 'alert_id=' + id })
-    .then(r => r.json()).then(() => {
+    .then(r => r.json()).then(d => {
         openAlertDetail(id);
-        const banner = document.getElementById('alert-banner-' + id);
-        if (banner) { banner.style.transition = 'opacity .4s,transform .4s'; banner.style.opacity = '0'; banner.style.transform = 'translateY(-10px)'; setTimeout(() => banner.remove(), 400); }
+        if (d.success) applySecurityWidgetPayload(d);
     });
 }
 </script>
