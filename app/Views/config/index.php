@@ -176,6 +176,11 @@
                                         <span class="material-symbols-outlined text-gray-500 text-base">search</span>
                                     </button>
                                 </div>
+                                <button onclick="openSyncModal()"
+                                    class="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium whitespace-nowrap">
+                                    <span class="material-symbols-outlined text-base">sync</span>
+                                    Sync from Laravel
+                                </button>
                                 <button onclick="openApiKeyModal()"
                                     class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium whitespace-nowrap">
                                     <span class="material-symbols-outlined text-base">add</span>
@@ -3592,6 +3597,44 @@
                     </div>
                 </div>
 
+
+                <!-- Sync from Laravel Modal -->
+                <div id="syncModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+                    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md mx-4">
+                        <div class="px-6 py-4 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
+                            <h3 class="text-lg font-bold text-gray-800 dark:text-white">Sync from Laravel Backend</h3>
+                            <button onclick="closeSyncModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <div class="p-6 space-y-4">
+                            <p class="text-sm text-gray-500 dark:text-slate-400">
+                                Enter your Laravel base URL. VMS will call <code class="bg-gray-100 dark:bg-slate-900 px-1 rounded text-xs">/api/registry</code>
+                                and auto-import any new endpoints not already registered here.
+                            </p>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">
+                                    Laravel Base URL <span class="text-red-500">*</span>
+                                </label>
+                                <input id="syncLaravelUrl" type="text"
+                                    class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary outline-none font-mono"
+                                    placeholder="http://your-laravel-host" />
+                            </div>
+                            <div id="syncResult" class="hidden text-sm p-3 rounded-lg"></div>
+                        </div>
+                        <div class="px-6 py-4 border-t border-gray-200 dark:border-slate-700 flex justify-end gap-3">
+                            <button onclick="closeSyncModal()"
+                                class="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-sm font-medium">
+                                Cancel
+                            </button>
+                            <button id="syncRunBtn" onclick="runSync()"
+                                class="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors text-sm font-medium flex items-center gap-2">
+                                <span class="material-symbols-outlined text-base">sync</span>
+                                Sync Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- API Call Create/Edit Modal -->
                 <div id="apikeyModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
@@ -13737,6 +13780,71 @@
                         alert(res.message || 'Failed to delete.');
                     }
                 });
+        }
+
+        // ----- Sync from Laravel -----
+        function openSyncModal() {
+            document.getElementById('syncResult').classList.add('hidden');
+            document.getElementById('syncLaravelUrl').value = '';
+            const modal = document.getElementById('syncModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeSyncModal() {
+            const modal = document.getElementById('syncModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function runSync() {
+            const url = document.getElementById('syncLaravelUrl').value.trim();
+            if (!url) {
+                alert('Please enter the Laravel base URL.');
+                return;
+            }
+
+            const btn = document.getElementById('syncRunBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="material-symbols-outlined text-base animate-spin">sync</span> Syncing...';
+
+            const resultEl = document.getElementById('syncResult');
+            resultEl.classList.add('hidden');
+
+            fetch(`${configBaseUrl}/syncApiKeys`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    '<?= csrf_header() ?>': '<?= csrf_hash() ?>'
+                },
+                body: JSON.stringify({ laravel_url: url })
+            })
+            .then(r => r.json())
+            .then(res => {
+                resultEl.textContent = res.message || (res.success ? 'Done!' : 'Sync failed.');
+                resultEl.className = `text-sm p-3 rounded-lg ${
+                    res.success
+                        ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-300'
+                        : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'
+                }`;
+                resultEl.classList.remove('hidden');
+                if (res.errors && res.errors.length) {
+                    resultEl.textContent += '\n⚠ ' + res.errors.join('\n⚠ ');
+                }
+                if (res.success && res.imported > 0) {
+                    loadApiKeys(1);
+                }
+            })
+            .catch(() => {
+                resultEl.textContent = 'Network error — could not reach VMS backend.';
+                resultEl.className = 'text-sm p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300';
+                resultEl.classList.remove('hidden');
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = '<span class="material-symbols-outlined text-base">sync</span> Sync Now';
+            });
         }
 
         function apkToast(message) {
