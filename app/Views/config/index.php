@@ -434,22 +434,20 @@
                         </div>
                         <span id="regtype-icon" class="material-symbols-outlined text-gray-400 dark:text-slate-400 transition-transform">expand_more</span>
                     </button>
+
                     <div id="regtype-content" class="hidden border-t border-gray-200 dark:border-slate-700">
                         <div class="p-6 bg-gray-50 dark:bg-slate-800/50">
+
                             <!-- Search -->
-                            <div class="flex items-center gap-2 w-full sm:w-auto">
-                                <form method="GET" action="" class="flex shadow-sm w-full sm:w-96">
-                                    <input name="regtype_search" id="regtype-search-input" value="<?= esc($regtype_search) ?>"
-                                        class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none"
-                                        placeholder="Search registration type..." type="text"/>
-                                    <button type="submit" class="bg-primary hover:bg-blue-600 text-white px-6 py-2.5 rounded-r flex items-center justify-center transition-colors">
                             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                                 <div class="flex shadow-sm w-full sm:w-96">
-                                    <input id="regtype-search-input" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Search registration type..." type="text"/>
+                                    <input id="regtype-search-input" value="<?= esc($regtype_search) ?>"
+                                        class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none"
+                                        placeholder="Search registration type..." type="text"/>
                                     <button onclick="searchRegType()" class="bg-primary hover:bg-blue-600 text-white px-6 py-2.5 rounded-r flex items-center justify-center transition-colors">
                                         <span class="material-symbols-outlined text-white text-[20px]">search</span>
                                     </button>
-                                </form>
+                                </div>
                             </div>
 
                             <!-- Table -->
@@ -492,14 +490,6 @@
                                                 </td>
                                             </tr>
                                         <?php endif; ?>
-                                        <tr>
-                                            <td colspan="3" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
-                                                <div class="flex flex-col items-center justify-center">
-                                                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
-                                                    <span>Loading registration types...</span>
-                                                </div>
-                                            </td>
-                                        </tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -536,9 +526,8 @@
                                         </a>
                                     <?php endif; ?>
                                 </div>
-                                <p id="regtype-pagination-info" class="text-sm text-gray-600 dark:text-slate-400">Loading...</p>
-                                <div id="regtype-pagination-buttons" class="flex items-center gap-2"></div>
                             </div>
+
                         </div>
                     </div>
                 </div>
@@ -559,20 +548,15 @@
                                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
                                     *Registration Type Name:
                                 </label>
-                                <input
-                                    id="regtype-modal-name"
-                                    type="text"
-                                    class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2 text-sm focus:ring-primary focus:border-primary outline-none"
-                                />
+                                <input id="regtype-modal-name" type="text"
+                                    class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2 text-sm focus:ring-primary focus:border-primary outline-none"/>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
                                     Status
                                 </label>
-                                <select
-                                    id="regtype-modal-status"
-                                    class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2 text-sm focus:ring-primary focus:border-primary outline-none"
-                                >
+                                <select id="regtype-modal-status"
+                                    class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2 text-sm focus:ring-primary focus:border-primary outline-none">
                                     <option value="Active">ACTIVE</option>
                                     <option value="Inactive">INACTIVE</option>
                                 </select>
@@ -11719,7 +11703,10 @@
                     if (data.success) {
                         const locSelect = document.getElementById('daLocation');
                         locSelect.innerHTML = '<option value="">-- Select Location --</option>' +
-                            data.data.map((loc, idx) => `<option value="${loc.id}">${idx + 1}. ${escapeHtml(loc.location_access)}</option>`).join('');
+                            data.data.map((lane) => {
+                                const cleanName = lane.lane ? lane.lane : '';
+                                return `<option value="${lane.id}">${escapeHtml(cleanName)}</option>`;
+                            }).join('');
 
                         const devSelect = document.getElementById('daDeviceSelect');
                         devSelect.innerHTML = '<option value="">-- Select Device --</option>' +
@@ -11819,6 +11806,13 @@
             container.innerHTML = buttons;
         }
 
+        function formatHeartbeatDate(dateStr) {
+            if (!dateStr) return '-';
+            const d = new Date(dateStr);
+            const pad = (n) => n.toString().padStart(2, '0');
+            return `${pad(d.getDate())}-${pad(d.getMonth()+1)}-${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+        }
+
         function checkRealtimeDeviceStatus(id) {
             fetch(`<?= base_url('config/checkDeviceStatus') ?>/${id}`, { method: 'POST' })
                 .then(r => r.json())
@@ -11834,7 +11828,7 @@
                         statusEl.innerHTML = escapeHtml(data.status);
                         
                         if (heartbeatEl) {
-                            heartbeatEl.textContent = data.last_heartbeat ? new Date(data.last_heartbeat).toLocaleString() : '-';
+                            heartbeatEl.textContent = formatHeartbeatDate(data.last_heartbeat);
                         }
                     } else {
                         statusEl.className = `px-2 py-1 rounded text-xs font-semibold bg-gray-500/20 text-gray-500`;
@@ -11870,20 +11864,20 @@
                 const warningIcon = isOutOfRange ? '<span class="material-symbols-outlined text-red-500 text-sm ml-1" title="Out of IP Range">warning</span>' : '';
                 const typeClass = device.type === 'Check-In' ? 'bg-green-500/20 text-green-500 border border-green-500/30' : 'bg-yellow-500/20 text-yellow-600 border border-yellow-500/30';
 
-                // Show a loading spinner initially for status to indicate it is being checked
                 const loadingStatus = `<span id="status-dev-${device.id}" class="px-2 py-1 rounded text-xs font-semibold bg-gray-500/20 text-gray-500 flex items-center w-max"><span class="material-symbols-outlined animate-spin mr-1" style="font-size: 14px;">sync</span>Checking...</span>`;
-                const heartbeatText = device.last_heartbeat ? new Date(device.last_heartbeat).toLocaleString() : '-';
+                let heartbeatText = formatHeartbeatDate(device.last_heartbeat);
+                const cleanLocationName = device.location_name ? device.location_name : '-';
 
                 return `
                     <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
-                        <td class="px-4 py-3 font-medium">${escapeHtml(device.device_id)}</td>
-                        <td class="px-4 py-3 flex items-center">${escapeHtml(device.ip_address)} ${warningIcon}</td>
-                        <td class="px-4 py-3">${loadingStatus}</td>
-                        <td class="px-4 py-3"><span class="px-2 py-1 rounded text-xs font-semibold ${regClass}">${device.registration_status}</span></td>
-                        <td class="px-4 py-3">${escapeHtml(device.location_name || '-')}</td>
-                        <td class="px-4 py-3"><span class="px-2 py-1 rounded text-xs font-semibold ${typeClass}">${escapeHtml(device.type)}</span></td>
-                        <td class="px-4 py-3 text-slate-500" id="heartbeat-dev-${device.id}">${heartbeatText}</td>
-                        <td class="px-4 py-3 text-center">
+                        <td class="px-4 py-3 font-medium whitespace-nowrap">${escapeHtml(device.device_id)}</td>
+                        <td class="px-4 py-3 flex items-center whitespace-nowrap">${escapeHtml(device.ip_address)} ${warningIcon}</td>
+                        <td class="px-4 py-3 whitespace-nowrap">${loadingStatus}</td>
+                        <td class="px-4 py-3 whitespace-nowrap"><span class="px-2 py-1 rounded text-xs font-semibold ${regClass}">${device.registration_status}</span></td>
+                        <td class="px-4 py-3 whitespace-nowrap">${escapeHtml(cleanLocationName)}</td>
+                        <td class="px-4 py-3 whitespace-nowrap"><span class="px-2 py-1 rounded text-xs font-semibold ${typeClass}">${escapeHtml(device.type)}</span></td>
+                        <td class="px-4 py-3 text-slate-500 whitespace-nowrap" id="heartbeat-dev-${device.id}">${heartbeatText}</td>
+                        <td class="px-4 py-3 text-center whitespace-nowrap">
                             <button onclick="openDeviceAssignmentModal(${device.id})" class="text-primary hover:text-primary/80 mr-2"><span class="material-symbols-outlined text-base">edit</span></button>
                             <button onclick="openDeleteDeviceModal(${device.id}, '${escapeHtml(device.device_id)}')" class="text-red-500 hover:text-red-400"><span class="material-symbols-outlined text-base">delete</span></button>
                         </td>

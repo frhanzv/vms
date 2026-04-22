@@ -26,17 +26,20 @@ class BlacklistRequestModel extends Model
         'name',
         'status',
         'type',
+        'reason',
+        'released_date',
     ];
 
     // Validation rules
     protected $validationRules = [
-        'name'          => 'required|max_length[255]',
-        'ic_passport_no'=> 'required|max_length[100]',
+        'name'           => 'required|max_length[255]',
+        'ic_passport_no' => 'required|max_length[100]',
         'blacklist_date' => 'permit_empty|valid_date[Y-m-d]',
-        'created_date'  => 'permit_empty|valid_date[Y-m-d]',
-        'status'        => 'required|in_list[active,pending,closed]',
-        'type'          => 'permit_empty|max_length[100]',
-        'staff_id'      => 'permit_empty|max_length[100]',
+        'created_date'   => 'permit_empty|valid_date[Y-m-d]',
+        'status'         => 'required|in_list[active,pending,closed,released]',
+        'type'           => 'permit_empty|max_length[100]',
+        'staff_id'       => 'permit_empty|max_length[100]',
+        'reason'         => 'permit_empty|max_length[500]',
     ];
 
     protected $validationMessages = [
@@ -50,7 +53,7 @@ class BlacklistRequestModel extends Model
         ],
         'status' => [
             'required' => 'Status is required.',
-            'in_list'  => 'Status must be active, pending, or closed.',
+            'in_list'  => 'Status must be active, pending, closed, or released.',
         ],
     ];
 
@@ -60,7 +63,9 @@ class BlacklistRequestModel extends Model
     // Custom query methods
     // -------------------------
 
-    // Get all with optional filters
+    /**
+     * Get all with optional filters
+     */
     public function getAll(array $filters = [])
     {
         $builder = $this->db->table($this->table);
@@ -84,16 +89,33 @@ class BlacklistRequestModel extends Model
         return $builder->orderBy('created_at', 'DESC')->get()->getResultArray();
     }
 
-    // Get single record by ID
+    /**
+     * Get single record by ID
+     */
     public function getById(int $id)
     {
         return $this->find($id);
     }
 
-    // Check for duplicate IC/Passport (useful before insert)
+    /**
+     * Release a blacklisted individual
+     * Updates status to 'released' and sets released_date
+     */
+    public function release(int $id): bool
+    {
+        return $this->update($id, [
+            'status'        => 'released',
+            'released_date' => date('Y-m-d'),
+        ]);
+    }
+
+    /**
+     * Check for duplicate IC/Passport (useful before insert)
+     */
     public function isDuplicate(string $icPassport, ?int $excludeId = null): bool
     {
-        $builder = $this->where('ic_passport_no', $icPassport);
+        $builder = $this->where('ic_passport_no', $icPassport)
+                        ->whereIn('status', ['closed', 'active', 'pending']);
 
         if ($excludeId !== null) {
             $builder = $builder->where('id !=', $excludeId);

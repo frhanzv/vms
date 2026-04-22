@@ -31,6 +31,7 @@ $routes->get('dashboard/onSiteData', 'Dashboard::onSiteData');
 $routes->get('dashboard/expectedTodayData', 'Dashboard::expectedTodayData');
 $routes->get('dashboard/checkedOutData', 'Dashboard::checkedOutData');
 $routes->get('dashboard/activeAlertsData', 'Dashboard::activeAlertsData');
+$routes->get('dashboard/widgetSnapshot', 'Dashboard::widgetSnapshot');
 $routes->get('invitations', 'InvitationList::index');
 $routes->get('invitations/create', 'InvitationList::create');
 $routes->post('invitations/store', 'InvitationList::store');
@@ -174,6 +175,8 @@ $routes->get('staffs', 'StaffList::index');
 $routes->get('staffs/staffpassrequest', 'StaffPassRequest::index');
 $routes->post('staffs/staffpassrequest/store', 'StaffPassRequest::store');
 //$routes->get('staff-pass-request', 'StaffList::downloadTemplate');
+$routes->post('staff-pass/import', 'StaffController::import');
+$routes->get('staffpassrequest/view/(:any)', 'StaffPassRequest::view/$1');
 
 
 
@@ -261,22 +264,22 @@ $routes->post('report/visitor/movement', 'VisitorChronology::movementTimeline');
 
 // Blacklist Routes
 $routes->group('blacklist', function ($routes) {
-    // Blacklist Request
+ 
+    // --- Blacklist Request List (empty by default) ---
     $routes->get('blacklistrequest', 'BlacklistRequest::index');
-    $routes->get('blacklistrequest/create', 'BlacklistRequest::create');
-    $routes->post('blacklistrequest', 'BlacklistRequest::store');
-    $routes->get('blacklistrequest/(:num)', 'BlacklistRequest::view/$1');
-    $routes->get('blacklistrequest/(:num)/edit', 'BlacklistRequest::edit/$1');
-    $routes->post('blacklistrequest/(:num)/update', 'BlacklistRequest::update/$1');
-    $routes->post('blacklistrequest/(:num)/delete', 'BlacklistRequest::delete/$1');
-
-    // Blacklist Entry (directly in Controllers/)
-    $routes->get('entry', 'BlacklistEntry::index');
-
-    // Blacklist Closed List (directly in Controllers/)
-    $routes->get('closedlist', 'BlacklistClosedList::index');
+ 
+    // --- Blacklist Entry ---
+    $routes->get('entry', 'BlacklistEntry::index');               // Search page
+    $routes->get('entry/search', 'BlacklistEntry::search');       // AJAX search
+    $routes->get('entry/proceed', 'BlacklistEntry::proceed');     // Pre-filled form
+    $routes->post('entry/store', 'BlacklistEntry::store');        // Submit/save
+ 
+    // --- Blacklist Closed List ---
+    $routes->get('closedlist', 'BlacklistClosedList::index');          // List page
+    $routes->get('closedlist/view/(:num)', 'BlacklistClosedList::view/$1');    // AJAX: get record JSON
+    $routes->post('closedlist/release/(:num)', 'BlacklistClosedList::release/$1'); // Release
 });
-$routes->get('blacklist/entry', 'BlacklistEntry::index');
+
 
 // Registration Type config
 $routes->get('config/getRegTypes',       'Config::getRegTypes');
@@ -285,8 +288,10 @@ $routes->post('config/createRegType',    'Config::createRegType');
 $routes->post('config/updateRegType/(:num)', 'Config::updateRegType/$1');
 $routes->post('config/deleteRegType/(:num)', 'Config::deleteRegType/$1');
 
+
 // Blacklist Reason config
 $routes->post('config/saveBlacklistReason', 'BlacklistReasonCreate::save');
+
 
 // Business Type Config
 $routes->post('config/updateBusinessType', 'Config::updateBusinessType');
