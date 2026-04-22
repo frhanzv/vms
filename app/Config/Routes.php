@@ -297,3 +297,4 @@ $routes->get('config/getApiKey/(:num)',        'Api\ApiManagement::getApiKey/$1'
 $routes->post('config/createApiKey',           'Api\ApiManagement::createApiKey');
 $routes->post('config/updateApiKey/(:num)',    'Api\ApiManagement::updateApiKey/$1');
 $routes->delete('config/deleteApiKey/(:num)',  'Api\ApiManagement::deleteApiKey/$1');
+$routes->post('config/syncApiKeys',            'Api\ApiManagement::syncApiKeys');

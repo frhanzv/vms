@@ -94,11 +94,11 @@ class ApiManagement extends BaseController
             'data' => $items,
             'pagination' => [
                 'current_page' => $page,
-                'per_page' => $perPage,
-                'total' => $total,
-                'last_page' => (int) ceil($total / max($perPage, 1)),
-                'from' => $total > 0 ? $offset + 1 : 0,
-                'to' => min($offset + $perPage, $total),
+                'per_page'     => $perPage,
+                'total'        => $total,
+                'last_page'    => (int) ceil($total / max($perPage, 1)),
+                'from'         => $total > 0 ? $offset + 1 : 0,
+                'to'           => min($offset + $perPage, $total),
             ],
         ]);
     }
@@ -118,7 +118,7 @@ class ApiManagement extends BaseController
 
         return $this->response->setJSON([
             'success' => true,
-            'data' => $item,
+            'data'    => $item,
         ]);
     }
 
@@ -132,28 +132,28 @@ class ApiManagement extends BaseController
 
         $validation = \Config\Services::validation();
         $validation->setRules([
-            'name' => 'required|max_length[100]',
+            'name'    => 'required|max_length[100]',
             'service' => 'required|max_length[100]',
             'api_key' => 'required',
-            'status' => 'permit_empty|in_list[active,inactive]',
+            'status'  => 'permit_empty|in_list[active,inactive]',
         ]);
 
         if (!$validation->run($input)) {
             return $this->response->setStatusCode(400)->setJSON([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $validation->getErrors(),
+                'errors'  => $validation->getErrors(),
             ]);
         }
 
         $data = [
-            'name' => $input['name'],
-            'service' => strtoupper((string) $input['service']),
-            'api_key' => $input['api_key'],
+            'name'        => $input['name'],
+            'service'     => strtoupper((string) $input['service']),
+            'api_key'     => $input['api_key'],
             'description' => $input['description'] ?? null,
-            'status' => $input['status'] ?? 'active',
-            'created_at' => date('Y-m-d H:i:s'),
-            'updated_at' => date('Y-m-d H:i:s'),
+            'status'      => $input['status'] ?? 'active',
+            'created_at'  => date('Y-m-d H:i:s'),
+            'updated_at'  => date('Y-m-d H:i:s'),
         ];
 
         try {
@@ -161,14 +161,14 @@ class ApiManagement extends BaseController
                 return $this->response->setStatusCode(500)->setJSON([
                     'success' => false,
                     'message' => 'Failed to create API call',
-                    'errors' => $this->apiKeyModel->errors(),
+                    'errors'  => $this->apiKeyModel->errors(),
                 ]);
             }
         } catch (\Throwable $e) {
             return $this->response->setStatusCode(500)->setJSON([
                 'success' => false,
                 'message' => 'Failed to create API call',
-                'errors' => $e->getMessage(),
+                'errors'  => $e->getMessage(),
             ]);
         }
 
@@ -196,27 +196,27 @@ class ApiManagement extends BaseController
 
         $validation = \Config\Services::validation();
         $validation->setRules([
-            'name' => 'required|max_length[100]',
+            'name'    => 'required|max_length[100]',
             'service' => 'required|max_length[100]',
             'api_key' => 'required',
-            'status' => 'permit_empty|in_list[active,inactive]',
+            'status'  => 'permit_empty|in_list[active,inactive]',
         ]);
 
         if (!$validation->run($input)) {
             return $this->response->setStatusCode(400)->setJSON([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $validation->getErrors(),
+                'errors'  => $validation->getErrors(),
             ]);
         }
 
         $data = [
-            'name' => $input['name'],
-            'service' => strtoupper((string) $input['service']),
-            'api_key' => $input['api_key'],
+            'name'        => $input['name'],
+            'service'     => strtoupper((string) $input['service']),
+            'api_key'     => $input['api_key'],
             'description' => $input['description'] ?? null,
-            'status' => $input['status'] ?? 'active',
-            'updated_at' => date('Y-m-d H:i:s'),
+            'status'      => $input['status'] ?? 'active',
+            'updated_at'  => date('Y-m-d H:i:s'),
         ];
 
         try {
@@ -224,14 +224,14 @@ class ApiManagement extends BaseController
                 return $this->response->setStatusCode(500)->setJSON([
                     'success' => false,
                     'message' => 'Failed to update API call',
-                    'errors' => $this->apiKeyModel->errors(),
+                    'errors'  => $this->apiKeyModel->errors(),
                 ]);
             }
         } catch (\Throwable $e) {
             return $this->response->setStatusCode(500)->setJSON([
                 'success' => false,
                 'message' => 'Failed to update API call',
-                'errors' => $e->getMessage(),
+                'errors'  => $e->getMessage(),
             ]);
         }
 
@@ -264,5 +264,121 @@ class ApiManagement extends BaseController
             'message' => 'API call deleted successfully',
         ]);
     }
-}
 
+    // =========================================================================
+    // NEW — Sync API endpoints from the Laravel backend /api/registry
+    // =========================================================================
+    /**
+     * POST  config/syncApiKeys
+     * Body  JSON: { "laravel_url": "http://your-laravel-host" }
+     *
+     * Calls GET {laravel_url}/api/registry on the Laravel side.
+     * Inserts any endpoint whose `name` does not yet exist in api_keys.
+     * Existing entries are never overwritten.
+     *
+     * Returns: { success, imported, skipped, errors[], message }
+     */
+    public function syncApiKeys()
+    {
+        $this->ensureApiKeysTable();
+
+        $input      = $this->request->getJSON(true) ?? [];
+        $laravelUrl = rtrim($input['laravel_url'] ?? '', '/');
+
+        if (empty($laravelUrl)) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false,
+                'message' => 'laravel_url is required.',
+            ]);
+        }
+
+        // 1. Fetch registry from Laravel
+        $client = \Config\Services::curlrequest();
+
+        try {
+            $resp = $client->get($laravelUrl . '/api/registry', [
+                'timeout'     => 10,
+                'http_errors' => false,
+                'headers'     => ['Accept' => 'application/json'],
+            ]);
+        } catch (\Throwable $e) {
+            return $this->response->setStatusCode(502)->setJSON([
+                'success' => false,
+                'message' => 'Could not reach Laravel backend: ' . $e->getMessage(),
+            ]);
+        }
+
+        $body = json_decode($resp->getBody(), true);
+
+        // Accept { success, data:[...] }  OR  a plain array
+        $endpoints = [];
+        if (isset($body['data']) && is_array($body['data'])) {
+            $endpoints = $body['data'];
+        } elseif (is_array($body)) {
+            $endpoints = $body;
+        }
+
+        if (empty($endpoints)) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'success' => false,
+                'message' => 'Laravel registry returned no endpoints. Make sure GET /api/registry exists and returns data.',
+            ]);
+        }
+
+        // 2. Load existing names for fast duplicate check
+        $existing    = array_column($this->apiKeyModel->select('name')->findAll(), 'name');
+        $existingSet = array_flip($existing);
+
+        // 3. Insert new endpoints only
+        $imported = 0;
+        $skipped  = 0;
+        $errors   = [];
+        $now      = date('Y-m-d H:i:s');
+
+        foreach ($endpoints as $ep) {
+            $name   = trim($ep['name']        ?? '');
+            $method = strtoupper(trim($ep['method'] ?? 'GET'));
+            $uri    = trim($ep['uri']         ?? '');
+            $desc   = trim($ep['description'] ?? '');
+
+            if ($name === '' || $uri === '') {
+                $errors[] = 'Skipped — missing name or uri: ' . json_encode($ep);
+                continue;
+            }
+
+            if (isset($existingSet[$name])) {
+                $skipped++;
+                continue;
+            }
+
+            $row = [
+                'name'        => $name,
+                'service'     => $method,
+                'api_key'     => $uri,
+                'description' => $desc ?: null,
+                'status'      => 'active',
+                'created_at'  => $now,
+                'updated_at'  => $now,
+            ];
+
+            try {
+                if ($this->apiKeyModel->insert($row)) {
+                    $imported++;
+                    $existingSet[$name] = true; // prevent double-import in same run
+                } else {
+                    $errors[] = 'DB insert failed for: ' . $name;
+                }
+            } catch (\Throwable $e) {
+                $errors[] = 'Exception for ' . $name . ': ' . $e->getMessage();
+            }
+        }
+
+        return $this->response->setJSON([
+            'success'  => true,
+            'imported' => $imported,
+            'skipped'  => $skipped,
+            'errors'   => $errors,
+            'message'  => "Sync complete — {$imported} imported, {$skipped} already existed.",
+        ]);
+    }
+}
