@@ -553,6 +553,16 @@
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                                    Can Print CP
+                                </label>
+                                <select id="regtype-modal-can_print_cp"
+                                    class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2 text-sm focus:ring-primary focus:border-primary outline-none">
+                                    <option value="1">YES</option>
+                                    <option value="0">NO</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
                                     Status
                                 </label>
                                 <select id="regtype-modal-status"
@@ -13957,6 +13967,116 @@
             document.addEventListener('keydown', function (e) {
                 if (e.key === 'Escape') closeModal();
             });
+        });
+
+        
+        // REGISTRATION TYPE MODAL
+        
+        function openRegTypeModal(id) {
+            // Show modal first with loading state
+            const modal = document.getElementById('regtype-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        
+            // Store the current ID for saveRegType()
+            modal.dataset.currentId = id;
+        
+            // Fetch the record via AJAX
+            fetch(`<?= base_url('config/getRegType/') ?>${id}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (!data.success) {
+                        alert('Failed to load record.');
+                        closeRegTypeModal();
+                        return;
+                    }
+        
+                    const row = data.data;
+        
+                    // Populate fields
+                    document.getElementById('regtype-modal-name').value   = row.name;
+                    document.getElementById('regtype-modal-status').value = row.status;
+        
+                    // can_print_cp: '1' or '0'
+                    const cpSelect = document.getElementById('regtype-modal-can_print_cp');
+                    if (cpSelect) {
+                        cpSelect.value = row.can_print_cp ? '1' : '0';
+                    }
+                })
+                .catch(() => {
+                    alert('An error occurred. Please try again.');
+                    closeRegTypeModal();
+                });
+        }
+        
+        function closeRegTypeModal() {
+            const modal = document.getElementById('regtype-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            modal.dataset.currentId = '';
+        }
+        
+        function saveRegType() {
+            const modal = document.getElementById('regtype-modal');
+            const id    = modal.dataset.currentId;
+        
+            if (!id) {
+                alert('No record selected.');
+                return;
+            }
+        
+            const name   = document.getElementById('regtype-modal-name').value.trim();
+            const status = document.getElementById('regtype-modal-status').value;
+            const cpSelect = document.getElementById('regtype-modal-can_print_cp');
+            const canPrintCp = cpSelect ? parseInt(cpSelect.value) : 0;
+        
+            if (!name) {
+                alert('Registration Type Name is required.');
+                document.getElementById('regtype-modal-name').focus();
+                return;
+            }
+        
+            // Send JSON to updateRegType
+            fetch(`<?= base_url('config/updateRegType/') ?>${id}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
+                                ?? '<?= csrf_hash() ?>',
+                },
+                body: JSON.stringify({
+                    name:         name,
+                    status:       status,
+                    can_print_cp: canPrintCp,
+                }),
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    closeRegTypeModal();
+                    // Reload page to reflect updated data
+                    window.location.reload();
+                } else {
+                    const errors = data.errors
+                        ? Object.values(data.errors).join('\n')
+                        : (data.message ?? 'Failed to update.');
+                    alert(errors);
+                }
+            })
+            .catch(() => {
+                alert('An error occurred. Please try again.');
+            });
+        }
+        
+        // Close on backdrop click
+        document.getElementById('regtype-modal').addEventListener('click', function (e) {
+            if (e.target === this) closeRegTypeModal();
+        });
+        
+        // Close on Escape key
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') closeRegTypeModal();
         });
     </script>
 </body>
