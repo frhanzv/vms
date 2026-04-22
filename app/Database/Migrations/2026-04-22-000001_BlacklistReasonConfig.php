@@ -35,11 +35,13 @@ class BlacklistReasonConfig extends Migration
             'created_at' => [
                 'type' => 'TIMESTAMP',
                 'null' => true,
+                'default' => 'CURRENT_TIMESTAMP',
                 'default' => new RawSql('CURRENT_TIMESTAMP'),
             ],
             'updated_at' => [
                 'type' => 'TIMESTAMP',
                 'null' => true,
+                'default' => 'CURRENT_TIMESTAMP',
                 'default' => new RawSql('CURRENT_TIMESTAMP'),
                 'extra' => 'on update CURRENT_TIMESTAMP',
             ],
