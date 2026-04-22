@@ -832,22 +832,22 @@
                         <div class="p-6 bg-gray-50 dark:bg-slate-800/50">
 
                             <!-- SEARCH + CREATE -->
-                            <div class="flex items-center gap-3 mb-4">
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                                 <form method="GET" class="flex shadow-sm w-full sm:w-96">
                                     <input name="blacklist_search"
                                         value="<?= esc($blacklist_search ?? '') ?>"
                                         class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm"
                                         placeholder="Search reason..." type="text"/>
-                                    <button type="submit" class="bg-primary text-white px-6 py-2.5 rounded-r">
-                                        <span class="material-symbols-outlined text-[20px]">search</span>
+                                    <button class="bg-primary hover:bg-blue-600 text-white px-6 py-2.5 rounded-r flex items-center justify-center transition-colors">
+                                        <span class="material-symbols-outlined text-white text-[20px]">search</span>
                                     </button>
                                 </form>
 
                                 <!-- CREATE BUTTON -->
                                 <button type="button" onclick="openBlacklistModal(null)"
-                                    class="flex items-center gap-2 bg-primary hover:bg-blue-600 text-white px-4 py-2.5 rounded text-sm font-medium whitespace-nowrap">
-                                    <span class="material-symbols-outlined text-[18px]">add</span>
-                                    Create
+                                    class="px-4 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm flex items-center gap-2 w-full sm:w-auto">
+                                    <span class="material-symbols-outlined text-base">add</span>
+                                    Create Reason
                                 </button>
                             </div>
 
@@ -896,54 +896,65 @@
 
                 <!-- Blacklist Modal -->
                 <div id="blacklist-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50">
-                    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md mx-4">
+                    <div class="w-full max-w-md mx-4 bg-white dark:bg-slate-800 rounded-xl shadow-xl">
 
-                        <!-- HEADER -->
-                        <div class="flex justify-between px-6 py-4 border-b border-gray-200 dark:border-slate-700">
-                            <h2 id="blacklist-modal-title" class="text-base font-semibold text-gray-800 dark:text-white">
+                        <!-- Header -->
+                        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-slate-700">
+                            <h2 id="blacklist-modal-title" class="text-lg font-semibold text-gray-900 dark:text-white">
                                 Blacklist / Suspend Reason
                             </h2>
-                            <button type="button" onclick="closeBlacklistModal()">
+                            <button type="button" onclick="closeBlacklistModal()" class="text-gray-400 hover:text-gray-600">
                                 <span class="material-symbols-outlined">close</span>
                             </button>
                         </div>
 
-                        <!-- FORM -->
+                        <!-- Form -->
                         <form method="POST" action="<?= base_url('config/saveBlacklistReason') ?>">
                             <?= csrf_field() ?>
                             <input type="hidden" name="id" id="blacklist-id">
 
-                            <div class="px-6 py-5 space-y-4">
+                            <div class="px-6 py-5 space-y-5">
 
                                 <!-- Reason -->
                                 <div>
-                                    <label class="text-sm font-medium text-gray-700 dark:text-slate-300">
-                                        *Reason
+                                    <label for="blacklist-reason" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                                        Reason <span class="text-red-500">*</span>
                                     </label>
-                                    <input name="reason" id="blacklist-reason" type="text"
-                                        class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2 text-sm"
-                                        required>
+                                    <input 
+                                        id="blacklist-reason"
+                                        name="reason"
+                                        type="text"
+                                        placeholder="Enter reason"
+                                        required
+                                        class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    >
                                 </div>
 
                                 <!-- Type -->
                                 <div>
-                                    <label class="text-sm font-medium text-gray-700 dark:text-slate-300">
+                                    <label for="blacklist-type" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
                                         Type
                                     </label>
-                                    <select name="type" id="blacklist-type"
-                                        class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2 text-sm">
-                                        <option value="SUSPEND">SUSPEND</option>
-                                        <option value="BLACKLIST">BLACKLIST</option>
+                                    <select 
+                                        id="blacklist-type"
+                                        name="type"
+                                        class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    >
+                                        <option value="SUSPEND">Suspend</option>
+                                        <option value="BLACKLIST">Blacklist</option>
                                     </select>
                                 </div>
 
                                 <!-- Status -->
                                 <div>
-                                    <label class="text-sm font-medium text-gray-700 dark:text-slate-300">
+                                    <label for="blacklist-status" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
                                         Status
                                     </label>
-                                    <select name="status" id="blacklist-status"
-                                        class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2 text-sm">
+                                    <select 
+                                        id="blacklist-status"
+                                        name="status"
+                                        class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    >
                                         <option value="Active">Active</option>
                                         <option value="Inactive">Inactive</option>
                                     </select>
@@ -951,24 +962,30 @@
 
                             </div>
 
-                            <!-- FOOTER -->
-                            <div class="flex justify-between px-6 py-4 border-t border-gray-200 dark:border-slate-700">
-
-                                <button type="button" onclick="closeBlacklistModal()"
-                                    class="bg-yellow-400 hover:bg-yellow-500 text-white px-4 py-2 rounded">
-                                    Back
+                            <!-- Footer -->
+                            <div class="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-slate-700">
+                                <button 
+                                    type="button"
+                                    onclick="closeBlacklistModal()"
+                                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                                >
+                                    Cancel
                                 </button>
 
-                                <button type="submit"
-                                    class="bg-primary hover:bg-blue-600 text-white px-4 py-2 rounded">
+                                <button 
+                                    type="submit"
+                                    class="flex items-center gap-1 px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                                >
+                                    <span class="material-icons text-sm">save</span>
                                     Save
                                 </button>
-
                             </div>
-
                         </form>
+
                     </div>
                 </div>
+
+
                 
 
 
@@ -993,8 +1010,7 @@
                     <div id="role-content" class="hidden border-t border-gray-200 dark:border-slate-700">
                         <div class="p-6 bg-gray-50 dark:bg-slate-800/50">
                             <!-- Search and Create -->
-                            <div
-                                class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                                 <div class="flex shadow-sm w-full sm:w-96">
                                     <input id="role-search-input"
                                         class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none"
