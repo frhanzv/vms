@@ -4,6 +4,10 @@
  *
  * @var string $current
  */
+$isDashboard = ($current === '' || $current === 'dashboard');
+$isStaff = str_contains($current, 'staffs') || str_contains($current, 'staff-pass-request');
+$isWorkflow = str_contains($current, 'workflow');
+$isSettings = str_contains($current, 'settings');
 ?>
 <aside class="w-64 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col p-4 hidden md:flex h-full overflow-hidden">
     <div class="flex flex-col gap-8 flex-1 min-h-0">
@@ -14,7 +18,7 @@
             <h1 class="text-lg font-bold tracking-tight text-slate-900 dark:text-white">SafeG</h1>
         </div>
         <nav class="flex flex-col gap-2 overflow-y-auto pr-1 custom-scrollbar">
-            <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('dashboard') ?>">
+            <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?= $isDashboard ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white' ?> transition-colors group" href="<?= base_url('dashboard') ?>">
                 <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">dashboard</span>
                 <p class="text-sm font-medium">Dashboard</p>
             </a>
@@ -52,11 +56,11 @@
                 </a>
             </div>
         </div>
-        <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('staffs') ?>">
+        <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?= $isStaff ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white' ?> transition-colors group" href="<?= base_url('staffs') ?>">
             <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">badge</span>
             <p class="text-sm font-medium">Staff Pass List</p>
         </a>
-            <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('workflow') ?>">
+            <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?= $isWorkflow ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white' ?> transition-colors group" href="<?= base_url('workflow') ?>">
                 <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">account_tree</span>
                 <p class="text-sm font-medium">Visitor Workflow</p>
             </a>
@@ -152,7 +156,7 @@
                 <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">tune</span>
                 <p class="text-sm font-medium">Config</p>
             </a>
-            <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors group" href="<?= base_url('settings') ?>">
+            <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?= $isSettings ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white' ?> transition-colors group" href="<?= base_url('settings') ?>">
                 <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">settings</span>
                 <p class="text-sm font-medium">Settings</p>
             </a>
