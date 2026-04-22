@@ -37,14 +37,14 @@ class DeviceAssignmentModel extends Model
     public function getDeviceAssignmentsWithPagination($search = '', $perPage = 10, $offset = 0)
     {
         $builder = $this->db->table($this->table)
-            ->select('device_assignments.*, locations.location_access as location_name')
-            ->join('locations', 'locations.id = device_assignments.location_id', 'left');
+            ->select('device_assignments.*, lanes.lane as location_name')
+            ->join('lanes', 'lanes.id = device_assignments.location_id', 'left');
 
         if (!empty($search)) {
             $builder->groupStart()
                 ->like('device_assignments.device_id', $search)
                 ->orLike('device_assignments.ip_address', $search)
-                ->orLike('locations.location_access', $search)
+                ->orLike('lanes.lane', $search)
                 ->groupEnd();
         }
 
@@ -57,13 +57,13 @@ class DeviceAssignmentModel extends Model
     public function getTotalDeviceAssignments($search = '')
     {
         $builder = $this->db->table($this->table)
-            ->join('locations', 'locations.id = device_assignments.location_id', 'left');
+            ->join('lanes', 'lanes.id = device_assignments.location_id', 'left');
 
         if (!empty($search)) {
             $builder->groupStart()
                 ->like('device_assignments.device_id', $search)
                 ->orLike('device_assignments.ip_address', $search)
-                ->orLike('locations.location_access', $search)
+                ->orLike('lanes.lane', $search)
                 ->groupEnd();
         }
 
