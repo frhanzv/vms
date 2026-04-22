@@ -3245,24 +3245,29 @@ class Config extends BaseController
 
     public function generateVisitorQr()
     {
-        // Hardcode the fixed IP address so the QR code never changes
-        $domain = '192.168.100.243:8080';
+        // QR must use the real server IP so phones can reach the server after scanning.
+        // 'localhost' on a phone means the phone itself — it must be the server's IP.
+        $qrCodeData = 'http://192.168.100.243:8080/vms/visitor-registration';
 
-        // Point to visitor registration URL
-        $qrCodeData = 'http://' . $domain . '/vms/visitor-registration?token=MTM%3D';
+        // chillerlan/php-qrcode v6 API: pass settings as array to constructor
+        $options = new \chillerlan\QRCode\QROptions([
+            'outputInterface' => \chillerlan\QRCode\Output\QRGdImagePNG::class,
+            'eccLevel'        => \chillerlan\QRCode\Common\EccLevel::L,
+            'scale'           => 5,
+            'outputBase64'    => false,
+        ]);
 
-        $options = new \chillerlan\QRCode\QROptions();
-        $options->version = \chillerlan\QRCode\Common\Version::AUTO;
-        $options->outputInterface = \chillerlan\QRCode\Output\QRGdImagePNG::class;
-        $options->eccLevel = \chillerlan\QRCode\Common\EccLevel::L;
-        $options->scale = 5;
-        $options->outputBase64 = false;
+        try {
+            $qrcode = new \chillerlan\QRCode\QRCode($options);
+            $output = $qrcode->render($qrCodeData);
 
-        $qrcode = new \chillerlan\QRCode\QRCode($options);
-        $output = $qrcode->render($qrCodeData);
-
-        $this->response->setHeader('Content-Type', 'image/png');
-        echo $output;
+            $this->response->setHeader('Content-Type', 'image/png');
+            echo $output;
+        } catch (\Throwable $e) {
+            log_message('error', 'generateVisitorQr failed: ' . $e->getMessage());
+            $this->response->setStatusCode(500);
+            echo json_encode(['error' => 'QR generation failed: ' . $e->getMessage()]);
+        }
         exit;
     }
 
