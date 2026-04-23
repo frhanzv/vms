@@ -313,3 +313,5 @@ $routes->post('config/createApiKey',           'Api\ApiManagement::createApiKey'
 $routes->post('config/updateApiKey/(:num)',    'Api\ApiManagement::updateApiKey/$1');
 $routes->delete('config/deleteApiKey/(:num)',  'Api\ApiManagement::deleteApiKey/$1');
 $routes->post('config/syncApiKeys',            'Api\ApiManagement::syncApiKeys');
+$routes->post('config/callExternalApi',        'Api\ApiManagement::callExternalApi');
+$routes->post('config/saveLaravelBaseUrl',     'Api\ApiManagement::saveLaravelBaseUrl');
