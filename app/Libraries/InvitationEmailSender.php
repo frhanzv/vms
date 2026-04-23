@@ -208,4 +208,119 @@ class InvitationEmailSender
             return false;
         }
     }
+
+    public function sendApproval(int $invitationId): bool
+    {
+        try {
+            $invitation = $this->getInvitationDetails($invitationId);
+
+            if (! $invitation) {
+                log_message('error', 'Invitation not found for ID: ' . $invitationId);
+
+                return false;
+            }
+
+            if (empty($invitation['visitor_email'])) {
+                log_message('warning', 'No visitor email found for invitation ID: ' . $invitationId);
+
+                return false;
+            }
+
+            $email = new Email();
+            $email->setMailType('html');
+
+            $templateRaw = $this->settingModel->getSetting(
+                $this->emailTemplateService->getStorageKey(EmailTemplateService::PROCESS_APPROVAL)
+            );
+            $templateConfig = $this->emailTemplateService->normalizeTemplate(
+                EmailTemplateService::PROCESS_APPROVAL,
+                $templateRaw ? json_decode((string) $templateRaw, true) : []
+            );
+
+            $placeholderContext = [
+                'visitor_name' => $invitation['full_name'],
+                'company' => $invitation['company_name'],
+                'location' => $invitation['location_name'],
+                'reason' => $invitation['reason_name'],
+                'invited_by' => $invitation['invited_by'],
+                'link_expiry_date' => date('d/m/Y', strtotime($invitation['link_expiry'])),
+            ];
+
+            $crudTemplate = $this->emailTemplateModel
+                ->where('code', 'VISITOR_REQ_APPROVAL')
+                ->first();
+
+            $customSubject = null;
+            $customBodyHtml = null;
+            $customColors = null;
+            if (is_array($crudTemplate)) {
+                $rawSubject = trim((string) ($crudTemplate['subject'] ?? ''));
+                $rawBody = (string) ($crudTemplate['body'] ?? '');
+                if ($rawSubject !== '') {
+                    $customSubject = $this->emailTemplateService->applyPlaceholders($rawSubject, $placeholderContext);
+                }
+                if (trim($rawBody) !== '') {
+                    $customBodyText = $this->emailTemplateService->applyPlaceholders($rawBody, $placeholderContext);
+                    $customBodyHtml = nl2br(esc($customBodyText));
+                }
+                $customColors = [
+                    'primary_color' => $crudTemplate['primary_color'] ?? null,
+                    'content_bg_color' => $crudTemplate['content_bg_color'] ?? null,
+                    'text_color' => $crudTemplate['text_color'] ?? null,
+                ];
+            }
+
+            // Generate QR Code
+            $qrCodeData = 'VIS-' . str_pad((string) $invitationId, 5, '0', STR_PAD_LEFT);
+            $options = new \chillerlan\QRCode\QROptions([
+                'outputInterface' => \chillerlan\QRCode\Output\QRGdImagePNG::class,
+                'eccLevel'        => \chillerlan\QRCode\Common\EccLevel::L,
+                'scale'           => 5,
+                'outputBase64'    => true,
+            ]);
+            $qrcode = new \chillerlan\QRCode\QRCode($options);
+            $qrCodeBase64 = $qrcode->render($qrCodeData);
+
+            $emailData = [
+                'visitor_name' => $invitation['full_name'],
+                'company' => $invitation['company_name'],
+                'location' => $invitation['location_name'],
+                'reason' => $invitation['reason_name'],
+                'other_reason' => $invitation['other_reason'],
+                'invited_by' => $invitation['invited_by'],
+                'schedules' => $invitation['schedules'],
+                'template' => $templateConfig,
+                'intro_line' => $this->emailTemplateService->applyPlaceholders($templateConfig['intro_line'], $placeholderContext),
+                'notes_items' => array_map(
+                    fn ($item) => $this->emailTemplateService->applyPlaceholders((string) $item, $placeholderContext),
+                    $templateConfig['notes_items']
+                ),
+                'custom_body_html' => $customBodyHtml,
+                'custom_colors' => $customColors,
+                'qr_code_base64' => $qrCodeBase64,
+            ];
+
+            $message = view('emails/approval_template', $emailData);
+
+            $email->setFrom('noreply@safeg.com', 'SafeG VMS');
+            $email->setTo($invitation['visitor_email']);
+            $email->setSubject($customSubject ?: $templateConfig['subject']);
+            $email->setMessage($message);
+
+            $result = $email->send();
+
+            if ($result) {
+                log_message('info', 'Approval email sent successfully to: ' . $invitation['visitor_email']);
+            } else {
+                log_message('error', 'Approval email sending failed to: ' . $invitation['visitor_email']);
+                log_message('error', 'Email error: ' . $email->printDebugger());
+            }
+
+            return $result;
+        } catch (\Exception $e) {
+            log_message('error', 'Approval email sending failed: ' . $e->getMessage());
+
+            return false;
+        }
+    }
 }
