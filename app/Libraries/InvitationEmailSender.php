@@ -271,7 +271,7 @@ class InvitationEmailSender
             }
 
             // Generate QR Code
-            $qrCodeData = 'VIS-' . str_pad((string) $invitationId, 5, '0', STR_PAD_LEFT);
+            $qrCodeData = 'VIS-' . str_pad((string) $invitationId, 5, '0', STR_PAD_LEFT) . '-' . uniqid();
             $options = new \chillerlan\QRCode\QROptions([
                 'outputInterface' => \chillerlan\QRCode\Output\QRGdImagePNG::class,
                 'eccLevel'        => \chillerlan\QRCode\Common\EccLevel::L,
