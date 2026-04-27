@@ -87,12 +87,21 @@ class ApiManagement extends BaseController
             return '';
         }
 
+        $hasSettingKey = $db->fieldExists('setting_key', 'settings');
+        $hasSettingValue = $db->fieldExists('setting_value', 'settings');
+        $keyColumn = $hasSettingKey ? 'setting_key' : 'key';
+        $valueColumn = $hasSettingValue ? 'setting_value' : 'value';
+
+        if (!$db->fieldExists($keyColumn, 'settings') || !$db->fieldExists($valueColumn, 'settings')) {
+            return '';
+        }
+
         $setting = $db->table('settings')
-            ->where('key', 'laravel_base_url')
+            ->where($keyColumn, 'laravel_base_url')
             ->get()
             ->getRowArray();
 
-        return $setting ? rtrim((string) ($setting['value'] ?? ''), '/') : '';
+        return $setting ? rtrim((string) ($setting[$valueColumn] ?? ''), '/') : '';
     }
 
     private function saveLaravelBaseUrlValue(string $baseUrl): bool
@@ -102,12 +111,21 @@ class ApiManagement extends BaseController
             return false;
         }
 
+        $hasSettingKey = $db->fieldExists('setting_key', 'settings');
+        $hasSettingValue = $db->fieldExists('setting_value', 'settings');
+        $keyColumn = $hasSettingKey ? 'setting_key' : 'key';
+        $valueColumn = $hasSettingValue ? 'setting_value' : 'value';
+
+        if (!$db->fieldExists($keyColumn, 'settings') || !$db->fieldExists($valueColumn, 'settings')) {
+            return false;
+        }
+
         $table = $db->table('settings');
-        $existing = $table->where('key', 'laravel_base_url')->get()->getRowArray();
+        $existing = $table->where($keyColumn, 'laravel_base_url')->get()->getRowArray();
         if ($existing) {
-            $table->where('key', 'laravel_base_url')->update(['value' => $baseUrl]);
+            $table->where($keyColumn, 'laravel_base_url')->update([$valueColumn => $baseUrl]);
         } else {
-            $table->insert(['key' => 'laravel_base_url', 'value' => $baseUrl]);
+            $table->insert([$keyColumn => 'laravel_base_url', $valueColumn => $baseUrl]);
         }
 
         return true;
