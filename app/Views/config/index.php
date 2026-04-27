@@ -14666,6 +14666,17 @@
             const modal = document.getElementById('syncModal');
             modal.classList.remove('hidden');
             modal.classList.add('flex');
+
+            fetch(`${configBaseUrl}/getLaravelBaseUrl`)
+                .then(r => r.json())
+                .then(res => {
+                    if (res.success && res.base_url) {
+                        document.getElementById('syncLaravelUrl').value = res.base_url;
+                    }
+                })
+                .catch(() => {
+                    // keep manual input when value cannot be preloaded
+                });
         }
 
         function closeSyncModal() {
