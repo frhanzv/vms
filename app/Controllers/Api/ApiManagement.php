@@ -70,6 +70,49 @@ class ApiManagement extends BaseController
         $forge->createTable('api_keys', true);
     }
 
+    private function getRequestPayload(): array
+    {
+        $input = $this->request->getJSON(true);
+        if (!is_array($input)) {
+            $input = $this->request->getPost();
+        }
+
+        return is_array($input) ? $input : [];
+    }
+
+    private function getSavedLaravelBaseUrl(): string
+    {
+        $db = \Config\Database::connect();
+        if (!$db->tableExists('settings')) {
+            return '';
+        }
+
+        $setting = $db->table('settings')
+            ->where('key', 'laravel_base_url')
+            ->get()
+            ->getRowArray();
+
+        return $setting ? rtrim((string) ($setting['value'] ?? ''), '/') : '';
+    }
+
+    private function saveLaravelBaseUrlValue(string $baseUrl): bool
+    {
+        $db = \Config\Database::connect();
+        if (!$db->tableExists('settings')) {
+            return false;
+        }
+
+        $table = $db->table('settings');
+        $existing = $table->where('key', 'laravel_base_url')->get()->getRowArray();
+        if ($existing) {
+            $table->where('key', 'laravel_base_url')->update(['value' => $baseUrl]);
+        } else {
+            $table->insert(['key' => 'laravel_base_url', 'value' => $baseUrl]);
+        }
+
+        return true;
+    }
+
     public function getApiKeys()
     {
         $this->ensureApiKeysTable();
@@ -125,10 +168,7 @@ class ApiManagement extends BaseController
     public function createApiKey()
     {
         $this->ensureApiKeysTable();
-        $input = $this->request->getJSON(true);
-        if (!is_array($input)) {
-            $input = $this->request->getPost();
-        }
+        $input = $this->getRequestPayload();
 
         $validation = \Config\Services::validation();
         $validation->setRules([
@@ -189,10 +229,7 @@ class ApiManagement extends BaseController
             ]);
         }
 
-        $input = $this->request->getJSON(true);
-        if (!is_array($input)) {
-            $input = $this->request->getPost();
-        }
+        $input = $this->getRequestPayload();
 
         $validation = \Config\Services::validation();
         $validation->setRules([
@@ -282,7 +319,7 @@ class ApiManagement extends BaseController
     {
         $this->ensureApiKeysTable();
 
-        $input      = $this->request->getJSON(true) ?? [];
+        $input      = $this->getRequestPayload();
         $laravelUrl = rtrim($input['laravel_url'] ?? '', '/');
 
         if (empty($laravelUrl)) {
@@ -324,6 +361,8 @@ class ApiManagement extends BaseController
                 'message' => 'Laravel registry returned no endpoints. Make sure GET /api/registry exists and returns data.',
             ]);
         }
+
+        $this->saveLaravelBaseUrlValue($laravelUrl);
 
         // 2. Load existing names for fast duplicate check
         $existing    = array_column($this->apiKeyModel->select('name')->findAll(), 'name');
@@ -404,7 +443,7 @@ class ApiManagement extends BaseController
     {
         $this->ensureApiKeysTable();
 
-        $input   = $this->request->getJSON(true) ?? [];
+        $input   = $this->getRequestPayload();
         $id      = $input['api_key_id'] ?? null;
         $baseUrl = rtrim($input['base_url'] ?? '', '/');
         $params  = $input['params'] ?? [];
@@ -434,10 +473,7 @@ class ApiManagement extends BaseController
         // Build the full URL
         $endpoint = $entry['api_key']; // e.g. /api/packageDetail
         if (empty($baseUrl)) {
-            // Try to get the saved Laravel base URL from settings
-            $db       = \Config\Database::connect();
-            $setting  = $db->table('settings')->where('key', 'laravel_base_url')->get()->getRowArray();
-            $baseUrl  = $setting ? rtrim($setting['value'], '/') : '';
+            $baseUrl = $this->getSavedLaravelBaseUrl();
         }
 
         if (empty($baseUrl) && !str_starts_with($endpoint, 'http')) {
@@ -500,7 +536,7 @@ class ApiManagement extends BaseController
      */
     public function saveLaravelBaseUrl()
     {
-        $input   = $this->request->getJSON(true) ?? [];
+        $input   = $this->getRequestPayload();
         $baseUrl = rtrim($input['base_url'] ?? '', '/');
 
         if (empty($baseUrl)) {
@@ -510,28 +546,21 @@ class ApiManagement extends BaseController
             ]);
         }
 
-        $db = \Config\Database::connect();
-
-        // Check if 'settings' table has this key
-        $existing = $db->table('settings')->where('key', 'laravel_base_url')->get()->getRowArray();
-
-        if ($existing) {
-            $db->table('settings')->where('key', 'laravel_base_url')->update(['value' => $baseUrl]);
-        } else {
-            // Try to insert — if settings table doesn't exist, just skip
-            try {
-                $db->table('settings')->insert([
-                    'key'   => 'laravel_base_url',
-                    'value' => $baseUrl,
-                ]);
-            } catch (\Throwable $e) {
-                // Settings table may not exist — that's OK, base_url can be passed per-request
-            }
-        }
+        $saved = $this->saveLaravelBaseUrlValue($baseUrl);
 
         return $this->response->setJSON([
             'success' => true,
-            'message' => 'Laravel base URL saved.',
+            'message' => $saved
+                ? 'Laravel base URL saved.'
+                : 'Laravel base URL accepted for this request. Settings table is unavailable, so it was not persisted.',
+        ]);
+    }
+
+    public function getLaravelBaseUrl()
+    {
+        return $this->response->setJSON([
+            'success'  => true,
+            'base_url' => $this->getSavedLaravelBaseUrl(),
         ]);
     }
 }
