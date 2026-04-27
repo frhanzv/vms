@@ -14,6 +14,7 @@
         "chillerlan/php-qrcode": "^6.0",
         "codeigniter4/framework": "^4.0",
         "endroid/qr-code": "^6.0",
+        "phpoffice/phpspreadsheet": "^5.7",
         "thiagoalessio/tesseract_ocr": "^2.13"
     },
     "require-dev": {

@@ -358,35 +358,109 @@ $isSettings = str_contains($current, 'settings');
                             </div>
 
                             <!-- Location Access -->
-                            <div class="space-y-2">
-                                <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Location Access <span class="text-red-500">*</span></label>
-                                <div class="p-4 rounded-lg border border-border-color dark:border-gray-700">
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                                    <?php 
-                                    $locations = [
-                                        'CHANGING ROOM 1 IN',           'CHANGING ROOM 1 OUT',          'CHANGING ROOM 2 IN',               'CHANGING ROOM 2 OUT',
-                                        'CHEMICAL WASTE IN',             'CHEMICAL WASTE OUT',           'CMM ROOM IN',                      'CMM ROOM OUT',
-                                        'FINISHED GOOD AREA 1 OUT',      'FINISHED GOOD AREA 2 IN',      'FINISHED GOOD AREA 2 OUT',         'FINISHED GOODS AREA 1 IN',
-                                        'JITTER BUG ROOM IN',            'JITTER BUG ROOM OUT',          'MAINTENANCE DEPARTMENT IN',        'MAINTENANCE DEPARTMENT OUT',
-                                        'PACKAGING AREA IN',             'PACKAGING AREA OUT',           'POLISHING ROOM IN',                'POLISHING ROOM OUT',
-                                        'POLISHING/DEBURING ROOM IN',    'POLISHING/DEBURING ROOM OUT',  'PRODUCTION 1 - CLEAN ROOM 10K IN','PRODUCTION 1 - CLEAN ROOM 10K OUT',
-                                        'PRODUCTION 2 - CLEAN ROOM 1K IN','PRODUCTION 2 - CLEAN ROOM 1K OUT','PRODUCTION 3 IN',             'PRODUCTION 3 OUT',
-                                        'PRODUCTION 4 IN',               'PRODUCTION 4 OUT',             'PRODUCTION 5 - WORK IN PROGRESS IN','PRODUCTION 5 - WORN IN PROGRESS OUT',
-                                        'PRODUCTION OFFICE IN',          'PRODUCTION OFFICE OUT',        'PRODUCTION WIP IN',                'PRODUCTION WIP OUT',
-                                        'QA ROOM IN',                    'QA ROOM OUT',                  'RAW MATERIAL AREA IN',             'RAW MATERIAL OUT',
-                                        'ROBOTIC JITTER BUG ROOM IN',    'ROBOTIC JITTER BUG ROOM OUT',  'ROBOTIC WELDING ROOM IN',          'ROBOTIC WELDING ROOM OUT',
-                                        'SCHEDULE WASTE IN',             'SCHEDULE WASTE OUT',           'TOILET IN',                        'TOILET OUT',
-                                        'TOOLS ROOM IN',                 'TOOLS ROOM OUT',               'ULTRA SONIC ROOM IN',              'ULTRA SONIC ROOM OUT',
-                                        'UTILITY IN',                    'UTILITY OUT',                  'WATER TREATMENT AREA IN',          'WATER TREATMENT AREA OUT',
-                                    ];
-                                    foreach ($locations as $location): 
-                                    ?>
-                                    <label class="flex items-center gap-2 cursor-pointer p-3 rounded-lg border border-transparent hover:border-primary/20 hover:bg-white dark:hover:bg-gray-800 transition-all">
-                                        <input name="location_access[]" value="<?= $location ?>" class="form-checkbox rounded text-primary border-2 border-gray-500 focus:ring-primary h-5 w-5" type="checkbox"/>
-                                        <span class="text-text-main dark:text-white font-medium font-brand text-sm"><?= $location ?></span>
-                                    </label>
-                                    <?php endforeach; ?>
+                            <?php
+                            $locationGroups = [
+                                'Changing Rooms' => [
+                                    ['label' => 'Changing Room 1',                   'in' => 'CHANGING ROOM 1 IN',                    'out' => 'CHANGING ROOM 1 OUT'],
+                                    ['label' => 'Changing Room 2',                   'in' => 'CHANGING ROOM 2 IN',                    'out' => 'CHANGING ROOM 2 OUT'],
+                                ],
+                                'Production' => [
+                                    ['label' => 'Production 1 - Clean Room 10K',     'in' => 'PRODUCTION 1 - CLEAN ROOM 10K IN',      'out' => 'PRODUCTION 1 - CLEAN ROOM 10K OUT'],
+                                    ['label' => 'Production 2 - Clean Room 1K',      'in' => 'PRODUCTION 2 - CLEAN ROOM 1K IN',       'out' => 'PRODUCTION 2 - CLEAN ROOM 1K OUT'],
+                                    ['label' => 'Production 3',                       'in' => 'PRODUCTION 3 IN',                       'out' => 'PRODUCTION 3 OUT'],
+                                    ['label' => 'Production 4',                       'in' => 'PRODUCTION 4 IN',                       'out' => 'PRODUCTION 4 OUT'],
+                                    ['label' => 'Production 5 - Work In Progress',    'in' => 'PRODUCTION 5 - WORK IN PROGRESS IN',    'out' => 'PRODUCTION 5 - WORN IN PROGRESS OUT'],
+                                    ['label' => 'Production Office',                  'in' => 'PRODUCTION OFFICE IN',                  'out' => 'PRODUCTION OFFICE OUT'],
+                                    ['label' => 'Production WIP',                     'in' => 'PRODUCTION WIP IN',                     'out' => 'PRODUCTION WIP OUT'],
+                                ],
+                                'Rooms' => [
+                                    ['label' => 'CMM Room',                           'in' => 'CMM ROOM IN',                           'out' => 'CMM ROOM OUT'],
+                                    ['label' => 'Jitter Bug Room',                    'in' => 'JITTER BUG ROOM IN',                    'out' => 'JITTER BUG ROOM OUT'],
+                                    ['label' => 'Polishing Room',                     'in' => 'POLISHING ROOM IN',                     'out' => 'POLISHING ROOM OUT'],
+                                    ['label' => 'Polishing/Deburing Room',            'in' => 'POLISHING/DEBURING ROOM IN',            'out' => 'POLISHING/DEBURING ROOM OUT'],
+                                    ['label' => 'QA Room',                            'in' => 'QA ROOM IN',                            'out' => 'QA ROOM OUT'],
+                                    ['label' => 'Robotic Jitter Bug Room',            'in' => 'ROBOTIC JITTER BUG ROOM IN',            'out' => 'ROBOTIC JITTER BUG ROOM OUT'],
+                                    ['label' => 'Robotic Welding Room',               'in' => 'ROBOTIC WELDING ROOM IN',               'out' => 'ROBOTIC WELDING ROOM OUT'],
+                                    ['label' => 'Tools Room',                         'in' => 'TOOLS ROOM IN',                         'out' => 'TOOLS ROOM OUT'],
+                                    ['label' => 'Ultra Sonic Room',                   'in' => 'ULTRA SONIC ROOM IN',                   'out' => 'ULTRA SONIC ROOM OUT'],
+                                ],
+                                'Areas & Others' => [
+                                    ['label' => 'Chemical Waste',                     'in' => 'CHEMICAL WASTE IN',                     'out' => 'CHEMICAL WASTE OUT'],
+                                    ['label' => 'Finished Good Area 1',               'in' => 'FINISHED GOODS AREA 1 IN',              'out' => 'FINISHED GOOD AREA 1 OUT'],
+                                    ['label' => 'Finished Good Area 2',               'in' => 'FINISHED GOOD AREA 2 IN',               'out' => 'FINISHED GOOD AREA 2 OUT'],
+                                    ['label' => 'Maintenance Department',             'in' => 'MAINTENANCE DEPARTMENT IN',             'out' => 'MAINTENANCE DEPARTMENT OUT'],
+                                    ['label' => 'Packaging Area',                     'in' => 'PACKAGING AREA IN',                     'out' => 'PACKAGING AREA OUT'],
+                                    ['label' => 'Raw Material Area',                  'in' => 'RAW MATERIAL AREA IN',                  'out' => 'RAW MATERIAL OUT'],
+                                    ['label' => 'Schedule Waste',                     'in' => 'SCHEDULE WASTE IN',                     'out' => 'SCHEDULE WASTE OUT'],
+                                    ['label' => 'Toilet',                             'in' => 'TOILET IN',                             'out' => 'TOILET OUT'],
+                                    ['label' => 'Utility',                            'in' => 'UTILITY IN',                            'out' => 'UTILITY OUT'],
+                                    ['label' => 'Water Treatment Area',               'in' => 'WATER TREATMENT AREA IN',               'out' => 'WATER TREATMENT AREA OUT'],
+                                ],
+                            ];
+                            ?>
+                            <div class="space-y-3" x-data="{
+                                search: '',
+                                selectGroup(groupId) {
+                                    document.querySelectorAll('[data-group=\'' + groupId + '\']').forEach(cb => cb.checked = true);
+                                },
+                                clearGroup(groupId) {
+                                    document.querySelectorAll('[data-group=\'' + groupId + '\']').forEach(cb => cb.checked = false);
+                                },
+                                selectAll() {
+                                    document.querySelectorAll('input[name=\'location_access[]\']').forEach(cb => cb.checked = true);
+                                },
+                                clearAll() {
+                                    document.querySelectorAll('input[name=\'location_access[]\']').forEach(cb => cb.checked = false);
+                                }
+                            }">
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Location Access <span class="text-red-500">*</span></label>
+                                    <div class="flex gap-2">
+                                        <button type="button" @click="selectAll()" class="text-xs px-3 py-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 font-brand font-semibold transition-colors">Select All</button>
+                                        <button type="button" @click="clearAll()" class="text-xs px-3 py-1.5 rounded-md bg-gray-100 dark:bg-gray-800 text-text-sub dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 font-brand font-semibold transition-colors">Clear All</button>
                                     </div>
+                                </div>
+
+                                <!-- Search -->
+                                <div class="relative">
+                                    <span class="material-symbols-outlined absolute left-3 top-2.5 text-text-sub text-[20px] pointer-events-none">search</span>
+                                    <input x-model="search" type="text" placeholder="Search locations..." class="w-full h-10 rounded-lg border border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white pl-10 pr-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand text-sm"/>
+                                </div>
+
+                                <!-- Column header -->
+                                <div class="flex items-center justify-end pr-4 gap-4">
+                                    <span class="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 font-brand w-8 text-center">IN</span>
+                                    <span class="text-xs font-bold uppercase tracking-wider text-rose-500 dark:text-rose-400 font-brand w-8 text-center">OUT</span>
+                                </div>
+
+                                <div class="rounded-xl border border-border-color dark:border-gray-700 overflow-hidden divide-y divide-border-color dark:divide-gray-700">
+                                    <?php $groupIndex = 0; foreach ($locationGroups as $groupName => $locations): $groupId = 'grp-' . $groupIndex++; ?>
+                                    <div>
+                                        <!-- Group header -->
+                                        <div class="flex items-center justify-between bg-gray-50 dark:bg-gray-800/60 px-4 py-2.5">
+                                            <span class="text-xs font-bold uppercase tracking-wider text-text-sub dark:text-gray-400 font-brand"><?= $groupName ?></span>
+                                            <div class="flex gap-1.5">
+                                                <button type="button" @click="selectGroup('<?= $groupId ?>')" class="text-xs px-2 py-1 rounded text-primary bg-primary/10 hover:bg-primary/20 font-brand font-semibold transition-colors">All</button>
+                                                <button type="button" @click="clearGroup('<?= $groupId ?>')" class="text-xs px-2 py-1 rounded text-text-sub dark:text-gray-400 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 font-brand font-semibold transition-colors">None</button>
+                                            </div>
+                                        </div>
+                                        <!-- Location rows -->
+                                        <?php foreach ($locations as $loc): ?>
+                                        <div x-show="search === '' || '<?= strtolower($loc['label']) ?>'.includes(search.toLowerCase())"
+                                             class="flex items-center justify-between px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors border-t border-border-color dark:border-gray-700">
+                                            <span class="text-sm font-medium text-text-main dark:text-gray-100 font-brand flex-1 pr-4"><?= $loc['label'] ?></span>
+                                            <div class="flex items-center gap-4 flex-shrink-0">
+                                                <label class="flex items-center justify-center cursor-pointer w-8">
+                                                    <input data-group="<?= $groupId ?>" name="location_access[]" value="<?= $loc['in'] ?>" class="form-checkbox rounded text-primary border-2 border-gray-300 dark:border-gray-600 focus:ring-primary h-5 w-5 cursor-pointer" type="checkbox"/>
+                                                </label>
+                                                <label class="flex items-center justify-center cursor-pointer w-8">
+                                                    <input data-group="<?= $groupId ?>" name="location_access[]" value="<?= $loc['out'] ?>" class="form-checkbox rounded text-primary border-2 border-gray-300 dark:border-gray-600 focus:ring-primary h-5 w-5 cursor-pointer" type="checkbox"/>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                    <?php endforeach; ?>
                                 </div>
                             </div>
 

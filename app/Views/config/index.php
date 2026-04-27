@@ -410,7 +410,7 @@
                     </div>
                 </div>
 
-                <!-- App Config -->
+                <?php /* App Config -->
                 <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('appconfig')" class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                         <div class="flex items-center gap-4">
@@ -544,6 +544,7 @@
                         </div>
                     </div>
                 </div>
+                */ ?>
                 
                 <!-- Registration Type -->
                 <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
@@ -658,17 +659,17 @@
                 </div>
 
                 <!-- Registration Type Modal -->
-                <div id="regtype-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50">
-                    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md mx-4">
+                <div id="regtype-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 px-4">
+                    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md flex flex-col max-h-[90vh]">
                         <!-- Header -->
-                        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-slate-700">
+                        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-slate-700 flex-shrink-0">
                             <h2 class="text-base font-semibold text-gray-800 dark:text-white">Registration Type Details</h2>
                             <button onclick="closeRegTypeModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 transition-colors">
                                 <span class="material-symbols-outlined text-xl">close</span>
                             </button>
                         </div>
                         <!-- Body -->
-                        <div class="px-6 py-5 space-y-4">
+                        <div class="px-6 py-5 space-y-4 overflow-y-auto flex-1">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
                                     *Registration Type Name:
@@ -698,7 +699,7 @@
                             </div>
                         </div>
                         <!-- Footer -->
-                        <div class="flex justify-between px-6 py-4 border-t border-gray-200 dark:border-slate-700">
+                        <div class="flex justify-between px-6 py-4 border-t border-gray-200 dark:border-slate-700 flex-shrink-0">
                             <button onclick="closeRegTypeModal()" class="bg-yellow-400 hover:bg-yellow-500 text-white text-sm font-medium px-5 py-2 rounded transition-colors">
                                 Back
                             </button>
@@ -742,26 +743,26 @@
                                 <table class="w-full text-left text-sm">
                                     <thead class="text-xs text-gray-600 dark:text-slate-400 uppercase border-b border-gray-200 dark:border-slate-700">
                                         <tr>
-                                            <th class="px-4 py-3">Business Type</th>
-                                            <th class="px-4 py-3">Reg Type</th>
-                                            <th class="px-4 py-3 text-center">Ledger</th>
-                                            <th class="px-4 py-3 text-center">Haulier</th>
-                                            <th class="px-4 py-3 text-center">LPK License No</th>
-                                            <th class="px-4 py-3 text-center">LPK Optional</th>
-                                            <th class="px-4 py-3 text-center">LPK Ancillary</th>
-                                            <th class="px-4 py-3 text-center">Customs License</th>
-                                            <th class="px-4 py-3 text-center">SST Reg No</th>
-                                            <th class="px-4 py-3 text-center">Business Vol</th>
-                                            <th class="px-4 py-3 text-center">Trade Ref No</th>
-                                            <th class="px-4 py-3 text-center">Bank Info</th>
-                                            <th class="px-4 py-3 text-center">Operator Code</th>
-                                            <th class="px-4 py-3 text-center">Board Director IC</th>
-                                            <th class="px-4 py-3 text-center">APAD Cert No</th>
-                                            <th class="px-4 py-3 text-center">License Expiry</th>
-                                            <th class="px-4 py-3 text-center">Warehouse Info</th>
-                                            <th class="px-4 py-3 text-center">Nature of Business</th>
-                                            <th class="px-4 py-3 text-center">PLI</th>
-                                            <th class="px-4 py-3">Status</th>
+                                            <th class="px-4 py-3 whitespace-nowrap">Business Type</th>
+                                            <th class="px-4 py-3 whitespace-nowrap">Reg Type</th>
+                                            <th class="px-4 py-3 text-center whitespace-nowrap">Ledger</th>
+                                            <th class="px-4 py-3 text-center whitespace-nowrap">Haulier</th>
+                                            <th class="px-4 py-3 text-center whitespace-nowrap">LPK License No</th>
+                                            <th class="px-4 py-3 text-center whitespace-nowrap">LPK Optional</th>
+                                            <th class="px-4 py-3 text-center whitespace-nowrap">LPK Ancillary</th>
+                                            <th class="px-4 py-3 text-center whitespace-nowrap">Customs License</th>
+                                            <th class="px-4 py-3 text-center whitespace-nowrap">SST Reg No</th>
+                                            <th class="px-4 py-3 text-center whitespace-nowrap">Business Vol</th>
+                                            <th class="px-4 py-3 text-center whitespace-nowrap">Trade Ref No</th>
+                                            <th class="px-4 py-3 text-center whitespace-nowrap">Bank Info</th>
+                                            <th class="px-4 py-3 text-center whitespace-nowrap">Operator Code</th>
+                                            <th class="px-4 py-3 text-center whitespace-nowrap">Board Director IC</th>
+                                            <th class="px-4 py-3 text-center whitespace-nowrap">APAD Cert No</th>
+                                            <th class="px-4 py-3 text-center whitespace-nowrap">License Expiry</th>
+                                            <th class="px-4 py-3 text-center whitespace-nowrap">Warehouse Info</th>
+                                            <th class="px-4 py-3 text-center whitespace-nowrap">Nature of Business</th>
+                                            <th class="px-4 py-3 text-center whitespace-nowrap">PLI</th>
+                                            <th class="px-4 py-3 whitespace-nowrap">Status</th>
                                         </tr>
                                     </thead>
                                     <tbody class="text-gray-700 dark:text-slate-300">
@@ -853,19 +854,20 @@
 
                 <!-- Business Type Edit Modal -->
                 <div id="biztype-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 px-4">
-                    <div class="w-full max-w-5xl rounded-lg bg-white dark:bg-slate-800 shadow-xl overflow-hidden">
-                        <div class="flex items-center justify-between border-b border-gray-200 dark:border-slate-700 px-6 py-4">
+                    <div class="w-full max-w-5xl rounded-lg bg-white dark:bg-slate-800 shadow-xl flex flex-col max-h-[90vh]">
+                        <div class="flex items-center justify-between border-b border-gray-200 dark:border-slate-700 px-6 py-4 flex-shrink-0">
                             <h3 class="text-xl font-semibold text-gray-800 dark:text-white">Business Type Details</h3>
                             <button type="button" id="close-biztype-modal" class="text-gray-500 hover:text-red-500 text-xl">
                                 <span class="material-symbols-outlined">close</span>
                             </button>
                         </div>
 
-                        <form method="post" action="<?= base_url('config/updateBusinessType') ?>" class="p-6">
+                        <form method="post" action="<?= base_url('config/updateBusinessType') ?>" class="flex flex-col flex-1 min-h-0">
                             <?= csrf_field() ?>
 
                             <input type="hidden" name="id" id="edit-id">
 
+                            <div class="overflow-y-auto flex-1 p-6">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
@@ -934,8 +936,9 @@
                                     </select>
                                 </div>
                             </div>
+                            </div><!-- end scrollable body -->
 
-                            <div class="mt-6 flex items-center justify-between">
+                            <div class="flex items-center justify-between px-6 py-4 border-t border-gray-200 dark:border-slate-700 flex-shrink-0">
                                 <button type="button" id="back-biztype-modal"
                                     class="px-5 py-2.5 rounded bg-yellow-400 hover:bg-yellow-500 text-white font-medium">
                                     Back
@@ -1005,15 +1008,15 @@
                                     <tbody class="text-gray-700 dark:text-slate-300">
                                         <?php if (!empty($blacklist_reasons)): ?>
                                             <?php foreach ($blacklist_reasons as $row): ?>
-                                                <tr class="border-b hover:bg-gray-50 cursor-pointer"
+                                                <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700/50 cursor-pointer transition"
                                                     onclick="openBlacklistModal(<?= $row['id'] ?>)">
-                                                    <td class="px-4 py-3"><?= esc($row['reason']) ?></td>
-                                                    <td class="px-4 py-3"><?= esc($row['type']) ?></td>
+                                                    <td class="px-4 py-3 text-gray-700 dark:text-slate-300"><?= esc($row['reason']) ?></td>
+                                                    <td class="px-4 py-3 text-gray-700 dark:text-slate-300"><?= esc($row['type']) ?></td>
                                                     <td class="px-4 py-3">
-                                                        <span class="px-2 py-1 rounded-full text-xs
+                                                        <span class="px-2 py-1 rounded-full text-xs font-medium
                                                             <?= $row['status'] === 'Active'
-                                                                ? 'bg-green-100 text-green-700'
-                                                                : 'bg-red-100 text-red-700' ?>">
+                                                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                                                : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' ?>">
                                                             <?= esc($row['status']) ?>
                                                         </span>
                                                     </td>
@@ -1035,11 +1038,11 @@
                 </div>
 
                 <!-- Blacklist Modal -->
-                <div id="blacklist-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50">
-                    <div class="w-full max-w-md mx-4 bg-white dark:bg-slate-800 rounded-xl shadow-xl">
+                <div id="blacklist-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 px-4">
+                    <div class="w-full max-w-md bg-white dark:bg-slate-800 rounded-xl shadow-xl flex flex-col max-h-[90vh]">
 
                         <!-- Header -->
-                        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-slate-700">
+                        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-slate-700 flex-shrink-0">
                             <h2 id="blacklist-modal-title" class="text-lg font-semibold text-gray-900 dark:text-white">
                                 Blacklist / Suspend Reason
                             </h2>
@@ -1049,11 +1052,11 @@
                         </div>
 
                         <!-- Form -->
-                        <form method="POST" action="<?= base_url('config/saveBlacklistReason') ?>">
+                        <form method="POST" action="<?= base_url('config/saveBlacklistReason') ?>" class="flex flex-col flex-1 min-h-0">
                             <?= csrf_field() ?>
                             <input type="hidden" name="id" id="blacklist-id">
 
-                            <div class="px-6 py-5 space-y-5">
+                            <div class="px-6 py-5 space-y-5 overflow-y-auto flex-1">
 
                                 <!-- Reason -->
                                 <div>
@@ -1103,16 +1106,16 @@
                             </div>
 
                             <!-- Footer -->
-                            <div class="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-slate-700">
-                                <button 
+                            <div class="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-slate-700 flex-shrink-0">
+                                <button
                                     type="button"
                                     onclick="closeBlacklistModal()"
-                                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                                    class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-slate-700 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600"
                                 >
                                     Cancel
                                 </button>
 
-                                <button 
+                                <button
                                     type="submit"
                                     class="flex items-center gap-1 px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
                                 >

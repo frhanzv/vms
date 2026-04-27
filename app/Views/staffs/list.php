@@ -283,6 +283,20 @@ $isSettings = str_contains($current, 'settings');
                     </div>
             </div>
         
+            <!-- Flash Messages -->
+            <?php if (session()->getFlashdata('success')): ?>
+                <div class="mb-4 flex items-center gap-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 text-green-800 dark:text-green-300 text-sm rounded-lg px-4 py-3">
+                    <span class="material-symbols-outlined text-[20px] flex-shrink-0">check_circle</span>
+                    <span><?= esc(session()->getFlashdata('success')) ?></span>
+                </div>
+            <?php endif; ?>
+            <?php if (session()->getFlashdata('error')): ?>
+                <div class="mb-4 flex items-center gap-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-800 dark:text-red-300 text-sm rounded-lg px-4 py-3">
+                    <span class="material-symbols-outlined text-[20px] flex-shrink-0">error</span>
+                    <span><?= esc(session()->getFlashdata('error')) ?></span>
+                </div>
+            <?php endif; ?>
+
             <!-- Filter -->
 
             <div class="flex items-center justify-between gap-4 mb-6">
