@@ -14483,6 +14483,10 @@
                                     class="p-1.5 rounded-lg text-yellow-600 dark:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors" title="Edit">
                                     <span class="material-symbols-outlined text-base">edit</span>
                                 </button>
+                                <button onclick="callApiKey(${k.id}, '${apkEsc(k.name)}')"
+                                    class="p-1.5 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors" title="Call API">
+                                    <span class="material-symbols-outlined text-base">play_arrow</span>
+                                </button>
                                 <button onclick="deleteApiKey(${k.id}, '${apkEsc(k.name)}')"
                                     class="p-1.5 rounded-lg text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" title="Delete">
                                     <span class="material-symbols-outlined text-base">delete</span>
@@ -14659,6 +14663,45 @@
                 });
         }
 
+        function callApiKey(id, name) {
+            const paramsRaw = prompt(`Optional JSON params for "${name}"\nExample: {"visitor_id":123}`, '{}');
+            if (paramsRaw === null) return;
+
+            let params = {};
+            if (paramsRaw.trim() !== '') {
+                try {
+                    params = JSON.parse(paramsRaw);
+                } catch (e) {
+                    alert('Invalid JSON in params.');
+                    return;
+                }
+            }
+
+            fetch(`${configBaseUrl}/callExternalApi`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    '<?= csrf_header() ?>': '<?= csrf_hash() ?>'
+                },
+                body: JSON.stringify({
+                    api_key_id: id,
+                    params
+                })
+            })
+            .then(r => r.json())
+            .then(res => {
+                if (!res.success) {
+                    alert(res.message || `API call failed (HTTP ${res.status_code || 'unknown'})`);
+                    return;
+                }
+
+                const preview = JSON.stringify(res.data ?? {}, null, 2);
+                alert(`API call success for "${name}".\nHTTP ${res.status_code}\n\n${preview.substring(0, 700)}`);
+            })
+            .catch(() => alert('Network error when calling external API.'));
+        }
+
         // ----- Sync from Laravel -----
         function openSyncModal() {
             document.getElementById('syncResult').classList.add('hidden');
@@ -14675,7 +14718,7 @@
                     }
                 })
                 .catch(() => {
-                    // keep manual input when value cannot be preloaded
+                    // Keep manual entry when preload fails.
                 });
         }
 

@@ -4435,6 +4435,11 @@ class Config extends BaseController
 
     // ============== API KEY MANAGEMENT METHODS ==============
 
+    private function apiManagementController(): \App\Controllers\Api\ApiManagement
+    {
+        return new \App\Controllers\Api\ApiManagement();
+    }
+
     private function ensureApiKeysTable(): void
     {
         $db = \Config\Database::connect();
@@ -4493,210 +4498,27 @@ class Config extends BaseController
 
     public function getApiKeys()
     {
-        $this->ensureApiKeysTable();
-        $page    = (int) ($this->request->getGet('page')     ?? 1);
-        $perPage = (int) ($this->request->getGet('per_page') ?? 10);
-        $search  =        $this->request->getGet('search')   ?? '';
-        $offset  = ($page - 1) * $perPage;
-
-        $builder = $this->apiKeyModel;
-
-        if ($search !== '') {
-            $builder = $builder->groupStart()
-                ->like('name',    $search)
-                ->orLike('service', $search)
-                ->groupEnd();
-        }
-
-        $total = $builder->countAllResults(false);
-        $items = $builder->orderBy('created_at', 'DESC')
-                         ->findAll($perPage, $offset);
-
-        foreach ($items as &$item) {
-            $raw = $item['api_key'] ?? '';
-            $item['api_key_masked'] = strlen($raw) > 4
-                ? str_repeat('•', max(0, strlen($raw) - 4)) . substr($raw, -4)
-                : str_repeat('•', strlen($raw));
-        }
-        unset($item);
-
-        return $this->response->setJSON([
-            'success' => true,
-            'data'    => $items,
-            'pagination' => [
-                'current_page' => $page,
-                'per_page'     => $perPage,
-                'total'        => $total,
-                'last_page'    => (int) ceil($total / max($perPage, 1)),
-                'from'         => $total > 0 ? $offset + 1 : 0,
-                'to'           => min($offset + $perPage, $total),
-            ],
-        ]);
+        return $this->apiManagementController()->getApiKeys();
     }
 
     public function getApiKey($id)
     {
-        $this->ensureApiKeysTable();
-        $item = $this->apiKeyModel->find($id);
-
-        if (!$item) {
-            return $this->response->setStatusCode(404)->setJSON([
-                'success' => false,
-                'message' => 'API key not found',
-            ]);
-        }
-
-        $this->apiKeyModel->update($id, ['last_used_at' => date('Y-m-d H:i:s')]);
-
-        return $this->response->setJSON([
-            'success' => true,
-            'data'    => $item,
-        ]);
+        return $this->apiManagementController()->getApiKey($id);
     }
 
     public function createApiKey()
     {
-        $this->ensureApiKeysTable();
-        $input = $this->request->getJSON(true);
-        if (!is_array($input)) {
-            $input = $this->request->getPost();
-        }
-
-        $validation = \Config\Services::validation();
-        $validation->setRules([
-            'name'    => 'required|max_length[100]',
-            'service' => 'required|max_length[100]',
-            'api_key' => 'required',
-            'status'  => 'permit_empty|in_list[active,inactive]',
-        ]);
-
-        if (!$validation->run($input)) {
-            return $this->response->setStatusCode(400)->setJSON([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors'  => $validation->getErrors(),
-            ]);
-        }
-
-        $data = [
-            'name'        => $input['name'],
-            'service'     => $input['service'],
-            'api_key'     => $input['api_key'],
-            'description' => $input['description'] ?? null,
-            'status'      => $input['status']      ?? 'active',
-            'created_at'  => date('Y-m-d H:i:s'),
-            'updated_at'  => date('Y-m-d H:i:s'),
-        ];
-
-        try {
-            if (!$this->apiKeyModel->insert($data)) {
-                return $this->response->setStatusCode(500)->setJSON([
-                    'success' => false,
-                    'message' => 'Failed to create API key',
-                    'errors'  => $this->apiKeyModel->errors(),
-                ]);
-            }
-        } catch (\Throwable $e) {
-            return $this->response->setStatusCode(500)->setJSON([
-                'success' => false,
-                'message' => 'Failed to create API key',
-                'errors'  => $e->getMessage(),
-            ]);
-        }
-
-        return $this->response->setJSON([
-            'success' => true,
-            'message' => 'API key created successfully',
-        ]);
+        return $this->apiManagementController()->createApiKey();
     }
 
     public function updateApiKey($id)
     {
-        $this->ensureApiKeysTable();
-        $item = $this->apiKeyModel->find($id);
-
-        if (!$item) {
-            return $this->response->setStatusCode(404)->setJSON([
-                'success' => false,
-                'message' => 'API key not found',
-            ]);
-        }
-
-        $input = $this->request->getJSON(true);
-        if (!is_array($input)) {
-            $input = $this->request->getPost();
-        }
-
-        $validation = \Config\Services::validation();
-        $validation->setRules([
-            'name'    => 'required|max_length[100]',
-            'service' => 'required|max_length[100]',
-            'api_key' => 'required',
-            'status'  => 'permit_empty|in_list[active,inactive]',
-        ]);
-
-        if (!$validation->run($input)) {
-            return $this->response->setStatusCode(400)->setJSON([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors'  => $validation->getErrors(),
-            ]);
-        }
-
-        $data = [
-            'name'        => $input['name'],
-            'service'     => $input['service'],
-            'api_key'     => $input['api_key'],
-            'description' => $input['description'] ?? null,
-            'status'      => $input['status']      ?? 'active',
-            'updated_at'  => date('Y-m-d H:i:s'),
-        ];
-
-        try {
-            if (!$this->apiKeyModel->update($id, $data)) {
-                return $this->response->setStatusCode(500)->setJSON([
-                    'success' => false,
-                    'message' => 'Failed to update API key',
-                    'errors'  => $this->apiKeyModel->errors(),
-                ]);
-            }
-        } catch (\Throwable $e) {
-            return $this->response->setStatusCode(500)->setJSON([
-                'success' => false,
-                'message' => 'Failed to update API key',
-                'errors'  => $e->getMessage(),
-            ]);
-        }
-
-        return $this->response->setJSON([
-            'success' => true,
-            'message' => 'API key updated successfully',
-        ]);
+        return $this->apiManagementController()->updateApiKey($id);
     }
 
     public function deleteApiKey($id)
     {
-        $this->ensureApiKeysTable();
-        $item = $this->apiKeyModel->find($id);
-
-        if (!$item) {
-            return $this->response->setStatusCode(404)->setJSON([
-                'success' => false,
-                'message' => 'API key not found',
-            ]);
-        }
-
-        if (!$this->apiKeyModel->delete($id)) {
-            return $this->response->setStatusCode(500)->setJSON([
-                'success' => false,
-                'message' => 'Failed to delete API key',
-            ]);
-        }
-
-        return $this->response->setJSON([
-            'success' => true,
-            'message' => 'API key deleted successfully',
-        ]);
+        return $this->apiManagementController()->deleteApiKey($id);
     }
 
     public function getBlacklistReason($id)
