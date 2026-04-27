@@ -36,6 +36,7 @@
                     fontFamily: {
                         display: ["Montserrat", "sans-serif"],
                         sans: ["Montserrat", "sans-serif"],
+                        brand: ["Montserrat", "sans-serif"],
                     },
                     borderRadius: {
                         DEFAULT: "0.375rem",
@@ -47,6 +48,11 @@
     <!-- Blacklist dropdown function-->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <style>
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cfdbe7; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #4c739a; }
+
         /* Remove default select arrow */
         select {
             -webkit-appearance: none !important;
@@ -663,7 +669,7 @@
                     <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md flex flex-col max-h-[90vh]">
                         <!-- Header -->
                         <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-slate-700 flex-shrink-0">
-                            <h2 class="text-base font-semibold text-gray-800 dark:text-white">Registration Type Details</h2>
+                            <h2 class="text-base font-semibold text-gray-800 dark:text-white font-brand">Registration Type Details</h2>
                             <button onclick="closeRegTypeModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 transition-colors">
                                 <span class="material-symbols-outlined text-xl">close</span>
                             </button>
@@ -671,28 +677,28 @@
                         <!-- Body -->
                         <div class="px-6 py-5 space-y-4 overflow-y-auto flex-1">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 font-brand">
                                     *Registration Type Name:
                                 </label>
                                 <input id="regtype-modal-name" type="text"
-                                    class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2 text-sm focus:ring-primary focus:border-primary outline-none"/>
+                                    class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2 text-sm focus:ring-primary focus:border-primary outline-none font-brand"/>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 font-brand">
                                     Can Print CP
                                 </label>
                                 <select id="regtype-modal-can_print_cp"
-                                    class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2 text-sm focus:ring-primary focus:border-primary outline-none">
+                                    class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2 text-sm focus:ring-primary focus:border-primary outline-none font-brand">
                                     <option value="1">YES</option>
                                     <option value="0">NO</option>
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 font-brand">
                                     Status
                                 </label>
                                 <select id="regtype-modal-status"
-                                    class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2 text-sm focus:ring-primary focus:border-primary outline-none">
+                                    class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2 text-sm focus:ring-primary focus:border-primary outline-none font-brand">
                                     <option value="Active">ACTIVE</option>
                                     <option value="Inactive">INACTIVE</option>
                                 </select>
@@ -700,10 +706,10 @@
                         </div>
                         <!-- Footer -->
                         <div class="flex justify-between px-6 py-4 border-t border-gray-200 dark:border-slate-700 flex-shrink-0">
-                            <button onclick="closeRegTypeModal()" class="bg-yellow-400 hover:bg-yellow-500 text-white text-sm font-medium px-5 py-2 rounded transition-colors">
+                            <button onclick="closeRegTypeModal()" class="bg-yellow-400 hover:bg-yellow-500 text-white text-sm font-medium px-5 py-2 rounded transition-colors font-brand">
                                 Back
                             </button>
-                            <button onclick="saveRegType()" class="bg-primary hover:bg-blue-600 text-white text-sm font-medium px-5 py-2 rounded transition-colors">
+                            <button onclick="saveRegType()" class="bg-primary hover:bg-blue-600 text-white text-sm font-medium px-5 py-2 rounded transition-colors font-brand">
                                 Save
                             </button>
                         </div>
@@ -856,7 +862,7 @@
                 <div id="biztype-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 px-4">
                     <div class="w-full max-w-5xl rounded-lg bg-white dark:bg-slate-800 shadow-xl flex flex-col max-h-[90vh]">
                         <div class="flex items-center justify-between border-b border-gray-200 dark:border-slate-700 px-6 py-4 flex-shrink-0">
-                            <h3 class="text-xl font-semibold text-gray-800 dark:text-white">Business Type Details</h3>
+                            <h3 class="text-xl font-semibold text-gray-800 dark:text-white font-brand">Business Type Details</h3>
                             <button type="button" id="close-biztype-modal" class="text-gray-500 hover:text-red-500 text-xl">
                                 <span class="material-symbols-outlined">close</span>
                             </button>
@@ -870,20 +876,20 @@
                             <div class="overflow-y-auto flex-1 p-6">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 font-brand">
                                         <span class="text-red-500">*</span>Business Type Name
                                     </label>
                                     <input type="text" name="business_type" id="edit-business_type"
-                                        class="w-full rounded border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5"
+                                        class="w-full rounded border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 font-brand"
                                         required>
                                 </div>
 
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 font-brand">
                                         <span class="text-red-500">*</span>Registration Type
                                     </label>
                                     <select name="reg_type" id="edit-reg_type"
-                                        class="w-full rounded border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5"
+                                        class="w-full rounded border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 font-brand"
                                         required>
                                         <option value="">Select Registration Type</option>
                                         <?php foreach ($reg_types as $reg): ?>
@@ -916,11 +922,11 @@
 
                                 <?php foreach ($formFields as $field => $label): ?>
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 font-brand">
                                             <?= esc($label) ?>
                                         </label>
                                         <select name="<?= esc($field) ?>" id="edit-<?= esc($field) ?>"
-                                            class="w-full rounded border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5">
+                                            class="w-full rounded border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 font-brand">
                                             <option value="1">YES</option>
                                             <option value="0">NO</option>
                                         </select>
@@ -928,9 +934,9 @@
                                 <?php endforeach; ?>
 
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Status</label>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1 font-brand">Status</label>
                                     <select name="status" id="edit-status"
-                                        class="w-full rounded border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5">
+                                        class="w-full rounded border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 font-brand">
                                         <option value="ACTIVE">ACTIVE</option>
                                         <option value="INACTIVE">INACTIVE</option>
                                     </select>
@@ -940,12 +946,12 @@
 
                             <div class="flex items-center justify-between px-6 py-4 border-t border-gray-200 dark:border-slate-700 flex-shrink-0">
                                 <button type="button" id="back-biztype-modal"
-                                    class="px-5 py-2.5 rounded bg-yellow-400 hover:bg-yellow-500 text-white font-medium">
+                                    class="px-5 py-2.5 rounded bg-yellow-400 hover:bg-yellow-500 text-white font-medium font-brand">
                                     Back
                                 </button>
 
                                 <button type="submit"
-                                    class="px-5 py-2.5 rounded bg-primary hover:bg-blue-600 text-white font-medium">
+                                    class="px-5 py-2.5 rounded bg-primary hover:bg-blue-600 text-white font-medium font-brand">
                                     Save
                                 </button>
                             </div>
@@ -1043,7 +1049,7 @@
 
                         <!-- Header -->
                         <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-slate-700 flex-shrink-0">
-                            <h2 id="blacklist-modal-title" class="text-lg font-semibold text-gray-900 dark:text-white">
+                            <h2 id="blacklist-modal-title" class="text-lg font-semibold text-gray-900 dark:text-white font-brand">
                                 Blacklist / Suspend Reason
                             </h2>
                             <button type="button" onclick="closeBlacklistModal()" class="text-gray-400 hover:text-gray-600">
@@ -1060,28 +1066,28 @@
 
                                 <!-- Reason -->
                                 <div>
-                                    <label for="blacklist-reason" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                                    <label for="blacklist-reason" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300 font-brand">
                                         Reason <span class="text-red-500">*</span>
                                     </label>
-                                    <input 
+                                    <input
                                         id="blacklist-reason"
                                         name="reason"
                                         type="text"
                                         placeholder="Enter reason"
                                         required
-                                        class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-brand"
                                     >
                                 </div>
 
                                 <!-- Type -->
                                 <div>
-                                    <label for="blacklist-type" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                                    <label for="blacklist-type" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300 font-brand">
                                         Type
                                     </label>
-                                    <select 
+                                    <select
                                         id="blacklist-type"
                                         name="type"
-                                        class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-brand"
                                     >
                                         <option value="SUSPEND">Suspend</option>
                                         <option value="BLACKLIST">Blacklist</option>
@@ -1090,13 +1096,13 @@
 
                                 <!-- Status -->
                                 <div>
-                                    <label for="blacklist-status" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                                    <label for="blacklist-status" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300 font-brand">
                                         Status
                                     </label>
-                                    <select 
+                                    <select
                                         id="blacklist-status"
                                         name="status"
-                                        class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-brand"
                                     >
                                         <option value="Active">Active</option>
                                         <option value="Inactive">Inactive</option>
@@ -1110,14 +1116,14 @@
                                 <button
                                     type="button"
                                     onclick="closeBlacklistModal()"
-                                    class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-slate-700 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600"
+                                    class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-slate-700 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600 font-brand"
                                 >
                                     Cancel
                                 </button>
 
                                 <button
                                     type="submit"
-                                    class="flex items-center gap-1 px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                                    class="flex items-center gap-1 px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 font-brand"
                                 >
                                     <span class="material-icons text-sm">save</span>
                                     Save
@@ -1127,9 +1133,6 @@
 
                     </div>
                 </div>
-
-
-                
 
 
                 <!-- Role Management -->

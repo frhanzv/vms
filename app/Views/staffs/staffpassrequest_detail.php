@@ -57,7 +57,7 @@
     </style>
 </head>
 
-<body class="bg-background-light dark:bg-background-dark min-h-screen">
+<body class="bg-background-light dark:bg-background-dark font-sans text-gray-800 dark:text-gray-200 antialiased min-h-screen">
     <main class="flex-1 overflow-y-auto h-full p-4 md:p-8">
         <div class="max-w-[960px] mx-auto">
 
