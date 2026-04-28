@@ -248,6 +248,10 @@ $routes->post('config/updatePathway/(:num)', 'Config::updatePathway/$1');
 $routes->delete('config/deletePathway/(:num)', 'Config::deletePathway/$1');
 $routes->get('config/getAllLanes', 'Config::getAllLanes');
 
+// Workflow Management Routes
+$routes->get('config/getWorkflows', 'Config::getWorkflows');
+$routes->post('config/updateWorkflows', 'Config::updateWorkflows');
+
 // Additional Location Routes
 $routes->get('config/getAllLocations', 'Config::getAllLocations');
 
