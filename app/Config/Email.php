@@ -6,8 +6,8 @@ use CodeIgniter\Config\BaseConfig;
 
 class Email extends BaseConfig
 {
-    public string $fromEmail  = 'noreply@safeg.com';
-    public string $fromName   = 'SafeG VMS';
+    public string $fromEmail  = '';
+    public string $fromName   = 'VMS';
     public string $recipients = '';
 
     /**
@@ -28,7 +28,7 @@ class Email extends BaseConfig
     /**
      * SMTP Server Hostname
      */
-    public string $SMTPHost = 'localhost';
+    public string $SMTPHost = 'smtp.gmail.com';
 
     /**
      * SMTP Username
@@ -43,12 +43,12 @@ class Email extends BaseConfig
     /**
      * SMTP Port
      */
-    public int $SMTPPort = 1025;
+    public int $SMTPPort = 587;
 
     /**
      * SMTP Timeout (in seconds)
      */
-    public int $SMTPTimeout = 5;
+    public int $SMTPTimeout = 30;
 
     /**
      * Enable persistent SMTP connections
@@ -62,7 +62,7 @@ class Email extends BaseConfig
      *             to the server. 'ssl' means implicit SSL. Connection on port
      *             465 should set this to ''.
      */
-    public string $SMTPCrypto = '';
+    public string $SMTPCrypto = 'tls';
 
     /**
      * Enable word-wrap
@@ -118,4 +118,20 @@ class Email extends BaseConfig
      * Enable notify message from server
      */
     public bool $DSN = false;
+
+    public function __construct()
+    {
+        parent::__construct();
+
+        $this->protocol = (string) env('MAIL_MAILER', env('email.protocol', $this->protocol));
+        $this->SMTPHost = (string) env('MAIL_HOST', env('email.SMTPHost', $this->SMTPHost));
+        $this->SMTPUser = (string) env('MAIL_USERNAME', env('email.SMTPUser', $this->SMTPUser));
+        $this->SMTPPass = (string) env('MAIL_PASSWORD', env('email.SMTPPass', $this->SMTPPass));
+        $this->SMTPPort = (int) env('MAIL_PORT', env('email.SMTPPort', (string) $this->SMTPPort));
+        $this->SMTPCrypto = (string) env('MAIL_ENCRYPTION', env('email.SMTPCrypto', $this->SMTPCrypto));
+        $this->fromEmail = (string) env('MAIL_FROM_ADDRESS', env('email.fromEmail', $this->SMTPUser ?: $this->fromEmail));
+        $this->fromName = (string) env('MAIL_FROM_NAME', env('email.fromName', $this->fromName));
+        $this->mailType = (string) env('email.mailType', $this->mailType);
+        $this->SMTPTimeout = (int) env('MAIL_TIMEOUT', env('email.SMTPTimeout', (string) $this->SMTPTimeout));
+    }
 }
