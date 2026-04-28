@@ -9,7 +9,7 @@
     $template = $template ?? [];
     $brandName = $template['brand_name'] ?? 'SafeG';
     $headerTitle = $template['header_title'] ?? 'Visitor Invitation';
-    $introLine = $intro_line ?? ('You have been invited to visit ' . ($company ?? '') . '. Please complete your registration by clicking the button below.');
+    $introLine = $intro_line ?? ('Your visitor request to ' . ($company ?? '') . ' has been approved. Please use the QR pass below for check-in.');
     $buttonText = $template['button_text'] ?? 'Complete Registration';
     $notesTitle = $template['notes_title'] ?? 'Important Notes';
     $notesItems = $notes_items ?? [];
@@ -64,10 +64,25 @@
                 <?php endif; ?>
             </div>
             
-            <?php if (!empty($qr_code_base64)): ?>
+            <?php
+                $qrImgSrc = '';
+                if (!empty($qr_code_image_url)) {
+                    $qrImgSrc = $qr_code_image_url;
+                } elseif (!empty($qr_code_cid)) {
+                    $qrImgSrc = 'cid:' . $qr_code_cid;
+                } elseif (!empty($qr_code_base64)) {
+                    $qrImgSrc = strpos($qr_code_base64, 'data:image') === 0
+                        ? $qr_code_base64
+                        : ('data:image/png;base64,' . $qr_code_base64);
+                }
+            ?>
+            <?php if (!empty($qrImgSrc)): ?>
             <div style="text-align: center; margin: 30px 0;">
                 <p style="margin-bottom: 10px; font-weight: bold;">Your Digital Pass</p>
-                <img src="<?= $qr_code_base64 ?>" alt="Visitor QR Code" style="max-width: 200px; border: 1px solid #ddd; padding: 10px; border-radius: 8px; background: white;">
+                <img src="<?= esc($qrImgSrc) ?>" alt="Visitor QR Code" style="max-width: 200px; border: 1px solid #ddd; padding: 10px; border-radius: 8px; background: white;">
+                <?php if (!empty($qr_code_text)): ?>
+                    <p style="font-size: 12px; color: #666; margin-top: 6px; margin-bottom: 0;">Pass ID: <?= esc($qr_code_text) ?></p>
+                <?php endif; ?>
                 <p style="font-size: 12px; color: #666; margin-top: 10px;">Please present this QR code during check-in.</p>
             </div>
             <?php endif; ?>

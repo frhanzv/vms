@@ -297,16 +297,27 @@ class InvitationEmailSender
                 ];
             }
 
-            // Generate QR Code
-            $qrCodeData = 'VIS-' . str_pad((string) $invitationId, 5, '0', STR_PAD_LEFT) . '-' . uniqid();
+            // QR should match visible pass ID format, e.g. "VIS-23".
+            $qrCodeData = 'VIS-' . $invitationId;
             $options = new \chillerlan\QRCode\QROptions([
                 'outputInterface' => \chillerlan\QRCode\Output\QRGdImagePNG::class,
                 'eccLevel'        => \chillerlan\QRCode\Common\EccLevel::L,
                 'scale'           => 5,
-                'outputBase64'    => true,
+                'outputBase64'    => false,
             ]);
             $qrcode = new \chillerlan\QRCode\QRCode($options);
-            $qrCodeBase64 = $qrcode->render($qrCodeData);
+            $qrCodeBinary = $qrcode->render($qrCodeData);
+            $qrCodeBase64 = 'data:image/png;base64,' . base64_encode($qrCodeBinary);
+            $qrCodeImageUrl = 'https://quickchart.io/qr?size=240&text=' . rawurlencode($qrCodeData);
+
+            $qrDir = WRITEPATH . 'uploads/email_qr/';
+            if (! is_dir($qrDir)) {
+                mkdir($qrDir, 0775, true);
+            }
+            $qrFilePath = $qrDir . 'approval_qr_' . $invitationId . '_' . time() . '.png';
+            file_put_contents($qrFilePath, $qrCodeBinary);
+            $email->attach($qrFilePath, 'inline', basename($qrFilePath), 'image/png');
+            $qrCid = $email->setAttachmentCID($qrFilePath);
 
             $emailData = [
                 'visitor_name' => $invitation['full_name'],
@@ -324,7 +335,10 @@ class InvitationEmailSender
                 ),
                 'custom_body_html' => $customBodyHtml,
                 'custom_colors' => $customColors,
+                'qr_code_text' => $qrCodeData,
+                'qr_code_image_url' => $qrCodeImageUrl,
                 'qr_code_base64' => $qrCodeBase64,
+                'qr_code_cid' => $qrCid,
             ];
 
             $message = view('emails/approval_template', $emailData);
