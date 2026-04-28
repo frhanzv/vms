@@ -360,12 +360,6 @@ class VisitorRegistration extends BaseController
                 ]);
             }
 
-            // Send confirmation/registration email to visitor.
-            $emailSent = $this->invitationEmailSender->send((int) $invitationId);
-            if (! $emailSent) {
-                log_message('error', 'Registration email failed for invitation ID: ' . $invitationId);
-            }
-
             // Generate token for next step
             $token = base64_encode($invitationId);
 
@@ -374,9 +368,7 @@ class VisitorRegistration extends BaseController
 
             return $this->response->setJSON([
                 'success' => true,
-                'message' => $emailSent
-                    ? 'Registration completed successfully. A confirmation email has been sent.'
-                    : 'Registration completed successfully, but email sending failed.',
+                'message' => 'Registration completed successfully',
                 'redirect' => $nextUrl
             ]);
 
