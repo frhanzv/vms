@@ -2,7 +2,6 @@
 
 namespace App\Libraries;
 
-use CodeIgniter\Email\Email;
 use App\Models\InvitationModel;
 use App\Models\InvitationScheduleModel;
 use App\Models\VisitReasonModel;
@@ -26,6 +25,7 @@ class InvitationEmailSender
     protected SettingModel $settingModel;
     protected EmailTemplateService $emailTemplateService;
     protected EmailTemplateModel $emailTemplateModel;
+    protected \Config\Email $emailConfig;
 
     public function __construct()
     {
@@ -38,6 +38,7 @@ class InvitationEmailSender
         $this->settingModel = new SettingModel();
         $this->emailTemplateService = new EmailTemplateService();
         $this->emailTemplateModel = new EmailTemplateModel();
+        $this->emailConfig = config('Email');
     }
 
     public function invitationsSupportVisitorType(): bool
@@ -113,7 +114,20 @@ class InvitationEmailSender
                 return false;
             }
 
-            $email = new Email();
+            $email = \Config\Services::email();
+            $email->initialize([
+                'protocol' => $this->emailConfig->protocol,
+                'SMTPHost' => $this->emailConfig->SMTPHost,
+                'SMTPUser' => $this->emailConfig->SMTPUser,
+                'SMTPPass' => $this->emailConfig->SMTPPass,
+                'SMTPPort' => $this->emailConfig->SMTPPort,
+                'SMTPCrypto' => $this->emailConfig->SMTPCrypto,
+                'SMTPTimeout' => $this->emailConfig->SMTPTimeout,
+                'mailType' => $this->emailConfig->mailType,
+                'charset' => $this->emailConfig->charset,
+                'newline' => $this->emailConfig->newline,
+                'CRLF' => $this->emailConfig->CRLF,
+            ]);
             $email->setMailType('html');
 
             $registrationLink = base_url('visitor-registration?token=' . base64_encode((string) $invitationId));
@@ -187,7 +201,7 @@ class InvitationEmailSender
 
             $message = view('emails/invitation_template', $emailData);
 
-            $email->setFrom('noreply@safeg.com', 'SafeG VMS');
+            $email->setFrom($this->emailConfig->fromEmail, $this->emailConfig->fromName);
             $email->setTo($invitation['visitor_email']);
             $email->setSubject($customSubject ?: $templateConfig['subject']);
             $email->setMessage($message);
@@ -198,7 +212,7 @@ class InvitationEmailSender
                 log_message('info', 'Email sent successfully to: ' . $invitation['visitor_email']);
             } else {
                 log_message('error', 'Email sending failed to: ' . $invitation['visitor_email']);
-                log_message('error', 'Email error: ' . $email->printDebugger());
+                log_message('error', 'Email error: ' . $email->printDebugger(['headers', 'subject']));
             }
 
             return $result;
@@ -226,7 +240,20 @@ class InvitationEmailSender
                 return false;
             }
 
-            $email = new Email();
+            $email = \Config\Services::email();
+            $email->initialize([
+                'protocol' => $this->emailConfig->protocol,
+                'SMTPHost' => $this->emailConfig->SMTPHost,
+                'SMTPUser' => $this->emailConfig->SMTPUser,
+                'SMTPPass' => $this->emailConfig->SMTPPass,
+                'SMTPPort' => $this->emailConfig->SMTPPort,
+                'SMTPCrypto' => $this->emailConfig->SMTPCrypto,
+                'SMTPTimeout' => $this->emailConfig->SMTPTimeout,
+                'mailType' => $this->emailConfig->mailType,
+                'charset' => $this->emailConfig->charset,
+                'newline' => $this->emailConfig->newline,
+                'CRLF' => $this->emailConfig->CRLF,
+            ]);
             $email->setMailType('html');
 
             $templateRaw = $this->settingModel->getSetting(
@@ -302,7 +329,7 @@ class InvitationEmailSender
 
             $message = view('emails/approval_template', $emailData);
 
-            $email->setFrom('noreply@safeg.com', 'SafeG VMS');
+            $email->setFrom($this->emailConfig->fromEmail, $this->emailConfig->fromName);
             $email->setTo($invitation['visitor_email']);
             $email->setSubject($customSubject ?: $templateConfig['subject']);
             $email->setMessage($message);
@@ -313,7 +340,7 @@ class InvitationEmailSender
                 log_message('info', 'Approval email sent successfully to: ' . $invitation['visitor_email']);
             } else {
                 log_message('error', 'Approval email sending failed to: ' . $invitation['visitor_email']);
-                log_message('error', 'Email error: ' . $email->printDebugger());
+                log_message('error', 'Email error: ' . $email->printDebugger(['headers', 'subject']));
             }
 
             return $result;
