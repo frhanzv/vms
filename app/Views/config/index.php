@@ -4155,6 +4155,82 @@
                     </div>
                 </div>
 
+                <!-- Dynamic Form Fields -->
+                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                    <button onclick="toggleSection('dynformfields')"
+                        class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                        <div class="flex items-center gap-4">
+                            <div class="p-2 bg-primary/10 rounded-lg">
+                                <span class="material-symbols-outlined text-primary text-xl">dynamic_form</span>
+                            </div>
+                            <div class="text-left">
+                                <h3 class="text-base font-bold text-gray-800 dark:text-white">Dynamic Form Fields</h3>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Control which form fields are visible per client</p>
+                            </div>
+                        </div>
+                        <span id="dynformfields-icon"
+                            class="material-symbols-outlined text-gray-400 dark:text-slate-400 transition-transform">expand_more</span>
+                    </button>
+                    <div id="dynformfields-content" class="hidden border-t border-gray-200 dark:border-slate-700">
+                        <div class="p-6 bg-gray-50 dark:bg-slate-800/50">
+
+                            <!-- Company selector -->
+                            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
+                                <label class="text-sm font-semibold text-gray-700 dark:text-slate-300 whitespace-nowrap font-brand">Select Client:</label>
+                                <div class="relative w-full sm:w-80">
+                                    <select id="dff-company-select" onchange="dffLoadForm()"
+                                        class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm font-brand">
+                                        <option value="">-- Select a client --</option>
+                                    </select>
+                                    <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                                        <span class="material-symbols-outlined text-gray-400 text-lg">expand_more</span>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Form type tabs + grid (shown after selecting a company) -->
+                            <div id="dff-panel" class="hidden">
+
+                                <!-- Tabs -->
+                                <div class="flex gap-2 mb-5 border-b border-gray-200 dark:border-slate-700">
+                                    <button type="button" id="dff-tab-visitor_registration"
+                                        onclick="dffSwitchTab('visitor_registration')"
+                                        class="px-4 py-2 text-sm font-medium font-brand border-b-2 border-primary text-primary -mb-px">
+                                        Visitor Registration
+                                    </button>
+                                    <button type="button" id="dff-tab-invitation"
+                                        onclick="dffSwitchTab('invitation')"
+                                        class="px-4 py-2 text-sm font-medium font-brand border-b-2 border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 -mb-px">
+                                        Invitation Form
+                                    </button>
+                                </div>
+
+                                <!-- Loading indicator -->
+                                <div id="dff-loading" class="hidden text-center py-6">
+                                    <div class="inline-block animate-spin rounded-full h-7 w-7 border-b-2 border-primary"></div>
+                                </div>
+
+                                <!-- Field grid -->
+                                <div id="dff-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6"></div>
+
+                                <!-- Save -->
+                                <div class="flex justify-end">
+                                    <button onclick="dffSave()"
+                                        class="px-5 py-2.5 rounded-lg bg-primary hover:bg-blue-600 text-white font-medium text-sm flex items-center gap-2 transition-colors font-brand">
+                                        <span class="material-symbols-outlined text-base">save</span>
+                                        Save Changes
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div id="dff-empty" class="text-sm text-gray-500 dark:text-slate-400 text-center py-4">
+                                Select a client above to manage their form fields.
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
     </main>
@@ -15189,6 +15265,141 @@
         document.addEventListener('DOMContentLoaded', () => {
             loadWorkflows();
         });
+
+        // ── Dynamic Form Fields ──────────────────────────────────────
+        let dffCompanyId = null;
+        let dffActiveTab = 'visitor_registration';
+        let dffFields    = {};        // { form_type: { field_key: bool } }
+        let dffLabels    = {};        // { form_type: { field_key: label } }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            fetch(`${configBaseUrl}/getAllCompanies`)
+                .then(r => r.json())
+                .then(res => {
+                    const sel = document.getElementById('dff-company-select');
+                    (res.data || []).forEach(c => {
+                        const opt = document.createElement('option');
+                        opt.value = c.id;
+                        opt.textContent = c.name;
+                        sel.appendChild(opt);
+                    });
+                })
+                .catch(() => {});
+        });
+
+        function dffLoadForm() {
+            const sel = document.getElementById('dff-company-select');
+            dffCompanyId = sel.value || null;
+            const panel  = document.getElementById('dff-panel');
+            const empty  = document.getElementById('dff-empty');
+
+            if (!dffCompanyId) {
+                panel.classList.add('hidden');
+                empty.classList.remove('hidden');
+                return;
+            }
+
+            panel.classList.remove('hidden');
+            empty.classList.add('hidden');
+            dffFields = {};
+            dffLabels = {};
+            dffSwitchTab('visitor_registration');
+        }
+
+        function dffSwitchTab(formType) {
+            dffActiveTab = formType;
+
+            ['visitor_registration', 'invitation'].forEach(t => {
+                const btn = document.getElementById(`dff-tab-${t}`);
+                if (!btn) return;
+                if (t === formType) {
+                    btn.classList.add('border-primary', 'text-primary');
+                    btn.classList.remove('border-transparent', 'text-gray-500', 'dark:text-slate-400');
+                } else {
+                    btn.classList.remove('border-primary', 'text-primary');
+                    btn.classList.add('border-transparent', 'text-gray-500', 'dark:text-slate-400');
+                }
+            });
+
+            if (dffFields[formType]) {
+                dffRenderGrid(formType);
+                return;
+            }
+
+            document.getElementById('dff-loading').classList.remove('hidden');
+            document.getElementById('dff-grid').innerHTML = '';
+
+            fetch(`${configBaseUrl}/getClientFormFields/${dffCompanyId}?form=${formType}`)
+                .then(r => r.json())
+                .then(res => {
+                    document.getElementById('dff-loading').classList.add('hidden');
+                    if (!res.success) return;
+                    dffFields[formType] = {};
+                    dffLabels[formType] = {};
+                    res.fields.forEach(f => {
+                        dffFields[formType][f.field_key] = f.is_enabled == 1;
+                        dffLabels[formType][f.field_key] = f.label;
+                    });
+                    dffRenderGrid(formType);
+                })
+                .catch(() => document.getElementById('dff-loading').classList.add('hidden'));
+        }
+
+        function dffRenderGrid(formType) {
+            const fields = dffFields[formType] || {};
+            const labels = dffLabels[formType] || {};
+            document.getElementById('dff-grid').innerHTML = Object.entries(fields).map(([key, enabled]) => `
+                <div class="bg-white dark:bg-slate-700 rounded-lg border border-gray-200 dark:border-slate-600 p-4 flex items-center justify-between gap-3">
+                    <span class="text-sm font-medium text-gray-700 dark:text-slate-300 font-brand">${labels[key] || key}</span>
+                    <button type="button"
+                        id="dff-toggle-${formType}-${key}"
+                        onclick="dffToggle('${formType}', '${key}')"
+                        class="relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 cursor-pointer focus:outline-none ${enabled ? 'bg-primary' : 'bg-gray-300 dark:bg-slate-500'}"
+                        role="switch" aria-checked="${enabled}">
+                        <span class="pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition duration-200 ${enabled ? 'translate-x-5' : 'translate-x-0'}"></span>
+                    </button>
+                </div>`).join('');
+        }
+
+        function dffToggle(formType, key) {
+            dffFields[formType][key] = !dffFields[formType][key];
+            const btn  = document.getElementById(`dff-toggle-${formType}-${key}`);
+            const knob = btn.querySelector('span');
+            const on   = dffFields[formType][key];
+            if (on) {
+                btn.classList.remove('bg-gray-300', 'dark:bg-slate-500');
+                btn.classList.add('bg-primary');
+                knob.classList.replace('translate-x-0', 'translate-x-5');
+            } else {
+                btn.classList.remove('bg-primary');
+                btn.classList.add('bg-gray-300', 'dark:bg-slate-500');
+                knob.classList.replace('translate-x-5', 'translate-x-0');
+            }
+            btn.setAttribute('aria-checked', on);
+        }
+
+        function dffSave() {
+            if (!dffCompanyId || !dffFields[dffActiveTab]) return;
+            fetch(`${configBaseUrl}/saveClientFormFields/${dffCompanyId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '<?= csrf_hash() ?>'
+                },
+                body: JSON.stringify({ form_type: dffActiveTab, fields: dffFields[dffActiveTab] })
+            })
+            .then(r => r.json())
+            .then(res => {
+                if (res.success) {
+                    if (typeof showToast === 'function') showToast('Form field config saved', 'success');
+                    else alert('Form field config saved');
+                } else {
+                    alert('Failed to save: ' + (res.message || ''));
+                }
+            })
+            .catch(() => alert('Network error while saving form fields.'));
+        }
 
         // ── Client Features ──────────────────────────────────────────
         let cfCompanyId = null;

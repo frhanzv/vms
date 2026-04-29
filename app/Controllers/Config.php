@@ -33,6 +33,7 @@ use App\Models\SecurityAlertPriorityModel;
 use App\Libraries\EmailTemplateService;
 use App\Models\ApiKeyModel;
 use App\Models\ClientFeatureModel;
+use App\Models\ClientFormFieldModel;
 
 class Config extends BaseController
 {
@@ -67,6 +68,7 @@ class Config extends BaseController
     protected $apiKeyModel;
     protected $workflowModel;
     protected $clientFeatureModel;
+    protected $clientFormFieldModel;
 
     /**
      * Version-checked update for config entities.
@@ -142,7 +144,8 @@ class Config extends BaseController
         $this->alertPriorityModel = new SecurityAlertPriorityModel();
         $this->apiKeyModel = new ApiKeyModel();
         $this->workflowModel = new \App\Models\WorkflowModel();
-        $this->clientFeatureModel = new ClientFeatureModel();
+        $this->clientFeatureModel   = new ClientFeatureModel();
+        $this->clientFormFieldModel = new ClientFormFieldModel();
     }
 
     public function index()
@@ -4611,6 +4614,52 @@ class Config extends BaseController
                 'message' => 'Failed to update workflows: ' . $e->getMessage(),
             ]);
         }
+    }
+
+    public function getClientFormFields(int $companyId)
+    {
+        $company = $this->companyModel->find($companyId);
+        if (!$company) {
+            return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Company not found']);
+        }
+
+        $formType = $this->request->getGet('form') ?? 'visitor_registration';
+        if (!array_key_exists($formType, \App\Models\ClientFormFieldModel::formTypes())) {
+            return $this->response->setStatusCode(400)->setJSON(['success' => false, 'message' => 'Invalid form type']);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'fields'  => $this->clientFormFieldModel->getForCompanyForm($companyId, $formType),
+        ]);
+    }
+
+    public function saveClientFormFields(int $companyId)
+    {
+        $company = $this->companyModel->find($companyId);
+        if (!$company) {
+            return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Company not found']);
+        }
+
+        $input    = $this->request->getJSON(true);
+        $formType = $input['form_type'] ?? null;
+        $fields   = $input['fields'] ?? null;
+
+        if (!$formType || !is_array($fields) || !array_key_exists($formType, \App\Models\ClientFormFieldModel::formTypes())) {
+            return $this->response->setStatusCode(400)->setJSON(['success' => false, 'message' => 'Invalid payload']);
+        }
+
+        $allowed   = array_column($this->clientFormFieldModel->getForCompanyForm($companyId, $formType), 'field_key');
+        $sanitised = [];
+        foreach ($fields as $key => $val) {
+            if (in_array($key, $allowed, true)) {
+                $sanitised[$key] = (bool) $val;
+            }
+        }
+
+        $this->clientFormFieldModel->saveForCompanyForm($companyId, $formType, $sanitised);
+
+        return $this->response->setJSON(['success' => true, 'message' => 'Form field config saved']);
     }
 
     public function getClientFeatures(int $companyId)
