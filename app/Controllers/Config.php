@@ -32,6 +32,7 @@ use App\Models\PathwayModel;
 use App\Models\SecurityAlertPriorityModel;
 use App\Libraries\EmailTemplateService;
 use App\Models\ApiKeyModel;
+use App\Models\ClientFeatureModel;
 
 class Config extends BaseController
 {
@@ -65,6 +66,7 @@ class Config extends BaseController
     protected $alertPriorityModel;
     protected $apiKeyModel;
     protected $workflowModel;
+    protected $clientFeatureModel;
 
     /**
      * Version-checked update for config entities.
@@ -140,6 +142,7 @@ class Config extends BaseController
         $this->alertPriorityModel = new SecurityAlertPriorityModel();
         $this->apiKeyModel = new ApiKeyModel();
         $this->workflowModel = new \App\Models\WorkflowModel();
+        $this->clientFeatureModel = new ClientFeatureModel();
     }
 
     public function index()
@@ -4608,5 +4611,43 @@ class Config extends BaseController
                 'message' => 'Failed to update workflows: ' . $e->getMessage(),
             ]);
         }
+    }
+
+    public function getClientFeatures(int $companyId)
+    {
+        $company = $this->companyModel->find($companyId);
+        if (!$company) {
+            return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Company not found']);
+        }
+
+        return $this->response->setJSON([
+            'success'  => true,
+            'features' => $this->clientFeatureModel->getForCompany($companyId),
+        ]);
+    }
+
+    public function saveClientFeatures(int $companyId)
+    {
+        $company = $this->companyModel->find($companyId);
+        if (!$company) {
+            return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Company not found']);
+        }
+
+        $input = $this->request->getJSON(true);
+        if (!isset($input['features']) || !is_array($input['features'])) {
+            return $this->response->setStatusCode(400)->setJSON(['success' => false, 'message' => 'Invalid payload']);
+        }
+
+        $allowed = array_keys(\App\Models\ClientFeatureModel::allFeatures());
+        $sanitised = [];
+        foreach ($input['features'] as $key => $val) {
+            if (in_array($key, $allowed, true)) {
+                $sanitised[$key] = (bool) $val;
+            }
+        }
+
+        $this->clientFeatureModel->saveForCompany($companyId, $sanitised);
+
+        return $this->response->setJSON(['success' => true, 'message' => 'Feature flags saved']);
     }
 }

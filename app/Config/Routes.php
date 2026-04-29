@@ -76,6 +76,10 @@ $routes->post('security/confirmCheckin', 'SecurityBriefing::confirmCheckin');
 $routes->get('config', 'Config::index');
 $routes->get('config/getLogs', 'Config::getLogs');
 $routes->get('config/exportLogs', 'Config::exportLogs');
+// Client Feature Flag Routes
+$routes->get('config/getClientFeatures/(:num)', 'Config::getClientFeatures/$1');
+$routes->post('config/saveClientFeatures/(:num)', 'Config::saveClientFeatures/$1');
+
 // Alert Priority Management Routes
 $routes->get('config/getAlertPriorities', 'Config::getAlertPriorities');
 $routes->post('config/updateAlertPriority/(:num)', 'Config::updateAlertPriority/$1');
