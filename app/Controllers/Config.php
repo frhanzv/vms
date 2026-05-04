@@ -3254,9 +3254,39 @@ class Config extends BaseController
 
     public function generateVisitorQr()
     {
-        // QR must use the real server IP so phones can reach the server after scanning.
-        // 'localhost' on a phone means the phone itself — it must be the server's IP.
-        $qrCodeData = 'http://192.168.100.243:8080/vms/visitor-registration';
+        // Start with app-generated URL, then normalize localhost to LAN IP for phone scanning.
+        $qrCodeData = base_url('visitor-registration');
+        $parsedUrl = parse_url($qrCodeData);
+
+        if (is_array($parsedUrl)) {
+            $host = $parsedUrl['host'] ?? '';
+            if (in_array($host, ['localhost', '127.0.0.1', '::1'], true)) {
+                $serverIp = (string) $this->request->getServer('SERVER_ADDR');
+                if (! filter_var($serverIp, FILTER_VALIDATE_IP) || in_array($serverIp, ['127.0.0.1', '::1'], true)) {
+                    $resolvedHostIp = gethostbyname(gethostname());
+                    if (filter_var($resolvedHostIp, FILTER_VALIDATE_IP) && ! in_array($resolvedHostIp, ['127.0.0.1', '::1'], true)) {
+                        $serverIp = $resolvedHostIp;
+                    }
+                }
+
+                if (filter_var($serverIp, FILTER_VALIDATE_IP) && ! in_array($serverIp, ['127.0.0.1', '::1'], true)) {
+                    $scheme = $parsedUrl['scheme'] ?? ($this->request->isSecure() ? 'https' : 'http');
+                    $path = $parsedUrl['path'] ?? '/visitor-registration';
+                    $query = isset($parsedUrl['query']) ? '?' . $parsedUrl['query'] : '';
+                    $port = isset($parsedUrl['port']) ? (int) $parsedUrl['port'] : (int) $this->request->getServer('SERVER_PORT');
+                    $isDefaultPort = ($scheme === 'http' && $port === 80) || ($scheme === 'https' && $port === 443) || $port <= 0;
+
+                    $qrCodeData = sprintf(
+                        '%s://%s%s%s%s',
+                        $scheme,
+                        $serverIp,
+                        $isDefaultPort ? '' : ':' . $port,
+                        $path,
+                        $query
+                    );
+                }
+            }
+        }
 
         // chillerlan/php-qrcode v6 API: pass settings as array to constructor
         $options = new \chillerlan\QRCode\QROptions([
