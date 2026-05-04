@@ -80,6 +80,10 @@ $routes->get('config/exportLogs', 'Config::exportLogs');
 $routes->get('config/getClientFeatures/(:num)', 'Config::getClientFeatures/$1');
 $routes->post('config/saveClientFeatures/(:num)', 'Config::saveClientFeatures/$1');
 
+// Dynamic Form Field Routes
+$routes->get('config/getClientFormFields/(:num)', 'Config::getClientFormFields/$1');
+$routes->post('config/saveClientFormFields/(:num)', 'Config::saveClientFormFields/$1');
+
 // Alert Priority Management Routes
 $routes->get('config/getAlertPriorities', 'Config::getAlertPriorities');
 $routes->post('config/updateAlertPriority/(:num)', 'Config::updateAlertPriority/$1');
