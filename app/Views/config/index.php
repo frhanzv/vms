@@ -4101,6 +4101,60 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Client Features -->
+                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                    <button onclick="toggleSection('clientfeatures')"
+                        class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                        <div class="flex items-center gap-4">
+                            <div class="p-2 bg-primary/10 rounded-lg">
+                                <span class="material-symbols-outlined text-primary text-xl">toggle_on</span>
+                            </div>
+                            <div class="text-left">
+                                <h3 class="text-base font-bold text-gray-800 dark:text-white">Client Features</h3>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Enable or disable SafeG features per client</p>
+                            </div>
+                        </div>
+                        <span id="clientfeatures-icon"
+                            class="material-symbols-outlined text-gray-400 dark:text-slate-400 transition-transform">expand_more</span>
+                    </button>
+                    <div id="clientfeatures-content" class="hidden border-t border-gray-200 dark:border-slate-700">
+                        <div class="p-6 bg-gray-50 dark:bg-slate-800/50">
+
+                            <!-- Company selector -->
+                            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
+                                <label class="text-sm font-semibold text-gray-700 dark:text-slate-300 whitespace-nowrap font-brand">Select Client:</label>
+                                <div class="relative w-full sm:w-80">
+                                    <select id="cf-company-select" onchange="loadClientFeatures()"
+                                        class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm font-brand">
+                                        <option value="">-- Select a client --</option>
+                                    </select>
+                                    <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                                        <span class="material-symbols-outlined text-gray-400 text-lg">expand_more</span>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Feature grid (shown after selecting a company) -->
+                            <div id="cf-feature-grid" class="hidden">
+                                <div id="cf-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6"></div>
+                                <div class="flex justify-end">
+                                    <button onclick="saveClientFeatures()"
+                                        class="px-5 py-2.5 rounded-lg bg-primary hover:bg-blue-600 text-white font-medium text-sm flex items-center gap-2 transition-colors font-brand">
+                                        <span class="material-symbols-outlined text-base">save</span>
+                                        Save Changes
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div id="cf-empty" class="text-sm text-gray-500 dark:text-slate-400 text-center py-4">
+                                Select a client above to manage their features.
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
     </main>
@@ -15135,5 +15189,102 @@
         document.addEventListener('DOMContentLoaded', () => {
             loadWorkflows();
         });
+
+        // ── Client Features ──────────────────────────────────────────
+        let cfCompanyId = null;
+        let cfFeatures  = {};
+
+        document.addEventListener('DOMContentLoaded', function () {
+            fetch(`${configBaseUrl}/getAllCompanies`)
+                .then(r => r.json())
+                .then(res => {
+                    const sel = document.getElementById('cf-company-select');
+                    (res.data || []).forEach(c => {
+                        const opt = document.createElement('option');
+                        opt.value = c.id;
+                        opt.textContent = c.name;
+                        sel.appendChild(opt);
+                    });
+                })
+                .catch(() => {});
+        });
+
+        function loadClientFeatures() {
+            const sel = document.getElementById('cf-company-select');
+            cfCompanyId = sel.value || null;
+            const grid  = document.getElementById('cf-feature-grid');
+            const empty = document.getElementById('cf-empty');
+
+            if (!cfCompanyId) {
+                grid.classList.add('hidden');
+                empty.classList.remove('hidden');
+                return;
+            }
+
+            fetch(`${configBaseUrl}/getClientFeatures/${cfCompanyId}`)
+                .then(r => r.json())
+                .then(res => {
+                    if (!res.success) return;
+                    cfFeatures = {};
+                    res.features.forEach(f => { cfFeatures[f.feature_key] = f.is_enabled == 1; });
+                    renderCfGrid(res.features);
+                    grid.classList.remove('hidden');
+                    empty.classList.add('hidden');
+                });
+        }
+
+        function renderCfGrid(features) {
+            document.getElementById('cf-grid').innerHTML = features.map(f => `
+                <div class="bg-white dark:bg-slate-700 rounded-lg border border-gray-200 dark:border-slate-600 p-4 flex items-center justify-between gap-3">
+                    <span class="text-sm font-medium text-gray-700 dark:text-slate-300 font-brand">${f.label}</span>
+                    <button type="button"
+                        id="cf-toggle-${f.feature_key}"
+                        onclick="toggleCfFeature('${f.feature_key}')"
+                        class="relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 cursor-pointer focus:outline-none ${cfFeatures[f.feature_key] ? 'bg-primary' : 'bg-gray-300 dark:bg-slate-500'}"
+                        role="switch" aria-checked="${cfFeatures[f.feature_key]}">
+                        <span class="pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition duration-200 ${cfFeatures[f.feature_key] ? 'translate-x-5' : 'translate-x-0'}"></span>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function toggleCfFeature(key) {
+            cfFeatures[key] = !cfFeatures[key];
+            const btn  = document.getElementById(`cf-toggle-${key}`);
+            const knob = btn.querySelector('span');
+            if (cfFeatures[key]) {
+                btn.classList.remove('bg-gray-300', 'dark:bg-slate-500');
+                btn.classList.add('bg-primary');
+                knob.classList.replace('translate-x-0', 'translate-x-5');
+            } else {
+                btn.classList.remove('bg-primary');
+                btn.classList.add('bg-gray-300', 'dark:bg-slate-500');
+                knob.classList.replace('translate-x-5', 'translate-x-0');
+            }
+            btn.setAttribute('aria-checked', cfFeatures[key]);
+        }
+
+        function saveClientFeatures() {
+            if (!cfCompanyId) return;
+            fetch(`${configBaseUrl}/saveClientFeatures/${cfCompanyId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '<?= csrf_hash() ?>'
+                },
+                body: JSON.stringify({ features: cfFeatures })
+            })
+            .then(r => r.json())
+            .then(res => {
+                if (res.success) {
+                    if (typeof showToast === 'function') showToast('Feature flags saved', 'success');
+                    else alert('Feature flags saved');
+                } else {
+                    alert('Failed to save: ' + (res.message || ''));
+                }
+            })
+            .catch(() => alert('Network error while saving feature flags.'));
+        }
     </script>
 </body>

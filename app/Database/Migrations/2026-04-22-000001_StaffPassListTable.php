@@ -66,7 +66,7 @@ class CreateStaffTable extends Migration
         ]);
 
         $this->forge->addKey('id', true);
-        $this->forge->createTable('staff');
+        $this->forge->createTable('staff', true);
     }
 
     public function down()
