@@ -461,40 +461,49 @@
 
                 <!-- Recent Activity -->
                 <div class="bg-surface-light dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 flex flex-col">
-                    <div class="flex justify-between items-center mb-6">
-                        <h3 class="text-base font-bold text-slate-900 dark:text-white">Recent Activity</h3>
-                        <button class="text-xs font-medium text-primary hover:text-primary-dark">View All</button>
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
+                            <h3 class="text-base font-bold text-slate-900 dark:text-white">Recent Activity</h3>
+                            <p class="text-xs text-slate-400 mt-0.5">All system events from the last 7 days</p>
+                        </div>
+                        <button onclick="openModal('recentActivity')" class="text-xs font-medium text-primary hover:text-primary-dark">View All</button>
                     </div>
-                    <div class="flex flex-col gap-5 overflow-y-auto max-h-[220px] pr-2 custom-scrollbar">
+                    <!-- Legend -->
+                    <div class="flex flex-wrap gap-x-3 gap-y-1 mb-4">
+                        <span class="flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400"><span class="size-2 rounded-full bg-amber-400 inline-block"></span>Created</span>
+                        <span class="flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400"><span class="size-2 rounded-full bg-green-500 inline-block"></span>Approved</span>
+                        <span class="flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400"><span class="size-2 rounded-full bg-red-500 inline-block"></span>Rejected</span>
+                        <span class="flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400"><span class="size-2 rounded-full bg-blue-500 inline-block"></span>Door Access</span>
+                        <span class="flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400"><span class="size-2 rounded-full bg-slate-400 inline-block"></span>Check-out</span>
+                    </div>
+                    <div class="flex flex-col gap-0 overflow-y-auto max-h-[340px] pr-1 custom-scrollbar divide-y divide-slate-100 dark:divide-slate-700/50">
+                        <?php if (empty($recentActivity)): ?>
+                        <p class="text-sm text-slate-400 text-center py-6">No recent activity in the last 7 days.</p>
+                        <?php else: ?>
                         <?php foreach ($recentActivity as $activity): ?>
-                        <div class="flex gap-3 items-start">
-                            <div class="relative">
-                                <?php if (isset($activity['image'])): ?>
-                                <div class="size-8 rounded-full bg-cover bg-center" style="background-image: url('<?= $activity['image'] ?>');"></div>
-                                <?php else: ?>
-                                <div class="size-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">
-                                    <?= $activity['initials'] ?>
-                                </div>
-                                <?php endif; ?>
-                                <div class="absolute -bottom-1 -right-1 bg-surface-light dark:bg-surface-dark rounded-full p-0.5">
-                                    <?php
-                                    $statusColor = 'bg-slate-400';
-                                    if ($activity['status'] === 'online') $statusColor = 'bg-green-500';
-                                    elseif ($activity['status'] === 'pending') $statusColor = 'bg-amber-400';
-                                    ?>
-                                    <div class="size-2.5 <?= $statusColor ?> rounded-full border border-white dark:border-slate-900"></div>
-                                </div>
+                        <div class="flex gap-3 items-start py-3">
+                            <div class="size-8 rounded-full <?= $activity['iconBg'] ?> flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <span class="material-symbols-outlined text-[17px] <?= $activity['iconColor'] ?>"><?= $activity['icon'] ?></span>
                             </div>
-                            <div class="flex flex-col flex-1">
-                                <?php if ($activity['action'] === 'invitation created'): ?>
-                                <p class="text-sm text-slate-900 dark:text-white">Invitation created for <span class="font-semibold"><?= esc($activity['name']) ?></span>.</p>
-                                <?php else: ?>
-                                <p class="text-sm text-slate-900 dark:text-white"><span class="font-semibold"><?= esc($activity['name']) ?></span> <?= $activity['action'] ?>.</p>
-                                <?php endif; ?>
+                            <div class="flex flex-col flex-1 min-w-0">
+                                <p class="text-sm text-slate-900 dark:text-white leading-snug"><?= $activity['description'] ?>.</p>
                                 <p class="text-xs text-slate-400 mt-0.5"><?= $activity['time'] ?> • <?= $activity['location'] ?></p>
                             </div>
+                            <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full flex-shrink-0 mt-1
+                                <?php
+                                echo match($activity['type']) {
+                                    'approved'        => 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+                                    'rejected'        => 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+                                    'check_in'        => 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+                                    'check_out'       => 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
+                                    'door_access'     => 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+                                    'security_alert'  => 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+                                    default           => 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+                                };
+                                ?>"><?= esc($activity['label']) ?></span>
                         </div>
                         <?php endforeach; ?>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -576,7 +585,7 @@
                                     $statusToken = 'checkedout';
                                 }
                             ?>
-                            <tr data-visitor-status="<?= $statusToken ?>" class="visitor-row group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                            <tr data-visitor-status="<?= $statusToken ?>" data-invitation-id="<?= $visitor['id'] ?>" class="visitor-row group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="flex items-center gap-3">
                                         <?php if ($visitor['hasImage']): ?>
@@ -588,7 +597,7 @@
                                         <?php endif; ?>
                                         <div>
                                             <p class="text-sm font-medium text-slate-900 dark:text-white <?= $visitor['status'] === 'Checked Out' ? 'opacity-60' : '' ?>"><?= esc($visitor['name']) ?></p>
-                                            <p class="text-xs text-slate-500"><?= esc($visitor['email']) ?></p>
+                                            <p class="text-xs text-slate-500"><?= esc($visitor['contact']) ?></p>
                                         </div>
                                     </div>
                                 </td>
@@ -604,28 +613,28 @@
                                     ];
                                     $classes = explode(' ', $statusClasses[$visitor['statusClass']]);
                                     ?>
-                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium <?= $classes[0] ?> <?= $classes[1] ?> <?= $classes[2] ?> <?= $classes[3] ?> border <?= $classes[4] ?> <?= $classes[5] ?>">
+                                    <span data-status-badge class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium <?= $classes[0] ?> <?= $classes[1] ?> <?= $classes[2] ?> <?= $classes[3] ?> border <?= $classes[4] ?> <?= $classes[5] ?>">
                                         <span class="size-1.5 rounded-full <?= $classes[6] ?>"></span>
                                         <?= esc($visitor['status']) ?>
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right">
                                     <?php if ($visitor['status'] === 'On-Site'): ?>
-                                    <button class="text-slate-400 hover:text-primary transition-colors p-1" title="View Details">
+                                    <button onclick="dashboardViewVisitor(this)" class="text-slate-400 hover:text-primary transition-colors p-1" title="View Details">
                                         <span class="material-symbols-outlined text-[20px]">visibility</span>
                                     </button>
-                                    <button class="text-slate-400 hover:text-red-600 transition-colors p-1" title="Check Out">
+                                    <button onclick="dashboardCheckOut(this)" class="text-slate-400 hover:text-red-600 transition-colors p-1" title="Check Out">
                                         <span class="material-symbols-outlined text-[20px]">logout</span>
                                     </button>
                                     <?php elseif ($visitor['status'] === 'Pre-Arrival'): ?>
-                                    <button class="inline-flex items-center justify-center px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold rounded transition-colors mr-2">
-                                        Check In
+                                    <button onclick="dashboardCheckIn(this)" class="text-slate-400 hover:text-green-600 transition-colors p-1" title="Check In">
+                                        <span class="material-symbols-outlined text-[20px]">login</span>
                                     </button>
-                                    <button class="text-slate-400 hover:text-primary transition-colors p-1">
+                                    <button onclick="dashboardEditVisitor(this)" class="text-slate-400 hover:text-primary transition-colors p-1" title="Edit">
                                         <span class="material-symbols-outlined text-[20px]">edit</span>
                                     </button>
                                     <?php else: ?>
-                                    <button class="text-slate-400 hover:text-primary transition-colors p-1" title="View History">
+                                    <button onclick="dashboardViewVisitor(this)" class="text-slate-400 hover:text-primary transition-colors p-1" title="View History">
                                         <span class="material-symbols-outlined text-[20px]">history</span>
                                     </button>
                                     <?php endif; ?>
@@ -1030,6 +1039,64 @@ function closeModal() {
     document.body.style.overflow = '';
 }
 
+/* ── Dashboard visitor row actions ─────────────────────────────────────── */
+function getRowInvitationId(btn) {
+    return btn.closest('tr').dataset.invitationId;
+}
+
+function dashboardCheckIn(btn) {
+    const invId = getRowInvitationId(btn);
+    if (!invId) return;
+    btn.disabled = true;
+    btn.querySelector('span').textContent = 'hourglass_empty';
+    fetch('<?= site_url('dashboard/quickCheckIn') ?>', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+        body: 'invitation_id=' + encodeURIComponent(invId)
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (!d.success) {
+            btn.disabled = false;
+            btn.querySelector('span').textContent = 'login';
+            alert(d.message || 'Check-in failed');
+            return;
+        }
+        // Update row status badge and swap action buttons without full reload
+        const row = btn.closest('tr');
+        row.dataset.visitorStatus = 'checkedin';
+        const statusCell = row.querySelector('[data-status-badge]');
+        if (statusCell) {
+            statusCell.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
+            statusCell.innerHTML = '<span class="size-1.5 rounded-full bg-green-500 inline-block"></span>On-Site';
+        }
+        const actionCell = row.querySelector('td:last-child');
+        if (actionCell) {
+            actionCell.innerHTML =
+                '<button onclick="dashboardViewVisitor(this)" class="text-slate-400 hover:text-primary transition-colors p-1" title="View Details"><span class="material-symbols-outlined text-[20px]">visibility</span></button>' +
+                '<button onclick="dashboardCheckOut(this)" class="text-slate-400 hover:text-red-600 transition-colors p-1" title="Check Out"><span class="material-symbols-outlined text-[20px]">logout</span></button>';
+        }
+    })
+    .catch(() => {
+        btn.disabled = false;
+        btn.querySelector('span').textContent = 'login';
+        alert('Network error, please try again');
+    });
+}
+
+function dashboardCheckOut(btn) {
+    // Placeholder — will be implemented with full check-out flow later
+    alert('Check-out flow coming soon.');
+}
+
+function dashboardViewVisitor(btn) {
+    window.location.href = '<?= site_url('invitations') ?>';
+}
+
+function dashboardEditVisitor(btn) {
+    window.location.href = '<?= site_url('invitations') ?>';
+}
+
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
 function buildTable(headers, rows) {
@@ -1151,10 +1218,17 @@ const modalConfigs = {
         url: '/dashboard/onSiteData',
         render(d) {
             if (!d.success || !d.data.length) { modalBody.innerHTML = EMPTY('No visitors currently on-site'); return; }
-            const rows = d.data.map(v => [
-                '<div class="flex items-center gap-2"><div class="size-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px] font-bold">' + initials(v.visitor_name) + '</div><div><p class="font-medium text-slate-900 dark:text-white">' + esc(v.visitor_name) + '</p><p class="text-[11px] text-slate-400">' + esc(v.visitor_email || '') + '</p></div></div>',
-                esc(v.company || 'N/A'), esc(v.host_name), fmtTime(v.check_in_time), esc(v.location)
-            ]);
+            const rows = d.data.map(v => {
+                const nm = v.visitor_name || v.visitor_email || '-';
+                const avatarEl = '<div class="size-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px] font-bold relative overflow-hidden">'
+                    + initials(nm)
+                    + (v.profile_photo_path ? '<img src="' + BASE + 'uploads/' + esc(v.profile_photo_path) + '" class="absolute inset-0 size-7 object-cover" alt="" onerror="this.remove()">' : '')
+                    + '</div>';
+                return [
+                    '<div class="flex items-center gap-2">' + avatarEl + '<div><p class="font-medium text-slate-900 dark:text-white">' + esc(nm) + '</p><p class="text-[11px] text-slate-400">' + esc(v.contact || '') + '</p></div></div>',
+                    esc(v.company || 'N/A'), esc(v.host_name), fmtTime(v.check_in_time), esc(v.location)
+                ];
+            });
             modalBody.innerHTML = '<p class="text-sm text-slate-500 mb-4">' + d.data.length + ' visitor' + (d.data.length !== 1 ? 's' : '') + ' on-site</p>' + buildTable(['Visitor', 'Company', 'Host', 'Check-in', 'Location'], rows);
         }
     },
@@ -1177,6 +1251,51 @@ const modalConfigs = {
                 ];
             });
             modalBody.innerHTML = '<p class="text-sm text-slate-500 mb-4">' + d.data.length + ' checked out today</p>' + buildTable(['Visitor', 'Company', 'Host', 'Check-in', 'Check-out', 'Duration', 'Location'], rows);
+        }
+    },
+    recentActivity: {
+        title: 'Recent Activity', subtitle: 'All system events — last 30 days',
+        icon: 'history', iconCls: 'bg-primary/10 text-primary',
+        url: '/dashboard/recentActivityData',
+        render(d) {
+            if (!d.success || !d.data.length) { modalBody.innerHTML = EMPTY('No activity in the last 30 days'); return; }
+            const typeIcon = {
+                created:        { icon: 'add_circle',   cls: 'text-amber-500'  },
+                approved:       { icon: 'check_circle', cls: 'text-green-500'  },
+                rejected:       { icon: 'cancel',       cls: 'text-red-500'    },
+                check_in:       { icon: 'login',        cls: 'text-green-500'  },
+                check_out:      { icon: 'logout',       cls: 'text-slate-400'  },
+                door_access:    { icon: 'sensor_door',  cls: 'text-blue-500'   },
+                security_alert: { icon: 'warning',      cls: 'text-red-500'    },
+            };
+            const typeBadge = {
+                created:        'bg-amber-100 text-amber-700',
+                approved:       'bg-green-100 text-green-700',
+                rejected:       'bg-red-100 text-red-700',
+                check_in:       'bg-green-100 text-green-700',
+                check_out:      'bg-slate-100 text-slate-600',
+                door_access:    'bg-blue-100 text-blue-700',
+                security_alert: 'bg-red-100 text-red-700',
+            };
+            const rows = d.data.map(a => {
+                const ti = typeIcon[a.type] || { icon: 'info', cls: 'text-slate-400' };
+                const badgeCls = typeBadge[a.type] || 'bg-slate-100 text-slate-600';
+                let desc = '';
+                if (a.type === 'created')        desc = 'Invitation created for <strong>' + esc(a.name) + '</strong>';
+                else if (a.type === 'approved')  desc = 'Invitation approved for <strong>' + esc(a.name) + '</strong>';
+                else if (a.type === 'rejected')  desc = 'Invitation rejected for <strong>' + esc(a.name) + '</strong>';
+                else if (a.type === 'check_in')  desc = '<strong>' + esc(a.name) + '</strong> checked in';
+                else if (a.type === 'check_out') desc = '<strong>' + esc(a.name) + '</strong> checked out';
+                else if (a.type === 'door_access') desc = '<strong>' + esc(a.name) + '</strong> ' + (a.extra === 'checkin' ? 'entered via ' : 'exited via ') + esc(a.actor);
+                else desc = 'Alert: <strong>' + esc(a.extra) + '</strong>';
+                return [
+                    '<div class="flex items-center gap-2"><span class="material-symbols-outlined text-[16px] ' + ti.cls + '">' + ti.icon + '</span><span class="text-xs font-medium px-1.5 py-0.5 rounded-full ' + badgeCls + '">' + esc(a.label) + '</span></div>',
+                    '<span class="text-sm">' + desc + '</span>',
+                    esc(a.actor),
+                    '<span class="text-xs text-slate-400" title="' + esc(a.time) + '">' + esc(a.time_ago) + '</span>',
+                ];
+            });
+            modalBody.innerHTML = '<p class="text-sm text-slate-500 mb-4">' + d.data.length + ' event' + (d.data.length !== 1 ? 's' : '') + ' found</p>' + buildTable(['Type', 'Description', 'By / Location', 'When'], rows);
         }
     },
     activeAlerts: {
