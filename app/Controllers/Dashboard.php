@@ -23,7 +23,7 @@ class Dashboard extends BaseController
         $now = date('Y-m-d H:i:s');
         $yesterday = date('Y-m-d', strtotime('-1 day'));
         
-        // Expected Today: approved invitations with at least one schedule slice overlapping today (no double-count, no “gap” days between disjoint visits)
+        // Expected Today: approved invitations with at least one schedule slice overlapping today (no double-count, no "gap" days between disjoint visits)
         $expectedToday = (int) ($db->query(
             'SELECT COUNT(*) AS c
              FROM invitations i
@@ -80,11 +80,11 @@ class Dashboard extends BaseController
             ['Approved', $now]
         )->getRow()->c ?? 0);
         
-        // One row per invitation: only schedules overlapping today (aggregated), plus on-site without a “today” slice
+        // One row per invitation: only schedules overlapping today (aggregated), plus on-site without a "today" slice
         $visitorsQuery = "SELECT i.*,
                                  iv.check_in_time,
                                  iv.check_out_time,
-                                 u.full_name as host_name,
+                                 COALESCE(i.invited_by, 'N/A') as host_name,
                                  COALESCE(slot.date_from, fs.date_from) AS date_from,
                                  COALESCE(slot.date_to, fs.date_to) AS date_to
                           FROM invitations i
@@ -106,7 +106,6 @@ class Dashboard extends BaseController
                               ) sp ON sp.pick_id = s1.id
                           ) fs ON fs.invitation_id = i.id
                           LEFT JOIN invitation_visitors iv ON iv.invitation_id = i.id
-                          LEFT JOIN users u ON u.id = i.invited_by
                           WHERE i.status = 'Approved'
                           AND (
                               slot.invitation_id IS NOT NULL
@@ -167,8 +166,9 @@ class Dashboard extends BaseController
             }
             
             $visitors[] = [
+                'id' => $visitor['id'] ?? 0,
                 'name' => $visitor['full_name'] ?? 'N/A',
-                'email' => $visitor['visitor_email'] ?? '',
+                'contact' => $visitor['contact'] ?? '',
                 'company' => $visitor['company'] ?? 'N/A',
                 'host' => $visitor['host_name'] ?? 'N/A',
                 'time' => date('h:i A', strtotime($visitor['date_from'])),
@@ -237,58 +237,150 @@ class Dashboard extends BaseController
             ];
         }
         
-        // Recent activity: rolling window (not “today only”, which is often empty early in the day)
+        // Recent activity: rolling 7-day window covering all transaction types
         $activitySince = date('Y-m-d H:i:s', strtotime('-7 days'));
-        $activityQuery = "SELECT * FROM (
-                          SELECT 'check_in' AS type, i.full_name, iv.check_in_time AS time, 'Lobby' AS location
-                          FROM invitation_visitors iv
-                          JOIN invitations i ON i.id = iv.invitation_id
-                          WHERE iv.check_in_time IS NOT NULL
-                          AND iv.check_in_time >= ?
-                          UNION ALL
-                          SELECT 'check_out' AS type, i.full_name, iv.check_out_time AS time, 'Exit' AS location
-                          FROM invitation_visitors iv
-                          JOIN invitations i ON i.id = iv.invitation_id
-                          WHERE iv.check_out_time IS NOT NULL
-                          AND iv.check_out_time >= ?
-                          UNION ALL
-                          SELECT 'created' AS type, i.full_name, i.created_at AS time, COALESCE(u.full_name, 'System') AS location
-                          FROM invitations i
-                          LEFT JOIN users u ON u.id = i.invited_by
-                          WHERE i.status = 'Approved'
-                          AND i.created_at >= ?
-                          ) act
-                          ORDER BY act.time DESC
-                          LIMIT 20";
 
-        $activityData = $db->query($activityQuery, [$activitySince, $activitySince, $activitySince])->getResultArray();
-        
+        $activityParts = [];
+        $activityParams = [];
+
+        $activityParts[] = "SELECT 'created' AS type, i.full_name, i.created_at AS time,
+               COALESCE(i.invited_by, 'System') AS actor, '' AS extra
+               FROM invitations i WHERE i.created_at >= ?";
+        $activityParams[] = $activitySince;
+
+        $activityParts[] = "SELECT 'approved' AS type, i.full_name, i.updated_at AS time,
+               COALESCE(i.invited_by, 'System') AS actor, '' AS extra
+               FROM invitations i WHERE i.status = 'Approved'
+               AND i.updated_at >= ? AND i.updated_at > i.created_at";
+        $activityParams[] = $activitySince;
+
+        $activityParts[] = "SELECT 'rejected' AS type, i.full_name, i.updated_at AS time,
+               COALESCE(i.invited_by, 'System') AS actor, '' AS extra
+               FROM invitations i WHERE i.status = 'Rejected'
+               AND i.updated_at >= ? AND i.updated_at > i.created_at";
+        $activityParams[] = $activitySince;
+
+        $activityParts[] = "SELECT 'check_in' AS type, i.full_name, iv.check_in_time AS time,
+               'Lobby' AS actor, '' AS extra
+               FROM invitation_visitors iv
+               JOIN invitations i ON i.id = iv.invitation_id
+               WHERE iv.check_in_time IS NOT NULL AND iv.check_in_time >= ?";
+        $activityParams[] = $activitySince;
+
+        $activityParts[] = "SELECT 'check_out' AS type, i.full_name, iv.check_out_time AS time,
+               'Exit' AS actor, '' AS extra
+               FROM invitation_visitors iv
+               JOIN invitations i ON i.id = iv.invitation_id
+               WHERE iv.check_out_time IS NOT NULL AND iv.check_out_time >= ?";
+        $activityParams[] = $activitySince;
+
+        $activityParts[] = "SELECT 'door_access' AS type,
+               COALESCE(i.full_name, 'Unknown Visitor') AS full_name,
+               vcl.scanned_at AS time, l.lane AS actor, vcl.action AS extra
+               FROM visitor_card_logs vcl
+               JOIN lanes l ON l.id = vcl.lane_id
+               LEFT JOIN invitations i ON i.id = vcl.invitation_id
+               WHERE vcl.scanned_at >= ?";
+        $activityParams[] = $activitySince;
+
+        if ($db->tableExists('security_alerts')) {
+            $activityParts[] = "SELECT 'security_alert' AS type,
+                   COALESCE(sa.visitor_name, 'System') AS full_name,
+                   sa.created_at AS time,
+                   COALESCE(sa.location, 'Security') AS actor,
+                   sa.incident_type AS extra
+                   FROM security_alerts sa WHERE sa.created_at >= ?";
+            $activityParams[] = $activitySince;
+        }
+
+        $activityQuery = 'SELECT * FROM (' . implode(' UNION ALL ', $activityParts) . ') act ORDER BY act.time DESC LIMIT 30';
+        $activityData = $db->query($activityQuery, $activityParams)->getResultArray();
+
         $recentActivity = [];
         foreach ($activityData as $activity) {
-            $action = '';
-            $status = 'pending';
-            $location = $activity['location'] ?? 'N/A';
-            
-            if ($activity['type'] == 'check_in') {
-                $action = 'checked in';
-                $status = 'online';
-            } elseif ($activity['type'] == 'check_out') {
-                $action = 'checked out';
-                $status = 'offline';
-            } else {
-                $action = 'invitation created';
-                $location = 'by ' . $location;
-            }
-            
-            $timeAgo = $this->getTimeAgo($activity['time']);
-            
+            $type   = $activity['type'];
+            $actor  = $activity['actor'] ?? '';
+            $extra  = $activity['extra'] ?? '';
+            $name   = $activity['full_name'] ?? 'N/A';
+
+            $cfg = match ($type) {
+                'created' => [
+                    'label'       => 'Invitation Created',
+                    'description' => 'Invitation created for <span class="font-semibold">' . esc($name) . '</span>',
+                    'location'    => 'by ' . esc($actor),
+                    'icon'        => 'add_circle',
+                    'iconBg'      => 'bg-amber-100 dark:bg-amber-900/30',
+                    'iconColor'   => 'text-amber-600 dark:text-amber-400',
+                ],
+                'approved' => [
+                    'label'       => 'Invitation Approved',
+                    'description' => 'Invitation approved for <span class="font-semibold">' . esc($name) . '</span>',
+                    'location'    => 'by ' . esc($actor),
+                    'icon'        => 'check_circle',
+                    'iconBg'      => 'bg-green-100 dark:bg-green-900/30',
+                    'iconColor'   => 'text-green-600 dark:text-green-400',
+                ],
+                'rejected' => [
+                    'label'       => 'Invitation Rejected',
+                    'description' => 'Invitation rejected for <span class="font-semibold">' . esc($name) . '</span>',
+                    'location'    => 'by ' . esc($actor),
+                    'icon'        => 'cancel',
+                    'iconBg'      => 'bg-red-100 dark:bg-red-900/30',
+                    'iconColor'   => 'text-red-600 dark:text-red-400',
+                ],
+                'check_in' => [
+                    'label'       => 'Checked In',
+                    'description' => '<span class="font-semibold">' . esc($name) . '</span> checked in',
+                    'location'    => $actor,
+                    'icon'        => 'login',
+                    'iconBg'      => 'bg-green-100 dark:bg-green-900/30',
+                    'iconColor'   => 'text-green-600 dark:text-green-400',
+                ],
+                'check_out' => [
+                    'label'       => 'Checked Out',
+                    'description' => '<span class="font-semibold">' . esc($name) . '</span> checked out',
+                    'location'    => $actor,
+                    'icon'        => 'logout',
+                    'iconBg'      => 'bg-slate-100 dark:bg-slate-800',
+                    'iconColor'   => 'text-slate-500 dark:text-slate-400',
+                ],
+                'door_access' => [
+                    'label'       => $extra === 'checkin' ? 'Door Entry' : 'Door Exit',
+                    'description' => '<span class="font-semibold">' . esc($name) . '</span> ' . ($extra === 'checkin' ? 'entered via' : 'exited via') . ' ' . esc($actor),
+                    'location'    => esc($actor),
+                    'icon'        => 'sensor_door',
+                    'iconBg'      => 'bg-blue-100 dark:bg-blue-900/30',
+                    'iconColor'   => 'text-blue-600 dark:text-blue-400',
+                ],
+                'security_alert' => [
+                    'label'       => 'Security Alert',
+                    'description' => 'Alert: <span class="font-semibold">' . esc($extra) . '</span>',
+                    'location'    => esc($actor),
+                    'icon'        => 'warning',
+                    'iconBg'      => 'bg-red-100 dark:bg-red-900/30',
+                    'iconColor'   => 'text-red-600 dark:text-red-400',
+                ],
+                default => [
+                    'label'       => ucfirst(str_replace('_', ' ', $type)),
+                    'description' => esc($name),
+                    'location'    => esc($actor),
+                    'icon'        => 'info',
+                    'iconBg'      => 'bg-slate-100 dark:bg-slate-800',
+                    'iconColor'   => 'text-slate-500 dark:text-slate-400',
+                ],
+            };
+
             $recentActivity[] = [
-                'name' => $activity['full_name'] ?? 'N/A',
-                'action' => $action,
-                'time' => $timeAgo,
-                'location' => $location,
-                'status' => $status,
-                'initials' => strtoupper(substr($activity['full_name'] ?? 'NA', 0, 2))
+                'type'        => $type,
+                'name'        => $name,
+                'label'       => $cfg['label'],
+                'description' => $cfg['description'],
+                'time'        => $this->getTimeAgo($activity['time']),
+                'location'    => $cfg['location'],
+                'icon'        => $cfg['icon'],
+                'iconBg'      => $cfg['iconBg'],
+                'iconColor'   => $cfg['iconColor'],
+                'initials'    => strtoupper(substr($name, 0, 2)),
             ];
         }
         
@@ -313,13 +405,12 @@ class Dashboard extends BaseController
         
         // 3. Currently On-Site visitors table (detailed, for the new section)
         $onSiteVisitorsQuery = "SELECT iv.id as visitor_id,
-                                       COALESCE(iv.full_name, i.full_name) as visitor_name,
-                                       COALESCE(u.full_name, 'N/A') as host_name,
+                                       COALESCE(i.full_name, iv.full_name) as visitor_name,
+                                       COALESCE(i.invited_by, 'N/A') as host_name,
                                        iv.check_in_time,
                                        COALESCE(i.location, 'N/A') as location
                                 FROM invitation_visitors iv
                                 JOIN invitations i ON i.id = iv.invitation_id
-                                LEFT JOIN users u ON u.id = i.invited_by
                                 WHERE i.status = 'Approved'
                                 AND iv.check_in_time IS NOT NULL
                                 AND iv.check_out_time IS NULL
@@ -339,11 +430,10 @@ class Dashboard extends BaseController
         
         // Upcoming: next schedule slots strictly after now (includes later today); excludes past-only visits
         $upcomingAppointmentsQuery = "SELECT i.full_name as visitor_name,
-                                             u.full_name as host_name,
+                                             COALESCE(i.invited_by, 'N/A') as host_name,
                                              s.date_from, s.date_to, i.reason
                                       FROM invitations i
                                       JOIN invitation_schedules s ON s.invitation_id = i.id
-                                      LEFT JOIN users u ON u.id = i.invited_by
                                       WHERE i.status = 'Approved'
                                       AND s.date_from > ?
                                       AND DATE(s.date_to) >= ?
@@ -364,12 +454,11 @@ class Dashboard extends BaseController
         
         // Today's appointments: each schedule slice overlapping today; one visitor row per invitation (latest iv)
         $todayAppointmentsQuery = "SELECT i.full_name as visitor_name,
-                                          u.full_name as host_name,
+                                          COALESCE(i.invited_by, 'N/A') as host_name,
                                           s.date_from, s.date_to, i.reason,
                                           iv.check_in_time, iv.check_out_time
                                    FROM invitations i
                                    JOIN invitation_schedules s ON s.invitation_id = i.id
-                                   LEFT JOIN users u ON u.id = i.invited_by
                                    LEFT JOIN invitation_visitors iv ON iv.id = (
                                        SELECT iv2.id FROM invitation_visitors iv2
                                        WHERE iv2.invitation_id = i.id
@@ -608,13 +697,12 @@ class Dashboard extends BaseController
         }
 
         $physicalOverstays = $db->query(
-            "SELECT iv.id, COALESCE(iv.full_name, i.full_name) as visitor_name,
-                    COALESCE(u.full_name, 'N/A') as host_name,
+            "SELECT iv.id, COALESCE(i.full_name, iv.full_name) as visitor_name,
+                    COALESCE(i.invited_by, 'N/A') as host_name,
                     iv.check_in_time, COALESCE(i.location, 'N/A') as location,
                     (SELECT MAX(s.date_to) FROM invitation_schedules s WHERE s.invitation_id = i.id) as schedule_end
              FROM invitation_visitors iv
              INNER JOIN invitations i ON i.id = iv.invitation_id
-             LEFT JOIN users u ON u.id = i.invited_by
              WHERE i.status = 'Approved'
              AND iv.check_in_time IS NOT NULL
              AND iv.check_out_time IS NULL
@@ -661,13 +749,13 @@ class Dashboard extends BaseController
     {
         $db = \Config\Database::connect();
         $visitors = $db->query(
-            "SELECT iv.id, COALESCE(iv.full_name, i.full_name) as visitor_name,
-                    i.company, COALESCE(u.full_name, 'N/A') as host_name,
+            "SELECT iv.id, COALESCE(i.full_name, iv.full_name) as visitor_name,
+                    i.company, COALESCE(i.invited_by, 'N/A') as host_name,
                     iv.check_in_time, COALESCE(i.location, 'N/A') as location,
-                    i.visitor_email
+                    COALESCE(iv.contact, i.contact) as contact,
+                    i.visitor_email, i.profile_photo_path
              FROM invitation_visitors iv
              JOIN invitations i ON i.id = iv.invitation_id
-             LEFT JOIN users u ON u.id = i.invited_by
              WHERE i.status = 'Approved'
              AND iv.check_in_time IS NOT NULL
              AND iv.check_out_time IS NULL
@@ -688,7 +776,7 @@ class Dashboard extends BaseController
         $visitors = $db->query(
             "SELECT i.full_name, i.visitor_email, i.company,
                     iv.check_in_time, iv.check_out_time,
-                    u.full_name as host_name,
+                    COALESCE(i.invited_by, 'N/A') as host_name,
                     s.date_from, s.date_to
              FROM invitations i
              JOIN invitation_schedules s ON s.invitation_id = i.id
@@ -696,7 +784,6 @@ class Dashboard extends BaseController
                  SELECT iv2.id FROM invitation_visitors iv2
                  WHERE iv2.invitation_id = i.id ORDER BY iv2.id DESC LIMIT 1
              )
-             LEFT JOIN users u ON u.id = i.invited_by
              WHERE i.status = 'Approved'
              AND DATE(s.date_from) <= ? AND DATE(s.date_to) >= ?
              ORDER BY s.date_from ASC",
@@ -715,12 +802,11 @@ class Dashboard extends BaseController
         $today = date('Y-m-d');
 
         $visitors = $db->query(
-            "SELECT iv.id, COALESCE(iv.full_name, i.full_name) as visitor_name,
-                    i.company, COALESCE(u.full_name, 'N/A') as host_name,
+            "SELECT iv.id, COALESCE(i.full_name, iv.full_name) as visitor_name,
+                    i.company, COALESCE(i.invited_by, 'N/A') as host_name,
                     iv.check_in_time, iv.check_out_time, COALESCE(i.location, 'N/A') as location
              FROM invitation_visitors iv
              JOIN invitations i ON i.id = iv.invitation_id
-             LEFT JOIN users u ON u.id = i.invited_by
              WHERE i.status = 'Approved'
              AND DATE(iv.check_out_time) = ?
              ORDER BY iv.check_out_time DESC",
@@ -848,6 +934,146 @@ class Dashboard extends BaseController
             'overstayCount' => $overstayCount,
             'activeSecurityAlertCount' => $activeSecurityAlertCount,
         ];
+    }
+
+    /**
+     * AJAX: Quick check-in from dashboard (sets check_in_time = now on the visitor record)
+     */
+    public function quickCheckIn()
+    {
+        $invitationId = (int) $this->request->getPost('invitation_id');
+        if (!$invitationId) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Invalid invitation ID']);
+        }
+
+        $db = \Config\Database::connect();
+
+        $invitation = $db->table('invitations')->where('id', $invitationId)->where('status', 'Approved')->get()->getRowArray();
+        if (!$invitation) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Invitation not found or not approved']);
+        }
+
+        $visitor = $db->table('invitation_visitors')->where('invitation_id', $invitationId)->get()->getRowArray();
+        if (!$visitor) {
+            return $this->response->setJSON(['success' => false, 'message' => 'No visitor record found for this invitation']);
+        }
+
+        if (!empty($visitor['check_in_time'])) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Visitor has already checked in']);
+        }
+
+        $now = date('Y-m-d H:i:s');
+        $db->table('invitation_visitors')
+            ->where('id', $visitor['id'])
+            ->update(['check_in_time' => $now, 'updated_at' => $now]);
+
+        if ($db->affectedRows() === 0) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Check-in failed, please try again']);
+        }
+
+        return $this->response->setJSON([
+            'success'        => true,
+            'message'        => 'Visitor checked in successfully',
+            'check_in_time'  => date('h:i A', strtotime($now)),
+            'visitor_name'   => $invitation['full_name'] ?? 'N/A',
+        ]);
+    }
+
+    /**
+     * AJAX: Full recent activity feed (last 30 days, up to 100 rows)
+     */
+    public function recentActivityData()
+    {
+        $db = \Config\Database::connect();
+        $since = date('Y-m-d H:i:s', strtotime('-30 days'));
+
+        $parts = [];
+        $params = [];
+
+        $parts[] = "SELECT 'created' AS type, i.full_name, i.created_at AS time,
+               COALESCE(i.invited_by, 'System') AS actor, '' AS extra
+               FROM invitations i WHERE i.created_at >= ?";
+        $params[] = $since;
+
+        $parts[] = "SELECT 'approved' AS type, i.full_name, i.updated_at AS time,
+               COALESCE(i.invited_by, 'System') AS actor, '' AS extra
+               FROM invitations i WHERE i.status = 'Approved'
+               AND i.updated_at >= ? AND i.updated_at > i.created_at";
+        $params[] = $since;
+
+        $parts[] = "SELECT 'rejected' AS type, i.full_name, i.updated_at AS time,
+               COALESCE(i.invited_by, 'System') AS actor, '' AS extra
+               FROM invitations i WHERE i.status = 'Rejected'
+               AND i.updated_at >= ? AND i.updated_at > i.created_at";
+        $params[] = $since;
+
+        $parts[] = "SELECT 'check_in' AS type, i.full_name, iv.check_in_time AS time,
+               'Lobby' AS actor, '' AS extra
+               FROM invitation_visitors iv
+               JOIN invitations i ON i.id = iv.invitation_id
+               WHERE iv.check_in_time IS NOT NULL AND iv.check_in_time >= ?";
+        $params[] = $since;
+
+        $parts[] = "SELECT 'check_out' AS type, i.full_name, iv.check_out_time AS time,
+               'Exit' AS actor, '' AS extra
+               FROM invitation_visitors iv
+               JOIN invitations i ON i.id = iv.invitation_id
+               WHERE iv.check_out_time IS NOT NULL AND iv.check_out_time >= ?";
+        $params[] = $since;
+
+        $parts[] = "SELECT 'door_access' AS type,
+               COALESCE(i.full_name, 'Unknown Visitor') AS full_name,
+               vcl.scanned_at AS time, l.lane AS actor, vcl.action AS extra
+               FROM visitor_card_logs vcl
+               JOIN lanes l ON l.id = vcl.lane_id
+               LEFT JOIN invitations i ON i.id = vcl.invitation_id
+               WHERE vcl.scanned_at >= ?";
+        $params[] = $since;
+
+        if ($db->tableExists('security_alerts')) {
+            $parts[] = "SELECT 'security_alert' AS type,
+                   COALESCE(sa.visitor_name, 'System') AS full_name,
+                   sa.created_at AS time,
+                   COALESCE(sa.location, 'Security') AS actor,
+                   sa.incident_type AS extra
+                   FROM security_alerts sa WHERE sa.created_at >= ?";
+            $params[] = $since;
+        }
+
+        $rows = $db->query(
+            'SELECT * FROM (' . implode(' UNION ALL ', $parts) . ') act ORDER BY act.time DESC LIMIT 100',
+            $params
+        )->getResultArray();
+
+        $typeLabels = [
+            'created'        => 'Invitation Created',
+            'approved'       => 'Invitation Approved',
+            'rejected'       => 'Invitation Rejected',
+            'check_in'       => 'Checked In',
+            'check_out'      => 'Checked Out',
+            'door_access'    => 'Door Access',
+            'security_alert' => 'Security Alert',
+        ];
+
+        $data = array_map(function ($row) use ($typeLabels) {
+            $type  = $row['type'];
+            $extra = $row['extra'] ?? '';
+            $label = $typeLabels[$type] ?? ucfirst(str_replace('_', ' ', $type));
+            if ($type === 'door_access') {
+                $label = $extra === 'checkin' ? 'Door Entry' : 'Door Exit';
+            }
+            return [
+                'type'     => $type,
+                'label'    => $label,
+                'name'     => $row['full_name'] ?? 'N/A',
+                'actor'    => $row['actor'] ?? '',
+                'extra'    => $extra,
+                'time'     => $row['time'],
+                'time_ago' => $this->getTimeAgo($row['time']),
+            ];
+        }, $rows);
+
+        return $this->response->setJSON(['success' => true, 'data' => $data]);
     }
 
     private function getTimeAgo($datetime)
