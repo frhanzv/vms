@@ -3601,8 +3601,7 @@
                 </div>
 
                 <!-- Notification Settings -->
-                <div
-                    class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('notification')"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                         <div class="flex items-center gap-4">
@@ -3611,56 +3610,138 @@
                             </div>
                             <div class="text-left">
                                 <h3 class="text-base font-bold text-gray-800 dark:text-white">Notification Settings</h3>
-                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Manage email, SMS, and push
-                                    notifications</p>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Per-client channel toggles, messaging credentials and WhatsApp templates</p>
                             </div>
                         </div>
                         <span id="notification-icon"
                             class="material-symbols-outlined text-gray-400 dark:text-slate-400 transition-transform">expand_more</span>
                     </button>
                     <div id="notification-content" class="hidden border-t border-gray-200 dark:border-slate-700">
-                        <div class="p-6 bg-gray-50 dark:bg-slate-800/50 space-y-5">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <p class="text-sm font-semibold text-slate-700 dark:text-slate-300">Email
-                                        Notifications</p>
-                                    <p class="text-xs text-slate-500 mt-1">Send email notifications for visitor arrivals
-                                    </p>
+                        <div class="p-6 bg-gray-50 dark:bg-slate-800/50">
+
+                            <!-- Company selector -->
+                            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
+                                <label class="text-sm font-semibold text-gray-700 dark:text-slate-300 whitespace-nowrap font-brand">Select Client:</label>
+                                <div class="relative w-full sm:w-80">
+                                    <select id="ns-company-select" onchange="nsLoadCompany()"
+                                        class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm font-brand">
+                                        <option value="">-- Select a client --</option>
+                                    </select>
+                                    <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                                        <span class="material-symbols-outlined text-gray-400 text-lg">expand_more</span>
+                                    </span>
                                 </div>
-                                <label class="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" checked class="sr-only peer">
-                                    <div
-                                        class="w-11 h-6 bg-gray-300 dark:bg-slate-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary">
-                                    </div>
-                                </label>
                             </div>
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <p class="text-sm font-semibold text-slate-700 dark:text-slate-300">SMS
-                                        Notifications</p>
-                                    <p class="text-xs text-slate-500 mt-1">Send SMS alerts to hosts when visitors arrive
-                                    </p>
+
+                            <!-- Panel (shown after selecting a company) -->
+                            <div id="ns-panel" class="hidden">
+
+                                <!-- Tabs -->
+                                <div class="flex gap-2 mb-5 border-b border-gray-200 dark:border-slate-700">
+                                    <button type="button" id="ns-tab-btn-channels" onclick="nsSwitchTab('channels')"
+                                        class="px-4 py-2 text-sm font-medium font-brand border-b-2 border-primary text-primary -mb-px">
+                                        Channels
+                                    </button>
+                                    <button type="button" id="ns-tab-btn-credentials" onclick="nsSwitchTab('credentials')"
+                                        class="px-4 py-2 text-sm font-medium font-brand border-b-2 border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 -mb-px">
+                                        Credentials
+                                    </button>
+                                    <button type="button" id="ns-tab-btn-templates" onclick="nsSwitchTab('templates')"
+                                        class="px-4 py-2 text-sm font-medium font-brand border-b-2 border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 -mb-px">
+                                        WA Templates
+                                    </button>
                                 </div>
-                                <label class="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" checked class="sr-only peer">
-                                    <div
-                                        class="w-11 h-6 bg-gray-300 dark:bg-slate-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary">
+
+                                <!-- Channels tab -->
+                                <div id="ns-tab-channels">
+                                    <div id="ns-channels-loading" class="hidden text-center py-6">
+                                        <div class="inline-block animate-spin rounded-full h-7 w-7 border-b-2 border-primary"></div>
                                     </div>
-                                </label>
-                            </div>
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <p class="text-sm font-semibold text-slate-700 dark:text-slate-300">Push
-                                        Notifications</p>
-                                    <p class="text-xs text-slate-500 mt-1">Enable browser push notifications</p>
+                                    <div id="ns-channels-grid"></div>
+                                    <div class="flex justify-end mt-4">
+                                        <button onclick="nsSaveChannels()"
+                                            class="px-5 py-2.5 rounded-lg bg-primary hover:bg-blue-600 text-white font-medium text-sm flex items-center gap-2 transition-colors font-brand">
+                                            <span class="material-symbols-outlined text-base">save</span>
+                                            Save Channels
+                                        </button>
+                                    </div>
                                 </div>
-                                <label class="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" class="sr-only peer">
-                                    <div
-                                        class="w-11 h-6 bg-gray-300 dark:bg-slate-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary">
+
+                                <!-- Credentials tab -->
+                                <div id="ns-tab-credentials" class="hidden">
+                                    <!-- WhatsApp -->
+                                    <div class="mb-6">
+                                        <h4 class="text-sm font-bold text-gray-700 dark:text-slate-300 mb-3 flex items-center gap-2">
+                                            <span class="material-symbols-outlined text-green-500 text-base">chat</span>
+                                            WhatsApp (Meta Cloud API)
+                                        </h4>
+                                        <div class="bg-white dark:bg-slate-700 rounded-lg border border-gray-200 dark:border-slate-600 p-4 space-y-4">
+                                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                <div>
+                                                    <label class="block text-xs font-semibold text-gray-600 dark:text-slate-400 mb-1">Phone Number ID</label>
+                                                    <input type="text" id="ns-wa-phone-id"
+                                                        class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white px-3 py-2 text-sm font-brand"
+                                                        placeholder="e.g. 123456789012345" />
+                                                </div>
+                                                <div>
+                                                    <label class="block text-xs font-semibold text-gray-600 dark:text-slate-400 mb-1">Access Token</label>
+                                                    <input type="password" id="ns-wa-token"
+                                                        class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white px-3 py-2 text-sm font-brand"
+                                                        placeholder="Bearer token from Meta" />
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center gap-3">
+                                                <span class="text-sm font-semibold text-gray-600 dark:text-slate-400">Active</span>
+                                                <button type="button" id="ns-wa-active-btn" onclick="nsToggleWaActive()"
+                                                    class="relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 cursor-pointer focus:outline-none bg-gray-300 dark:bg-slate-500"
+                                                    role="switch" aria-checked="false">
+                                                    <span class="pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition duration-200 translate-x-0"></span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="flex justify-end mt-3">
+                                            <button onclick="nsSaveCredentials('whatsapp')"
+                                                class="px-5 py-2.5 rounded-lg bg-primary hover:bg-blue-600 text-white font-medium text-sm flex items-center gap-2 transition-colors font-brand">
+                                                <span class="material-symbols-outlined text-base">save</span>
+                                                Save WhatsApp Credentials
+                                            </button>
+                                        </div>
                                     </div>
-                                </label>
+
+                                    <!-- Telegram (stub) -->
+                                    <div>
+                                        <h4 class="text-sm font-bold text-gray-700 dark:text-slate-300 mb-3 flex items-center gap-2">
+                                            <span class="material-symbols-outlined text-blue-400 text-base">send</span>
+                                            Telegram
+                                        </h4>
+                                        <div class="bg-white dark:bg-slate-700 rounded-lg border border-gray-200 dark:border-slate-600 p-4">
+                                            <p class="text-sm text-gray-500 dark:text-slate-400">Telegram integration is coming soon.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Templates tab -->
+                                <div id="ns-tab-templates" class="hidden">
+                                    <p class="text-xs text-gray-500 dark:text-slate-400 mb-4">Template names must match exactly as registered in Meta Business Manager.</p>
+                                    <div id="ns-templates-loading" class="hidden text-center py-6">
+                                        <div class="inline-block animate-spin rounded-full h-7 w-7 border-b-2 border-primary"></div>
+                                    </div>
+                                    <div id="ns-templates-grid" class="space-y-3"></div>
+                                    <div class="flex justify-end mt-4">
+                                        <button onclick="nsSaveTemplates()"
+                                            class="px-5 py-2.5 rounded-lg bg-primary hover:bg-blue-600 text-white font-medium text-sm flex items-center gap-2 transition-colors font-brand">
+                                            <span class="material-symbols-outlined text-base">save</span>
+                                            Save Templates
+                                        </button>
+                                    </div>
+                                </div>
+
                             </div>
+
+                            <div id="ns-empty" class="text-sm text-gray-500 dark:text-slate-400 text-center py-4">
+                                Select a client above to manage their notification settings.
+                            </div>
+
                         </div>
                     </div>
                 </div>
@@ -15496,6 +15577,305 @@
                 }
             })
             .catch(() => alert('Network error while saving feature flags.'));
+        }
+
+        // ── Notification Settings ────────────────────────────────────
+        let nsCompanyId    = null;
+        let nsSettings     = {};   // { email: { invitation_sent: bool, ... }, whatsapp: {...}, ... }
+        let nsTypes        = {};   // { invitation_sent: 'Visitor Invitation', ... }
+        let nsChannels     = [];   // ['email', 'whatsapp', 'telegram']
+        let nsWaActive     = false;
+        let nsActiveTab    = 'channels';
+
+        const nsChannelLabels = { email: 'Email', whatsapp: 'WhatsApp', telegram: 'Telegram' };
+
+        document.addEventListener('DOMContentLoaded', function () {
+            fetch(`${configBaseUrl}/getAllCompanies`)
+                .then(r => r.json())
+                .then(res => {
+                    const sel = document.getElementById('ns-company-select');
+                    (res.data || []).forEach(c => {
+                        const opt = document.createElement('option');
+                        opt.value = c.id;
+                        opt.textContent = c.name;
+                        sel.appendChild(opt);
+                    });
+                })
+                .catch(() => {});
+        });
+
+        function nsLoadCompany() {
+            const sel = document.getElementById('ns-company-select');
+            nsCompanyId = sel.value || null;
+            const panel = document.getElementById('ns-panel');
+            const empty = document.getElementById('ns-empty');
+
+            if (!nsCompanyId) {
+                panel.classList.add('hidden');
+                empty.classList.remove('hidden');
+                return;
+            }
+
+            panel.classList.remove('hidden');
+            empty.classList.add('hidden');
+            nsSettings = {};
+            nsWaActive = false;
+            nsSwitchTab('channels');
+        }
+
+        function nsSwitchTab(tab) {
+            nsActiveTab = tab;
+            ['channels', 'credentials', 'templates'].forEach(t => {
+                const btn     = document.getElementById(`ns-tab-btn-${t}`);
+                const content = document.getElementById(`ns-tab-${t}`);
+                if (!btn || !content) return;
+                if (t === tab) {
+                    btn.classList.add('border-primary', 'text-primary');
+                    btn.classList.remove('border-transparent', 'text-gray-500', 'dark:text-slate-400');
+                    content.classList.remove('hidden');
+                } else {
+                    btn.classList.remove('border-primary', 'text-primary');
+                    btn.classList.add('border-transparent', 'text-gray-500', 'dark:text-slate-400');
+                    content.classList.add('hidden');
+                }
+            });
+
+            if (tab === 'channels')     nsLoadChannels();
+            if (tab === 'credentials')  nsLoadCredentials('whatsapp');
+            if (tab === 'templates')    nsLoadTemplates();
+        }
+
+        function nsLoadChannels() {
+            if (!nsCompanyId) return;
+            document.getElementById('ns-channels-loading').classList.remove('hidden');
+            document.getElementById('ns-channels-grid').innerHTML = '';
+
+            fetch(`${configBaseUrl}/getNotificationSettings/${nsCompanyId}`)
+                .then(r => r.json())
+                .then(res => {
+                    document.getElementById('ns-channels-loading').classList.add('hidden');
+                    if (!res.success) return;
+                    nsSettings = res.settings;
+                    nsTypes    = res.types;
+                    nsChannels = res.channels;
+                    nsRenderChannels();
+                })
+                .catch(() => document.getElementById('ns-channels-loading').classList.add('hidden'));
+        }
+
+        function nsRenderChannels() {
+            const channelList = nsChannels.filter(c => c !== 'telegram');
+            const typeEntries = Object.entries(nsTypes);
+
+            let html = `<div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-gray-200 dark:border-slate-600">
+                            <th class="text-left py-2 pr-4 text-xs font-semibold text-gray-500 dark:text-slate-400 font-brand">Notification</th>`;
+            channelList.forEach(ch => {
+                html += `<th class="text-center py-2 px-3 text-xs font-semibold text-gray-500 dark:text-slate-400 font-brand">${nsChannelLabels[ch] || ch}</th>`;
+            });
+            html += `</tr></thead><tbody class="divide-y divide-gray-100 dark:divide-slate-700">`;
+
+            typeEntries.forEach(([typeKey, typeLabel]) => {
+                html += `<tr>
+                    <td class="py-3 pr-4 text-sm text-gray-700 dark:text-slate-300 font-brand">${typeLabel}</td>`;
+                channelList.forEach(ch => {
+                    const on = nsSettings[ch] && nsSettings[ch][typeKey] == 1;
+                    html += `<td class="py-3 px-3 text-center">
+                        <button type="button"
+                            id="ns-toggle-${ch}-${typeKey}"
+                            onclick="nsToggleChannel('${ch}','${typeKey}')"
+                            class="relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 cursor-pointer focus:outline-none ${on ? 'bg-primary' : 'bg-gray-300 dark:bg-slate-500'}"
+                            role="switch" aria-checked="${on}">
+                            <span class="pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition duration-200 ${on ? 'translate-x-5' : 'translate-x-0'}"></span>
+                        </button>
+                    </td>`;
+                });
+                html += `</tr>`;
+            });
+
+            html += `</tbody></table></div>`;
+            document.getElementById('ns-channels-grid').innerHTML = html;
+        }
+
+        function nsToggleChannel(channel, typeKey) {
+            if (!nsSettings[channel]) nsSettings[channel] = {};
+            nsSettings[channel][typeKey] = !nsSettings[channel][typeKey];
+            const btn  = document.getElementById(`ns-toggle-${channel}-${typeKey}`);
+            const knob = btn.querySelector('span');
+            const on   = nsSettings[channel][typeKey];
+            if (on) {
+                btn.classList.remove('bg-gray-300', 'dark:bg-slate-500');
+                btn.classList.add('bg-primary');
+                knob.classList.replace('translate-x-0', 'translate-x-5');
+            } else {
+                btn.classList.remove('bg-primary');
+                btn.classList.add('bg-gray-300', 'dark:bg-slate-500');
+                knob.classList.replace('translate-x-5', 'translate-x-0');
+            }
+            btn.setAttribute('aria-checked', on);
+        }
+
+        function nsSaveChannels() {
+            if (!nsCompanyId) return;
+            fetch(`${configBaseUrl}/saveNotificationSettings/${nsCompanyId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '<?= csrf_hash() ?>'
+                },
+                body: JSON.stringify({ settings: nsSettings })
+            })
+            .then(r => r.json())
+            .then(res => {
+                if (res.success) {
+                    if (typeof showToast === 'function') showToast('Notification settings saved', 'success');
+                    else alert('Notification settings saved');
+                } else {
+                    alert('Failed to save: ' + (res.message || ''));
+                }
+            })
+            .catch(() => alert('Network error while saving notification settings.'));
+        }
+
+        function nsLoadCredentials(channel) {
+            if (!nsCompanyId || channel !== 'whatsapp') return;
+            fetch(`${configBaseUrl}/getMessagingCredentials/${nsCompanyId}/${channel}`)
+                .then(r => r.json())
+                .then(res => {
+                    if (!res.success) return;
+                    const cred = res.credential || {};
+                    document.getElementById('ns-wa-phone-id').value = cred.phone_number_id || '';
+                    document.getElementById('ns-wa-token').value    = cred.access_token || '';
+                    nsWaActive = !!cred.is_active;
+                    nsSetWaActiveBtn(nsWaActive);
+                })
+                .catch(() => {});
+        }
+
+        function nsSetWaActiveBtn(active) {
+            const btn  = document.getElementById('ns-wa-active-btn');
+            const knob = btn.querySelector('span');
+            if (active) {
+                btn.classList.remove('bg-gray-300', 'dark:bg-slate-500');
+                btn.classList.add('bg-primary');
+                knob.classList.replace('translate-x-0', 'translate-x-5');
+            } else {
+                btn.classList.remove('bg-primary');
+                btn.classList.add('bg-gray-300', 'dark:bg-slate-500');
+                knob.classList.replace('translate-x-5', 'translate-x-0');
+            }
+            btn.setAttribute('aria-checked', active);
+        }
+
+        function nsToggleWaActive() {
+            nsWaActive = !nsWaActive;
+            nsSetWaActiveBtn(nsWaActive);
+        }
+
+        function nsSaveCredentials(channel) {
+            if (!nsCompanyId || channel !== 'whatsapp') return;
+            const payload = {
+                phone_number_id: document.getElementById('ns-wa-phone-id').value.trim(),
+                access_token:    document.getElementById('ns-wa-token').value.trim(),
+                is_active:       nsWaActive,
+            };
+            fetch(`${configBaseUrl}/saveMessagingCredentials/${nsCompanyId}/${channel}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '<?= csrf_hash() ?>'
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(r => r.json())
+            .then(res => {
+                if (res.success) {
+                    if (typeof showToast === 'function') showToast('WhatsApp credentials saved', 'success');
+                    else alert('WhatsApp credentials saved');
+                } else {
+                    alert('Failed to save: ' + (res.message || ''));
+                }
+            })
+            .catch(() => alert('Network error while saving credentials.'));
+        }
+
+        let nsTemplates = {};
+
+        function nsLoadTemplates() {
+            if (!nsCompanyId) return;
+            document.getElementById('ns-templates-loading').classList.remove('hidden');
+            document.getElementById('ns-templates-grid').innerHTML = '';
+
+            fetch(`${configBaseUrl}/getWhatsappTemplates/${nsCompanyId}`)
+                .then(r => r.json())
+                .then(res => {
+                    document.getElementById('ns-templates-loading').classList.add('hidden');
+                    if (!res.success) return;
+                    nsTemplates = res.templates;
+                    nsRenderTemplates(res.types);
+                })
+                .catch(() => document.getElementById('ns-templates-loading').classList.add('hidden'));
+        }
+
+        function nsRenderTemplates(types) {
+            const grid = document.getElementById('ns-templates-grid');
+            grid.innerHTML = Object.entries(types).map(([typeKey, typeLabel]) => {
+                const tpl  = nsTemplates[typeKey] || {};
+                const name = tpl.template_name || '';
+                const lang = tpl.language_code || 'en_US';
+                return `<div class="bg-white dark:bg-slate-700 rounded-lg border border-gray-200 dark:border-slate-600 p-4">
+                    <p class="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-3 font-brand">${typeLabel}</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Template Name</label>
+                            <input type="text" id="ns-tpl-name-${typeKey}" value="${name}"
+                                class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white px-3 py-2 text-sm font-brand"
+                                placeholder="e.g. visitor_invitation" />
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Language Code</label>
+                            <input type="text" id="ns-tpl-lang-${typeKey}" value="${lang}"
+                                class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white px-3 py-2 text-sm font-brand"
+                                placeholder="e.g. en_US" />
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function nsSaveTemplates() {
+            if (!nsCompanyId) return;
+            const types = Object.keys(nsTypes);
+            const payload = {};
+            types.forEach(typeKey => {
+                payload[typeKey] = {
+                    template_name: (document.getElementById(`ns-tpl-name-${typeKey}`)?.value || '').trim(),
+                    language_code: (document.getElementById(`ns-tpl-lang-${typeKey}`)?.value || 'en_US').trim(),
+                };
+            });
+            fetch(`${configBaseUrl}/saveWhatsappTemplates/${nsCompanyId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '<?= csrf_hash() ?>'
+                },
+                body: JSON.stringify({ templates: payload })
+            })
+            .then(r => r.json())
+            .then(res => {
+                if (res.success) {
+                    if (typeof showToast === 'function') showToast('WhatsApp templates saved', 'success');
+                    else alert('WhatsApp templates saved');
+                } else {
+                    alert('Failed to save: ' + (res.message || ''));
+                }
+            })
+            .catch(() => alert('Network error while saving templates.'));
         }
     </script>
 </body>

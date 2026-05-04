@@ -542,11 +542,12 @@ class InvitationList extends BaseController
 
             $n = count($createdIds);
             $emailsSent = 0;
+            $notificationService = new \App\Services\NotificationService();
             foreach ($createdIds as $invitationId) {
-                if ($this->invitationEmailSender->send($invitationId)) {
+                if ($notificationService->dispatch($invitationId, 'invitation_sent')) {
                     $emailsSent++;
                 } else {
-                    log_message('warning', 'Invitation created but email sending failed for invitation ID: ' . $invitationId);
+                    log_message('warning', 'Invitation created but notification sending failed for invitation ID: ' . $invitationId);
                 }
             }
 
@@ -581,15 +582,15 @@ class InvitationList extends BaseController
      */
     public function resend($id)
     {
-        if ($this->invitationEmailSender->send((int) $id)) {
+        if ((new \App\Services\NotificationService())->dispatch((int) $id, 'invitation_sent')) {
             return $this->response->setJSON([
                 'success' => true,
-                'message' => 'Invitation email sent successfully'
+                'message' => 'Invitation sent successfully'
             ]);
         } else {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Failed to send invitation email'
+                'message' => 'Failed to send invitation'
             ]);
         }
     }

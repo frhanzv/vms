@@ -1283,8 +1283,9 @@ class VisitorRegistration extends BaseController
         }
 
         $emailsSent = 0;
+        $notificationService = new \App\Services\NotificationService();
         foreach ($createdIds as $newId) {
-            if ($this->invitationEmailSender->send($newId)) {
+            if ($notificationService->dispatch($newId, 'invitation_sent')) {
                 $emailsSent++;
             }
         }

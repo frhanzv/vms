@@ -82,6 +82,14 @@ $routes->get('config/exportLogs', 'Config::exportLogs');
 $routes->get('config/getClientFeatures/(:num)', 'Config::getClientFeatures/$1');
 $routes->post('config/saveClientFeatures/(:num)', 'Config::saveClientFeatures/$1');
 
+// Notification Settings Routes
+$routes->get('config/getNotificationSettings/(:num)', 'Config::getNotificationSettings/$1');
+$routes->post('config/saveNotificationSettings/(:num)', 'Config::saveNotificationSettings/$1');
+$routes->get('config/getMessagingCredentials/(:num)/(:alpha)', 'Config::getMessagingCredentials/$1/$2');
+$routes->post('config/saveMessagingCredentials/(:num)/(:alpha)', 'Config::saveMessagingCredentials/$1/$2');
+$routes->get('config/getWhatsappTemplates/(:num)', 'Config::getWhatsappTemplates/$1');
+$routes->post('config/saveWhatsappTemplates/(:num)', 'Config::saveWhatsappTemplates/$1');
+
 // Dynamic Form Field Routes
 $routes->get('config/getClientFormFields/(:num)', 'Config::getClientFormFields/$1');
 $routes->post('config/saveClientFormFields/(:num)', 'Config::saveClientFormFields/$1');
