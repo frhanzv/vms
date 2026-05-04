@@ -146,6 +146,7 @@ class Config extends BaseController
         $this->workflowModel = new \App\Models\WorkflowModel();
         $this->clientFeatureModel   = new ClientFeatureModel();
         $this->clientFormFieldModel = new ClientFormFieldModel();
+        $this->clientFeatureModel = new ClientFeatureModel();
     }
 
     public function index()
