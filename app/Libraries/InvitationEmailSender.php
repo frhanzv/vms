@@ -274,8 +274,13 @@ class InvitationEmailSender
             ];
 
             $crudTemplate = $this->emailTemplateModel
-                ->where('code', 'VISITOR_REQ_APPROVAL')
+                ->where('code', 'APPROVAL')
                 ->first();
+            if (! $crudTemplate) {
+                $crudTemplate = $this->emailTemplateModel
+                    ->where('code', 'VISITOR_REQ_APPROVAL')
+                    ->first();
+            }
 
             $customSubject = null;
             $customBodyHtml = null;
@@ -360,6 +365,125 @@ class InvitationEmailSender
             return $result;
         } catch (\Exception $e) {
             log_message('error', 'Approval email sending failed: ' . $e->getMessage());
+
+            return false;
+        }
+    }
+
+    public function sendRejection(int $invitationId): bool
+    {
+        try {
+            $invitation = $this->getInvitationDetails($invitationId);
+
+            if (! $invitation) {
+                log_message('error', 'Invitation not found for ID: ' . $invitationId);
+                return false;
+            }
+
+            if (empty($invitation['visitor_email'])) {
+                log_message('warning', 'No visitor email found for invitation ID: ' . $invitationId);
+                return false;
+            }
+
+            $email = \Config\Services::email();
+            $email->initialize([
+                'protocol' => $this->emailConfig->protocol,
+                'SMTPHost' => $this->emailConfig->SMTPHost,
+                'SMTPUser' => $this->emailConfig->SMTPUser,
+                'SMTPPass' => $this->emailConfig->SMTPPass,
+                'SMTPPort' => $this->emailConfig->SMTPPort,
+                'SMTPCrypto' => $this->emailConfig->SMTPCrypto,
+                'SMTPTimeout' => $this->emailConfig->SMTPTimeout,
+                'mailType' => $this->emailConfig->mailType,
+                'charset' => $this->emailConfig->charset,
+                'newline' => $this->emailConfig->newline,
+                'CRLF' => $this->emailConfig->CRLF,
+            ]);
+            $email->setMailType('html');
+
+            $templateRaw = $this->settingModel->getSetting(
+                $this->emailTemplateService->getStorageKey(EmailTemplateService::PROCESS_REJECTION)
+            );
+            $templateConfig = $this->emailTemplateService->normalizeTemplate(
+                EmailTemplateService::PROCESS_REJECTION,
+                $templateRaw ? json_decode((string) $templateRaw, true) : []
+            );
+
+            $placeholderContext = [
+                'visitor_name' => $invitation['full_name'],
+                'company' => $invitation['company_name'],
+                'location' => $invitation['location_name'],
+                'reason' => $invitation['reason_name'],
+                'invited_by' => $invitation['invited_by'],
+                'link_expiry_date' => date('d/m/Y', strtotime($invitation['link_expiry'])),
+            ];
+
+            $crudTemplate = $this->emailTemplateModel
+                ->where('code', 'REJECTION')
+                ->first();
+            if (! $crudTemplate) {
+                $crudTemplate = $this->emailTemplateModel
+                    ->where('code', 'VISITOR_REQ_REJECT')
+                    ->first();
+            }
+
+            $customSubject = null;
+            $customBodyHtml = null;
+            $customColors = null;
+            if (is_array($crudTemplate)) {
+                $rawSubject = trim((string) ($crudTemplate['subject'] ?? ''));
+                $rawBody = (string) ($crudTemplate['body'] ?? '');
+                if ($rawSubject !== '') {
+                    $customSubject = $this->emailTemplateService->applyPlaceholders($rawSubject, $placeholderContext);
+                }
+                if (trim($rawBody) !== '') {
+                    $customBodyText = $this->emailTemplateService->applyPlaceholders($rawBody, $placeholderContext);
+                    $customBodyHtml = nl2br(esc($customBodyText));
+                }
+                $customColors = [
+                    'primary_color' => $crudTemplate['primary_color'] ?? null,
+                    'content_bg_color' => $crudTemplate['content_bg_color'] ?? null,
+                    'text_color' => $crudTemplate['text_color'] ?? null,
+                ];
+            }
+
+            $emailData = [
+                'visitor_name' => $invitation['full_name'],
+                'company' => $invitation['company_name'],
+                'location' => $invitation['location_name'],
+                'reason' => $invitation['reason_name'],
+                'other_reason' => $invitation['other_reason'],
+                'invited_by' => $invitation['invited_by'],
+                'schedules' => $invitation['schedules'],
+                'template' => $templateConfig,
+                'intro_line' => $this->emailTemplateService->applyPlaceholders($templateConfig['intro_line'], $placeholderContext),
+                'notes_items' => array_map(
+                    fn ($item) => $this->emailTemplateService->applyPlaceholders((string) $item, $placeholderContext),
+                    $templateConfig['notes_items']
+                ),
+                'custom_body_html' => $customBodyHtml,
+                'custom_colors' => $customColors,
+            ];
+
+            $message = view('emails/rejection_template', $emailData);
+
+            $email->setFrom($this->emailConfig->fromEmail, $this->emailConfig->fromName);
+            $email->setTo($invitation['visitor_email']);
+            $email->setSubject($customSubject ?: $templateConfig['subject']);
+            $email->setMessage($message);
+
+            $result = $email->send();
+
+            if ($result) {
+                log_message('info', 'Rejection email sent successfully to: ' . $invitation['visitor_email']);
+            } else {
+                log_message('error', 'Rejection email sending failed to: ' . $invitation['visitor_email']);
+                log_message('error', 'Email error: ' . $email->printDebugger(['headers', 'subject']));
+            }
+
+            return $result;
+        } catch (\Exception $e) {
+            log_message('error', 'Rejection email sending failed: ' . $e->getMessage());
 
             return false;
         }
