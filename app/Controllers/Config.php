@@ -4906,4 +4906,3 @@ class Config extends BaseController
         return $this->response->setJSON(['success' => true, 'message' => 'WhatsApp templates saved']);
     }
 }
-}
