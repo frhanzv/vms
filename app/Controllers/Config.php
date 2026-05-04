@@ -34,6 +34,9 @@ use App\Libraries\EmailTemplateService;
 use App\Models\ApiKeyModel;
 use App\Models\ClientFeatureModel;
 use App\Models\ClientFormFieldModel;
+use App\Models\ClientNotificationSettingModel;
+use App\Models\ClientMessagingCredentialModel;
+use App\Models\WhatsappTemplateModel;
 
 class Config extends BaseController
 {
@@ -69,6 +72,9 @@ class Config extends BaseController
     protected $workflowModel;
     protected $clientFeatureModel;
     protected $clientFormFieldModel;
+    protected $clientNotificationSettingModel;
+    protected $clientMessagingCredentialModel;
+    protected $whatsappTemplateModel;
 
     /**
      * Version-checked update for config entities.
@@ -144,9 +150,11 @@ class Config extends BaseController
         $this->alertPriorityModel = new SecurityAlertPriorityModel();
         $this->apiKeyModel = new ApiKeyModel();
         $this->workflowModel = new \App\Models\WorkflowModel();
-        $this->clientFeatureModel   = new ClientFeatureModel();
-        $this->clientFormFieldModel = new ClientFormFieldModel();
-        $this->clientFeatureModel = new ClientFeatureModel();
+        $this->clientFeatureModel                = new ClientFeatureModel();
+        $this->clientFormFieldModel              = new ClientFormFieldModel();
+        $this->clientNotificationSettingModel    = new ClientNotificationSettingModel();
+        $this->clientMessagingCredentialModel    = new ClientMessagingCredentialModel();
+        $this->whatsappTemplateModel             = new WhatsappTemplateModel();
     }
 
     public function index()
@@ -4754,4 +4762,148 @@ class Config extends BaseController
 
         return $this->response->setJSON(['success' => true, 'message' => 'Feature flags saved']);
     }
+
+    public function getNotificationSettings(int $companyId)
+    {
+        $company = $this->companyModel->find($companyId);
+        if (! $company) {
+            return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Company not found']);
+        }
+
+        return $this->response->setJSON([
+            'success'  => true,
+            'settings' => $this->clientNotificationSettingModel->getForCompany($companyId),
+            'types'    => ClientNotificationSettingModel::allTypes(),
+            'channels' => ClientNotificationSettingModel::allChannels(),
+        ]);
+    }
+
+    public function saveNotificationSettings(int $companyId)
+    {
+        $company = $this->companyModel->find($companyId);
+        if (! $company) {
+            return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Company not found']);
+        }
+
+        $input = $this->request->getJSON(true);
+        if (! isset($input['settings']) || ! is_array($input['settings'])) {
+            return $this->response->setStatusCode(400)->setJSON(['success' => false, 'message' => 'Invalid payload']);
+        }
+
+        $allowedChannels = ClientNotificationSettingModel::allChannels();
+        $allowedTypes    = array_keys(ClientNotificationSettingModel::allTypes());
+        $sanitised       = [];
+
+        foreach ($input['settings'] as $channel => $types) {
+            if (! in_array($channel, $allowedChannels, true)) {
+                continue;
+            }
+            foreach ((array) $types as $type => $enabled) {
+                if (in_array($type, $allowedTypes, true)) {
+                    $sanitised[$channel][$type] = (bool) $enabled;
+                }
+            }
+        }
+
+        $this->clientNotificationSettingModel->saveForCompany($companyId, $sanitised);
+
+        return $this->response->setJSON(['success' => true, 'message' => 'Notification settings saved']);
+    }
+
+    public function getMessagingCredentials(int $companyId, string $channel)
+    {
+        $company = $this->companyModel->find($companyId);
+        if (! $company) {
+            return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Company not found']);
+        }
+
+        if (! in_array($channel, ClientMessagingCredentialModel::allChannels(), true)) {
+            return $this->response->setStatusCode(400)->setJSON(['success' => false, 'message' => 'Invalid channel']);
+        }
+
+        $cred = $this->clientMessagingCredentialModel->getForCompany($companyId, $channel);
+
+        return $this->response->setJSON([
+            'success'    => true,
+            'credential' => $cred ? [
+                'phone_number_id' => $cred['phone_number_id'] ?? '',
+                'access_token'    => $cred['access_token'] ?? '',
+                'is_active'       => (bool) ($cred['is_active'] ?? false),
+            ] : null,
+        ]);
+    }
+
+    public function saveMessagingCredentials(int $companyId, string $channel)
+    {
+        $company = $this->companyModel->find($companyId);
+        if (! $company) {
+            return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Company not found']);
+        }
+
+        if (! in_array($channel, ClientMessagingCredentialModel::allChannels(), true)) {
+            return $this->response->setStatusCode(400)->setJSON(['success' => false, 'message' => 'Invalid channel']);
+        }
+
+        $input = $this->request->getJSON(true);
+
+        $data = [];
+        if (isset($input['phone_number_id'])) {
+            $data['phone_number_id'] = trim((string) $input['phone_number_id']);
+        }
+        if (isset($input['access_token'])) {
+            $data['access_token'] = trim((string) $input['access_token']);
+        }
+        if (isset($input['is_active'])) {
+            $data['is_active'] = (bool) $input['is_active'] ? 1 : 0;
+        }
+
+        $this->clientMessagingCredentialModel->saveCredentials($companyId, $channel, $data);
+
+        return $this->response->setJSON(['success' => true, 'message' => 'Credentials saved']);
+    }
+
+    public function getWhatsappTemplates(int $companyId)
+    {
+        $company = $this->companyModel->find($companyId);
+        if (! $company) {
+            return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Company not found']);
+        }
+
+        return $this->response->setJSON([
+            'success'   => true,
+            'templates' => $this->whatsappTemplateModel->getForCompany($companyId),
+            'types'     => ClientNotificationSettingModel::allTypes(),
+        ]);
+    }
+
+    public function saveWhatsappTemplates(int $companyId)
+    {
+        $company = $this->companyModel->find($companyId);
+        if (! $company) {
+            return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Company not found']);
+        }
+
+        $input = $this->request->getJSON(true);
+        if (! isset($input['templates']) || ! is_array($input['templates'])) {
+            return $this->response->setStatusCode(400)->setJSON(['success' => false, 'message' => 'Invalid payload']);
+        }
+
+        $allowedTypes = array_keys(ClientNotificationSettingModel::allTypes());
+        $sanitised    = [];
+
+        foreach ($input['templates'] as $type => $tpl) {
+            if (! in_array($type, $allowedTypes, true)) {
+                continue;
+            }
+            $sanitised[$type] = [
+                'template_name' => trim((string) ($tpl['template_name'] ?? '')),
+                'language_code' => trim((string) ($tpl['language_code'] ?? 'en_US')),
+            ];
+        }
+
+        $this->whatsappTemplateModel->saveForCompany($companyId, $sanitised);
+
+        return $this->response->setJSON(['success' => true, 'message' => 'WhatsApp templates saved']);
+    }
+}
 }

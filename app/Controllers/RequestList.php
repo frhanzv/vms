@@ -291,9 +291,7 @@ class RequestList extends BaseController
                 ];
             }
 
-            // Send Approval Email with QR Code
-            $emailSender = new \App\Libraries\InvitationEmailSender();
-            $emailSender->sendApproval($id);
+            (new \App\Services\NotificationService())->dispatch($id, 'request_approved');
 
             return [
                 'success' => true,

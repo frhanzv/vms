@@ -44,6 +44,188 @@ $routes->post('security/facial-complete', 'SecurityBriefing::facialComplete');
 $routes->get('security/completed', 'SecurityBriefing::completed');
 $routes->get('security/checkin', 'SecurityBriefing::checkin');
 $routes->post('security/confirmCheckin', 'SecurityBriefing::confirmCheckin');
+$routes->get('config', 'Config::index');
+$routes->get('config/getLogs', 'Config::getLogs');
+$routes->get('config/exportLogs', 'Config::exportLogs');
+// Client Feature Flag Routes
+$routes->get('config/getClientFeatures/(:num)', 'Config::getClientFeatures/$1');
+$routes->post('config/saveClientFeatures/(:num)', 'Config::saveClientFeatures/$1');
+
+// Notification Settings Routes
+$routes->get('config/getNotificationSettings/(:num)', 'Config::getNotificationSettings/$1');
+$routes->post('config/saveNotificationSettings/(:num)', 'Config::saveNotificationSettings/$1');
+$routes->get('config/getMessagingCredentials/(:num)/(:alpha)', 'Config::getMessagingCredentials/$1/$2');
+$routes->post('config/saveMessagingCredentials/(:num)/(:alpha)', 'Config::saveMessagingCredentials/$1/$2');
+$routes->get('config/getWhatsappTemplates/(:num)', 'Config::getWhatsappTemplates/$1');
+$routes->post('config/saveWhatsappTemplates/(:num)', 'Config::saveWhatsappTemplates/$1');
+
+// Dynamic Form Field Routes
+$routes->get('config/getClientFormFields/(:num)', 'Config::getClientFormFields/$1');
+$routes->post('config/saveClientFormFields/(:num)', 'Config::saveClientFormFields/$1');
+
+// Alert Priority Management Routes
+$routes->get('config/getAlertPriorities', 'Config::getAlertPriorities');
+$routes->post('config/updateAlertPriority/(:num)', 'Config::updateAlertPriority/$1');
+
+// App Config Routes
+$routes->get('config/getAppConfigs',          'AppConfig::getAll');
+$routes->get('config/getAppConfig/(:num)',     'AppConfig::get/$1');
+$routes->post('config/updateAppConfig/(:num)', 'AppConfig::update/$1');
+
+// Role Management Routes
+$routes->get('config/getRoles', 'Config::getRoles');
+$routes->get('config/getRole/(:num)', 'Config::getRole/$1');
+$routes->post('config/createRole', 'Config::createRole');
+$routes->post('config/updateRole/(:num)', 'Config::updateRole/$1');
+$routes->delete('config/deleteRole/(:num)', 'Config::deleteRole/$1');
+
+// User Management Routes
+$routes->get('config/getUsers', 'Config::getUsers');
+$routes->get('config/getUser/(:num)', 'Config::getUser/$1');
+$routes->post('config/createUser', 'Config::createUser');
+$routes->post('config/updateUser/(:num)', 'Config::updateUser/$1');
+$routes->delete('config/deleteUser/(:num)', 'Config::deleteUser/$1');
+$routes->get('config/getAllRoles', 'Config::getAllRoles');
+
+// Company Management Routes
+$routes->get('config/getCompanies', 'Config::getCompanies');
+$routes->get('config/getCompany/(:num)', 'Config::getCompany/$1');
+$routes->post('config/createCompany', 'Config::createCompany');
+$routes->post('config/updateCompany/(:num)', 'Config::updateCompany/$1');
+$routes->delete('config/deleteCompany/(:num)', 'Config::deleteCompany/$1');
+$routes->get('config/getAllCompanies', 'Config::getAllCompanies');
+
+// Sub Company Management Routes
+$routes->get('config/getSubCompanies', 'Config::getSubCompanies');
+$routes->get('config/getSubCompany/(:num)', 'Config::getSubCompany/$1');
+$routes->post('config/createSubCompany', 'Config::createSubCompany');
+$routes->post('config/updateSubCompany/(:num)', 'Config::updateSubCompany/$1');
+$routes->delete('config/deleteSubCompany/(:num)', 'Config::deleteSubCompany/$1');
+
+// Country Management Routes
+$routes->get('config/getCountries', 'Config::getCountries');
+$routes->get('config/getCountry/(:num)', 'Config::getCountry/$1');
+$routes->post('config/createCountry', 'Config::createCountry');
+$routes->post('config/updateCountry/(:num)', 'Config::updateCountry/$1');
+$routes->delete('config/deleteCountry/(:num)', 'Config::deleteCountry/$1');
+$routes->get('config/getAllCountries', 'Config::getAllCountries');
+
+// State Management Routes
+$routes->get('config/getStates', 'Config::getStates');
+$routes->get('config/getState/(:num)', 'Config::getState/$1');
+$routes->post('config/createState', 'Config::createState');
+$routes->put('config/updateState/(:num)', 'Config::updateState/$1');
+$routes->delete('config/deleteState/(:num)', 'Config::deleteState/$1');
+$routes->get('config/getAllStates', 'Config::getAllStates');
+
+// City Management Routes
+$routes->get('config/getCities', 'Config::getCities');
+$routes->get('config/getCity/(:num)', 'Config::getCity/$1');
+$routes->post('config/createCity', 'Config::createCity');
+$routes->put('config/updateCity/(:num)', 'Config::updateCity/$1');
+$routes->delete('config/deleteCity/(:num)', 'Config::deleteCity/$1');
+
+// Department Management Routes
+$routes->get('config/getDepartments', 'Config::getDepartments');
+$routes->get('config/getDepartment/(:num)', 'Config::getDepartment/$1');
+$routes->post('config/createDepartment', 'Config::createDepartment');
+$routes->put('config/updateDepartment/(:num)', 'Config::updateDepartment/$1');
+$routes->delete('config/deleteDepartment/(:num)', 'Config::deleteDepartment/$1');
+
+// Designation Management Routes
+$routes->get('config/getDesignations', 'Config::getDesignations');
+$routes->get('config/getDesignation/(:num)', 'Config::getDesignation/$1');
+$routes->post('config/createDesignation', 'Config::createDesignation');
+$routes->put('config/updateDesignation/(:num)', 'Config::updateDesignation/$1');
+$routes->delete('config/deleteDesignation/(:num)', 'Config::deleteDesignation/$1');
+
+// Location Management Routes
+$routes->get('config/getLocations', 'Config::getLocations');
+$routes->get('config/getLocation/(:num)', 'Config::getLocation/$1');
+$routes->post('config/createLocation', 'Config::createLocation');
+$routes->put('config/updateLocation/(:num)', 'Config::updateLocation/$1');
+$routes->delete('config/deleteLocation/(:num)', 'Config::deleteLocation/$1');
+
+// Lane Management Routes
+$routes->get('config/getLanes', 'Config::getLanes');
+$routes->get('config/getLane/(:num)', 'Config::getLane/$1');
+$routes->post('config/createLane', 'Config::createLane');
+$routes->put('config/updateLane/(:num)', 'Config::updateLane/$1');
+$routes->delete('config/deleteLane/(:num)', 'Config::deleteLane/$1');
+
+// Reject Reason Management Routes
+$routes->get('config/getRejectReasons', 'Config::getRejectReasons');
+$routes->get('config/getRejectReason/(:num)', 'Config::getRejectReason/$1');
+$routes->post('config/createRejectReason', 'Config::createRejectReason');
+$routes->put('config/updateRejectReason/(:num)', 'Config::updateRejectReason/$1');
+$routes->delete('config/deleteRejectReason/(:num)', 'Config::deleteRejectReason/$1');
+
+// Staff Pass List Routes
+$routes->get('staffs', 'StaffList::index');
+$routes->get('staffs/staffpassrequest', 'StaffPassRequest::index');
+$routes->post('staffs/staffpassrequest/store', 'StaffPassRequest::store');
+//$routes->get('staff-pass-request', 'StaffList::downloadTemplate');
+$routes->post('staff-pass/import', 'StaffController::import');
+$routes->get('staffpassrequest/view/(:any)', 'StaffPassRequest::view/$1');
+
+
+
+// Visitor Card Management Routes
+$routes->get('config/getVisitorCards', 'Config::getVisitorCards');
+$routes->get('config/getVisitorCard/(:num)', 'Config::getVisitorCard/$1');
+$routes->post('config/createVisitorCard', 'Config::createVisitorCard');
+$routes->put('config/updateVisitorCard/(:num)', 'Config::updateVisitorCard/$1');
+$routes->delete('config/deleteVisitorCard/(:num)', 'Config::deleteVisitorCard/$1');
+
+// Video Management Routes
+$routes->get('config/getVideos', 'Config::getVideos');
+$routes->get('config/getVideo/(:num)', 'Config::getVideo/$1');
+$routes->post('config/createVideo', 'Config::createVideo');
+$routes->post('config/updateVideo/(:num)', 'Config::updateVideo/$1');
+$routes->delete('config/deleteVideo/(:num)', 'Config::deleteVideo/$1');
+
+// Visit Reason Management Routes
+$routes->get('config/getVisitReasons', 'Config::getVisitReasons');
+$routes->post('config/createVisitReason', 'Config::createVisitReason');
+$routes->post('config/updateVisitReason/(:num)', 'Config::updateVisitReason/$1');
+$routes->delete('config/deleteVisitReason/(:num)', 'Config::deleteVisitReason/$1');
+$routes->get('config/getLocationVisited', 'Config::getLocationVisited');
+$routes->post('config/createLocationVisited', 'Config::createLocationVisited');
+$routes->post('config/updateLocationVisited/(:num)', 'Config::updateLocationVisited/$1');
+$routes->delete('config/deleteLocationVisited/(:num)', 'Config::deleteLocationVisited/$1');
+
+$routes->get('config/getVisitorTypes', 'Config::getVisitorTypes');
+$routes->get('config/getVisitorType/(:num)', 'Config::getVisitorType/$1');
+$routes->post('config/createVisitorType', 'Config::createVisitorType');
+$routes->post('config/updateVisitorType/(:num)', 'Config::updateVisitorType/$1');
+$routes->delete('config/deleteVisitorType/(:num)', 'Config::deleteVisitorType/$1');
+// Device Assignments Routes
+$routes->get('config/getDeviceAssignments', 'Config::getDeviceAssignments');
+$routes->get('config/getDeviceAssignment/(:num)', 'Config::getDeviceAssignment/$1');
+$routes->post('config/checkDeviceStatus/(:num)', 'Config::checkDeviceStatus/$1');
+$routes->post('config/createDeviceAssignment', 'Config::createDeviceAssignment');
+$routes->post('config/updateDeviceAssignment/(:num)', 'Config::updateDeviceAssignment/$1');
+$routes->post('config/deleteDeviceAssignment/(:num)', 'Config::deleteDeviceAssignment/$1');
+
+// IP Range Settings
+$routes->get('config/getIpRangeSettings', 'Config::getIpRangeSettings');
+$routes->post('config/saveIpRangeSettings', 'Config::saveIpRangeSettings');
+$routes->get('config/getLoginPageSettings', 'Config::getLoginPageSettings');
+$routes->post('config/saveLoginPageSettings', 'Config::saveLoginPageSettings');
+$routes->get('config/getEmailTemplateFormSettings', 'Config::getEmailTemplateFormSettings');
+$routes->post('config/saveEmailTemplateFormSettings', 'Config::saveEmailTemplateFormSettings');
+$routes->get('config/getInvitationEmailTemplateSettings', 'Config::getInvitationEmailTemplateSettings');
+$routes->post('config/saveInvitationEmailTemplateSettings', 'Config::saveInvitationEmailTemplateSettings');
+$routes->get('config/getEmailTemplates', 'Config::getEmailTemplates');
+$routes->get('config/getEmailTemplate/(:num)', 'Config::getEmailTemplate/$1');
+$routes->post('config/createEmailTemplate', 'Config::createEmailTemplate');
+$routes->post('config/updateEmailTemplate/(:num)', 'Config::updateEmailTemplate/$1');
+$routes->post('config/createEmailTemplateFormField', 'Config::createEmailTemplateFormField');
+$routes->post('config/updateEmailTemplateFormField/(:num)', 'Config::updateEmailTemplateFormField/$1');
+$routes->post('config/deleteEmailTemplateFormField/(:num)', 'Config::deleteEmailTemplateFormField/$1');
+$routes->post('config/reorderEmailTemplateFormFields', 'Config::reorderEmailTemplateFormFields');
+$routes->get('config/generateVisitorQr', 'Config::generateVisitorQr');
+
 
 $routes->get('config/generateVisitorQr', 'Config::generateVisitorQr');
 
