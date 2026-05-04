@@ -196,6 +196,8 @@ class Config extends BaseController
         }
 
 
+        $visitorQrInfo = $this->resolveVisitorRegistrationInfo();
+
         // =========================
         // PASS DATA TO VIEW
         // =========================
@@ -220,6 +222,10 @@ class Config extends BaseController
             // Blacklist Reason
             'blacklist_reasons' => $blacklistReasons,
             'blacklist_search'  => $blacklistSearch,
+
+            // Visitor QR Code
+            'visitor_qr_url' => $visitorQrInfo['url'],
+            'visitor_qr_ip'  => $visitorQrInfo['ip_address'],
         ]);
     }
 
@@ -3252,10 +3258,59 @@ class Config extends BaseController
         }
     }
 
+    private function resolveVisitorRegistrationInfo(): array
+    {
+        // Start with app-generated URL, then normalize localhost to LAN IP for phone scanning.
+        $resolvedUrl = base_url('visitor-registration');
+        $ipAddress = null;
+        $parsedUrl = parse_url($resolvedUrl);
+
+        if (is_array($parsedUrl)) {
+            $host = $parsedUrl['host'] ?? '';
+            if (in_array($host, ['localhost', '127.0.0.1', '::1'], true)) {
+                $serverIp = (string) $this->request->getServer('SERVER_ADDR');
+                if (! filter_var($serverIp, FILTER_VALIDATE_IP) || in_array($serverIp, ['127.0.0.1', '::1'], true)) {
+                    $resolvedHostIp = gethostbyname(gethostname());
+                    if (filter_var($resolvedHostIp, FILTER_VALIDATE_IP) && ! in_array($resolvedHostIp, ['127.0.0.1', '::1'], true)) {
+                        $serverIp = $resolvedHostIp;
+                    }
+                }
+
+                if (filter_var($serverIp, FILTER_VALIDATE_IP) && ! in_array($serverIp, ['127.0.0.1', '::1'], true)) {
+                    $scheme = $parsedUrl['scheme'] ?? ($this->request->isSecure() ? 'https' : 'http');
+                    $path = $parsedUrl['path'] ?? '/visitor-registration';
+                    $query = isset($parsedUrl['query']) ? '?' . $parsedUrl['query'] : '';
+                    $port = isset($parsedUrl['port']) ? (int) $parsedUrl['port'] : (int) $this->request->getServer('SERVER_PORT');
+                    $isDefaultPort = ($scheme === 'http' && $port === 80) || ($scheme === 'https' && $port === 443) || $port <= 0;
+
+                    $resolvedUrl = sprintf(
+                        '%s://%s%s%s%s',
+                        $scheme,
+                        $serverIp,
+                        $isDefaultPort ? '' : ':' . $port,
+                        $path,
+                        $query
+                    );
+                }
+            }
+
+            $resolvedParsed = parse_url($resolvedUrl);
+            $resolvedHost = $resolvedParsed['host'] ?? '';
+            if (filter_var($resolvedHost, FILTER_VALIDATE_IP) && ! in_array($resolvedHost, ['127.0.0.1', '::1'], true)) {
+                $ipAddress = $resolvedHost;
+            }
+        }
+
+        return [
+            'url' => $resolvedUrl,
+            'ip_address' => $ipAddress,
+        ];
+    }
+
     public function generateVisitorQr()
     {
-        // Use a fixed URL so all devices generate the same QR target.
-        $qrCodeData = 'http://192.168.100.243:8080/visitor-registration';
+        $visitorQrInfo = $this->resolveVisitorRegistrationInfo();
+        $qrCodeData = $visitorQrInfo['url'];
 
         // chillerlan/php-qrcode v6 API: pass settings as array to constructor
         $options = new \chillerlan\QRCode\QROptions([
@@ -4700,4 +4755,3 @@ class Config extends BaseController
         return $this->response->setJSON(['success' => true, 'message' => 'Feature flags saved']);
     }
 }
-
