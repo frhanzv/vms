@@ -14,7 +14,7 @@ class UserSeeder extends Seeder
                 'email'      => 'admin@safeg.com',
                 'password'   => password_hash('admin123', PASSWORD_DEFAULT),
                 'full_name'  => 'Ahmad',
-                'role'       => 'admin',
+                'role'       => 'superadmin',
                 'is_active'  => 1,
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s'),

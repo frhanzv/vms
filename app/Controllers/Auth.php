@@ -109,7 +109,15 @@ class Auth extends BaseController
                 setcookie('remember_user', $user['username'], time() + (30 * 24 * 60 * 60), '/');
             }
 
-            return redirect()->to('/dashboard')->with('success', 'Login successful!');
+            $redirectMap = [
+                'superadmin'       => '/dashboard',
+                'clientsuperadmin' => '/dashboard',
+                'admin'            => '/requests',
+                'officer'          => '/workflow',
+                'host'             => '/invitations',
+            ];
+            $destination = $redirectMap[$user['role']] ?? '/dashboard';
+            return redirect()->to($destination)->with('success', 'Login successful!');
         } else {
             return redirect()->back()->with('error', 'Invalid username or password')->withInput();
         }
