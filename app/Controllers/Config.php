@@ -3255,7 +3255,7 @@ class Config extends BaseController
     public function generateVisitorQr()
     {
         // Use a fixed URL so all devices generate the same QR target.
-        $qrCodeData = 'http://192.168.100.197:8080/vms/visitor-registration';
+        $qrCodeData = 'http://192.168.100.243:8080/visitor-registration';
 
         // chillerlan/php-qrcode v6 API: pass settings as array to constructor
         $options = new \chillerlan\QRCode\QROptions([
