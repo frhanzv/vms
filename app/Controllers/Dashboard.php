@@ -408,9 +408,19 @@ class Dashboard extends BaseController
                                        COALESCE(i.full_name, iv.full_name) as visitor_name,
                                        COALESCE(i.invited_by, 'N/A') as host_name,
                                        iv.check_in_time,
-                                       COALESCE(i.location, 'N/A') as location
+                                       COALESCE(ld.lane, 'N/A') as last_door_entry
                                 FROM invitation_visitors iv
                                 JOIN invitations i ON i.id = iv.invitation_id
+                                LEFT JOIN (
+                                    SELECT vcl.visitor_card_id, l.lane
+                                    FROM visitor_card_logs vcl
+                                    JOIN lanes l ON l.id = vcl.lane_id
+                                    WHERE vcl.id IN (
+                                        SELECT MAX(vcl2.id)
+                                        FROM visitor_card_logs vcl2
+                                        GROUP BY vcl2.visitor_card_id
+                                    )
+                                ) ld ON ld.visitor_card_id = iv.visitor_card_id
                                 WHERE i.status = 'Approved'
                                 AND iv.check_in_time IS NOT NULL
                                 AND iv.check_out_time IS NULL
@@ -424,7 +434,7 @@ class Dashboard extends BaseController
                 'name' => $v['visitor_name'] ?? 'N/A',
                 'host' => $v['host_name'] ?? 'N/A',
                 'check_in_time' => !empty($v['check_in_time']) ? date('h:i A', strtotime($v['check_in_time'])) : 'N/A',
-                'location' => $v['location'] ?? 'N/A',
+                'last_door_entry' => $v['last_door_entry'] ?? 'N/A',
             ];
         }
         

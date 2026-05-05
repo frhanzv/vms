@@ -602,7 +602,7 @@
                                     </div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300"><?= esc($visitor['company']) ?></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300"><?= esc($visitor['host']) ?></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300 uppercase"><?= esc($visitor['host']) ?></td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300"><?= esc($visitor['time']) ?></td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <?php
@@ -677,7 +677,7 @@
                                     <th class="px-6 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Visitor Name</th>
                                     <th class="px-6 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Host</th>
                                     <th class="px-6 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Check-in Time</th>
-                                    <th class="px-6 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Location</th>
+                                    <th class="px-6 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Last Door Entry</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-surface-dark">
@@ -687,9 +687,9 @@
                                 <?php foreach ($onSiteVisitors as $ov): ?>
                                 <tr class="group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                     <td class="px-6 py-3 whitespace-nowrap"><div class="flex items-center gap-2"><div class="size-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px] font-bold"><?= strtoupper(substr($ov['name'], 0, 2)) ?></div><span class="text-sm font-medium text-slate-900 dark:text-white"><?= esc($ov['name']) ?></span></div></td>
-                                    <td class="px-6 py-3 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300"><?= esc($ov['host']) ?></td>
+                                    <td class="px-6 py-3 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300 uppercase"><?= esc($ov['host']) ?></td>
                                     <td class="px-6 py-3 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300"><?= esc($ov['check_in_time']) ?></td>
-                                    <td class="px-6 py-3 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300"><?= esc($ov['location']) ?></td>
+                                    <td class="px-6 py-3 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300"><?= esc($ov['last_door_entry']) ?></td>
                                 </tr>
                                 <?php endforeach; ?>
                                 <?php endif; ?>
