@@ -589,4 +589,16 @@ $routes->group('config', ['filter' => 'role:superadmin'], function($routes) {
     $routes->post('callExternalApi', 'Api\ApiManagement::callExternalApi');
     $routes->post('saveLaravelBaseUrl', 'Api\ApiManagement::saveLaravelBaseUrl');
     $routes->get('getLaravelBaseUrl', 'Api\ApiManagement::getLaravelBaseUrl');
+    
+    // Inbound API token generation (Protected by superadmin)
+    $routes->post('generateInboundToken', 'Api\InboundApi::generateToken');
+});
+
+// ===========================
+// Inbound API (Webhooks)
+// Protected by Bearer Token Filter
+// ===========================
+
+$routes->group('api/v1', ['filter' => 'inbound_api_auth'], function($routes) {
+    $routes->post('receive', 'Api\InboundApi::receive');
 });
