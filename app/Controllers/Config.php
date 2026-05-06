@@ -69,7 +69,6 @@ class Config extends BaseController
     protected $pathwayModel;
     protected $alertPriorityModel;
     protected $apiKeyModel;
-    protected $workflowModel;
     protected $clientFeatureModel;
     protected $clientFormFieldModel;
     protected $clientNotificationSettingModel;
@@ -4608,75 +4607,6 @@ class Config extends BaseController
             'success' => true,
             'data'    => $row,
         ]);
-    }
-
-    // ============== WORKFLOW MANAGEMENT METHODS ==============
-
-    public function getWorkflows()
-    {
-        try {
-            $workflows = $this->workflowModel->orderBy('step_order', 'ASC')->findAll();
-
-            return $this->response->setJSON([
-                'success' => true,
-                'data'    => $workflows,
-            ]);
-        } catch (\Exception $e) {
-            log_message('error', 'Error in getWorkflows: ' . $e->getMessage());
-            return $this->response->setStatusCode(500)->setJSON([
-                'success' => false,
-                'message' => 'Failed to fetch workflows',
-            ]);
-        }
-    }
-
-    public function updateWorkflows()
-    {
-        $input = $this->request->getJSON(true);
-
-        if (empty($input) || !is_array($input)) {
-            return $this->response->setStatusCode(400)->setJSON([
-                'success' => false,
-                'message' => 'Invalid data provided',
-            ]);
-        }
-
-        $db = \Config\Database::connect();
-        $db->transStart();
-
-        try {
-            foreach ($input as $index => $item) {
-                if (isset($item['id'])) {
-                    $updateData = [
-                        'step_order' => $index + 1,
-                    ];
-                    
-                    if (isset($item['is_active'])) {
-                        $updateData['is_active'] = $item['is_active'] ? 1 : 0;
-                    }
-
-                    $this->workflowModel->update($item['id'], $updateData);
-                }
-            }
-
-            $db->transComplete();
-
-            if ($db->transStatus() === false) {
-                throw new \Exception('Transaction failed');
-            }
-
-            return $this->response->setJSON([
-                'success' => true,
-                'message' => 'Workflows updated successfully',
-            ]);
-
-        } catch (\Exception $e) {
-            log_message('error', 'Error updating workflows: ' . $e->getMessage());
-            return $this->response->setStatusCode(500)->setJSON([
-                'success' => false,
-                'message' => 'Failed to update workflows: ' . $e->getMessage(),
-            ]);
-        }
     }
 
     public function getClientFormFields(int $companyId)

@@ -2,6 +2,8 @@
 $formConfig = $formConfig ?? [];
 $customFormFields = $customFormFields ?? [];
 $customFormValues = $customFormValues ?? [];
+$workflow_step = $workflow_step ?? null;
+$flow_next_url = $flow_next_url ?? null;
 $isFieldEnabled = static function (string $field) use ($formConfig): bool {
     return !array_key_exists($field, $formConfig) || (bool) $formConfig[$field];
 };
@@ -988,6 +990,18 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
                 </div>
             </div>
         </div>
+
+        <?php if (! empty($workflow_step) && $workflow_step === 'scan_mykad' && ! empty($flow_next_url)): ?>
+            <div class="fixed bottom-0 left-0 right-0 z-30 border-t border-border-color dark:border-gray-700 bg-surface-light/95 dark:bg-surface-dark/95 backdrop-blur-sm px-4 py-3 shadow-[0_-4px_24px_rgba(0,0,0,0.08)]">
+                <div class="max-w-[960px] mx-auto flex flex-wrap items-center justify-between gap-3">
+                    <p class="text-sm text-text-sub dark:text-gray-400 font-brand">MYKAD step — when you are finished scanning, continue to the next invitation step.</p>
+                    <a href="<?= esc($flow_next_url) ?>" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-white text-sm font-bold hover:bg-primary-hover transition-colors font-brand shrink-0">
+                        <span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+                        Continue
+                    </a>
+                </div>
+            </div>
+        <?php endif; ?>
     </main>
 
     <script>
@@ -2482,6 +2496,11 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
             if (savedLang && savedLang !== 'en') {
                 changeLanguage(savedLang);
             }
+            <?php if (! empty($workflow_step) && $workflow_step === 'scan_mykad' && isset($token) && $token !== '') : ?>
+            if (typeof openMyKadModal === 'function') {
+                openMyKadModal();
+            }
+            <?php endif; ?>
         });
 
         // Close modals on outside click

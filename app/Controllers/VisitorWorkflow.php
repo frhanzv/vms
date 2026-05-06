@@ -22,46 +22,95 @@ class VisitorWorkflow extends BaseController
             $totalVisitors = (int) $db->table('invitation_visitors')->countAllResults();
         }
 
+        $workflowMeta = [
+            'registration' => [
+                'icon' => 'assignment',
+                'icon_color' => 'purple',
+                'trigger_icon' => 'person_add',
+                'trigger' => 'Visitor opens invitation link',
+            ],
+            'scan_mykad' => [
+                'icon' => 'badge',
+                'icon_color' => 'primary',
+                'trigger_icon' => 'contactless',
+                'trigger' => 'After registration details are saved',
+            ],
+            'security_briefing' => [
+                'icon' => 'shield_person',
+                'icon_color' => 'orange',
+                'trigger_icon' => 'play_circle',
+                'trigger' => 'After prior steps (security briefing video)',
+            ],
+            'video' => [
+                'icon' => 'play_circle',
+                'icon_color' => 'orange',
+                'trigger_icon' => 'smart_display',
+                'trigger' => 'Additional or standalone video step',
+            ],
+            'take_photo' => [
+                'icon' => 'photo_camera',
+                'icon_color' => 'primary',
+                'trigger_icon' => 'photo',
+                'trigger' => 'After previous workflow step completes',
+            ],
+            'facial_verification' => [
+                'icon' => 'face',
+                'icon_color' => 'primary',
+                'trigger_icon' => 'verified_user',
+                'trigger' => 'Facial capture / verification step',
+            ],
+            'approval' => [
+                'icon' => 'fact_check',
+                'icon_color' => 'primary',
+                'trigger_icon' => 'how_to_vote',
+                'trigger' => 'Host or reception approval',
+            ],
+            'receive_qr' => [
+                'icon' => 'qr_code_2',
+                'icon_color' => 'primary',
+                'trigger_icon' => 'qr_code_scanner',
+                'trigger' => 'Collect entry QR or pass',
+            ],
+            'completion' => [
+                'icon' => 'check_circle',
+                'icon_color' => 'primary',
+                'trigger_icon' => 'task_alt',
+                'trigger' => 'Final completion / confirmation',
+            ],
+        ];
+
         $workflows = [];
         foreach ($steps as $index => $step) {
-            $icon = 'list_alt';
-            $iconColor = 'primary';
-            $triggerIcon = 'bolt';
-            $trigger = 'Flow step';
+            $meta = $workflowMeta[$step['key']] ?? [
+                'icon' => 'list_alt',
+                'icon_color' => 'primary',
+                'trigger_icon' => 'bolt',
+                'trigger' => 'Invitation flow step',
+            ];
+            $icon = $meta['icon'];
+            $iconColor = $meta['icon_color'];
+            $triggerIcon = $meta['trigger_icon'];
+            $trigger = $meta['trigger'];
 
-            if ($step['key'] === 'registration') {
-                $icon = 'assignment';
-                $iconColor = 'purple';
-                $triggerIcon = 'person_add';
-                $trigger = 'Visitor opens invitation link';
-            } elseif ($step['key'] === 'security_briefing') {
-                $icon = 'play_circle';
-                $iconColor = 'orange';
-                $triggerIcon = 'play_arrow';
-                $trigger = 'After registration submit';
-            } elseif ($step['key'] === 'facial_verification') {
-                $icon = 'face';
-                $iconColor = 'primary';
-                $triggerIcon = 'verified_user';
-                $trigger = 'After briefing completion';
-            } elseif ($step['key'] === 'completion') {
-                $icon = 'check_circle';
-                $iconColor = 'primary';
-                $triggerIcon = 'task_alt';
-                $trigger = 'After facial verification';
+            if ($step['key'] === 'scan_mykad') {
+                $routeLabel = $step['route'] . '?step=scan_mykad';
+            } elseif (str_starts_with($step['route'], 'security/')) {
+                $routeLabel = $step['route'] . '?flow_step=' . $step['key'];
+            } else {
+                $routeLabel = $step['route'];
             }
 
             $workflows[] = [
-                'id' => 'WF-' . str_pad((string) ($index + 1), 3, '0', STR_PAD_LEFT),
                 'name' => $step['label'],
+                'route' => $routeLabel,
                 'icon' => $icon,
                 'icon_color' => $iconColor,
                 'trigger_icon' => $triggerIcon,
                 'trigger' => $trigger,
-                'steps' => 1,
+                'step_order' => $index + 1,
                 'status' => 'Active',
                 'status_class' => 'green',
-                'modified' => 'Sequence #' . ($index + 1),
+                'modified' => 'Edit Sequence',
             ];
         }
 
@@ -76,7 +125,7 @@ class VisitorWorkflow extends BaseController
                 'total_visitors' => $totalVisitors,
                 'visitors_change' => 'Live visitor records',
                 'avg_time' => '-',
-                'time_change' => 'Config-driven sequence',
+                'time_change' => 'Drag to reorder on Edit Sequence',
                 'alerts' => 0,
                 'alerts_text' => 'No workflow alert',
             ],
@@ -98,11 +147,16 @@ class VisitorWorkflow extends BaseController
     public function save()
     {
         $stepsJson = (string) $this->request->getPost('steps_json');
+        $customStepsJson = (string) $this->request->getPost('custom_steps_json');
         $decoded = json_decode($stepsJson, true);
+        $customDecoded = json_decode($customStepsJson, true);
         if (! is_array($decoded)) {
             return redirect()->back()
                 ->withInput()
                 ->with('error', 'Invalid workflow sequence.');
+        }
+        if (! is_array($customDecoded)) {
+            $customDecoded = [];
         }
 
         $steps = [];
@@ -117,6 +171,9 @@ class VisitorWorkflow extends BaseController
         }
 
         try {
+            if (! $this->flowService->saveCustomSteps($customDecoded)) {
+                throw new \RuntimeException('Unable to save custom workflows.');
+            }
             if (! $this->flowService->saveSequence($steps)) {
                 throw new \RuntimeException('Unable to save workflow sequence.');
             }
@@ -131,4 +188,5 @@ class VisitorWorkflow extends BaseController
                 ->with('error', 'Failed to save workflow: ' . $e->getMessage());
         }
     }
+
 }

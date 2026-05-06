@@ -23,7 +23,11 @@ class SecurityBriefing extends BaseController
     {
         // Get invitation token from URL parameter
         $token = $this->request->getGet('token');
-        
+        $flowStep = $this->invitationProcessFlowService->resolveFlowStepForRoute(
+            'security/briefing',
+            $this->request->getGet('flow_step')
+        );
+
         // Get active video from database
         $activeVideo = $this->videoModel->getActiveVideo();
         
@@ -33,6 +37,7 @@ class SecurityBriefing extends BaseController
         $data = [
             'pageTitle' => 'Security & Safety Briefing - SafeG',
             'token' => $token,
+            'flow_step' => $flowStep,
             'visitor_name' => 'John Doe', // This would come from database
             'company' => 'ABC Construction Sdn Bhd',
             'visit_date' => date('d/m/Y'),
@@ -57,8 +62,14 @@ class SecurityBriefing extends BaseController
             }
             
             $token = $json->token ?? '';
+            $flowStepRaw = $json->flow_step ?? '';
             $watchedDuration = $json->watched_duration ?? 0;
             $videoDuration = $json->video_duration ?? 1;
+
+            $currentBriefingStep = $this->invitationProcessFlowService->resolveFlowStepForRoute(
+                'security/briefing',
+                is_string($flowStepRaw) ? $flowStepRaw : null
+            );
             
             $completionPercentage = ($watchedDuration / $videoDuration) * 100;
             
@@ -76,8 +87,8 @@ class SecurityBriefing extends BaseController
 
                     // Idempotent: if already completed, just redirect
                     if (!empty($invitation['video_watched'])) {
-                        $nextUrl = $this->invitationProcessFlowService->getNextStepUrl('security_briefing', $token)
-                            ?? base_url('security/facial-verification?token=' . $token);
+                        $nextUrl = $this->invitationProcessFlowService->getNextStepUrl($currentBriefingStep, $token)
+                            ?? base_url('security/completed?token=' . urlencode((string) $token));
 
                         return $this->response->setJSON([
                             'success' => true,
@@ -103,8 +114,8 @@ class SecurityBriefing extends BaseController
                         ]);
                 }
                 
-                $nextUrl = $this->invitationProcessFlowService->getNextStepUrl('security_briefing', $token)
-                    ?? base_url('security/facial-verification?token=' . $token);
+                $nextUrl = $this->invitationProcessFlowService->getNextStepUrl($currentBriefingStep, $token)
+                    ?? base_url('security/completed?token=' . urlencode((string) $token));
 
                 return $this->response->setJSON([
                     'success' => true,
@@ -129,10 +140,15 @@ class SecurityBriefing extends BaseController
     public function facialVerification()
     {
         $token = $this->request->getGet('token');
-        
+        $flowStep = $this->invitationProcessFlowService->resolveFlowStepForRoute(
+            'security/facial-verification',
+            $this->request->getGet('flow_step')
+        );
+
         $data = [
             'pageTitle' => 'Facial Verification - SafeG',
-            'token' => $token
+            'token' => $token,
+            'flow_step' => $flowStep,
         ];
 
         return view('security/FacialRecognition', $data);
@@ -143,7 +159,13 @@ class SecurityBriefing extends BaseController
         $json = $this->request->getJSON();
         $token = $json->token ?? '';
         $imageData = $json->image ?? '';
-        
+        $flowStepRaw = $json->flow_step ?? '';
+
+        $currentFacialStep = $this->invitationProcessFlowService->resolveFlowStepForRoute(
+            'security/facial-verification',
+            is_string($flowStepRaw) ? $flowStepRaw : null
+        );
+
         try {
             if ($token && $imageData) {
                 $invitationId = base64_decode($token);
@@ -158,8 +180,8 @@ class SecurityBriefing extends BaseController
 
                 // Idempotent: if already verified, just redirect
                 if (!empty($invitation['facial_verified_at'])) {
-                    $nextUrl = $this->invitationProcessFlowService->getNextStepUrl('facial_verification', $token)
-                        ?? base_url('security/completed?token=' . $token);
+                    $nextUrl = $this->invitationProcessFlowService->getNextStepUrl($currentFacialStep, $token)
+                        ?? base_url('security/completed?token=' . urlencode((string) $token));
 
                     return $this->response->setJSON([
                         'success' => true,
@@ -195,8 +217,8 @@ class SecurityBriefing extends BaseController
                     ]);
             }
             
-            $nextUrl = $this->invitationProcessFlowService->getNextStepUrl('facial_verification', $token)
-                ?? base_url('security/completed?token=' . $token);
+            $nextUrl = $this->invitationProcessFlowService->getNextStepUrl($currentFacialStep, $token)
+                ?? base_url('security/completed?token=' . urlencode((string) $token));
 
             return $this->response->setJSON([
                 'success' => true,
@@ -227,14 +249,20 @@ class SecurityBriefing extends BaseController
 
     public function checkin()
     {
-        // Final check-in page after facial verification
         $token = $this->request->getGet('token');
-        
-        // TODO: Verify facial verification was completed
-        
+        $approvalStep = $this->invitationProcessFlowService->resolveFlowStepForRoute(
+            'security/checkin',
+            $this->request->getGet('flow_step')
+        );
+
+        $nextAfterApproval = ($token !== null && $token !== '')
+            ? $this->invitationProcessFlowService->getNextStepUrl($approvalStep, $token)
+            : null;
+
         $data = [
-            'pageTitle' => 'Check-in Confirmation - SafeG',
-            'token' => $token
+            'pageTitle' => 'Approval & Check-in - SafeG',
+            'token' => $token,
+            'next_after_approval_url' => $nextAfterApproval,
         ];
 
         return view('security/checkin', $data);
