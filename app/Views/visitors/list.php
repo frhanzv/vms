@@ -316,10 +316,12 @@ $isSettings = str_contains($current, 'settings');
                         </button>
                     </div>
                     <div class="lg:col-span-4 flex gap-2">
-                        <button class="bg-success hover:bg-emerald-600 text-white px-4 py-2.5 rounded text-xs font-semibold uppercase shadow transition-colors flex-1 text-center whitespace-nowrap">
+                        <button type="button" class="bg-success hover:bg-emerald-600 text-white px-4 py-2.5 rounded text-xs font-semibold uppercase shadow transition-colors flex-1 text-center whitespace-nowrap">
                             Read MyKad
                         </button>
-                        <button class="bg-success hover:bg-emerald-600 text-white px-4 py-2.5 rounded text-xs font-semibold uppercase shadow transition-colors flex-1 text-center whitespace-nowrap">
+                        <button type="button" id="btnToolbarReturnCard" disabled
+                            class="bg-success hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2.5 rounded text-xs font-semibold uppercase shadow transition-colors flex-1 text-center whitespace-nowrap"
+                            title="Select one or more visitors with a card in use, then return cards in batch">
                             Return Card
                         </button>
                     </div>
@@ -369,6 +371,9 @@ $isSettings = str_contains($current, 'settings');
                 <table class="w-full min-w-max text-left border-collapse">
                     <thead>
                         <tr class="bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs font-bold uppercase tracking-wide">
+                            <th class="p-2 w-10 border-b dark:border-gray-600 text-center" title="Select rows for batch return">
+                                <input type="checkbox" id="selectAllVisitorRows" class="rounded border-gray-300 text-primary focus:ring-primary" aria-label="Select all returnable rows"/>
+                            </th>
                             <th class="p-4 border-b dark:border-gray-600">No</th>
                             <th class="p-4 border-b dark:border-gray-600">Date</th>
                             <th class="p-4 border-b dark:border-gray-600">Full Name</th>
@@ -386,7 +391,7 @@ $isSettings = str_contains($current, 'settings');
                     <tbody class="text-xs text-gray-600 dark:text-gray-300 font-medium">
                         <?php if (empty($visitors)): ?>
                         <tr>
-                            <td colspan="12" class="p-8 text-center">
+                            <td colspan="13" class="p-8 text-center">
                                 <div class="flex flex-col items-center justify-center gap-3">
                                     <div class="bg-gray-100 dark:bg-gray-800 rounded-full p-4">
                                         <span class="material-symbols-outlined text-4xl text-gray-400 dark:text-gray-500">folder_off</span>
@@ -400,7 +405,24 @@ $isSettings = str_contains($current, 'settings');
                         </tr>
                         <?php else: ?>
                         <?php foreach ($visitors as $visitor): ?>
-                        <tr onclick='openDetailModal(<?= json_encode($visitor) ?>)' class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-b border-gray-100 dark:border-gray-700 cursor-pointer">
+                        <?php
+                            // Allow selecting any visitor who still has a card assigned (unbind API requires visitor_card_id).
+                            // Using only "in_use" left most rows with disabled boxes because DB often still shows active/in_use mismatch.
+                            $hasBoundCard = ! empty($visitor['card_id']) || ! empty($visitor['visitor_card_table_id']);
+                            $canReturnCard = $hasBoundCard;
+                        ?>
+                        <tr
+                            class="visitor-data-row hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-b border-gray-100 dark:border-gray-700 cursor-pointer"
+                            data-invitation-visitor-id="<?= (int) $visitor['id'] ?>"
+                            data-returnable="<?= $canReturnCard ? '1' : '0' ?>"
+                            data-visitor-json="<?= esc(json_encode($visitor), 'attr') ?>"
+                            onclick="openDetailModalFromRow(this, event)">
+                            <td class="visitor-check-cell p-2 w-10 text-center align-middle" onclick="event.stopPropagation();">
+                                <input type="checkbox" class="visitor-row-check rounded border-gray-300 text-primary focus:ring-primary" data-invitation-visitor-id="<?= (int) $visitor['id'] ?>"
+                                    <?= $canReturnCard ? '' : 'disabled' ?>
+                                    title="<?= $canReturnCard ? 'Select to include in Return Card' : 'No visitor card is bound' ?>"
+                                    aria-label="Select visitor row"/>
+                            </td>
                             <td class="p-4"><?= $visitor['no'] ?></td>
                             <td class="p-4"><?= esc($visitor['date']) ?></td>
                             <td class="p-4 font-semibold text-gray-800 dark:text-white"><?= esc($visitor['full_name']) ?></td>
@@ -725,6 +747,20 @@ $isSettings = str_contains($current, 'settings');
             }, 2200);
         }
 
+        function openDetailModalFromRow(row, event) {
+            if (event && event.target && event.target.closest('.visitor-check-cell')) {
+                return;
+            }
+
+            try {
+                const raw = row.getAttribute('data-visitor-json') || '{}';
+                openDetailModal(JSON.parse(raw));
+            } catch (err) {
+                console.error('Failed to parse visitor payload:', err);
+                alert('Unable to open visitor details for this row. Please refresh and try again.');
+            }
+        }
+
         function openDetailModal(visitor) {
             const modal = document.getElementById('detailModal');
             
@@ -1030,6 +1066,100 @@ $isSettings = str_contains($current, 'settings');
             if (this.value) {
                 document.getElementById('cardEpcSelect').value = '';
             }
+        });
+
+        /* ── Toolbar Return Card + row checkboxes (batch return) ───────────── */
+        function getToolbarReturnCardButton() {
+            return document.getElementById('btnToolbarReturnCard');
+        }
+
+        function updateToolbarReturnCardState() {
+            const btn = getToolbarReturnCardButton();
+            const selAll = document.getElementById('selectAllVisitorRows');
+            const eligible = document.querySelectorAll('.visitor-row-check:not(:disabled)');
+            const checked = document.querySelectorAll('.visitor-row-check:checked:not(:disabled)');
+            if (btn) {
+                btn.disabled = checked.length === 0;
+            }
+            if (selAll && eligible.length > 0) {
+                selAll.checked = checked.length === eligible.length;
+                selAll.indeterminate = checked.length > 0 && checked.length < eligible.length;
+            } else if (selAll) {
+                selAll.checked = false;
+                selAll.indeterminate = false;
+            }
+        }
+
+        function returnCardsFromToolbar() {
+            const ids = Array.from(document.querySelectorAll('.visitor-row-check:checked:not(:disabled)'))
+                .map(function (cb) {
+                    return parseInt(cb.getAttribute('data-invitation-visitor-id'), 10);
+                })
+                .filter(function (id) {
+                    return id > 0;
+                });
+            if (ids.length === 0) {
+                alert('Tick at least one visitor with a card in use (beside No.).');
+                return;
+            }
+            const msg = ids.length === 1
+                ? 'Return this card and mark it as available?'
+                : ('Return ' + ids.length + ' cards and mark them as available?');
+            if (!confirm(msg)) {
+                return;
+            }
+
+            const btn = getToolbarReturnCardButton();
+            const prevLabel = btn ? btn.textContent : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = 'Returning…';
+            }
+
+            fetch('<?= base_url('visitors/batchUnbindCards') ?>', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ invitation_visitor_ids: ids })
+            })
+                .then(function (r) { return r.json(); })
+                .then(function (result) {
+                    alert(result.message || (result.success ? 'Done' : 'Failed'));
+                    if (result.success) {
+                        location.reload();
+                        return;
+                    }
+                    if (btn) {
+                        btn.textContent = prevLabel;
+                    }
+                    updateToolbarReturnCardState();
+                })
+                .catch(function () {
+                    alert('An error occurred while returning cards');
+                    if (btn) {
+                        btn.textContent = prevLabel;
+                    }
+                    updateToolbarReturnCardState();
+                });
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const btn = getToolbarReturnCardButton();
+            if (btn) {
+                btn.addEventListener('click', returnCardsFromToolbar);
+            }
+            const selAll = document.getElementById('selectAllVisitorRows');
+            if (selAll) {
+                selAll.addEventListener('change', function () {
+                    document.querySelectorAll('.visitor-row-check:not(:disabled)').forEach(function (cb) {
+                        cb.checked = selAll.checked;
+                    });
+                    updateToolbarReturnCardState();
+                });
+            }
+            document.querySelectorAll('.visitor-row-check').forEach(function (cb) {
+                cb.addEventListener('change', updateToolbarReturnCardState);
+            });
+            updateToolbarReturnCardState();
         });
     </script>
 </body>

@@ -594,6 +594,66 @@ class VisitorList extends BaseController
     /**
      * Unbind visitor card from invitation visitor.
      * Uses atomic check to prevent double-unbind.
+     *
+     * @return array{success: bool, message: string}
+     */
+    protected function performUnbindCard(int $invitationVisitorId): array
+    {
+        $db = \Config\Database::connect();
+        $db->transStart();
+
+        try {
+            $invitationVisitor = $db->query(
+                'SELECT * FROM invitation_visitors WHERE id = ? FOR UPDATE',
+                [$invitationVisitorId]
+            )->getRowArray();
+
+            if (! $invitationVisitor || ! $invitationVisitor['visitor_card_id']) {
+                $db->transRollback();
+
+                return [
+                    'success' => false,
+                    'message' => 'No card is currently assigned to this visitor',
+                ];
+            }
+
+            $cardId = $invitationVisitor['visitor_card_id'];
+
+            $this->invitationVisitorModel->update($invitationVisitorId, [
+                'visitor_card_id' => null,
+            ]);
+
+            $this->visitorCardModel->update($cardId, [
+                'status' => 'active',
+            ]);
+
+            $db->transComplete();
+
+            if ($db->transStatus() === false) {
+                return [
+                    'success' => false,
+                    'message' => 'Failed to unbind card due to a database error',
+                ];
+            }
+
+            return [
+                'success' => true,
+                'message' => 'Card unbound successfully',
+            ];
+        } catch (\Exception $e) {
+            $db->transRollback();
+            log_message('error', 'unbindCard error: ' . $e->getMessage());
+
+            return [
+                'success' => false,
+                'message' => 'An error occurred: ' . $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Unbind visitor card from invitation visitor.
+     * Uses atomic check to prevent double-unbind.
      */
     public function unbindCard()
     {
@@ -605,61 +665,79 @@ class VisitorList extends BaseController
             }
         }
 
-        if (!$invitationVisitorId) {
+        if (! $invitationVisitorId) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Invalid request parameter'
+                'message' => 'Invalid request parameter',
             ]);
         }
 
-        $db = \Config\Database::connect();
-        $db->transStart();
+        $result = $this->performUnbindCard((int) $invitationVisitorId);
 
-        try {
-            // Lock the row
-            $invitationVisitor = $db->query(
-                'SELECT * FROM invitation_visitors WHERE id = ? FOR UPDATE',
-                [$invitationVisitorId]
-            )->getRowArray();
+        return $this->response->setJSON($result);
+    }
 
-            if (!$invitationVisitor || !$invitationVisitor['visitor_card_id']) {
-                $db->transRollback();
-                return $this->response->setJSON([
-                    'success' => false,
-                    'message' => 'No card is currently assigned to this visitor'
-                ]);
-            }
+    /**
+     * Return cards for multiple invitation_visitors (batch unbind).
+     */
+    public function batchUnbindCards()
+    {
+        $json = $this->request->getJSON(true);
+        $ids = is_array($json) ? ($json['invitation_visitor_ids'] ?? []) : [];
 
-            $cardId = $invitationVisitor['visitor_card_id'];
-
-            $this->invitationVisitorModel->update($invitationVisitorId, [
-                'visitor_card_id' => null
-            ]);
-
-            $this->visitorCardModel->update($cardId, [
-                'status' => 'active'
-            ]);
-
-            $db->transComplete();
-
-            if ($db->transStatus() === false) {
-                return $this->response->setJSON([
-                    'success' => false,
-                    'message' => 'Failed to unbind card due to a database error'
-                ]);
-            }
-
-            return $this->response->setJSON([
-                'success' => true,
-                'message' => 'Card unbound successfully'
-            ]);
-        } catch (\Exception $e) {
-            $db->transRollback();
-            log_message('error', 'unbindCard error: ' . $e->getMessage());
+        if (! is_array($ids)) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'An error occurred: ' . $e->getMessage()
+                'message' => 'Invalid request',
             ]);
         }
+
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids), static fn ($id) => $id > 0)));
+
+        if ($ids === []) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'No visitors selected',
+            ]);
+        }
+
+        $returned = 0;
+        $failed = [];
+
+        foreach ($ids as $id) {
+            $r = $this->performUnbindCard($id);
+            if ($r['success']) {
+                $returned++;
+            } else {
+                $failed[] = [
+                    'invitation_visitor_id' => $id,
+                    'message' => $r['message'],
+                ];
+            }
+        }
+
+        if ($returned === 0) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => $failed[0]['message'] ?? 'Could not return cards for selected visitors',
+                'returned_count' => 0,
+                'failed' => $failed,
+            ]);
+        }
+
+        $msg = $returned === 1
+            ? '1 card returned successfully'
+            : sprintf('%d cards returned successfully', $returned);
+
+        if ($failed !== []) {
+            $msg .= sprintf(' (%d skipped)', count($failed));
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => $msg,
+            'returned_count' => $returned,
+            'failed' => $failed,
+        ]);
     }
 }
