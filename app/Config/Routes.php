@@ -530,9 +530,6 @@ $routes->group('config', ['filter' => $superadmins], function($routes) {
     $routes->delete('deletePathway/(:num)', 'Config::deletePathway/$1');
     $routes->get('getAllLanes', 'Config::getAllLanes');
 
-    // Workflows
-    $routes->get('getWorkflows', 'Config::getWorkflows');
-    $routes->post('updateWorkflows', 'Config::updateWorkflows');
     $routes->get('getAllLocations', 'Config::getAllLocations');
 
     // Registration Types

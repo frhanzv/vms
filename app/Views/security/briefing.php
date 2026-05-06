@@ -451,6 +451,7 @@
                     },
                     body: JSON.stringify({
                         token: '<?= esc($token) ?>',
+                        flow_step: '<?= esc($flow_step ?? 'security_briefing') ?>',
                         watched_duration: maxWatchedTime,
                         video_duration: video ? video.duration : 0,
                         acknowledged: true

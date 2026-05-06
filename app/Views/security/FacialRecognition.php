@@ -37,7 +37,6 @@
         }
     </script>
     <style>
-    <style>
         ::-webkit-scrollbar {
             width: 8px;
         }
@@ -502,6 +501,7 @@
             }
             
             const token = new URLSearchParams(window.location.search).get('token');
+            const flowStep = '<?= esc($flow_step ?? 'facial_verification') ?>';
             
             // Show loading state
             const button = event.target.closest('button');
@@ -517,6 +517,7 @@
                 },
                 body: JSON.stringify({
                     token: token,
+                    flow_step: flowStep,
                     image: capturedPhotoData
                 })
             })
