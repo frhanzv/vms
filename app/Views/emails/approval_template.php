@@ -32,13 +32,22 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🛡️ <?= esc($brandName) ?></h1>
+            <?php 
+            $logoSrc = '';
+            if (!empty($custom_logo_cid)) {
+                $logoSrc = 'cid:' . $custom_logo_cid;
+            } elseif (!empty($custom_logo)) {
+                $logoSrc = strpos($custom_logo, 'http') === 0 ? $custom_logo : base_url($custom_logo);
+            }
+            if ($logoSrc !== ''):
+            ?>
+                <img src="<?= esc($logoSrc) ?>" alt="<?= esc($brandName) ?> Logo" style="max-height: 80px; display: block; margin: 0 auto; margin-bottom: 10px;">
+            <?php endif; ?>
+            <h1 style="margin-top: 0; font-size: 24px;">🛡️ <?= esc($brandName) ?></h1>
             <h2><?= esc($headerTitle) ?></h2>
         </div>
         
         <div class="content">
-            <p>Dear <strong><?= esc($visitor_name) ?></strong>,</p>
-
             <?php if (!empty($custom_body_html)): ?>
                 <div><?= $custom_body_html ?></div>
             <?php else: ?>

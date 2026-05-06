@@ -3266,6 +3266,17 @@
                                             <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Subject</label>
                                             <input id="emailTemplateCrudSubject" type="text" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-primary focus:border-primary text-sm p-2.5 shadow-sm" required>
                                         </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Logo Image (Optional)</label>
+                                            <input id="emailTemplateCrudLogo" name="logo_image" type="file" accept=".jpg,.jpeg,.png,.webp,image/*" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2 text-sm text-slate-700 dark:text-slate-200" />
+                                            <div class="mt-2 flex items-center gap-3">
+                                                <img id="emailTemplateCrudLogoPreview" src="" alt="Logo preview" class="h-10 object-contain border border-slate-200 dark:border-slate-700 hidden rounded bg-white p-1" />
+                                            </div>
+                                            <label class="mt-2 inline-flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 hidden" id="emailTemplateCrudRemoveLogoWrapper">
+                                                <input id="emailTemplateCrudRemoveLogo" type="checkbox" class="rounded border-slate-300 text-primary focus:ring-primary/20" />
+                                                Remove current logo (revert to default text header)
+                                            </label>
+                                        </div>
                                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                             <div>
                                                 <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Primary Color</label>
@@ -13370,6 +13381,12 @@
             document.getElementById('emailTemplateCrudTextColor').value = '#333333';
             document.getElementById('emailTemplateCrudBody').value = '';
 
+            document.getElementById('emailTemplateCrudLogo').value = '';
+            document.getElementById('emailTemplateCrudLogoPreview').classList.add('hidden');
+            document.getElementById('emailTemplateCrudLogoPreview').src = '';
+            document.getElementById('emailTemplateCrudRemoveLogoWrapper').classList.add('hidden');
+            document.getElementById('emailTemplateCrudRemoveLogo').checked = false;
+
             modal.classList.remove('hidden');
             setTimeout(() => codeEl.focus(), 0);
         }
@@ -13402,6 +13419,19 @@
                     document.getElementById('emailTemplateCrudTextColor').value = row.text_color || '#333333';
                     document.getElementById('emailTemplateCrudBody').value = row.body || '';
 
+                    document.getElementById('emailTemplateCrudLogo').value = '';
+                    if (row.logo_url) {
+                        const logoUrl = row.logo_url.startsWith('http') ? row.logo_url : `<?= base_url() ?>${row.logo_url}`;
+                        document.getElementById('emailTemplateCrudLogoPreview').src = logoUrl;
+                        document.getElementById('emailTemplateCrudLogoPreview').classList.remove('hidden');
+                        document.getElementById('emailTemplateCrudRemoveLogoWrapper').classList.remove('hidden');
+                    } else {
+                        document.getElementById('emailTemplateCrudLogoPreview').src = '';
+                        document.getElementById('emailTemplateCrudLogoPreview').classList.add('hidden');
+                        document.getElementById('emailTemplateCrudRemoveLogoWrapper').classList.add('hidden');
+                    }
+                    document.getElementById('emailTemplateCrudRemoveLogo').checked = false;
+
                     modal.classList.remove('hidden');
                     setTimeout(() => document.getElementById('emailTemplateCrudSubject').focus(), 0);
                 })
@@ -13428,15 +13458,29 @@
                 return;
             }
 
-            const payload = { code, subject, body, primary_color, content_bg_color, text_color };
+            const formData = new FormData();
+            formData.append('code', code);
+            formData.append('subject', subject);
+            formData.append('body', body);
+            formData.append('primary_color', primary_color);
+            formData.append('content_bg_color', content_bg_color);
+            formData.append('text_color', text_color);
+            
+            const logoFile = document.getElementById('emailTemplateCrudLogo').files[0];
+            if (logoFile) {
+                formData.append('logo_image', logoFile);
+            }
+            if (document.getElementById('emailTemplateCrudRemoveLogo').checked) {
+                formData.append('remove_logo', '1');
+            }
+
             const url = id
                 ? `<?= base_url('config/updateEmailTemplate') ?>/${encodeURIComponent(id)}`
                 : '<?= base_url('config/createEmailTemplate') ?>';
 
             fetch(url, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
+                body: formData,
             })
                 .then(res => res.json().then(json => ({ ok: res.ok, json })))
                 .then(({ ok, json }) => {
