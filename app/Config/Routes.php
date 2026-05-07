@@ -362,6 +362,7 @@ $routes->group('', ['filter' => $plusAdminOfficer], function($routes) {
     $routes->get('report/bydoor', 'VisitorInfoByDoor::index');
     $routes->post('report/bydoor/generate', 'VisitorInfoByDoor::generate');
     $routes->get('report/visitor/details/(:num)', 'VisitorChronology::details/$1');
+    $routes->get('report/visitor/chronology-print/(:num)', 'VisitorChronology::chronologyPrint/$1');
     $routes->post('report/visitor/movement', 'VisitorChronology::movementTimeline');
 });
 

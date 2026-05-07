@@ -58,8 +58,8 @@
         <!-- Left Column -->
         <div class="space-y-6">
             <div>
-                <span class="label">Full Name:</span>
-                <div class="info-box uppercase"><?= esc($visitor['full_name']) ?></div>
+                <span class="label">Staff No:</span>
+                <div class="info-box"><?= esc($visitor['staff_id']) ?: 'N/A' ?></div>
             </div>
             <div>
                 <span class="label">IC No:</span>
@@ -89,8 +89,8 @@
                 <div class="info-box uppercase"><?= esc($visitor['reason']) ?: 'N/A' ?></div>
             </div>
             <div>
-                <span class="label">Staff No:</span>
-                <div class="info-box"><?= esc($visitor['staff_id']) ?: 'N/A' ?></div>
+                <span class="label">Full Name:</span>
+                <div class="info-box uppercase"><?= esc($visitor['full_name']) ?></div>
             </div>
             <div>
                 <span class="label">Contact No:</span>
