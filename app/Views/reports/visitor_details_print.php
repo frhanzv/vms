@@ -77,8 +77,8 @@
                 </div>
             </div>
             <div>
-                <span class="label">Search Type:</span>
-                <div class="info-box italic">Auto Detect</div>
+                <span class="label">Last Updated:</span>
+                <div class="info-box"><?= date('n/j/Y, g:i:s A', strtotime($visitor['updated_at'])) ?></div>
             </div>
         </div>
 
@@ -102,10 +102,6 @@
                     <?= !empty($visitor['visit_to']) ? date('l, F j, Y \a\t g:i:s A', strtotime($visitor['visit_to'])) : 'N/A' ?>
                     <?php if(!empty($visitor['visit_to'])): ?><span class="text-xs text-slate-400 ml-1 font-normal">(From device_access_logs)</span><?php endif; ?>
                 </div>
-            </div>
-            <div>
-                <span class="label">Last Updated:</span>
-                <div class="info-box"><?= date('n/j/Y, g:i:s A', strtotime($visitor['updated_at'])) ?></div>
             </div>
         </div>
     </div>

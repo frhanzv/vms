@@ -61,9 +61,15 @@ class VisitorChronology extends BaseController
 
         $db = db_connect();
 
-        // 1. Grouped Visitor Summary
-        $whereGrouped = ['i.id IS NOT NULL'];
-        $paramsGrouped = [];
+        // 1. Grouped Visitor Summary (respect date range + optional lane)
+        $whereGrouped = ['i.id IS NOT NULL', 'vcl.id IS NOT NULL'];
+        $joinGrouped = ['vcl.invitation_id = i.id', 'vcl.scanned_at >= ?', 'vcl.scanned_at <= ?'];
+        $paramsGrouped = [$fromDatetime, $toDatetime];
+
+        if ($laneId !== null && $laneId !== '') {
+            $joinGrouped[] = 'vcl.lane_id = ?';
+            $paramsGrouped[] = $laneId;
+        }
 
         if ($hasInvitation) {
             $whereGrouped[] = 'i.id = ?';
@@ -89,7 +95,7 @@ class VisitorChronology extends BaseController
                         MIN(vcl.scanned_at) AS visit_from,
                         MAX(vcl.scanned_at) AS visit_to
                        FROM invitations i
-                       LEFT JOIN visitor_card_logs vcl ON vcl.invitation_id = i.id
+                       LEFT JOIN visitor_card_logs vcl ON " . implode(' AND ', $joinGrouped) . "
                        WHERE " . implode(' AND ', $whereGrouped) . "
                        GROUP BY i.id";
         

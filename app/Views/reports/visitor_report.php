@@ -395,6 +395,9 @@
                         wrapper.append(icon).append(dropdown);
                         header.append(wrapper);
 
+                        var searchInput = $('<input type="text" placeholder="Search in this column..." class="w-full mb-2 border border-slate-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20">');
+                        dropdown.append(searchInput);
+
                         // Only add unique non-empty string values
                         var options = [];
                         column.data().unique().sort().each(function (d, j) {
@@ -408,15 +411,29 @@
                         var allCb = $('<input type="checkbox" checked class="form-checkbox h-4 w-4 text-[#535dec] accent-[#535dec] rounded border-slate-300 cursor-pointer">');
                         allLabel.append(allCb).append('<span class="select-none">All</span>');
                         dropdown.append(allLabel);
+
+                        var removeAllLabel = $('<label class="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 cursor-pointer font-semibold text-slate-700 capitalize mb-1"></label>');
+                        var removeAllCb = $('<input type="checkbox" class="form-checkbox h-4 w-4 text-red-500 accent-red-500 rounded border-slate-300 cursor-pointer">');
+                        removeAllLabel.append(removeAllCb).append('<span class="select-none">Remove All</span>');
+                        dropdown.append(removeAllLabel);
                         dropdown.append('<hr class="my-1 border-slate-200">');
 
                         var itemCbs = [];
                         options.forEach(function(val) {
-                            var itemLabel = $('<label class="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 cursor-pointer text-slate-600 capitalize"></label>');
+                            var itemLabel = $('<label class="filter-item flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 cursor-pointer text-slate-600 capitalize"></label>');
+                            itemLabel.attr('data-filter-text', val.toLowerCase());
                             var itemCb = $('<input type="checkbox" checked value="' + val.replace(/"/g, '&quot;') + '" class="form-checkbox h-4 w-4 text-[#535dec] accent-[#535dec] rounded border-slate-300 cursor-pointer">');
                             itemLabel.append(itemCb).append('<span class="select-none">' + val + '</span>');
                             dropdown.append(itemLabel);
                             itemCbs.push(itemCb);
+                        });
+
+                        searchInput.on('input', function () {
+                            var q = $(this).val().toLowerCase();
+                            dropdown.find('.filter-item').each(function () {
+                                var text = ($(this).attr('data-filter-text') || '');
+                                $(this).toggle(text.includes(q));
+                            });
                         });
 
                         icon.on('click', function(e) {
@@ -443,14 +460,12 @@
                             });
                             
                             allCb.prop('checked', allChecked);
+                            removeAllCb.prop('checked', false);
 
                             if(selected.length > 0 && selected.length < options.length) {
                                 icon.removeClass('text-slate-300 text-red-500').addClass('text-[#535dec]');
                                 var regex = '^(' + selected.join('|') + ')$';
                                 column.search(regex, true, false).draw();
-                            } else if (selected.length === 0) {
-                                icon.removeClass('text-slate-300 text-[#535dec]').addClass('text-red-500');
-                                column.search('^__NON_EXISTENT_MATCH__$', true, false).draw();
                             } else {
                                 icon.removeClass('text-[#535dec] text-red-500').addClass('text-slate-300');
                                 column.search('', true, false).draw();
@@ -459,8 +474,18 @@
 
                         allCb.on('change', function() {
                             var isChecked = $(this).prop('checked');
+                            removeAllCb.prop('checked', false);
                             itemCbs.forEach(function(cb) { cb.prop('checked', isChecked); });
                             applyFilter();
+                        });
+
+                        removeAllCb.on('change', function () {
+                            if (!$(this).prop('checked')) return;
+                            allCb.prop('checked', false);
+                            itemCbs.forEach(function (cb) { cb.prop('checked', false); });
+                            icon.removeClass('text-[#535dec] text-red-500').addClass('text-slate-300');
+                            column.search('', true, false).draw();
+                            $(this).prop('checked', false);
                         });
 
                         itemCbs.forEach(function(cb) {
