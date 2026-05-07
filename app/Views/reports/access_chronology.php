@@ -760,7 +760,125 @@
             visitorDt = $('#visitorTable').DataTable({
                 pageLength: 10,
                 dom: '<"flex justify-end items-center mb-5 mt-2"f><"overflow-x-auto"t><"flex flex-col md:flex-row justify-between items-center gap-4 mt-6"p<"ml-auto"l>>',
-                language: { search: "Search visitor:", lengthMenu: "_MENU_" }
+                language: { search: "Search visitor:", lengthMenu: "_MENU_" },
+                columnDefs: [
+                    { orderable: false, targets: [0, 8] },
+                    { className: "text-center", targets: [0, 7, 8] }
+                ],
+                initComplete: function () {
+                    var api = this.api();
+                    api.columns().every(function () {
+                        var column = this;
+                        var header = $(column.header());
+                        var headerText = header.clone().children().remove().end().text().trim().toUpperCase();
+                        if (headerText !== 'ACTIONS' && headerText !== '#' && headerText !== 'NO' && headerText !== 'NO.') {
+                            header.find('.dt-filter-wrapper').remove();
+
+                            var wrapper = $('<div class="dt-filter-wrapper inline-block relative ml-1 align-middle" onclick="event.stopPropagation()"></div>');
+                            var icon = $('<span class="material-symbols-outlined text-[16px] text-slate-300 hover:text-[#137fec] transition-colors cursor-pointer" style="vertical-align: middle;">filter_alt</span>');
+                            var dropdown = $('<div class="filter-dropdown hidden absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded shadow-lg z-[50] p-2 text-left text-sm max-h-[250px] overflow-y-auto" style="min-width: 160px; font-weight: normal;"></div>');
+
+                            wrapper.append(icon).append(dropdown);
+                            header.append(wrapper);
+
+                            var searchInput = $('<input type="text" placeholder="Search in this column..." class="w-full mb-2 border border-slate-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20">');
+                            dropdown.append(searchInput);
+
+                            var options = [];
+                            column.data().unique().sort().each(function (d) {
+                                var textVal = $('<div>').html(d).text().trim();
+                                if (textVal && textVal !== '-' && textVal !== 'View' && textVal !== 'NULL' && textVal !== 'null') {
+                                    options.push(textVal);
+                                }
+                            });
+
+                            var allLabel = $('<label class="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 cursor-pointer font-semibold text-slate-700 capitalize mb-1"></label>');
+                            var allCb = $('<input type="checkbox" checked class="form-checkbox h-4 w-4 text-[#137fec] accent-[#137fec] rounded border-slate-300 cursor-pointer">');
+                            allLabel.append(allCb).append('<span class="select-none">All</span>');
+                            dropdown.append(allLabel);
+
+                            var removeAllLabel = $('<label class="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 cursor-pointer font-semibold text-slate-700 capitalize mb-1"></label>');
+                            var removeAllCb = $('<input type="checkbox" class="form-checkbox h-4 w-4 text-red-500 accent-red-500 rounded border-slate-300 cursor-pointer">');
+                            removeAllLabel.append(removeAllCb).append('<span class="select-none">Remove All</span>');
+                            dropdown.append(removeAllLabel);
+                            dropdown.append('<hr class="my-1 border-slate-200">');
+
+                            var itemCbs = [];
+                            options.forEach(function (val) {
+                                var itemLabel = $('<label class="filter-item flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 cursor-pointer text-slate-600 capitalize"></label>');
+                                itemLabel.attr('data-filter-text', val.toLowerCase());
+                                var itemCb = $('<input type="checkbox" checked value="' + val.replace(/"/g, '&quot;') + '" class="form-checkbox h-4 w-4 text-[#137fec] accent-[#137fec] rounded border-slate-300 cursor-pointer">');
+                                itemLabel.append(itemCb).append('<span class="select-none">' + val + '</span>');
+                                dropdown.append(itemLabel);
+                                itemCbs.push(itemCb);
+                            });
+
+                            searchInput.on('input', function () {
+                                var q = $(this).val().toLowerCase();
+                                dropdown.find('.filter-item').each(function () {
+                                    var text = ($(this).attr('data-filter-text') || '');
+                                    $(this).toggle(text.includes(q));
+                                });
+                            });
+
+                            icon.on('click', function (e) {
+                                e.stopPropagation();
+                                $('.filter-dropdown').not(dropdown).addClass('hidden');
+                                dropdown.toggleClass('hidden');
+                            });
+
+                            $(document).on('click', function (e) {
+                                if (!$(e.target).closest(wrapper).length) {
+                                    dropdown.addClass('hidden');
+                                }
+                            });
+
+                            function applyFilter() {
+                                var selected = [];
+                                var allChecked = true;
+                                itemCbs.forEach(function (cb) {
+                                    if (cb.prop('checked')) {
+                                        selected.push($.fn.dataTable.util.escapeRegex(cb.val()));
+                                    } else {
+                                        allChecked = false;
+                                    }
+                                });
+
+                                allCb.prop('checked', allChecked);
+                                removeAllCb.prop('checked', false);
+
+                                if (selected.length > 0 && selected.length < options.length) {
+                                    icon.removeClass('text-slate-300 text-red-500').addClass('text-[#137fec]');
+                                    var regex = '^(' + selected.join('|') + ')$';
+                                    column.search(regex, true, false).draw();
+                                } else {
+                                    icon.removeClass('text-[#137fec] text-red-500').addClass('text-slate-300');
+                                    column.search('', true, false).draw();
+                                }
+                            }
+
+                            allCb.on('change', function () {
+                                var isChecked = $(this).prop('checked');
+                                removeAllCb.prop('checked', false);
+                                itemCbs.forEach(function (cb) { cb.prop('checked', isChecked); });
+                                applyFilter();
+                            });
+
+                            removeAllCb.on('change', function () {
+                                if (!$(this).prop('checked')) return;
+                                allCb.prop('checked', false);
+                                itemCbs.forEach(function (cb) { cb.prop('checked', false); });
+                                icon.removeClass('text-[#137fec] text-red-500').addClass('text-slate-300');
+                                column.search('', true, false).draw();
+                                $(this).prop('checked', false);
+                            });
+
+                            itemCbs.forEach(function (cb) {
+                                cb.on('change', applyFilter);
+                            });
+                        }
+                    });
+                }
             });
         }
 

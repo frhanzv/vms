@@ -39,7 +39,7 @@
             theme: {
                 extend: {
                     colors: {
-                        "primary": "#535dec", // Matches the actual system colors
+                        "primary": "#137fec", // Matches the actual system colors
                         "background-light": "#f6f7f8",
                         "background-dark": "#101922",
                     },
@@ -172,7 +172,7 @@
 
         .dataTables_wrapper .dataTables_paginate .paginate_button.current,
         .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
-            background: #535dec !important;
+            background: #137fec !important;
             color: white !important;
             border: none !important;
         }
@@ -194,7 +194,7 @@
                     <!-- Page Header -->
                     <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
                         <div>
-                            <p class="text-xs font-semibold uppercase tracking-widest text-[#535dec] mb-1">Reports</p>
+                            <p class="text-xs font-semibold uppercase tracking-widest text-[#137fec] mb-1">Reports</p>
                             <h1 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white mb-2">Visitor
                                 Info By Door</h1>
                             <p class="text-slate-500 dark:text-slate-400 text-sm font-medium">Analyse visitors by
@@ -204,7 +204,7 @@
 
                     <!-- Filters Section -->
                     <div
-                        class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 grid grid-cols-1 lg:grid-cols-3 gap-6 items-end">
+                        class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 grid grid-cols-1 lg:grid-cols-4 gap-6 items-end">
                         <!-- Location Dropdown -->
                         <div class="flex flex-col gap-1.5 min-w-0">
                             <label class="text-xs font-semibold text-slate-500 tracking-wider" for="laneSelect">
@@ -222,25 +222,40 @@
                             <p class="text-xs text-slate-400">Select scanning location</p>
                         </div>
 
-                        <!-- Date Picker -->
+                        <!-- From Date -->
                         <div class="flex flex-col gap-1.5 min-w-0">
-                            <label class="text-xs font-semibold text-slate-500 tracking-wider" for="dateSelect">
-                                Select Date
+                            <label class="text-xs font-semibold text-slate-500 tracking-wider" for="fromDateSelect">
+                                From Date
                             </label>
                             <div class="relative">
-                                <input type="text" id="dateSelect"
+                                <input type="text" id="fromDateSelect"
                                     class="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary cursor-pointer"
-                                    placeholder="Select a date">
+                                    placeholder="Select start date">
                                 <span
                                     class="absolute right-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-[18px] text-slate-400 pointer-events-none">calendar_today</span>
                             </div>
-                            <p class="text-xs text-slate-400">Visitor check-in date</p>
+                            <p class="text-xs text-slate-400">Start date</p>
+                        </div>
+
+                        <!-- To Date -->
+                        <div class="flex flex-col gap-1.5 min-w-0">
+                            <label class="text-xs font-semibold text-slate-500 tracking-wider" for="toDateSelect">
+                                To Date
+                            </label>
+                            <div class="relative">
+                                <input type="text" id="toDateSelect"
+                                    class="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary cursor-pointer"
+                                    placeholder="Select end date">
+                                <span
+                                    class="absolute right-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-[18px] text-slate-400 pointer-events-none">calendar_today</span>
+                            </div>
+                            <p class="text-xs text-slate-400">End date</p>
                         </div>
 
                         <!-- Action Buttons -->
                         <div class="flex gap-3 mb-6">
                             <button onclick="fetchVisitors()"
-                                class="flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg bg-[#535dec] hover:bg-[#4853e0] text-white font-bold text-sm shadow-md shadow-primary/20 transition-all whitespace-nowrap h-[42px] min-w-[140px]">
+                                class="flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg bg-[#137fec] hover:bg-[#0f6ecf] text-white font-bold text-sm shadow-md shadow-primary/20 transition-all whitespace-nowrap h-[42px] min-w-[140px]">
                                 <span class="material-symbols-outlined text-[18px]">search</span>
                                 Fetch Visitors
                             </button>
@@ -256,7 +271,7 @@
                             <div class="flex items-center text-[#0f5f68] dark:text-cyan-100 text-[13px]">
                                 <span class="material-symbols-outlined text-[18px] mr-2">info</span>
                                 <span class="font-medium">Showing visitors for: <b id="lblLocation"
-                                        class="font-bold"></b> | Date: <b id="lblDate" class="font-bold"></b> | Total
+                                        class="font-bold"></b> | Date Range: <b id="lblDateRange" class="font-bold"></b> | Total
                                     Visitors: </span>
                                 <span id="lblTotal"
                                     class="ml-2 bg-[#2d7bf4] text-white text-[11px] font-bold px-2 py-0.5 rounded-full"></span>
@@ -274,7 +289,7 @@
 
                             <div class="flex flex-wrap items-center gap-3">
                                 <button type="button" onclick="openColumnsModal()"
-                                    class="flex items-center gap-2 bg-[#535dec] hover:bg-[#4853e0] text-white px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm h-[38px]">
+                                    class="flex items-center gap-2 bg-[#137fec] hover:bg-[#0f6ecf] text-white px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm h-[38px]">
                                     <span class="material-symbols-outlined text-[18px]">visibility</span>
                                     Show/Hide Columns
                                 </button>
@@ -287,7 +302,7 @@
                                     <label class="text-sm font-medium text-slate-500 whitespace-nowrap">Search
                                         logs:</label>
                                     <input type="text" id="customSearchBox"
-                                        class="border border-slate-300 dark:border-slate-600 rounded-md px-3 py-[7px] text-sm focus:ring-[#535dec] focus:border-[#535dec] outline-none min-w-[200px] w-full max-w-[280px]">
+                                        class="border border-slate-300 dark:border-slate-600 rounded-md px-3 py-[7px] text-sm focus:ring-[#137fec] focus:border-[#137fec] outline-none min-w-[200px] w-full max-w-[280px]">
                                 </div>
                             </div>
                         </div>
@@ -337,7 +352,7 @@
             <!-- Header -->
             <div class="border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
                 <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <span class="material-symbols-outlined text-[#535dec]">assignment_ind</span>
+                    <span class="material-symbols-outlined text-[#137fec]">assignment_ind</span>
                     Log Details
                 </h3>
                 <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
@@ -392,7 +407,7 @@
                     <div>
                         <label class="block text-xs font-semibold text-slate-400 mb-1 uppercase tracking-wider">Person
                             Visited</label>
-                        <p class="text-[#535dec] font-medium text-sm" id="mPerson">-</p>
+                        <p class="text-[#137fec] font-medium text-sm" id="mPerson">-</p>
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-400 mb-1 uppercase tracking-wider">Purpose
@@ -419,7 +434,7 @@
             <div class="px-6 py-5 overflow-y-auto max-h-[60vh] custom-scrollbar">
                 <div class="mb-5 flex items-center gap-2">
                     <input type="checkbox" id="selectAllColumns" onchange="toggleAllColumns(this)"
-                        class="rounded border-slate-300 text-[#535dec] focus:ring-[#535dec] h-4 w-4 cursor-pointer"
+                        class="rounded border-slate-300 text-[#137fec] focus:ring-[#137fec] h-4 w-4 cursor-pointer"
                         checked>
                     <label for="selectAllColumns"
                         class="text-sm font-bold text-slate-700 dark:text-slate-300 cursor-pointer">Select All
@@ -434,7 +449,7 @@
                 <button type="button" onclick="closeColumnsModal()"
                     class="rounded-md border border-slate-400 bg-slate-500 hover:bg-slate-600 px-5 py-2 text-sm font-semibold text-white transition-colors">Close</button>
                 <button type="button" onclick="applyColumnsVisibility()"
-                    class="rounded-md bg-[#535dec] hover:bg-[#4853e0] px-5 py-2 text-sm font-semibold text-white shadow-md transition-colors">Apply
+                    class="rounded-md bg-[#137fec] hover:bg-[#0f6ecf] px-5 py-2 text-sm font-semibold text-white shadow-md transition-colors">Apply
                     Changes</button>
             </div>
         </div>
@@ -451,8 +466,13 @@
 
         document.addEventListener('DOMContentLoaded', () => {
 
-            // Initialize Flatpickr matching Access Report explicitly
-            flatpickr("#dateSelect", {
+            flatpickr("#fromDateSelect", {
+                dateFormat: "Y-m-d",
+                defaultDate: "today",
+                disableMobile: true
+            });
+
+            flatpickr("#toDateSelect", {
                 dateFormat: "Y-m-d",
                 defaultDate: "today",
                 disableMobile: true
@@ -492,11 +512,14 @@
                             header.find('.dt-filter-wrapper').remove();
 
                             var wrapper = $('<div class="dt-filter-wrapper inline-block relative ml-1 align-middle" onclick="event.stopPropagation()"></div>');
-                            var icon = $('<span class="material-symbols-outlined text-[16px] text-slate-300 hover:text-[#535dec] transition-colors cursor-pointer" style="vertical-align: middle;">filter_alt</span>');
+                            var icon = $('<span class="material-symbols-outlined text-[16px] text-slate-300 hover:text-[#137fec] transition-colors cursor-pointer" style="vertical-align: middle;">filter_alt</span>');
                             var dropdown = $('<div class="filter-dropdown hidden absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded shadow-lg z-[50] p-2 text-left text-sm max-h-[250px] overflow-y-auto" style="min-width: 160px; font-weight: normal;"></div>');
 
                             wrapper.append(icon).append(dropdown);
                             header.append(wrapper);
+
+                            var searchInput = $('<input type="text" placeholder="Search in this column..." class="w-full mb-2 border border-slate-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20">');
+                            dropdown.append(searchInput);
 
                             var options = [];
                             column.data().unique().sort().each(function (d, j) {
@@ -507,18 +530,32 @@
                             });
 
                             var allLabel = $('<label class="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 cursor-pointer font-semibold text-slate-700 capitalize mb-1"></label>');
-                            var allCb = $('<input type="checkbox" checked class="form-checkbox h-4 w-4 text-[#535dec] accent-[#535dec] rounded border-slate-300 cursor-pointer">');
+                            var allCb = $('<input type="checkbox" checked class="form-checkbox h-4 w-4 text-[#137fec] accent-[#137fec] rounded border-slate-300 cursor-pointer">');
                             allLabel.append(allCb).append('<span class="select-none">All</span>');
                             dropdown.append(allLabel);
+
+                            var removeAllLabel = $('<label class="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 cursor-pointer font-semibold text-slate-700 capitalize mb-1"></label>');
+                            var removeAllCb = $('<input type="checkbox" class="form-checkbox h-4 w-4 text-red-500 accent-red-500 rounded border-slate-300 cursor-pointer">');
+                            removeAllLabel.append(removeAllCb).append('<span class="select-none">Remove All</span>');
+                            dropdown.append(removeAllLabel);
                             dropdown.append('<hr class="my-1 border-slate-200">');
 
                             var itemCbs = [];
                             options.forEach(function (val) {
-                                var itemLabel = $('<label class="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 cursor-pointer text-slate-600 capitalize"></label>');
-                                var itemCb = $('<input type="checkbox" checked value="' + val.replace(/"/g, '&quot;') + '" class="form-checkbox h-4 w-4 text-[#535dec] accent-[#535dec] rounded border-slate-300 cursor-pointer">');
+                                var itemLabel = $('<label class="filter-item flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 cursor-pointer text-slate-600 capitalize"></label>');
+                                itemLabel.attr('data-filter-text', val.toLowerCase());
+                                var itemCb = $('<input type="checkbox" checked value="' + val.replace(/"/g, '&quot;') + '" class="form-checkbox h-4 w-4 text-[#137fec] accent-[#137fec] rounded border-slate-300 cursor-pointer">');
                                 itemLabel.append(itemCb).append('<span class="select-none">' + val + '</span>');
                                 dropdown.append(itemLabel);
                                 itemCbs.push(itemCb);
+                            });
+
+                            searchInput.on('input', function () {
+                                var q = $(this).val().toLowerCase();
+                                dropdown.find('.filter-item').each(function () {
+                                    var text = ($(this).attr('data-filter-text') || '');
+                                    $(this).toggle(text.includes(q));
+                                });
                             });
 
                             icon.on('click', function (e) {
@@ -545,24 +582,32 @@
                                 });
 
                                 allCb.prop('checked', allChecked);
+                                removeAllCb.prop('checked', false);
 
                                 if (selected.length > 0 && selected.length < options.length) {
-                                    icon.removeClass('text-slate-300 text-red-500').addClass('text-[#535dec]');
+                                    icon.removeClass('text-slate-300 text-red-500').addClass('text-[#137fec]');
                                     var regex = '^(' + selected.join('|') + ')$';
                                     column.search(regex, true, false).draw();
-                                } else if (selected.length === 0) {
-                                    icon.removeClass('text-slate-300 text-[#535dec]').addClass('text-red-500');
-                                    column.search('^__NON_EXISTENT_MATCH__$', true, false).draw();
                                 } else {
-                                    icon.removeClass('text-[#535dec] text-red-500').addClass('text-slate-300');
+                                    icon.removeClass('text-[#137fec] text-red-500').addClass('text-slate-300');
                                     column.search('', true, false).draw();
                                 }
                             }
 
                             allCb.on('change', function () {
                                 var isChecked = $(this).prop('checked');
+                                removeAllCb.prop('checked', false);
                                 itemCbs.forEach(function (cb) { cb.prop('checked', isChecked); });
                                 applyFilter();
+                            });
+
+                            removeAllCb.on('change', function () {
+                                if (!$(this).prop('checked')) return;
+                                allCb.prop('checked', false);
+                                itemCbs.forEach(function (cb) { cb.prop('checked', false); });
+                                icon.removeClass('text-[#137fec] text-red-500').addClass('text-slate-300');
+                                column.search('', true, false).draw();
+                                $(this).prop('checked', false);
                             });
 
                             itemCbs.forEach(function (cb) {
@@ -599,11 +644,16 @@
 
         function fetchVisitors() {
             const laneId = $('#laneSelect').val();
-            // Since altInput is used, the main input continues resolving raw YYYY-MM-DD cleanly mapped inside Flatpickr
-            const rawDate = document.getElementById('dateSelect').value;
+            const fromDate = document.getElementById('fromDateSelect').value;
+            const toDate = document.getElementById('toDateSelect').value;
 
-            if (!laneId || !rawDate) {
-                alert('Please select both a Location and Date to proceed.');
+            if (!laneId || !fromDate || !toDate) {
+                alert('Please select a Location and complete the date range to proceed.');
+                return;
+            }
+
+            if (fromDate > toDate) {
+                alert('From Date cannot be later than To Date.');
                 return;
             }
 
@@ -619,7 +669,8 @@
 
             const fd = new FormData();
             fd.append('lane_id', laneId);
-            fd.append('date', rawDate);
+            fd.append('from_date', fromDate);
+            fd.append('to_date', toDate);
 
             fetch('<?= base_url('report/bydoor/generate') ?>', {
                 method: 'POST',
@@ -649,7 +700,7 @@
 
                     // Paint Banner Params
                     document.getElementById('lblLocation').textContent = data.location_text;
-                    document.getElementById('lblDate').textContent = data.date_text;
+                    document.getElementById('lblDateRange').textContent = data.date_range_text;
                     document.getElementById('lblTotal').textContent = data.total_visitors;
                     document.getElementById('lblUpdated').textContent = data.last_updated;
 
@@ -692,7 +743,7 @@
                 <td class="py-3 align-middle"><span class="text-slate-500 tracking-tight text-[13px] capitalize">${esc(v.person_visited)}</span></td>
                 <td class="py-3 align-middle"><span class="text-slate-500 tracking-tight text-[13px] font-medium">${esc(v.checkin_time)}</span></td>
                 <td class="py-3 align-middle"><span class="bg-gray-400 text-white rounded-full px-2 py-0.5 text-[11px] font-bold">${esc(v.location_name)}</span></td>
-                <td class="py-3 align-middle"><div class="flex justify-center"><span class="material-symbols-outlined text-[18px] text-[#535dec] cursor-pointer hover:text-blue-800 transition-colors" onclick="openModal(${i})">visibility</span></div></td>
+                <td class="py-3 align-middle"><div class="flex justify-center"><span class="material-symbols-outlined text-[18px] text-[#137fec] cursor-pointer hover:text-blue-800 transition-colors" onclick="openModal(${i})">visibility</span></div></td>
             `;
                 tbody.appendChild(tr);
             });
@@ -764,7 +815,7 @@
                 const div = document.createElement('div');
                 div.className = 'flex items-center gap-2';
                 div.innerHTML = `
-                <input type="checkbox" id="col_${idx}" data-col-idx="${idx}" class="col-toggle-cb rounded border-slate-300 text-[#535dec] focus:ring-[#535dec] h-4 w-4 cursor-pointer" ${isVisible ? 'checked' : ''}>
+                <input type="checkbox" id="col_${idx}" data-col-idx="${idx}" class="col-toggle-cb rounded border-slate-300 text-[#137fec] focus:ring-[#137fec] h-4 w-4 cursor-pointer" ${isVisible ? 'checked' : ''}>
                 <label for="col_${idx}" class="text-sm text-slate-600 dark:text-slate-300 uppercase cursor-pointer">${colName}</label>
             `;
                 container.appendChild(div);
