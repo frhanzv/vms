@@ -759,7 +759,7 @@
 
             visitorDt = $('#visitorTable').DataTable({
                 pageLength: 10,
-                dom: '<"flex justify-end items-center mb-5 mt-2"f><"overflow-x-auto"t><"flex flex-col md:flex-row justify-between items-center gap-4 mt-6"p<"ml-auto"l>>',
+                dom: '<"flex justify-end items-center mb-5 mt-2"f><"overflow-x-auto min-h-[300px]"t><"flex flex-col md:flex-row justify-between items-center gap-4 mt-6"p<"ml-auto"l>>',
                 language: { search: "Search visitor:", lengthMenu: "_MENU_" },
                 columnDefs: [
                     { orderable: false, targets: [0, 8] },
