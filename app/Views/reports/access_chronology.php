@@ -411,9 +411,9 @@
         <div id="timelineModalBackdrop" onclick="closeTimelineModal()"
             class="absolute inset-0 bg-slate-900/55 dark:bg-black/65 cursor-pointer"></div>
         <div
-            class="relative flex w-full max-w-4xl flex-col rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900 overflow-hidden">
+            class="relative flex w-full max-h-[90vh] max-w-4xl flex-col rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900 overflow-hidden">
             <!-- Header -->
-            <div class="flex items-center justify-between bg-[#00bcd4] px-6 py-3">
+            <div class="flex shrink-0 items-center justify-between bg-[#00bcd4] px-6 py-3">
                 <h2 class="flex items-center gap-3 text-lg font-bold text-white uppercase tracking-tight">
                     <span class="material-symbols-outlined text-[24px]">history</span>
                     Visitor Chronology & Access Logs
@@ -425,7 +425,7 @@
             </div>
 
             <div id="timelineModalContent"
-                class="px-6 py-6 overflow-y-auto max-h-[85vh] custom-scrollbar bg-white dark:bg-slate-900">
+                class="flex-1 px-6 py-6 overflow-y-auto custom-scrollbar bg-white dark:bg-slate-900">
                 <!-- Loading Indicator -->
                 <div id="timelineLoading" class="flex flex-col items-center justify-center py-20 gap-4">
                     <div class="size-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
@@ -449,7 +449,7 @@
 
                     <!-- Stats Cards -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div class="bg-[#2d8f5c] rounded-lg p-5 text-white shadow-md">
+                        <div id="tmStatusCard" class="bg-[#2d8f5c] rounded-lg p-5 text-white shadow-md">
                             <span class="text-xs font-bold uppercase tracking-wider block opacity-90">Current
                                 Status</span>
                             <div id="tmStatus" class="text-xl font-black mt-1 uppercase"></div>
@@ -508,7 +508,7 @@
             </div>
 
             <div
-                class="flex justify-end gap-3 border-t border-slate-100 bg-white px-6 py-4 dark:border-slate-800 dark:bg-slate-900">
+                class="flex shrink-0 justify-end gap-3 border-t border-slate-100 bg-white px-6 py-4 dark:border-slate-800 dark:bg-slate-900">
                 <button type="button" id="btnDownloadFullReport"
                     class="flex items-center gap-2 rounded bg-[#1b7145] hover:bg-[#155a36] px-5 py-2 text-sm font-bold text-white shadow-md transition-colors">
                     <span class="material-symbols-outlined text-[18px]">download</span>
@@ -544,8 +544,8 @@
 
             <div class="px-6 py-6 grid grid-cols-2 gap-y-6 gap-x-4 max-h-[70vh] overflow-y-auto custom-scrollbar bg-white dark:bg-slate-900">
                 <div>
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Full Name</span>
-                    <span id="mdFullname" class="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase"></span>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Staff No</span>
+                    <span id="mdStaffno" class="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase"></span>
                 </div>
                 <div>
                     <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">IC Number</span>
@@ -564,8 +564,8 @@
                     <span id="mdPersonVisited" class="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase"></span>
                 </div>
                 <div>
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Staff No</span>
-                    <span id="mdStaffno" class="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase"></span>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Full Name</span>
+                    <span id="mdFullname" class="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase"></span>
                 </div>
                 <div class="col-span-2">
                     <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Visit Reason</span>
@@ -799,7 +799,7 @@
                         return;
                     }
 
-                    renderTimelineModal(data);
+                    renderTimelineModal(data, v.status, invId);
                 })
                 .catch(() => {
                     alert('Error fetching chronology data.');
@@ -807,14 +807,24 @@
                 });
         }
 
-        function renderTimelineModal(data) {
+        function renderTimelineModal(data, tableStatus, invId) {
             document.getElementById('timelineLoading').classList.add('hidden');
             document.getElementById('timelineDataContent').classList.remove('hidden');
 
             const s = data.summary;
             document.getElementById('tmFullname').textContent = s.full_name;
             document.getElementById('tmIcno').textContent = s.ic_no;
-            document.getElementById('tmStatus').textContent = s.status.replace('_', ' ');
+            
+            const displayStatus = tableStatus || s.status.replace('_', ' ');
+            document.getElementById('tmStatus').textContent = displayStatus;
+            
+            const statusCard = document.getElementById('tmStatusCard');
+            if (displayStatus.toUpperCase() === 'CHECKED OUT') {
+                statusCard.className = 'bg-red-500 rounded-lg p-5 text-white shadow-md';
+            } else {
+                statusCard.className = 'bg-[#2d8f5c] rounded-lg p-5 text-white shadow-md';
+            }
+            
             document.getElementById('tmTotalTime').textContent = s.total_time;
             document.getElementById('tmTotalVisits').textContent = s.total_visits;
             document.getElementById('tmTotalScans').textContent = s.total_scans;
@@ -846,7 +856,7 @@
 
             // Download Button
             document.getElementById('btnDownloadFullReport').onclick = () => {
-                downloadChronologyExcel(data);
+                window.open('<?= base_url('report/visitor/chronology-print') ?>/' + invId, '_blank');
             };
         }
 

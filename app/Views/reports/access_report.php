@@ -554,7 +554,9 @@
                     <button type="button"
                         class="js-access-view inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm bg-primary/10 text-primary hover:bg-primary/20 transition-colors mx-auto"
                         data-invitation-id="${escAttr(String(v.invitation_id))}"
-                        data-ic-no="${escAttr(v.ic_no)}">
+                        data-ic-no="${escAttr(v.ic_no)}"
+                        data-visitor-name="${escAttr(v.visitor_name)}"
+                        data-visit-reason="${escAttr(v.visit_reason)}">
                         <span class="material-symbols-outlined text-[18px]">visibility</span>
                         View
                     </button>
@@ -818,7 +820,7 @@
         return '<span class="inline-flex rounded-full bg-slate-200 px-2.5 py-0.5 text-xs font-bold text-slate-700 dark:bg-slate-700 dark:text-slate-200">' + escHtml(label) + '</span>';
     }
 
-    function openMovementHistory(invitationId, icNo) {
+    function openMovementHistory(invitationId, icNo, visitorName = '', visitReason = '') {
         const checkedBoxes = document.querySelectorAll('.location-checkbox:checked');
         const laneIds  = Array.from(checkedBoxes).map(cb => cb.value);
         const fromDatetime = document.getElementById('from_datetime').value;
@@ -839,7 +841,7 @@
         document.getElementById('movementModalTable').classList.add('hidden');
         document.getElementById('movementModalEmpty').classList.add('hidden');
         document.getElementById('movementModalTableBody').innerHTML = '';
-        document.getElementById('movementModalTitle').textContent = 'Movement History';
+        document.getElementById('movementModalTitle').textContent = 'Movement History' + (visitorName ? ' — ' + visitorName : '');
         document.getElementById('movementModalStaff').textContent = 'Staff No: —';
 
         const formData = new FormData();
@@ -864,7 +866,7 @@
                 closeMovementModal();
                 return;
             }
-            document.getElementById('movementModalTitle').textContent = 'Movement History — ' + (data.staff_no || '');
+            document.getElementById('movementModalTitle').textContent = 'Movement History' + (visitorName ? ' — ' + visitorName : '');
             document.getElementById('movementModalStaff').textContent = 'Staff No: ' + (data.staff_no || '—');
             const tbody = document.getElementById('movementModalTableBody');
             tbody.innerHTML = '';
@@ -878,12 +880,13 @@
                 tr.className = 'border-b border-slate-100 dark:border-slate-800';
                 const accessYes = row.access_granted !== false && row.access !== 'No';
                 const actOk = row.action_allowed !== false && row.action !== 'Not Allowed';
+                const rowReason = visitReason ? visitReason : (row.reason || '—');
                 tr.innerHTML =
                     '<td class="whitespace-nowrap px-3 py-3 font-medium">' + escHtml(row.date_time) + '</td>' +
                     '<td class="px-3 py-3">' + escHtml(row.current_location) + '</td>' +
                     '<td class="px-3 py-3">' + escHtml(row.location_accessed) + '</td>' +
                     '<td class="px-3 py-3 text-center">' + movementBadgeYesNo(accessYes) + '</td>' +
-                    '<td class="max-w-[200px] px-3 py-3 text-slate-600 dark:text-slate-400">' + escHtml(row.reason || '—') + '</td>' +
+                    '<td class="max-w-[200px] px-3 py-3 text-slate-600 dark:text-slate-400">' + escHtml(rowReason) + '</td>' +
                     '<td class="px-3 py-3 text-center">' + movementTypeBadge(row.type || 'Checkin') + '</td>' +
                     '<td class="px-3 py-3 text-center">' + movementBadgeAction(actOk) + '</td>';
                 tbody.appendChild(tr);
@@ -935,8 +938,10 @@
         e.stopPropagation();
         const inv = this.getAttribute('data-invitation-id');
         const ic = this.getAttribute('data-ic-no');
+        const visitorName = this.getAttribute('data-visitor-name') || '';
+        const visitReason = this.getAttribute('data-visit-reason') || '';
         if (inv === null || inv === '') return;
-        openMovementHistory(parseInt(inv, 10), ic || '');
+        openMovementHistory(parseInt(inv, 10), ic || '', visitorName, visitReason);
     });
 
     // ── Location multi-select dropdown ──────────────────────────────────────
