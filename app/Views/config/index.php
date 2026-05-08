@@ -4438,7 +4438,7 @@
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Role <span
                                     class="text-red-500">*</span></label>
-                            <select id="userRole" name="role" required
+                            <select id="userRole" name="role" required onchange="handleUserRoleChange()"
                                 class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none">
                                 <option value="">Select Role</option>
                             </select>
@@ -4455,6 +4455,15 @@
                             </select>
                             <p id="userIs_activeError" class="text-red-500 text-xs mt-1 hidden"></p>
                         </div>
+                    </div>
+
+                    <div id="userCompanyRow" class="hidden">
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Company <span class="text-red-500">*</span></label>
+                        <select id="userCompanyId" name="company_id"
+                            class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none">
+                            <option value="">Select Company</option>
+                        </select>
+                        <p id="userCompany_idError" class="text-red-500 text-xs mt-1 hidden"></p>
                     </div>
                 </div>
                 <div
@@ -5641,6 +5650,42 @@
                 .catch(error => console.error('Error loading roles:', error));
         }
 
+        function handleUserRoleChange() {
+            const role = document.getElementById('userRole').value;
+            const companyRow = document.getElementById('userCompanyRow');
+            const companySelect = document.getElementById('userCompanyId');
+            if (role === 'superadmin' || role === '') {
+                companyRow.classList.add('hidden');
+                companySelect.removeAttribute('required');
+            } else {
+                companyRow.classList.remove('hidden');
+                companySelect.setAttribute('required', 'required');
+                loadCompaniesForUserDropdown();
+            }
+        }
+
+        function loadCompaniesForUserDropdown(selectedId = null) {
+            const select = document.getElementById('userCompanyId');
+            if (select.options.length > 1) {
+                if (selectedId) select.value = selectedId;
+                return;
+            }
+            fetch('<?= base_url('config/getAllCompanies') ?>')
+                .then(r => r.json())
+                .then(data => {
+                    const companies = data.data || data;
+                    select.innerHTML = '<option value="">Select Company</option>';
+                    companies.forEach(c => {
+                        const opt = document.createElement('option');
+                        opt.value = c.id;
+                        opt.textContent = c.name;
+                        select.appendChild(opt);
+                    });
+                    if (selectedId) select.value = selectedId;
+                })
+                .catch(() => {});
+        }
+
         function openCreateUserModal() {
             document.getElementById('userModalTitle').textContent = 'Create New User';
             document.getElementById('userId').value = '';
@@ -5648,6 +5693,8 @@
             document.getElementById('userPassword').required = true;
             document.getElementById('passwordRequired').classList.remove('hidden');
             document.getElementById('passwordOptional').classList.add('hidden');
+            document.getElementById('userCompanyRow').classList.add('hidden');
+            document.getElementById('userCompanyId').removeAttribute('required');
             clearUserErrors();
             loadRolesForDropdown();
             document.getElementById('userModal').classList.remove('hidden');
@@ -5673,9 +5720,13 @@
                         document.getElementById('userStatus').value = data.data.is_active;
                         clearUserErrors();
                         loadRolesForDropdown();
-                        // Set role after roles are loaded
+                        // Set role and company after dropdowns are loaded
                         setTimeout(() => {
                             document.getElementById('userRole').value = data.data.role;
+                            handleUserRoleChange();
+                            if (data.data.company_id) {
+                                loadCompaniesForUserDropdown(data.data.company_id);
+                            }
                         }, 100);
                         document.getElementById('userModal').classList.remove('hidden');
                         document.getElementById('userModal').classList.add('flex');
@@ -5698,7 +5749,7 @@
 
         function clearUserErrors() {
             ['userUsernameError', 'userFull_nameError', 'userEmailError', 'userPasswordError',
-                'userStaff_idError', 'userContact_noError', 'userRoleError', 'userIs_activeError'].forEach(id => {
+                'userStaff_idError', 'userContact_noError', 'userRoleError', 'userIs_activeError', 'userCompany_idError'].forEach(id => {
                     const el = document.getElementById(id);
                     if (el) {
                         el.classList.add('hidden');

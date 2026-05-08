@@ -10,6 +10,7 @@ use App\Models\CompanyModel;
 use App\Models\VisitorTypeModel;
 use App\Models\SettingModel;
 use App\Models\EmailTemplateModel;
+use App\Models\UserModel;
 
 /**
  * Sends invitation registration emails (shared by InvitationList and VisitorRegistration).
@@ -25,6 +26,7 @@ class InvitationEmailSender
     protected SettingModel $settingModel;
     protected EmailTemplateService $emailTemplateService;
     protected EmailTemplateModel $emailTemplateModel;
+    protected UserModel $userModel;
     protected \Config\Email $emailConfig;
 
     public function __construct()
@@ -38,7 +40,79 @@ class InvitationEmailSender
         $this->settingModel = new SettingModel();
         $this->emailTemplateService = new EmailTemplateService();
         $this->emailTemplateModel = new EmailTemplateModel();
+        $this->userModel = new UserModel();
         $this->emailConfig = config('Email');
+    }
+
+    /**
+     * Collect all secondary recipients (host + company admins) for an invitation,
+     * excluding the visitor themselves to avoid duplicates.
+     *
+     * @param array<string, mixed> $invitation
+     * @return array<int, array{email: string, full_name: string}>
+     */
+    protected function getSecondaryRecipients(array $invitation): array
+    {
+        $recipients = [];
+        $seen = [];
+        $visitorEmail = strtolower((string) ($invitation['visitor_email'] ?? ''));
+
+        // Host
+        $host = $invitation['host_user'] ?? null;
+        if (is_array($host) && !empty($host['email'])) {
+            $email = strtolower((string) $host['email']);
+            if ($email !== $visitorEmail && !isset($seen[$email])) {
+                $recipients[] = ['email' => $host['email'], 'full_name' => $host['full_name'] ?? ''];
+                $seen[$email] = true;
+            }
+        }
+
+        // Company admins
+        foreach ((array) ($invitation['company_admins'] ?? []) as $admin) {
+            if (empty($admin['email'])) {
+                continue;
+            }
+            $email = strtolower((string) $admin['email']);
+            if ($email !== $visitorEmail && !isset($seen[$email])) {
+                $recipients[] = ['email' => $admin['email'], 'full_name' => $admin['full_name'] ?? ''];
+                $seen[$email] = true;
+            }
+        }
+
+        return $recipients;
+    }
+
+    /**
+     * Send a copy of an already-rendered email message to secondary recipients.
+     */
+    protected function sendToSecondaryRecipients(string $subject, string $message, array $recipients): void
+    {
+        foreach ($recipients as $recipient) {
+            try {
+                $email = \Config\Services::email();
+                $email->initialize([
+                    'protocol'    => $this->emailConfig->protocol,
+                    'SMTPHost'    => $this->emailConfig->SMTPHost,
+                    'SMTPUser'    => $this->emailConfig->SMTPUser,
+                    'SMTPPass'    => $this->emailConfig->SMTPPass,
+                    'SMTPPort'    => $this->emailConfig->SMTPPort,
+                    'SMTPCrypto'  => $this->emailConfig->SMTPCrypto,
+                    'SMTPTimeout' => $this->emailConfig->SMTPTimeout,
+                    'mailType'    => $this->emailConfig->mailType,
+                    'charset'     => $this->emailConfig->charset,
+                    'newline'     => $this->emailConfig->newline,
+                    'CRLF'        => $this->emailConfig->CRLF,
+                ]);
+                $email->setMailType('html');
+                $email->setFrom($this->emailConfig->fromEmail, $this->emailConfig->fromName);
+                $email->setTo($recipient['email']);
+                $email->setSubject($subject);
+                $email->setMessage($message);
+                $email->send();
+            } catch (\Exception $e) {
+                log_message('error', 'Secondary recipient email failed to ' . $recipient['email'] . ': ' . $e->getMessage());
+            }
+        }
     }
 
     public function invitationsSupportVisitorType(): bool
@@ -93,6 +167,22 @@ class InvitationEmailSender
         $invitation['schedules'] = $schedules;
 
         $invitation['visitor_email'] = $invitation['visitor_email'] ?? $invitation['contact'] . '@example.com';
+
+        // Resolve host user via staff_id
+        $invitation['host_user'] = null;
+        if (!empty($invitation['staff_id'])) {
+            $invitation['host_user'] = $this->userModel
+                ->select('id, full_name, email, contact_no')
+                ->where('staff_id', $invitation['staff_id'])
+                ->where('is_active', 1)
+                ->first();
+        }
+
+        // Resolve company admins (clientsuperadmin + admin) for the invitation's company
+        $invitation['company_admins'] = [];
+        if (!empty($invitation['company'])) {
+            $invitation['company_admins'] = $this->userModel->getCompanyAdmins((int) $invitation['company']);
+        }
 
         return $invitation;
     }
@@ -220,6 +310,11 @@ class InvitationEmailSender
 
             if ($result) {
                 log_message('info', 'Email sent successfully to: ' . $invitation['visitor_email']);
+                $this->sendToSecondaryRecipients(
+                    $customSubject ?: $templateConfig['subject'],
+                    $message,
+                    $this->getSecondaryRecipients($invitation)
+                );
             } else {
                 log_message('error', 'Email sending failed to: ' . $invitation['visitor_email']);
                 log_message('error', 'Email error: ' . $email->printDebugger(['headers', 'subject']));
@@ -377,6 +472,11 @@ class InvitationEmailSender
 
             if ($result) {
                 log_message('info', 'Approval email sent successfully to: ' . $invitation['visitor_email']);
+                $this->sendToSecondaryRecipients(
+                    $customSubject ?: $templateConfig['subject'],
+                    $message,
+                    $this->getSecondaryRecipients($invitation)
+                );
             } else {
                 log_message('error', 'Approval email sending failed to: ' . $invitation['visitor_email']);
                 log_message('error', 'Email error: ' . $email->printDebugger(['headers', 'subject']));
@@ -508,6 +608,11 @@ class InvitationEmailSender
 
             if ($result) {
                 log_message('info', 'Rejection email sent successfully to: ' . $invitation['visitor_email']);
+                $this->sendToSecondaryRecipients(
+                    $customSubject ?: $templateConfig['subject'],
+                    $message,
+                    $this->getSecondaryRecipients($invitation)
+                );
             } else {
                 log_message('error', 'Rejection email sending failed to: ' . $invitation['visitor_email']);
                 log_message('error', 'Email error: ' . $email->printDebugger(['headers', 'subject']));
