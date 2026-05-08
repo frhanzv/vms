@@ -3266,6 +3266,17 @@
                                             <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Subject</label>
                                             <input id="emailTemplateCrudSubject" type="text" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-primary focus:border-primary text-sm p-2.5 shadow-sm" required>
                                         </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Logo Image (Optional)</label>
+                                            <input id="emailTemplateCrudLogo" name="logo_image" type="file" accept=".jpg,.jpeg,.png,.webp,image/*" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2 text-sm text-slate-700 dark:text-slate-200" />
+                                            <div class="mt-2 flex items-center gap-3">
+                                                <img id="emailTemplateCrudLogoPreview" src="" alt="Logo preview" class="h-10 object-contain border border-slate-200 dark:border-slate-700 hidden rounded bg-white p-1" />
+                                            </div>
+                                            <label class="mt-2 inline-flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 hidden" id="emailTemplateCrudRemoveLogoWrapper">
+                                                <input id="emailTemplateCrudRemoveLogo" type="checkbox" class="rounded border-slate-300 text-primary focus:ring-primary/20" />
+                                                Remove current logo (revert to default text header)
+                                            </label>
+                                        </div>
                                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                             <div>
                                                 <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Primary Color</label>
@@ -3929,57 +3940,6 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Workflow Management -->
-                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
-                    <button onclick="toggleSection('workflowmanagement')"
-                        class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
-                        <div class="flex items-center gap-4">
-                            <div class="p-2 bg-primary/10 rounded-lg">
-                                <span class="material-symbols-outlined text-primary text-xl">account_tree</span>
-                            </div>
-                            <div class="text-left">
-                                <h3 class="text-base font-bold text-gray-800 dark:text-white">Workflow Management</h3>
-                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Manage the sequence and status of visitor processes</p>
-                            </div>
-                        </div>
-                        <span id="workflowmanagement-icon"
-                            class="material-symbols-outlined text-gray-400 dark:text-slate-400 transition-transform">expand_more</span>
-                    </button>
-                    <div id="workflowmanagement-content" class="hidden border-t border-gray-200 dark:border-slate-700">
-                        <div class="p-6 bg-gray-50 dark:bg-slate-800/50">
-                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
-                                <p class="text-sm text-gray-600 dark:text-slate-400">Reorder steps using the Up/Down arrows and toggle their active status.</p>
-                                <button onclick="saveWorkflows()" class="px-4 py-2 bg-primary text-white text-sm font-medium rounded hover:bg-blue-600 transition-colors flex items-center gap-2 whitespace-nowrap">
-                                    <span class="material-symbols-outlined text-base">save</span> Save Changes
-                                </button>
-                            </div>
-                            <div class="overflow-x-auto bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700">
-                                <table class="w-full text-left text-sm">
-                                    <thead class="text-xs text-gray-600 dark:text-slate-400 uppercase border-b border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-700/50">
-                                        <tr>
-                                            <th class="px-4 py-3 w-16 text-center">Order</th>
-                                            <th class="px-4 py-3">Process Name</th>
-                                            <th class="px-4 py-3 w-32 text-center">Status</th>
-                                            <th class="px-4 py-3 w-32 text-center">Reorder</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="workflowTableBody" class="text-gray-700 dark:text-slate-300">
-                                        <tr>
-                                            <td colspan="4" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
-                                                <div class="flex flex-col items-center justify-center">
-                                                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
-                                                    <span>Loading workflows...</span>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
 
                 <!-- Sync from Laravel Modal -->
                 <div id="syncModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
@@ -13421,6 +13381,12 @@
             document.getElementById('emailTemplateCrudTextColor').value = '#333333';
             document.getElementById('emailTemplateCrudBody').value = '';
 
+            document.getElementById('emailTemplateCrudLogo').value = '';
+            document.getElementById('emailTemplateCrudLogoPreview').classList.add('hidden');
+            document.getElementById('emailTemplateCrudLogoPreview').src = '';
+            document.getElementById('emailTemplateCrudRemoveLogoWrapper').classList.add('hidden');
+            document.getElementById('emailTemplateCrudRemoveLogo').checked = false;
+
             modal.classList.remove('hidden');
             setTimeout(() => codeEl.focus(), 0);
         }
@@ -13453,6 +13419,19 @@
                     document.getElementById('emailTemplateCrudTextColor').value = row.text_color || '#333333';
                     document.getElementById('emailTemplateCrudBody').value = row.body || '';
 
+                    document.getElementById('emailTemplateCrudLogo').value = '';
+                    if (row.logo_url) {
+                        const logoUrl = row.logo_url.startsWith('http') ? row.logo_url : `<?= base_url() ?>${row.logo_url}`;
+                        document.getElementById('emailTemplateCrudLogoPreview').src = logoUrl;
+                        document.getElementById('emailTemplateCrudLogoPreview').classList.remove('hidden');
+                        document.getElementById('emailTemplateCrudRemoveLogoWrapper').classList.remove('hidden');
+                    } else {
+                        document.getElementById('emailTemplateCrudLogoPreview').src = '';
+                        document.getElementById('emailTemplateCrudLogoPreview').classList.add('hidden');
+                        document.getElementById('emailTemplateCrudRemoveLogoWrapper').classList.add('hidden');
+                    }
+                    document.getElementById('emailTemplateCrudRemoveLogo').checked = false;
+
                     modal.classList.remove('hidden');
                     setTimeout(() => document.getElementById('emailTemplateCrudSubject').focus(), 0);
                 })
@@ -13479,15 +13458,29 @@
                 return;
             }
 
-            const payload = { code, subject, body, primary_color, content_bg_color, text_color };
+            const formData = new FormData();
+            formData.append('code', code);
+            formData.append('subject', subject);
+            formData.append('body', body);
+            formData.append('primary_color', primary_color);
+            formData.append('content_bg_color', content_bg_color);
+            formData.append('text_color', text_color);
+            
+            const logoFile = document.getElementById('emailTemplateCrudLogo').files[0];
+            if (logoFile) {
+                formData.append('logo_image', logoFile);
+            }
+            if (document.getElementById('emailTemplateCrudRemoveLogo').checked) {
+                formData.append('remove_logo', '1');
+            }
+
             const url = id
                 ? `<?= base_url('config/updateEmailTemplate') ?>/${encodeURIComponent(id)}`
                 : '<?= base_url('config/createEmailTemplate') ?>';
 
             fetch(url, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
+                body: formData,
             })
                 .then(res => res.json().then(json => ({ ok: res.ok, json })))
                 .then(({ ok, json }) => {
@@ -15244,107 +15237,6 @@
         // Close on Escape key
         document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape') closeRegTypeModal();
-        });
-
-        // ===================== WORKFLOW MANAGEMENT =====================
-        let workflowData = [];
-
-        function loadWorkflows() {
-            fetch(`${configBaseUrl}/getWorkflows`)
-                .then(r => r.json())
-                .then(res => {
-                    if (res.success) {
-                        workflowData = res.data;
-                        renderWorkflowTable();
-                    } else {
-                        document.getElementById('workflowTableBody').innerHTML = 
-                            `<tr><td colspan="4" class="px-4 py-8 text-center text-red-500">Failed to load workflows.</td></tr>`;
-                    }
-                })
-                .catch(() => {
-                    document.getElementById('workflowTableBody').innerHTML = 
-                        `<tr><td colspan="4" class="px-4 py-8 text-center text-red-500">Network error. Failed to load workflows.</td></tr>`;
-                });
-        }
-
-        function renderWorkflowTable() {
-            const tbody = document.getElementById('workflowTableBody');
-            if (!workflowData.length) {
-                tbody.innerHTML = `<tr><td colspan="4" class="px-4 py-8 text-center text-gray-400 dark:text-slate-500">No workflows found.</td></tr>`;
-                return;
-            }
-
-            tbody.innerHTML = workflowData.map((w, index) => `
-                <tr class="hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors" data-id="${w.id}">
-                    <td class="px-4 py-3 text-center font-medium">${index + 1}</td>
-                    <td class="px-4 py-3 font-medium">${escapeHtml(w.step_name)}</td>
-                    <td class="px-4 py-3 text-center">
-                        <label class="inline-flex relative items-center cursor-pointer">
-                            <input type="checkbox" class="sr-only peer" ${w.is_active == 1 ? 'checked' : ''} onchange="toggleWorkflowStatus(${index})">
-                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
-                        </label>
-                    </td>
-                    <td class="px-4 py-3 text-center">
-                        <div class="flex items-center justify-center gap-1">
-                            <button onclick="moveWorkflow(${index}, -1)" class="p-1 rounded text-gray-500 hover:bg-gray-200 dark:hover:bg-slate-600 ${index === 0 ? 'opacity-30 cursor-not-allowed' : ''}" ${index === 0 ? 'disabled' : ''}>
-                                <span class="material-symbols-outlined text-lg">arrow_upward</span>
-                            </button>
-                            <button onclick="moveWorkflow(${index}, 1)" class="p-1 rounded text-gray-500 hover:bg-gray-200 dark:hover:bg-slate-600 ${index === workflowData.length - 1 ? 'opacity-30 cursor-not-allowed' : ''}" ${index === workflowData.length - 1 ? 'disabled' : ''}>
-                                <span class="material-symbols-outlined text-lg">arrow_downward</span>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        function toggleWorkflowStatus(index) {
-            workflowData[index].is_active = workflowData[index].is_active == 1 ? 0 : 1;
-        }
-
-        function moveWorkflow(index, direction) {
-            if (index + direction < 0 || index + direction >= workflowData.length) return;
-            const temp = workflowData[index];
-            workflowData[index] = workflowData[index + direction];
-            workflowData[index + direction] = temp;
-            
-            // Update step_order values implicitly by their array position
-            workflowData.forEach((w, i) => { w.step_order = i + 1; });
-            
-            renderWorkflowTable();
-        }
-
-        function saveWorkflows() {
-            fetch(`${configBaseUrl}/updateWorkflows`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '<?= csrf_hash() ?>'
-                },
-                body: JSON.stringify(workflowData)
-            })
-            .then(r => r.json())
-            .then(res => {
-                if (res.success) {
-                    if (typeof showToast === 'function') {
-                        showToast('Workflows saved successfully', 'success');
-                    } else if (typeof apkToast === 'function') {
-                        apkToast('Workflows saved successfully');
-                    } else {
-                        alert('Workflows saved successfully');
-                    }
-                    loadWorkflows(); // Reload to get confirmed DB state
-                } else {
-                    alert('Failed to save workflows: ' + (res.message || ''));
-                }
-            })
-            .catch(() => alert('Network error while saving workflows.'));
-        }
-
-        // Call loadWorkflows on load
-        document.addEventListener('DOMContentLoaded', () => {
-            loadWorkflows();
         });
 
         // ── Dynamic Form Fields ──────────────────────────────────────

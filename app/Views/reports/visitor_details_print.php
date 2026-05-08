@@ -58,8 +58,8 @@
         <!-- Left Column -->
         <div class="space-y-6">
             <div>
-                <span class="label">Full Name:</span>
-                <div class="info-box uppercase"><?= esc($visitor['full_name']) ?></div>
+                <span class="label">Staff No:</span>
+                <div class="info-box"><?= esc($visitor['staff_id']) ?: 'N/A' ?></div>
             </div>
             <div>
                 <span class="label">IC No:</span>
@@ -77,8 +77,8 @@
                 </div>
             </div>
             <div>
-                <span class="label">Search Type:</span>
-                <div class="info-box italic">Auto Detect</div>
+                <span class="label">Last Updated:</span>
+                <div class="info-box"><?= date('n/j/Y, g:i:s A', strtotime($visitor['updated_at'])) ?></div>
             </div>
         </div>
 
@@ -89,8 +89,8 @@
                 <div class="info-box uppercase"><?= esc($visitor['reason']) ?: 'N/A' ?></div>
             </div>
             <div>
-                <span class="label">Staff No:</span>
-                <div class="info-box"><?= esc($visitor['staff_id']) ?: 'N/A' ?></div>
+                <span class="label">Full Name:</span>
+                <div class="info-box uppercase"><?= esc($visitor['full_name']) ?></div>
             </div>
             <div>
                 <span class="label">Contact No:</span>
@@ -102,10 +102,6 @@
                     <?= !empty($visitor['visit_to']) ? date('l, F j, Y \a\t g:i:s A', strtotime($visitor['visit_to'])) : 'N/A' ?>
                     <?php if(!empty($visitor['visit_to'])): ?><span class="text-xs text-slate-400 ml-1 font-normal">(From device_access_logs)</span><?php endif; ?>
                 </div>
-            </div>
-            <div>
-                <span class="label">Last Updated:</span>
-                <div class="info-box"><?= date('n/j/Y, g:i:s A', strtotime($visitor['updated_at'])) ?></div>
             </div>
         </div>
     </div>

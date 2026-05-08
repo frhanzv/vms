@@ -69,7 +69,6 @@ class Config extends BaseController
     protected $pathwayModel;
     protected $alertPriorityModel;
     protected $apiKeyModel;
-    protected $workflowModel;
     protected $clientFeatureModel;
     protected $clientFormFieldModel;
     protected $clientNotificationSettingModel;
@@ -3747,7 +3746,10 @@ class Config extends BaseController
 
     public function createEmailTemplate()
     {
-        $input = $this->request->getJSON(true);
+        $contentType = $this->request->getHeaderLine('Content-Type');
+        $input = (strpos($contentType, 'application/json') !== false) 
+                 ? $this->request->getJSON(true) 
+                 : $this->request->getPost();
         if (! is_array($input)) {
             return $this->response->setJSON([
                 'success' => false,
@@ -3788,14 +3790,31 @@ class Config extends BaseController
         $contentBgColor = $this->normalizeHexColorOrNull($contentBgColor);
         $textColor = $this->normalizeHexColorOrNull($textColor);
 
-        $id = $this->emailTemplateModel->insert([
+        $logoUrl = null;
+        $file = $this->request->getFile('logo_image');
+        if ($file && $file->isValid() && !$file->hasMoved()) {
+            $newName = $file->getRandomName();
+            $uploadPath = FCPATH . 'assets/uploads/email_logos';
+            if (!is_dir($uploadPath)) {
+                mkdir($uploadPath, 0777, true);
+            }
+            $file->move($uploadPath, $newName);
+            $logoUrl = 'assets/uploads/email_logos/' . $newName;
+        }
+
+        $data = [
             'code' => $code,
             'subject' => $subject,
             'body' => $body,
             'primary_color' => $primaryColor,
             'content_bg_color' => $contentBgColor,
             'text_color' => $textColor,
-        ], true);
+        ];
+        if ($logoUrl !== null) {
+            $data['logo_url'] = $logoUrl;
+        }
+
+        $id = $this->emailTemplateModel->insert($data, true);
 
         if (! $id) {
             return $this->response->setJSON([
@@ -3822,7 +3841,10 @@ class Config extends BaseController
             ])->setStatusCode(404);
         }
 
-        $input = $this->request->getJSON(true);
+        $contentType = $this->request->getHeaderLine('Content-Type');
+        $input = (strpos($contentType, 'application/json') !== false) 
+                 ? $this->request->getJSON(true) 
+                 : $this->request->getPost();
         if (! is_array($input)) {
             return $this->response->setJSON([
                 'success' => false,
@@ -3837,13 +3859,33 @@ class Config extends BaseController
         $contentBgColor = array_key_exists('content_bg_color', $input) ? $this->normalizeHexColorOrNull($input['content_bg_color']) : ($row['content_bg_color'] ?? null);
         $textColor = array_key_exists('text_color', $input) ? $this->normalizeHexColorOrNull($input['text_color']) : ($row['text_color'] ?? null);
 
-        if (! $this->emailTemplateModel->update((int) $id, [
+        $logoUrl = null;
+        if (isset($input['remove_logo']) && $input['remove_logo'] == '1') {
+            $logoUrl = ''; // Empty string means removed
+        }
+        $file = $this->request->getFile('logo_image');
+        if ($file && $file->isValid() && !$file->hasMoved()) {
+            $newName = $file->getRandomName();
+            $uploadPath = FCPATH . 'assets/uploads/email_logos';
+            if (!is_dir($uploadPath)) {
+                mkdir($uploadPath, 0777, true);
+            }
+            $file->move($uploadPath, $newName);
+            $logoUrl = 'assets/uploads/email_logos/' . $newName;
+        }
+
+        $updateData = [
             'subject' => $subject,
             'body' => $body,
             'primary_color' => $primaryColor,
             'content_bg_color' => $contentBgColor,
             'text_color' => $textColor,
-        ])) {
+        ];
+        if ($logoUrl !== null) {
+            $updateData['logo_url'] = $logoUrl;
+        }
+
+        if (! $this->emailTemplateModel->update((int) $id, $updateData)) {
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Failed to update email template',
@@ -4608,75 +4650,6 @@ class Config extends BaseController
             'success' => true,
             'data'    => $row,
         ]);
-    }
-
-    // ============== WORKFLOW MANAGEMENT METHODS ==============
-
-    public function getWorkflows()
-    {
-        try {
-            $workflows = $this->workflowModel->orderBy('step_order', 'ASC')->findAll();
-
-            return $this->response->setJSON([
-                'success' => true,
-                'data'    => $workflows,
-            ]);
-        } catch (\Exception $e) {
-            log_message('error', 'Error in getWorkflows: ' . $e->getMessage());
-            return $this->response->setStatusCode(500)->setJSON([
-                'success' => false,
-                'message' => 'Failed to fetch workflows',
-            ]);
-        }
-    }
-
-    public function updateWorkflows()
-    {
-        $input = $this->request->getJSON(true);
-
-        if (empty($input) || !is_array($input)) {
-            return $this->response->setStatusCode(400)->setJSON([
-                'success' => false,
-                'message' => 'Invalid data provided',
-            ]);
-        }
-
-        $db = \Config\Database::connect();
-        $db->transStart();
-
-        try {
-            foreach ($input as $index => $item) {
-                if (isset($item['id'])) {
-                    $updateData = [
-                        'step_order' => $index + 1,
-                    ];
-                    
-                    if (isset($item['is_active'])) {
-                        $updateData['is_active'] = $item['is_active'] ? 1 : 0;
-                    }
-
-                    $this->workflowModel->update($item['id'], $updateData);
-                }
-            }
-
-            $db->transComplete();
-
-            if ($db->transStatus() === false) {
-                throw new \Exception('Transaction failed');
-            }
-
-            return $this->response->setJSON([
-                'success' => true,
-                'message' => 'Workflows updated successfully',
-            ]);
-
-        } catch (\Exception $e) {
-            log_message('error', 'Error updating workflows: ' . $e->getMessage());
-            return $this->response->setStatusCode(500)->setJSON([
-                'success' => false,
-                'message' => 'Failed to update workflows: ' . $e->getMessage(),
-            ]);
-        }
     }
 
     public function getClientFormFields(int $companyId)

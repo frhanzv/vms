@@ -61,9 +61,15 @@ class VisitorChronology extends BaseController
 
         $db = db_connect();
 
-        // 1. Grouped Visitor Summary
-        $whereGrouped = ['i.id IS NOT NULL'];
-        $paramsGrouped = [];
+        // 1. Grouped Visitor Summary (respect date range + optional lane)
+        $whereGrouped = ['i.id IS NOT NULL', 'vcl.id IS NOT NULL'];
+        $joinGrouped = ['vcl.invitation_id = i.id', 'vcl.scanned_at >= ?', 'vcl.scanned_at <= ?'];
+        $paramsGrouped = [$fromDatetime, $toDatetime];
+
+        if ($laneId !== null && $laneId !== '') {
+            $joinGrouped[] = 'vcl.lane_id = ?';
+            $paramsGrouped[] = $laneId;
+        }
 
         if ($hasInvitation) {
             $whereGrouped[] = 'i.id = ?';
@@ -89,7 +95,7 @@ class VisitorChronology extends BaseController
                         MIN(vcl.scanned_at) AS visit_from,
                         MAX(vcl.scanned_at) AS visit_to
                        FROM invitations i
-                       LEFT JOIN visitor_card_logs vcl ON vcl.invitation_id = i.id
+                       LEFT JOIN visitor_card_logs vcl ON " . implode(' AND ', $joinGrouped) . "
                        WHERE " . implode(' AND ', $whereGrouped) . "
                        GROUP BY i.id";
         
@@ -342,6 +348,97 @@ class VisitorChronology extends BaseController
             ],
             'dates' => array_values($dates)
         ]);
+    }
+
+    public function chronologyPrint($id)
+    {
+        $invitationId = (int)$id;
+        if (empty($invitationId)) {
+            return "Invitation ID is required.";
+        }
+
+        $db = db_connect();
+
+        $invitation = $db->table('invitations')->where('id', $invitationId)->get()->getRowArray();
+        if (!$invitation) {
+            return "Record not found.";
+        }
+
+        $sql = "SELECT vcl.*, la.lane AS lane_name, loc.branch, loc.location_access
+                FROM visitor_card_logs vcl
+                LEFT JOIN lanes la ON la.id = vcl.lane_id
+                LEFT JOIN locations loc ON loc.id = la.location_id
+                WHERE vcl.invitation_id = ?
+                ORDER BY vcl.scanned_at ASC";
+        
+        $logs = $db->query($sql, [$invitationId])->getResultArray();
+
+        $dates = [];
+        $totalSeconds = 0;
+        $uniqueDays = [];
+        $totalScans = count($logs);
+        
+        foreach ($logs as $log) {
+            $dateStr = date('Y-m-d', strtotime($log['scanned_at']));
+            if (!isset($dates[$dateStr])) {
+                $dates[$dateStr] = [
+                    'display_date' => date('d-M-Y', strtotime($dateStr)),
+                    'logs_count' => 0,
+                    'movements' => []
+                ];
+                $uniqueDays[$dateStr] = true;
+            }
+        }
+
+        for ($i = 0; $i < count($logs); $i++) {
+            $currentLog = $logs[$i];
+            $dateStr = date('Y-m-d', strtotime($currentLog['scanned_at']));
+            $dates[$dateStr]['logs_count']++;
+
+            $nextLog = ($i + 1 < count($logs)) ? $logs[$i+1] : null;
+            
+            $durationSeconds = 0;
+            if ($nextLog) {
+                $durationSeconds = strtotime($nextLog['scanned_at']) - strtotime($currentLog['scanned_at']);
+                $totalSeconds += $durationSeconds;
+            }
+
+            $exitTime = $nextLog ? date('H:i:s', strtotime($nextLog['scanned_at'])) : '-';
+            $durationStr = $this->formatDuration($durationSeconds);
+
+            $dates[$dateStr]['movements'][] = [
+                'movement_index' => count($dates[$dateStr]['movements']) + 1,
+                'from' => ($currentLog['lane_name'] ?? 'Unknown Road'),
+                'to'   => ($nextLog ? ($nextLog['lane_name'] ?? 'Unknown Road') : 'STILL AT SITE'),
+                'entry_time' => date('H:i:s', strtotime($currentLog['scanned_at'])),
+                'exit_time'  => $exitTime,
+                'time_spent' => ($nextLog ? $durationStr : '-'),
+                'status'     => 'GRANTED'
+            ];
+        }
+
+        $sqlCheck = "SELECT MIN(vcl.scanned_at) AS visit_from, MAX(vcl.scanned_at) AS visit_to FROM visitor_card_logs vcl WHERE vcl.invitation_id = ?";
+        $vData = $db->query($sqlCheck, [$invitationId])->getRowArray();
+        $realStatus = 'OUT';
+        if ($vData['visit_from'] && !$vData['visit_to']) {
+            $realStatus = 'CHECKED IN';
+        } elseif ($vData['visit_from'] && $vData['visit_to']) {
+            $realStatus = 'CHECKED OUT';
+        }
+
+        $data = [
+            'summary' => [
+                'full_name' => $invitation['full_name'],
+                'ic_no' => $invitation['ic_passport'],
+                'status' => $realStatus,
+                'total_time' => $this->formatDuration($totalSeconds),
+                'total_visits' => count($uniqueDays),
+                'total_scans' => $totalScans,
+            ],
+            'dates' => array_values($dates)
+        ];
+
+        return view('reports/visitor_chronology_print', ['data' => $data, 'generated_at' => date('n/j/Y, g:i:s A')]);
     }
 
     private function formatDuration($seconds)

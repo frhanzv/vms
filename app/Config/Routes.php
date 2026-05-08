@@ -273,6 +273,7 @@ $routes->group('', ['filter' => $plusHost], function($routes) {
     $routes->post('visitors/bindCard', 'VisitorList::bindCard');
     $routes->post('visitors/unbindCard', 'VisitorList::unbindCard');
     $routes->post('visitors/batchUnbindCards', 'VisitorList::batchUnbindCards');
+    $routes->get('visitors/generateQr/(:num)', 'VisitorList::generateQr/$1');
 });
 
 // ===========================
@@ -332,6 +333,7 @@ $routes->group('blacklist', ['filter' => $plusOfficer], function($routes) {
     $routes->get('entry', 'BlacklistEntry::index');
     $routes->get('entry/search', 'BlacklistEntry::search');
     $routes->get('closedlist', 'BlacklistClosedList::index');
+    $routes->get('closedlist/export', 'BlacklistClosedList::export');
     $routes->get('closedlist/view/(:num)', 'BlacklistClosedList::view/$1');
 });
 
@@ -362,6 +364,7 @@ $routes->group('', ['filter' => $plusAdminOfficer], function($routes) {
     $routes->get('report/bydoor', 'VisitorInfoByDoor::index');
     $routes->post('report/bydoor/generate', 'VisitorInfoByDoor::generate');
     $routes->get('report/visitor/details/(:num)', 'VisitorChronology::details/$1');
+    $routes->get('report/visitor/chronology-print/(:num)', 'VisitorChronology::chronologyPrint/$1');
     $routes->post('report/visitor/movement', 'VisitorChronology::movementTimeline');
 });
 
@@ -531,9 +534,6 @@ $routes->group('config', ['filter' => $superadmins], function($routes) {
     $routes->delete('deletePathway/(:num)', 'Config::deletePathway/$1');
     $routes->get('getAllLanes', 'Config::getAllLanes');
 
-    // Workflows
-    $routes->get('getWorkflows', 'Config::getWorkflows');
-    $routes->post('updateWorkflows', 'Config::updateWorkflows');
     $routes->get('getAllLocations', 'Config::getAllLocations');
 
     // Registration Types
@@ -592,4 +592,16 @@ $routes->group('config', ['filter' => 'role:superadmin'], function($routes) {
     $routes->post('callExternalApi', 'Api\ApiManagement::callExternalApi');
     $routes->post('saveLaravelBaseUrl', 'Api\ApiManagement::saveLaravelBaseUrl');
     $routes->get('getLaravelBaseUrl', 'Api\ApiManagement::getLaravelBaseUrl');
+    
+    // Inbound API token generation (Protected by superadmin)
+    $routes->post('generateInboundToken', 'Api\InboundApi::generateToken');
+});
+
+// ===========================
+// Inbound API (Webhooks)
+// Protected by Bearer Token Filter
+// ===========================
+
+$routes->group('api/v1', ['filter' => 'inbound_api_auth'], function($routes) {
+    $routes->post('receive', 'Api\InboundApi::receive');
 });

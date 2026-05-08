@@ -639,7 +639,7 @@ $isSettings = str_contains($current, 'settings');
                         <span class="material-symbols-outlined text-lg">badge</span>
                         i Card Details
                     </button>
-                    <button type="button" class="px-4 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
+                    <button type="button" onclick="openQrCodeModal()" class="px-4 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
                         <span class="material-symbols-outlined text-lg">qr_code</span>
                         QR Code
                     </button>
@@ -711,6 +711,37 @@ $isSettings = str_contains($current, 'settings');
                 <button onclick="bindCardToVisitor()" class="px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
                     <span class="material-symbols-outlined text-lg">link</span>
                     Bind Card
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR Code Modal -->
+    <div id="qrCodeModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-sm w-full">
+            <div class="bg-gradient-to-r from-indigo-500 to-indigo-600 px-6 py-4 rounded-t-xl">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="material-symbols-outlined text-white text-3xl">qr_code</span>
+                        <h3 class="text-xl font-bold text-white">Visitor QR Code</h3>
+                    </div>
+                    <button onclick="closeQrCodeModal()" class="text-white hover:bg-white/20 rounded-lg p-1 transition-colors">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6 flex flex-col items-center">
+                <div class="bg-white p-4 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm mb-4">
+                    <img id="qrCodeImage" src="" alt="Visitor QR Code" class="w-48 h-48 object-contain">
+                </div>
+                <p id="qrCodePassId" class="text-lg font-bold text-gray-800 dark:text-white tracking-widest uppercase"></p>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-2 text-center">
+                    Scan this QR code at the entrance
+                </p>
+            </div>
+            <div class="bg-gray-50 dark:bg-slate-900 border-t border-gray-200 dark:border-gray-700 px-6 py-4 rounded-b-xl flex justify-center">
+                <button onclick="closeQrCodeModal()" class="px-6 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg transition-colors duration-200">
+                    Close
                 </button>
             </div>
         </div>
@@ -913,6 +944,28 @@ $isSettings = str_contains($current, 'settings');
             document.getElementById('cardBindingModal').classList.remove('flex');
         }
 
+        function openQrCodeModal() {
+            const invitationId = document.getElementById('editInvitationId').value;
+            if (!invitationId) {
+                alert('No invitation data available for this visitor.');
+                return;
+            }
+            const passId = 'VIS-' + invitationId;
+            const qrUrl = '<?= base_url('visitors/generateQr') ?>/' + invitationId;
+            
+            document.getElementById('qrCodeImage').src = qrUrl;
+            document.getElementById('qrCodePassId').textContent = passId;
+            
+            document.getElementById('qrCodeModal').classList.remove('hidden');
+            document.getElementById('qrCodeModal').classList.add('flex');
+        }
+
+        function closeQrCodeModal() {
+            document.getElementById('qrCodeModal').classList.add('hidden');
+            document.getElementById('qrCodeModal').classList.remove('flex');
+            document.getElementById('qrCodeImage').src = '';
+        }
+
         function returnCardFromDetail() {
             if (!currentInvitationVisitorId) {
                 alert('No visitor selected.');
@@ -1040,6 +1093,12 @@ $isSettings = str_contains($current, 'settings');
             }
         });
 
+        document.getElementById('qrCodeModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeQrCodeModal();
+            }
+        });
+
         // Close modal on Escape key
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
@@ -1048,6 +1107,8 @@ $isSettings = str_contains($current, 'settings');
                 
                 if (!cardModal.classList.contains('hidden')) {
                     closeCardBindingModal();
+                } else if (!document.getElementById('qrCodeModal').classList.contains('hidden')) {
+                    closeQrCodeModal();
                 } else if (!detailModal.classList.contains('hidden')) {
                     closeDetailModal();
                 }

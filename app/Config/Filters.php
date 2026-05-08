@@ -38,6 +38,7 @@ class Filters extends BaseFilters
         'performance' => PerformanceMetrics::class,
         'auth' => AuthFilter::class,
         'role' => RoleFilter::class,
+        'inbound_api_auth' => \App\Filters\InboundApiAuthFilter::class,
     ];
 
     /**

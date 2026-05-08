@@ -411,9 +411,9 @@
         <div id="timelineModalBackdrop" onclick="closeTimelineModal()"
             class="absolute inset-0 bg-slate-900/55 dark:bg-black/65 cursor-pointer"></div>
         <div
-            class="relative flex w-full max-w-4xl flex-col rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900 overflow-hidden">
+            class="relative flex w-full max-h-[90vh] max-w-4xl flex-col rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900 overflow-hidden">
             <!-- Header -->
-            <div class="flex items-center justify-between bg-[#00bcd4] px-6 py-3">
+            <div class="flex shrink-0 items-center justify-between bg-[#00bcd4] px-6 py-3">
                 <h2 class="flex items-center gap-3 text-lg font-bold text-white uppercase tracking-tight">
                     <span class="material-symbols-outlined text-[24px]">history</span>
                     Visitor Chronology & Access Logs
@@ -425,7 +425,7 @@
             </div>
 
             <div id="timelineModalContent"
-                class="px-6 py-6 overflow-y-auto max-h-[85vh] custom-scrollbar bg-white dark:bg-slate-900">
+                class="flex-1 px-6 py-6 overflow-y-auto custom-scrollbar bg-white dark:bg-slate-900">
                 <!-- Loading Indicator -->
                 <div id="timelineLoading" class="flex flex-col items-center justify-center py-20 gap-4">
                     <div class="size-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
@@ -449,7 +449,7 @@
 
                     <!-- Stats Cards -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div class="bg-[#2d8f5c] rounded-lg p-5 text-white shadow-md">
+                        <div id="tmStatusCard" class="bg-[#2d8f5c] rounded-lg p-5 text-white shadow-md">
                             <span class="text-xs font-bold uppercase tracking-wider block opacity-90">Current
                                 Status</span>
                             <div id="tmStatus" class="text-xl font-black mt-1 uppercase"></div>
@@ -508,7 +508,7 @@
             </div>
 
             <div
-                class="flex justify-end gap-3 border-t border-slate-100 bg-white px-6 py-4 dark:border-slate-800 dark:bg-slate-900">
+                class="flex shrink-0 justify-end gap-3 border-t border-slate-100 bg-white px-6 py-4 dark:border-slate-800 dark:bg-slate-900">
                 <button type="button" id="btnDownloadFullReport"
                     class="flex items-center gap-2 rounded bg-[#1b7145] hover:bg-[#155a36] px-5 py-2 text-sm font-bold text-white shadow-md transition-colors">
                     <span class="material-symbols-outlined text-[18px]">download</span>
@@ -544,8 +544,8 @@
 
             <div class="px-6 py-6 grid grid-cols-2 gap-y-6 gap-x-4 max-h-[70vh] overflow-y-auto custom-scrollbar bg-white dark:bg-slate-900">
                 <div>
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Full Name</span>
-                    <span id="mdFullname" class="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase"></span>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Staff No</span>
+                    <span id="mdStaffno" class="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase"></span>
                 </div>
                 <div>
                     <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">IC Number</span>
@@ -564,8 +564,8 @@
                     <span id="mdPersonVisited" class="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase"></span>
                 </div>
                 <div>
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Staff No</span>
-                    <span id="mdStaffno" class="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase"></span>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Full Name</span>
+                    <span id="mdFullname" class="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase"></span>
                 </div>
                 <div class="col-span-2">
                     <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Visit Reason</span>
@@ -759,8 +759,126 @@
 
             visitorDt = $('#visitorTable').DataTable({
                 pageLength: 10,
-                dom: '<"flex justify-end items-center mb-5 mt-2"f><"overflow-x-auto"t><"flex flex-col md:flex-row justify-between items-center gap-4 mt-6"p<"ml-auto"l>>',
-                language: { search: "Search visitor:", lengthMenu: "_MENU_" }
+                dom: '<"flex justify-end items-center mb-5 mt-2"f><"overflow-x-auto min-h-[300px]"t><"flex flex-col md:flex-row justify-between items-center gap-4 mt-6"p<"ml-auto"l>>',
+                language: { search: "Search visitor:", lengthMenu: "_MENU_" },
+                columnDefs: [
+                    { orderable: false, targets: [0, 8] },
+                    { className: "text-center", targets: [0, 7, 8] }
+                ],
+                initComplete: function () {
+                    var api = this.api();
+                    api.columns().every(function () {
+                        var column = this;
+                        var header = $(column.header());
+                        var headerText = header.clone().children().remove().end().text().trim().toUpperCase();
+                        if (headerText !== 'ACTIONS' && headerText !== '#' && headerText !== 'NO' && headerText !== 'NO.') {
+                            header.find('.dt-filter-wrapper').remove();
+
+                            var wrapper = $('<div class="dt-filter-wrapper inline-block relative ml-1 align-middle" onclick="event.stopPropagation()"></div>');
+                            var icon = $('<span class="material-symbols-outlined text-[16px] text-slate-300 hover:text-[#137fec] transition-colors cursor-pointer" style="vertical-align: middle;">filter_alt</span>');
+                            var dropdown = $('<div class="filter-dropdown hidden absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded shadow-lg z-[50] p-2 text-left text-sm max-h-[250px] overflow-y-auto" style="min-width: 160px; font-weight: normal;"></div>');
+
+                            wrapper.append(icon).append(dropdown);
+                            header.append(wrapper);
+
+                            var searchInput = $('<input type="text" placeholder="Search in this column..." class="w-full mb-2 border border-slate-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20">');
+                            dropdown.append(searchInput);
+
+                            var options = [];
+                            column.data().unique().sort().each(function (d) {
+                                var textVal = $('<div>').html(d).text().trim();
+                                if (textVal && textVal !== '-' && textVal !== 'View' && textVal !== 'NULL' && textVal !== 'null') {
+                                    options.push(textVal);
+                                }
+                            });
+
+                            var allLabel = $('<label class="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 cursor-pointer font-semibold text-slate-700 capitalize mb-1"></label>');
+                            var allCb = $('<input type="checkbox" checked class="form-checkbox h-4 w-4 text-[#137fec] accent-[#137fec] rounded border-slate-300 cursor-pointer">');
+                            allLabel.append(allCb).append('<span class="select-none">All</span>');
+                            dropdown.append(allLabel);
+
+                            var removeAllLabel = $('<label class="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 cursor-pointer font-semibold text-slate-700 capitalize mb-1"></label>');
+                            var removeAllCb = $('<input type="checkbox" class="form-checkbox h-4 w-4 text-red-500 accent-red-500 rounded border-slate-300 cursor-pointer">');
+                            removeAllLabel.append(removeAllCb).append('<span class="select-none">Remove All</span>');
+                            dropdown.append(removeAllLabel);
+                            dropdown.append('<hr class="my-1 border-slate-200">');
+
+                            var itemCbs = [];
+                            options.forEach(function (val) {
+                                var itemLabel = $('<label class="filter-item flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 cursor-pointer text-slate-600 capitalize"></label>');
+                                itemLabel.attr('data-filter-text', val.toLowerCase());
+                                var itemCb = $('<input type="checkbox" checked value="' + val.replace(/"/g, '&quot;') + '" class="form-checkbox h-4 w-4 text-[#137fec] accent-[#137fec] rounded border-slate-300 cursor-pointer">');
+                                itemLabel.append(itemCb).append('<span class="select-none">' + val + '</span>');
+                                dropdown.append(itemLabel);
+                                itemCbs.push(itemCb);
+                            });
+
+                            searchInput.on('input', function () {
+                                var q = $(this).val().toLowerCase();
+                                dropdown.find('.filter-item').each(function () {
+                                    var text = ($(this).attr('data-filter-text') || '');
+                                    $(this).toggle(text.includes(q));
+                                });
+                            });
+
+                            icon.on('click', function (e) {
+                                e.stopPropagation();
+                                $('.filter-dropdown').not(dropdown).addClass('hidden');
+                                dropdown.toggleClass('hidden');
+                            });
+
+                            $(document).on('click', function (e) {
+                                if (!$(e.target).closest(wrapper).length) {
+                                    dropdown.addClass('hidden');
+                                }
+                            });
+
+                            function applyFilter() {
+                                var selected = [];
+                                var allChecked = true;
+                                itemCbs.forEach(function (cb) {
+                                    if (cb.prop('checked')) {
+                                        selected.push($.fn.dataTable.util.escapeRegex(cb.val()));
+                                    } else {
+                                        allChecked = false;
+                                    }
+                                });
+
+                                allCb.prop('checked', allChecked);
+                                removeAllCb.prop('checked', false);
+
+                                if (selected.length > 0 && selected.length < options.length) {
+                                    icon.removeClass('text-slate-300 text-red-500').addClass('text-[#137fec]');
+                                    var regex = '^(' + selected.join('|') + ')$';
+                                    column.search(regex, true, false).draw();
+                                } else {
+                                    icon.removeClass('text-[#137fec] text-red-500').addClass('text-slate-300');
+                                    column.search('', true, false).draw();
+                                }
+                            }
+
+                            allCb.on('change', function () {
+                                var isChecked = $(this).prop('checked');
+                                removeAllCb.prop('checked', false);
+                                itemCbs.forEach(function (cb) { cb.prop('checked', isChecked); });
+                                applyFilter();
+                            });
+
+                            removeAllCb.on('change', function () {
+                                if (!$(this).prop('checked')) return;
+                                allCb.prop('checked', false);
+                                itemCbs.forEach(function (cb) { cb.prop('checked', false); });
+                                icon.removeClass('text-[#137fec] text-red-500').addClass('text-slate-300');
+                                column.search('', true, false).draw();
+                                $(this).prop('checked', false);
+                            });
+
+                            itemCbs.forEach(function (cb) {
+                                cb.on('change', applyFilter);
+                            });
+                        }
+                    });
+                }
             });
         }
 
@@ -799,7 +917,7 @@
                         return;
                     }
 
-                    renderTimelineModal(data);
+                    renderTimelineModal(data, v.status, invId);
                 })
                 .catch(() => {
                     alert('Error fetching chronology data.');
@@ -807,14 +925,24 @@
                 });
         }
 
-        function renderTimelineModal(data) {
+        function renderTimelineModal(data, tableStatus, invId) {
             document.getElementById('timelineLoading').classList.add('hidden');
             document.getElementById('timelineDataContent').classList.remove('hidden');
 
             const s = data.summary;
             document.getElementById('tmFullname').textContent = s.full_name;
             document.getElementById('tmIcno').textContent = s.ic_no;
-            document.getElementById('tmStatus').textContent = s.status.replace('_', ' ');
+            
+            const displayStatus = tableStatus || s.status.replace('_', ' ');
+            document.getElementById('tmStatus').textContent = displayStatus;
+            
+            const statusCard = document.getElementById('tmStatusCard');
+            if (displayStatus.toUpperCase() === 'CHECKED OUT') {
+                statusCard.className = 'bg-red-500 rounded-lg p-5 text-white shadow-md';
+            } else {
+                statusCard.className = 'bg-[#2d8f5c] rounded-lg p-5 text-white shadow-md';
+            }
+            
             document.getElementById('tmTotalTime').textContent = s.total_time;
             document.getElementById('tmTotalVisits').textContent = s.total_visits;
             document.getElementById('tmTotalScans').textContent = s.total_scans;
@@ -846,7 +974,7 @@
 
             // Download Button
             document.getElementById('btnDownloadFullReport').onclick = () => {
-                downloadChronologyExcel(data);
+                window.open('<?= base_url('report/visitor/chronology-print') ?>/' + invId, '_blank');
             };
         }
 

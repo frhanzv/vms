@@ -740,4 +740,26 @@ class VisitorList extends BaseController
             'failed' => $failed,
         ]);
     }
+
+    /**
+     * Generate QR Code for a specific visitor
+     */
+    public function generateQr($invitationId)
+    {
+        $qrCodeData = 'VIS-' . (int)$invitationId;
+        $options = new \chillerlan\QRCode\QROptions([
+            'outputInterface' => \chillerlan\QRCode\Output\QRGdImagePNG::class,
+            'eccLevel'        => \chillerlan\QRCode\Common\EccLevel::L,
+            'scale'           => 5,
+            'outputBase64'    => false,
+        ]);
+        try {
+            $qrcode = new \chillerlan\QRCode\QRCode($options);
+            $output = $qrcode->render($qrCodeData);
+            return $this->response->setHeader('Content-Type', 'image/png')->setBody($output);
+        } catch (\Exception $e) {
+            log_message('error', 'generateQr failed: ' . $e->getMessage());
+            return $this->response->setStatusCode(500);
+        }
+    }
 }

@@ -97,6 +97,12 @@ class VisitorRegistration extends BaseController
             }
         }
 
+        $workflowStep = $this->request->getGet('step');
+        $flowStepKey = ($workflowStep === 'scan_mykad') ? 'scan_mykad' : 'registration';
+        $flowNextUrl = $token
+            ? $this->invitationProcessFlowService->getNextStepUrl($flowStepKey, $token)
+            : null;
+
         $data = [
             'pageTitle' => 'Visitor Registration - SafeG',
             'token' => $token,
@@ -112,6 +118,8 @@ class VisitorRegistration extends BaseController
             'formConfig' => $this->getEmailTemplateFormConfig(),
             'customFormFields' => $this->getEnabledCustomFields(),
             'customFormValues' => $customFormValues,
+            'workflow_step' => $workflowStep,
+            'flow_next_url' => $flowNextUrl,
         ];
 
         return view('visitors/registration', $data);
@@ -364,7 +372,7 @@ class VisitorRegistration extends BaseController
             $token = base64_encode($invitationId);
 
             $nextUrl = $this->invitationProcessFlowService->getFirstStepAfterRegistrationUrl($token)
-                ?? base_url('security/briefing?token=' . $token);
+                ?? base_url('security/completed?token=' . urlencode($token));
 
             return $this->response->setJSON([
                 'success' => true,

@@ -95,9 +95,9 @@
                     <div class="grid grid-cols-12 gap-4 p-4 border-b border-border-light dark:border-border-dark bg-gray-50 dark:bg-[#1a242f] text-xs font-semibold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-wider">
                         <div class="col-span-4">Workflow Name</div>
                         <div class="col-span-3">Trigger</div>
-                        <div class="col-span-1">Steps</div>
+                        <div class="col-span-1">Order</div>
                         <div class="col-span-2">Status</div>
-                        <div class="col-span-2 text-right">Last Modified</div>
+                        <div class="col-span-2">Source</div>
                     </div>
                     <div class="flex flex-col">
                         <?php foreach ($workflows as $workflow): ?>
@@ -108,13 +108,13 @@
                                     </div>
                                     <div>
                                         <p class="text-text-main-light dark:text-white font-medium text-sm"><?= esc((string) $workflow['name']) ?></p>
-                                        <p class="text-text-secondary-light dark:text-text-secondary-dark text-xs">ID: <?= esc((string) $workflow['id']) ?></p>
+                                        <p class="text-text-secondary-light dark:text-text-secondary-dark text-xs"><?= esc((string) $workflow['route']) ?></p>
                                     </div>
                                 </div>
                                 <div class="col-span-3 text-sm"><?= esc((string) $workflow['trigger']) ?></div>
-                                <div class="col-span-1"><span class="inline-flex items-center px-2 py-1 rounded bg-gray-100 dark:bg-[#233648] text-xs font-medium"><?= esc((string) $workflow['steps']) ?></span></div>
+                                <div class="col-span-1"><span class="inline-flex items-center px-2 py-1 rounded bg-gray-100 dark:bg-[#233648] text-xs font-medium"><?= esc((string) ($workflow['step_order'] ?? '')) ?></span></div>
                                 <div class="col-span-2"><span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/10 text-green-600 dark:text-green-400 text-xs font-bold border border-green-500/20"><span class="size-1.5 rounded-full bg-green-500"></span><?= esc((string) $workflow['status']) ?></span></div>
-                                <div class="col-span-2 text-right text-sm text-text-secondary-light dark:text-text-secondary-dark"><?= esc((string) $workflow['modified']) ?></div>
+                                <div class="col-span-2 text-sm text-text-secondary-light dark:text-text-secondary-dark"><?= esc((string) ($workflow['modified'] ?? '')) ?></div>
                             </div>
                         <?php endforeach; ?>
                     </div>

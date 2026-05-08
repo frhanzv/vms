@@ -24,18 +24,23 @@ class VisitorInfoByDoor extends BaseController
     public function generate()
     {
         $laneId = $this->request->getPost('lane_id');
-        $date       = $this->request->getPost('date'); // default is YYYY-MM-DD from flatpickr value
+        $fromDate = $this->request->getPost('from_date');
+        $toDate = $this->request->getPost('to_date');
 
-        if (empty($laneId) || empty($date)) {
+        if (empty($laneId) || empty($fromDate) || empty($toDate)) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Please select a Lane and a Date.',
+                'message' => 'Please select a Lane and Date Range.',
             ]);
         }
 
-        // The date from UI might be DD/MM/YYYY, we need to convert to YYYY-MM-DD
-        // Flatpickr usually posts 'Y-m-d' if configured properly, let's assume UI sends 'Y-m-d'
-        
+        if ($fromDate > $toDate) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'From Date cannot be later than To Date.',
+            ]);
+        }
+
         $db = \Config\Database::connect();
         
         $builder = $db->table('visitor_card_logs vcl');
@@ -58,7 +63,8 @@ class VisitorInfoByDoor extends BaseController
         $builder->join('lanes la', 'la.id = vcl.lane_id');
         
         $builder->where('vcl.action', 'checkin');
-        $builder->where("DATE(vcl.scanned_at)", $date);
+        $builder->where("DATE(vcl.scanned_at) >=", $fromDate);
+        $builder->where("DATE(vcl.scanned_at) <=", $toDate);
         $builder->where('la.id', $laneId);
         
         $builder->orderBy('vcl.scanned_at', 'ASC');
@@ -96,7 +102,7 @@ class VisitorInfoByDoor extends BaseController
             'total_visitors'=> count($records),
             'visitors'      => $records,
             'location_text' => $locName,
-            'date_text'     => date('Y-m-d', strtotime($date)),
+            'date_range_text' => date('Y-m-d', strtotime($fromDate)) . ' to ' . date('Y-m-d', strtotime($toDate)),
             'last_updated'  => date('d M Y h:i A')
         ]);
     }

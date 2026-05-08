@@ -554,7 +554,9 @@
                     <button type="button"
                         class="js-access-view inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm bg-primary/10 text-primary hover:bg-primary/20 transition-colors mx-auto"
                         data-invitation-id="${escAttr(String(v.invitation_id))}"
-                        data-ic-no="${escAttr(v.ic_no)}">
+                        data-ic-no="${escAttr(v.ic_no)}"
+                        data-visitor-name="${escAttr(v.visitor_name)}"
+                        data-visit-reason="${escAttr(v.visit_reason)}">
                         <span class="material-symbols-outlined text-[18px]">visibility</span>
                         View
                     </button>
@@ -603,6 +605,9 @@
                         wrapper.append(icon).append(dropdown);
                         header.append(wrapper);
 
+                        var searchInput = $('<input type="text" placeholder="Search in this column..." class="w-full mb-2 border border-slate-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20">');
+                        dropdown.append(searchInput);
+
                         var options = [];
                         column.data().unique().sort().each(function (d, j) {
                             var textVal = $('<div>').html(d).text().trim();
@@ -615,15 +620,29 @@
                         var allCb = $('<input type="checkbox" checked class="form-checkbox h-4 w-4 text-[#535dec] accent-[#535dec] rounded border-slate-300 cursor-pointer">');
                         allLabel.append(allCb).append('<span class="select-none">All</span>');
                         dropdown.append(allLabel);
+
+                        var removeAllLabel = $('<label class="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 cursor-pointer font-semibold text-slate-700 capitalize mb-1"></label>');
+                        var removeAllCb = $('<input type="checkbox" class="form-checkbox h-4 w-4 text-red-500 accent-red-500 rounded border-slate-300 cursor-pointer">');
+                        removeAllLabel.append(removeAllCb).append('<span class="select-none">Remove All</span>');
+                        dropdown.append(removeAllLabel);
                         dropdown.append('<hr class="my-1 border-slate-200">');
 
                         var itemCbs = [];
                         options.forEach(function(val) {
-                            var itemLabel = $('<label class="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 cursor-pointer text-slate-600 capitalize"></label>');
+                            var itemLabel = $('<label class="filter-item flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 cursor-pointer text-slate-600 capitalize"></label>');
+                            itemLabel.attr('data-filter-text', val.toLowerCase());
                             var itemCb = $('<input type="checkbox" checked value="' + val.replace(/"/g, '&quot;') + '" class="form-checkbox h-4 w-4 text-[#535dec] accent-[#535dec] rounded border-slate-300 cursor-pointer">');
                             itemLabel.append(itemCb).append('<span class="select-none">' + val + '</span>');
                             dropdown.append(itemLabel);
                             itemCbs.push(itemCb);
+                        });
+
+                        searchInput.on('input', function () {
+                            var q = $(this).val().toLowerCase();
+                            dropdown.find('.filter-item').each(function () {
+                                var text = ($(this).attr('data-filter-text') || '');
+                                $(this).toggle(text.includes(q));
+                            });
                         });
 
                         icon.on('click', function(e) {
@@ -650,14 +669,12 @@
                             });
                             
                             allCb.prop('checked', allChecked);
+                            removeAllCb.prop('checked', false);
 
                             if(selected.length > 0 && selected.length < options.length) {
                                 icon.removeClass('text-slate-300 text-red-500').addClass('text-[#535dec]');
                                 var regex = '^(' + selected.join('|') + ')$';
                                 column.search(regex, true, false).draw();
-                            } else if (selected.length === 0) {
-                                icon.removeClass('text-slate-300 text-[#535dec]').addClass('text-red-500');
-                                column.search('^__NON_EXISTENT_MATCH__$', true, false).draw();
                             } else {
                                 icon.removeClass('text-[#535dec] text-red-500').addClass('text-slate-300');
                                 column.search('', true, false).draw();
@@ -666,8 +683,18 @@
 
                         allCb.on('change', function() {
                             var isChecked = $(this).prop('checked');
+                            removeAllCb.prop('checked', false);
                             itemCbs.forEach(function(cb) { cb.prop('checked', isChecked); });
                             applyFilter();
+                        });
+
+                        removeAllCb.on('change', function () {
+                            if (!$(this).prop('checked')) return;
+                            allCb.prop('checked', false);
+                            itemCbs.forEach(function (cb) { cb.prop('checked', false); });
+                            icon.removeClass('text-[#535dec] text-red-500').addClass('text-slate-300');
+                            column.search('', true, false).draw();
+                            $(this).prop('checked', false);
                         });
 
                         itemCbs.forEach(function(cb) {
@@ -818,7 +845,7 @@
         return '<span class="inline-flex rounded-full bg-slate-200 px-2.5 py-0.5 text-xs font-bold text-slate-700 dark:bg-slate-700 dark:text-slate-200">' + escHtml(label) + '</span>';
     }
 
-    function openMovementHistory(invitationId, icNo) {
+    function openMovementHistory(invitationId, icNo, visitorName = '', visitReason = '') {
         const checkedBoxes = document.querySelectorAll('.location-checkbox:checked');
         const laneIds  = Array.from(checkedBoxes).map(cb => cb.value);
         const fromDatetime = document.getElementById('from_datetime').value;
@@ -839,7 +866,7 @@
         document.getElementById('movementModalTable').classList.add('hidden');
         document.getElementById('movementModalEmpty').classList.add('hidden');
         document.getElementById('movementModalTableBody').innerHTML = '';
-        document.getElementById('movementModalTitle').textContent = 'Movement History';
+        document.getElementById('movementModalTitle').textContent = 'Movement History' + (visitorName ? ' — ' + visitorName : '');
         document.getElementById('movementModalStaff').textContent = 'Staff No: —';
 
         const formData = new FormData();
@@ -864,7 +891,7 @@
                 closeMovementModal();
                 return;
             }
-            document.getElementById('movementModalTitle').textContent = 'Movement History — ' + (data.staff_no || '');
+            document.getElementById('movementModalTitle').textContent = 'Movement History' + (visitorName ? ' — ' + visitorName : '');
             document.getElementById('movementModalStaff').textContent = 'Staff No: ' + (data.staff_no || '—');
             const tbody = document.getElementById('movementModalTableBody');
             tbody.innerHTML = '';
@@ -878,12 +905,13 @@
                 tr.className = 'border-b border-slate-100 dark:border-slate-800';
                 const accessYes = row.access_granted !== false && row.access !== 'No';
                 const actOk = row.action_allowed !== false && row.action !== 'Not Allowed';
+                const rowReason = visitReason ? visitReason : (row.reason || '—');
                 tr.innerHTML =
                     '<td class="whitespace-nowrap px-3 py-3 font-medium">' + escHtml(row.date_time) + '</td>' +
                     '<td class="px-3 py-3">' + escHtml(row.current_location) + '</td>' +
                     '<td class="px-3 py-3">' + escHtml(row.location_accessed) + '</td>' +
                     '<td class="px-3 py-3 text-center">' + movementBadgeYesNo(accessYes) + '</td>' +
-                    '<td class="max-w-[200px] px-3 py-3 text-slate-600 dark:text-slate-400">' + escHtml(row.reason || '—') + '</td>' +
+                    '<td class="max-w-[200px] px-3 py-3 text-slate-600 dark:text-slate-400">' + escHtml(rowReason) + '</td>' +
                     '<td class="px-3 py-3 text-center">' + movementTypeBadge(row.type || 'Checkin') + '</td>' +
                     '<td class="px-3 py-3 text-center">' + movementBadgeAction(actOk) + '</td>';
                 tbody.appendChild(tr);
@@ -935,8 +963,10 @@
         e.stopPropagation();
         const inv = this.getAttribute('data-invitation-id');
         const ic = this.getAttribute('data-ic-no');
+        const visitorName = this.getAttribute('data-visitor-name') || '';
+        const visitReason = this.getAttribute('data-visit-reason') || '';
         if (inv === null || inv === '') return;
-        openMovementHistory(parseInt(inv, 10), ic || '');
+        openMovementHistory(parseInt(inv, 10), ic || '', visitorName, visitReason);
     });
 
     // ── Location multi-select dropdown ──────────────────────────────────────

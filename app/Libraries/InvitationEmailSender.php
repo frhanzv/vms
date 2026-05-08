@@ -162,9 +162,18 @@ class InvitationEmailSender
             $customSubject = null;
             $customBodyHtml = null;
             $customColors = null;
+            $customLogoCid = null;
             if (is_array($crudTemplate)) {
                 $rawSubject = trim((string) ($crudTemplate['subject'] ?? ''));
                 $rawBody = (string) ($crudTemplate['body'] ?? '');
+                $logoUrl = $crudTemplate['logo_url'] ?? null;
+                if (!empty($logoUrl)) {
+                    $logoPath = FCPATH . ltrim($logoUrl, '/');
+                    if (is_file($logoPath)) {
+                        $email->attach($logoPath, 'inline', basename($logoPath));
+                        $customLogoCid = $email->setAttachmentCID($logoPath);
+                    }
+                }
                 if ($rawSubject !== '') {
                     $customSubject = $this->emailTemplateService->applyPlaceholders($rawSubject, $placeholderContext);
                 }
@@ -197,6 +206,7 @@ class InvitationEmailSender
                 ),
                 'custom_body_html' => $customBodyHtml,
                 'custom_colors' => $customColors,
+                'custom_logo_cid' => $customLogoCid,
             ];
 
             $message = view('emails/invitation_template', $emailData);
@@ -285,9 +295,18 @@ class InvitationEmailSender
             $customSubject = null;
             $customBodyHtml = null;
             $customColors = null;
+            $customLogoCid = null;
             if (is_array($crudTemplate)) {
                 $rawSubject = trim((string) ($crudTemplate['subject'] ?? ''));
                 $rawBody = (string) ($crudTemplate['body'] ?? '');
+                $logoUrl = $crudTemplate['logo_url'] ?? null;
+                if (!empty($logoUrl)) {
+                    $logoPath = FCPATH . ltrim($logoUrl, '/');
+                    if (is_file($logoPath)) {
+                        $email->attach($logoPath, 'inline', basename($logoPath));
+                        $customLogoCid = $email->setAttachmentCID($logoPath);
+                    }
+                }
                 if ($rawSubject !== '') {
                     $customSubject = $this->emailTemplateService->applyPlaceholders($rawSubject, $placeholderContext);
                 }
@@ -340,6 +359,7 @@ class InvitationEmailSender
                 ),
                 'custom_body_html' => $customBodyHtml,
                 'custom_colors' => $customColors,
+                'custom_logo_cid' => $customLogoCid,
                 'qr_code_text' => $qrCodeData,
                 'qr_code_image_url' => $qrCodeImageUrl,
                 'qr_code_base64' => $qrCodeBase64,
@@ -430,9 +450,19 @@ class InvitationEmailSender
             $customSubject = null;
             $customBodyHtml = null;
             $customColors = null;
+            $customLogo = null;
+            $customLogoCid = null;
             if (is_array($crudTemplate)) {
                 $rawSubject = trim((string) ($crudTemplate['subject'] ?? ''));
                 $rawBody = (string) ($crudTemplate['body'] ?? '');
+                $customLogo = $crudTemplate['logo_url'] ?? null;
+                if (!empty($customLogo)) {
+                    $logoPath = FCPATH . ltrim($customLogo, '/');
+                    if (is_file($logoPath)) {
+                        $email->attach($logoPath, 'inline', basename($logoPath));
+                        $customLogoCid = $email->setAttachmentCID($logoPath);
+                    }
+                }
                 if ($rawSubject !== '') {
                     $customSubject = $this->emailTemplateService->applyPlaceholders($rawSubject, $placeholderContext);
                 }
@@ -463,6 +493,8 @@ class InvitationEmailSender
                 ),
                 'custom_body_html' => $customBodyHtml,
                 'custom_colors' => $customColors,
+                'custom_logo' => $customLogo,
+                'custom_logo_cid' => $customLogoCid,
             ];
 
             $message = view('emails/rejection_template', $emailData);

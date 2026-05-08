@@ -8,7 +8,7 @@ class EmailTemplateModel extends Model
 {
     protected $table = 'email_templates';
     protected $primaryKey = 'id';
-    protected $allowedFields = ['code', 'subject', 'body', 'primary_color', 'content_bg_color', 'text_color'];
+    protected $allowedFields = ['code', 'subject', 'body', 'primary_color', 'content_bg_color', 'text_color', 'logo_url'];
     protected $useTimestamps = true;
     protected $createdField = 'created_at';
     protected $updatedField = 'updated_at';
