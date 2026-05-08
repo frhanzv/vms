@@ -15,7 +15,7 @@ class UserModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['username', 'email', 'password', 'full_name', 'staff_id', 'contact_no', 'role', 'is_active', 'profile_photo', 'version'];
+    protected $allowedFields    = ['company_id', 'username', 'email', 'password', 'full_name', 'staff_id', 'contact_no', 'role', 'is_active', 'profile_photo', 'version'];
 
     // Dates
     protected $useTimestamps = true;
@@ -119,6 +119,29 @@ class UserModel extends Model
         $builder->limit($limit, $offset);
         
         return $builder->findAll();
+    }
+
+    /**
+     * Get all active admins (clientsuperadmin + admin) for a given company.
+     */
+    public function getCompanyAdmins(int $companyId): array
+    {
+        return $this->select('id, full_name, email, contact_no')
+            ->whereIn('role', ['clientsuperadmin', 'admin'])
+            ->where('company_id', $companyId)
+            ->where('is_active', 1)
+            ->findAll();
+    }
+
+    /**
+     * Get all active superadmins (platform-level).
+     */
+    public function getSuperAdmins(): array
+    {
+        return $this->select('id, full_name, email, contact_no')
+            ->where('role', 'superadmin')
+            ->where('is_active', 1)
+            ->findAll();
     }
 
     /**

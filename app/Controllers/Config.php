@@ -576,7 +576,7 @@ class Config extends BaseController
      */
     public function getUser($id)
     {
-        $user = $this->userModel->select('id, username, email, full_name, staff_id, contact_no, role, is_active')
+        $user = $this->userModel->select('id, username, email, full_name, staff_id, contact_no, role, is_active, company_id')
             ->find($id);
 
         if (!$user) {
@@ -600,14 +600,15 @@ class Config extends BaseController
         $input = $this->request->getJSON(true);
 
         $rules = [
-            'username' => 'required|min_length[3]|max_length[100]|is_unique[users.username]',
-            'email' => 'required|valid_email|is_unique[users.email]',
-            'password' => 'required|min_length[6]',
-            'full_name' => 'required|min_length[3]|max_length[255]',
-            'staff_id' => 'permit_empty|max_length[50]',
+            'username'   => 'required|min_length[3]|max_length[100]|is_unique[users.username]',
+            'email'      => 'required|valid_email|is_unique[users.email]',
+            'password'   => 'required|min_length[6]',
+            'full_name'  => 'required|min_length[3]|max_length[255]',
+            'staff_id'   => 'permit_empty|max_length[50]',
             'contact_no' => 'permit_empty|max_length[20]',
-            'role' => 'required',
-            'is_active' => 'required|in_list[0,1]'
+            'role'       => 'required',
+            'is_active'  => 'required|in_list[0,1]',
+            'company_id' => 'permit_empty|is_natural_no_zero',
         ];
 
         if (!$this->validate($rules)) {
@@ -618,15 +619,17 @@ class Config extends BaseController
             ])->setStatusCode(400);
         }
 
+        $role = $input['role'];
         $data = [
-            'username' => $input['username'],
-            'email' => $input['email'],
-            'password' => $input['password'],
-            'full_name' => $input['full_name'],
-            'staff_id' => $input['staff_id'] ?? null,
+            'username'   => $input['username'],
+            'email'      => $input['email'],
+            'password'   => $input['password'],
+            'full_name'  => $input['full_name'],
+            'staff_id'   => $input['staff_id'] ?? null,
             'contact_no' => $input['contact_no'] ?? null,
-            'role' => $input['role'],
-            'is_active' => $input['is_active']
+            'role'       => $role,
+            'is_active'  => $input['is_active'],
+            'company_id' => ($role === 'superadmin') ? null : ($input['company_id'] ?? null),
         ];
 
         try {
@@ -671,13 +674,14 @@ class Config extends BaseController
         $input = $this->request->getJSON(true);
 
         $rules = [
-            'username' => "required|min_length[3]|max_length[100]|is_unique[users.username,id,{$id}]",
-            'email' => "required|valid_email|is_unique[users.email,id,{$id}]",
-            'full_name' => 'required|min_length[3]|max_length[255]',
-            'staff_id' => 'permit_empty|max_length[50]',
+            'username'   => "required|min_length[3]|max_length[100]|is_unique[users.username,id,{$id}]",
+            'email'      => "required|valid_email|is_unique[users.email,id,{$id}]",
+            'full_name'  => 'required|min_length[3]|max_length[255]',
+            'staff_id'   => 'permit_empty|max_length[50]',
             'contact_no' => 'permit_empty|max_length[20]',
-            'role' => 'required',
-            'is_active' => 'required|in_list[0,1]'
+            'role'       => 'required',
+            'is_active'  => 'required|in_list[0,1]',
+            'company_id' => 'permit_empty|is_natural_no_zero',
         ];
 
         // If password is provided and not empty, validate it
@@ -693,14 +697,16 @@ class Config extends BaseController
             ])->setStatusCode(400);
         }
 
+        $role = $input['role'];
         $data = [
-            'username' => $input['username'],
-            'email' => $input['email'],
-            'full_name' => $input['full_name'],
-            'staff_id' => $input['staff_id'] ?? null,
+            'username'   => $input['username'],
+            'email'      => $input['email'],
+            'full_name'  => $input['full_name'],
+            'staff_id'   => $input['staff_id'] ?? null,
             'contact_no' => $input['contact_no'] ?? null,
-            'role' => $input['role'],
-            'is_active' => $input['is_active']
+            'role'       => $role,
+            'is_active'  => $input['is_active'],
+            'company_id' => ($role === 'superadmin') ? null : ($input['company_id'] ?? null),
         ];
 
         // Only update password if provided and not empty
@@ -840,10 +846,14 @@ class Config extends BaseController
             $data = $this->request->getJSON(true);
 
             if ($this->companyModel->insert($data)) {
+                $newId   = $this->companyModel->getInsertID();
+                $newName = $data['name'] ?? 'Unknown';
+                (new \App\Services\PlatformNotificationService())->notifyNewCompany((int) $newId, (string) $newName);
+
                 return $this->response->setJSON([
                     'success' => true,
                     'message' => 'Company created successfully',
-                    'data' => ['id' => $this->companyModel->getInsertID()]
+                    'data' => ['id' => $newId]
                 ]);
             }
 

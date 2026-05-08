@@ -7,6 +7,7 @@ use App\Models\ClientNotificationSettingModel;
 use App\Services\Channels\EmailChannel;
 use App\Services\Channels\WhatsAppChannel;
 use App\Services\Channels\TelegramChannel;
+use App\Services\PlatformNotificationService;
 
 class NotificationService
 {
@@ -51,6 +52,10 @@ class NotificationService
 
             if ($channel === 'email') {
                 $emailResult = $result;
+            }
+
+            if (! $result) {
+                (new PlatformNotificationService())->notifyDeliveryFailure($invitationId, $channel, $notificationType);
             }
         }
 
