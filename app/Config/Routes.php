@@ -272,6 +272,7 @@ $routes->group('', ['filter' => $plusHost], function($routes) {
     $routes->post('visitors/update', 'VisitorList::updateVisitor');
     $routes->post('visitors/bindCard', 'VisitorList::bindCard');
     $routes->post('visitors/unbindCard', 'VisitorList::unbindCard');
+    $routes->post('visitors/batchUnbindCards', 'VisitorList::batchUnbindCards');
     $routes->get('visitors/generateQr/(:num)', 'VisitorList::generateQr/$1');
 });
 

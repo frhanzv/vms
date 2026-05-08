@@ -1226,10 +1226,10 @@ const modalConfigs = {
                     + '</div>';
                 return [
                     '<div class="flex items-center gap-2">' + avatarEl + '<div><p class="font-medium text-slate-900 dark:text-white">' + esc(nm) + '</p><p class="text-[11px] text-slate-400">' + esc(v.contact || '') + '</p></div></div>',
-                    esc(v.company || 'N/A'), esc(v.host_name), fmtTime(v.check_in_time), esc(v.location)
+                    esc(v.company || 'N/A'), esc(String(v.host_name || 'N/A').toUpperCase()), fmtTime(v.check_in_time), esc(v.last_door_entry || 'N/A')
                 ];
             });
-            modalBody.innerHTML = '<p class="text-sm text-slate-500 mb-4">' + d.data.length + ' visitor' + (d.data.length !== 1 ? 's' : '') + ' on-site</p>' + buildTable(['Visitor', 'Company', 'Host', 'Check-in', 'Location'], rows);
+            modalBody.innerHTML = '<p class="text-sm text-slate-500 mb-4">' + d.data.length + ' visitor' + (d.data.length !== 1 ? 's' : '') + ' on-site</p>' + buildTable(['Visitor', 'Company', 'Host', 'Check-in', 'Last Door Entry'], rows);
         }
     },
     checkedOut: {
