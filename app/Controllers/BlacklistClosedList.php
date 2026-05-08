@@ -76,7 +76,7 @@ class BlacklistClosedList extends BaseController
                 $index + 1,
                 $row['created_date'] ?? '',
                 $row['blacklist_date'] ?? '',
-                $row['ic_passport_no'] ?? '',
+                "\t" . ($row['ic_passport_no'] ?? ''),
                 $row['staff_id'] ?? '',
                 $row['name'] ?? '',
                 $row['type'] ?? '',
@@ -115,6 +115,6 @@ class BlacklistClosedList extends BaseController
         }
 
         return redirect()->to(base_url('blacklist/closedlist'))
-            ->with('success', esc($entry['name']) . ' has been successfully released.');
+            ->with('success', esc((string) ($entry['name'] ?? '')) . ' has been successfully released.');
     }
 }
