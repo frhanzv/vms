@@ -625,4 +625,100 @@ class InvitationEmailSender
             return false;
         }
     }
+
+    /**
+     * Notify host + admins that a visitor has checked in.
+     * The visitor is physically present so they are not emailed.
+     */
+    public function sendCheckIn(int $invitationId): bool
+    {
+        try {
+            $invitation = $this->getInvitationDetails($invitationId);
+            if (! $invitation) {
+                return false;
+            }
+
+            $recipients = $this->getSecondaryRecipients($invitation);
+            if (empty($recipients)) {
+                return true;
+            }
+
+            $subject = 'Visitor Check-In: ' . ($invitation['full_name'] ?? 'Unknown');
+            $body    = '<p>Hello,</p>'
+                     . '<p><strong>' . esc($invitation['full_name'] ?? '') . '</strong> has checked in.</p>'
+                     . '<ul>'
+                     . '<li><strong>Time:</strong> ' . date('d/m/Y H:i:s') . '</li>'
+                     . '<li><strong>Location:</strong> ' . esc($invitation['location_name'] ?? '') . '</li>'
+                     . '<li><strong>Purpose:</strong> ' . esc($invitation['reason_name'] ?? '') . '</li>'
+                     . '</ul>';
+
+            $this->sendToSecondaryRecipients($subject, $body, $recipients);
+            return true;
+        } catch (\Exception $e) {
+            log_message('error', 'sendCheckIn failed: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Notify host + admins that a visitor has checked out.
+     */
+    public function sendCheckOut(int $invitationId): bool
+    {
+        try {
+            $invitation = $this->getInvitationDetails($invitationId);
+            if (! $invitation) {
+                return false;
+            }
+
+            $recipients = $this->getSecondaryRecipients($invitation);
+            if (empty($recipients)) {
+                return true;
+            }
+
+            $subject = 'Visitor Check-Out: ' . ($invitation['full_name'] ?? 'Unknown');
+            $body    = '<p>Hello,</p>'
+                     . '<p><strong>' . esc($invitation['full_name'] ?? '') . '</strong> has checked out.</p>'
+                     . '<ul>'
+                     . '<li><strong>Time:</strong> ' . date('d/m/Y H:i:s') . '</li>'
+                     . '<li><strong>Location:</strong> ' . esc($invitation['location_name'] ?? '') . '</li>'
+                     . '</ul>';
+
+            $this->sendToSecondaryRecipients($subject, $body, $recipients);
+            return true;
+        } catch (\Exception $e) {
+            log_message('error', 'sendCheckOut failed: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Notify company admins that a blacklisted person attempted entry.
+     * Takes company_id directly since there may be no invitation record.
+     */
+    public function sendBlacklistFlagged(int $companyId, string $name, string $icPassport, string $reason = ''): bool
+    {
+        try {
+            $admins = $this->userModel->getCompanyAdmins($companyId);
+            if (empty($admins)) {
+                return true;
+            }
+
+            $subject = '[Security Alert] Blacklisted individual detected';
+            $body    = '<p>A blacklisted individual attempted entry.</p>'
+                     . '<ul>'
+                     . '<li><strong>Name:</strong> ' . esc($name) . '</li>'
+                     . '<li><strong>IC / Passport:</strong> ' . esc($icPassport) . '</li>'
+                     . '<li><strong>Reason:</strong> ' . esc($reason ?: 'N/A') . '</li>'
+                     . '<li><strong>Time:</strong> ' . date('d/m/Y H:i:s') . '</li>'
+                     . '</ul>';
+
+            $recipients = array_map(fn($a) => ['email' => $a['email'], 'full_name' => $a['full_name']], $admins);
+            $this->sendToSecondaryRecipients($subject, $body, $recipients);
+            return true;
+        } catch (\Exception $e) {
+            log_message('error', 'sendBlacklistFlagged failed: ' . $e->getMessage());
+            return false;
+        }
+    }
 }

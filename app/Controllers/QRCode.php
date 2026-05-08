@@ -4,6 +4,8 @@ namespace App\Controllers;
 
 use App\Models\InvitationModel;
 use App\Models\InvitationVisitorModel;
+use App\Services\NotificationService;
+use App\Libraries\InvitationEmailSender;
 use CodeIgniter\RESTful\ResourceController;
 
 class QRCode extends ResourceController
@@ -131,7 +133,10 @@ class QRCode extends ResourceController
         try {
             // Lock the invitation row
             $invitation = $db->query(
-                'SELECT * FROM invitations WHERE id = ? AND status = ? FOR UPDATE',
+                'SELECT i.*, u.company_id
+                 FROM invitations i
+                 LEFT JOIN users u ON i.staff_id = u.staff_id
+                 WHERE i.id = ? AND i.status = ? FOR UPDATE',
                 [$invitationId, 'Approved']
             )->getRowArray();
 
@@ -250,6 +255,25 @@ class QRCode extends ResourceController
             $this->logQrScan($invitationId, $action, $laneId);
 
             $db->transComplete();
+
+            $notifType = $action === 'checkin' ? 'check_in' : 'check_out';
+            (new NotificationService())->dispatch($invitationId, $notifType);
+
+            if ($action === 'checkin' && !empty($invitation['ic_passport'])) {
+                $blacklisted = $db->table('blacklist')
+                    ->whereIn('status', ['active', 'pending'])
+                    ->where('ic_passport_no', $invitation['ic_passport'])
+                    ->get()->getRowArray();
+
+                if ($blacklisted) {
+                    (new InvitationEmailSender())->sendBlacklistFlagged(
+                        (int) ($invitation['company_id'] ?? 0),
+                        $invitation['full_name'] ?? '',
+                        $invitation['ic_passport'],
+                        $blacklisted['reason'] ?? ''
+                    );
+                }
+            }
 
             $response = [
                 'success'  => true,
