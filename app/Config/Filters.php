@@ -88,6 +88,7 @@ class Filters extends BaseFilters
                     'visitor-registration/*',
                     'security/*',
                     'api/rfid/*',
+                    'api/qr/*',
                     'config/generateVisitorQr'
                 ]
             ],
