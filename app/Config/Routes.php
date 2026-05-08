@@ -332,6 +332,7 @@ $routes->group('blacklist', ['filter' => $plusOfficer], function($routes) {
     $routes->get('entry', 'BlacklistEntry::index');
     $routes->get('entry/search', 'BlacklistEntry::search');
     $routes->get('closedlist', 'BlacklistClosedList::index');
+    $routes->get('closedlist/export', 'BlacklistClosedList::export');
     $routes->get('closedlist/view/(:num)', 'BlacklistClosedList::view/$1');
 });
 

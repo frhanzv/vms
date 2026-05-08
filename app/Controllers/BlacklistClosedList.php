@@ -50,6 +50,51 @@ class BlacklistClosedList extends BaseController
         ]);
     }
 
+    public function export()
+    {
+        $rows = $this->model
+            ->where('status', 'closed')
+            ->orderBy('blacklist_date', 'DESC')
+            ->findAll();
+
+        $handle = fopen('php://temp', 'w+');
+        fwrite($handle, "\xEF\xBB\xBF");
+        fputcsv($handle, [
+            'No',
+            'Created Date',
+            'Blacklist Date',
+            'IC / Passport No',
+            'Staff ID',
+            'Name',
+            'Type',
+            'Reason',
+            'Released Date',
+        ]);
+
+        foreach ($rows as $index => $row) {
+            fputcsv($handle, [
+                $index + 1,
+                $row['created_date'] ?? '',
+                $row['blacklist_date'] ?? '',
+                $row['ic_passport_no'] ?? '',
+                $row['staff_id'] ?? '',
+                $row['name'] ?? '',
+                $row['type'] ?? '',
+                $row['reason'] ?? '',
+                $row['released_date'] ?? '',
+            ]);
+        }
+
+        rewind($handle);
+        $csvContent = stream_get_contents($handle);
+        fclose($handle);
+
+        return $this->response
+            ->setHeader('Content-Type', 'text/csv; charset=UTF-8')
+            ->setHeader('Content-Disposition', 'attachment; filename="blacklist-closed-' . date('Y-m-d-His') . '.csv"')
+            ->setBody((string) $csvContent);
+    }
+
     /**
      * Release a blacklisted individual
      */

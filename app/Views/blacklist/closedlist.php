@@ -65,7 +65,7 @@
                     <h2 class="text-lg font-semibold text-gray-700 uppercase tracking-tight">
                         Blacklist Individual Closed List
                     </h2>
-                    <a href="<?= base_url('files/Blacklist_Individual_Closed_List.xlsx') ?>" download
+                    <a href="<?= base_url('blacklist/closedlist/export') ?>"
                         class="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary hover:bg-primary-dark text-white text-sm font-bold transition-colors shadow-sm">
                         <span class="material-symbols-outlined text-[18px]">download</span>
                         Export
