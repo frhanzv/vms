@@ -368,9 +368,7 @@ class RequestList extends BaseController
                 ]);
             }
 
-            // Send Rejection Email
-            $emailSender = new \App\Libraries\InvitationEmailSender();
-            $emailSender->sendRejection($id);
+            (new \App\Services\NotificationService())->dispatch($id, 'request_rejected');
 
             return $this->response->setJSON([
                 'success' => true,
