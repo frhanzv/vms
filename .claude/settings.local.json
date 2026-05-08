@@ -12,7 +12,8 @@
       "Bash(mysql -u root vms -e \"SHOW TABLES LIKE '%approval%';\")",
       "Bash(mysql -u root vms -e \"SHOW TABLES LIKE '%access%';\")",
       "Bash(mysql -u root vms -e \"DESCRIBE security_alerts;\")",
-      "Bash(mysql -u root vms -e \"SELECT * FROM security_alerts LIMIT 3;\")"
+      "Bash(mysql -u root vms -e \"SELECT * FROM security_alerts LIMIT 3;\")",
+      "Bash(grep -iE \"\\\\.php$\")"
     ]
   }
 }

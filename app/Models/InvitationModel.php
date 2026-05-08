@@ -4,10 +4,11 @@ namespace App\Models;
 
 use CodeIgniter\Model;
 use App\Traits\OptimisticLockTrait;
+use App\Traits\SyncUidTrait;
 
 class InvitationModel extends Model
 {
-    use OptimisticLockTrait;
+    use OptimisticLockTrait, SyncUidTrait;
 
     protected $table = 'invitations';
     protected $primaryKey = 'id';
@@ -16,7 +17,8 @@ class InvitationModel extends Model
     protected $useSoftDeletes = false;
     protected $protectFields = true;
     protected $allowedFields = [
-        'full_name', 'ic_passport', 'contact', 'visitor_email', 'company', 'vehicle_registration', 
+        'sync_uid',
+        'full_name', 'ic_passport', 'contact', 'visitor_email', 'company', 'vehicle_registration',
         'location', 'invited_by', 'reason', 'visitor_type_id', 'other_reason', 'link_expiry', 'status',
         'staff_id', 'company_visited', 'host_contact', 'registration_no',
         'date_of_birth', 'sex', 'resident', 'address', 'postcode', 'city', 'state', 'country',
@@ -27,6 +29,8 @@ class InvitationModel extends Model
         'custom_form_data', 'registration_source',
         'allow_sub_invites', 'parent_invitation_id',
     ];
+
+    protected $beforeInsert = ['assignSyncUid'];
 
     // Dates
     protected $useTimestamps = true;

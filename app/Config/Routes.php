@@ -29,6 +29,12 @@ $routes->group('api/rfid', function($routes) {
     $routes->get('test-connection', 'RFID::testConnection');
 });
 
+$routes->group('api/qr', function($routes) {
+    $routes->get('scan', 'QRCode::scan');
+    $routes->get('scan-lane', 'QRCode::scanLane');
+    $routes->get('status', 'QRCode::status');
+});
+
 $routes->get('visitor-registration', 'VisitorRegistration::index');
 $routes->post('visitor-registration/submit', 'VisitorRegistration::submit');
 $routes->post('visitor-registration/processMyKad', 'VisitorRegistration::processMyKad');
@@ -596,6 +602,41 @@ $routes->group('config', ['filter' => 'role:superadmin'], function($routes) {
     // Inbound API token generation (Protected by superadmin)
     $routes->post('generateInboundToken', 'Api\InboundApi::generateToken');
 });
+
+// ===========================
+// Kiosk Mobile API (Public — no auth)
+// Mirrors the Java/Spring URL scheme used by the MNR Android kiosk app.
+// ===========================
+
+$routes->group('api/admin', function($routes) {
+    $routes->get('locationAccess/active',        'Api\KioskApi::getActiveLocations');
+    $routes->get('subLocationAccess/active',     'Api\KioskApi::getActiveSubLocations');
+    $routes->get('country/active',               'Api\KioskApi::getActiveCountries');
+    $routes->get('state/country/(:num)',         'Api\KioskApi::getStatesByCountry/$1');
+    $routes->get('city/state/(:num)',            'Api\KioskApi::getCitiesByState/$1');
+    $routes->get('vinType/active/all',           'Api\KioskApi::getActiveVehicleTypes');
+    $routes->get('licenseClass/active',          'Api\KioskApi::getActiveLicenseClasses');
+    $routes->get('vaccineType/active',           'Api\KioskApi::getActiveVaccineTypes');
+    $routes->get('moduleConfig/getByProject',   'Api\KioskApi::getModuleConfig');
+    $routes->get('campanies/all',                'Api\KioskApi::getAllCompanies');
+});
+
+$routes->group('api/vendorpass', function($routes) {
+    $routes->get('getVisitReasonList',           'Api\KioskApi::getVisitReasonList');
+    $routes->post('checkICExist',                'Api\KioskApi::checkICExist');
+    $routes->post('doVisitorPassReqMobile',      'Api\KioskApi::doVisitorPassReqMobile');
+    $routes->post('insertVendorPassCard',        'Api\KioskApi::insertVendorPassCard');
+    $routes->post('uploadVendorPassPhotoMobile', 'Api\KioskApi::uploadVendorPassPhotoMobile');
+});
+
+$routes->group('api/user', function($routes) {
+    $routes->get('getStaffPassByStaffNoOrName',   'Api\KioskApi::getStaffPassByStaffNoOrName');
+    $routes->get('getVisitorPassByStaffNoOrName', 'Api\KioskApi::getVisitorPassByStaffNoOrName');
+});
+
+// laravel_url routes (served here at any port VMS is running on)
+$routes->post('decrypt',             'Api\KioskApi::decrypt');
+$routes->get('vms/api/visitor-types', 'Api\KioskApi::getVisitorTypes');
 
 // ===========================
 // Inbound API (Webhooks)
