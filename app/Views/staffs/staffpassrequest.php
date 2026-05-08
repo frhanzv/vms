@@ -41,7 +41,7 @@ $isSettings = str_contains($current, 'settings');
                         "surface-dark": "#1a2632",          // ← ADD THIS
                         "text-main": "#0d141b",             // ← ADD THIS
                         "text-sub": "#4c739a",              // ← ADD THIS
-                        "border-color": "#e7edf3",          // ← ADD THIS
+                        "border-color": "#c4d0dc",          // ← ADD THIS
                     },
                     fontFamily: {
                         display: ["Montserrat", "sans-serif"],
@@ -300,7 +300,7 @@ $isSettings = str_contains($current, 'settings');
                     <?= csrf_field() ?>
 
                     <!-- Application Information -->
-                    <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8">
+                    <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 p-6 sm:p-8">
                         <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
                             <div class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-primary">
                                 <span class="material-symbols-outlined">business</span>
@@ -473,7 +473,7 @@ $isSettings = str_contains($current, 'settings');
                     <!-- Details of Visit -->
                     
                     <!-- Staff Details -->
-                    <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8">
+                    <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 p-6 sm:p-8">
                         <div class="flex items-center justify-between mb-6 pb-4 border-b border-border-color dark:border-gray-800">
                             <div class="flex items-center gap-3">
                                 <div class="size-10 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center text-green-600 dark:text-green-400">
@@ -625,7 +625,7 @@ $isSettings = str_contains($current, 'settings');
                     </section>
 
                     <!-- Driving License Section -->
-                    <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 mt-8">
+                    <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 mt-8">
                         <div class="p-6 sm:p-8">
                             <div class="flex items-center justify-between mb-6 pb-4 border-b border-border-color dark:border-gray-800">
                                 <div class="flex items-center gap-3">
@@ -657,7 +657,7 @@ $isSettings = str_contains($current, 'settings');
 
                     <!-- CSP Details -->
 
-                    <!-- <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8">
+                    <!-- <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 p-6 sm:p-8">
                         <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
                             <div class="size-10 rounded-full bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center text-orange-600 dark:text-orange-400">
                                 <span class="material-symbols-outlined">apartment</span>
@@ -683,7 +683,7 @@ $isSettings = str_contains($current, 'settings');
 
                     E-Vetting
 
-                    <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8">
+                    <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 p-6 sm:p-8">
                         <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
                             <div class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400">
                                 <span class="material-symbols-outlined">verified_user</span>
@@ -739,7 +739,7 @@ $isSettings = str_contains($current, 'settings');
                     
                     
                     <!-- Document Upload -->
-                    <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8 mt-8">
+                    <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 p-6 sm:p-8 mt-8">
                         <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
                             <div class="size-10 rounded-full bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
                                 <span class="material-symbols-outlined">folder_open</span>
