@@ -761,11 +761,21 @@ class Dashboard extends BaseController
         $visitors = $db->query(
             "SELECT iv.id, COALESCE(i.full_name, iv.full_name) as visitor_name,
                     i.company, COALESCE(i.invited_by, 'N/A') as host_name,
-                    iv.check_in_time, COALESCE(i.location, 'N/A') as location,
+                    iv.check_in_time, COALESCE(ld.lane, 'N/A') as last_door_entry,
                     COALESCE(iv.contact, i.contact) as contact,
                     i.visitor_email, i.profile_photo_path
              FROM invitation_visitors iv
              JOIN invitations i ON i.id = iv.invitation_id
+             LEFT JOIN (
+                 SELECT vcl.visitor_card_id, l.lane
+                 FROM visitor_card_logs vcl
+                 JOIN lanes l ON l.id = vcl.lane_id
+                 WHERE vcl.id IN (
+                     SELECT MAX(vcl2.id)
+                     FROM visitor_card_logs vcl2
+                     GROUP BY vcl2.visitor_card_id
+                 )
+             ) ld ON ld.visitor_card_id = iv.visitor_card_id
              WHERE i.status = 'Approved'
              AND iv.check_in_time IS NOT NULL
              AND iv.check_out_time IS NULL

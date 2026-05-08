@@ -9821,13 +9821,23 @@
                                         </div>
                                     </div>
                                     
-                                    <!-- RFID Reader Settings -->
+                                    <!-- Scan Reader Settings -->
                                     <div class="mt-6 mb-6">
                                         <h4 class="text-md font-semibold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
                                             <span class="material-symbols-outlined text-primary">sensors</span>
-                                            RFID Reader Settings
+                                            Scan Reader Settings
                                         </h4>
-                                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <!-- Scan Type selector -->
+                                        <div class="mb-4">
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Scan Type <span class="text-red-500">*</span></label>
+                                            <select id="laneScanType" name="scan_type" onchange="toggleAddLaneScanSettings(this.value)" class="w-full md:w-64 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                                <option value="rfid">RFID Reader</option>
+                                                <option value="qr_code">QR Code Reader</option>
+                                            </select>
+                                            <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Select the type of scanner connected to this lane</p>
+                                        </div>
+                                        <!-- RFID-specific fields (hidden when QR is selected) -->
+                                        <div id="addLaneRfidFields" class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                             <div>
                                                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">RFID Reader IP</label>
                                                 <input type="text" id="laneRfidReaderIp" name="rfid_reader_ip" placeholder="e.g., 192.168.1.100" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
@@ -9846,8 +9856,20 @@
                                                 </label>
                                             </div>
                                         </div>
+                                        <!-- QR-specific info (shown when QR is selected) -->
+                                        <div id="addLaneQrFields" class="hidden">
+                                            <div class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                                                <div class="flex items-start gap-3">
+                                                    <span class="material-symbols-outlined text-blue-500 text-xl mt-0.5">info</span>
+                                                    <div>
+                                                        <p class="text-sm font-medium text-blue-800 dark:text-blue-300">QR Code Reader Mode</p>
+                                                        <p class="text-xs text-blue-700 dark:text-blue-400 mt-1">Connect a USB HID QR scanner to the kiosk. Run <code class="bg-blue-100 dark:bg-blue-900 px-1 rounded">php spark qr:listen --lane=&lt;id&gt; --type=entry</code> to start listening. Visitor badges must contain <code class="bg-blue-100 dark:bg-blue-900 px-1 rounded">INV-{invitation_id}</code>.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                    
+
                                     <div class="flex gap-3 justify-end pt-4 border-t border-gray-200 dark:border-slate-700">
                                         <button type="button" onclick="closeLaneModal()" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">
                                             Cancel
@@ -9979,13 +10001,23 @@
                                     </div>
                                 </div>
                                 
-                                <!-- RFID Reader Settings -->
+                                <!-- Scan Reader Settings -->
                                 <div class="mt-6 mb-6">
                                     <h4 class="text-md font-semibold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
                                         <span class="material-symbols-outlined text-primary">sensors</span>
-                                        RFID Reader Settings
+                                        Scan Reader Settings
                                     </h4>
-                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <!-- Scan Type selector -->
+                                    <div class="mb-4">
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Scan Type <span class="text-red-500">*</span></label>
+                                        <select id="laneScanType" name="scan_type" onchange="toggleEditLaneScanSettings(this.value)" class="w-full md:w-64 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                            <option value="rfid" ${(lane.scan_type || 'rfid') === 'rfid' ? 'selected' : ''}>RFID Reader</option>
+                                            <option value="qr_code" ${lane.scan_type === 'qr_code' ? 'selected' : ''}>QR Code Reader</option>
+                                        </select>
+                                        <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Select the type of scanner connected to this lane</p>
+                                    </div>
+                                    <!-- RFID-specific fields -->
+                                    <div id="editLaneRfidFields" class="${lane.scan_type === 'qr_code' ? 'hidden' : ''} grid grid-cols-1 md:grid-cols-3 gap-4">
                                         <div>
                                             <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">RFID Reader IP</label>
                                             <input type="text" id="laneRfidReaderIp" name="rfid_reader_ip" value="${escapeHtml(lane.rfid_reader_ip || '')}" placeholder="e.g., 192.168.1.100" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
@@ -10004,8 +10036,20 @@
                                             </label>
                                         </div>
                                     </div>
+                                    <!-- QR-specific info -->
+                                    <div id="editLaneQrFields" class="${lane.scan_type === 'qr_code' ? '' : 'hidden'}">
+                                        <div class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                                            <div class="flex items-start gap-3">
+                                                <span class="material-symbols-outlined text-blue-500 text-xl mt-0.5">info</span>
+                                                <div>
+                                                    <p class="text-sm font-medium text-blue-800 dark:text-blue-300">QR Code Reader Mode</p>
+                                                    <p class="text-xs text-blue-700 dark:text-blue-400 mt-1">Connect a USB HID QR scanner to the kiosk. Run <code class="bg-blue-100 dark:bg-blue-900 px-1 rounded">php spark qr:listen --lane=${laneId} --type=entry</code> to start listening. Visitor badges must contain <code class="bg-blue-100 dark:bg-blue-900 px-1 rounded">INV-{invitation_id}</code>.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                
+
                                 <div class="flex gap-3 justify-end pt-4 border-t border-gray-200 dark:border-slate-700">
                                     <button type="button" onclick="closeLaneModal()" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">
                                         Cancel
@@ -10065,6 +10109,32 @@
             currentLaneId = null;
         }
 
+        function toggleAddLaneScanSettings(scanType) {
+            const rfidFields = document.getElementById('addLaneRfidFields');
+            const qrFields   = document.getElementById('addLaneQrFields');
+            if (!rfidFields || !qrFields) return;
+            if (scanType === 'qr_code') {
+                rfidFields.classList.add('hidden');
+                qrFields.classList.remove('hidden');
+            } else {
+                rfidFields.classList.remove('hidden');
+                qrFields.classList.add('hidden');
+            }
+        }
+
+        function toggleEditLaneScanSettings(scanType) {
+            const rfidFields = document.getElementById('editLaneRfidFields');
+            const qrFields   = document.getElementById('editLaneQrFields');
+            if (!rfidFields || !qrFields) return;
+            if (scanType === 'qr_code') {
+                rfidFields.classList.add('hidden');
+                qrFields.classList.remove('hidden');
+            } else {
+                rfidFields.classList.remove('hidden');
+                qrFields.classList.add('hidden');
+            }
+        }
+
         function closeDeleteLaneModal() {
             const modal = document.getElementById('deleteLaneModal');
             if (modal) modal.remove();
@@ -10101,7 +10171,8 @@
                 status: document.getElementById('laneStatus').value,
                 rfid_reader_ip: document.getElementById('laneRfidReaderIp')?.value || null,
                 rfid_reader_port: document.getElementById('laneRfidReaderPort')?.value || null,
-                rfid_enabled: document.getElementById('laneRfidEnabled')?.checked ? 1 : 0
+                rfid_enabled: document.getElementById('laneRfidEnabled')?.checked ? 1 : 0,
+                scan_type: document.getElementById('laneScanType')?.value || 'rfid'
             };
 
             const submitBtn = e.target.querySelector('button[type="submit"]');

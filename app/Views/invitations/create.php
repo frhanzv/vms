@@ -446,6 +446,9 @@ Add Visitor
 <input name="visitors[0][visitor_email]" class="w-full h-12 rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none" placeholder="visitor@example.com" type="email" required/>
 </div>
 <div class="flex items-center pb-2 lg:pb-0">
+<button type="button" class="read-mykad text-emerald-600 hover:text-emerald-700 transition-colors p-2 rounded-full hover:bg-emerald-50 dark:hover:bg-emerald-900/20" title="Read MyKad">
+<span class="material-symbols-outlined">badge</span>
+</button>
 <button type="button" class="remove-visitor text-slate-400 hover:text-red-500 transition-colors p-2 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 opacity-50 pointer-events-none" title="Remove visitor" aria-disabled="true">
 <span class="material-symbols-outlined">remove_circle_outline</span>
 </button>
@@ -557,6 +560,43 @@ Search
 </div>
 </div>
 
+<!-- MyKad OCR Modal -->
+<div id="invitation-mykad-modal" class="hidden fixed inset-0 z-[110] overflow-y-auto" aria-hidden="true">
+    <div class="flex min-h-screen items-center justify-center p-4">
+        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm" id="invitation-mykad-backdrop"></div>
+        <div class="relative bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-2xl">
+            <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white">Read MyKad</h3>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">Upload your IC card image</p>
+                </div>
+                <button type="button" id="invitation-mykad-close" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <input type="file" id="invitation-mykad-file" accept="image/*" class="hidden"/>
+                <div id="invitation-mykad-dropzone" class="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-8 text-center">
+                    <p class="text-slate-700 dark:text-slate-200 font-semibold">Drop your MyKad image here</p>
+                    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">or <button type="button" id="invitation-mykad-browse" class="text-primary underline font-semibold">browse files</button></p>
+                    <p class="text-xs text-slate-400 mt-2">Supports JPG, PNG (Max 5MB)</p>
+                </div>
+                <div id="invitation-mykad-selected" class="hidden rounded-lg border border-slate-200 dark:border-slate-700 p-3 bg-slate-50 dark:bg-slate-800/40 flex items-center justify-between gap-3">
+                    <div class="min-w-0">
+                        <p id="invitation-mykad-filename" class="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate"></p>
+                        <p id="invitation-mykad-filesize" class="text-xs text-slate-500 dark:text-slate-400"></p>
+                    </div>
+                    <button type="button" id="invitation-mykad-clear" class="text-red-500 hover:text-red-700 text-sm font-semibold">Remove</button>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-3">
+                <button type="button" id="invitation-mykad-cancel" class="px-4 py-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300">Cancel</button>
+                <button type="button" id="invitation-mykad-process" class="px-5 py-2 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed" disabled>Process MyKad</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 // Enable/Disable "Other Reason" field based on "Reason for Visit" selection
 const visitReasonSelect = document.getElementById('visit-reason');
@@ -637,6 +677,9 @@ document.getElementById('add-visitor').addEventListener('click', function() {
             ${visitorFieldTemplate(idx, 'visitor_email')}
         </div>
         <div class="flex items-center pb-2 lg:pb-0">
+            <button type="button" class="read-mykad text-emerald-600 hover:text-emerald-700 transition-colors p-2 rounded-full hover:bg-emerald-50 dark:hover:bg-emerald-900/20" title="Read MyKad">
+                <span class="material-symbols-outlined">badge</span>
+            </button>
             <button type="button" class="remove-visitor text-slate-400 hover:text-red-500 transition-colors p-2 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20" title="Remove visitor">
                 <span class="material-symbols-outlined">remove_circle_outline</span>
             </button>
@@ -971,6 +1014,180 @@ document.getElementById('history-table-body')?.addEventListener('click', async f
         closeHistoryModal();
     } catch (err) {
         alert('Could not load invitation');
+    }
+});
+
+// MyKad OCR for invitation visitor rows
+let invitationMyKadTargetRow = null;
+let invitationMyKadFile = null;
+
+function formatFileSize(bytes) {
+    if (!bytes || bytes <= 0) return '0 B';
+    const units = ['B', 'KB', 'MB', 'GB'];
+    const e = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+    return (bytes / Math.pow(1024, e)).toFixed(1) + ' ' + units[e];
+}
+
+function setInvitationMyKadFile(file) {
+    invitationMyKadFile = file || null;
+    const selected = document.getElementById('invitation-mykad-selected');
+    const processBtn = document.getElementById('invitation-mykad-process');
+    const filename = document.getElementById('invitation-mykad-filename');
+    const filesize = document.getElementById('invitation-mykad-filesize');
+    if (!selected || !processBtn || !filename || !filesize) return;
+
+    if (invitationMyKadFile) {
+        filename.textContent = invitationMyKadFile.name || 'Selected file';
+        filesize.textContent = formatFileSize(invitationMyKadFile.size || 0);
+        selected.classList.remove('hidden');
+        processBtn.disabled = false;
+    } else {
+        filename.textContent = '';
+        filesize.textContent = '';
+        selected.classList.add('hidden');
+        processBtn.disabled = true;
+    }
+}
+
+function validateInvitationMyKadFile(file) {
+    if (!file) return false;
+    const validType = /^image\//.test(file.type || '');
+    const maxBytes = 5 * 1024 * 1024;
+    if (!validType) {
+        alert('Please upload an image file.');
+        return false;
+    }
+    if ((file.size || 0) > maxBytes) {
+        alert('Image is too large. Please upload up to 5MB.');
+        return false;
+    }
+    return true;
+}
+
+function openInvitationMyKadModal(rowEl) {
+    invitationMyKadTargetRow = rowEl || null;
+    const modal = document.getElementById('invitation-mykad-modal');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+}
+
+function closeInvitationMyKadModal() {
+    const modal = document.getElementById('invitation-mykad-modal');
+    const fileInput = document.getElementById('invitation-mykad-file');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.setAttribute('aria-hidden', 'true');
+    }
+    if (fileInput) fileInput.value = '';
+    setInvitationMyKadFile(null);
+}
+
+document.getElementById('invitation-mykad-browse')?.addEventListener('click', function() {
+    document.getElementById('invitation-mykad-file')?.click();
+});
+
+document.getElementById('invitation-mykad-file')?.addEventListener('change', function(e) {
+    const files = e.target && e.target.files ? e.target.files : null;
+    if (!files || !files.length) {
+        setInvitationMyKadFile(null);
+        return;
+    }
+    const file = files[0];
+    if (!validateInvitationMyKadFile(file)) {
+        this.value = '';
+        setInvitationMyKadFile(null);
+        return;
+    }
+    setInvitationMyKadFile(file);
+});
+
+document.getElementById('invitation-mykad-clear')?.addEventListener('click', function() {
+    const fileInput = document.getElementById('invitation-mykad-file');
+    if (fileInput) fileInput.value = '';
+    setInvitationMyKadFile(null);
+});
+
+document.getElementById('invitation-mykad-close')?.addEventListener('click', closeInvitationMyKadModal);
+document.getElementById('invitation-mykad-cancel')?.addEventListener('click', closeInvitationMyKadModal);
+document.getElementById('invitation-mykad-backdrop')?.addEventListener('click', closeInvitationMyKadModal);
+
+document.getElementById('invitation-mykad-dropzone')?.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    this.classList.add('border-primary');
+});
+
+document.getElementById('invitation-mykad-dropzone')?.addEventListener('dragleave', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    this.classList.remove('border-primary');
+});
+
+document.getElementById('invitation-mykad-dropzone')?.addEventListener('drop', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    this.classList.remove('border-primary');
+    const files = e.dataTransfer && e.dataTransfer.files ? e.dataTransfer.files : null;
+    if (!files || !files.length) return;
+    if (!validateInvitationMyKadFile(files[0])) {
+        setInvitationMyKadFile(null);
+        return;
+    }
+    setInvitationMyKadFile(files[0]);
+});
+
+document.addEventListener('click', function(e) {
+    const readBtn = e.target.closest('.read-mykad');
+    if (!readBtn) return;
+    const row = readBtn.closest('.visitor-item');
+    openInvitationMyKadModal(row);
+});
+
+document.getElementById('invitation-mykad-process')?.addEventListener('click', async function() {
+    if (!invitationMyKadTargetRow || !invitationMyKadFile) {
+        alert('Please select an image first.');
+        return;
+    }
+    const processBtn = this;
+    const originalText = processBtn.textContent;
+    processBtn.disabled = true;
+    processBtn.textContent = 'Processing...';
+
+    try {
+        const fd = new FormData();
+        fd.append('mykad_image', invitationMyKadFile);
+
+        const response = await fetch('<?= base_url('visitor-registration/processMyKad') ?>', {
+            method: 'POST',
+            body: fd,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        });
+
+        const result = await response.json();
+        if (!result || !result.success || !result.data) {
+            alert((result && result.message) ? result.message : 'Could not read MyKad image.');
+            return;
+        }
+
+        const nameInput = invitationMyKadTargetRow.querySelector('input[name*="[full_name]"]');
+        if (nameInput && result.data.name) {
+            nameInput.value = String(result.data.name);
+        }
+
+        const contactInput = invitationMyKadTargetRow.querySelector('input[name*="[contact]"]');
+        if (contactInput && !contactInput.value && result.data.ic_number) {
+            // Temporary fallback: place IC number only if contact is empty.
+            contactInput.value = String(result.data.ic_number);
+        }
+
+        closeInvitationMyKadModal();
+        alert('MyKad processed. Please verify and complete any missing fields before submitting.');
+    } catch (err) {
+        alert('Could not read MyKad image. Please try again with a clearer image.');
+    } finally {
+        processBtn.disabled = false;
+        processBtn.textContent = originalText;
     }
 });
 
