@@ -27,6 +27,9 @@ class ClientNotificationSettingModel extends Model
             'request_rejected'       => 'Request Rejected',
             'registration_submitted' => 'Registration Submitted',
             'reminder'               => 'Reminder',
+            'check_in'               => 'Visitor Check-In',
+            'check_out'              => 'Visitor Check-Out',
+            'blacklist_flagged'      => 'Blacklist Flagged',
         ];
     }
 

@@ -5,6 +5,8 @@ namespace App\Controllers;
 use App\Models\VisitorCardModel;
 use App\Models\InvitationModel;
 use App\Models\InvitationVisitorModel;
+use App\Services\NotificationService;
+use App\Libraries\InvitationEmailSender;
 use CodeIgniter\RESTful\ResourceController;
 
 class RFID extends ResourceController
@@ -60,9 +62,11 @@ class RFID extends ResourceController
         try {
             // Lock the invitation_visitors row to prevent concurrent scan race
             $invitation = $db->query(
-                'SELECT iv.*, iv.id as iv_id, i.full_name as visitor_name, i.company as visitor_company, i.id as invitation_id
+                'SELECT iv.*, iv.id as iv_id, i.full_name as visitor_name, i.company as visitor_company,
+                        i.id as invitation_id, i.ic_passport, u.company_id
                  FROM invitation_visitors iv
                  JOIN invitations i ON i.id = iv.invitation_id
+                 LEFT JOIN users u ON i.staff_id = u.staff_id
                  WHERE iv.visitor_card_id = ?
                  AND i.status = ?
                  AND DATE(i.created_at) = ?
@@ -143,6 +147,25 @@ class RFID extends ResourceController
 
             $db->transComplete();
 
+            $notifType = $action === 'checkin' ? 'check_in' : 'check_out';
+            (new NotificationService())->dispatch($invitation['invitation_id'], $notifType);
+
+            if ($action === 'checkin' && !empty($invitation['ic_passport'])) {
+                $blacklisted = $db->table('blacklist')
+                    ->whereIn('status', ['active', 'pending'])
+                    ->where('ic_passport_no', $invitation['ic_passport'])
+                    ->get()->getRowArray();
+
+                if ($blacklisted) {
+                    (new InvitationEmailSender())->sendBlacklistFlagged(
+                        (int) ($invitation['company_id'] ?? 0),
+                        $invitation['visitor_name'] ?? '',
+                        $invitation['ic_passport'],
+                        $blacklisted['reason'] ?? ''
+                    );
+                }
+            }
+
             return $this->respond([
                 'success' => true,
                 'action' => $action,
@@ -206,9 +229,11 @@ class RFID extends ResourceController
         try {
             // Lock the row to prevent concurrent scan race
             $invitation = $db->query(
-                'SELECT iv.*, iv.id as iv_id, i.full_name as visitor_name, i.company as visitor_company, i.id as invitation_id
+                'SELECT iv.*, iv.id as iv_id, i.full_name as visitor_name, i.company as visitor_company,
+                        i.id as invitation_id, i.ic_passport, u.company_id
                  FROM invitation_visitors iv
                  JOIN invitations i ON i.id = iv.invitation_id
+                 LEFT JOIN users u ON i.staff_id = u.staff_id
                  WHERE iv.visitor_card_id = ?
                  AND i.status = ?
                  AND DATE(i.created_at) = ?
@@ -325,6 +350,25 @@ class RFID extends ResourceController
             $this->logCardScan($card['id'], $invitation['invitation_id'], $action, $laneId);
 
             $db->transComplete();
+
+            $notifType = $action === 'checkin' ? 'check_in' : 'check_out';
+            (new NotificationService())->dispatch($invitation['invitation_id'], $notifType);
+
+            if ($action === 'checkin' && !empty($invitation['ic_passport'])) {
+                $blacklisted = $db->table('blacklist')
+                    ->whereIn('status', ['active', 'pending'])
+                    ->where('ic_passport_no', $invitation['ic_passport'])
+                    ->get()->getRowArray();
+
+                if ($blacklisted) {
+                    (new InvitationEmailSender())->sendBlacklistFlagged(
+                        (int) ($invitation['company_id'] ?? 0),
+                        $invitation['visitor_name'] ?? '',
+                        $invitation['ic_passport'],
+                        $blacklisted['reason'] ?? ''
+                    );
+                }
+            }
 
             return $this->respond([
                 'success' => true,
