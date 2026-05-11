@@ -554,6 +554,7 @@ $routes->group('config', ['filter' => $superadmins], function($routes) {
     $routes->get('getBlacklistReason/(:num)', 'Config::getBlacklistReason/$1');
 
     // Business Type
+    $routes->post('createBusinessType', 'Config::createBusinessType');
     $routes->post('updateBusinessType', 'Config::updateBusinessType');
 });
 

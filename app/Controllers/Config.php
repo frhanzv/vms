@@ -4434,6 +4434,36 @@ class Config extends BaseController
     }
 
     // Update Business Type in Config
+    public function createBusinessType()
+    {
+        $data = [
+            'business_type'              => $this->request->getPost('business_type'),
+            'reg_type'                   => $this->request->getPost('reg_type'),
+            'ledger'                     => $this->request->getPost('ledger') ?? 0,
+            'haulier'                    => $this->request->getPost('haulier') ?? 0,
+            'lpk_license_no'             => $this->request->getPost('lpk_license_no') ?? 0,
+            'lpk_license_no_optional'    => $this->request->getPost('lpk_license_no_optional') ?? 0,
+            'lpk_ancillary_contractor'   => $this->request->getPost('lpk_ancillary_contractor') ?? 0,
+            'customs_license_no'         => $this->request->getPost('customs_license_no') ?? 0,
+            'sst_reg_no'                 => $this->request->getPost('sst_reg_no') ?? 0,
+            'business_vol'               => $this->request->getPost('business_vol') ?? 0,
+            'trade_ref_no'               => $this->request->getPost('trade_ref_no') ?? 0,
+            'bank_info'                  => $this->request->getPost('bank_info') ?? 0,
+            'operator_code'              => $this->request->getPost('operator_code') ?? 0,
+            'copy_board_director_ic'     => $this->request->getPost('copy_board_director_ic') ?? 0,
+            'apad_certificate_no'        => $this->request->getPost('apad_certificate_no') ?? 0,
+            'license_expiry_date'        => $this->request->getPost('license_expiry_date') ?? 0,
+            'warehouse_info'             => $this->request->getPost('warehouse_info') ?? 0,
+            'nature_of_business'         => $this->request->getPost('nature_of_business') ?? 0,
+            'pli'                        => $this->request->getPost('pli') ?? 0,
+            'status'                     => strtoupper($this->request->getPost('status') ?? 'ACTIVE'),
+        ];
+
+        $this->bizTypeModel->insert($data);
+
+        return redirect()->to(base_url('config'))->with('success', 'Business type created successfully.');
+    }
+
     public function updateBusinessType()
     {
         $id = $this->request->getPost('id');

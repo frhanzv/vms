@@ -580,6 +580,10 @@
                                         <span class="material-symbols-outlined text-white text-[20px]">search</span>
                                     </button>
                                 </div>
+                                <button onclick="openRegTypeCreate()" class="flex items-center gap-2 px-4 py-2.5 rounded bg-primary hover:bg-blue-600 text-white text-sm font-medium font-brand transition-colors whitespace-nowrap">
+                                    <span class="material-symbols-outlined text-base">add</span>
+                                    Create Registration Type
+                                </button>
                             </div>
 
                             <!-- Table -->
@@ -669,7 +673,7 @@
                     <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md flex flex-col max-h-[90vh]">
                         <!-- Header -->
                         <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-slate-700 flex-shrink-0">
-                            <h2 class="text-base font-semibold text-gray-800 dark:text-white font-brand">Registration Type Details</h2>
+                            <h2 id="regtype-modal-title" class="text-base font-semibold text-gray-800 dark:text-white font-brand">Registration Type Details</h2>
                             <button onclick="closeRegTypeModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 transition-colors">
                                 <span class="material-symbols-outlined text-xl">close</span>
                             </button>
@@ -733,7 +737,7 @@
                     <div id="biztype-content" class="hidden border-t border-gray-200 dark:border-slate-700">
                         <div class="p-6 bg-gray-50 dark:bg-slate-800/50">
                             <!-- Search -->
-                            <div class="flex items-center gap-2 w-full sm:w-auto mb-4">
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                                 <form method="GET" action="" class="flex shadow-sm w-full sm:w-96">
                                     <input name="biztype_search" id="biztype-search-input" value="<?= esc($biztype_search ?? '') ?>"
                                         class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none"
@@ -742,6 +746,10 @@
                                         <span class="material-symbols-outlined text-white text-[20px]">search</span>
                                     </button>
                                 </form>
+                                <button type="button" onclick="openBizTypeCreate()" class="flex items-center gap-2 px-4 py-2.5 rounded bg-primary hover:bg-blue-600 text-white text-sm font-medium font-brand transition-colors whitespace-nowrap">
+                                    <span class="material-symbols-outlined text-base">add</span>
+                                    Create Business Type
+                                </button>
                             </div>
 
                             <!-- Table -->
@@ -862,13 +870,13 @@
                 <div id="biztype-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 px-4">
                     <div class="w-full max-w-5xl rounded-lg bg-white dark:bg-slate-800 shadow-xl flex flex-col max-h-[90vh]">
                         <div class="flex items-center justify-between border-b border-gray-200 dark:border-slate-700 px-6 py-4 flex-shrink-0">
-                            <h3 class="text-xl font-semibold text-gray-800 dark:text-white font-brand">Business Type Details</h3>
+                            <h3 id="biztype-modal-title" class="text-xl font-semibold text-gray-800 dark:text-white font-brand">Business Type Details</h3>
                             <button type="button" id="close-biztype-modal" class="text-gray-500 hover:text-red-500 text-xl">
                                 <span class="material-symbols-outlined">close</span>
                             </button>
                         </div>
 
-                        <form method="post" action="<?= base_url('config/updateBusinessType') ?>" class="flex flex-col flex-1 min-h-0">
+                        <form id="biztype-form" method="post" action="<?= base_url('config/updateBusinessType') ?>" class="flex flex-col flex-1 min-h-0">
                             <?= csrf_field() ?>
 
                             <input type="hidden" name="id" id="edit-id">
@@ -15167,43 +15175,55 @@
             setTimeout(() => t.remove(), 3000);
         }
 
-        // Function to Edit Business Type
-        document.addEventListener('DOMContentLoaded', function () {
- 
-            const modal       = document.getElementById('biztype-modal');
-            const closeBtn    = document.getElementById('close-biztype-modal');
-            const backBtn     = document.getElementById('back-biztype-modal');
-        
-            // Boolean fields that use 1/0 dropdowns
+        // Business Type Modal
+        (function () {
+            const modal    = document.getElementById('biztype-modal');
+            const form     = document.getElementById('biztype-form');
+            const closeBtn = document.getElementById('close-biztype-modal');
+            const backBtn  = document.getElementById('back-biztype-modal');
+
             const boolFields = [
-                'ledger',
-                'haulier',
-                'lpk_license_no',
-                'lpk_license_no_optional',
-                'lpk_ancillary_contractor',
-                'customs_license_no',
-                'sst_reg_no',
-                'business_vol',
-                'trade_ref_no',
-                'bank_info',
-                'operator_code',
-                'copy_board_director_ic',
-                'apad_certificate_no',
-                'license_expiry_date',
-                'warehouse_info',
-                'nature_of_business',
-                'pli'
+                'ledger', 'haulier', 'lpk_license_no', 'lpk_license_no_optional',
+                'lpk_ancillary_contractor', 'customs_license_no', 'sst_reg_no',
+                'business_vol', 'trade_ref_no', 'bank_info', 'operator_code',
+                'copy_board_director_ic', 'apad_certificate_no', 'license_expiry_date',
+                'warehouse_info', 'nature_of_business', 'pli'
             ];
-        
+
+            function openModal() {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+
+            function closeModal() {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+
+            // Expose create function globally
+            window.openBizTypeCreate = function () {
+                document.getElementById('biztype-modal-title').textContent = 'Create Business Type';
+                form.action = '<?= base_url('config/createBusinessType') ?>';
+                document.getElementById('edit-id').value            = '';
+                document.getElementById('edit-business_type').value = '';
+                document.getElementById('edit-reg_type').selectedIndex = 0;
+                boolFields.forEach(f => {
+                    const el = document.getElementById('edit-' + f);
+                    if (el) el.value = '0';
+                });
+                document.getElementById('edit-status').value = 'ACTIVE';
+                openModal();
+            };
+
             // Open modal and populate fields when a row is clicked
             document.querySelectorAll('.biztype-row').forEach(function (row) {
                 row.addEventListener('click', function () {
-        
-                    // Text / select fields
+                    document.getElementById('biztype-modal-title').textContent = 'Edit Business Type';
+                    form.action = '<?= base_url('config/updateBusinessType') ?>';
+
                     document.getElementById('edit-id').value            = this.dataset.id;
                     document.getElementById('edit-business_type').value = this.dataset.business_type;
-        
-                    // Reg Type dropdown — match by value
+
                     const regSelect = document.getElementById('edit-reg_type');
                     for (let i = 0; i < regSelect.options.length; i++) {
                         if (regSelect.options[i].value === this.dataset.reg_type) {
@@ -15211,16 +15231,12 @@
                             break;
                         }
                     }
-        
-                    // Boolean dropdowns (1 = YES, 0 = NO)
+
                     boolFields.forEach(function (field) {
                         const el = document.getElementById('edit-' + field);
-                        if (el) {
-                            el.value = row.dataset[field]; // '1' or '0'
-                        }
+                        if (el) el.value = row.dataset[field];
                     });
-        
-                    // Status dropdown
+
                     const statusSelect = document.getElementById('edit-status');
                     for (let i = 0; i < statusSelect.options.length; i++) {
                         if (statusSelect.options[i].value === this.dataset.status.toUpperCase()) {
@@ -15228,46 +15244,39 @@
                             break;
                         }
                     }
-        
-                    // Show modal
-                    modal.classList.remove('hidden');
-                    modal.classList.add('flex');
+
+                    openModal();
                 });
             });
-        
-            // Close modal
-            function closeModal() {
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-            }
-        
+
             closeBtn.addEventListener('click', closeModal);
             backBtn.addEventListener('click', closeModal);
-        
-            // Close on backdrop click
-            modal.addEventListener('click', function (e) {
-                if (e.target === modal) closeModal();
-            });
-        
-            // Close on Escape key
-            document.addEventListener('keydown', function (e) {
-                if (e.key === 'Escape') closeModal();
-            });
-        });
+            modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
+            document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeModal(); });
+        })();
 
         
         // REGISTRATION TYPE MODAL
-        
+
+        function openRegTypeCreate() {
+            const modal = document.getElementById('regtype-modal');
+            modal.dataset.currentId = '';
+            document.getElementById('regtype-modal-title').textContent = 'Create Registration Type';
+            document.getElementById('regtype-modal-name').value = '';
+            document.getElementById('regtype-modal-status').value = 'Active';
+            const cpSelect = document.getElementById('regtype-modal-can_print_cp');
+            if (cpSelect) cpSelect.value = '0';
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
         function openRegTypeModal(id) {
-            // Show modal first with loading state
             const modal = document.getElementById('regtype-modal');
             modal.classList.remove('hidden');
             modal.classList.add('flex');
-        
-            // Store the current ID for saveRegType()
             modal.dataset.currentId = id;
-        
-            // Fetch the record via AJAX
+            document.getElementById('regtype-modal-title').textContent = 'Edit Registration Type';
+
             fetch(`<?= base_url('config/getRegType/') ?>${id}`)
                 .then(res => res.json())
                 .then(data => {
@@ -15276,54 +15285,45 @@
                         closeRegTypeModal();
                         return;
                     }
-        
                     const row = data.data;
-        
-                    // Populate fields
                     document.getElementById('regtype-modal-name').value   = row.name;
                     document.getElementById('regtype-modal-status').value = row.status;
-        
-                    // can_print_cp: '1' or '0'
                     const cpSelect = document.getElementById('regtype-modal-can_print_cp');
-                    if (cpSelect) {
-                        cpSelect.value = row.can_print_cp ? '1' : '0';
-                    }
+                    if (cpSelect) cpSelect.value = row.can_print_cp ? '1' : '0';
                 })
                 .catch(() => {
                     alert('An error occurred. Please try again.');
                     closeRegTypeModal();
                 });
         }
-        
+
         function closeRegTypeModal() {
             const modal = document.getElementById('regtype-modal');
             modal.classList.add('hidden');
             modal.classList.remove('flex');
             modal.dataset.currentId = '';
         }
-        
+
         function saveRegType() {
             const modal = document.getElementById('regtype-modal');
             const id    = modal.dataset.currentId;
-        
-            if (!id) {
-                alert('No record selected.');
-                return;
-            }
-        
+
             const name   = document.getElementById('regtype-modal-name').value.trim();
             const status = document.getElementById('regtype-modal-status').value;
             const cpSelect = document.getElementById('regtype-modal-can_print_cp');
             const canPrintCp = cpSelect ? parseInt(cpSelect.value) : 0;
-        
+
             if (!name) {
                 alert('Registration Type Name is required.');
                 document.getElementById('regtype-modal-name').focus();
                 return;
             }
-        
-            // Send JSON to updateRegType
-            fetch(`<?= base_url('config/updateRegType/') ?>${id}`, {
+
+            const url = id
+                ? `<?= base_url('config/updateRegType/') ?>${id}`
+                : `<?= base_url('config/createRegType') ?>`;
+
+            fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -15341,12 +15341,11 @@
             .then(data => {
                 if (data.success) {
                     closeRegTypeModal();
-                    // Reload page to reflect updated data
                     window.location.reload();
                 } else {
                     const errors = data.errors
                         ? Object.values(data.errors).join('\n')
-                        : (data.message ?? 'Failed to update.');
+                        : (data.message ?? 'Failed to save.');
                     alert(errors);
                 }
             })
