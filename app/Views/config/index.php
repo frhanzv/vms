@@ -88,8 +88,7 @@
                     <h1 class="text-xl md:text-2xl font-bold tracking-tight text-gray-800 dark:text-white uppercase">
                         System Configuration
                     </h1>
-                    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage system settings and configurations
-                    </p>
+                    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage system settings and configurations</p>
                 </div>
             </div>
 
