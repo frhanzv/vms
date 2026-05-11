@@ -330,10 +330,6 @@ $isSettings = str_contains($current, 'settings');
                             <th class="p-4 border-b dark:border-gray-600">IC / Passport No</th>
                             <th class="p-4 border-b dark:border-gray-600">Staff No</th>
                             <th class="p-4 border-b dark:border-gray-600">Status</th>
-                            <th class="p-4 border-b dark:border-gray-600">Suspension Period</th>
-                            <th class="p-4 border-b dark:border-gray-600">Next Action</th>
-                            <th class="p-4 border-b dark:border-gray-600">Card Status</th>
-                            <th class="p-4 border-b dark:border-gray-600">Card Expiry</th>
                             <th class="p-4 border-b dark:border-gray-600">Remark</th>
                         </tr>
                     </thead>
