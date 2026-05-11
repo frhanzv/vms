@@ -30,8 +30,7 @@ class VisitorChronology extends BaseController
         $searchBy     = $this->request->getPost('search_by');
         $searchTerm   = trim((string) $this->request->getPost('search_term'));
 
-        // Normalize Search Term (Strip dashes for IC/Staff searches)
-        $normalizedSearchTerm = str_replace('-', '', $searchTerm);
+        $normalizedSearchTerm = $this->normalizeIdentitySearchTerm($searchTerm);
 
         if (empty($fromRaw) || empty($toRaw)) {
             return $this->response->setJSON(['success' => false, 'message' => 'Date range is required.']);
@@ -52,6 +51,10 @@ class VisitorChronology extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'Enter IC number or staff number.']);
         }
 
+        if ($hasSearch && $normalizedSearchTerm === '') {
+            return $this->response->setJSON(['success' => false, 'message' => 'Enter a valid IC or staff number.']);
+        }
+
         if ($laneId !== null && $laneId !== '') {
             $lane = $this->laneModel->find((int)$laneId);
             $locationName = $lane ? $lane['lane'] : 'Unknown Lane';
@@ -61,8 +64,8 @@ class VisitorChronology extends BaseController
 
         $db = db_connect();
 
-        // 1. Grouped Visitor Summary (respect date range + optional lane)
-        $whereGrouped = ['i.id IS NOT NULL', 'vcl.id IS NOT NULL'];
+        // 1. Grouped Visitor Summary: match invitation by IC/staff (hyphens/spaces ignored). Logs in range are optional.
+        $whereGrouped = ['i.id IS NOT NULL'];
         $joinGrouped = ['vcl.invitation_id = i.id', 'vcl.scanned_at >= ?', 'vcl.scanned_at <= ?'];
         $paramsGrouped = [$fromDatetime, $toDatetime];
 
@@ -71,15 +74,16 @@ class VisitorChronology extends BaseController
             $paramsGrouped[] = $laneId;
         }
 
+        $identitySqlExpr = $searchBy === 'staff'
+            ? "LOWER(REPLACE(REPLACE(REPLACE(TRIM(COALESCE(i.staff_id,'')), '-', ''), ' ', ''), '_', ''))"
+            : "LOWER(REPLACE(REPLACE(REPLACE(TRIM(COALESCE(i.ic_passport,'')), '-', ''), ' ', ''), '_', ''))";
+
         if ($hasInvitation) {
             $whereGrouped[] = 'i.id = ?';
             $paramsGrouped[] = (int)$invitationId;
-        } elseif ($searchBy === 'staff') {
-            $whereGrouped[] = "REPLACE(i.staff_id, '-', '') = ?";
-            $paramsGrouped[] = $normalizedSearchTerm;
         } else {
-            $whereGrouped[] = "REPLACE(i.ic_passport, '-', '') = ?";
-            $paramsGrouped[] = $normalizedSearchTerm;
+            $whereGrouped[] = "{$identitySqlExpr} = ?";
+            $paramsGrouped[] = strtolower($normalizedSearchTerm);
         }
 
         $sqlGrouped = "SELECT 
@@ -93,7 +97,9 @@ class VisitorChronology extends BaseController
                         i.invited_by AS person_visited,
                         i.updated_at,
                         MIN(vcl.scanned_at) AS visit_from,
-                        MAX(vcl.scanned_at) AS visit_to
+                        MAX(vcl.scanned_at) AS visit_to,
+                        (SELECT MIN(iv.check_in_time) FROM invitation_visitors iv WHERE iv.invitation_id = i.id) AS reg_check_in,
+                        (SELECT MAX(iv.check_out_time) FROM invitation_visitors iv WHERE iv.invitation_id = i.id) AS reg_check_out
                        FROM invitations i
                        LEFT JOIN visitor_card_logs vcl ON " . implode(' AND ', $joinGrouped) . "
                        WHERE " . implode(' AND ', $whereGrouped) . "
@@ -103,20 +109,50 @@ class VisitorChronology extends BaseController
         
         $formattedVisitors = [];
         foreach ($visitorData as $v) {
-            $status = 'OUT';
-            if ($v['visit_from'] && !$v['visit_to']) {
+            $scanFrom = $v['visit_from'] ?? null;
+            $scanTo   = $v['visit_to'] ?? null;
+            $regIn    = $v['reg_check_in'] ?? null;
+            $regOut   = $v['reg_check_out'] ?? null;
+            $sameScan = $scanFrom && $scanTo && strtotime((string) $scanFrom) === strtotime((string) $scanTo);
+
+            // Match dashboard / visitor list: invitation_visitors is authoritative for on-site vs checked out.
+            if ($regIn && ! $regOut) {
                 $status = 'Checked In';
-            } elseif ($v['visit_from'] && $v['visit_to']) {
+            } elseif ($regOut) {
                 $status = 'Checked Out';
+            } elseif ($scanFrom && $sameScan) {
+                $status = 'Checked In';
+            } elseif ($scanFrom && $scanTo && ! $sameScan) {
+                $status = 'Checked Out';
+            } elseif ($scanFrom) {
+                $status = 'Checked In';
+            } else {
+                $status = 'OUT';
+            }
+
+            $visitFromDisp = $scanFrom
+                ? date('M j, Y g:i A', strtotime((string) $scanFrom))
+                : ($regIn ? date('M j, Y g:i A', strtotime((string) $regIn)) : '-');
+
+            if ($regOut) {
+                $visitToDisp = date('M j, Y g:i A', strtotime((string) $regOut));
+            } elseif ($status === 'Checked In') {
+                $visitToDisp = '—';
+            } else {
+                $visitToDisp = $scanTo ? date('M j, Y g:i A', strtotime((string) $scanTo)) : '-';
             }
 
             $duration = '-';
-            if ($v['visit_from'] && $v['visit_to']) {
-                $diff = strtotime($v['visit_to']) - strtotime($v['visit_from']);
-                $hours = floor($diff / 3600);
-                $mins = floor(($diff % 3600) / 60);
-                $secs = $diff % 60;
-                $duration = "{$hours} hour {$mins} minutes {$secs} seconds";
+            if ($regIn) {
+                $endTs = $regOut ? strtotime((string) $regOut) : time();
+                $diff  = max(0, $endTs - strtotime((string) $regIn));
+                $duration = $this->formatDuration($diff) . ($regOut ? '' : ' (ongoing)');
+            } elseif ($scanFrom && $scanTo && ! $sameScan) {
+                $diff = max(0, strtotime((string) $scanTo) - strtotime((string) $scanFrom));
+                $duration = $this->formatDuration($diff);
+            } elseif ($scanFrom && $sameScan && $status === 'Checked In') {
+                $diff = max(0, time() - strtotime((string) $scanFrom));
+                $duration = $this->formatDuration($diff) . ' (ongoing)';
             }
 
             $formattedVisitors[] = [
@@ -128,8 +164,8 @@ class VisitorChronology extends BaseController
                 'visit_reason'    => $v['visit_reason'] ?? 'N/A',
                 'staff_id'        => $v['staff_id'] ?? 'N/A',
                 'person_visited'  => $v['person_visited'] ?? 'N/A',
-                'visit_from'      => $v['visit_from'] ? date('M j, Y g:i A', strtotime($v['visit_from'])) : '-',
-                'visit_to'        => $v['visit_to'] ? date('M j, Y g:i A', strtotime($v['visit_to'])) : '-',
+                'visit_from'      => $visitFromDisp,
+                'visit_to'        => $visitToDisp,
                 'visit_duration'  => $duration,
                 'status'          => $status,
                 'last_updated'    => date('n/j/Y, g:i:s A', strtotime($v['updated_at'] ?? 'now')),
@@ -149,12 +185,9 @@ class VisitorChronology extends BaseController
         if ($hasInvitation) {
             $whereChron[] = 'i.id = ?';
             $paramsChron[] = (int)$invitationId;
-        } elseif ($searchBy === 'staff') {
-            $whereChron[] = "REPLACE(i.staff_id, '-', '') = ?";
-            $paramsChron[] = $normalizedSearchTerm;
         } else {
-            $whereChron[] = "REPLACE(i.ic_passport, '-', '') = ?";
-            $paramsChron[] = $normalizedSearchTerm;
+            $whereChron[] = "{$identitySqlExpr} = ?";
+            $paramsChron[] = strtolower($normalizedSearchTerm);
         }
 
         $sqlChron = 'SELECT i.id AS invitation_id,
@@ -198,7 +231,9 @@ class VisitorChronology extends BaseController
         $sql = "SELECT 
                     i.*,
                     MIN(vcl.scanned_at) AS visit_from,
-                    MAX(vcl.scanned_at) AS visit_to
+                    MAX(vcl.scanned_at) AS visit_to,
+                    (SELECT MIN(iv.check_in_time) FROM invitation_visitors iv WHERE iv.invitation_id = i.id) AS reg_check_in,
+                    (SELECT MAX(iv.check_out_time) FROM invitation_visitors iv WHERE iv.invitation_id = i.id) AS reg_check_out
                 FROM invitations i
                 LEFT JOIN visitor_card_logs vcl ON vcl.invitation_id = i.id
                 WHERE i.id = ?
@@ -210,19 +245,37 @@ class VisitorChronology extends BaseController
             return "Visitor not found.";
         }
 
-        // Calculate duration and status
+        $ivRow = [
+            'check_in_time'  => $visitor['reg_check_in'] ?? null,
+            'check_out_time' => $visitor['reg_check_out'] ?? null,
+        ];
+
         $duration = '-';
-        if ($visitor['visit_from'] && $visitor['visit_to']) {
-            $diff = strtotime($visitor['visit_to']) - strtotime($visitor['visit_from']);
-            $hours = floor($diff / 3600);
-            $mins = floor(($diff % 3600) / 60);
-            $secs = $diff % 60;
-            $duration = "{$hours} hour {$mins} minutes {$secs} seconds";
+        if ($ivRow['check_in_time']) {
+            $secs = $this->secondsFromRegistrationWindow($ivRow);
+            $duration = $this->formatDuration($secs) . ($ivRow['check_out_time'] ? '' : ' (ongoing)');
+        } else {
+            $scanFrom = $visitor['visit_from'] ?? null;
+            $scanTo   = $visitor['visit_to'] ?? null;
+            $sameScan = $scanFrom && $scanTo && strtotime((string) $scanFrom) === strtotime((string) $scanTo);
+            if ($scanFrom && $scanTo && ! $sameScan) {
+                $diff = max(0, strtotime((string) $scanTo) - strtotime((string) $scanFrom));
+                $duration = $this->formatDuration($diff);
+            } elseif ($scanFrom && $sameScan) {
+                $duration = $this->formatDuration(max(0, time() - strtotime((string) $scanFrom))) . ' (ongoing)';
+            }
         }
 
         $statusText = 'Currently OUT of Building';
-        if ($visitor['visit_from'] && !$visitor['visit_to']) {
-             $statusText = 'Currently IN Building';
+        if ($ivRow['check_in_time'] && ! $ivRow['check_out_time']) {
+            $statusText = 'Currently IN Building';
+        } elseif ($ivRow['check_out_time']) {
+            $statusText = 'Checked out (registration)';
+        } elseif (($visitor['visit_from'] ?? null) && ($visitor['visit_to'] ?? null)
+            && strtotime((string) $visitor['visit_from']) !== strtotime((string) $visitor['visit_to'])) {
+            $statusText = 'Currently OUT of Building';
+        } elseif ($visitor['visit_from'] ?? null) {
+            $statusText = 'Currently IN Building';
         }
 
         $data = [
@@ -263,19 +316,31 @@ class VisitorChronology extends BaseController
         
         $logs = $db->query($sql, [(int)$invitationId])->getResultArray();
 
+        $ivRow = $db->query(
+            'SELECT MIN(check_in_time) AS check_in_time, MAX(check_out_time) AS check_out_time
+             FROM invitation_visitors WHERE invitation_id = ?',
+            [(int) $invitationId]
+        )->getRowArray() ?: ['check_in_time' => null, 'check_out_time' => null];
+
         if (empty($logs)) {
+            $totalSeconds = $this->secondsFromRegistrationWindow($ivRow);
+            $status       = $this->registrationStatusLabel($ivRow);
+            if ($status === 'UNKNOWN') {
+                $status = 'NO_LOGS';
+            }
+
             return $this->response->setJSON([
                 'success' => true,
                 'summary' => [
-                    'full_name' => $invitation['full_name'],
-                    'ic_no' => $invitation['ic_passport'],
-                    'status' => 'NO_LOGS',
-                    'total_time' => '0s',
+                    'full_name'    => $invitation['full_name'],
+                    'ic_no'        => $invitation['ic_passport'],
+                    'status'       => $status,
+                    'total_time'   => $this->formatDuration($totalSeconds),
                     'total_visits' => 0,
-                    'total_scans' => 0,
-                    'last_seen' => '-'
+                    'total_scans'  => 0,
+                    'last_seen'    => '-',
                 ],
-                'dates' => []
+                'dates' => [],
             ]);
         }
 
@@ -331,9 +396,32 @@ class VisitorChronology extends BaseController
             ];
         }
 
-        // Final summary
+        if (! empty($ivRow['check_out_time'])) {
+            $lastIdx     = count($logs) - 1;
+            $lastDateStr = date('Y-m-d', strtotime($logs[$lastIdx]['scanned_at']));
+            if (isset($dates[$lastDateStr]['movements'])) {
+                $movements   = &$dates[$lastDateStr]['movements'];
+                $lastMIdx    = count($movements) - 1;
+                $checkoutTs  = strtotime((string) $ivRow['check_out_time']);
+                $entryTs     = strtotime($logs[$lastIdx]['scanned_at']);
+                if ($lastMIdx >= 0 && ($movements[$lastMIdx]['to'] ?? '') === 'STILL AT SITE' && $checkoutTs >= $entryTs) {
+                    $dur = $checkoutTs - $entryTs;
+                    $movements[$lastMIdx]['to']         = 'Recorded checkout';
+                    $movements[$lastMIdx]['exit_time']  = date('h:i:s A', $checkoutTs);
+                    $movements[$lastMIdx]['time_spent'] = $this->formatDuration($dur);
+                }
+            }
+        }
+
+        $regSeconds = $this->secondsFromRegistrationWindow($ivRow);
+        $totalSeconds = max($totalSeconds, $regSeconds);
+
+        // Final summary: prefer registration record (same source as dashboard on-site / overstay).
         $lastLog = end($logs);
-        $status = (strpos(strtolower($lastLog['lane_name'] ?? ''), 'out') !== false) ? 'OUT_BUILDING' : 'IN_BUILDING';
+        $status = $this->registrationStatusLabel($ivRow);
+        if ($status === 'UNKNOWN') {
+            $status = (strpos(strtolower($lastLog['lane_name'] ?? ''), 'out') !== false) ? 'OUT_BUILDING' : 'IN_BUILDING';
+        }
         
         return $this->response->setJSON([
             'success' => true,
@@ -372,6 +460,12 @@ class VisitorChronology extends BaseController
                 ORDER BY vcl.scanned_at ASC";
         
         $logs = $db->query($sql, [$invitationId])->getResultArray();
+
+        $ivRow = $db->query(
+            'SELECT MIN(check_in_time) AS check_in_time, MAX(check_out_time) AS check_out_time
+             FROM invitation_visitors WHERE invitation_id = ?',
+            [$invitationId]
+        )->getRowArray() ?: ['check_in_time' => null, 'check_out_time' => null];
 
         $dates = [];
         $totalSeconds = 0;
@@ -417,13 +511,38 @@ class VisitorChronology extends BaseController
             ];
         }
 
-        $sqlCheck = "SELECT MIN(vcl.scanned_at) AS visit_from, MAX(vcl.scanned_at) AS visit_to FROM visitor_card_logs vcl WHERE vcl.invitation_id = ?";
-        $vData = $db->query($sqlCheck, [$invitationId])->getRowArray();
-        $realStatus = 'OUT';
-        if ($vData['visit_from'] && !$vData['visit_to']) {
-            $realStatus = 'CHECKED IN';
-        } elseif ($vData['visit_from'] && $vData['visit_to']) {
-            $realStatus = 'CHECKED OUT';
+        if (! empty($logs) && ! empty($ivRow['check_out_time'])) {
+            $lastIdx     = count($logs) - 1;
+            $lastDateStr = date('Y-m-d', strtotime($logs[$lastIdx]['scanned_at']));
+            if (isset($dates[$lastDateStr]['movements'])) {
+                $movements  = &$dates[$lastDateStr]['movements'];
+                $lastMIdx   = count($movements) - 1;
+                $checkoutTs = strtotime((string) $ivRow['check_out_time']);
+                $entryTs    = strtotime($logs[$lastIdx]['scanned_at']);
+                if ($lastMIdx >= 0 && ($movements[$lastMIdx]['to'] ?? '') === 'STILL AT SITE' && $checkoutTs >= $entryTs) {
+                    $dur = $checkoutTs - $entryTs;
+                    $movements[$lastMIdx]['to']         = 'Recorded checkout';
+                    $movements[$lastMIdx]['exit_time']  = date('H:i:s', $checkoutTs);
+                    $movements[$lastMIdx]['time_spent'] = $this->formatDuration($dur);
+                }
+            }
+        }
+
+        $totalSeconds = max($totalSeconds, $this->secondsFromRegistrationWindow($ivRow));
+
+        $realStatus = $this->registrationStatusLabel($ivRow);
+        if ($realStatus === 'UNKNOWN') {
+            $sqlCheck = 'SELECT MIN(vcl.scanned_at) AS visit_from, MAX(vcl.scanned_at) AS visit_to FROM visitor_card_logs vcl WHERE vcl.invitation_id = ?';
+            $vData      = $db->query($sqlCheck, [$invitationId])->getRowArray();
+            $sameScan   = ! empty($vData['visit_from']) && ! empty($vData['visit_to'])
+                && strtotime((string) $vData['visit_from']) === strtotime((string) $vData['visit_to']);
+            if (! empty($vData['visit_from']) && $sameScan) {
+                $realStatus = 'CHECKED IN';
+            } elseif (! empty($vData['visit_from']) && ! empty($vData['visit_to']) && ! $sameScan) {
+                $realStatus = 'CHECKED OUT';
+            } else {
+                $realStatus = 'OUT';
+            }
         }
 
         $data = [
@@ -439,6 +558,42 @@ class VisitorChronology extends BaseController
         ];
 
         return view('reports/visitor_chronology_print', ['data' => $data, 'generated_at' => date('n/j/Y, g:i:s A')]);
+    }
+
+    /**
+     * Normalize IC / staff input so values match whether stored or typed with or without "-", spaces, etc.
+     */
+    private function normalizeIdentitySearchTerm(string $raw): string
+    {
+        return strtolower(preg_replace('/[\s\-_]+/u', '', trim($raw)));
+    }
+
+    /**
+     * Stay length from invitation_visitors check-in/out (aligned with dashboard on-site logic).
+     */
+    private function secondsFromRegistrationWindow(array $ivRow): int
+    {
+        if (empty($ivRow['check_in_time'])) {
+            return 0;
+        }
+        $start = strtotime((string) $ivRow['check_in_time']);
+        $end   = ! empty($ivRow['check_out_time'])
+            ? strtotime((string) $ivRow['check_out_time'])
+            : time();
+
+        return max(0, $end - $start);
+    }
+
+    private function registrationStatusLabel(array $ivRow): string
+    {
+        if (! empty($ivRow['check_out_time'])) {
+            return 'CHECKED OUT';
+        }
+        if (! empty($ivRow['check_in_time'])) {
+            return 'CHECKED IN';
+        }
+
+        return 'UNKNOWN';
     }
 
     private function formatDuration($seconds)
