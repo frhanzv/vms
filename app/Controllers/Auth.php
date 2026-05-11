@@ -26,6 +26,7 @@ class Auth extends BaseController
             'demo_host_text' => 'Host: host / host123',
             'demo_officer_text' => 'Officer: officer / officer123',
             'demo_approver_text' => 'Site admin (requests): approver / approver123',
+            'demo_gxo_text' => 'GXO Clientsuperadmin: gxoadmin / gxo123',
             'contact_prompt' => "Don't have an account?",
             'contact_link_text' => 'Contact Administrator',
             'footer_text' => 'SafeG Visitor Management System.',
