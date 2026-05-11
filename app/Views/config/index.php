@@ -204,7 +204,7 @@
                                             <th class="px-4 py-3">Method</th>
                                             <th class="px-4 py-3">Endpoint Path</th>
                                             <th class="px-4 py-3">Status</th>
-                                            <th class="px-4 py-3">Call Preview</th>
+                                            <th class="px-4 py-3">HTTP preview</th>
                                             <th class="px-4 py-3">Actions</th>
                                         </tr>
                                     </thead>
@@ -3299,6 +3299,36 @@
                                             <button id="emailTemplateCrudSubmitBtn" type="submit" class="px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary-hover">Save</button>
                                         </div>
                                     </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Preview Modal -->
+                        <div id="emailTemplatePreviewModal" class="hidden fixed inset-0 z-[85] overflow-y-auto">
+                            <div class="flex min-h-screen items-center justify-center px-4 py-8">
+                                <div class="fixed inset-0 bg-black/40" onclick="closeEmailTemplatePreviewModal()"></div>
+                                <div class="relative w-full max-w-5xl rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl overflow-hidden">
+                                    <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
+                                        <div class="flex flex-col">
+                                            <h3 class="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                                                <span class="material-symbols-outlined text-base text-primary">preview</span>
+                                                Email Preview
+                                            </h3>
+                                            <p id="emailTemplatePreviewSubject" class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium"></p>
+                                        </div>
+                                        <button type="button" onclick="closeEmailTemplatePreviewModal()" class="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
+                                            <span class="material-symbols-outlined">close</span>
+                                        </button>
+                                    </div>
+                                    <div class="p-4 bg-white dark:bg-slate-900">
+                                        <div id="emailTemplatePreviewLoading" class="hidden py-14 text-center text-slate-500 dark:text-slate-400">
+                                            <div class="inline-flex items-center gap-2">
+                                                <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                                                <span class="text-sm font-semibold">Loading preview…</span>
+                                            </div>
+                                        </div>
+                                        <iframe id="emailTemplatePreviewFrame" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white" style="height: 75vh;"></iframe>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -13460,17 +13490,71 @@
                         ${item.subject ? `<div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 truncate max-w-[520px]">${item.subject}</div>` : ''}
                     </td>
                     <td class="px-6 py-4 text-center">
-                        <button
-                            type="button"
-                            onclick="openEmailTemplateModalForEdit(${item.id})"
-                            class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 text-xs font-bold hover:bg-primary hover:text-white hover:border-primary transition-all shadow-sm group-hover:shadow-md active:scale-95"
-                        >
-                            <span class="material-symbols-outlined text-sm">edit</span>
-                            Edit
-                        </button>
+                        <div class="inline-flex items-center justify-center gap-2">
+                            <button
+                                type="button"
+                                onclick="openEmailTemplatePreview(${item.id})"
+                                class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 text-xs font-bold hover:bg-slate-800 hover:text-white hover:border-slate-800 transition-all shadow-sm group-hover:shadow-md active:scale-95"
+                            >
+                                <span class="material-symbols-outlined text-sm">preview</span>
+                                Preview
+                            </button>
+                            <button
+                                type="button"
+                                onclick="openEmailTemplateModalForEdit(${item.id})"
+                                class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 text-xs font-bold hover:bg-primary hover:text-white hover:border-primary transition-all shadow-sm group-hover:shadow-md active:scale-95"
+                            >
+                                <span class="material-symbols-outlined text-sm">edit</span>
+                                Edit
+                            </button>
+                        </div>
                     </td>
                 </tr>
             `).join('');
+        }
+
+        function openEmailTemplatePreview(id) {
+            const modal = document.getElementById('emailTemplatePreviewModal');
+            const frame = document.getElementById('emailTemplatePreviewFrame');
+            const subj  = document.getElementById('emailTemplatePreviewSubject');
+            const loading = document.getElementById('emailTemplatePreviewLoading');
+            if (!modal || !frame || !subj || !loading) return;
+
+            subj.textContent = '';
+            frame.removeAttribute('src');
+            frame.srcdoc = '';
+            loading.classList.remove('hidden');
+
+            modal.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+
+            fetch(`<?= base_url('config/previewEmailTemplate') ?>/${encodeURIComponent(id)}`, { cache: 'no-store' })
+                .then(r => r.json())
+                .then(res => {
+                    if (!res.success) throw new Error(res.message || 'Failed to load preview');
+                    const d = res.data || {};
+                    subj.textContent = d.subject ? ('Subject: ' + d.subject) : '';
+                    frame.removeAttribute('src');
+                    frame.srcdoc = String(d.html || '');
+                })
+                .catch(err => {
+                    subj.textContent = 'Failed to load preview: ' + (err?.message || 'Unknown error');
+                    frame.srcdoc = '<div style="font-family: Arial, sans-serif; padding: 16px; color: #b91c1c; font-weight: 700;">Preview error</div>';
+                })
+                .finally(() => {
+                    loading.classList.add('hidden');
+                });
+        }
+
+        function closeEmailTemplatePreviewModal() {
+            const modal = document.getElementById('emailTemplatePreviewModal');
+            const frame = document.getElementById('emailTemplatePreviewFrame');
+            if (frame) {
+                frame.removeAttribute('src');
+                frame.srcdoc = '';
+            }
+            modal?.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
         }
 
         function searchEmailTemplates() {
@@ -14801,12 +14885,21 @@
                 per_page: apikeyPerPage,
                 search: apikeySearchTerm,
             });
-            fetch(`${configBaseUrl}/getApiKeys?${params}`)
-                .then(r => {
+            Promise.all([
+                fetch(`${configBaseUrl}/getApiKeys?${params}`).then(r => {
                     if (!r.ok) throw new Error(`HTTP ${r.status}`);
                     return r.json();
-                })
-                .then(res => {
+                }),
+                fetch(`${configBaseUrl}/getLaravelBaseUrl`)
+                    .then(r => r.json())
+                    .catch(() => ({ success: false })),
+            ])
+                .then(([res, baseRes]) => {
+                    if (baseRes.success && baseRes.base_url) {
+                        window.__laravelBaseUrlForPreview = String(baseRes.base_url).replace(/\/$/, '');
+                    } else {
+                        window.__laravelBaseUrlForPreview = '';
+                    }
                     if (res.success) {
                         renderApiKeyTable(res.data, res.pagination);
                         return;
@@ -14860,8 +14953,8 @@
                                     <span class="material-symbols-outlined text-base">edit</span>
                                 </button>
                                 <button onclick="callApiKey(${k.id}, '${apkEsc(k.name)}')"
-                                    class="p-1.5 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors" title="Call API">
-                                    <span class="material-symbols-outlined text-base">play_arrow</span>
+                                    class="p-1.5 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors" title="Call external HTTP API">
+                                    <span class="material-symbols-outlined text-base">http</span>
                                 </button>
                                 <button onclick="deleteApiKey(${k.id}, '${apkEsc(k.name)}')"
                                     class="p-1.5 rounded-lg text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" title="Delete">
@@ -14897,7 +14990,13 @@
             if (!raw) return '—';
             if (/^https?:\/\//i.test(raw)) return raw;
             const normalized = raw.startsWith('/') ? raw : ('/' + raw);
-            return window.location.origin + normalized;
+            const base = (window.__laravelBaseUrlForPreview || '').trim().replace(/\/$/, '');
+            if (base) {
+                return base + normalized;
+            }
+            const host = window.location.hostname || 'localhost';
+            const port = window.location.port ? `:${window.location.port}` : '';
+            return `http://${host}${port}${normalized}`;
         }
 
         function apkMask(key) {
@@ -15073,7 +15172,10 @@
                 }
 
                 const preview = JSON.stringify(res.data ?? {}, null, 2);
-                alert(`API call success for "${name}".\nHTTP ${res.status_code}\n\n${preview.substring(0, 700)}`);
+                const savedNote = res.saved_to_db
+                    ? '\n\nSaved to database (api_keys.last_response_json).'
+                    : '\n\nNot persisted (empty or failed to encode response).';
+                alert(`API call success for "${name}".\nHTTP ${res.status_code}${savedNote}\n\n${preview.substring(0, 700)}`);
             })
             .catch(() => alert('Network error when calling external API.'));
         }
