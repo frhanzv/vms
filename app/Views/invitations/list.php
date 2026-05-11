@@ -265,7 +265,19 @@ $isSettings = str_contains($current, 'settings');
                     Invitation List
                 </h1>
                 <div class="flex gap-2">
-                    <a href="<?= base_url('invitations/export') ?>" class="bg-secondary hover:bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
+                    <?php
+                    $exportParams = array_filter([
+                        'search'    => $filters['search'],
+                        'status'    => $filters['status'],
+                        'reason'    => $filters['reason'],
+                        'location'  => $filters['location'],
+                        'date_from' => $filters['date_from'],
+                        'date_to'   => $filters['date_to'],
+                        'sort'      => ($filters['sort'] !== 'date_desc') ? $filters['sort'] : '',
+                    ]);
+                    $exportUrl = base_url('invitations/export') . ($exportParams ? '?' . http_build_query($exportParams) : '');
+                    ?>
+                    <a id="exportBtn" href="<?= $exportUrl ?>" class="bg-secondary hover:bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
                         <span class="material-icons text-sm mr-1">file_download</span>
                         Export
                     </a>
@@ -298,7 +310,7 @@ $isSettings = str_contains($current, 'settings');
                         <span class="material-symbols-outlined text-2xl">pending_actions</span>
                     </div>
                 </div>
-                <div class="bg-white dark:bg-gray-800 rounded-lg p-5 border-l-4 border-blue-500 shadow-sm border-t border-r border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                <div class="bg-white dark:bg-gray-800 rounded-lg p-5 border-l-4 border-l-blue-500 shadow-sm border-t border-r border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
                     <div>
                         <p class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Submitted</p>
                         <p class="text-2xl font-bold text-gray-800 dark:text-white mt-1"><?= number_format($stats['submitted']) ?></p>
@@ -331,72 +343,89 @@ $isSettings = str_contains($current, 'settings');
             </div>
 
             <!-- Filters -->
-            <div class="flex flex-col gap-4 mb-6">
-                <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
-                    <div class="lg:col-span-6 flex shadow-sm">
-                        <input class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-xs focus:ring-primary focus:border-primary outline-none" placeholder="IC / PASSPORT / FULL NAME / CONTACT / COMPANY NAME" type="text"/>
-                        <button class="bg-primary hover:bg-indigo-700 text-white px-4 py-2 rounded-r flex items-center justify-center transition-colors">
-                            <span class="material-icons text-white">search</span>
-                        </button>
+            <form id="filterForm" method="GET" action="<?= base_url('invitations') ?>">
+                <input type="hidden" name="page" value="<?= (int) ($pagination['current_page'] ?? 1) ?>">
+                <input type="hidden" name="per_page" value="<?= (int) ($filters['per_page'] ?? 10) ?>">
+                <div class="flex flex-col gap-4 mb-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
+                        <div class="lg:col-span-6 flex shadow-sm">
+                            <input
+                                id="searchInput"
+                                name="search"
+                                value="<?= esc($filters['search']) ?>"
+                                class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-xs focus:ring-primary focus:border-primary outline-none"
+                                placeholder="SEARCH ALL FIELDS"
+                                type="text"
+                            />
+                            <button type="button" tabindex="-1" aria-hidden="true" class="bg-primary text-white px-4 py-2 rounded-r flex items-center justify-center cursor-default select-none">
+                                <span class="material-icons text-white">search</span>
+                            </button>
+                        </div>
+                        <div class="lg:col-span-3">
+                            <input
+                                name="date_from"
+                                value="<?= esc($filters['date_from']) ?>"
+                                class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs focus:ring-primary focus:border-primary"
+                                type="date"
+                            />
+                        </div>
+                        <div class="lg:col-span-3">
+                            <input
+                                name="date_to"
+                                value="<?= esc($filters['date_to']) ?>"
+                                class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs focus:ring-primary focus:border-primary"
+                                type="date"
+                            />
+                        </div>
                     </div>
-                    <div class="lg:col-span-3">
-                        <input class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs focus:ring-primary focus:border-primary uppercase placeholder-gray-500 dark:placeholder-gray-400" placeholder="DATE FROM" type="text"/>
-                    </div>
-                    <div class="lg:col-span-3">
-                        <input class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs focus:ring-primary focus:border-primary uppercase placeholder-gray-500 dark:placeholder-gray-400" placeholder="DATE TO" type="text"/>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                        <div class="relative">
+                            <select name="status" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs appearance-none focus:ring-primary focus:border-primary text-gray-500 dark:text-gray-300">
+                                <option value="">STATUS</option>
+                                <?php foreach (['Pending', 'Submitted', 'Approved', 'Rejected'] as $s): ?>
+                                <option value="<?= esc($s) ?>" <?= $filters['status'] === $s ? 'selected' : '' ?>><?= esc($s) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            <span class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-icons text-sm">expand_more</span>
+                        </div>
+                        <div class="relative">
+                            <select name="reason" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs appearance-none focus:ring-primary focus:border-primary text-gray-500 dark:text-gray-300">
+                                <option value="">REASON</option>
+                                <?php foreach ($reasonList as $r): ?>
+                                <option value="<?= esc($r) ?>" <?= $filters['reason'] === $r ? 'selected' : '' ?>><?= esc($r) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            <span class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-icons text-sm">expand_more</span>
+                        </div>
+                        <div class="relative">
+                            <select name="location" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs appearance-none focus:ring-primary focus:border-primary text-gray-500 dark:text-gray-300">
+                                <option value="">LOCATION</option>
+                                <?php foreach ($locationList as $l): ?>
+                                <option value="<?= esc($l) ?>" <?= $filters['location'] === $l ? 'selected' : '' ?>><?= esc($l) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            <span class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-icons text-sm">expand_more</span>
+                        </div>
+                        <div class="relative">
+                            <select name="sort" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs appearance-none focus:ring-primary focus:border-primary text-gray-500 dark:text-gray-300">
+                                <option value="date_desc" <?= $filters['sort'] === 'date_desc' ? 'selected' : '' ?>>DATE DESC</option>
+                                <option value="date_asc"  <?= $filters['sort'] === 'date_asc'  ? 'selected' : '' ?>>DATE ASC</option>
+                                <option value="name_asc"  <?= $filters['sort'] === 'name_asc'  ? 'selected' : '' ?>>NAME A-Z</option>
+                                <option value="name_desc" <?= $filters['sort'] === 'name_desc' ? 'selected' : '' ?>>NAME Z-A</option>
+                            </select>
+                            <span class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-icons text-sm">expand_more</span>
+                        </div>
+                        <a id="clearFiltersBtn" href="<?= base_url('invitations') ?>" class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-4 py-2.5 rounded text-xs font-semibold uppercase shadow transition-colors flex items-center justify-center">
+                            <span class="material-icons text-sm mr-1 align-middle">filter_alt_off</span>
+                            Clear Filters
+                        </a>
                     </div>
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                    <div class="relative">
-                        <select class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs appearance-none focus:ring-primary focus:border-primary text-gray-500 dark:text-gray-300">
-                            <option>STATUS</option>
-                            <option>Pending</option>
-                            <option>Submitted</option>
-                            <option>Approved</option>
-                            <option>Rejected</option>
-                        </select>
-                        <span class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-icons text-sm">expand_more</span>
-                    </div>
-                    <div class="relative">
-                        <select class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs appearance-none focus:ring-primary focus:border-primary text-gray-500 dark:text-gray-300">
-                            <option>REASON</option>
-                            <option>SITE VISIT</option>
-                            <option>DELIVERY</option>
-                            <option>MAINTENANCE</option>
-                            <option>CATERING</option>
-                            <option>OTHER</option>
-                        </select>
-                        <span class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-icons text-sm">expand_more</span>
-                    </div>
-                    <div class="relative">
-                        <select class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs appearance-none focus:ring-primary focus:border-primary text-gray-500 dark:text-gray-300">
-                            <option>LOCATION</option>
-                            <option>PHASE 1</option>
-                            <option>PHASE 2</option>
-                            <option>WORKSHOP PHASE 2</option>
-                            <option>KSB PHASE 2 GATE</option>
-                        </select>
-                        <span class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-icons text-sm">expand_more</span>
-                    </div>
-                    <div class="relative">
-                        <select class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs appearance-none focus:ring-primary focus:border-primary text-gray-500 dark:text-gray-300">
-                            <option>DATE DESC</option>
-                            <option>DATE ASC</option>
-                            <option>NAME A-Z</option>
-                            <option>NAME Z-A</option>
-                        </select>
-                        <span class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-icons text-sm">expand_more</span>
-                    </div>
-                    <button class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-4 py-2.5 rounded text-xs font-semibold uppercase shadow transition-colors">
-                        <span class="material-icons text-sm mr-1 align-middle">filter_alt_off</span>
-                        Clear Filters
-                    </button>
-                </div>
-            </div>
+            </form>
 
             <!-- Table -->
             <div class="overflow-x-auto rounded border border-gray-200 dark:border-gray-700 mb-6">
-                <table class="w-full min-w-max text-left border-collapse">
+                <table id="invitationTable" class="w-full min-w-max text-left border-collapse">
                     <thead>
                         <tr class="bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs font-bold uppercase tracking-wide">
                             <th class="p-4 border-b dark:border-gray-600">No</th>
@@ -412,7 +441,7 @@ $isSettings = str_contains($current, 'settings');
                             <th class="p-4 border-b dark:border-gray-600">Reason</th>
                         </tr>
                     </thead>
-                    <tbody class="text-xs text-gray-600 dark:text-gray-300 font-medium">
+                    <tbody id="invitationsTableBody" class="text-xs text-gray-600 dark:text-gray-300 font-medium">
                         <?php if (empty($invitations)): ?>
                         <tr>
                             <td colspan="11" class="p-12 text-center">
@@ -461,23 +490,77 @@ $isSettings = str_contains($current, 'settings');
             </div>
 
             <!-- Pagination -->
+            <?php
+            $curPage  = $pagination['current_page'];
+            $lastPage = $pagination['last_page'];
+            $pgTotal  = $pagination['total'];
+            $pgPer    = $pagination['per_page'];
+
+            $buildUrl = function (int $pg, int $pp = 0) use ($filters, $pgPer): string {
+                $pp = $pp ?: $pgPer;
+                $params = [];
+                if ($filters['search']    !== '') $params['search']    = $filters['search'];
+                if ($filters['status']    !== '') $params['status']    = $filters['status'];
+                if ($filters['reason']    !== '') $params['reason']    = $filters['reason'];
+                if ($filters['location']  !== '') $params['location']  = $filters['location'];
+                if ($filters['date_from'] !== '') $params['date_from'] = $filters['date_from'];
+                if ($filters['date_to']   !== '') $params['date_to']   = $filters['date_to'];
+                if ($filters['sort'] !== 'date_desc') $params['sort']  = $filters['sort'];
+                if ($pp !== 10)                   $params['per_page']  = $pp;
+                if ($pg > 1)                      $params['page']      = $pg;
+                $qs = http_build_query($params);
+                return base_url('invitations') . ($qs ? '?' . $qs : '');
+            };
+
+            // Build page-number list with ellipsis
+            $pgNumbers = [];
+            if ($lastPage <= 7) {
+                for ($i = 1; $i <= $lastPage; $i++) $pgNumbers[] = $i;
+            } else {
+                $pgNumbers[] = 1;
+                if ($curPage > 3) $pgNumbers[] = '...';
+                for ($i = max(2, $curPage - 1); $i <= min($lastPage - 1, $curPage + 1); $i++) $pgNumbers[] = $i;
+                if ($curPage < $lastPage - 2) $pgNumbers[] = '...';
+                $pgNumbers[] = $lastPage;
+            }
+
+            $firstItem = ($pgTotal === 0) ? 0 : ($curPage - 1) * $pgPer + 1;
+            $lastItem  = min($curPage * $pgPer, $pgTotal);
+            ?>
             <div class="flex flex-col md:flex-row justify-between items-center gap-4 text-xs font-medium text-gray-500 dark:text-gray-400">
-                <div class="flex items-center gap-1">
-                    <button class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50">«</button>
-                    <button class="w-8 h-8 flex items-center justify-center bg-primary text-white rounded shadow-sm">1</button>
-                    <button class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">2</button>
-                    <button class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">3</button>
-                    <span class="w-8 h-8 flex items-center justify-center">...</span>
-                    <button class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">53</button>
-                    <button class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">»</button>
+                <div id="paginationContainer" class="flex items-center gap-1">
+                    <?php if ($curPage > 1): ?>
+                    <a href="<?= $buildUrl($curPage - 1) ?>" class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">«</a>
+                    <?php else: ?>
+                    <span class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded opacity-40 cursor-not-allowed">«</span>
+                    <?php endif; ?>
+
+                    <?php foreach ($pgNumbers as $pn): ?>
+                        <?php if ($pn === '...'): ?>
+                        <span class="w-8 h-8 flex items-center justify-center">...</span>
+                        <?php elseif ($pn === $curPage): ?>
+                        <span class="w-8 h-8 flex items-center justify-center bg-primary text-white rounded shadow-sm"><?= $pn ?></span>
+                        <?php else: ?>
+                        <a href="<?= $buildUrl((int) $pn) ?>" class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"><?= $pn ?></a>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+
+                    <?php if ($curPage < $lastPage): ?>
+                    <a href="<?= $buildUrl($curPage + 1) ?>" class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">»</a>
+                    <?php else: ?>
+                    <span class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded opacity-40 cursor-not-allowed">»</span>
+                    <?php endif; ?>
                 </div>
-                <div class="relative">
-                    <select class="appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 py-1.5 pl-3 pr-8 rounded focus:outline-none focus:ring-1 focus:ring-primary text-xs font-medium cursor-pointer shadow-sm">
-                        <option>10 ITEMS PER PAGE</option>
-                        <option>25 ITEMS PER PAGE</option>
-                        <option>50 ITEMS PER PAGE</option>
-                    </select>
-                    <span class="absolute right-2 top-1.5 pointer-events-none material-icons text-sm text-gray-500">expand_more</span>
+                <div class="flex items-center gap-3">
+                    <span id="paginationSummary" class="text-gray-400">Showing <?= number_format($firstItem) ?>–<?= number_format($lastItem) ?> of <?= number_format($pgTotal) ?></span>
+                    <div class="relative">
+                        <select id="perPageSelect" class="appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 py-1.5 pl-3 pr-8 rounded focus:outline-none focus:ring-1 focus:ring-primary text-xs font-medium cursor-pointer shadow-sm">
+                            <?php foreach ([10, 25, 50] as $pp): ?>
+                            <option value="<?= $pp ?>" <?= $pgPer === $pp ? 'selected' : '' ?>><?= $pp ?> ITEMS PER PAGE</option>
+                            <?php endforeach; ?>
+                        </select>
+                        <span class="absolute right-2 top-1.5 pointer-events-none material-icons text-sm text-gray-500">expand_more</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -608,6 +691,21 @@ $isSettings = str_contains($current, 'settings');
 
     <script>
         let currentInvitationId = null;
+        const invitationDataUrl = "<?= base_url('invitations/data') ?>";
+        const invitationListUrl = "<?= base_url('invitations') ?>";
+        const invitationExportUrl = "<?= base_url('invitations/export') ?>";
+        const filterForm = document.getElementById('filterForm');
+        const invitationTable = document.getElementById('invitationTable');
+        const tableBody = document.getElementById('invitationsTableBody');
+        const paginationContainer = document.getElementById('paginationContainer');
+        const paginationSummary = document.getElementById('paginationSummary');
+        const perPageSelect = document.getElementById('perPageSelect');
+        const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        const searchInput = document.getElementById('searchInput');
+        const columnFilterState = {};
+        let activeFilterDropdown = null;
+        let searchDebounceTimer = null;
 
         // Toast notification functions
         function showToast(message, type = 'info') {
@@ -674,6 +772,498 @@ $isSettings = str_contains($current, 'settings');
                 }, 300);
             }
         }
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function buildStatusBadge(status) {
+            if (status === 'Approved') return '<span class="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Approved</span>';
+            if (status === 'Pending') return '<span class="bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Pending</span>';
+            if (status === 'Submitted') return '<span class="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Submitted</span>';
+            if (status === 'Rejected') return '<span class="bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Rejected</span>';
+            return `<span class="px-2 py-1 rounded-full text-[10px] uppercase font-bold bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200">${escapeHtml(status)}</span>`;
+        }
+
+        function buildPageNumbers(currentPage, lastPage) {
+            const pages = [];
+            if (lastPage <= 7) {
+                for (let i = 1; i <= lastPage; i += 1) pages.push(i);
+                return pages;
+            }
+
+            pages.push(1);
+            if (currentPage > 3) pages.push('...');
+            for (let i = Math.max(2, currentPage - 1); i <= Math.min(lastPage - 1, currentPage + 1); i += 1) {
+                pages.push(i);
+            }
+            if (currentPage < lastPage - 2) pages.push('...');
+            pages.push(lastPage);
+            return pages;
+        }
+
+        function getTableDataRows() {
+            return Array.from(tableBody.querySelectorAll('tr')).filter((row) => row.querySelectorAll('td').length > 1);
+        }
+
+        function getCellText(row, columnIndex) {
+            const cell = row.cells[columnIndex];
+            return cell ? cell.textContent.trim() : '';
+        }
+
+        function getColumnValues(columnIndex) {
+            const values = getTableDataRows()
+                .map((row) => getCellText(row, columnIndex))
+                .filter((value) => value !== '');
+            return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b));
+        }
+
+        function updateColumnFilterIcon(columnIndex) {
+            const icon = invitationTable.querySelector(`.js-column-filter-icon[data-col="${columnIndex}"]`);
+            if (!icon) return;
+
+            const state = columnFilterState[columnIndex];
+            if (!state || !Array.isArray(state.allValues) || state.allValues.length === 0 || !state.selectedValues || state.selectedValues.size === state.allValues.length) {
+                icon.classList.remove('text-[#535dec]');
+                icon.classList.add('text-gray-300');
+                return;
+            }
+
+            icon.classList.remove('text-gray-300');
+            icon.classList.add('text-[#535dec]');
+        }
+
+        function applyColumnFilters() {
+            const rows = getTableDataRows();
+            rows.forEach((row) => {
+                let visible = true;
+                Object.keys(columnFilterState).forEach((key) => {
+                    if (!visible) return;
+                    const columnIndex = Number(key);
+                    const state = columnFilterState[columnIndex];
+                    if (!state || !state.selectedValues || state.selectedValues.size === 0 || state.selectedValues.size === state.allValues.length) {
+                        return;
+                    }
+                    const cellValue = getCellText(row, columnIndex);
+                    if (!state.selectedValues.has(cellValue)) {
+                        visible = false;
+                    }
+                });
+                row.style.display = visible ? '' : 'none';
+            });
+        }
+
+        function closeAllColumnFilterDropdowns() {
+            invitationTable.querySelectorAll('.js-column-filter-dropdown').forEach((dropdown) => {
+                dropdown.classList.add('hidden');
+            });
+            activeFilterDropdown = null;
+        }
+
+        function resetColumnFilterState() {
+            Object.keys(columnFilterState).forEach((key) => {
+                delete columnFilterState[key];
+            });
+            closeAllColumnFilterDropdowns();
+        }
+
+        function buildColumnFilterDropdown(columnIndex, options) {
+            const dropdown = document.createElement('div');
+            dropdown.className = 'js-column-filter-dropdown hidden absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-lg z-50 p-2 text-left text-xs max-h-[260px] overflow-y-auto';
+            dropdown.style.minWidth = '220px';
+            dropdown.addEventListener('click', (event) => event.stopPropagation());
+
+            const state = columnFilterState[columnIndex] || { allValues: [], selectedValues: new Set() };
+            state.allValues = options;
+            if (!(state.selectedValues instanceof Set) || state.selectedValues.size === 0) {
+                state.selectedValues = new Set(options);
+            } else {
+                state.selectedValues = new Set(options.filter((value) => state.selectedValues.has(value)));
+                if (state.selectedValues.size === 0) {
+                    state.selectedValues = new Set(options);
+                }
+            }
+            columnFilterState[columnIndex] = state;
+
+            const searchInput = document.createElement('input');
+            searchInput.type = 'text';
+            searchInput.placeholder = 'Search in this column...';
+            searchInput.className = 'w-full mb-2 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 dark:bg-gray-700 dark:text-white';
+            dropdown.appendChild(searchInput);
+
+            const allLabel = document.createElement('label');
+            allLabel.className = 'flex items-center gap-2 px-2 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer font-semibold text-gray-700 dark:text-gray-200 mb-1';
+            const allCb = document.createElement('input');
+            allCb.type = 'checkbox';
+            allCb.className = 'h-4 w-4 cursor-pointer accent-[#535dec]';
+            allCb.checked = state.selectedValues.size === options.length && options.length > 0;
+            allLabel.appendChild(allCb);
+            allLabel.appendChild(document.createTextNode('All'));
+            dropdown.appendChild(allLabel);
+
+            const removeAllLabel = document.createElement('label');
+            removeAllLabel.className = 'flex items-center gap-2 px-2 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer font-semibold text-gray-700 dark:text-gray-200 mb-1';
+            const removeAllCb = document.createElement('input');
+            removeAllCb.type = 'checkbox';
+            removeAllCb.className = 'h-4 w-4 cursor-pointer accent-red-500';
+            removeAllLabel.appendChild(removeAllCb);
+            removeAllLabel.appendChild(document.createTextNode('Remove All'));
+            dropdown.appendChild(removeAllLabel);
+
+            const separator = document.createElement('hr');
+            separator.className = 'my-1 border-gray-200 dark:border-gray-700';
+            dropdown.appendChild(separator);
+
+            const itemRows = [];
+            options.forEach((value) => {
+                const itemLabel = document.createElement('label');
+                itemLabel.className = 'js-filter-item flex items-center gap-2 px-2 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer text-gray-600 dark:text-gray-300';
+                itemLabel.dataset.filterText = value.toLowerCase();
+
+                const itemCb = document.createElement('input');
+                itemCb.type = 'checkbox';
+                itemCb.className = 'h-4 w-4 cursor-pointer accent-[#535dec]';
+                itemCb.value = value;
+                itemCb.checked = state.selectedValues.has(value);
+
+                const textNode = document.createElement('span');
+                textNode.className = 'select-none';
+                textNode.textContent = value;
+
+                itemLabel.appendChild(itemCb);
+                itemLabel.appendChild(textNode);
+                dropdown.appendChild(itemLabel);
+                itemRows.push({ label: itemLabel, cb: itemCb });
+            });
+
+            function syncStateAndApply() {
+                const checkedValues = itemRows.filter((item) => item.cb.checked).map((item) => item.cb.value);
+                if (checkedValues.length === 0 || checkedValues.length === options.length) {
+                    state.selectedValues = new Set(options);
+                } else {
+                    state.selectedValues = new Set(checkedValues);
+                }
+                allCb.checked = checkedValues.length === options.length && options.length > 0;
+                removeAllCb.checked = false;
+                updateColumnFilterIcon(columnIndex);
+                applyColumnFilters();
+            }
+
+            searchInput.addEventListener('input', function () {
+                const term = this.value.trim().toLowerCase();
+                itemRows.forEach((item) => {
+                    item.label.style.display = item.label.dataset.filterText.includes(term) ? '' : 'none';
+                });
+            });
+
+            allCb.addEventListener('change', function () {
+                itemRows.forEach((item) => {
+                    item.cb.checked = this.checked;
+                });
+                syncStateAndApply();
+            });
+
+            removeAllCb.addEventListener('change', function () {
+                if (!this.checked) return;
+                itemRows.forEach((item) => {
+                    item.cb.checked = false;
+                });
+                // Match access report behavior: remove-all clears active filtering.
+                state.selectedValues = new Set(options);
+                allCb.checked = false;
+                this.checked = false;
+                updateColumnFilterIcon(columnIndex);
+                applyColumnFilters();
+            });
+
+            itemRows.forEach((item) => {
+                item.cb.addEventListener('change', syncStateAndApply);
+            });
+
+            return dropdown;
+        }
+
+        function setupColumnFilters() {
+            const headers = invitationTable.querySelectorAll('thead th');
+            headers.forEach((header, index) => {
+                const old = header.querySelector('.js-column-filter-wrapper');
+                if (old) {
+                    old.remove();
+                }
+                if (index === 0) return;
+
+                const options = getColumnValues(index);
+                if (options.length === 0) return;
+
+                header.classList.add('relative');
+                const wrapper = document.createElement('div');
+                wrapper.className = 'js-column-filter-wrapper inline-block relative ml-1 align-middle';
+                wrapper.addEventListener('click', (event) => event.stopPropagation());
+
+                const icon = document.createElement('span');
+                icon.className = 'js-column-filter-icon material-symbols-outlined text-[16px] text-gray-300 hover:text-[#535dec] transition-colors cursor-pointer align-middle';
+                icon.dataset.col = String(index);
+                icon.textContent = 'filter_alt';
+
+                const dropdown = buildColumnFilterDropdown(index, options);
+                wrapper.appendChild(icon);
+                wrapper.appendChild(dropdown);
+                header.appendChild(wrapper);
+
+                icon.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    if (activeFilterDropdown && activeFilterDropdown !== dropdown) {
+                        closeAllColumnFilterDropdowns();
+                    }
+                    dropdown.classList.toggle('hidden');
+                    activeFilterDropdown = dropdown.classList.contains('hidden') ? null : dropdown;
+                });
+
+                updateColumnFilterIcon(index);
+            });
+            applyColumnFilters();
+        }
+
+        document.addEventListener('click', function (event) {
+            if (!event.target.closest('.js-column-filter-wrapper')) {
+                closeAllColumnFilterDropdowns();
+            }
+        });
+
+        function renderTableRows(invitations) {
+            if (!Array.isArray(invitations) || invitations.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="11" class="p-12 text-center">
+                            <div class="flex flex-col items-center gap-3">
+                                <span class="material-symbols-outlined text-gray-300 dark:text-gray-600 text-5xl">inbox</span>
+                                <div>
+                                    <h3 class="text-gray-500 dark:text-gray-400 font-semibold">No Data Available</h3>
+                                    <p class="text-gray-400 dark:text-gray-500 text-xs mt-1">No invitation records found. Create your first invitation to get started.</p>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tableBody.innerHTML = invitations.map((invitation) => {
+                const invitationJson = JSON.stringify(invitation).replace(/'/g, '&#39;');
+                const icPassportEmpty = !invitation.ic_passport;
+                const vehicleEmpty = !invitation.vehicle_reg;
+                return `
+                    <tr onclick='openDetailModal(${invitationJson})' class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-b border-gray-100 dark:border-gray-700 cursor-pointer">
+                        <td class="p-4">${escapeHtml(invitation.no)}</td>
+                        <td class="p-4">${escapeHtml(invitation.date)}</td>
+                        <td class="p-4 font-semibold text-gray-800 dark:text-white">${escapeHtml(invitation.full_name)}</td>
+                        <td class="p-4 ${icPassportEmpty ? 'text-gray-400' : ''}">${icPassportEmpty ? 'NULL' : escapeHtml(invitation.ic_passport)}</td>
+                        <td class="p-4">${escapeHtml(invitation.contact)}</td>
+                        <td class="p-4">${escapeHtml(invitation.company)}</td>
+                        <td class="p-4 ${vehicleEmpty ? 'text-gray-400' : ''}">${vehicleEmpty ? 'NULL' : escapeHtml(invitation.vehicle_reg)}</td>
+                        <td class="p-4">${escapeHtml(invitation.location)}</td>
+                        <td class="p-4">${escapeHtml(invitation.invited_by)}</td>
+                        <td class="p-4">${buildStatusBadge(invitation.status)}</td>
+                        <td class="p-4">${escapeHtml(invitation.reason)}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderPagination(pagination) {
+            const currentPage = Number(pagination.current_page) || 1;
+            const lastPage = Math.max(1, Number(pagination.last_page) || 1);
+            const total = Number(pagination.total) || 0;
+            const perPage = Number(pagination.per_page) || 10;
+
+            const pageNumbers = buildPageNumbers(currentPage, lastPage);
+            let paginationHtml = '';
+
+            if (currentPage > 1) {
+                paginationHtml += `<button type="button" data-page="${currentPage - 1}" class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">«</button>`;
+            } else {
+                paginationHtml += '<span class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded opacity-40 cursor-not-allowed">«</span>';
+            }
+
+            pageNumbers.forEach((page) => {
+                if (page === '...') {
+                    paginationHtml += '<span class="w-8 h-8 flex items-center justify-center">...</span>';
+                    return;
+                }
+                if (page === currentPage) {
+                    paginationHtml += `<span class="w-8 h-8 flex items-center justify-center bg-primary text-white rounded shadow-sm">${page}</span>`;
+                    return;
+                }
+                paginationHtml += `<button type="button" data-page="${page}" class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">${page}</button>`;
+            });
+
+            if (currentPage < lastPage) {
+                paginationHtml += `<button type="button" data-page="${currentPage + 1}" class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">»</button>`;
+            } else {
+                paginationHtml += '<span class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded opacity-40 cursor-not-allowed">»</span>';
+            }
+
+            paginationContainer.innerHTML = paginationHtml;
+
+            const firstItem = total === 0 ? 0 : (currentPage - 1) * perPage + 1;
+            const lastItem = Math.min(currentPage * perPage, total);
+            paginationSummary.textContent = `Showing ${firstItem.toLocaleString()}-${lastItem.toLocaleString()} of ${total.toLocaleString()}`;
+            perPageSelect.value = String(perPage);
+        }
+
+        function syncExportLink() {
+            const params = new URLSearchParams(new FormData(filterForm));
+            params.delete('page');
+            params.delete('per_page');
+            if (params.get('sort') === 'date_desc') {
+                params.delete('sort');
+            }
+            const query = params.toString();
+            exportBtn.href = query ? `${invitationExportUrl}?${query}` : invitationExportUrl;
+        }
+
+        function csvSafe(value) {
+            const text = String(value ?? '');
+            if (text.includes('"') || text.includes(',') || text.includes('\n')) {
+                return `"${text.replace(/"/g, '""')}"`;
+            }
+            return text;
+        }
+
+        function exportCurrentTableView() {
+            const visibleRows = getTableDataRows().filter((row) => row.style.display !== 'none');
+            if (visibleRows.length === 0) {
+                showToast('No data to export for current filters.', 'warning');
+                return;
+            }
+
+            const headerCells = Array.from(invitationTable.querySelectorAll('thead th'));
+            const headers = headerCells.map((th) => {
+                const clone = th.cloneNode(true);
+                clone.querySelectorAll('.js-column-filter-wrapper').forEach((node) => node.remove());
+                return clone.textContent.trim();
+            });
+
+            const csvRows = [];
+            csvRows.push(headers.map(csvSafe).join(','));
+
+            visibleRows.forEach((row) => {
+                const cols = Array.from(row.cells).map((cell) => csvSafe(cell.textContent.trim()));
+                csvRows.push(cols.join(','));
+            });
+
+            const csvContent = "\uFEFF" + csvRows.join('\r\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+            link.href = url;
+            link.download = `invitations-filtered-${stamp}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        async function fetchInvitations(pushState = true) {
+            const params = new URLSearchParams(new FormData(filterForm));
+            const queryString = params.toString();
+            const requestUrl = queryString ? `${invitationDataUrl}?${queryString}` : invitationDataUrl;
+
+            try {
+                const response = await fetch(requestUrl, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                const result = await response.json();
+
+                if (!response.ok || !result.success) {
+                    throw new Error('Failed to load invitation data');
+                }
+
+                renderTableRows(result.invitations || []);
+                resetColumnFilterState();
+                setupColumnFilters();
+                renderPagination(result.pagination || {});
+                syncExportLink();
+
+                if (pushState) {
+                    const listQuery = queryString;
+                    const listUrl = listQuery ? `${invitationListUrl}?${listQuery}` : invitationListUrl;
+                    window.history.replaceState({}, '', listUrl);
+                }
+            } catch (error) {
+                console.error('Invitation list fetch failed:', error);
+                showToast('Failed to load filtered invitations. Please try again.', 'error');
+            }
+        }
+
+        filterForm.addEventListener('submit', function (event) {
+            event.preventDefault();
+            filterForm.elements.page.value = '1';
+            fetchInvitations();
+        });
+
+        if (searchInput) {
+            searchInput.addEventListener('input', function () {
+                if (searchDebounceTimer) {
+                    clearTimeout(searchDebounceTimer);
+                }
+                searchDebounceTimer = setTimeout(() => {
+                    filterForm.elements.page.value = '1';
+                    fetchInvitations();
+                }, 300);
+            });
+        }
+
+        filterForm.querySelectorAll('select, input[type="date"]').forEach((element) => {
+            element.addEventListener('change', function () {
+                filterForm.elements.page.value = '1';
+                fetchInvitations();
+            });
+        });
+
+        paginationContainer.addEventListener('click', function (event) {
+            const button = event.target.closest('[data-page]');
+            if (!button) return;
+            event.preventDefault();
+            filterForm.elements.page.value = String(button.dataset.page);
+            fetchInvitations();
+        });
+
+        perPageSelect.addEventListener('change', function () {
+            filterForm.elements.per_page.value = this.value;
+            filterForm.elements.page.value = '1';
+            fetchInvitations();
+        });
+
+        clearFiltersBtn.addEventListener('click', function (event) {
+            event.preventDefault();
+            filterForm.elements.search.value = '';
+            filterForm.elements.date_from.value = '';
+            filterForm.elements.date_to.value = '';
+            filterForm.elements.status.value = '';
+            filterForm.elements.reason.value = '';
+            filterForm.elements.location.value = '';
+            filterForm.elements.sort.value = 'date_desc';
+            filterForm.elements.page.value = '1';
+            filterForm.elements.per_page.value = '10';
+            fetchInvitations();
+        });
+
+        exportBtn.addEventListener('click', function (event) {
+            event.preventDefault();
+            exportCurrentTableView();
+        });
+
+        setupColumnFilters();
 
         function openDetailModal(invitation) {
             // Store current invitation ID for sending

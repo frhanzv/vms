@@ -322,7 +322,13 @@ History
 <section class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
 <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
 <h3 class="text-lg font-bold text-slate-900 dark:text-white">Visit Context</h3>
-<span class="material-symbols-outlined text-slate-400">info</span>
+<button type="button" id="visit-context-info-toggle" class="inline-flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors" aria-label="Show visit context info" aria-expanded="false">
+<span class="material-symbols-outlined">info</span>
+</button>
+</div>
+<div id="visit-context-info-panel" class="hidden px-6 py-4 bg-blue-50/70 dark:bg-blue-900/20 border-b border-slate-200 dark:border-slate-800">
+<p class="text-sm text-slate-700 dark:text-slate-200 font-medium">Set the host and visit details first.</p>
+<p class="text-xs text-slate-600 dark:text-slate-300 mt-1">Staff ID and Contact No Of Person Visited are pre-filled from your account, but you can edit them. These values apply to all visitors in this invitation.</p>
 </div>
 <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
 <!-- Staff ID (defaults from account; editable e.g. when using a manager login) -->
@@ -781,6 +787,16 @@ const visitorCountInput = document.getElementById('visitor-count');
 if (visitorCountInput) {
     visitorCountInput.addEventListener('change', function() {
         setVisitorSectionCount(this.value);
+    });
+}
+
+const visitContextInfoToggle = document.getElementById('visit-context-info-toggle');
+const visitContextInfoPanel = document.getElementById('visit-context-info-panel');
+if (visitContextInfoToggle && visitContextInfoPanel) {
+    visitContextInfoToggle.addEventListener('click', function () {
+        const willShow = visitContextInfoPanel.classList.contains('hidden');
+        visitContextInfoPanel.classList.toggle('hidden');
+        visitContextInfoToggle.setAttribute('aria-expanded', willShow ? 'true' : 'false');
     });
 }
 

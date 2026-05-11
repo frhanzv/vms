@@ -12428,6 +12428,7 @@
         let visitorTypePerPage = 10;
         let currentVisitorTypeSearch = '';
         let currentVisitorTypeSort = 'created_at_desc';
+        let visitorTypePathOptions = [];
 
         function loadVisitorTypes(page = 1) {
             currentVisitorTypePage = page;
@@ -12544,6 +12545,56 @@
             loadVisitorTypes(1);
         }
 
+        function loadVisitorTypePathOptions(forceReload = false) {
+            if (!forceReload && visitorTypePathOptions.length) {
+                return Promise.resolve(visitorTypePathOptions);
+            }
+
+            const params = new URLSearchParams({
+                page: 1,
+                limit: 500,
+                search: '',
+                sortBy: 'name_asc',
+            });
+
+            return fetch(`<?= base_url('config/getPathways') ?>?${params.toString()}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.success || !Array.isArray(data.data)) {
+                        throw new Error('Failed to load pathways');
+                    }
+
+                    visitorTypePathOptions = data.data
+                        .filter(item => item && item.name && item.status === 'active')
+                        .map(item => item.name);
+
+                    return visitorTypePathOptions;
+                });
+        }
+
+        function buildVisitorTypePathOptions(selectedPath = '') {
+            let html = '<option value="">Select pathway...</option>';
+            const options = [...visitorTypePathOptions];
+
+            if (selectedPath && !options.includes(selectedPath)) {
+                options.unshift(selectedPath);
+            }
+
+            options.forEach(pathName => {
+                html += `<option value="${escapeHtml(pathName)}">${escapeHtml(pathName)}</option>`;
+            });
+
+            return html;
+        }
+
+        function populateVisitorTypePathDropdown(selectedPath = '') {
+            const select = document.getElementById('visitorTypePath');
+            if (!select) return;
+
+            select.innerHTML = buildVisitorTypePathOptions(selectedPath);
+            select.value = selectedPath || '';
+        }
+
         function closeVisitorTypeModal() {
             const m = document.getElementById('visitorTypeModal');
             if (m) m.remove();
@@ -12566,8 +12617,10 @@
                                 <span id="visitorTypeError" class="text-red-500 text-xs mt-1 hidden"></span>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Path</label>
-                                <input type="text" id="visitorTypePath" name="path" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Route or workflow reference">
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Pathway</label>
+                                <select id="visitorTypePath" name="path" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none">
+                                    <option value="">Loading pathways...</option>
+                                </select>
                             </div>
                             <div class="flex justify-end gap-3 pt-2">
                                 <button type="button" onclick="closeVisitorTypeModal()" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 text-sm font-medium hover:bg-gray-100 dark:hover:bg-slate-700">Cancel</button>
@@ -12580,12 +12633,20 @@
                 e.preventDefault();
                 createVisitorType();
             });
+
+            loadVisitorTypePathOptions()
+                .then(() => populateVisitorTypePathDropdown(''))
+                .catch(() => {
+                    const err = document.getElementById('visitorTypeError');
+                    err.textContent = 'Failed to load pathway options. Please check Pathway Config.';
+                    err.classList.remove('hidden');
+                });
         }
 
         function createVisitorType() {
             const formData = new FormData();
             formData.append('name', document.getElementById('visitorTypeName').value.trim());
-            formData.append('path', document.getElementById('visitorTypePath').value.trim());
+            formData.append('path', document.getElementById('visitorTypePath').value);
             fetch('<?= base_url('config/createVisitorType') ?>', {
                 method: 'POST',
                 body: formData
@@ -12631,8 +12692,10 @@
                                 <span id="visitorTypeError" class="text-red-500 text-xs mt-1 hidden"></span>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Path</label>
-                                <input type="text" id="visitorTypePath" name="path" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none">
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Pathway</label>
+                                <select id="visitorTypePath" name="path" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none">
+                                    <option value="">Loading pathways...</option>
+                                </select>
                             </div>
                             <div class="flex justify-end gap-3 pt-2">
                                 <button type="button" onclick="closeVisitorTypeModal()" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 text-sm font-medium hover:bg-gray-100 dark:hover:bg-slate-700">Cancel</button>
@@ -12643,11 +12706,18 @@
                 </div>`);
                     document.getElementById('visitorTypeId').value = String(t.id);
                     document.getElementById('visitorTypeName').value = t.name || '';
-                    document.getElementById('visitorTypePath').value = t.path || '';
                     document.getElementById('visitorTypeForm').addEventListener('submit', function(e) {
                         e.preventDefault();
                         updateVisitorType();
                     });
+
+                    loadVisitorTypePathOptions()
+                        .then(() => populateVisitorTypePathDropdown(t.path || ''))
+                        .catch(() => {
+                            const err = document.getElementById('visitorTypeError');
+                            err.textContent = 'Failed to load pathway options. Please check Pathway Config.';
+                            err.classList.remove('hidden');
+                        });
                 })
                 .catch(() => showToast('Failed to load visitor type', 'error'));
         }
@@ -12656,7 +12726,7 @@
             const id = document.getElementById('visitorTypeId').value;
             const formData = new FormData();
             formData.append('name', document.getElementById('visitorTypeName').value.trim());
-            formData.append('path', document.getElementById('visitorTypePath').value.trim());
+            formData.append('path', document.getElementById('visitorTypePath').value);
             fetch(`<?= base_url('config/updateVisitorType/') ?>${id}`, {
                 method: 'POST',
                 body: formData
