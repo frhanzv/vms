@@ -15180,6 +15180,7 @@
         // Business Type Modal
         (function () {
             const modal    = document.getElementById('biztype-modal');
+            if (!modal) return;
             const form     = document.getElementById('biztype-form');
             const closeBtn = document.getElementById('close-biztype-modal');
             const backBtn  = document.getElementById('back-biztype-modal');
@@ -15357,9 +15358,12 @@
         }
         
         // Close on backdrop click
-        document.getElementById('regtype-modal').addEventListener('click', function (e) {
-            if (e.target === this) closeRegTypeModal();
-        });
+        const _regtypeModal = document.getElementById('regtype-modal');
+        if (_regtypeModal) {
+            _regtypeModal.addEventListener('click', function (e) {
+                if (e.target === this) closeRegTypeModal();
+            });
+        }
         
         // Close on Escape key
         document.addEventListener('keydown', function (e) {
