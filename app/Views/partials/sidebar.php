@@ -84,7 +84,15 @@ $isSettings  = str_contains($current, 'settings');
             <?php endif; ?>
 
             <!-- Blacklist — superadmin, clientsuperadmin, officer -->
-            <?php if ($can(['superadmin', 'clientsuperadmin', 'officer'])): ?>
+            <?php
+                $_blCompanyId = (int) (
+                    session()->get('company_id')
+                    ?: ((new \App\Models\UserModel())->find((int) session()->get('user_id'))['company_id'] ?? 0)
+                );
+                $_blEnabled = session()->get('role') === 'superadmin'
+                    || (new \App\Models\ClientFeatureModel())->isEnabled($_blCompanyId, 'blacklist');
+            ?>
+            <?php if ($can(['superadmin', 'clientsuperadmin', 'officer']) && $_blEnabled): ?>
             <div x-data="{ openBlacklist: <?= str_contains($current, 'blacklist') ? 'true' : 'false' ?>, openIndividual: <?= str_contains($current, 'blacklist') ? 'true' : 'false' ?> }">
                 <button type="button" @click="openBlacklist = !openBlacklist"
                     class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= str_contains($current, 'blacklist') ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
