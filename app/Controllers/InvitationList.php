@@ -37,6 +37,7 @@ class InvitationList extends BaseController
         $perPage = (int) ($this->request->getGet('per_page') ?? 10);
         if (! in_array($perPage, [10, 25, 50], true)) {
             $perPage = 10;
+        }
         $page = (int) ($this->request->getGet('page') ?? 1);
         $search = $this->request->getGet('search') ?? '';
         $status = $this->request->getGet('status') ?? '';
