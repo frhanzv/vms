@@ -52,7 +52,7 @@ class InvitationList extends BaseController
             $invitations[] = [
                 'id' => $invitation['id'],  // Add the ID for resending emails
                 'no' => ($page - 1) * 10 + $index + 1,
-                'date' => $schedule ? date('d/m/Y', strtotime($schedule['date_from'])) : '-',
+                'date' => $schedule ? date('d/m/Y', strtotime($schedule['date_from'])) : (!empty($invitation['created_at']) ? date('d/m/Y', strtotime((string) $invitation['created_at'])) : '-'),
                 'visit_from' => $schedule ? date('d/m/Y H:i', strtotime((string) $schedule['date_from'])) : '-',
                 'visit_to' => $schedule ? date('d/m/Y H:i', strtotime((string) $schedule['date_to'])) : '-',
                 'full_name' => $invitation['full_name'],

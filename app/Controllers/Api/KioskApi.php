@@ -307,11 +307,19 @@ class KioskApi extends BaseController
         $company   = trim($body['companyName'] ?? $body['company']  ?? '');
         $vehicleNo = trim($body['vehicleNo']   ?? $body['vehicle_registration'] ?? '');
         $location  = trim($body['locationAccess'] ?? $body['location'] ?? '');
-        $reason    = trim($body['visitReason'] ?? $body['reason']   ?? '');
+        $rawReason = trim($body['visitReason'] ?? $body['reason']   ?? '');
         $invitedBy = trim($body['invitedBy']   ?? $body['invited_by'] ?? '');
 
-        if ($fullName === '' || $contact === '' || $reason === '') {
+        if ($fullName === '' || $contact === '' || $rawReason === '') {
             return $this->failValidationErrors('visitorName, phoneNo, and visitReason are required');
+        }
+
+        // Resolve numeric reason ID to the actual reason text
+        if (ctype_digit($rawReason)) {
+            $reasonRow = (new VisitReasonModel())->find((int) $rawReason);
+            $reason = $reasonRow ? $reasonRow['reason'] : $rawReason;
+        } else {
+            $reason = $rawReason;
         }
 
         $data = [
@@ -336,7 +344,7 @@ class KioskApi extends BaseController
             'state'              => $body['state']         ?? null,
             'country'            => $body['country']       ?? null,
             'registration_source' => 'kiosk',
-            'status'             => 'Approved',
+            'status'             => 'Submitted',
         ];
 
         // Remove null fields so model validation stays clean
