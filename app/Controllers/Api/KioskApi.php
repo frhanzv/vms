@@ -533,6 +533,7 @@ class KioskApi extends BaseController
             'locationAccess' => $s['location_access'] ?? '',
             'cardStatus'    => $s['card_status'] ?? '',
             'cardExpiry'    => $s['card_expiry'] ?? '',
+            'mobileNo'     => $s['contact_number'] ?? '',
             'status'        => $s['status'],
         ], $staff);
 
