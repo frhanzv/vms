@@ -6,8 +6,21 @@ class StaffPassRequest extends BaseController
 {
     public function index()
     {
+        $userModel  = new \App\Models\UserModel();
+        $user       = $userModel->find(session()->get('user_id'));
+        $companyId  = (int) ($user['company_id'] ?? 0);
+
+        $clientFormFieldModel = new \App\Models\ClientFormFieldModel();
+        $rows = $clientFormFieldModel->getForCompanyForm($companyId, 'staff_pass_request');
+
+        $fieldSettings = [];
+        foreach ($rows as $f) {
+            $fieldSettings[$f['field_key']] = (bool) $f['is_enabled'];
+        }
+
         $data = [
-            'pageTitle' => 'Staff Pass Request - SafeG',
+            'pageTitle'     => 'Staff Pass Request - SafeG',
+            'fieldSettings' => $fieldSettings,
         ];
 
         return view('staffs/staffpassrequest', $data);

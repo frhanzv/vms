@@ -4243,6 +4243,11 @@
                                         class="px-4 py-2 text-sm font-medium font-brand border-b-2 border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 -mb-px">
                                         Invitation Form
                                     </button>
+                                    <button type="button" id="dff-tab-staff_pass_request"
+                                        onclick="dffSwitchTab('staff_pass_request')"
+                                        class="px-4 py-2 text-sm font-medium font-brand border-b-2 border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 -mb-px">
+                                        Staff Pass Request
+                                    </button>
                                 </div>
 
                                 <!-- Loading indicator -->
@@ -15403,7 +15408,7 @@
         function dffSwitchTab(formType) {
             dffActiveTab = formType;
 
-            ['visitor_registration', 'invitation'].forEach(t => {
+            ['visitor_registration', 'invitation', 'staff_pass_request'].forEach(t => {
                 const btn = document.getElementById(`dff-tab-${t}`);
                 if (!btn) return;
                 if (t === formType) {

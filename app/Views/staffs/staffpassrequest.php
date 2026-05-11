@@ -309,6 +309,7 @@ $isSettings = str_contains($current, 'settings');
                                 <h2 class="text-lg font-bold font-brand text-text-main dark:text-white">Application Info</h2>
                             </div>
                         </div>
+                        <?php $fs = $fieldSettings ?? []; ?>
                         <div class="space-y-6">
 
                             <!-- Row 1: Date of Application, Type of Application, Designation, Resident -->
@@ -317,6 +318,7 @@ $isSettings = str_contains($current, 'settings');
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Date Of Application</label>
                                     <input name="date_of_application" value="<?= date('d/m/Y') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-gray-100 dark:bg-background-dark text-text-main dark:text-white px-4 outline-none font-brand" type="text" readonly/>
                                 </div>
+                                <?php if ($fs['type_of_application'] ?? true): ?>
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Type Of Application</label>
                                     <select name="type_of_application" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
@@ -325,6 +327,8 @@ $isSettings = str_contains($current, 'settings');
                                         <option value="REPLACEMENT">REPLACEMENT</option>
                                     </select>
                                 </div>
+                                <?php endif; ?>
+                                <?php if ($fs['designation'] ?? true): ?>
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Designation <span class="text-red-500">*</span></label>
                                     <select name="designation" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" required>
@@ -336,6 +340,8 @@ $isSettings = str_contains($current, 'settings');
                                         <option value="MANAGER">MANAGER</option>
                                     </select>
                                 </div>
+                                <?php endif; ?>
+                                <?php if ($fs['resident'] ?? true): ?>
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Resident</label>
                                     <select name="resident" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
@@ -343,9 +349,11 @@ $isSettings = str_contains($current, 'settings');
                                         <option value="FOREIGN">FOREIGN</option>
                                     </select>
                                 </div>
+                                <?php endif; ?>
                             </div>
 
                             <!-- Row 2: Sub Type -->
+                            <?php if ($fs['sub_type'] ?? true): ?>
                             <div class="grid grid-cols-1 sm:grid-cols-4 gap-6">
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Sub Type</label>
@@ -356,8 +364,10 @@ $isSettings = str_contains($current, 'settings');
                                     </select>
                                 </div>
                             </div>
+                            <?php endif; ?>
 
                             <!-- Location Access -->
+                            <?php if ($fs['location_access'] ?? true): ?>
                             <?php
                             $locationGroups = [
                                 'Changing Rooms' => [
@@ -463,6 +473,7 @@ $isSettings = str_contains($current, 'settings');
                                     <?php endforeach; ?>
                                 </div>
                             </div>
+                            <?php endif; ?>
 
                         </div>
                     </section>
@@ -495,18 +506,23 @@ $isSettings = str_contains($current, 'settings');
 
                             <!-- Row 1: IC Number, Date of Birth -->
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <?php if ($fs['ic_number'] ?? true): ?>
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">IC Number <span class="text-red-500">*</span></label>
                                     <input name="ic_number" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="Enter IC / Passport Number" type="text" required/>
                                 </div>
+                                <?php endif; ?>
+                                <?php if ($fs['date_of_birth'] ?? true): ?>
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Date Of Birth <span class="text-red-500">*</span></label>
                                     <input name="date_of_birth" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="DD/MM/YYYY" type="date" required/>
                                 </div>
+                                <?php endif; ?>
                             </div>
 
                             <!-- Row 2: Sex, Full Name, Name On Staff Pass -->
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <?php if ($fs['sex'] ?? true): ?>
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Sex</label>
                                     <select name="sex" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
@@ -514,33 +530,45 @@ $isSettings = str_contains($current, 'settings');
                                         <option value="FEMALE">FEMALE</option>
                                     </select>
                                 </div>
+                                <?php endif; ?>
+                                <?php if ($fs['full_name'] ?? true): ?>
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Full Name <span class="text-red-500">*</span></label>
                                     <input name="full_name" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="Full name as per ID" type="text" required/>
                                 </div>
+                                <?php endif; ?>
+                                <?php if ($fs['name_on_staff_pass'] ?? true): ?>
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Name On Staff Pass <span class="text-red-500">*</span></label>
                                     <input name="name_on_staff_pass" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text" required/>
                                 </div>
+                                <?php endif; ?>
                             </div>
 
                             <!-- Row 3: Staff No, Contact Number, Email Address -->
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <?php if ($fs['staff_no'] ?? true): ?>
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Staff No <span class="text-red-500">*</span></label>
                                     <input name="staff_no" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text" required/>
                                 </div>
+                                <?php endif; ?>
+                                <?php if ($fs['contact_number'] ?? true): ?>
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Contact Number <span class="text-red-500">*</span></label>
                                     <input name="contact_number" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="+60 1x-xxx xxxx" type="tel" required/>
                                 </div>
+                                <?php endif; ?>
+                                <?php if ($fs['email'] ?? true): ?>
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Email Address <span class="text-red-500">*</span></label>
                                     <input name="email" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="staff@example.com" type="email" required/>
                                 </div>
+                                <?php endif; ?>
                             </div>
 
                             <!-- Row 4: Department -->
+                            <?php if ($fs['department'] ?? true): ?>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Department <span class="text-red-500">*</span></label>
@@ -555,25 +583,33 @@ $isSettings = str_contains($current, 'settings');
                                     </select>
                                 </div>
                             </div>
+                            <?php endif; ?>
 
                             <!-- Row 5: Address 1, Address 2, Address 3 -->
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <?php if ($fs['address_1'] ?? true): ?>
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Address 1 <span class="text-red-500">*</span></label>
                                     <input name="address_1" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text" required/>
                                 </div>
+                                <?php endif; ?>
+                                <?php if ($fs['address_2'] ?? true): ?>
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Address 2</label>
                                     <input name="address_2" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
                                 </div>
+                                <?php endif; ?>
+                                <?php if ($fs['address_3'] ?? true): ?>
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Address 3</label>
                                     <input name="address_3" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
                                 </div>
+                                <?php endif; ?>
                             </div>
 
                             <!-- Row 6: Country, State, City -->
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <?php if ($fs['country'] ?? true): ?>
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Country</label>
                                     <select name="country" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
@@ -581,6 +617,8 @@ $isSettings = str_contains($current, 'settings');
                                         <option value="OTHER">OTHER</option>
                                     </select>
                                 </div>
+                                <?php endif; ?>
+                                <?php if ($fs['state'] ?? true): ?>
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">State <span class="text-red-500">*</span></label>
                                     <select name="state" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" required>
@@ -600,6 +638,8 @@ $isSettings = str_contains($current, 'settings');
                                         <option value="TERENGGANU">TERENGGANU</option>
                                     </select>
                                 </div>
+                                <?php endif; ?>
+                                <?php if ($fs['city'] ?? true): ?>
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">City <span class="text-red-500">*</span></label>
                                     <select name="city" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" required>
@@ -611,20 +651,24 @@ $isSettings = str_contains($current, 'settings');
                                         <option value="NEGERI SEMBILAN">KANGAR</option>
                                     </select>
                                 </div>
+                                <?php endif; ?>
                             </div>
 
                             <!-- Row 7: Postal Code -->
+                            <?php if ($fs['postal_code'] ?? true): ?>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Postal Code <span class="text-red-500">*</span></label>
                                     <input name="postal_code" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text" required/>
                                 </div>
                             </div>
+                            <?php endif; ?>
 
                         </div>
                     </section>
 
                     <!-- Driving License Section -->
+                    <?php if ($fs['driving_license'] ?? true): ?>
                     <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 mt-8">
                         <div class="p-6 sm:p-8">
                             <div class="flex items-center justify-between mb-6 pb-4 border-b border-border-color dark:border-gray-800">
@@ -654,6 +698,7 @@ $isSettings = str_contains($current, 'settings');
                             </div>
                         </div>
                     </section>
+                    <?php endif; ?>
 
                     <!-- CSP Details -->
 
@@ -739,6 +784,7 @@ $isSettings = str_contains($current, 'settings');
                     
                     
                     <!-- Document Upload -->
+                    <?php if ($fs['document_upload'] ?? true): ?>
                     <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 p-6 sm:p-8 mt-8">
                         <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
                             <div class="size-10 rounded-full bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
@@ -774,9 +820,10 @@ $isSettings = str_contains($current, 'settings');
                             </div>
                         </div>
                     </section>
+                    <?php endif; ?>
 
                     <!-- Profile Photo -->
-                    
+
                     <!-- Form Actions -->
                     <div class="flex items-center justify-end gap-4 py-6 border-t border-border-color dark:border-gray-800 mt-8">
                         <button type="button" onclick="window.history.back()" class="px-6 py-3 rounded-lg border border-border-color dark:border-gray-700 text-text-main dark:text-gray-300 font-bold hover:bg-background-light dark:hover:bg-gray-800 transition-all font-brand">

@@ -24,6 +24,36 @@ class ClientFormFieldModel extends Model
         return [
             'visitor_registration' => 'Visitor Registration',
             'invitation'           => 'Invitation Form',
+            'staff_pass_request'   => 'Staff Pass Request',
+        ];
+    }
+
+    public static function staffPassFields(): array
+    {
+        return [
+            ['field_key' => 'type_of_application', 'label' => 'Type Of Application'],
+            ['field_key' => 'designation',          'label' => 'Designation'],
+            ['field_key' => 'resident',             'label' => 'Resident'],
+            ['field_key' => 'sub_type',             'label' => 'Sub Type'],
+            ['field_key' => 'location_access',      'label' => 'Location Access'],
+            ['field_key' => 'ic_number',            'label' => 'IC / Passport Number'],
+            ['field_key' => 'date_of_birth',        'label' => 'Date of Birth'],
+            ['field_key' => 'sex',                  'label' => 'Sex'],
+            ['field_key' => 'full_name',            'label' => 'Full Name'],
+            ['field_key' => 'name_on_staff_pass',   'label' => 'Name On Staff Pass'],
+            ['field_key' => 'staff_no',             'label' => 'Staff No'],
+            ['field_key' => 'contact_number',       'label' => 'Contact Number'],
+            ['field_key' => 'email',                'label' => 'Email Address'],
+            ['field_key' => 'department',           'label' => 'Department'],
+            ['field_key' => 'address_1',            'label' => 'Address 1'],
+            ['field_key' => 'address_2',            'label' => 'Address 2'],
+            ['field_key' => 'address_3',            'label' => 'Address 3'],
+            ['field_key' => 'country',              'label' => 'Country'],
+            ['field_key' => 'state',                'label' => 'State'],
+            ['field_key' => 'city',                 'label' => 'City'],
+            ['field_key' => 'postal_code',          'label' => 'Postal Code'],
+            ['field_key' => 'driving_license',      'label' => 'Driving License Section'],
+            ['field_key' => 'document_upload',      'label' => 'Document Upload Section'],
         ];
     }
 
@@ -129,6 +159,10 @@ class ClientFormFieldModel extends Model
                 'field_key' => $r['field_key'],
                 'label'     => $r['label'],
             ], $rows);
+        }
+
+        if ($formType === 'staff_pass_request') {
+            return self::staffPassFields();
         }
 
         return [];
