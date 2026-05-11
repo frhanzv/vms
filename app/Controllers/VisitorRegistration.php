@@ -97,6 +97,8 @@ class VisitorRegistration extends BaseController
             }
         }
 
+        $prefillData = $this->resolvePrefillData($invitationId, $invitation);
+
         $workflowStep = $this->request->getGet('step');
         $flowStepKey = ($workflowStep === 'scan_mykad') ? 'scan_mykad' : 'registration';
         $flowNextUrl = $token
@@ -118,6 +120,7 @@ class VisitorRegistration extends BaseController
             'formConfig' => $this->getEmailTemplateFormConfig(),
             'customFormFields' => $this->getEnabledCustomFields(),
             'customFormValues' => $customFormValues,
+            'prefillData' => $prefillData,
             'workflow_step' => $workflowStep,
             'flow_next_url' => $flowNextUrl,
         ];
@@ -1085,6 +1088,132 @@ class VisitorRegistration extends BaseController
         ];
         
         return str_replace(array_keys($replacements), array_values($replacements), $text);
+    }
+
+    private function resolvePrefillData(?int $invitationId, ?array $invitation): array
+    {
+        $source = is_array($invitation) ? $invitation : [];
+        $history = $this->findLatestVisitorHistory($invitationId, $source);
+        $merged = array_merge($history, $source);
+
+        $addressParts = $this->splitAddress((string) ($merged['address'] ?? ''));
+        $merged['address_1'] = $addressParts['address_1'];
+        $merged['address_2'] = $addressParts['address_2'];
+        $merged['address_3'] = $addressParts['address_3'];
+        $merged = $this->resolveLocationIdentifiers($merged);
+
+        return $merged;
+    }
+
+    private function findLatestVisitorHistory(?int $excludeInvitationId, array $source): array
+    {
+        $icPassport = trim((string) ($source['ic_passport'] ?? ''));
+        $visitorEmail = trim((string) ($source['visitor_email'] ?? ''));
+        $contact = trim((string) ($source['contact'] ?? ''));
+        $fullName = trim((string) ($source['full_name'] ?? ''));
+
+        $builder = $this->invitationModel->builder();
+        $builder->select('*');
+        $builder->whereIn('status', ['Submitted', 'Approved']);
+
+        if ($excludeInvitationId) {
+            $builder->where('id !=', $excludeInvitationId);
+        }
+
+        $hasIdentity = false;
+
+        if ($icPassport !== '') {
+            if (! $hasIdentity) {
+                $builder->groupStart();
+            }
+            $builder->where('ic_passport', $icPassport);
+            $hasIdentity = true;
+        }
+
+        if ($visitorEmail !== '') {
+            if (! $hasIdentity) {
+                $builder->groupStart();
+            }
+            if ($hasIdentity) {
+                $builder->orWhere('visitor_email', $visitorEmail);
+            } else {
+                $builder->where('visitor_email', $visitorEmail);
+            }
+            $hasIdentity = true;
+        }
+
+        if ($contact !== '') {
+            if (! $hasIdentity) {
+                $builder->groupStart();
+            }
+            if ($hasIdentity) {
+                $builder->orWhere('contact', $contact);
+            } else {
+                $builder->where('contact', $contact);
+            }
+            $hasIdentity = true;
+        }
+
+        if ($fullName !== '') {
+            if (! $hasIdentity) {
+                $builder->groupStart();
+            }
+            if ($hasIdentity) {
+                $builder->orWhere('full_name', $fullName);
+            } else {
+                $builder->where('full_name', $fullName);
+            }
+            $hasIdentity = true;
+        }
+
+        if (! $hasIdentity) {
+            return [];
+        }
+
+        $builder->groupEnd();
+
+        $latest = $builder->orderBy('updated_at', 'DESC')->orderBy('id', 'DESC')->get(1)->getRowArray();
+
+        return is_array($latest) ? $latest : [];
+    }
+
+    private function splitAddress(string $fullAddress): array
+    {
+        $parts = array_values(array_filter(array_map('trim', explode(',', $fullAddress)), static function ($value) {
+            return $value !== '';
+        }));
+
+        return [
+            'address_1' => $parts[0] ?? '',
+            'address_2' => $parts[1] ?? '',
+            'address_3' => $parts[2] ?? '',
+        ];
+    }
+
+    private function resolveLocationIdentifiers(array $data): array
+    {
+        if (!empty($data['country']) && !ctype_digit((string) $data['country'])) {
+            $country = $this->countryModel->where('name', $data['country'])->first();
+            if ($country && isset($country['id'])) {
+                $data['country'] = (string) $country['id'];
+            }
+        }
+
+        if (!empty($data['state']) && !ctype_digit((string) $data['state'])) {
+            $state = $this->stateModel->where('name', $data['state'])->first();
+            if ($state && isset($state['id'])) {
+                $data['state'] = (string) $state['id'];
+            }
+        }
+
+        if (!empty($data['city']) && !ctype_digit((string) $data['city'])) {
+            $city = $this->cityModel->where('name', $data['city'])->first();
+            if ($city && isset($city['id'])) {
+                $data['city'] = (string) $city['id'];
+            }
+        }
+
+        return $data;
     }
 
     /**

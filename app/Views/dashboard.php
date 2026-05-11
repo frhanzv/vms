@@ -434,7 +434,7 @@
             <!-- Charts and Activity Section -->
             <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
                 <!-- Visitor Occupancy Chart -->
-                <div class="xl:col-span-2 bg-surface-light dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 flex flex-col justify-between">
+                <div class="xl:col-span-2 bg-surface-light dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 flex flex-col">
                     <div class="flex justify-between items-start mb-6">
                         <div>
                             <h3 class="text-base font-bold text-slate-900 dark:text-white">Visitor Occupancy</h3>
@@ -445,7 +445,7 @@
                             <p class="text-xs text-slate-400">Capacity</p>
                         </div>
                     </div>
-                    <div class="grid grid-cols-6 gap-4 items-end h-48 px-2">
+                    <div class="grid grid-cols-12 gap-2 items-end flex-1 min-h-0 px-2">
                         <?php foreach ($occupancyChart as $bar): ?>
                         <div class="flex flex-col items-center gap-2 h-full justify-end group cursor-pointer">
                             <div class="relative w-full max-w-[40px] bg-indigo-50 dark:bg-slate-800 rounded-t-sm h-full flex items-end overflow-hidden">
@@ -539,25 +539,25 @@
                     <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
                         <div class="relative w-full sm:w-auto flex-1 sm:flex-initial">
                             <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">filter_list</span>
-                            <select class="pl-9 pr-8 py-2 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm focus:ring-primary focus:border-primary text-slate-700 dark:text-slate-300 w-full sm:w-48 appearance-none cursor-pointer">
-                                <option>Filter by Company</option>
+                            <select id="visitor-company-filter" onchange="applyVisitorFilters()" class="pl-9 pr-8 py-2 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm focus:ring-primary focus:border-primary text-slate-700 dark:text-slate-300 w-full sm:w-48 appearance-none cursor-pointer">
+                                <option value="">Filter by Company</option>
                                 <?php foreach ($companyList as $company): ?>
-                                <option><?= esc($company) ?></option>
+                                <option value="<?= esc($company) ?>"><?= esc($company) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
                         <div class="flex items-center gap-2 w-full sm:w-auto">
                             <div class="relative flex-1 sm:flex-initial">
-                                <input class="py-2 px-3 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm focus:ring-primary focus:border-primary text-slate-700 dark:text-slate-300 w-full sm:w-auto" placeholder="Start Date" type="datetime-local"/>
+                                <input id="visitor-date-from" onchange="applyVisitorFilters()" class="py-2 px-3 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm focus:ring-primary focus:border-primary text-slate-700 dark:text-slate-300 w-full sm:w-auto" placeholder="Start Date" type="datetime-local"/>
                             </div>
                             <span class="text-slate-400 hidden sm:inline">-</span>
                             <div class="relative flex-1 sm:flex-initial">
-                                <input class="py-2 px-3 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm focus:ring-primary focus:border-primary text-slate-700 dark:text-slate-300 w-full sm:w-auto" placeholder="End Date" type="datetime-local"/>
+                                <input id="visitor-date-to" onchange="applyVisitorFilters()" class="py-2 px-3 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm focus:ring-primary focus:border-primary text-slate-700 dark:text-slate-300 w-full sm:w-auto" placeholder="End Date" type="datetime-local"/>
                             </div>
                         </div>
                     </div>
                     <div class="flex gap-2 w-full sm:w-auto justify-end">
-                        <button class="flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                        <button onclick="exportVisitors()" class="flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                             <span class="material-symbols-outlined text-[18px]">download</span>
                             Export
                         </button>
@@ -578,6 +578,9 @@
                             </tr>
                         </thead>
                         <tbody id="visitors-table-body" class="divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-surface-dark">
+                            <tr id="no-data-row" <?= !empty($visitors) ? 'style="display:none"' : '' ?>>
+                                <td colspan="6" class="px-6 py-12 text-center text-sm text-slate-400 dark:text-slate-500">No data</td>
+                            </tr>
                             <?php foreach ($visitors as $visitor): ?>
                             <?php
                                 $statusToken = 'prearrival';
@@ -587,7 +590,7 @@
                                     $statusToken = 'checkedout';
                                 }
                             ?>
-                            <tr data-visitor-status="<?= $statusToken ?>" data-invitation-id="<?= $visitor['id'] ?>" class="visitor-row group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                            <tr data-visitor-status="<?= $statusToken ?>" data-invitation-id="<?= $visitor['id'] ?>" data-company="<?= esc(strtolower($visitor['company'])) ?>" data-date="<?= esc($visitor['date_raw']) ?>" class="visitor-row group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="flex items-center gap-3">
                                         <?php if ($visitor['hasImage']): ?>
@@ -920,7 +923,8 @@ function updateTrafficGraph() {
         if (!d.success) return;
         const c = document.getElementById('traffic-chart'), l = document.getElementById('traffic-x-labels');
         c.querySelectorAll('.traffic-bar-container').forEach(e => e.remove()); l.innerHTML = '';
-        const m = Math.max(1, ...d.data.map(x => x.count));
+        const rawMax = Math.max(0, ...d.data.map(x => x.count));
+        const m = getNiceScale(rawMax);
         d.data.forEach(x => {
             const p = (x.count / m) * 100, cn = document.createElement('div');
             cn.className = 'flex-1 flex flex-col items-center justify-end h-full gap-1 group cursor-pointer traffic-bar-container';
@@ -945,7 +949,9 @@ function initVisitorStatusTabs() {
     const rows = Array.from(document.querySelectorAll('#visitors-table-body .visitor-row'));
     const showingRange = document.getElementById('visitors-showing-range');
     const totalCount = document.getElementById('visitors-total-count');
-    if (!tabButtons.length || !rows.length || !showingRange || !totalCount) return;
+    if (!tabButtons.length || !showingRange || !totalCount) return;
+
+    let currentTab = 'all';
 
     const updateTabStyles = (activeTab) => {
         tabButtons.forEach((btn) => {
@@ -975,38 +981,95 @@ function initVisitorStatusTabs() {
     };
 
     const applyFilter = (activeTab) => {
-        const tabTotal = activeTab === 'all'
+        if (activeTab !== undefined) currentTab = activeTab;
+
+        const companyVal = (document.getElementById('visitor-company-filter')?.value || '').toLowerCase();
+        const dateFrom = document.getElementById('visitor-date-from')?.value || '';
+        const dateTo = document.getElementById('visitor-date-to')?.value || '';
+
+        const tabTotal = currentTab === 'all'
             ? rows.length
-            : rows.filter((row) => row.dataset.visitorStatus === activeTab).length;
+            : rows.filter((row) => row.dataset.visitorStatus === currentTab).length;
 
         let visibleCount = 0;
         rows.forEach((row) => {
-            const shouldShow = activeTab === 'all' || row.dataset.visitorStatus === activeTab;
+            const tabMatch = currentTab === 'all' || row.dataset.visitorStatus === currentTab;
+            const companyMatch = !companyVal || row.dataset.company === companyVal;
+            let dateMatch = true;
+            if (dateFrom || dateTo) {
+                const rowDate = new Date(row.dataset.date);
+                if (dateFrom && rowDate < new Date(dateFrom)) dateMatch = false;
+                if (dateTo && rowDate > new Date(dateTo)) dateMatch = false;
+            }
+            const shouldShow = tabMatch && companyMatch && dateMatch;
             row.style.display = shouldShow ? '' : 'none';
             if (shouldShow) visibleCount++;
         });
 
+        const noDataRow = document.getElementById('no-data-row');
+        if (noDataRow) noDataRow.style.display = visibleCount === 0 ? '' : 'none';
+
         showingRange.textContent = visibleCount > 0 ? `1-${visibleCount}` : '0-0';
         totalCount.textContent = String(tabTotal);
-        updateTabStyles(activeTab);
+        updateTabStyles(currentTab);
     };
+
+    window.applyVisitorFilters = () => applyFilter();
 
     tabButtons.forEach((btn) => {
         btn.addEventListener('click', () => applyFilter(btn.dataset.visitorTab || 'all'));
     });
 }
 
-function renderYAxis(m) {
+function exportVisitors() {
+    const rows = Array.from(document.querySelectorAll('#visitors-table-body .visitor-row'))
+        .filter(r => r.style.display !== 'none');
+    const headers = ['Visitor Name', 'Contact', 'Company', 'Host', 'Time', 'Status'];
+    const csvRows = [headers.join(',')];
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const name = cells[0]?.querySelectorAll('p')[0]?.textContent?.trim() || '';
+        const contact = cells[0]?.querySelectorAll('p')[1]?.textContent?.trim() || '';
+        const company = cells[1]?.textContent?.trim() || '';
+        const host = cells[2]?.textContent?.trim() || '';
+        const time = cells[3]?.textContent?.trim() || '';
+        const status = cells[4]?.querySelector('[data-status-badge]')?.textContent?.trim().replace(/\s+/g, ' ') || '';
+        csvRows.push([name, contact, company, host, time, status].map(v => `"${v.replace(/"/g, '""')}"`).join(','));
+    });
+    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'visitors_' + new Date().toISOString().slice(0, 10) + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+}
+
+function getNiceScale(rawMax) {
+    if (rawMax <= 4) return 4;
+    const rough = rawMax / 4;
+    const exp = Math.floor(Math.log10(rough));
+    const pow = Math.pow(10, exp);
+    const norm = rough / pow;
+    let step = norm <= 1 ? pow : norm <= 2 ? 2 * pow : norm <= 5 ? 5 * pow : 10 * pow;
+    while (step * 4 < rawMax) step *= 2;
+    return step * 4;
+}
+
+function renderYAxis(scale) {
     const y = document.getElementById('traffic-y-axis'); if (!y) return; y.innerHTML = '';
-    for (let i = 4; i >= 0; i--) { const s = document.createElement('span'); s.textContent = Math.round((m / 4) * i); y.appendChild(s); }
+    const step = scale / 4;
+    for (let i = 4; i >= 0; i--) { const s = document.createElement('span'); s.textContent = step * i; y.appendChild(s); }
 }
 
 document.addEventListener('DOMContentLoaded', function () {
     initCriticalAlerts();
     initVisitorStatusTabs();
-    const bars = document.querySelectorAll('.traffic-bar-container'); let mx = 1;
-    bars.forEach(b => { const c = parseInt(b.dataset.count || 0); if (c > mx) mx = c; }); renderYAxis(mx);
-    setTimeout(() => { bars.forEach(b => { const bar = b.querySelector('div'), c = parseInt(b.dataset.count || 0), p = mx > 0 ? (c / mx) * 100 : 0; if (bar) bar.style.height = Math.max(p, c > 0 ? 3 : 0) + '%'; }); }, 100);
+    const bars = document.querySelectorAll('.traffic-bar-container'); let rawMx = 0;
+    bars.forEach(b => { const c = parseInt(b.dataset.count || 0); if (c > rawMx) rawMx = c; });
+    const mx = getNiceScale(rawMx); renderYAxis(mx);
+    setTimeout(() => { bars.forEach(b => { const bar = b.querySelector('div'), c = parseInt(b.dataset.count || 0), p = (c / mx) * 100; if (bar) bar.style.height = Math.max(p, c > 0 ? 3 : 0) + '%'; }); }, 100);
 });
 
 /* ========== MODAL SYSTEM ========== */

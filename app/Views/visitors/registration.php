@@ -2,6 +2,7 @@
 $formConfig = $formConfig ?? [];
 $customFormFields = $customFormFields ?? [];
 $customFormValues = $customFormValues ?? [];
+$prefillData = $prefillData ?? ($invitation ?? []);
 $workflow_step = $workflow_step ?? null;
 $flow_next_url = $flow_next_url ?? null;
 $isFieldEnabled = static function (string $field) use ($formConfig): bool {
@@ -448,21 +449,21 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Resident <span class="text-red-500">*</span></label>
                             <select name="resident" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" required>
                                 <option value="">Select...</option>
-                                <option value="LOCAL">LOCAL</option>
-                                <option value="FOREIGN">FOREIGN</option>
+                                <option value="LOCAL" <?= (($prefillData['resident'] ?? '') === 'LOCAL') ? 'selected' : '' ?>>LOCAL</option>
+                                <option value="FOREIGN" <?= (($prefillData['resident'] ?? '') === 'FOREIGN') ? 'selected' : '' ?>>FOREIGN</option>
                             </select>
                         </div>
                         <?php endif; ?>
                         <?php if ($isFieldEnabled('ic_number')): ?>
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">IC Number <span class="text-red-500">*</span></label>
-                            <input name="ic_number" value="<?= esc($invitation['ic_passport'] ?? '') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="Enter IC / Passport Number" type="text" required/>
+                            <input name="ic_number" value="<?= esc($prefillData['ic_passport'] ?? '') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="Enter IC / Passport Number" type="text" required/>
                         </div>
                         <?php endif; ?>
                         <?php if ($isFieldEnabled('date_of_birth')): ?>
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Date of Birth <span class="text-red-500">*</span></label>
-                            <input name="date_of_birth" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="date" required/>
+                            <input name="date_of_birth" value="<?= esc($prefillData['date_of_birth'] ?? '') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="date" required/>
                         </div>
                         <?php endif; ?>
                         <?php if ($isFieldEnabled('sex')): ?>
@@ -470,28 +471,28 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Sex <span class="text-red-500">*</span></label>
                             <select name="sex" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" required>
                                 <option value="">Select...</option>
-                                <option value="MALE">MALE</option>
-                                <option value="FEMALE">FEMALE</option>
+                                <option value="MALE" <?= (($prefillData['sex'] ?? '') === 'MALE') ? 'selected' : '' ?>>MALE</option>
+                                <option value="FEMALE" <?= (($prefillData['sex'] ?? '') === 'FEMALE') ? 'selected' : '' ?>>FEMALE</option>
                             </select>
                         </div>
                         <?php endif; ?>
                         <?php if ($isFieldEnabled('full_name')): ?>
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Full Name <span class="text-red-500">*</span></label>
-                            <input name="full_name" value="<?= esc($invitation['full_name'] ?? '') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="Full name as per ID" type="text" required/>
+                            <input name="full_name" value="<?= esc($prefillData['full_name'] ?? '') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="Full name as per ID" type="text" required/>
                         </div>
                         <?php endif; ?>
                         <?php if ($isFieldEnabled('contact_number')): ?>
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Contact Number <span class="text-red-500">*</span></label>
-                            <input name="contact_number" value="<?= esc($invitation['contact'] ?? '') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="+60 1x-xxx xxxx" type="tel" required/>
+                            <input name="contact_number" value="<?= esc($prefillData['contact'] ?? '') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="+60 1x-xxx xxxx" type="tel" required/>
                         </div>
                         <?php endif; ?>
                         <?php if ($isFieldEnabled('email')): ?>
                         <div class="md:col-span-2 space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Email Address <span class="text-red-500">*</span></label>
                             <div class="flex flex-col sm:flex-row gap-3">
-                                <input id="visitorEmail" name="email" value="<?= esc($invitation['visitor_email'] ?? '') ?>" class="flex-1 h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="visitor@example.com" type="email" required/>
+                                <input id="visitorEmail" name="email" value="<?= esc($prefillData['visitor_email'] ?? '') ?>" class="flex-1 h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="visitor@example.com" type="email" required/>
                                 <button id="updateEmailBtn" class="h-12 px-6 bg-primary hover:bg-primary-hover text-white font-medium rounded-lg transition-colors whitespace-nowrap shadow-sm font-brand" type="button">
                                     Update Email
                                 </button>
@@ -501,19 +502,19 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
                         <?php if ($isFieldEnabled('address_1')): ?>
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Address 1</label>
-                            <input name="address_1" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
+                            <input name="address_1" value="<?= esc($prefillData['address_1'] ?? '') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
                         </div>
                         <?php endif; ?>
                         <?php if ($isFieldEnabled('address_2')): ?>
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Address 2</label>
-                            <input name="address_2" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
+                            <input name="address_2" value="<?= esc($prefillData['address_2'] ?? '') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
                         </div>
                         <?php endif; ?>
                         <?php if ($isFieldEnabled('address_3')): ?>
                         <div class="md:col-span-2 space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Address 3</label>
-                            <input name="address_3" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
+                            <input name="address_3" value="<?= esc($prefillData['address_3'] ?? '') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
                         </div>
                         <?php endif; ?>
                         <?php if ($isFieldEnabled('city')): ?>
@@ -523,7 +524,7 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
                                 <option value="">SELECT</option>
                                 <?php if (isset($cities) && is_array($cities)): ?>
                                     <?php foreach ($cities as $city): ?>
-                                        <option value="<?= esc($city['id']) ?>" data-state-id="<?= esc($city['state_id']) ?>"><?= esc($city['name']) ?></option>
+                                        <option value="<?= esc($city['id']) ?>" data-state-id="<?= esc($city['state_id']) ?>" <?= ((string) ($prefillData['city'] ?? '') === (string) $city['id']) ? 'selected' : '' ?>><?= esc($city['name']) ?></option>
                                     <?php endforeach; ?>
                                 <?php endif; ?>
                             </select>
@@ -536,7 +537,7 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
                                 <option value="">SELECT</option>
                                 <?php if (isset($states) && is_array($states)): ?>
                                     <?php foreach ($states as $state): ?>
-                                        <option value="<?= esc($state['id']) ?>" data-country-id="<?= esc($state['country_id']) ?>"><?= esc($state['name']) ?></option>
+                                        <option value="<?= esc($state['id']) ?>" data-country-id="<?= esc($state['country_id']) ?>" <?= ((string) ($prefillData['state'] ?? '') === (string) $state['id']) ? 'selected' : '' ?>><?= esc($state['name']) ?></option>
                                     <?php endforeach; ?>
                                 <?php endif; ?>
                             </select>
@@ -545,7 +546,7 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
                         <?php if ($isFieldEnabled('postal_code')): ?>
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Postal Code</label>
-                            <input name="postal_code" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
+                            <input name="postal_code" value="<?= esc($prefillData['postcode'] ?? '') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
                         </div>
                         <?php endif; ?>
                         <?php if ($isFieldEnabled('country')): ?>
@@ -555,7 +556,7 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
                                 <option value="">SELECT</option>
                                 <?php if (isset($countries) && is_array($countries)): ?>
                                     <?php foreach ($countries as $country): ?>
-                                        <option value="<?= esc($country['id']) ?>"><?= esc($country['name']) ?></option>
+                                        <option value="<?= esc($country['id']) ?>" <?= ((string) ($prefillData['country'] ?? '') === (string) $country['id']) ? 'selected' : '' ?>><?= esc($country['name']) ?></option>
                                     <?php endforeach; ?>
                                 <?php endif; ?>
                             </select>

@@ -33,6 +33,10 @@ class InvitationList extends BaseController
 
     public function index()
     {
+        $page    = max(1, (int) ($this->request->getGet('page') ?? 1));
+        $perPage = (int) ($this->request->getGet('per_page') ?? 10);
+        if (! in_array($perPage, [10, 25, 50], true)) {
+            $perPage = 10;
         $page = (int) ($this->request->getGet('page') ?? 1);
         $search = $this->request->getGet('search') ?? '';
         $status = $this->request->getGet('status') ?? '';
@@ -70,53 +74,203 @@ class InvitationList extends BaseController
                 'registration_link' => base_url('visitor-registration?token=' . base64_encode((string) $invitation['id'])),
             ];
         }
-        
-        // Calculate stats
+
+        $filters = $this->parseInvitationFilters();
+        $result  = $this->buildInvitationsResult($filters, $page, $perPage);
+
         $stats = [
-            'total' => $result['total'],
-            'pending' => $this->invitationModel->where('status', 'Pending')->countAllResults(),
+            'total'     => $this->invitationModel->countAll(),
+            'pending'   => $this->invitationModel->where('status', 'Pending')->countAllResults(),
             'submitted' => $this->invitationModel->where('status', 'Submitted')->countAllResults(),
-            'approved' => $this->invitationModel->where('status', 'Approved')->countAllResults(),
-            'rejected' => $this->invitationModel->where('status', 'Rejected')->countAllResults()
+            'approved'  => $this->invitationModel->where('status', 'Approved')->countAllResults(),
+            'rejected'  => $this->invitationModel->where('status', 'Rejected')->countAllResults(),
         ];
 
-        $data = [
-            'pageTitle' => 'Invitation List - SafeG',
-            'stats' => $stats,
-            'invitations' => $invitations,
-            'pagination' => [
-                'current_page' => $result['current_page'],
-                'last_page' => $result['last_page'],
-                'total' => $result['total']
-            ]
-        ];
+        $db = \Config\Database::connect();
+        $reasonList = array_column(
+            $db->query("SELECT DISTINCT reason FROM invitations WHERE reason IS NOT NULL AND reason != '' ORDER BY reason ASC")->getResultArray(),
+            'reason'
+        );
+        $locationList = array_column(
+            $db->query("SELECT DISTINCT location FROM invitations WHERE location IS NOT NULL AND location != '' ORDER BY location ASC")->getResultArray(),
+            'location'
+        );
 
-        return view('invitations/list', $data);
+        return view('invitations/list', [
+            'pageTitle'    => 'Invitation List - SafeG',
+            'stats'        => $stats,
+            'invitations'  => $result['invitations'],
+            'filters'      => array_merge($filters, ['per_page' => $perPage]),
+            'reasonList'   => $reasonList,
+            'locationList' => $locationList,
+            'pagination'   => $result['pagination'],
+        ]);
     }
 
-    public function export()
+    public function data()
     {
-        $search = trim((string) ($this->request->getGet('search') ?? ''));
-        $status = trim((string) ($this->request->getGet('status') ?? ''));
+        $page    = max(1, (int) ($this->request->getGet('page') ?? 1));
+        $perPage = (int) ($this->request->getGet('per_page') ?? 10);
+        if (! in_array($perPage, [10, 25, 50], true)) {
+            $perPage = 10;
+        }
+
+        $filters = $this->parseInvitationFilters();
+        $result  = $this->buildInvitationsResult($filters, $page, $perPage);
+
+        return $this->response->setJSON([
+            'success'     => true,
+            'invitations' => $result['invitations'],
+            'pagination'  => $result['pagination'],
+        ]);
+    }
+
+    private function parseInvitationFilters(): array
+    {
+        return [
+            'search'    => trim((string) ($this->request->getGet('search') ?? '')),
+            'status'    => trim((string) ($this->request->getGet('status') ?? '')),
+            'reason'    => trim((string) ($this->request->getGet('reason') ?? '')),
+            'location'  => trim((string) ($this->request->getGet('location') ?? '')),
+            'date_from' => trim((string) ($this->request->getGet('date_from') ?? '')),
+            'date_to'   => trim((string) ($this->request->getGet('date_to') ?? '')),
+            'sort'      => trim((string) ($this->request->getGet('sort') ?? 'date_desc')),
+        ];
+    }
+
+    private function buildInvitationsResult(array $filters, int $page, int $perPage): array
+    {
+        $sortMap = [
+            'date_desc' => ['created_at', 'DESC'],
+            'date_asc'  => ['created_at', 'ASC'],
+            'name_asc'  => ['full_name',  'ASC'],
+            'name_desc' => ['full_name',  'DESC'],
+        ];
+        [$sortField, $sortOrder] = $sortMap[$filters['sort']] ?? $sortMap['date_desc'];
 
         $builder = $this->invitationModel->builder();
+        $this->applyInvitationFilters($builder, $filters);
 
-        if ($search !== '') {
+        $total  = $builder->countAllResults(false);
+        $offset = ($page - 1) * $perPage;
+        $rows   = $builder->orderBy($sortField, $sortOrder)->limit($perPage, $offset)->get()->getResultArray();
+
+        $ids = array_map('intval', array_column($rows, 'id'));
+        $firstScheduleByInvitation = [];
+        if ($ids !== []) {
+            $schedules = $this->scheduleModel->whereIn('invitation_id', $ids)->orderBy('date_from', 'ASC')->findAll();
+            foreach ($schedules as $sch) {
+                $iid = (int) $sch['invitation_id'];
+                if (! isset($firstScheduleByInvitation[$iid])) {
+                    $firstScheduleByInvitation[$iid] = $sch;
+                }
+            }
+        }
+
+        $invitations = [];
+        foreach ($rows as $index => $row) {
+            $schedule   = $firstScheduleByInvitation[(int) $row['id']] ?? null;
+            $linkExpiry = $row['link_expiry'] ?? null;
+            $invitations[] = [
+                'id'                => $row['id'],
+                'no'                => ($page - 1) * $perPage + $index + 1,
+                'date'              => $schedule ? date('d/m/Y', strtotime($schedule['date_from'])) : (! empty($row['created_at']) ? date('d/m/Y', strtotime((string) $row['created_at'])) : '-'),
+                'visit_from'        => $schedule ? date('d/m/Y H:i', strtotime((string) $schedule['date_from'])) : '-',
+                'visit_to'          => $schedule ? date('d/m/Y H:i', strtotime((string) $schedule['date_to'])) : '-',
+                'full_name'         => $row['full_name'],
+                'ic_passport'       => $row['ic_passport'],
+                'contact'           => $row['contact'],
+                'visitor_email'     => $row['visitor_email'] ?? '',
+                'vehicle_reg'       => $row['vehicle_registration'] ?: '',
+                'location'          => $row['location'] ?: '-',
+                'company'           => $row['company'] ?: '-',
+                'invited_by'        => $row['invited_by'] ?: '-',
+                'status'            => $row['status'],
+                'reason'            => $row['reason'] === 'OTHER' ? ($row['other_reason'] ?: 'OTHER') : $row['reason'],
+                'link_expiry'       => $linkExpiry ? date('d/m/Y', strtotime((string) $linkExpiry)) : '-',
+                'visitor_count'     => 1,
+                'registration_link' => base_url('visitor-registration?token=' . base64_encode((string) $row['id'])),
+            ];
+        }
+
+        return [
+            'invitations' => $invitations,
+            'pagination'  => [
+                'current_page' => $page,
+                'last_page'    => max(1, (int) ceil($total / $perPage)),
+                'total'        => $total,
+                'per_page'     => $perPage,
+            ],
+        ];
+    }
+
+    private function applyInvitationFilters($builder, array $filters): void
+    {
+        if ($filters['search'] !== '') {
             $builder->groupStart()
-                ->like('full_name', $search)
-                ->orLike('ic_passport', $search)
-                ->orLike('contact', $search)
-                ->orLike('company', $search)
-                ->orLike('reason', $search)
+                ->like('full_name', $filters['search'])
+                ->orLike('ic_passport', $filters['search'])
+                ->orLike('contact', $filters['search'])
+                ->orLike('company', $filters['search'])
+                ->orLike('vehicle_registration', $filters['search'])
+                ->orLike('location', $filters['search'])
+                ->orLike('invited_by', $filters['search'])
+                ->orLike('status', $filters['search'])
+                ->orLike('reason', $filters['search'])
+                ->orLike('other_reason', $filters['search'])
+                ->orLike('visitor_email', $filters['search'])
+                ->orLike('staff_id', $filters['search'])
+                ->orLike('host_contact', $filters['search'])
                 ->groupEnd();
         }
 
         $allowedStatuses = ['Pending', 'Submitted', 'Approved', 'Rejected'];
-        if ($status !== '' && in_array($status, $allowedStatuses, true)) {
-            $builder->where('status', $status);
+        if ($filters['status'] !== '' && in_array($filters['status'], $allowedStatuses, true)) {
+            $builder->where('status', $filters['status']);
         }
 
-        $rows = $builder->orderBy('created_at', 'DESC')->get()->getResultArray();
+        if ($filters['reason'] !== '') {
+            $builder->where('reason', $filters['reason']);
+        }
+
+        if ($filters['location'] !== '') {
+            $builder->where('location', $filters['location']);
+        }
+
+        if ($filters['date_from'] !== '') {
+            $builder->where('DATE(created_at) >=', $filters['date_from']);
+        }
+
+        if ($filters['date_to'] !== '') {
+            $builder->where('DATE(created_at) <=', $filters['date_to']);
+        }
+    }
+
+    public function export()
+    {
+        $filters = [
+            'search'    => trim((string) ($this->request->getGet('search') ?? '')),
+            'status'    => trim((string) ($this->request->getGet('status') ?? '')),
+            'reason'    => trim((string) ($this->request->getGet('reason') ?? '')),
+            'location'  => trim((string) ($this->request->getGet('location') ?? '')),
+            'date_from' => trim((string) ($this->request->getGet('date_from') ?? '')),
+            'date_to'   => trim((string) ($this->request->getGet('date_to') ?? '')),
+            'sort'      => trim((string) ($this->request->getGet('sort') ?? 'date_desc')),
+            'per_page'  => 10,
+        ];
+
+        $sortMap = [
+            'date_desc' => ['created_at', 'DESC'],
+            'date_asc'  => ['created_at', 'ASC'],
+            'name_asc'  => ['full_name',  'ASC'],
+            'name_desc' => ['full_name',  'DESC'],
+        ];
+        [$sortField, $sortOrder] = $sortMap[$filters['sort']] ?? $sortMap['date_desc'];
+
+        $builder = $this->invitationModel->builder();
+        $this->applyInvitationFilters($builder, $filters);
+
+        $rows = $builder->orderBy($sortField, $sortOrder)->get()->getResultArray();
         $ids = array_map('intval', array_column($rows, 'id'));
 
         $firstScheduleByInvitation = [];

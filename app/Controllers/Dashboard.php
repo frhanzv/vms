@@ -165,13 +165,25 @@ class Dashboard extends BaseController
                 }
             }
             
+            if (!empty($visitor['check_out_time'])) {
+                $timeDisplay = date('M d, h:i A', strtotime($visitor['check_out_time']));
+                $dateRaw = $visitor['check_out_time'];
+            } elseif (!empty($visitor['check_in_time'])) {
+                $timeDisplay = date('M d, h:i A', strtotime($visitor['check_in_time']));
+                $dateRaw = $visitor['check_in_time'];
+            } else {
+                $timeDisplay = date('h:i A', strtotime($visitor['date_from']));
+                $dateRaw = $visitor['date_from'];
+            }
+
             $visitors[] = [
                 'id' => $visitor['id'] ?? 0,
                 'name' => $visitor['full_name'] ?? 'N/A',
                 'contact' => $visitor['contact'] ?? '',
                 'company' => $visitor['company'] ?? 'N/A',
                 'host' => $visitor['host_name'] ?? 'N/A',
-                'time' => date('h:i A', strtotime($visitor['date_from'])),
+                'time' => $timeDisplay,
+                'date_raw' => $dateRaw,
                 'status' => $status,
                 'statusClass' => $statusClass,
                 'hasImage' => false,
@@ -181,12 +193,18 @@ class Dashboard extends BaseController
         
         // Build occupancy chart data from real check-in times today
         $occupancySlots = [
+            '12am' => ['hour_start' => 0,  'hour_end' => 2,  'count' => 0],
+            '2am'  => ['hour_start' => 2,  'hour_end' => 4,  'count' => 0],
+            '4am'  => ['hour_start' => 4,  'hour_end' => 6,  'count' => 0],
+            '6am'  => ['hour_start' => 6,  'hour_end' => 8,  'count' => 0],
             '8am'  => ['hour_start' => 8,  'hour_end' => 10, 'count' => 0],
             '10am' => ['hour_start' => 10, 'hour_end' => 12, 'count' => 0],
             '12pm' => ['hour_start' => 12, 'hour_end' => 14, 'count' => 0],
             '2pm'  => ['hour_start' => 14, 'hour_end' => 16, 'count' => 0],
             '4pm'  => ['hour_start' => 16, 'hour_end' => 18, 'count' => 0],
             '6pm'  => ['hour_start' => 18, 'hour_end' => 20, 'count' => 0],
+            '8pm'  => ['hour_start' => 20, 'hour_end' => 22, 'count' => 0],
+            '10pm' => ['hour_start' => 22, 'hour_end' => 24, 'count' => 0],
         ];
         
         $checkInsToday = $db->query(
@@ -384,17 +402,9 @@ class Dashboard extends BaseController
             ];
         }
         
-        // Get unique companies for filter
-        $companies = $db->query(
-            "SELECT DISTINCT i.company FROM invitations i
-             JOIN invitation_schedules s ON s.invitation_id = i.id
-             WHERE i.status = 'Approved'
-             AND i.company IS NOT NULL AND i.company != ''
-             AND DATE(s.date_from) <= ? AND DATE(s.date_to) >= ?
-             ORDER BY i.company ASC",
-            [$today, $today]
-        )->getResultArray();
-        $companyList = array_column($companies, 'company');
+        // Build company list from the already-loaded visitors so it always matches the table
+        $companyList = array_values(array_unique(array_filter(array_column($visitors, 'company'), fn($c) => $c && $c !== 'N/A')));
+        sort($companyList);
         
         // ===== NEW SECTIONS DATA =====
         $widgets = $this->getSecurityAlertWidgets($outOfWindow);
@@ -433,7 +443,7 @@ class Dashboard extends BaseController
             $onSiteVisitors[] = [
                 'name' => $v['visitor_name'] ?? 'N/A',
                 'host' => $v['host_name'] ?? 'N/A',
-                'check_in_time' => !empty($v['check_in_time']) ? date('h:i A', strtotime($v['check_in_time'])) : 'N/A',
+                'check_in_time' => !empty($v['check_in_time']) ? date('M d, Y h:i A', strtotime($v['check_in_time'])) : 'N/A',
                 'last_door_entry' => $v['last_door_entry'] ?? 'N/A',
             ];
         }
@@ -513,9 +523,9 @@ class Dashboard extends BaseController
                          ORDER BY hour ASC";
         $trafficData = $db->query($trafficQuery, [$today])->getResultArray();
         
-        // Build hourly data for chart (6am to 10pm)
+        // Build hourly data for chart (full 24 hours)
         $trafficHours = [];
-        for ($h = 6; $h <= 22; $h++) {
+        for ($h = 0; $h <= 23; $h++) {
             $found = false;
             foreach ($trafficData as $td) {
                 if ((int)$td['hour'] === $h) {
@@ -639,9 +649,9 @@ class Dashboard extends BaseController
                          ORDER BY date ASC, hour ASC";
         $trafficData = $db->query($trafficQuery, [$fromDate, $toDate])->getResultArray();
         
-        // Build hourly data for chart
+        // Build hourly data for chart (full 24 hours)
         $trafficHours = [];
-        for ($h = 6; $h <= 22; $h++) {
+        for ($h = 0; $h <= 23; $h++) {
             $totalCount = 0;
             foreach ($trafficData as $td) {
                 if ((int)$td['hour'] === $h) {

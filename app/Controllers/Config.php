@@ -3107,7 +3107,7 @@ class Config extends BaseController
     {
         $rules = [
             'name' => 'required|min_length[2]|max_length[255]|is_unique[visitor_types.name]',
-            'path' => 'permit_empty|max_length[500]',
+            'path' => 'permit_empty|max_length[255]',
         ];
 
         if (!$this->validate($rules)) {
@@ -3118,9 +3118,20 @@ class Config extends BaseController
             ]);
         }
 
+        $path = trim((string) ($this->request->getPost('path') ?? ''));
+        if (!$this->isValidVisitorTypePath($path)) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => [
+                    'path' => 'Please select a valid pathway from Pathway Config.',
+                ],
+            ]);
+        }
+
         $data = [
-            'name' => $this->request->getPost('name'),
-            'path' => $this->request->getPost('path') ?? '',
+            'name' => trim((string) $this->request->getPost('name')),
+            'path' => $path,
         ];
 
         if (!$this->visitorTypeModel->insert($data)) {
@@ -3153,7 +3164,7 @@ class Config extends BaseController
 
         $rules = [
             'name' => "required|min_length[2]|max_length[255]|is_unique[visitor_types.name,id,{$id}]",
-            'path' => 'permit_empty|max_length[500]',
+            'path' => 'permit_empty|max_length[255]',
         ];
 
         $validation = \Config\Services::validation();
@@ -3167,9 +3178,20 @@ class Config extends BaseController
             ]);
         }
 
+        $path = trim((string) ($input['path'] ?? ''));
+        if (!$this->isValidVisitorTypePath($path)) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => [
+                    'path' => 'Please select a valid pathway from Pathway Config.',
+                ],
+            ]);
+        }
+
         $data = [
-            'name' => $input['name'],
-            'path' => $input['path'] ?? '',
+            'name' => trim((string) ($input['name'] ?? '')),
+            'path' => $path,
         ];
 
         $this->visitorTypeModel->skipValidation(true);
@@ -3207,6 +3229,17 @@ class Config extends BaseController
             'success' => true,
             'message' => 'Visitor type deleted successfully',
         ]);
+    }
+
+    private function isValidVisitorTypePath(string $path): bool
+    {
+        if ($path === '') {
+            return true;
+        }
+
+        return $this->pathwayModel
+            ->where('name', $path)
+            ->countAllResults() > 0;
     }
 
     // ============== DEVICE ASSIGNMENTS METHODS ==============

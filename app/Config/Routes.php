@@ -268,6 +268,7 @@ $routes->post('settings/removePhoto', 'Settings::removePhoto');
 
 $routes->group('', ['filter' => $plusHost], function($routes) {
     $routes->get('invitations', 'InvitationList::index');
+    $routes->get('invitations/data', 'InvitationList::data');
     $routes->get('invitations/export', 'InvitationList::export');
     $routes->get('invitations/create', 'InvitationList::create');
     $routes->post('invitations/store', 'InvitationList::store');
