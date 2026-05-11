@@ -134,7 +134,7 @@
                         <p class="text-xs text-blue-700 dark:text-blue-300"><?= esc($lp['demo_officer_text'] ?? 'Officer: officer / officer123') ?></p>
                     </div>
                     <div>
-                        <p class="text-xs text-blue-700 dark:text-blue-300"><?= esc($lp['demo_approver_text'] ?? 'Site admin (requests): approver / approver123') ?></p>
+                        <p class="text-xs text-blue-700 dark:text-blue-300"><?= esc($lp['demo_approver_text'] ?? 'GXO clientsuperadmin: gxoadmin / gxo123') ?></p>
                     </div>
                 </div>
             </div>
