@@ -4182,6 +4182,7 @@
                     </div>
                 </div>
 
+                <?php if (session()->get('role') === 'superadmin'): ?>
                 <!-- Client Features -->
                 <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('clientfeatures')"
@@ -4315,6 +4316,7 @@
                         </div>
                     </div>
                 </div>
+                <?php endif; ?>
 
             </div>
         </div>
@@ -5034,9 +5036,12 @@
         const REG_TYPE_PAGE_SIZE = 10;
 
         // Close modal on backdrop click
-        document.getElementById('regtype-modal').addEventListener('click', function (e) {
-            if (e.target === this) closeRegTypeModal();
-        });
+        const _regTypeBackdrop = document.getElementById('regtype-modal');
+        if (_regTypeBackdrop) {
+            _regTypeBackdrop.addEventListener('click', function (e) {
+                if (e.target === this) closeRegTypeModal();
+            });
+        }
 
         async function loadRegType() {
             try {
@@ -5075,9 +5080,12 @@
         }
 
         // Allow pressing Enter to search
-        document.getElementById('regtype-search-input').addEventListener('keydown', function (e) {
-            if (e.key === 'Enter') searchRegType();
-        });
+        const _regTypeSearchInput = document.getElementById('regtype-search-input');
+        if (_regTypeSearchInput) {
+            _regTypeSearchInput.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') searchRegType();
+            });
+        }
 
         function renderRegTypeTable() {
             const tbody = document.getElementById('regtype-table-body');

@@ -65,6 +65,13 @@ $isSettings = str_contains($current, 'settings');
                 <p class="text-sm font-medium">Visitor Workflow</p>
             </a>
 
+            <?php
+                $_role      = session()->get('role');
+                $_companyId = (int) session()->get('company_id');
+                $_showBlacklist = ($_role === 'superadmin')
+                    || (new \App\Models\ClientFeatureModel())->isEnabled($_companyId, 'blacklist');
+            ?>
+            <?php if ($_showBlacklist): ?>
             <div x-data="{ openBlacklist: <?= str_contains($current, 'blacklist') ? 'true' : 'false' ?>, openIndividual: <?= str_contains($current, 'blacklist') ? 'true' : 'false' ?> }">
                 <button type="button" @click="openBlacklist = !openBlacklist"
                     class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= str_contains($current, 'blacklist') ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
@@ -111,6 +118,7 @@ $isSettings = str_contains($current, 'settings');
                     </div>
                 </div>
             </div>
+            <?php endif; ?>
 
             <div x-data="{ openReport: <?= str_contains($current, 'report') ? 'true' : 'false' ?> }">
                 <button type="button" @click="openReport = !openReport"
