@@ -17,57 +17,77 @@ class ApiManagement extends BaseController
     private function ensureApiKeysTable(): void
     {
         $db = \Config\Database::connect();
-        if ($db->tableExists('api_keys')) {
+        if (! $db->tableExists('api_keys')) {
+            $forge = \Config\Database::forge();
+            $forge->addField([
+                'id' => [
+                    'type'           => 'INT',
+                    'constraint'     => 11,
+                    'unsigned'       => true,
+                    'auto_increment' => true,
+                ],
+                'name' => [
+                    'type'       => 'VARCHAR',
+                    'constraint' => 100,
+                    'null'       => false,
+                ],
+                'service' => [
+                    'type'       => 'VARCHAR',
+                    'constraint' => 100,
+                    'null'       => false,
+                ],
+                'api_key' => [
+                    'type' => 'TEXT',
+                    'null' => false,
+                ],
+                'description' => [
+                    'type' => 'TEXT',
+                    'null' => true,
+                ],
+                'status' => [
+                    'type'       => 'ENUM',
+                    'constraint' => ['active', 'inactive'],
+                    'default'    => 'active',
+                    'null'       => false,
+                ],
+                'last_used_at' => [
+                    'type' => 'DATETIME',
+                    'null' => true,
+                ],
+                'last_response_json' => [
+                    'type' => 'LONGTEXT',
+                    'null' => true,
+                ],
+                'created_at' => [
+                    'type' => 'DATETIME',
+                    'null' => true,
+                ],
+                'updated_at' => [
+                    'type' => 'DATETIME',
+                    'null' => true,
+                ],
+            ]);
+            $forge->addKey('id', true);
+            $forge->createTable('api_keys', true);
+
             return;
         }
 
-        $forge = \Config\Database::forge();
-        $forge->addField([
-            'id' => [
-                'type'           => 'INT',
-                'constraint'     => 11,
-                'unsigned'       => true,
-                'auto_increment' => true,
-            ],
-            'name' => [
-                'type'       => 'VARCHAR',
-                'constraint' => 100,
-                'null'       => false,
-            ],
-            'service' => [
-                'type'       => 'VARCHAR',
-                'constraint' => 100,
-                'null'       => false,
-            ],
-            'api_key' => [
-                'type' => 'TEXT',
-                'null' => false,
-            ],
-            'description' => [
-                'type' => 'TEXT',
-                'null' => true,
-            ],
-            'status' => [
-                'type'       => 'ENUM',
-                'constraint' => ['active', 'inactive'],
-                'default'    => 'active',
-                'null'       => false,
-            ],
-            'last_used_at' => [
-                'type' => 'DATETIME',
-                'null' => true,
-            ],
-            'created_at' => [
-                'type' => 'DATETIME',
-                'null' => true,
-            ],
-            'updated_at' => [
-                'type' => 'DATETIME',
+        $this->ensureLastResponseJsonColumn($db);
+    }
+
+    private function ensureLastResponseJsonColumn($db): void
+    {
+        if ($db->fieldExists('last_response_json', 'api_keys')) {
+            return;
+        }
+
+        \Config\Database::forge()->addColumn('api_keys', [
+            'last_response_json' => [
+                'type' => 'LONGTEXT',
                 'null' => true,
             ],
         ]);
-        $forge->addKey('id', true);
-        $forge->createTable('api_keys', true);
     }
 
     private function getRequestPayload(): array
@@ -148,7 +168,10 @@ class ApiManagement extends BaseController
         }
 
         $total = $builder->countAllResults(false);
-        $items = $builder->orderBy('created_at', 'DESC')->findAll($perPage, $offset);
+        $items = $builder
+            ->select('id, name, service, api_key, description, status, last_used_at, created_at, updated_at')
+            ->orderBy('created_at', 'DESC')
+            ->findAll($perPage, $offset);
 
         return $this->response->setJSON([
             'success' => true,
@@ -453,9 +476,8 @@ class ApiManagement extends BaseController
      * This answers the mentor's question:
      *   "if we received data, where do we put it?"
      *
-     * The response from the external API is returned to the frontend.
-     * The caller (JS) decides what to do with the data — e.g. display it,
-     * save it to VMS, pre-fill a form, etc.
+     * The response from the external API is returned to the frontend and
+     * persisted on the `api_keys.last_response_json` column (JSON text, capped size).
      */
     public function callExternalApi()
     {
@@ -529,20 +551,67 @@ class ApiManagement extends BaseController
             ]);
         }
 
-        // Update last_used_at
-        $this->apiKeyModel->update($id, ['last_used_at' => date('Y-m-d H:i:s')]);
-
         $statusCode = $resp->getStatusCode();
-        $body       = json_decode($resp->getBody(), true);
+        $rawBody    = (string) $resp->getBody();
+        $body       = json_decode($rawBody, true);
+
+        $storedJson = $this->encodeLastExternalApiResponse($statusCode, $rawBody);
+        $this->apiKeyModel->update($id, [
+            'last_used_at'        => date('Y-m-d H:i:s'),
+            'last_response_json'  => $storedJson,
+            'updated_at'          => date('Y-m-d H:i:s'),
+        ]);
 
         return $this->response->setJSON([
-            'success'     => $statusCode >= 200 && $statusCode < 300,
-            'status_code' => $statusCode,
-            'data'        => $body,
-            'message'     => $statusCode >= 200 && $statusCode < 300
+            'success'       => $statusCode >= 200 && $statusCode < 300,
+            'status_code'   => $statusCode,
+            'data'          => $body,
+            'saved_to_db'   => $storedJson !== null,
+            'message'       => $statusCode >= 200 && $statusCode < 300
                 ? 'Data retrieved successfully from ' . $entry['name']
                 : 'External API returned HTTP ' . $statusCode,
         ]);
+    }
+
+    /**
+     * Build JSON text for api_keys.last_response_json (wrapper + body or raw string).
+     */
+    private function encodeLastExternalApiResponse(int $httpStatus, string $rawBody): ?string
+    {
+        $decoded = json_decode($rawBody, true);
+        $useBody = json_last_error() === JSON_ERROR_NONE ? $decoded : $rawBody;
+
+        $payload = [
+            'fetched_at'   => date('c'),
+            'http_status'  => $httpStatus,
+            'body'         => $useBody,
+        ];
+
+        $flags = JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE;
+        $json  = json_encode($payload, $flags);
+        if ($json === false) {
+            $payload['body']          = null;
+            $payload['encode_error'] = json_last_error_msg();
+            $json                     = json_encode($payload, $flags);
+        }
+
+        $max = 4 * 1024 * 1024;
+        if ($json !== false && strlen($json) > $max) {
+            $payload['body'] = is_string($useBody)
+                ? (function_exists('mb_substr') ? mb_substr($useBody, 0, 50000) : substr($useBody, 0, 50000)) . '…[truncated]'
+                : ['_truncated' => true, 'note' => 'Decoded body exceeded storage limit'];
+            $json = json_encode($payload, $flags);
+            if ($json !== false && strlen($json) > $max) {
+                $json = json_encode([
+                    'fetched_at'  => $payload['fetched_at'],
+                    'http_status' => $httpStatus,
+                    'body'        => null,
+                    'note'        => 'Response too large to store completely',
+                ], $flags);
+            }
+        }
+
+        return $json === false ? null : $json;
     }
 
     // =========================================================================

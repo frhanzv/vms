@@ -224,6 +224,7 @@ $routes->get('config/getInvitationEmailTemplateSettings', 'Config::getInvitation
 $routes->post('config/saveInvitationEmailTemplateSettings', 'Config::saveInvitationEmailTemplateSettings');
 $routes->get('config/getEmailTemplates', 'Config::getEmailTemplates');
 $routes->get('config/getEmailTemplate/(:num)', 'Config::getEmailTemplate/$1');
+$routes->get('config/previewEmailTemplate/(:num)', 'Config::previewEmailTemplate/$1');
 $routes->post('config/createEmailTemplate', 'Config::createEmailTemplate');
 $routes->post('config/updateEmailTemplate/(:num)', 'Config::updateEmailTemplate/$1');
 $routes->post('config/createEmailTemplateFormField', 'Config::createEmailTemplateFormField');
@@ -525,6 +526,7 @@ $routes->group('config', ['filter' => $superadmins], function($routes) {
     $routes->post('saveInvitationEmailTemplateSettings', 'Config::saveInvitationEmailTemplateSettings');
     $routes->get('getEmailTemplates', 'Config::getEmailTemplates');
     $routes->get('getEmailTemplate/(:num)', 'Config::getEmailTemplate/$1');
+    $routes->get('previewEmailTemplate/(:num)', 'Config::previewEmailTemplate/$1');
     $routes->post('createEmailTemplate', 'Config::createEmailTemplate');
     $routes->post('updateEmailTemplate/(:num)', 'Config::updateEmailTemplate/$1');
     $routes->post('createEmailTemplateFormField', 'Config::createEmailTemplateFormField');

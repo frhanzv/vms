@@ -24,6 +24,7 @@ class ApiKeyModel extends Model
         'description',
         'status',
         'last_used_at',
+        'last_response_json',
         'created_at',
         'updated_at',
     ];

@@ -67,8 +67,16 @@
                 <?php if (!empty($schedules)): ?>
                 <h4>Visit Schedule(s):</h4>
                 <?php foreach ($schedules as $schedule): ?>
-                <p>📅 <strong>From:</strong> <?= date('d/m/Y H:i', strtotime($schedule['date_from'])) ?>
-                   <strong>To:</strong> <?= date('d/m/Y H:i', strtotime($schedule['date_to'])) ?></p>
+                <?php
+                    $fromRaw = (string) ($schedule['date_from'] ?? '');
+                    $toRaw   = (string) ($schedule['date_to'] ?? '');
+                    $fromTs  = strtotime($fromRaw);
+                    $toTs    = strtotime($toRaw);
+                    $fromDisp = $fromTs ? date('d/m/Y H:i', $fromTs) : $fromRaw;
+                    $toDisp   = $toTs ? date('d/m/Y H:i', $toTs) : $toRaw;
+                ?>
+                <p>📅 <strong>From:</strong> <?= esc($fromDisp) ?>
+                   <strong>To:</strong> <?= esc($toDisp) ?></p>
                 <?php endforeach; ?>
                 <?php endif; ?>
             </div>

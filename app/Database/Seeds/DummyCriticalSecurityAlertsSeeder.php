@@ -9,8 +9,9 @@ use CodeIgniter\Database\Seeder;
  *
  * Run: php spark db:seed DummyCriticalSecurityAlertsSeeder
  *
- * - Empty DB: inserts 3 unacknowledged critical alerts.
- * - Already has older dummy rows (no V3 marker): inserts only the third scenario.
+ * - Empty DB: inserts 4 unacknowledged critical alerts.
+ * - Already has older dummy rows (no V3 marker): inserts only V3.
+ * - Has V3 but no V4 marker: inserts only V4.
  *
  * Remove: DELETE FROM security_alerts WHERE description LIKE '%DEMO_CRITICAL_ALERT_SEED%';
  */
@@ -48,7 +49,11 @@ class DummyCriticalSecurityAlertsSeeder extends Seeder
             ->like('description', 'DEMO_CRITICAL_ALERT_SEED_V3')
             ->countAllResults() > 0;
 
-        $allThree = [
+        $v4Exists = $db->table('security_alerts')
+            ->like('description', 'DEMO_CRITICAL_ALERT_SEED_V4')
+            ->countAllResults() > 0;
+
+        $allFour = [
             $this->baseRow(
                 'DEMO_CRITICAL_ALERT_SEED_V1 Inactive card presented: visitor pass status is inactive/revoked while invitation INV-2026-DEMO-01 is still on file. Tap rejected at reader.',
                 [
@@ -73,22 +78,37 @@ class DummyCriticalSecurityAlertsSeeder extends Seeder
                     'visitor_name'  => 'Demo Visitor — Reader Retry',
                 ]
             ),
+            $this->baseRow(
+                'DEMO_CRITICAL_ALERT_SEED_V4 Credential matched active blacklist entry; reader held door and notified security. Photo capture queued for review.',
+                [
+                    'incident_type' => 'Blacklist Match — Reader Hold',
+                    'location'      => 'Executive Lobby — Reader 04',
+                    'visitor_name'  => 'Demo Visitor — Blacklist Probe',
+                ]
+            ),
         ];
 
         if ($broadCount === 0) {
-            $db->table('security_alerts')->insertBatch($allThree);
-            echo 'Inserted ' . count($allThree) . " dummy critical security alert(s). Refresh the dashboard.\n";
+            $db->table('security_alerts')->insertBatch($allFour);
+            echo 'Inserted ' . count($allFour) . " dummy critical security alert(s). Refresh the dashboard.\n";
 
             return;
         }
 
         if (! $v3Exists) {
-            $db->table('security_alerts')->insert($allThree[2]);
+            $db->table('security_alerts')->insert($allFour[2]);
             echo "Inserted 1 new dummy critical alert (V3). Refresh the dashboard.\n";
 
             return;
         }
 
-        echo "Dummy alerts already include V3. Nothing to insert.\n";
+        if (! $v4Exists) {
+            $db->table('security_alerts')->insert($allFour[3]);
+            echo "Inserted 1 new dummy critical alert (V4). Refresh the dashboard.\n";
+
+            return;
+        }
+
+        echo "Dummy alerts already include V4. Nothing to insert.\n";
     }
 }

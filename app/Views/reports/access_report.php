@@ -170,7 +170,7 @@
                     <div>
                         <p class="text-xs font-semibold uppercase tracking-widest text-primary mb-1">Reports</p>
                         <h1 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white mb-2">Access Logs Report</h1>
-                        <p class="text-slate-500 dark:text-slate-400 text-base font-medium">Staff Access History</p>
+                        <p class="text-slate-500 dark:text-slate-400 text-base font-medium">Visitor Access History</p>
                     </div>
                 </div>
 
