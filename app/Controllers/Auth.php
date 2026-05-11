@@ -26,6 +26,7 @@ class Auth extends BaseController
             'demo_host_text' => 'Host: host / host123',
             'demo_officer_text' => 'Officer: officer / officer123',
             'demo_approver_text' => 'Site admin (requests): approver / approver123',
+            'demo_gxo_text' => 'GXO Clientsuperadmin: gxoadmin / gxo123',
             'contact_prompt' => "Don't have an account?",
             'contact_link_text' => 'Contact Administrator',
             'footer_text' => 'SafeG Visitor Management System.',
@@ -93,15 +94,16 @@ class Auth extends BaseController
         if ($user) {
             // Set session data
             $sessionData = [
-                'user_id' => $user['id'],
-                'staff_id' => $user['staff_id'],
-                'username' => $user['username'],
-                'email' => $user['email'],
+                'user_id'    => $user['id'],
+                'company_id' => $user['company_id'],
+                'staff_id'   => $user['staff_id'],
+                'username'   => $user['username'],
+                'email'      => $user['email'],
                 'contact_no' => $user['contact_no'],
-                'full_name' => $user['full_name'],
-                'role' => $user['role'],
+                'full_name'  => $user['full_name'],
+                'role'       => $user['role'],
                 'isLoggedIn' => true,
-                'loginTime' => time()
+                'loginTime'  => time()
             ];
             session()->set($sessionData);
 

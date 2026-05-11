@@ -136,6 +136,9 @@
                     <div>
                         <p class="text-xs text-blue-700 dark:text-blue-300"><?= esc($lp['demo_approver_text'] ?? 'Site admin (requests): approver / approver123') ?></p>
                     </div>
+                    <div>
+                        <p class="text-xs text-blue-700 dark:text-blue-300"><?= esc($lp['demo_gxo_text'] ?? 'GXO Clientsuperadmin: gxoadmin / gxo123') ?></p>
+                    </div>
                 </div>
             </div>
 

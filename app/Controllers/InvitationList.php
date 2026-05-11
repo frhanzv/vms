@@ -37,6 +37,42 @@ class InvitationList extends BaseController
         $perPage = (int) ($this->request->getGet('per_page') ?? 10);
         if (! in_array($perPage, [10, 25, 50], true)) {
             $perPage = 10;
+        $page = (int) ($this->request->getGet('page') ?? 1);
+        $search = $this->request->getGet('search') ?? '';
+        $status = $this->request->getGet('status') ?? '';
+        
+        // Get invitations with pagination
+        $result = $this->invitationModel->getInvitationsWithPagination($page, 10, $search);
+        
+        // Format the data for display
+        $invitations = [];
+        foreach ($result['data'] as $index => $invitation) {
+            // Get the first schedule for display
+            $schedule = $this->scheduleModel->where('invitation_id', $invitation['id'])
+                                          ->orderBy('date_from', 'ASC')
+                                          ->first();
+            
+            $linkExpiry = $invitation['link_expiry'] ?? null;
+            $invitations[] = [
+                'id' => $invitation['id'],  // Add the ID for resending emails
+                'no' => ($page - 1) * 10 + $index + 1,
+                'date' => $schedule ? date('d/m/Y', strtotime($schedule['date_from'])) : (!empty($invitation['created_at']) ? date('d/m/Y', strtotime((string) $invitation['created_at'])) : '-'),
+                'visit_from' => $schedule ? date('d/m/Y H:i', strtotime((string) $schedule['date_from'])) : '-',
+                'visit_to' => $schedule ? date('d/m/Y H:i', strtotime((string) $schedule['date_to'])) : '-',
+                'full_name' => $invitation['full_name'],
+                'ic_passport' => $invitation['ic_passport'],
+                'contact' => $invitation['contact'],
+                'visitor_email' => $invitation['visitor_email'] ?? '',
+                'vehicle_reg' => $invitation['vehicle_registration'] ?: '',
+                'location' => $invitation['location'] ?: '-',
+                'company' => $invitation['company'] ?: '-',
+                'invited_by' => $invitation['invited_by'] ?: '-',
+                'status' => $invitation['status'],
+                'reason' => $invitation['reason'] === 'OTHER' ? ($invitation['other_reason'] ?: 'OTHER') : $invitation['reason'],
+                'link_expiry' => $linkExpiry ? date('d/m/Y', strtotime((string) $linkExpiry)) : '-',
+                'visitor_count' => 1,
+                'registration_link' => base_url('visitor-registration?token=' . base64_encode((string) $invitation['id'])),
+            ];
         }
 
         $filters = $this->parseInvitationFilters();

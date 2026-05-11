@@ -110,6 +110,7 @@ $isSettings = str_contains($current, 'settings');
                     <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">account_tree</span>
                     <p class="text-sm font-medium">Visitor Workflow</p>
                 </a>
+                <?php if (client_feature_enabled('blacklist')): ?>
                 <div x-data="{ openBlacklist: <?= str_contains($current, 'blacklist') ? 'true' : 'false' ?>, openIndividual: <?= str_contains($current, 'blacklist') ? 'true' : 'false' ?> }">
     
                     <!-- Blacklist Parent Button -->
@@ -188,6 +189,7 @@ $isSettings = str_contains($current, 'settings');
                         </div>
                     </div>
                 </div>
+                <?php endif; ?>
                     <!-- Report Dropdown -->
                     <div x-data="{ openReport: <?= str_contains($current, 'report') ? 'true' : 'false' ?> }">
                         <button type="button" @click="openReport = !openReport"
@@ -330,17 +332,13 @@ $isSettings = str_contains($current, 'settings');
                             <th class="p-4 border-b dark:border-gray-600">IC / Passport No</th>
                             <th class="p-4 border-b dark:border-gray-600">Staff No</th>
                             <th class="p-4 border-b dark:border-gray-600">Status</th>
-                            <th class="p-4 border-b dark:border-gray-600">Suspension Period</th>
-                            <th class="p-4 border-b dark:border-gray-600">Next Action</th>
-                            <th class="p-4 border-b dark:border-gray-600">Card Status</th>
-                            <th class="p-4 border-b dark:border-gray-600">Card Expiry</th>
                             <th class="p-4 border-b dark:border-gray-600">Remark</th>
                         </tr>
                     </thead>
                     <tbody class="text-xs text-gray-600 dark:text-gray-300 font-medium">
                         <?php if (empty($staffList)): ?>
                         <tr>
-                            <td colspan="13" class="p-8 text-center">
+                            <td colspan="9" class="p-8 text-center">
                                 <div class="flex flex-col items-center justify-center gap-3">
                                     <div class="bg-gray-100 dark:bg-gray-800 rounded-full p-4">
                                         <span class="material-symbols-outlined text-4xl text-gray-400 dark:text-gray-500">folder_off</span>
@@ -375,18 +373,6 @@ $isSettings = str_contains($current, 'settings');
                                 <td class="p-4"><?= esc($staff['ic_passport']) ?></td>
                                 <td class="p-4"><?= esc($staff['staff_no'] ?? 'N/A') ?></td>
                                 <td class="p-4"><?= esc($staff['status'] ?? 'N/A') ?></td>
-                                <td class="p-4"><?= esc($staff['suspension_period'] ?? '-') ?></td>
-                                <td class="p-4"><?= esc($staff['next_action'] ?? '-') ?></td>
-                                <td class="p-4">
-                                    <?php if (($staff['card_status'] ?? '') === 'Active'): ?>
-                                        <span class="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Active</span>
-                                    <?php elseif (($staff['card_status'] ?? '') === 'Inactive'): ?>
-                                        <span class="bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Inactive</span>
-                                    <?php else: ?>
-                                        <span class="text-gray-400">-</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td class="p-4"><?= esc($staff['card_expiry'] ?? '-') ?></td>
                                 <td class="p-4"><?= esc($staff['remark'] ?? '-') ?></td>
                             </tr>
                             <?php endforeach; ?>

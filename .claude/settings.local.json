@@ -15,6 +15,7 @@
       "Bash(mysql -u root vms -e \"SELECT * FROM security_alerts LIMIT 3;\")",
       "Bash(grep -iE \"\\\\.php$\")",
       "Bash(grep -E \"\\\\.md$\")"
+      "Bash(awk '/<?php if \\\\\\(false\\\\\\)/{start=NR; print \"Start at \" NR} NR>start && NR<=start+500 && /<?php endif/{print \"Found endif at \" NR; exit}' \"c:\\\\laragon\\\\www\\\\vms\\\\app\\\\Views\\\\config\\\\index.php\")"
     ]
   }
 }

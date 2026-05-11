@@ -3787,6 +3787,167 @@ class Config extends BaseController
         ]);
     }
 
+    public function previewEmailTemplate($id)
+    {
+        $row = $this->emailTemplateModel->find((int) $id);
+        if (! $row) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Email template not found',
+            ])->setStatusCode(404);
+        }
+
+        $emailTemplateService = new EmailTemplateService();
+        [$process, $viewName] = $this->resolveEmailPreviewProcessAndView((string) ($row['code'] ?? ''));
+        $templateRaw = $this->settingModel->getSetting($emailTemplateService->getStorageKey($process));
+        $templateConfig = $emailTemplateService->normalizeTemplate(
+            $process,
+            $templateRaw ? json_decode((string) $templateRaw, true) : []
+        );
+
+        $html = $this->buildEmailTemplatePreviewHtml($row, $process, $viewName, $templateConfig);
+        // Ensure relative assets resolve inside iframe srcdoc.
+        $html = $this->injectBaseHref($html, rtrim(base_url('/'), '/') . '/');
+        $customSubject = $this->buildEmailTemplatePreviewSubject($row, $process, $templateConfig);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => [
+                'id' => (int) $row['id'],
+                'code' => $row['code'] ?? null,
+                'subject' => $customSubject ?: ($templateConfig['subject'] ?? ''),
+                'html' => $html,
+                'process' => $process,
+                'view' => $viewName,
+            ],
+        ]);
+    }
+
+    private function injectBaseHref(string $html, string $baseHref): string
+    {
+        if (stripos($html, '<base ') !== false) {
+            return $html;
+        }
+
+        $baseTag = '<base href="' . esc($baseHref) . '">';
+        $pos = stripos($html, '<head>');
+        if ($pos !== false) {
+            return substr($html, 0, $pos + 6) . "\n    " . $baseTag . substr($html, $pos + 6);
+        }
+
+        // Fallback: prepend.
+        return $baseTag . $html;
+    }
+
+    private function previewPlaceholderContext(): array
+    {
+        // Keep generic values so preview matches edit content and isn't too specific.
+        return [
+            'visitor_name' => 'Visitor Name',
+            'company' => 'Company Name',
+            'location' => 'Location Name',
+            'reason' => 'Visit Reason',
+            'invited_by' => 'Host Name',
+            // Match production email placeholder format (see InvitationEmailSender).
+            'link_expiry_date' => date('d/m/Y', strtotime('+2 days')),
+            // Intentionally do NOT provide registration_link here.
+            // In preview mode we want templates to show the literal token "{{registration_link}}"
+            // (admins can verify placeholder usage), not a live URL.
+        ];
+    }
+
+    private function buildEmailTemplatePreviewSubject(array $row, string $process, array $templateConfig): ?string
+    {
+        $svc = new EmailTemplateService();
+        $ctx = $this->previewPlaceholderContext();
+        $rawSubject = trim((string) ($row['subject'] ?? ''));
+        if ($rawSubject !== '') {
+            return $svc->applyPlaceholders($rawSubject, $ctx);
+        }
+
+        return $templateConfig['subject'] ?? null;
+    }
+
+    private function buildEmailTemplatePreviewHtml(array $row, string $process, string $viewName, array $templateConfig): string
+    {
+        $svc = new EmailTemplateService();
+        $ctx = $this->previewPlaceholderContext();
+
+        $customBodyHtml = null;
+        $rawBody = (string) ($row['body'] ?? '');
+        if (trim($rawBody) !== '') {
+            $customBodyText = $svc->applyPlaceholders($rawBody, $ctx);
+            $customBodyHtml = nl2br(esc($customBodyText));
+        }
+
+        $emailData = [
+            'visitor_name' => $ctx['visitor_name'],
+            'company' => $ctx['company'],
+            'location' => $ctx['location'],
+            'reason' => $ctx['reason'],
+            'other_reason' => '',
+            'invited_by' => $ctx['invited_by'],
+            'schedules' => [
+                [
+                    // Preview should be generic, not real timestamps.
+                    'date_from' => 'Start date',
+                    'date_to' => 'End date',
+                ],
+            ],
+            'registration_link' => base_url('visitors/visitor-registration?token=PREVIEW'),
+            'link_expiry' => date('Y-m-d H:i:s', strtotime('+2 days')),
+            'template' => $templateConfig,
+            'intro_line' => $svc->applyPlaceholders($templateConfig['intro_line'] ?? '', $ctx),
+            'notes_items' => array_map(
+                fn ($item) => $svc->applyPlaceholders((string) $item, $ctx),
+                (array) ($templateConfig['notes_items'] ?? [])
+            ),
+            'custom_body_html' => $customBodyHtml,
+            'custom_colors' => [
+                'primary_color' => $row['primary_color'] ?? null,
+                'content_bg_color' => $row['content_bg_color'] ?? null,
+                'text_color' => $row['text_color'] ?? null,
+            ],
+            'custom_logo' => $this->toAbsoluteAssetUrl($row['logo_url'] ?? null),
+        ];
+
+        return view($viewName, $emailData);
+    }
+
+    private function resolveEmailPreviewProcessAndView(string $code): array
+    {
+        $upper = strtoupper(trim($code));
+        if (str_contains($upper, 'APPROVAL')) {
+            return [EmailTemplateService::PROCESS_APPROVAL, 'emails/approval_template'];
+        }
+        if (str_contains($upper, 'REJECTION') || str_contains($upper, 'REJECT')) {
+            return [EmailTemplateService::PROCESS_REJECTION, 'emails/rejection_template'];
+        }
+        if (str_contains($upper, 'REMINDER')) {
+            return [EmailTemplateService::PROCESS_REMINDER, 'emails/invitation_template'];
+        }
+        if (str_contains($upper, 'REGISTRATION')) {
+            return [EmailTemplateService::PROCESS_REGISTRATION_SUBMITTED, 'emails/invitation_template'];
+        }
+
+        return [EmailTemplateService::PROCESS_INVITATION, 'emails/invitation_template'];
+    }
+
+    private function toAbsoluteAssetUrl($value): ?string
+    {
+        $raw = trim((string) ($value ?? ''));
+        $raw = str_replace('\\', '/', $raw);
+        if ($raw === '') {
+            return null;
+        }
+
+        if (str_starts_with($raw, 'http://') || str_starts_with($raw, 'https://') || str_starts_with($raw, 'data:image')) {
+            return $raw;
+        }
+
+        return base_url(ltrim($raw, '/'));
+    }
+
     public function createEmailTemplate()
     {
         $contentType = $this->request->getHeaderLine('Content-Type');
@@ -4467,6 +4628,36 @@ class Config extends BaseController
     }
 
     // Update Business Type in Config
+    public function createBusinessType()
+    {
+        $data = [
+            'business_type'              => $this->request->getPost('business_type'),
+            'reg_type'                   => $this->request->getPost('reg_type'),
+            'ledger'                     => $this->request->getPost('ledger') ?? 0,
+            'haulier'                    => $this->request->getPost('haulier') ?? 0,
+            'lpk_license_no'             => $this->request->getPost('lpk_license_no') ?? 0,
+            'lpk_license_no_optional'    => $this->request->getPost('lpk_license_no_optional') ?? 0,
+            'lpk_ancillary_contractor'   => $this->request->getPost('lpk_ancillary_contractor') ?? 0,
+            'customs_license_no'         => $this->request->getPost('customs_license_no') ?? 0,
+            'sst_reg_no'                 => $this->request->getPost('sst_reg_no') ?? 0,
+            'business_vol'               => $this->request->getPost('business_vol') ?? 0,
+            'trade_ref_no'               => $this->request->getPost('trade_ref_no') ?? 0,
+            'bank_info'                  => $this->request->getPost('bank_info') ?? 0,
+            'operator_code'              => $this->request->getPost('operator_code') ?? 0,
+            'copy_board_director_ic'     => $this->request->getPost('copy_board_director_ic') ?? 0,
+            'apad_certificate_no'        => $this->request->getPost('apad_certificate_no') ?? 0,
+            'license_expiry_date'        => $this->request->getPost('license_expiry_date') ?? 0,
+            'warehouse_info'             => $this->request->getPost('warehouse_info') ?? 0,
+            'nature_of_business'         => $this->request->getPost('nature_of_business') ?? 0,
+            'pli'                        => $this->request->getPost('pli') ?? 0,
+            'status'                     => strtoupper($this->request->getPost('status') ?? 'ACTIVE'),
+        ];
+
+        $this->bizTypeModel->insert($data);
+
+        return redirect()->to(base_url('config'))->with('success', 'Business type created successfully.');
+    }
+
     public function updateBusinessType()
     {
         $id = $this->request->getPost('id');

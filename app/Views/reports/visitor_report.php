@@ -337,7 +337,7 @@
         const tbody = document.getElementById('tableBody');
         tbody.innerHTML = '';
         data.visitors.forEach((v, i) => {
-            const val = (s) => (!s || s === 'N/A' || s === '-') ? '<span class="text-slate-300 font-semibold uppercase">NULL</span>' : esc(s);
+            const val = (s) => (!s || s === 'N/A') ? '<span class="text-slate-300 font-semibold uppercase">NULL</span>' : esc(s);
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td class="text-slate-500 font-medium py-4">${i + 1}</td>
@@ -390,7 +390,7 @@
                         
                         var wrapper = $('<div class="dt-filter-wrapper inline-block relative ml-1 align-middle" onclick="event.stopPropagation()"></div>');
                         var icon = $('<span class="material-symbols-outlined text-[16px] text-slate-300 hover:text-[#535dec] transition-colors cursor-pointer" style="vertical-align: middle;">filter_alt</span>');
-                        var dropdown = $('<div class="filter-dropdown hidden absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded shadow-lg z-[50] p-2 text-left text-sm max-h-[250px] overflow-y-auto" style="min-width: 160px; font-weight: normal;"></div>');
+                        var dropdown = $('<div class="filter-dropdown hidden fixed mt-1 bg-white border border-slate-200 rounded shadow-xl z-[9999] p-2 text-left text-sm max-h-[250px] overflow-y-auto" style="min-width: 160px; font-weight: normal;"></div>');
                         
                         wrapper.append(icon).append(dropdown);
                         header.append(wrapper);
@@ -440,10 +440,24 @@
                             e.stopPropagation();
                             $('.filter-dropdown').not(dropdown).addClass('hidden');
                             dropdown.toggleClass('hidden');
+                            
+                            if (!dropdown.hasClass('hidden')) {
+                                var rect = icon[0].getBoundingClientRect();
+                                var winW = $(window).width();
+                                var dropW = dropdown.outerWidth();
+                                var leftPos = rect.left;
+                                if (leftPos + dropW > winW) {
+                                    leftPos = winW - dropW - 20;
+                                }
+                                dropdown.css({
+                                    top: (rect.bottom + 5) + 'px',
+                                    left: leftPos + 'px'
+                                });
+                            }
                         });
                         
                         $(document).on('click', function(e) {
-                            if (!$(e.target).closest(wrapper).length) {
+                            if (!$(e.target).closest(wrapper).length && !$(e.target).closest(dropdown).length) {
                                 dropdown.addClass('hidden');
                             }
                         });
@@ -451,21 +465,26 @@
                         function applyFilter() {
                             var selected = [];
                             var allChecked = true;
+                            var noneChecked = true;
                             itemCbs.forEach(function(cb) {
                                 if(cb.prop('checked')) {
                                     selected.push($.fn.dataTable.util.escapeRegex(cb.val()));
+                                    noneChecked = false;
                                 } else {
                                     allChecked = false;
                                 }
                             });
                             
                             allCb.prop('checked', allChecked);
-                            removeAllCb.prop('checked', false);
+                            removeAllCb.prop('checked', noneChecked);
 
                             if(selected.length > 0 && selected.length < options.length) {
                                 icon.removeClass('text-slate-300 text-red-500').addClass('text-[#535dec]');
                                 var regex = '^(' + selected.join('|') + ')$';
                                 column.search(regex, true, false).draw();
+                            } else if (selected.length === 0) {
+                                icon.removeClass('text-slate-300 text-[#535dec]').addClass('text-red-500');
+                                column.search('$.^', true, false).draw(); // Matches nothing
                             } else {
                                 icon.removeClass('text-[#535dec] text-red-500').addClass('text-slate-300');
                                 column.search('', true, false).draw();
@@ -480,12 +499,15 @@
                         });
 
                         removeAllCb.on('change', function () {
-                            if (!$(this).prop('checked')) return;
-                            allCb.prop('checked', false);
-                            itemCbs.forEach(function (cb) { cb.prop('checked', false); });
-                            icon.removeClass('text-[#535dec] text-red-500').addClass('text-slate-300');
-                            column.search('', true, false).draw();
-                            $(this).prop('checked', false);
+                            var isChecked = $(this).prop('checked');
+                            if (isChecked) {
+                                allCb.prop('checked', false);
+                                itemCbs.forEach(function (cb) { cb.prop('checked', false); });
+                            } else {
+                                allCb.prop('checked', true);
+                                itemCbs.forEach(function (cb) { cb.prop('checked', true); });
+                            }
+                            applyFilter();
                         });
 
                         itemCbs.forEach(function(cb) {

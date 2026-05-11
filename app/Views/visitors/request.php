@@ -128,6 +128,7 @@ $isSettings = str_contains($current, 'settings');
                     <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">account_tree</span>
                     <p class="text-sm font-medium">Visitor Workflow</p>
                 </a>
+                <?php if (client_feature_enabled('blacklist')): ?>
                 <div x-data="{ openBlacklist: <?= str_contains($current, 'blacklist') ? 'true' : 'false' ?>, openIndividual: <?= str_contains($current, 'blacklist') ? 'true' : 'false' ?> }">
     
                     <!-- Blacklist Parent Button -->
@@ -206,6 +207,7 @@ $isSettings = str_contains($current, 'settings');
                         </div>
                     </div>
                 </div>
+                <?php endif; ?>
                 <!-- Report Dropdown -->
                 <div x-data="{ openReport: <?= str_contains($current, 'report') ? 'true' : 'false' ?> }">
                     <button type="button" @click="openReport = !openReport"
