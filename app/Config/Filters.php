@@ -89,7 +89,12 @@ class Filters extends BaseFilters
                     'security/*',
                     'api/rfid/*',
                     'api/qr/*',
-                    'config/generateVisitorQr'
+                    'config/generateVisitorQr',
+                    'api/admin/*',
+                    'api/vendorpass/*',
+                    'api/user/*',
+                    'decrypt',
+                    'vms/api/*',
                 ]
             ],
         ],
