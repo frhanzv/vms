@@ -31,11 +31,14 @@ class VisitorReport extends BaseController
                     DATE(i.created_at) AS visit_date,
                     MIN(CASE WHEN vcl.action = 'checkin' THEN vcl.scanned_at ELSE NULL END) AS checkin_time,
                     MAX(CASE WHEN vcl.action = 'checkout' THEN vcl.scanned_at ELSE NULL END) AS checkout_time,
+                    MIN(iv.check_in_time)  AS reg_checkin_time,
+                    MAX(iv.check_out_time) AS reg_checkout_time,
                     COUNT(vcl.id)       AS total_scans,
                     (SELECT CONCAT(l.id, '. ', l.lane) FROM visitor_card_logs vcl2 LEFT JOIN lanes l ON l.id = vcl2.lane_id WHERE vcl2.invitation_id = i.id ORDER BY vcl2.scanned_at DESC LIMIT 1) AS last_lane_full,
                     (SELECT GROUP_CONCAT(DISTINCT CONCAT(l.id, '. ', l.lane) SEPARATOR ', ') FROM visitor_card_logs vcl2 LEFT JOIN lanes l ON l.id = vcl2.lane_id WHERE vcl2.invitation_id = i.id) AS all_lanes
                 FROM invitations i
                 LEFT JOIN visitor_card_logs vcl ON vcl.invitation_id = i.id
+                LEFT JOIN invitation_visitors iv ON iv.invitation_id = i.id
                 GROUP BY
                     i.id, i.full_name, i.contact, i.ic_passport,
                     i.company, i.invited_by, i.staff_id, i.reason,
@@ -52,22 +55,23 @@ class VisitorReport extends BaseController
         $todayStr = date('Y-m-d');
 
         foreach ($rows as $row) {
-            $checkinTimeStr = $row['checkin_time'] ? date('H:i:s', strtotime($row['checkin_time'])) : '-';
-            $checkoutTimeStr = $row['checkout_time'] ? date('H:i:s', strtotime($row['checkout_time'])) : '-';
+            $checkInSource = $row['reg_checkin_time'] ?: $row['checkin_time'];
+            $checkOutSource = $row['reg_checkout_time'] ?: $row['checkout_time'];
+
+            $checkinTimeStr = $checkInSource ? date('H:i:s', strtotime((string) $checkInSource)) : '-';
+            $checkoutTimeStr = $checkOutSource ? date('H:i:s', strtotime((string) $checkOutSource)) : '-';
             
             $durationStr = '-';
-            if ($row['checkin_time'] && $row['checkout_time']) {
-                $diff = strtotime($row['checkout_time']) - strtotime($row['checkin_time']);
-                if ($diff > 0) {
-                    $hours = floor($diff / 3600);
-                    $mins = floor(($diff / 60) % 60);
-                    $durationStr = sprintf("%02d:%02d h", $hours, $mins);
-                } else {
-                    $durationStr = "00:00 h";
-                }
+            if ($checkInSource) {
+                $start = strtotime((string) $checkInSource);
+                $end = $checkOutSource ? strtotime((string) $checkOutSource) : time();
+                $diff = max(0, $end - $start);
+                $hours = floor($diff / 3600);
+                $mins = floor(($diff % 3600) / 60);
+                $durationStr = sprintf("%02d:%02d h", $hours, $mins) . ($checkOutSource ? '' : ' (ongoing)');
             }
             
-            if ($row['checkout_time']) {
+            if ($checkOutSource) {
                 $completedCount++;
                 $visitStatus = 'Completed';
                 $currentLocation = 'Out';
