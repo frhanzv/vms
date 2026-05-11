@@ -552,6 +552,7 @@
                 </div>
                 */ ?>
                 
+                <?php if (false): ?>
                 <!-- Registration Type -->
                 <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('regtype')" class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
@@ -966,6 +967,7 @@
                         </form>
                     </div>
                 </div>
+                <?php endif; ?>
 
 
                 <!-- Blacklist Reason -->                        
