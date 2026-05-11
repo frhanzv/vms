@@ -280,7 +280,7 @@
                             </div>
                             <div class="<?= $searchGrid ?>">
                                 <p class="text-xs text-slate-400">Select how to search</p>
-                                <p class="text-xs text-slate-400">Match must be exact in the database</p>
+                                <span class="hidden xl:block" aria-hidden="true"></span>
                                 <span class="hidden xl:block" aria-hidden="true"></span>
                                 <span class="hidden xl:block" aria-hidden="true"></span>
                                 <span class="hidden xl:block xl:col-span-2" aria-hidden="true"></span>
@@ -309,15 +309,12 @@
                     <div id="chronologyResultsWrap" class="hidden flex-col gap-4">
                         <!-- Data Table Header & Actions -->
                         <div
-                            class="flex flex-col md:flex-row md:items-end justify-between items-center bg-white dark:bg-slate-900 rounded-t-xl border border-slate-200 dark:border-slate-700 shadow-sm border-b-0 p-5 mt-2">
+                            class="flex w-full flex-col gap-4 md:flex-row md:items-end md:justify-between bg-white dark:bg-slate-900 rounded-t-xl border border-slate-200 dark:border-slate-700 shadow-sm border-b-0 p-5 mt-2">
                             <h2 id="resultsTableTitle"
-                                class="text-xl font-bold tracking-tight text-slate-900 dark:text-white mt-1">Visitor
-                                Details</h2>
-                            <h2 id="resultsTableTitle"
-                                class="text-xl font-bold tracking-tight text-slate-900 dark:text-white mt-1">Visitor
-                                Details</h2>
+                                class="text-xl font-bold tracking-tight text-slate-900 dark:text-white md:mt-1 shrink-0">
+                                Visitor Details</h2>
 
-                            <div class="flex gap-2">
+                            <div class="flex flex-wrap gap-2 md:justify-end">
                                 <button type="button" onclick="openColumnsModal()"
                                     class="flex items-center gap-2 bg-[#535dec] hover:bg-[#4853e0] text-white px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm">
                                     <span class="material-symbols-outlined text-[18px]">visibility</span>
@@ -345,6 +342,7 @@
                                             <th>Contact No</th>
                                             <th>Visit From</th>
                                             <th>Visit To</th>
+                                            <th>Total Time Spent</th>
                                             <th>Status</th>
                                             <th class="text-center">Actions</th>
                                         </tr>
@@ -607,7 +605,7 @@
         let fullChronologyData = [];
         let reportData = [];
 
-        const visitorHeaders = ["#", "Full Name", "IC No", "Company", "Contact No", "Visit From", "Visit To", "Status", "Actions"];
+        const visitorHeaders = ["#", "Full Name", "IC No", "Company", "Contact No", "Visit From", "Visit To", "Total Time Spent", "Status", "Actions"];
         const chronologyHeaders = ["No", "Visitor Name", "Access Time", "Location"];
         const tableHeaders = [
             "No", "Visitor Name", "Contact", "IC No", "Person Visited",
@@ -740,6 +738,7 @@
             <td class="px-4">${escHtml(v.contact_no)}</td>
             <td class="px-4 text-xs font-medium text-slate-500">${escHtml(v.visit_from)}</td>
             <td class="px-4 text-xs font-medium text-slate-500">${escHtml(v.visit_to)}</td>
+            <td class="px-4 text-xs font-bold text-slate-700">${escHtml(v.visit_duration)}</td>
             <td class="px-4 text-center">
                 <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase text-white ${statusClass}">${v.status}</span>
             </td>
@@ -762,8 +761,8 @@
                 dom: '<"flex justify-end items-center mb-5 mt-2"f><"overflow-x-auto min-h-[300px]"t><"flex flex-col md:flex-row justify-between items-center gap-4 mt-6"p<"ml-auto"l>>',
                 language: { search: "Search visitor:", lengthMenu: "_MENU_" },
                 columnDefs: [
-                    { orderable: false, targets: [0, 8] },
-                    { className: "text-center", targets: [0, 7, 8] }
+                    { orderable: false, targets: [0, 9] },
+                    { className: "text-center", targets: [0, 8, 9] }
                 ],
                 initComplete: function () {
                     var api = this.api();
@@ -933,11 +932,13 @@
             document.getElementById('tmFullname').textContent = s.full_name;
             document.getElementById('tmIcno').textContent = s.ic_no;
             
-            const displayStatus = tableStatus || s.status.replace('_', ' ');
+            // Prefer API summary so the modal matches registration/card logic even if the grid was stale.
+            const displayStatus = (s.status ? String(s.status).replace(/_/g, ' ') : '') || (tableStatus || '—');
             document.getElementById('tmStatus').textContent = displayStatus;
             
             const statusCard = document.getElementById('tmStatusCard');
-            if (displayStatus.toUpperCase() === 'CHECKED OUT') {
+            const st = String(displayStatus || '').toUpperCase();
+            if (st === 'CHECKED OUT' || st.includes('OUT_BUILDING')) {
                 statusCard.className = 'bg-red-500 rounded-lg p-5 text-white shadow-md';
             } else {
                 statusCard.className = 'bg-[#2d8f5c] rounded-lg p-5 text-white shadow-md';
