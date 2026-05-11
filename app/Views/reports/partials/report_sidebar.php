@@ -67,7 +67,10 @@ $isSettings = str_contains($current, 'settings');
 
             <?php
                 $_role      = session()->get('role');
-                $_companyId = (int) session()->get('company_id');
+                $_companyId = (int) (
+                    session()->get('company_id')
+                    ?: ((new \App\Models\UserModel())->find((int) session()->get('user_id'))['company_id'] ?? 0)
+                );
                 $_showBlacklist = ($_role === 'superadmin')
                     || (new \App\Models\ClientFeatureModel())->isEnabled($_companyId, 'blacklist');
             ?>
