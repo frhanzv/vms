@@ -224,6 +224,7 @@ $routes->get('config/getInvitationEmailTemplateSettings', 'Config::getInvitation
 $routes->post('config/saveInvitationEmailTemplateSettings', 'Config::saveInvitationEmailTemplateSettings');
 $routes->get('config/getEmailTemplates', 'Config::getEmailTemplates');
 $routes->get('config/getEmailTemplate/(:num)', 'Config::getEmailTemplate/$1');
+$routes->get('config/previewEmailTemplate/(:num)', 'Config::previewEmailTemplate/$1');
 $routes->post('config/createEmailTemplate', 'Config::createEmailTemplate');
 $routes->post('config/updateEmailTemplate/(:num)', 'Config::updateEmailTemplate/$1');
 $routes->post('config/createEmailTemplateFormField', 'Config::createEmailTemplateFormField');
@@ -334,7 +335,7 @@ $routes->group('', ['filter' => $plusOfficer], function($routes) {
 // superadmin, clientsuperadmin, officer
 // ===========================
 
-$routes->group('blacklist', ['filter' => $plusOfficer], function($routes) {
+$routes->group('blacklist', ['filter' => [$plusOfficer, 'client_feature:blacklist']], function($routes) {
     $routes->get('blacklistrequest', 'BlacklistRequest::index');
     $routes->get('entry', 'BlacklistEntry::index');
     $routes->get('entry/search', 'BlacklistEntry::search');
@@ -348,7 +349,7 @@ $routes->group('blacklist', ['filter' => $plusOfficer], function($routes) {
 // superadmin, clientsuperadmin only
 // ===========================
 
-$routes->group('blacklist', ['filter' => $superadmins], function($routes) {
+$routes->group('blacklist', ['filter' => [$superadmins, 'client_feature:blacklist']], function($routes) {
     $routes->get('entry/proceed', 'BlacklistEntry::proceed');
     $routes->post('entry/store', 'BlacklistEntry::store');
     $routes->post('closedlist/release/(:num)', 'BlacklistClosedList::release/$1');
@@ -525,6 +526,7 @@ $routes->group('config', ['filter' => $superadmins], function($routes) {
     $routes->post('saveInvitationEmailTemplateSettings', 'Config::saveInvitationEmailTemplateSettings');
     $routes->get('getEmailTemplates', 'Config::getEmailTemplates');
     $routes->get('getEmailTemplate/(:num)', 'Config::getEmailTemplate/$1');
+    $routes->get('previewEmailTemplate/(:num)', 'Config::previewEmailTemplate/$1');
     $routes->post('createEmailTemplate', 'Config::createEmailTemplate');
     $routes->post('updateEmailTemplate/(:num)', 'Config::updateEmailTemplate/$1');
     $routes->post('createEmailTemplateFormField', 'Config::createEmailTemplateFormField');

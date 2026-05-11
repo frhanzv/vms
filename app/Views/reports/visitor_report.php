@@ -337,7 +337,7 @@
         const tbody = document.getElementById('tableBody');
         tbody.innerHTML = '';
         data.visitors.forEach((v, i) => {
-            const val = (s) => (!s || s === 'N/A' || s === '-') ? '<span class="text-slate-300 font-semibold uppercase">NULL</span>' : esc(s);
+            const val = (s) => (!s || s === 'N/A') ? '<span class="text-slate-300 font-semibold uppercase">NULL</span>' : esc(s);
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td class="text-slate-500 font-medium py-4">${i + 1}</td>
