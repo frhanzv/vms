@@ -93,15 +93,16 @@ class Auth extends BaseController
         if ($user) {
             // Set session data
             $sessionData = [
-                'user_id' => $user['id'],
-                'staff_id' => $user['staff_id'],
-                'username' => $user['username'],
-                'email' => $user['email'],
+                'user_id'    => $user['id'],
+                'company_id' => $user['company_id'],
+                'staff_id'   => $user['staff_id'],
+                'username'   => $user['username'],
+                'email'      => $user['email'],
                 'contact_no' => $user['contact_no'],
-                'full_name' => $user['full_name'],
-                'role' => $user['role'],
+                'full_name'  => $user['full_name'],
+                'role'       => $user['role'],
                 'isLoggedIn' => true,
-                'loginTime' => time()
+                'loginTime'  => time()
             ];
             session()->set($sessionData);
 
