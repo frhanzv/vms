@@ -29,6 +29,8 @@ $routes->group('api/rfid', function($routes) {
     $routes->get('test-connection', 'RFID::testConnection');
 });
 
+$routes->post('api/receive-worker-count', 'Api\WorkerCountReceiver::receive');
+
 $routes->group('api/qr', function($routes) {
     $routes->get('scan', 'QRCode::scan');
     $routes->get('scan-lane', 'QRCode::scanLane');
@@ -655,4 +657,5 @@ $routes->get('vms/api/visitor-types', 'Api\KioskApi::getVisitorTypes');
 
 $routes->group('api/v1', ['filter' => 'inbound_api_auth'], function($routes) {
     $routes->post('receive', 'Api\InboundApi::receive');
+
 });
