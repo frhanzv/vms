@@ -77,33 +77,31 @@ class Filters extends BaseFilters
      * }
      */
     public array $globals = [
-        'before' => [
-            // 'honeypot',
-            // 'csrf',
-            // 'invalidchars',
-            'auth' => [
-                'except' => [
-                    'login',
-                    'auth/*',
-                    'visitor-registration',
-                    'visitor-registration/*',
-                    'security/*',
-                    'api/rfid/*',
-                    'api/qr/*',
-                    'config/generateVisitorQr',
-                    'api/admin/*',
-                    'api/vendorpass/*',
-                    'api/user/*',
-                    'decrypt',
-                    'vms/api/*',
-                ]
-            ],
+    'before' => [
+        'auth' => [
+            'except' => [
+                'login',
+                'auth/*',
+                'visitor-registration',
+                'visitor-registration/*',
+                'security/*',
+                'api/rfid/*',
+                'api/qr/*',
+                'api/receive-worker-count',   // ← ADD THIS LINE
+                'config/generateVisitorQr',
+                'api/admin/*',
+                'api/vendorpass/*',
+                'api/user/*',
+                'decrypt',
+                'vms/api/*',
+            ]
         ],
-        'after' => [
-            // 'honeypot',
-            // 'secureheaders',
-        ],
-    ];
+    ],
+    'after' => [
+        // 'honeypot',
+        // 'secureheaders',
+    ],
+];
 
     /**
      * List of filter aliases that works on a
