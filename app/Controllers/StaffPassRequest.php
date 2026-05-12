@@ -18,9 +18,13 @@ class StaffPassRequest extends BaseController
             $fieldSettings[$f['field_key']] = (bool) $f['is_enabled'];
         }
 
+        $countryModel = new \App\Models\CountryModel();
+        $countries    = $countryModel->where('status', 'Active')->orderBy('name', 'ASC')->findAll();
+
         $data = [
             'pageTitle'     => 'Staff Pass Request - SafeG',
             'fieldSettings' => $fieldSettings,
+            'countries'     => $countries,
         ];
 
         return view('staffs/staffpassrequest', $data);
