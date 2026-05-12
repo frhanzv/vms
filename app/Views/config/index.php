@@ -4570,8 +4570,7 @@
 
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Select
-                                Device <span class="text-red-500">*</span></label>
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Select Device <span class="text-red-500">*</span></label>
                             <select id="daDeviceSelect" required
                                 class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none">
                                 <option value="">-- Select Device --</option>
@@ -4579,8 +4578,7 @@
                         </div>
 
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Select
-                                Location <span class="text-red-500">*</span></label>
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Select Location <span class="text-red-500">*</span></label>
                             <select id="daLocation" name="location_id" required
                                 class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none">
                                 <option value="">-- Select Location --</option>
@@ -4588,8 +4586,7 @@
                         </div>
 
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Assignment
-                                Type <span class="text-red-500">*</span></label>
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Assignment Type <span class="text-red-500">*</span></label>
                             <select id="daType" name="type" required
                                 class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none">
                                 <option value="">-- Select Type --</option>
@@ -10298,6 +10295,9 @@
                         showNotification(data.message, 'success');
                         closeLaneModal();
                         loadLanes(currentLanePage, currentLaneSearch, currentLaneSort);
+                        if (typeof fetchLocationsForDevice === 'function') {
+                            fetchLocationsForDevice();
+                        }
                     } else {
                         const errorContainer = document.getElementById('laneErrorContainer');
                         if (data.errors) {
@@ -10333,6 +10333,9 @@
                         showNotification(data.message, 'success');
                         closeDeleteLaneModal();
                         loadLanes(currentLanePage, currentLaneSearch, currentLaneSort);
+                        if (typeof fetchLocationsForDevice === 'function') {
+                            fetchLocationsForDevice();
+                        }
                     } else {
                         showNotification(data.message || 'Failed to delete lane', 'error');
                         deleteBtn.textContent = 'Delete Lane';
@@ -13010,27 +13013,64 @@
             }
         };
 
+        function compareLanesNatural(a, b) {
+            const title = (lane) => (lane.lane || '').trim() || ('Lane #' + lane.id);
+            function sortKey(lane) {
+                const s = title(lane);
+                const m = s.match(/^(\d+)\s*[\.\)]\s*/);
+                if (m) {
+                    return [0, parseInt(m[1], 10), s.toLowerCase()];
+                }
+                return [1, 0, s.toLowerCase()];
+            }
+            const ka = sortKey(a);
+            const kb = sortKey(b);
+            if (ka[0] !== kb[0]) {
+                return ka[0] - kb[0];
+            }
+            if (ka[1] !== kb[1]) {
+                return ka[1] - kb[1];
+            }
+            return ka[2].localeCompare(kb[2]);
+        }
+
         function fetchLocationsForDevice() {
-            fetch('<?= base_url('config/getAllLocations') ?>')
+            return fetch('<?= base_url('config/getDeviceAssignmentFormOptions') ?>')
                 .then(res => res.json())
                 .then(data => {
-                    if (data.success) {
-                        const locSelect = document.getElementById('daLocation');
-                        locSelect.innerHTML = '<option value="">-- Select Location --</option>' +
-                            data.data.map((lane) => {
-                                const cleanName = lane.lane ? lane.lane : '';
-                                return `<option value="${lane.id}">${escapeHtml(cleanName)}</option>`;
-                            }).join('');
-
-                        const devSelect = document.getElementById('daDeviceSelect');
-                        devSelect.innerHTML = '<option value="">-- Select Device --</option>' +
-                            data.data.filter(loc => loc.adam_ip).map(loc => {
-                                // Extract integer portion for fake generic device serial formatting similar to the user screenshot for visual parity
-                                const fakeId = '008825113' + loc.id.toString().padStart(3, '0');
-                                const valStr = fakeId + '|' + loc.adam_ip;
-                                return `<option value="${valStr}">${fakeId} - ${escapeHtml(loc.adam_ip)}</option>`;
-                            }).join('');
+                    if (!data.success || !data.data || !Array.isArray(data.data.lanes)) {
+                        return;
                     }
+                    const lanes = [...data.data.lanes].sort(compareLanesNatural);
+                    const devices = Array.isArray(data.data.devices) ? data.data.devices : [];
+
+                    const laneTitle = (lane) => (lane.lane || '').trim() || ('Lane #' + lane.id);
+                    const titleCounts = {};
+                    lanes.forEach((lane) => {
+                        const t = laneTitle(lane);
+                        titleCounts[t] = (titleCounts[t] || 0) + 1;
+                    });
+
+                    const locSelect = document.getElementById('daLocation');
+                    locSelect.innerHTML = '<option value="">-- Select Location --</option>' +
+                        lanes.map((lane) => {
+                            const t = laneTitle(lane);
+                            const label = titleCounts[t] > 1 ? `${t} (#${lane.id})` : t;
+                            return `<option value="${lane.id}">${escapeHtml(label)}</option>`;
+                        }).join('');
+
+                    const devParts = ['<option value="">-- Select Device --</option>'];
+                    devices.forEach((d) => {
+                        const did = (d.device_id || '').trim();
+                        const ip = (d.ip_address || '').trim();
+                        if (!did || !ip) {
+                            return;
+                        }
+                        const valStr = did + '|' + ip;
+                        const text = did + ' - ' + ip;
+                        devParts.push(`<option value="${escapeHtml(valStr)}">${escapeHtml(text)}</option>`);
+                    });
+                    document.getElementById('daDeviceSelect').innerHTML = devParts.join('');
                 })
                 .catch(err => console.log(err));
         }
@@ -13222,38 +13262,45 @@
             document.getElementById('deviceAssignmentId').value = '';
             document.getElementById('deviceAssignmentModalTitle').innerText = 'Assign New Device';
 
-            if (id) {
+            fetchLocationsForDevice().then(() => {
+                if (!id) {
+                    return Promise.resolve();
+                }
                 document.getElementById('deviceAssignmentModalTitle').innerText = 'Edit Device';
-                fetch(`<?= base_url('config/getDeviceAssignment') ?>/${id}`)
+                return fetch(`<?= base_url('config/getDeviceAssignment') ?>/${id}`)
                     .then(r => r.json())
                     .then(data => {
-                        if (data.success) {
-                            const d = data.data;
-                            document.getElementById('deviceAssignmentId').value = d.id;
-
-                            // Try to select existing device combination
-                            const devSelect = document.getElementById('daDeviceSelect');
-                            const valToMatch = d.device_id + '|' + d.ip_address;
-                            let matchFound = false;
-                            for (let i = 0; i < devSelect.options.length; i++) {
-                                if (devSelect.options[i].value === valToMatch) {
-                                    devSelect.selectedIndex = i;
-                                    matchFound = true;
-                                    break;
-                                }
-                            }
-                            // If edit mapping not natively found, inject it visually to preserve edit UX
-                            if (!matchFound) {
-                                devSelect.innerHTML += `<option value="${valToMatch}" selected>${escapeHtml(d.device_id)} - ${escapeHtml(d.ip_address)}</option>`;
-                            }
-
-                            document.getElementById('daLocation').value = d.location_id;
-                            document.getElementById('daType').value = d.type;
+                        if (!data.success) {
+                            return;
                         }
+                        const d = data.data;
+                        document.getElementById('deviceAssignmentId').value = d.id;
+
+                        const devSelect = document.getElementById('daDeviceSelect');
+                        const valToMatch = d.device_id + '|' + d.ip_address;
+                        let matchFound = false;
+                        for (let i = 0; i < devSelect.options.length; i++) {
+                            if (devSelect.options[i].value === valToMatch) {
+                                devSelect.selectedIndex = i;
+                                matchFound = true;
+                                break;
+                            }
+                        }
+                        if (!matchFound) {
+                            const opt = document.createElement('option');
+                            opt.value = valToMatch;
+                            opt.textContent = d.device_id + ' — ' + d.ip_address;
+                            opt.selected = true;
+                            devSelect.appendChild(opt);
+                        }
+
+                        document.getElementById('daLocation').value = d.location_id;
+                        document.getElementById('daType').value = d.type;
                     });
-            }
-            document.getElementById('deviceAssignmentModal').classList.remove('hidden');
-            document.getElementById('deviceAssignmentModal').classList.add('flex');
+            }).finally(() => {
+                document.getElementById('deviceAssignmentModal').classList.remove('hidden');
+                document.getElementById('deviceAssignmentModal').classList.add('flex');
+            });
         }
 
         function closeDeviceAssignmentModal() {
