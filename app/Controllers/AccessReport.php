@@ -61,6 +61,7 @@ class AccessReport extends BaseController
         // Build IN placeholders
         $placeholders = implode(',', array_fill(0, count($laneIds), '?'));
 
+        // We want to show visitors who have physical scan logs AND those who only have manual check-ins
         $sql = "SELECT 
                     i.id               AS invitation_id,
                     i.full_name        AS visitor_name,
@@ -71,16 +72,32 @@ class AccessReport extends BaseController
                     i.company          AS visitor_company,
                     i.vehicle_registration AS vehicle_no,
                     i.reason           AS visit_reason,
-                    MIN(vcl.scanned_at) AS first_access,
-                    MAX(vcl.scanned_at) AS last_access,
-                    COUNT(vcl.id)      AS total_access
-                FROM visitor_card_logs vcl
+                    i.location         AS location,
+                    CASE 
+                        WHEN MIN(vcl.scanned_at) IS NULL THEN iv.check_in_time 
+                        WHEN iv.check_in_time IS NULL THEN MIN(vcl.scanned_at)
+                        ELSE LEAST(MIN(vcl.scanned_at), iv.check_in_time)
+                    END AS first_access,
+                    CASE 
+                        WHEN MAX(vcl.scanned_at) IS NULL THEN COALESCE(iv.check_out_time, iv.check_in_time)
+                        WHEN COALESCE(iv.check_out_time, iv.check_in_time) IS NULL THEN MAX(vcl.scanned_at)
+                        ELSE GREATEST(MAX(vcl.scanned_at), COALESCE(iv.check_out_time, iv.check_in_time))
+                    END AS last_access,
+                    COALESCE(NULLIF(i.location, ''), MIN(la.lane), 'N/A') AS location_name,
+                    CASE 
+                        WHEN COUNT(vcl.id) > 0 THEN COUNT(vcl.id)
+                        WHEN iv.check_in_time IS NOT NULL THEN 1
+                        ELSE 0
+                    END AS total_access
+                FROM invitation_visitors iv
+                JOIN invitations i ON i.id = iv.invitation_id
+                LEFT JOIN visitor_card_logs vcl ON vcl.invitation_id = i.id
                 LEFT JOIN lanes la ON la.id = vcl.lane_id
-                LEFT JOIN invitations i ON i.id = vcl.invitation_id
-                WHERE la.id IN ({$placeholders})
-                  AND vcl.scanned_at >= ?
-                  AND vcl.scanned_at <= ?
-                  AND i.id IS NOT NULL
+                WHERE (
+                    ((la.id IN ({$placeholders}) OR vcl.lane_id IS NULL) AND vcl.scanned_at >= ? AND vcl.scanned_at <= ?)
+                    OR
+                    (vcl.id IS NULL AND iv.check_in_time >= ? AND iv.check_in_time <= ?)
+                )
                 GROUP BY 
                     i.id,
                     i.full_name,
@@ -90,10 +107,14 @@ class AccessReport extends BaseController
                     i.staff_id,
                     i.company,
                     i.vehicle_registration,
-                    i.reason
-                ORDER BY first_access ASC";
+                    i.reason,
+                    i.location,
+                    iv.check_in_time,
+                    iv.check_out_time
+                ORDER BY first_access DESC";
 
-        $params = array_merge($laneIds, [$fromDatetime, $toDatetime]);
+        // Double up parameters for the OR condition
+        $params = array_merge($laneIds, [$fromDatetime, $toDatetime], [$fromDatetime, $toDatetime]);
         $rows   = $db->query($sql, $params)->getResultArray();
 
         $visitors = [];
@@ -111,6 +132,7 @@ class AccessReport extends BaseController
                 'first_access'    => $row['first_access']    ? date('d/m/Y H:i', strtotime($row['first_access'])) : '-',
                 'last_access'     => $row['last_access']     ? date('d/m/Y H:i', strtotime($row['last_access']))  : '-',
                 'total_access'    => (int) $row['total_access'],
+                'location_name'   => $row['location_name']   ?? 'N/A',
             ];
         }
 
@@ -162,19 +184,70 @@ class AccessReport extends BaseController
         }
 
         $placeholders = implode(',', array_fill(0, count($laneIds), '?'));
-        $sql = "SELECT vcl.scanned_at, vcl.action,
-                       la.id AS lane_id, la.lane AS lane_name,
-                       loc.id AS location_id, loc.branch, loc.location_access
-                FROM visitor_card_logs vcl
-                INNER JOIN lanes la ON la.id = vcl.lane_id
-                INNER JOIN locations loc ON loc.id = la.location_id
-                WHERE vcl.invitation_id = ?
-                  AND la.id IN ({$placeholders})
-                  AND vcl.scanned_at >= ?
-                  AND vcl.scanned_at <= ?
-                ORDER BY vcl.scanned_at ASC";
+        
+        // Include both physical scan logs and registration times (check-in/out)
+        $sql = "SELECT 
+                    scanned_at, action, lane_id, lane_name, 
+                    location_id, branch, location_access
+                FROM (
+                    -- Physical logs and manual logs in visitor_card_logs
+                    SELECT 
+                        vcl.scanned_at, vcl.action,
+                        la.id AS lane_id, la.lane AS lane_name,
+                        loc.id AS location_id, loc.branch, loc.location_access
+                    FROM visitor_card_logs vcl
+                    LEFT JOIN lanes la ON la.id = vcl.lane_id
+                    LEFT JOIN locations loc ON loc.id = la.location_id
+                    WHERE vcl.invitation_id = ?
+                      AND (la.id IN ({$placeholders}) OR vcl.lane_id IS NULL)
+                      AND vcl.scanned_at >= ?
+                      AND vcl.scanned_at <= ?
 
-        $params = array_merge([(int) $invitationId], $laneIds, [$fromDatetime, $toDatetime]);
+                    UNION ALL
+
+                    -- Fallback to registration check-in if not in logs
+                    SELECT 
+                        iv.check_in_time AS scanned_at, 'checkin' AS action,
+                        NULL AS lane_id, i.location AS lane_name,
+                        NULL AS location_id, i.location AS branch, i.location AS location_access
+                    FROM invitation_visitors iv
+                    JOIN invitations i ON i.id = iv.invitation_id
+                    WHERE iv.invitation_id = ?
+                      AND iv.check_in_time >= ?
+                      AND iv.check_in_time <= ?
+                      AND NOT EXISTS (
+                          SELECT 1 FROM visitor_card_logs vcl2 
+                          WHERE vcl2.invitation_id = iv.invitation_id 
+                          AND vcl2.action = 'checkin' 
+                          AND vcl2.scanned_at = iv.check_in_time
+                      )
+
+                    UNION ALL
+
+                    -- Fallback to registration check-out if not in logs
+                    SELECT 
+                        iv.check_out_time AS scanned_at, 'checkout' AS action,
+                        NULL AS lane_id, i.location AS lane_name,
+                        NULL AS location_id, i.location AS branch, i.location AS location_access
+                    FROM invitation_visitors iv
+                    JOIN invitations i ON i.id = iv.invitation_id
+                    WHERE iv.invitation_id = ?
+                      AND iv.check_out_time >= ?
+                      AND iv.check_out_time <= ?
+                      AND NOT EXISTS (
+                          SELECT 1 FROM visitor_card_logs vcl2 
+                          WHERE vcl2.invitation_id = iv.invitation_id 
+                          AND vcl2.action = 'checkout' 
+                          AND vcl2.scanned_at = iv.check_out_time
+                      )
+                ) combined
+                ORDER BY scanned_at ASC";
+
+        $params = array_merge(
+            [(int) $invitationId], $laneIds, [$fromDatetime, $toDatetime], // part 1
+            [(int) $invitationId], [$fromDatetime, $toDatetime],           // part 2
+            [(int) $invitationId], [$fromDatetime, $toDatetime]            // part 3
+        );
         $rows   = $db->query($sql, $params)->getResultArray();
 
         $movements = [];
