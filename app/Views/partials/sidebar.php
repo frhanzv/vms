@@ -43,7 +43,7 @@ $isSettings  = str_contains($current, 'settings');
                     x-transition:leave-start="opacity-100 translate-y-0"
                     x-transition:leave-end="opacity-0 -translate-y-1"
                     class="ml-4 mt-1 flex flex-col gap-1">
-                    <?php if ($can(['superadmin', 'clientsuperadmin', 'officer', 'host'])): ?>
+                    <?php if (client_feature_enabled('invitations') && $can(['superadmin', 'clientsuperadmin', 'officer', 'host'])): ?>
                     <a href="<?= base_url('invitations') ?>"
                         class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= str_contains($current, 'invitations') ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
                         <span class="w-1.5 h-1.5 rounded-full <?= str_contains($current, 'invitations') ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
@@ -68,7 +68,7 @@ $isSettings  = str_contains($current, 'settings');
             </div>
 
             <!-- Staff Pass — superadmin, clientsuperadmin, admin, officer -->
-            <?php if ($can(['superadmin', 'clientsuperadmin', 'admin', 'officer'])): ?>
+            <?php if (client_feature_enabled('staff_pass') && $can(['superadmin', 'clientsuperadmin', 'admin', 'officer'])): ?>
             <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?= $isStaff ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white' ?> transition-colors group" href="<?= base_url('staffs') ?>">
                 <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">badge</span>
                 <p class="text-sm <?= $isStaff ? 'font-semibold' : 'font-medium' ?>">Staff Pass List</p>

@@ -398,6 +398,31 @@ class VisitorList extends BaseController
         $checkIn = $this->normalizeDateTimeInput($payload['check_in_time'] ?? null);
         $checkOut = $this->normalizeDateTimeInput($payload['check_out_time'] ?? null);
 
+        // Detect manual changes for logging
+        $db = \Config\Database::connect();
+        if ($checkIn && (!$iv['check_in_time'] || strtotime($checkIn) !== strtotime($iv['check_in_time']))) {
+            $db->table('visitor_card_logs')->insert([
+                'visitor_card_id' => $iv['visitor_card_id'] ?? null,
+                'invitation_id'   => $iv['invitation_id'],
+                'action'          => 'checkin',
+                'lane_id'         => null,
+                'scan_source'     => 'manual_edit',
+                'scanned_at'      => $checkIn,
+                'created_at'      => date('Y-m-d H:i:s'),
+            ]);
+        }
+        if ($checkOut && (!$iv['check_out_time'] || strtotime($checkOut) !== strtotime($iv['check_out_time']))) {
+            $db->table('visitor_card_logs')->insert([
+                'visitor_card_id' => $iv['visitor_card_id'] ?? null,
+                'invitation_id'   => $iv['invitation_id'],
+                'action'          => 'checkout',
+                'lane_id'         => null,
+                'scan_source'     => 'manual_edit',
+                'scanned_at'      => $checkOut,
+                'created_at'      => date('Y-m-d H:i:s'),
+            ]);
+        }
+
         $ivUpdate = [
             'full_name' => $fullName,
             'ic_passport' => $icPassport,
@@ -776,7 +801,17 @@ class VisitorList extends BaseController
      */
     public function generateQr($invitationId)
     {
-        $qrCodeData = 'VIS-' . (int)$invitationId;
+        $invitation = $this->invitationModel->find((int) $invitationId);
+        $passId     = 'VIS-' . (int) $invitationId;
+        $qrCodeData = $passId;
+
+        if (is_array($invitation)) {
+            $icPassport = trim((string) ($invitation['ic_passport'] ?? ''));
+            if ($icPassport !== '') {
+                $qrCodeData = $icPassport;
+            }
+        }
+
         $options = new \chillerlan\QRCode\QROptions([
             'outputInterface' => \chillerlan\QRCode\Output\QRGdImagePNG::class,
             'eccLevel'        => \chillerlan\QRCode\Common\EccLevel::L,

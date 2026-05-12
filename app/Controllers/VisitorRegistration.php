@@ -12,6 +12,7 @@ use App\Models\CompanyModel;
 use App\Models\VisitorLicenseModel;
 use App\Models\VisitorEquipmentModel;
 use App\Models\EmailTemplateFormFieldModel;
+use App\Models\ClientFormFieldModel;
 use App\Libraries\InvitationEmailSender;
 use App\Libraries\InvitationProcessFlowService;
 
@@ -27,6 +28,7 @@ class VisitorRegistration extends BaseController
     protected $licenseModel;
     protected $equipmentModel;
     protected $emailTemplateFormFieldModel;
+    protected $clientFormFieldModel;
     protected InvitationEmailSender $invitationEmailSender;
     protected InvitationProcessFlowService $invitationProcessFlowService;
 
@@ -44,6 +46,7 @@ class VisitorRegistration extends BaseController
         $this->licenseModel = new VisitorLicenseModel();
         $this->equipmentModel = new VisitorEquipmentModel();
         $this->emailTemplateFormFieldModel = new EmailTemplateFormFieldModel();
+        $this->clientFormFieldModel        = new ClientFormFieldModel();
         $this->invitationEmailSender = new InvitationEmailSender();
         $this->invitationProcessFlowService = new InvitationProcessFlowService();
     }
@@ -82,10 +85,12 @@ class VisitorRegistration extends BaseController
         
         // Get company registration ID if company name exists in invitation
         $companyRegistrationId = null;
+        $companyId = null;
         if ($invitation && !empty($invitation['company'])) {
             $company = $this->companyModel->where('name', $invitation['company'])->first();
             if ($company) {
                 $companyRegistrationId = $company['registration_no'];
+                $companyId = (int) $company['id'];
             }
         }
         
@@ -117,7 +122,7 @@ class VisitorRegistration extends BaseController
             'states' => $states,
             'cities' => $cities,
             'companyRegistrationId' => $companyRegistrationId,
-            'formConfig' => $this->getEmailTemplateFormConfig(),
+            'formConfig' => $this->getEmailTemplateFormConfig($companyId),
             'customFormFields' => $this->getEnabledCustomFields(),
             'customFormValues' => $customFormValues,
             'prefillData' => $prefillData,
@@ -130,8 +135,19 @@ class VisitorRegistration extends BaseController
 
     public function submit()
     {
-        // Handle form submission
-        $formConfig = $this->getEmailTemplateFormConfig();
+        $companyId = null;
+        $token = $this->request->getPost('token');
+        if ($token) {
+            $inv = $this->invitationModel->find(base64_decode($token));
+            if ($inv && !empty($inv['company'])) {
+                $co = $this->companyModel->where('name', $inv['company'])->first();
+                if ($co) {
+                    $companyId = (int) $co['id'];
+                }
+            }
+        }
+
+        $formConfig = $this->getEmailTemplateFormConfig($companyId);
         $validationRules = [
             'company_visiting' => 'required'
         ];
@@ -1512,7 +1528,7 @@ class VisitorRegistration extends BaseController
         }
     }
 
-    private function getEmailTemplateFormConfig(): array
+    private function getEmailTemplateFormConfig(?int $companyId = null): array
     {
         $defaults = $this->getDefaultEmailTemplateFormConfig();
         try {
@@ -1523,6 +1539,17 @@ class VisitorRegistration extends BaseController
 
         foreach ($map as $fieldKey => $row) {
             $defaults[$fieldKey] = (bool) ($row['is_enabled'] ?? true);
+        }
+
+        // Apply per-company Dynamic Form Field overrides on top of global config.
+        // A globally-disabled field cannot be re-enabled per-company.
+        if ($companyId) {
+            $companyFields = $this->clientFormFieldModel->getForCompanyForm($companyId, 'visitor_registration');
+            foreach ($companyFields as $field) {
+                if (array_key_exists($field['field_key'], $defaults) && $defaults[$field['field_key']]) {
+                    $defaults[$field['field_key']] = (bool) $field['is_enabled'];
+                }
+            }
         }
 
         return $defaults;

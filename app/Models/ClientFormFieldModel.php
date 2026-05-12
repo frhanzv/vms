@@ -54,6 +54,7 @@ class ClientFormFieldModel extends Model
             ['field_key' => 'postal_code',          'label' => 'Postal Code'],
             ['field_key' => 'driving_license',      'label' => 'Driving License Section'],
             ['field_key' => 'document_upload',      'label' => 'Document Upload Section'],
+            ['field_key' => 'print_button',         'label' => 'Show Print Button (Staff List)', 'default_enabled' => false],
         ];
     }
 
@@ -97,7 +98,7 @@ class ClientFormFieldModel extends Model
             $result[] = [
                 'field_key'  => $key,
                 'label'      => $def['label'],
-                'is_enabled' => isset($stored[$key]) ? (int) $stored[$key] : 1,
+                'is_enabled' => isset($stored[$key]) ? (int) $stored[$key] : (isset($def['default_enabled']) ? (int) $def['default_enabled'] : 1),
             ];
         }
         return $result;
@@ -140,10 +141,20 @@ class ClientFormFieldModel extends Model
                     ->where('field_key', $fieldKey)
                     ->first();
 
-        return $row === null || (bool) $row['is_enabled'];
+        if ($row !== null) {
+            return (bool) $row['is_enabled'];
+        }
+
+        foreach ($this->getDefinitions($formType) as $def) {
+            if ($def['field_key'] === $fieldKey) {
+                return $def['default_enabled'] ?? true;
+            }
+        }
+
+        return true;
     }
 
-    private function getDefinitions(string $formType): array
+    protected function getDefinitions(string $formType): array
     {
         if ($formType === 'invitation') {
             return self::invitationFields();

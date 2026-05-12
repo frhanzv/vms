@@ -118,11 +118,13 @@ $isSettings = str_contains($current, 'settings');
                         x-transition:leave-start="opacity-100 translate-y-0"
                         x-transition:leave-end="opacity-0 -translate-y-1"
                         class="ml-4 mt-1 flex flex-col gap-1">
+                        <?php if (client_feature_enabled('invitations')): ?>
                         <a href="<?= base_url('invitations') ?>"
                             class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= str_contains($current, 'invitations') ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
                             <span class="w-1.5 h-1.5 rounded-full <?= str_contains($current, 'invitations') ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
                             Invitations
                         </a>
+                        <?php endif; ?>
                         <a href="<?= base_url('requests') ?>"
                             class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= str_contains($current, 'requests') ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
                             <span class="w-1.5 h-1.5 rounded-full <?= str_contains($current, 'requests') ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
@@ -135,10 +137,12 @@ $isSettings = str_contains($current, 'settings');
                         </a>
                     </div>
                 </div>
+                <?php if (client_feature_enabled('staff_pass')): ?>
                 <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?= $isStaff ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white' ?> transition-colors group" href="<?= base_url('staffs') ?>">
                     <span class="material-symbols-outlined text-[22px] <?= $isStaff ? 'font-medium fill-1' : '' ?> group-hover:scale-110 transition-transform">badge</span>
                     <p class="text-sm <?= $isStaff ? 'font-semibold' : 'font-medium' ?>">Staff Pass List</p>
                 </a>
+                <?php endif; ?>
                 <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?= $isWorkflow ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white' ?> transition-colors group" href="<?= base_url('workflow') ?>">
                     <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">account_tree</span>
                     <p class="text-sm font-medium">Visitor Workflow</p>
@@ -499,10 +503,11 @@ $isSettings = str_contains($current, 'settings');
                         </div>
                         <div class="p-6 space-y-6">
 
-                            <!-- Upload IC Button -->
+                            <!-- Read MyKad Button -->
                             <div>
-                                <button type="button" class="bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded-lg text-sm font-semibold uppercase shadow transition-all font-brand">
-                                    Upload IC
+                                <button type="button" id="staff-mykad-btn" class="bg-success hover:bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-semibold uppercase shadow transition-all font-brand flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-base">credit_card</span>
+                                    Read MyKad
                                 </button>
                             </div>
 
@@ -587,8 +592,8 @@ $isSettings = str_contains($current, 'settings');
                             </div>
                             <?php endif; ?>
 
-                            <!-- Row 5: Address 1, Address 2, Address 3 -->
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <!-- Row 5: Address 1, Address 2 -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <?php if ($fs['address_1'] ?? true): ?>
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Address 1 <span class="text-red-500">*</span></label>
@@ -601,70 +606,59 @@ $isSettings = str_contains($current, 'settings');
                                     <input name="address_2" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
                                 </div>
                                 <?php endif; ?>
-                                <?php if ($fs['address_3'] ?? true): ?>
-                                <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Address 3</label>
-                                    <input name="address_3" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
-                                </div>
-                                <?php endif; ?>
                             </div>
 
-                            <!-- Row 6: Country, State, City -->
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <?php if ($fs['country'] ?? true): ?>
+                            <!-- Row 6: Address 3 -->
+                            <?php if ($fs['address_3'] ?? true): ?>
+                            <div class="space-y-2">
+                                <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Address 3</label>
+                                <input name="address_3" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
+                            </div>
+                            <?php endif; ?>
+
+                            <!-- Row 7: City, State -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <?php if ($fs['city'] ?? true): ?>
                                 <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Country</label>
-                                    <select name="country" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
-                                        <option value="MALAYSIA">MALAYSIA</option>
-                                        <option value="OTHER">OTHER</option>
+                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">City <span class="text-red-500">*</span></label>
+                                    <select name="city" id="staff-city" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" required disabled>
+                                        <option value="">SELECT STATE FIRST</option>
                                     </select>
                                 </div>
                                 <?php endif; ?>
                                 <?php if ($fs['state'] ?? true): ?>
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">State <span class="text-red-500">*</span></label>
-                                    <select name="state" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" required>
-                                        <option value="">SELECT</option>
-                                        <option value="JOHOR">JOHOR</option>
-                                        <option value="KEDAH">KEDAH</option>
-                                        <option value="KELANTAN">KELANTAN</option>
-                                        <option value="MELAKA">MELAKA</option>
-                                        <option value="NEGERI SEMBILAN">NEGERI SEMBILAN</option>
-                                        <option value="PAHANG">PAHANG</option>
-                                        <option value="PENANG">PENANG</option>
-                                        <option value="PERAK">PERAK</option>
-                                        <option value="PERLIS">PERLIS</option>
-                                        <option value="SABAH">SABAH</option>
-                                        <option value="SARAWAK">SARAWAK</option>
-                                        <option value="SELANGOR">SELANGOR</option>
-                                        <option value="TERENGGANU">TERENGGANU</option>
-                                    </select>
-                                </div>
-                                <?php endif; ?>
-                                <?php if ($fs['city'] ?? true): ?>
-                                <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">City <span class="text-red-500">*</span></label>
-                                    <select name="city" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" required>
-                                        <option value="">SELECT</option>
-                                        <option value="JOHOR">KUALA LUMPUR</option>
-                                        <option value="KEDAH">KOTA BHARU</option>
-                                        <option value="KELANTAN">SIBU</option>
-                                        <option value="MELAKA">IPOH</option>
-                                        <option value="NEGERI SEMBILAN">KANGAR</option>
+                                    <select name="state" id="staff-state" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" required disabled>
+                                        <option value="">SELECT COUNTRY FIRST</option>
                                     </select>
                                 </div>
                                 <?php endif; ?>
                             </div>
 
-                            <!-- Row 7: Postal Code -->
-                            <?php if ($fs['postal_code'] ?? true): ?>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <!-- Row 8: Postal Code, Country -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <?php if ($fs['postal_code'] ?? true): ?>
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Postal Code <span class="text-red-500">*</span></label>
                                     <input name="postal_code" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text" required/>
                                 </div>
+                                <?php endif; ?>
+                                <?php if ($fs['country'] ?? true): ?>
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Country</label>
+                                    <select name="country" id="staff-country" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
+                                        <option value="">SELECT</option>
+                                        <?php foreach ($countries ?? [] as $c): ?>
+                                        <option value="<?= esc($c['name']) ?>" data-id="<?= (int) $c['id'] ?>"
+                                            <?= strtoupper($c['name']) === 'MALAYSIA' ? 'selected' : '' ?>>
+                                            <?= esc($c['name']) ?>
+                                        </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <?php endif; ?>
                             </div>
-                            <?php endif; ?>
 
                         </div>
                     </section>
@@ -839,6 +833,44 @@ $isSettings = str_contains($current, 'settings');
                 </form>
         </div>
     </main>
+
+<!-- Read MyKad Modal -->
+<div id="staff-mykad-modal" class="hidden fixed inset-0 z-[110] overflow-y-auto" aria-hidden="true">
+    <div class="flex min-h-screen items-center justify-center p-4">
+        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm" id="staff-mykad-backdrop"></div>
+        <div class="relative bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-2xl">
+            <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white font-brand">Read MyKad</h3>
+                    <p class="text-sm text-slate-500 dark:text-slate-400 font-brand">Upload your IC card image to auto-fill the form</p>
+                </div>
+                <button type="button" id="staff-mykad-close" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <input type="file" id="staff-mykad-file" accept="image/*" class="hidden"/>
+                <div id="staff-mykad-dropzone" class="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-8 text-center cursor-pointer hover:border-primary transition-colors">
+                    <span class="material-symbols-outlined text-4xl text-slate-400 mb-3 block">id_card</span>
+                    <p class="text-slate-700 dark:text-slate-200 font-semibold font-brand">Drop your MyKad image here</p>
+                    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1 font-brand">or <button type="button" id="staff-mykad-browse" class="text-primary underline font-semibold">browse files</button></p>
+                    <p class="text-xs text-slate-400 mt-2 font-brand">Supports JPG, PNG (Max 5MB)</p>
+                </div>
+                <div id="staff-mykad-selected" class="hidden rounded-lg border border-slate-200 dark:border-slate-700 p-3 bg-slate-50 dark:bg-slate-800/40 flex items-center justify-between gap-3">
+                    <div class="min-w-0">
+                        <p id="staff-mykad-filename" class="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate font-brand"></p>
+                        <p id="staff-mykad-filesize" class="text-xs text-slate-500 dark:text-slate-400 font-brand"></p>
+                    </div>
+                    <button type="button" id="staff-mykad-clear" class="text-red-500 hover:text-red-700 text-sm font-semibold font-brand">Remove</button>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-3">
+                <button type="button" id="staff-mykad-cancel" class="px-4 py-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-brand">Cancel</button>
+                <button type="button" id="staff-mykad-process" class="px-5 py-2 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed font-brand" disabled>Process MyKad</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 </body>
 
@@ -1015,6 +1047,238 @@ $isSettings = str_contains($current, 'settings');
                 });
             }
         });
+// ── Country / State / City cascade ───────────────────────────────────────────
+
+const staffCountryEl = document.getElementById('staff-country');
+const staffStateEl   = document.getElementById('staff-state');
+const staffCityEl    = document.getElementById('staff-city');
+
+function staffLoadStates(countryId, preselectState, preselectCity) {
+    if (!staffStateEl) return;
+    staffStateEl.innerHTML = '<option value="">Loading…</option>';
+    staffStateEl.disabled  = true;
+    if (staffCityEl) { staffCityEl.innerHTML = '<option value="">SELECT STATE FIRST</option>'; staffCityEl.disabled = true; }
+    if (!countryId) {
+        staffStateEl.innerHTML = '<option value="">SELECT COUNTRY FIRST</option>';
+        return;
+    }
+    fetch(`<?= base_url('api/admin/state/country/') ?>${countryId}`)
+        .then(r => r.json())
+        .then(res => {
+            staffStateEl.disabled = false;
+            if (res.status !== 'success' || !res.data.length) {
+                staffStateEl.innerHTML = '<option value="">No states found</option>';
+                return;
+            }
+            staffStateEl.innerHTML = '<option value="">SELECT</option>' +
+                res.data.map(s => `<option value="${s.name}" data-id="${s.id}">${s.name}</option>`).join('');
+            if (preselectState) {
+                for (const opt of staffStateEl.options) {
+                    if (opt.value.toUpperCase() === preselectState.toUpperCase()) {
+                        opt.selected = true;
+                        staffLoadCities(opt.dataset.id, preselectCity);
+                        break;
+                    }
+                }
+            }
+        })
+        .catch(() => { staffStateEl.disabled = false; staffStateEl.innerHTML = '<option value="">Failed to load</option>'; });
+}
+
+function staffLoadCities(stateId, preselectCity) {
+    if (!staffCityEl) return;
+    staffCityEl.innerHTML = '<option value="">Loading…</option>';
+    staffCityEl.disabled  = true;
+    if (!stateId) {
+        staffCityEl.innerHTML = '<option value="">SELECT STATE FIRST</option>';
+        return;
+    }
+    fetch(`<?= base_url('api/admin/city/state/') ?>${stateId}`)
+        .then(r => r.json())
+        .then(res => {
+            staffCityEl.disabled = false;
+            if (res.status !== 'success' || !res.data.length) {
+                staffCityEl.innerHTML = '<option value="">No cities found</option>';
+                return;
+            }
+            staffCityEl.innerHTML = '<option value="">SELECT</option>' +
+                res.data.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+            if (preselectCity) {
+                for (const opt of staffCityEl.options) {
+                    if (opt.value.toUpperCase() === preselectCity.toUpperCase()) {
+                        opt.selected = true;
+                        break;
+                    }
+                }
+            }
+        })
+        .catch(() => { staffCityEl.disabled = false; staffCityEl.innerHTML = '<option value="">Failed to load</option>'; });
+}
+
+staffCountryEl?.addEventListener('change', function() {
+    const opt = this.options[this.selectedIndex];
+    staffLoadStates(opt?.dataset?.id || '');
+});
+
+staffStateEl?.addEventListener('change', function() {
+    const opt = this.options[this.selectedIndex];
+    staffLoadCities(opt?.dataset?.id || '');
+});
+
+// Trigger on page load for pre-selected country (Malaysia)
+(function() {
+    const preselected = staffCountryEl?.querySelector('option[selected]');
+    if (preselected?.dataset?.id) staffLoadStates(preselected.dataset.id);
+})();
+
+// ── Read MyKad ────────────────────────────────────────────────────────────────
+
+let staffMyKadFile = null;
+
+function formatMyKadFileSize(bytes) {
+    if (!bytes || bytes <= 0) return '0 B';
+    const units = ['B','KB','MB','GB'];
+    const e = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+    return (bytes / Math.pow(1024, e)).toFixed(1) + ' ' + units[e];
+}
+
+function setStaffMyKadFile(file) {
+    staffMyKadFile = file || null;
+    const selected   = document.getElementById('staff-mykad-selected');
+    const processBtn = document.getElementById('staff-mykad-process');
+    const filename   = document.getElementById('staff-mykad-filename');
+    const filesize   = document.getElementById('staff-mykad-filesize');
+    if (!selected || !processBtn || !filename || !filesize) return;
+    if (staffMyKadFile) {
+        filename.textContent = staffMyKadFile.name || 'Selected file';
+        filesize.textContent = formatMyKadFileSize(staffMyKadFile.size || 0);
+        selected.classList.remove('hidden');
+        processBtn.disabled = false;
+    } else {
+        selected.classList.add('hidden');
+        processBtn.disabled = true;
+    }
+}
+
+function validateStaffMyKadFile(file) {
+    if (!file) return false;
+    if (!/^image\//.test(file.type || '')) {
+        alert('Please select an image file (JPG or PNG).');
+        return false;
+    }
+    if ((file.size || 0) > 5 * 1024 * 1024) {
+        alert('File is too large. Maximum size is 5MB.');
+        return false;
+    }
+    return true;
+}
+
+function openStaffMyKadModal() {
+    const modal = document.getElementById('staff-mykad-modal');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+}
+
+function closeStaffMyKadModal() {
+    const modal     = document.getElementById('staff-mykad-modal');
+    const fileInput = document.getElementById('staff-mykad-file');
+    if (modal) { modal.classList.add('hidden'); modal.setAttribute('aria-hidden', 'true'); }
+    if (fileInput) fileInput.value = '';
+    setStaffMyKadFile(null);
+}
+
+document.getElementById('staff-mykad-btn')?.addEventListener('click', openStaffMyKadModal);
+document.getElementById('staff-mykad-close')?.addEventListener('click', closeStaffMyKadModal);
+document.getElementById('staff-mykad-cancel')?.addEventListener('click', closeStaffMyKadModal);
+document.getElementById('staff-mykad-backdrop')?.addEventListener('click', closeStaffMyKadModal);
+
+document.getElementById('staff-mykad-browse')?.addEventListener('click', function() {
+    document.getElementById('staff-mykad-file')?.click();
+});
+
+document.getElementById('staff-mykad-file')?.addEventListener('change', function(e) {
+    const file = e.target?.files?.[0];
+    if (!file) { setStaffMyKadFile(null); return; }
+    if (!validateStaffMyKadFile(file)) { this.value = ''; setStaffMyKadFile(null); return; }
+    setStaffMyKadFile(file);
+});
+
+document.getElementById('staff-mykad-clear')?.addEventListener('click', function() {
+    const fileInput = document.getElementById('staff-mykad-file');
+    if (fileInput) fileInput.value = '';
+    setStaffMyKadFile(null);
+});
+
+const staffMykadDropzone = document.getElementById('staff-mykad-dropzone');
+staffMykadDropzone?.addEventListener('dragover',  function(e) { e.preventDefault(); e.stopPropagation(); this.classList.add('border-primary'); });
+staffMykadDropzone?.addEventListener('dragleave', function(e) { e.preventDefault(); e.stopPropagation(); this.classList.remove('border-primary'); });
+staffMykadDropzone?.addEventListener('drop', function(e) {
+    e.preventDefault(); e.stopPropagation();
+    this.classList.remove('border-primary');
+    const file = e.dataTransfer?.files?.[0];
+    if (!file) return;
+    if (!validateStaffMyKadFile(file)) { setStaffMyKadFile(null); return; }
+    setStaffMyKadFile(file);
+});
+
+document.getElementById('staff-mykad-process')?.addEventListener('click', async function() {
+    if (!staffMyKadFile) { alert('Please select an image first.'); return; }
+    const processBtn = this;
+    const originalText = processBtn.textContent;
+    processBtn.disabled = true;
+    processBtn.textContent = 'Processing…';
+    try {
+        const fd = new FormData();
+        fd.append('mykad_image', staffMyKadFile);
+        const response = await fetch('<?= base_url('visitor-registration/processMyKad') ?>', {
+            method: 'POST',
+            body: fd,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        });
+        const result = await response.json();
+        if (!result?.success || !result?.data) {
+            alert(result?.message || 'Could not read MyKad image.');
+            return;
+        }
+        const d = result.data;
+        const setVal = (name, val) => {
+            if (!val) return;
+            const el = document.querySelector(`[name="${name}"]`);
+            if (!el) return;
+            if (el.tagName === 'SELECT') {
+                const upper = String(val).toUpperCase();
+                for (const opt of el.options) {
+                    if (opt.value.toUpperCase() === upper || opt.text.toUpperCase() === upper) {
+                        el.value = opt.value;
+                        break;
+                    }
+                }
+            } else {
+                el.value = String(val);
+            }
+        };
+        setVal('ic_number',        d.ic_number);
+        setVal('full_name',        d.name);
+        setVal('name_on_staff_pass', d.name);
+        setVal('date_of_birth',    d.date_of_birth);
+        setVal('sex',              d.sex);
+        setVal('address_1',   d.address);
+        setVal('postal_code', d.postcode);
+        // State/city are cascade-driven — trigger load from the currently selected country
+        if (d.state) {
+            const cOpt = staffCountryEl?.options[staffCountryEl?.selectedIndex];
+            if (cOpt?.dataset?.id) staffLoadStates(cOpt.dataset.id, d.state, d.city);
+        }
+        closeStaffMyKadModal();
+        alert('MyKad processed. Please verify and complete any missing fields before submitting.');
+    } catch (err) {
+        alert('Could not read MyKad image. Please try again with a clearer image.');
+    } finally {
+        processBtn.disabled = false;
+        processBtn.textContent = originalText;
+    }
+});
 
 </script>
 </html>

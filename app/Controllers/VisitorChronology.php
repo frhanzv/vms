@@ -98,8 +98,10 @@ class VisitorChronology extends BaseController
                         i.updated_at,
                         MIN(vcl.scanned_at) AS visit_from,
                         MAX(vcl.scanned_at) AS visit_to,
+                        i.location AS i_location,
                         (SELECT MIN(iv.check_in_time) FROM invitation_visitors iv WHERE iv.invitation_id = i.id) AS reg_check_in,
-                        (SELECT MAX(iv.check_out_time) FROM invitation_visitors iv WHERE iv.invitation_id = i.id) AS reg_check_out
+                        (SELECT MAX(iv.check_out_time) FROM invitation_visitors iv WHERE iv.invitation_id = i.id) AS reg_check_out,
+                        (SELECT MAX(s.date_to) FROM invitation_schedules s WHERE s.invitation_id = i.id) AS schedule_end
                        FROM invitations i
                        LEFT JOIN visitor_card_logs vcl ON " . implode(' AND ', $joinGrouped) . "
                        WHERE " . implode(' AND ', $whereGrouped) . "
@@ -143,16 +145,36 @@ class VisitorChronology extends BaseController
             }
 
             $duration = '-';
+            $isOverstay = false;
+            $overstaySeconds = 0;
+            
+            $schedEnd = $v['schedule_end'] ? strtotime((string) $v['schedule_end']) : null;
+            $nowTs = time();
+
             if ($regIn) {
-                $endTs = $regOut ? strtotime((string) $regOut) : time();
+                $endTs = $regOut ? strtotime((string) $regOut) : $nowTs;
                 $diff  = max(0, $endTs - strtotime((string) $regIn));
-                $duration = $this->formatDuration($diff) . ($regOut ? '' : ' (ongoing)');
+                
+                // Dashboard logic: if currently on-site and past schedule, show overstay relative to schedule end
+                if (!$regOut && $schedEnd && $nowTs > $schedEnd) {
+                    $isOverstay = true;
+                    $overstaySeconds = $nowTs - $schedEnd;
+                    $duration = '+' . $this->formatDuration($overstaySeconds);
+                } else {
+                    $duration = $this->formatDuration($diff) . ($regOut ? '' : ' (ongoing)');
+                }
             } elseif ($scanFrom && $scanTo && ! $sameScan) {
                 $diff = max(0, strtotime((string) $scanTo) - strtotime((string) $scanFrom));
                 $duration = $this->formatDuration($diff);
             } elseif ($scanFrom && $sameScan && $status === 'Checked In') {
-                $diff = max(0, time() - strtotime((string) $scanFrom));
-                $duration = $this->formatDuration($diff) . ' (ongoing)';
+                if ($schedEnd && $nowTs > $schedEnd) {
+                    $isOverstay = true;
+                    $overstaySeconds = $nowTs - $schedEnd;
+                    $duration = '+' . $this->formatDuration($overstaySeconds);
+                } else {
+                    $diff = max(0, $nowTs - strtotime((string) $scanFrom));
+                    $duration = $this->formatDuration($diff) . ' (ongoing)';
+                }
             }
 
             $formattedVisitors[] = [
@@ -168,6 +190,7 @@ class VisitorChronology extends BaseController
                 'visit_to'        => $visitToDisp,
                 'visit_duration'  => $duration,
                 'status'          => $status,
+                'location'        => $v['i_location'] ?? 'N/A',
                 'last_updated'    => date('n/j/Y, g:i:s A', strtotime($v['updated_at'] ?? 'now')),
                 'search_type'     => 'Auto Detect'
             ];
@@ -317,10 +340,15 @@ class VisitorChronology extends BaseController
         $logs = $db->query($sql, [(int)$invitationId])->getResultArray();
 
         $ivRow = $db->query(
-            'SELECT MIN(check_in_time) AS check_in_time, MAX(check_out_time) AS check_out_time
-             FROM invitation_visitors WHERE invitation_id = ?',
+            'SELECT 
+                MIN(iv.check_in_time) AS check_in_time, 
+                MAX(iv.check_out_time) AS check_out_time,
+                (SELECT MAX(date_to) FROM invitation_schedules s WHERE s.invitation_id = iv.invitation_id) AS schedule_end
+             FROM invitation_visitors iv 
+             WHERE iv.invitation_id = ?
+             GROUP BY iv.invitation_id',
             [(int) $invitationId]
-        )->getRowArray() ?: ['check_in_time' => null, 'check_out_time' => null];
+        )->getRowArray() ?: ['check_in_time' => null, 'check_out_time' => null, 'schedule_end' => null];
 
         if (empty($logs)) {
             $totalSeconds = $this->secondsFromRegistrationWindow($ivRow);
@@ -329,18 +357,48 @@ class VisitorChronology extends BaseController
                 $status = 'NO_LOGS';
             }
 
+            // Calculate overstay for summary if currently on site
+            $schedEnd = !empty($ivRow['schedule_end']) ? strtotime((string) $ivRow['schedule_end']) : null;
+            $nowTs = time();
+            $displayTotalTime = $this->formatDuration($totalSeconds);
+            $isOverstay = false;
+
+            if (empty($ivRow['check_out_time']) && !empty($ivRow['check_in_time']) && $schedEnd && $nowTs > $schedEnd) {
+                $isOverstay = true;
+                $overstaySecs = $nowTs - $schedEnd;
+                $displayTotalTime = '+' . $this->formatDuration($overstaySecs);
+            }
+
             return $this->response->setJSON([
                 'success' => true,
                 'summary' => [
-                    'full_name'    => $invitation['full_name'],
-                    'ic_no'        => $invitation['ic_passport'],
+                    'full_name'    => $invitation['full_name'] ?? 'N/A',
+                    'ic_no'        => $invitation['ic_passport'] ?? 'N/A',
                     'status'       => $status,
-                    'total_time'   => $this->formatDuration($totalSeconds),
-                    'total_visits' => 0,
+                    'total_time'   => $displayTotalTime,
+                    'total_visits' => (!empty($ivRow['check_in_time']) ? 1 : 0),
                     'total_scans'  => 0,
+                    'location'     => $invitation['location'] ?? 'N/A',
+                    'is_overstay'  => $isOverstay,
                     'last_seen'    => '-',
                 ],
-                'dates' => [],
+                'dates' => (!empty($ivRow['check_in_time']) ? [
+                    [
+                        'display_date' => date('d-M-Y', strtotime($ivRow['check_in_time'])),
+                        'logs_count' => 0,
+                        'movements' => [
+                            [
+                                'movement_index' => 1,
+                                'from' => 'Manual Registration',
+                                'to'   => ($ivRow['check_out_time'] ? 'Manual Checkout' : 'STILL AT SITE'),
+                                'entry_time' => date('h:i:s A', strtotime($ivRow['check_in_time'])),
+                                'exit_time'  => ($ivRow['check_out_time'] ? date('h:i:s A', strtotime($ivRow['check_out_time'])) : '-'),
+                                'time_spent' => ($ivRow['check_out_time'] ? $this->formatDuration(strtotime($ivRow['check_out_time']) - strtotime($ivRow['check_in_time'])) : '-'),
+                                'status'     => 'GRANTED'
+                            ]
+                        ]
+                    ]
+                ] : []),
             ]);
         }
 
@@ -413,26 +471,40 @@ class VisitorChronology extends BaseController
             }
         }
 
-        $regSeconds = $this->secondsFromRegistrationWindow($ivRow);
-        $totalSeconds = max($totalSeconds, $regSeconds);
-
         // Final summary: prefer registration record (same source as dashboard on-site / overstay).
         $lastLog = end($logs);
         $status = $this->registrationStatusLabel($ivRow);
         if ($status === 'UNKNOWN') {
             $status = (strpos(strtolower($lastLog['lane_name'] ?? ''), 'out') !== false) ? 'OUT_BUILDING' : 'IN_BUILDING';
         }
+
+        // Calculate overstay logic (matching dashboard and report)
+        $schedEnd = !empty($ivRow['schedule_end']) ? strtotime((string) $ivRow['schedule_end']) : null;
+        $nowTs = time();
+        $isOverstay = false;
+        
+        $durationSeconds = $this->secondsFromRegistrationWindow($ivRow);
+        $totalSeconds = max($totalSeconds, $durationSeconds);
+        $displayTotalTime = $this->formatDuration($totalSeconds);
+
+        if (empty($ivRow['check_out_time']) && !empty($ivRow['check_in_time']) && $schedEnd && $nowTs > $schedEnd) {
+            $isOverstay = true;
+            $overDiff = $nowTs - $schedEnd;
+            $displayTotalTime = '+' . $this->formatDuration($overDiff);
+        }
         
         return $this->response->setJSON([
             'success' => true,
             'summary' => [
-                'full_name' => $invitation['full_name'],
-                'ic_no' => $invitation['ic_passport'],
-                'status' => $status,
-                'total_time' => $this->formatDuration($totalSeconds),
-                'total_visits' => count($uniqueDays),
-                'total_scans' => $totalScans,
-                'last_seen' => ($lastLog['lane_name'] ?? '-')
+                'full_name'    => $invitation['full_name'] ?? 'N/A',
+                'ic_no'        => $invitation['ic_passport'] ?? 'N/A',
+                'status'       => $status,
+                'total_time'   => $displayTotalTime,
+                'total_visits' => count($dates),
+                'total_scans'  => count($logs),
+                'location'     => $invitation['location'] ?? 'N/A',
+                'is_overstay'  => $isOverstay,
+                'last_seen'    => ($lastLog['lane_name'] ?? '-')
             ],
             'dates' => array_values($dates)
         ]);

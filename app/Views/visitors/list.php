@@ -6,6 +6,7 @@ $isStaff = str_contains($current, 'staffs') || str_contains($current, 'staff-pas
 $isWorkflow = str_contains($current, 'workflow');
 $isConfig = str_contains($current, 'config');
 $isSettings = str_contains($current, 'settings');
+$cardEnabled = client_feature_enabled('visitor_card');
 ?>
 <html lang="en">
 <head>
@@ -82,11 +83,13 @@ $isSettings = str_contains($current, 'settings');
                         x-transition:leave-start="opacity-100 translate-y-0"
                         x-transition:leave-end="opacity-0 -translate-y-1"
                         class="ml-4 mt-1 flex flex-col gap-1">
+                        <?php if (client_feature_enabled('invitations')): ?>
                         <a href="<?= base_url('invitations') ?>"
                             class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= str_contains($current, 'invitations') ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
                             <span class="w-1.5 h-1.5 rounded-full <?= str_contains($current, 'invitations') ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
                             Invitations
                         </a>
+                        <?php endif; ?>
                         <a href="<?= base_url('requests') ?>"
                             class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= str_contains($current, 'requests') ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
                             <span class="w-1.5 h-1.5 rounded-full <?= str_contains($current, 'requests') ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
@@ -99,10 +102,12 @@ $isSettings = str_contains($current, 'settings');
                         </a>
                     </div>
                 </div>
+                <?php if (client_feature_enabled('staff_pass')): ?>
                 <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?= $isStaff ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white' ?> transition-colors group" href="<?= base_url('staffs') ?>">
                     <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">badge</span>
                     <p class="text-sm font-medium">Staff Pass List</p>
                 </a>
+                <?php endif; ?>
                 <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?= $isWorkflow ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white' ?> transition-colors group" href="<?= base_url('workflow') ?>">
                     <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">account_tree</span>
                     <p class="text-sm font-medium">Visitor Workflow</p>
@@ -330,11 +335,13 @@ $isSettings = str_contains($current, 'settings');
                             title="Scan a MyKad image to auto-search by IC number">
                             Read MyKad
                         </button>
+                        <?php if ($cardEnabled): ?>
                         <button type="button" id="btnToolbarReturnCard" disabled
                             class="bg-success hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2.5 rounded text-xs font-semibold uppercase shadow transition-colors flex-1 text-center whitespace-nowrap"
                             title="Select one or more visitors with a card in use, then return cards in batch">
                             Return Card
                         </button>
+                        <?php endif; ?>
                     </div>
                     <div class="lg:col-span-3">
                         <input class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs focus:ring-primary focus:border-primary uppercase placeholder-gray-500 dark:placeholder-gray-400" placeholder="DATE OF VISIT TO" type="text"/>
@@ -390,9 +397,11 @@ $isSettings = str_contains($current, 'settings');
                 <table class="w-full min-w-max text-left border-collapse">
                     <thead>
                         <tr class="bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs font-bold uppercase tracking-wide">
+                            <?php if ($cardEnabled): ?>
                             <th class="p-2 w-10 border-b dark:border-gray-600 text-center" title="Select rows for batch return">
                                 <input type="checkbox" id="selectAllVisitorRows" class="rounded border-gray-300 text-primary focus:ring-primary" aria-label="Select all returnable rows"/>
                             </th>
+                            <?php endif; ?>
                             <th class="p-4 border-b dark:border-gray-600">No</th>
                             <th class="p-4 border-b dark:border-gray-600">Date</th>
                             <th class="p-4 border-b dark:border-gray-600">Full Name</th>
@@ -402,15 +411,17 @@ $isSettings = str_contains($current, 'settings');
                             <th class="p-4 border-b dark:border-gray-600">Location</th>
                             <th class="p-4 border-b dark:border-gray-600">Visitor Type</th>
                             <th class="p-4 border-b dark:border-gray-600">Type</th>
+                            <?php if ($cardEnabled): ?>
                             <th class="p-4 border-b dark:border-gray-600">Card Status</th>
                             <th class="p-4 border-b dark:border-gray-600">Visitor Pass No</th>
+                            <?php endif; ?>
                             <th class="p-4 border-b dark:border-gray-600">Reason</th>
                         </tr>
                     </thead>
                     <tbody class="text-xs text-gray-600 dark:text-gray-300 font-medium">
                         <?php if (empty($visitors)): ?>
                         <tr>
-                            <td colspan="13" class="p-8 text-center">
+                            <td colspan="<?= $cardEnabled ? '13' : '10' ?>" class="p-8 text-center">
                                 <div class="flex flex-col items-center justify-center gap-3">
                                     <div class="bg-gray-100 dark:bg-gray-800 rounded-full p-4">
                                         <span class="material-symbols-outlined text-4xl text-gray-400 dark:text-gray-500">folder_off</span>
@@ -437,6 +448,7 @@ $isSettings = str_contains($current, 'settings');
                             data-returnable="<?= $canReturnCard ? '1' : '0' ?>"
                             data-visitor-json="<?= esc(json_encode($visitor), 'attr') ?>"
                             onclick="openDetailModalFromRow(this, event)">
+                            <?php if ($cardEnabled): ?>
                             <td class="visitor-check-cell p-2 w-10 text-center align-middle" onclick="event.stopPropagation();">
                                 <input type="checkbox"
                                     class="visitor-row-check rounded border-gray-300 text-primary focus:ring-primary <?= $canReturnCard ? '' : 'opacity-40 cursor-not-allowed' ?>"
@@ -446,6 +458,7 @@ $isSettings = str_contains($current, 'settings');
                                     title="<?= $canReturnCard ? 'Select to include in Return Card' : 'No visitor card is bound to this row — nothing to return' ?>"
                                     aria-label="Select visitor row"/>
                             </td>
+                            <?php endif; ?>
                             <td class="p-4"><?= $visitor['no'] ?></td>
                             <td class="p-4"><?= esc($visitor['date']) ?></td>
                             <td class="p-4 font-semibold text-gray-800 dark:text-white"><?= esc($visitor['full_name']) ?></td>
@@ -457,6 +470,7 @@ $isSettings = str_contains($current, 'settings');
                             <td class="p-4"><?= esc($visitor['location']) ?></td>
                             <td class="p-4"><?= esc($visitor['visitor_type'] ?? '-') ?></td>
                             <td class="p-4"><?= esc($visitor['type']) ?></td>
+                            <?php if ($cardEnabled): ?>
                             <td class="p-4">
                                 <?php if ($visitor['card_status'] === 'Active'): ?>
                                 <span class="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Active</span>
@@ -469,6 +483,7 @@ $isSettings = str_contains($current, 'settings');
                                 <?php endif; ?>
                             </td>
                             <td class="p-4"><?= esc($visitor['pass_no'] ?? '') ?></td>
+                            <?php endif; ?>
                             <td class="p-4"><?= esc($visitor['reason']) ?></td>
                         </tr>
                         <?php endforeach; ?>
@@ -645,6 +660,7 @@ $isSettings = str_contains($current, 'settings');
                     </div>
                 </div>
 
+                <?php if ($cardEnabled): ?>
                 <!-- Pass Information -->
                 <div>
                     <h3 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-2">
@@ -668,6 +684,7 @@ $isSettings = str_contains($current, 'settings');
                         </div>
                     </div>
                 </div>
+                <?php endif; ?>
                 <input type="hidden" id="editInvitationVisitorId"/>
                 <input type="hidden" id="editInvitationId"/>
                 <input type="hidden" id="editScheduleId"/>
@@ -699,6 +716,7 @@ $isSettings = str_contains($current, 'settings');
                         Visitor Type
                     </button>
                     <?php endif; ?>
+                    <?php if ($cardEnabled): ?>
                     <button type="button" id="btnReturnCardFromDetail" onclick="returnCardFromDetail()" class="hidden px-4 py-2.5 bg-success hover:bg-emerald-600 text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
                         <span class="material-symbols-outlined text-lg">assignment_return</span>
                         Return Card
@@ -711,6 +729,7 @@ $isSettings = str_contains($current, 'settings');
                         <span class="material-symbols-outlined text-lg">qr_code</span>
                         QR Code
                     </button>
+                    <?php endif; ?>
                     <button type="button" class="px-4 py-2.5 bg-primary hover:bg-primary-dark text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
                         <span class="material-symbols-outlined text-lg">print</span>
                         Print Slip
@@ -720,6 +739,7 @@ $isSettings = str_contains($current, 'settings');
         </div>
     </div>
 
+    <?php if ($cardEnabled): ?>
     <!-- Card Binding Modal -->
     <div id="cardBindingModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4">
         <div class="bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-md w-full">
@@ -783,7 +803,9 @@ $isSettings = str_contains($current, 'settings');
             </div>
         </div>
     </div>
+    <?php endif; ?>
 
+    <?php if ($cardEnabled): ?>
     <!-- QR Code Modal -->
     <div id="qrCodeModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4">
         <div class="bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-sm w-full">
@@ -814,6 +836,7 @@ $isSettings = str_contains($current, 'settings');
             </div>
         </div>
     </div>
+    <?php endif; ?>
 
     <script>
         let currentVisitorId = null;

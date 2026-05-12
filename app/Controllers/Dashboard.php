@@ -997,6 +997,17 @@ class Dashboard extends BaseController
             ->where('id', $visitor['id'])
             ->update(['check_in_time' => $now, 'updated_at' => $now]);
 
+        // Log to visitor_card_logs for reports
+        $db->table('visitor_card_logs')->insert([
+            'visitor_card_id' => $visitor['visitor_card_id'] ?? null,
+            'invitation_id'   => $invitationId,
+            'action'          => 'checkin',
+            'lane_id'         => null, // Manual/Dashboard
+            'scan_source'     => 'manual',
+            'scanned_at'      => $now,
+            'created_at'      => $now,
+        ]);
+
         if ($db->affectedRows() === 0) {
             return $this->response->setJSON(['success' => false, 'message' => 'Check-in failed, please try again']);
         }

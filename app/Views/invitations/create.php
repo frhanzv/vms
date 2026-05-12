@@ -1,11 +1,15 @@
 <!DOCTYPE html>
 <?php
-$current = service('uri')->getPath();
+$current     = service('uri')->getPath();
 $isDashboard = ($current === '' || $current === 'dashboard');
-$isStaff = str_contains($current, 'staffs') || str_contains($current, 'staff-pass-request');
-$isWorkflow = str_contains($current, 'workflow');
-$isConfig = str_contains($current, 'config');
-$isSettings = str_contains($current, 'settings');
+$isStaff     = str_contains($current, 'staffs') || str_contains($current, 'staff-pass-request');
+$isWorkflow  = str_contains($current, 'workflow');
+$isConfig    = str_contains($current, 'config');
+$isSettings  = str_contains($current, 'settings');
+$formConfig  = $formConfig ?? [];
+$isFieldEnabled = static function (string $field) use ($formConfig): bool {
+    return ! array_key_exists($field, $formConfig) || (bool) $formConfig[$field];
+};
 ?>
 <html lang="en">
 <head>
@@ -84,11 +88,13 @@ $isSettings = str_contains($current, 'settings');
                         x-transition:leave-start="opacity-100 translate-y-0"
                         x-transition:leave-end="opacity-0 -translate-y-1"
                         class="ml-4 mt-1 flex flex-col gap-1">
+                        <?php if (client_feature_enabled('invitations')): ?>
                         <a href="<?= base_url('invitations') ?>"
                             class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= str_contains($current, 'invitations') ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
                             <span class="w-1.5 h-1.5 rounded-full <?= str_contains($current, 'invitations') ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
                             Invitations
                         </a>
+                        <?php endif; ?>
                         <a href="<?= base_url('requests') ?>"
                             class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= str_contains($current, 'requests') ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
                             <span class="w-1.5 h-1.5 rounded-full <?= str_contains($current, 'requests') ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
@@ -101,10 +107,12 @@ $isSettings = str_contains($current, 'settings');
                         </a>
                     </div>
                 </div>
+                <?php if (client_feature_enabled('staff_pass')): ?>
                 <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?= $isStaff ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white' ?> transition-colors group" href="<?= base_url('staffs') ?>">
                     <span class="material-symbols-outlined text-[22px] font-medium fill-1 group-hover:scale-110 transition-transform">badge</span>
                     <p class="text-sm font-medium">Staff Pass List</p>
                 </a>
+                <?php endif; ?>
                 <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?= $isWorkflow ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white' ?> transition-colors group" href="<?= base_url('workflow') ?>">
                     <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">account_tree</span>
                     <p class="text-sm font-medium">Visitor Workflow</p>
@@ -334,12 +342,15 @@ History
 </div>
 <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
 <!-- Staff ID (defaults from account; editable e.g. when using a manager login) -->
+<?php if ($isFieldEnabled('staff_id')): ?>
 <div class="flex flex-col gap-2">
 <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Staff ID <span class="text-red-500">*</span></label>
 <input name="staff_id" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white" value="<?= esc(old('staff_id', $staff_id ?? '')) ?>" type="text" maxlength="50" required/>
 </div>
+<?php endif; ?>
 
 <!-- Visitor Type -->
+<?php if ($isFieldEnabled('visitor_type')): ?>
 <div class="flex flex-col gap-2 md:col-span-2">
 <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Visitor Type <?php if (! empty($visitorTypes)): ?><span class="text-red-500">*</span><?php endif; ?></label>
 <?php if (! empty($visitorTypes)): ?>
@@ -355,8 +366,10 @@ History
 <p class="text-sm text-amber-700 dark:text-amber-400 rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-900/20 px-4 py-3">No visitor types are configured yet. Add them under <strong>Config</strong> → Visitor Type Management, then refresh this page.</p>
 <?php endif; ?>
 </div>
+<?php endif; ?>
 
 <!-- Name of Company Visited -->
+<?php if ($isFieldEnabled('company_visited')): ?>
 <div class="flex flex-col gap-2">
 <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Name of Company Visited</label>
 <select name="company_visited" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white">
@@ -368,14 +381,28 @@ History
 <?php endif; ?>
 </select>
 </div>
+<?php endif; ?>
 
 <!-- Contact No Of Person Visited (defaults from account; editable) -->
+<?php if ($isFieldEnabled('contact_person')): ?>
 <div class="flex flex-col gap-2">
 <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Contact No Of Person Visited <span class="text-red-500">*</span></label>
 <input name="contact_person" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white" value="<?= esc(old('contact_person', $contact_no ?? '')) ?>" type="tel" maxlength="20" required/>
 </div>
+<?php endif; ?>
+
+<!-- Link Expiry -->
+<?php if ($isFieldEnabled('link_expiry')): ?>
+<div class="flex flex-col gap-2">
+<label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Link Expiry</label>
+<div class="relative">
+<input name="link_expiry" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white" type="date" required/>
+</div>
+</div>
+<?php endif; ?>
 
 <!-- Reason for Visit -->
+<?php if ($isFieldEnabled('reason')): ?>
 <div class="flex flex-col gap-2">
 <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Reason for Visit <span class="text-red-500">*</span></label>
 <select name="reason" id="visit-reason" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white" required>
@@ -402,7 +429,10 @@ History
 <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Other Reason</label>
 <input name="other_reason" id="other-reason" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white placeholder:text-slate-400" placeholder="Please specify if 'OTHER' selected" type="text" disabled/>
 </div>
+<?php endif; ?>
+
 <!-- Location -->
+<?php if ($isFieldEnabled('location')): ?>
 <div class="flex flex-col gap-2">
 <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Location</label>
 <select name="location" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white">
@@ -413,7 +443,9 @@ History
     <?php endforeach; ?>
 <?php endif; ?>
 </select>
-</div></div>
+</div>
+<?php endif; ?>
+</div>
 </section>
 
 <!-- Visitor Details Section (multiple rows, same pattern as Visit Schedule) -->
@@ -430,6 +462,7 @@ Add Visitor
 </button>
 </div>
 </div>
+<?php if ($isFieldEnabled('allow_sub_invites')): ?>
 <div class="px-6 pt-2 pb-2 border-b border-slate-200 dark:border-slate-800">
 <label class="flex items-start gap-3 cursor-pointer group">
 <input type="checkbox" name="allow_sub_invites" value="1" class="mt-1 rounded border-slate-300 text-primary focus:ring-primary" <?= old('allow_sub_invites') ? 'checked' : '' ?>/>
@@ -439,20 +472,27 @@ Add Visitor
 </span>
 </label>
 </div>
+<?php endif; ?>
 <div id="visitors-container" class="p-6 flex flex-col gap-4">
 <div class="visitor-item flex flex-col lg:flex-row lg:items-end gap-4 p-4 border border-slate-200 dark:border-slate-700 rounded-lg">
+<?php if ($isFieldEnabled('visitor_full_name')): ?>
 <div class="flex-1 space-y-2">
 <label class="block text-sm font-semibold text-slate-600 dark:text-slate-400">Full Name <span class="text-red-500">*</span></label>
 <input name="visitors[0][full_name]" class="w-full h-12 rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none" placeholder="Full name as per ID" type="text" required/>
 </div>
+<?php endif; ?>
+<?php if ($isFieldEnabled('visitor_contact')): ?>
 <div class="flex-1 space-y-2">
 <label class="block text-sm font-semibold text-slate-600 dark:text-slate-400">Contact Number <span class="text-red-500">*</span></label>
 <input name="visitors[0][contact]" class="w-full h-12 rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none" placeholder="+60 1x-xxx xxxx" type="tel" required/>
 </div>
+<?php endif; ?>
+<?php if ($isFieldEnabled('visitor_email')): ?>
 <div class="flex-1 space-y-2">
 <label class="block text-sm font-semibold text-slate-600 dark:text-slate-400">Email Address <span class="text-red-500">*</span></label>
 <input name="visitors[0][visitor_email]" class="w-full h-12 rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none" placeholder="visitor@example.com" type="email" required/>
 </div>
+<?php endif; ?>
 <div class="flex items-center pb-2 lg:pb-0">
 <button type="button" class="read-mykad text-emerald-600 hover:text-emerald-700 transition-colors p-2 rounded-full hover:bg-emerald-50 dark:hover:bg-emerald-900/20" title="Read MyKad">
 <span class="material-symbols-outlined">badge</span>
@@ -606,22 +646,26 @@ Search
 </div>
 
 <script>
+const dffInvConfig = <?= json_encode($formConfig, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
+const invFieldEnabled = k => !(k in dffInvConfig) || dffInvConfig[k];
+
 // Enable/Disable "Other Reason" field based on "Reason for Visit" selection
 const visitReasonSelect = document.getElementById('visit-reason');
-const otherReasonInput = document.getElementById('other-reason');
-
-visitReasonSelect.addEventListener('change', function() {
-    if (this.value === 'OTHER') {
-        otherReasonInput.disabled = false;
-        otherReasonInput.required = true;
-        otherReasonInput.classList.remove('bg-slate-50', 'dark:bg-slate-800/50', 'cursor-not-allowed');
-    } else {
-        otherReasonInput.disabled = true;
-        otherReasonInput.required = false;
-        otherReasonInput.value = '';
-        otherReasonInput.classList.add('bg-slate-50', 'dark:bg-slate-800/50');
-    }
-});
+const otherReasonInput  = document.getElementById('other-reason');
+if (visitReasonSelect && otherReasonInput) {
+    visitReasonSelect.addEventListener('change', function() {
+        if (this.value === 'OTHER') {
+            otherReasonInput.disabled = false;
+            otherReasonInput.required = true;
+            otherReasonInput.classList.remove('bg-slate-50', 'dark:bg-slate-800/50', 'cursor-not-allowed');
+        } else {
+            otherReasonInput.disabled = true;
+            otherReasonInput.required = false;
+            otherReasonInput.value = '';
+            otherReasonInput.classList.add('bg-slate-50', 'dark:bg-slate-800/50');
+        }
+    });
+}
 
 // Dynamic visitor rows (same indexing approach as schedules)
 let visitorRowCount = 1;
@@ -629,12 +673,18 @@ let visitorRowCount = 1;
 function visitorFieldTemplate(index, field) {
     const base = 'w-full h-12 rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none';
     if (field === 'full_name') {
-        return `<input name="visitors[${index}][full_name]" class="${base}" placeholder="Full name as per ID" type="text" required/>`;
+        return invFieldEnabled('visitor_full_name')
+            ? `<input name="visitors[${index}][full_name]" class="${base}" placeholder="Full name as per ID" type="text" required/>`
+            : '';
     }
     if (field === 'contact') {
-        return `<input name="visitors[${index}][contact]" class="${base}" placeholder="+60 1x-xxx xxxx" type="tel" required/>`;
+        return invFieldEnabled('visitor_contact')
+            ? `<input name="visitors[${index}][contact]" class="${base}" placeholder="+60 1x-xxx xxxx" type="tel" required/>`
+            : '';
     }
-    return `<input name="visitors[${index}][visitor_email]" class="${base}" placeholder="visitor@example.com" type="email" required/>`;
+    return invFieldEnabled('visitor_email')
+        ? `<input name="visitors[${index}][visitor_email]" class="${base}" placeholder="visitor@example.com" type="email" required/>`
+        : '';
 }
 
 function updateVisitorRemoveButtons() {
@@ -672,18 +722,21 @@ document.getElementById('add-visitor').addEventListener('click', function() {
     const row = document.createElement('div');
     row.className = 'visitor-item flex flex-col lg:flex-row lg:items-end gap-4 p-4 border border-slate-200 dark:border-slate-700 rounded-lg';
     row.innerHTML = `
+        ${invFieldEnabled('visitor_full_name') ? `
         <div class="flex-1 space-y-2">
             <label class="block text-sm font-semibold text-slate-600 dark:text-slate-400">Full Name <span class="text-red-500">*</span></label>
             ${visitorFieldTemplate(idx, 'full_name')}
-        </div>
+        </div>` : ''}
+        ${invFieldEnabled('visitor_contact') ? `
         <div class="flex-1 space-y-2">
             <label class="block text-sm font-semibold text-slate-600 dark:text-slate-400">Contact Number <span class="text-red-500">*</span></label>
             ${visitorFieldTemplate(idx, 'contact')}
-        </div>
+        </div>` : ''}
+        ${invFieldEnabled('visitor_email') ? `
         <div class="flex-1 space-y-2">
             <label class="block text-sm font-semibold text-slate-600 dark:text-slate-400">Email Address <span class="text-red-500">*</span></label>
             ${visitorFieldTemplate(idx, 'visitor_email')}
-        </div>
+        </div>` : ''}
         <div class="flex items-center pb-2 lg:pb-0">
             <button type="button" class="read-mykad text-emerald-600 hover:text-emerald-700 transition-colors p-2 rounded-full hover:bg-emerald-50 dark:hover:bg-emerald-900/20" title="Read MyKad">
                 <span class="material-symbols-outlined">badge</span>

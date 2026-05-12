@@ -416,8 +416,26 @@ class InvitationEmailSender
                 ];
             }
 
-            // QR should match visible pass ID format, e.g. "VIS-23".
-            $qrCodeData = 'VIS-' . $invitationId;
+            // QR payload: IC/passport number only (what scanners display). No VIS-* in encoded data.
+            // Kiosk resolves invitation via ic_passport match (see QRCode::parseQrCode).
+            $passIdDisplay = 'VIS-' . $invitationId;
+            $icPassport      = trim((string) ($invitation['ic_passport'] ?? ''));
+            $residentUpper   = strtoupper(trim((string) ($invitation['resident'] ?? '')));
+            $visitorTypeUpper = strtoupper(trim((string) ($invitation['visitor_type_name'] ?? '')));
+            
+            $isForeign       = ($residentUpper === 'FOREIGN' || $visitorTypeUpper === 'FOREIGN');
+            if (!$isForeign && empty($residentUpper) && preg_match('/[A-Z]/i', $icPassport)) {
+                $isForeign = true;
+            }
+            
+            $docLabel        = $isForeign ? 'Passport No.' : 'IC No.';
+            $visitorIdLine   = '';
+            if ($icPassport !== '') {
+                $visitorIdLine = $docLabel . ': ' . $icPassport;
+            }
+
+            $qrCodeData = $icPassport !== '' ? $icPassport : $passIdDisplay;
+
             $options = new \chillerlan\QRCode\QROptions([
                 'outputInterface' => \chillerlan\QRCode\Output\QRGdImagePNG::class,
                 'eccLevel'        => \chillerlan\QRCode\Common\EccLevel::L,
@@ -455,7 +473,8 @@ class InvitationEmailSender
                 'custom_body_html' => $customBodyHtml,
                 'custom_colors' => $customColors,
                 'custom_logo_cid' => $customLogoCid,
-                'qr_code_text' => $qrCodeData,
+                'qr_code_text' => $passIdDisplay,
+                'visitor_id_document_line' => $visitorIdLine,
                 'qr_code_image_url' => $qrCodeImageUrl,
                 'qr_code_base64' => $qrCodeBase64,
                 'qr_code_cid' => $qrCid,

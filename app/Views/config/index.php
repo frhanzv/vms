@@ -2346,6 +2346,7 @@
                     </div>
                 </div>
 
+                <?php if (client_feature_enabled('visitor_card')): ?>
                 <!-- Visitor Card Management -->
                 <div
                     class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
@@ -3649,6 +3650,7 @@
                         </div>
                     </div>
                 </div>
+                <?php endif; ?>
 
                 <!-- Notification Settings -->
                 <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
@@ -3795,6 +3797,7 @@
                         </div>
                     </div>
                 </div>
+                <?php if (client_feature_enabled('device_management')): ?>
                 <!-- Device Assignments Management -->
                 <div
                     class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
@@ -4181,6 +4184,7 @@
                         </div>
                     </div>
                 </div>
+                <?php endif; ?>
 
                 <?php if (session()->get('role') === 'superadmin'): ?>
                 <!-- Client Features -->
@@ -15923,7 +15927,19 @@
                         <tr class="border-b border-gray-200 dark:border-slate-600">
                             <th class="text-left py-2 pr-4 text-xs font-semibold text-gray-500 dark:text-slate-400 font-brand">Notification</th>`;
             channelList.forEach(ch => {
-                html += `<th class="text-center py-2 px-3 text-xs font-semibold text-gray-500 dark:text-slate-400 font-brand">${nsChannelLabels[ch] || ch}</th>`;
+                const allOn = typeEntries.every(([k]) => nsSettings[ch] && nsSettings[ch][k] == 1);
+                html += `<th class="text-center py-2 px-3 text-xs font-semibold text-gray-500 dark:text-slate-400 font-brand">
+                    <div class="flex flex-col items-center gap-1.5">
+                        <span>${nsChannelLabels[ch] || ch}</span>
+                        <button type="button"
+                            id="ns-toggle-all-${ch}"
+                            onclick="nsToggleAllForChannel('${ch}')"
+                            class="relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 cursor-pointer focus:outline-none ${allOn ? 'bg-primary' : 'bg-gray-300 dark:bg-slate-500'}"
+                            role="switch" aria-checked="${allOn}" title="Toggle all ${nsChannelLabels[ch] || ch}">
+                            <span class="pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transform transition duration-200 ${allOn ? 'translate-x-4' : 'translate-x-0'}"></span>
+                        </button>
+                    </div>
+                </th>`;
             });
             html += `</tr></thead><tbody class="divide-y divide-gray-100 dark:divide-slate-700">`;
 
@@ -15949,22 +15965,52 @@
             document.getElementById('ns-channels-grid').innerHTML = html;
         }
 
+        function nsApplyRowToggle(btn, on) {
+            if (!btn) return;
+            const knob = btn.querySelector('span');
+            btn.classList.toggle('bg-primary', on);
+            btn.classList.toggle('bg-gray-300', !on);
+            btn.classList.toggle('dark:bg-slate-500', !on);
+            knob.classList.toggle('translate-x-5', on);
+            knob.classList.toggle('translate-x-0', !on);
+            btn.setAttribute('aria-checked', on);
+        }
+
+        function nsApplyColumnToggle(btn, on) {
+            if (!btn) return;
+            const knob = btn.querySelector('span');
+            btn.classList.toggle('bg-primary', on);
+            btn.classList.toggle('bg-gray-300', !on);
+            btn.classList.toggle('dark:bg-slate-500', !on);
+            knob.classList.toggle('translate-x-4', on);
+            knob.classList.toggle('translate-x-0', !on);
+            btn.setAttribute('aria-checked', on);
+        }
+
         function nsToggleChannel(channel, typeKey) {
             if (!nsSettings[channel]) nsSettings[channel] = {};
             nsSettings[channel][typeKey] = !nsSettings[channel][typeKey];
-            const btn  = document.getElementById(`ns-toggle-${channel}-${typeKey}`);
-            const knob = btn.querySelector('span');
-            const on   = nsSettings[channel][typeKey];
-            if (on) {
-                btn.classList.remove('bg-gray-300', 'dark:bg-slate-500');
-                btn.classList.add('bg-primary');
-                knob.classList.replace('translate-x-0', 'translate-x-5');
-            } else {
-                btn.classList.remove('bg-primary');
-                btn.classList.add('bg-gray-300', 'dark:bg-slate-500');
-                knob.classList.replace('translate-x-5', 'translate-x-0');
-            }
-            btn.setAttribute('aria-checked', on);
+            const on = !!nsSettings[channel][typeKey];
+            nsApplyRowToggle(document.getElementById(`ns-toggle-${channel}-${typeKey}`), on);
+            nsUpdateColumnToggle(channel);
+        }
+
+        function nsToggleAllForChannel(channel) {
+            if (!nsSettings[channel]) nsSettings[channel] = {};
+            const typeKeys = Object.keys(nsTypes);
+            const allOn = typeKeys.every(k => !!nsSettings[channel][k]);
+            const newState = !allOn;
+            typeKeys.forEach(typeKey => {
+                nsSettings[channel][typeKey] = newState;
+                nsApplyRowToggle(document.getElementById(`ns-toggle-${channel}-${typeKey}`), newState);
+            });
+            nsApplyColumnToggle(document.getElementById(`ns-toggle-all-${channel}`), newState);
+        }
+
+        function nsUpdateColumnToggle(channel) {
+            const typeKeys = Object.keys(nsTypes);
+            const allOn = typeKeys.every(k => !!nsSettings[channel]?.[k]);
+            nsApplyColumnToggle(document.getElementById(`ns-toggle-all-${channel}`), allOn);
         }
 
         function nsSaveChannels() {
