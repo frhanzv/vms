@@ -510,7 +510,7 @@ $isSettings = str_contains($current, 'settings');
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <?php if ($fs['ic_number'] ?? true): ?>
                                 <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">IC Number <span class="text-red-500">*</span></label>
+                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">IC / Passport Number <span class="text-red-500">*</span></label>
                                     <input name="ic_number" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="Enter IC / Passport Number" type="text" required/>
                                 </div>
                                 <?php endif; ?>
@@ -812,7 +812,7 @@ $isSettings = str_contains($current, 'settings');
                             <div class="flex flex-col gap-3">
                                 <p class="text-sm font-medium text-text-main dark:text-gray-200 font-brand">Other Documents (Optional)</p>
                                 <div class="group relative flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer">
-                                    <input name="invitation_letter" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" type="file"/>
+                                    <input name="invitation_letter[]" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" type="file" multiple/>
                                     <div class="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4">
                                         <span class="material-symbols-outlined text-4xl text-gray-400 group-hover:text-primary mb-3 transition-colors">upload_file</span>
                                         <p class="mb-1 text-sm text-text-main dark:text-gray-300 font-brand"><span class="font-semibold text-primary">Click to upload</span> or drag and drop</p>
@@ -945,7 +945,76 @@ $isSettings = str_contains($current, 'settings');
             });
         }
 
+        document.addEventListener('DOMContentLoaded', function() {
+            const additionalDocsInput = document.querySelector('input[name="invitation_letter[]"]');
+            if (additionalDocsInput) {
+                additionalDocsInput.addEventListener('change', function(e) {
+                    const files = Array.from(e.target.files);
+                    if (!files.length) return;
 
+                    const oversized = files.filter(f => f.size > 5 * 1024 * 1024);
+                    if (oversized.length) {
+                        alert('Each file must be less than 5MB.');
+                        this.value = '';
+                        return;
+                    }
+
+                    const parent = this.closest('.group');
+                    let preview = parent.querySelector('.file-preview');
+                    if (!preview) {
+                        preview = document.createElement('div');
+                        preview.className = 'file-preview absolute inset-0 bg-green-50 dark:bg-green-900/20 rounded-xl border-2 border-green-500 flex flex-col items-center justify-center p-4 overflow-y-auto';
+                        parent.appendChild(preview);
+                    }
+
+                    const fileList = files.map(f =>
+                        `<p class="text-xs text-green-700 dark:text-green-400 truncate max-w-full">&#10003; ${f.name}</p>`
+                    ).join('');
+
+                    preview.innerHTML = `
+                        <div class="text-center w-full">
+                            <span class="material-symbols-outlined text-3xl text-green-600 mb-1">check_circle</span>
+                            <p class="text-sm font-semibold text-green-700 dark:text-green-400 mb-1">${files.length} file${files.length > 1 ? 's' : ''} selected</p>
+                            <div class="text-left px-2 mb-2">${fileList}</div>
+                            <button type="button" class="mt-1 text-xs text-red-600 hover:text-red-800" onclick="this.closest('.file-preview').remove(); document.querySelector('input[name=\\'invitation_letter[]\\']').value='';">Clear All</button>
+                        </div>
+                    `;
+                });
+            }
+        });
+
+        function autoDetectGenderFromIC(icValue) {
+            const ic = icValue.replace(/[-\s]/g, '');
+            const residentField = document.querySelector('select[name="resident"]');
+
+            if (/^\d{12}$/.test(ic)) {
+                if (residentField) residentField.value = 'LOCAL';
+
+                const lastDigit = parseInt(ic.slice(-1));
+                const sexField = document.querySelector('select[name="sex"]');
+                if (sexField) sexField.value = lastDigit % 2 !== 0 ? 'MALE' : 'FEMALE';
+
+                const yy = parseInt(ic.substring(0, 2));
+                const mm = ic.substring(2, 4);
+                const dd = ic.substring(4, 6);
+                const currentYY = new Date().getFullYear() % 100;
+                const fullYear = yy > currentYY ? 1900 + yy : 2000 + yy;
+                const dobField = document.querySelector('input[name="date_of_birth"]');
+                if (dobField) dobField.value = `${fullYear}-${mm}-${dd}`;
+
+            } else if (/[a-zA-Z]/.test(ic) || ic.length > 12) {
+                if (residentField) residentField.value = 'FOREIGN';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const icField = document.querySelector('input[name="ic_number"]');
+            if (icField) {
+                icField.addEventListener('input', function() {
+                    autoDetectGenderFromIC(this.value);
+                });
+            }
+        });
 
 </script>
 </html>

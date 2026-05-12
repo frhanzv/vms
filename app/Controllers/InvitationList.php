@@ -538,12 +538,13 @@ class InvitationList extends BaseController
         $validation = \Config\Services::validation();
 
         $rules = [
-            'reason' => 'required',
-            'schedules' => 'required',
+            'reason'         => 'required',
+            'schedules'      => 'required',
             'schedules.*.date_from' => 'required',
-            'schedules.*.date_to' => 'required',
-            'staff_id' => 'required|max_length[50]',
+            'schedules.*.date_to'   => 'required',
+            'staff_id'       => 'required|max_length[50]',
             'contact_person' => 'required|max_length[20]',
+            'link_expiry'    => 'required',
         ];
 
         $visitorTypeCount = $this->invitationsSupportVisitorType()

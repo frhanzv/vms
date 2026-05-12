@@ -65,12 +65,41 @@ class VisitorList extends BaseController
         $builder->join('invitation_schedules sch', 'sch.id = sch_pick.id', 'left');
         $builder->join('visitor_cards vc', 'vc.id = iv.visitor_card_id', 'left');
         $builder->where('i.status', 'Approved');
+
+        // Optional free-text filter (used by the search box and the Read MyKad → IC auto-search).
+        // Matches against full name, IC/passport (also normalized to strip dashes/spaces so a
+        // scanned "020314-03-0050" still matches a stored "020314030050"), vehicle reg, and the
+        // bound visitor card EPC (Visitor Pass No).
+        $searchTerm = trim((string) ($this->request->getGet('search') ?? ''));
+        if ($searchTerm !== '') {
+            $like = '%' . str_replace(['%', '_'], ['\\%', '\\_'], $searchTerm) . '%';
+            $normalized = preg_replace('/[\s\-]/', '', $searchTerm);
+            if ($normalized === null) {
+                $normalized = $searchTerm;
+            }
+            $likeNormalized = '%' . str_replace(['%', '_'], ['\\%', '\\_'], $normalized) . '%';
+
+            $builder->groupStart()
+                ->like('i.full_name', $searchTerm, 'both', null, true)
+                ->orLike('i.ic_passport', $searchTerm, 'both', null, true)
+                ->orLike('i.vehicle_registration', $searchTerm, 'both', null, true)
+                ->orLike('vc.card_id', $searchTerm, 'both', null, true);
+            if ($normalized !== '' && $normalized !== $searchTerm) {
+                $builder->orWhere(
+                    "REPLACE(REPLACE(i.ic_passport, '-', ''), ' ', '') LIKE",
+                    $likeNormalized,
+                    false
+                );
+            }
+            $builder->groupEnd();
+        }
+
         $builder->orderBy('i.created_at', 'DESC');
-        
+
         // Debug: Log the query
         $sql = $builder->getCompiledSelect(false);
         log_message('debug', 'Visitor List Query: ' . $sql);
-        
+
         $results = $builder->get()->getResultArray();
         
         // Debug: Log results count
@@ -178,6 +207,7 @@ class VisitorList extends BaseController
             'availableCards' => $availableCards,
             'visitorTypes' => $visitorTypes,
             'showVisitorTypes' => $this->invitationsSupportVisitorType(),
+            'searchTerm' => $searchTerm,
         ];
 
         return view('visitors/list', $data);

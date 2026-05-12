@@ -309,16 +309,25 @@ $isSettings = str_contains($current, 'settings');
             </div>
 
             <!-- Filters -->
-            <div class="flex flex-col gap-4 mb-6">
+            <form method="get" action="<?= base_url('visitors') ?>" id="visitorSearchForm" class="flex flex-col gap-4 mb-6">
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
                     <div class="lg:col-span-5 flex shadow-sm">
-                        <input class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-xs focus:ring-primary focus:border-primary outline-none" placeholder="IC / PASSPORT / VISITOR PASS NO / FULL NAME / VEHICLE REGISTRATION NO" type="text"/>
-                        <button class="bg-primary hover:bg-indigo-700 text-white px-4 py-2 rounded-r flex items-center justify-center transition-colors">
+                        <input id="visitorSearchInput" name="search" value="<?= esc($searchTerm ?? '') ?>"
+                            class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-xs focus:ring-primary focus:border-primary outline-none uppercase"
+                            placeholder="IC / PASSPORT / VISITOR PASS NO / FULL NAME / VEHICLE REGISTRATION NO" type="text"/>
+                        <?php if (! empty($searchTerm)): ?>
+                        <a href="<?= base_url('visitors') ?>" title="Clear search"
+                            class="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-3 py-2 flex items-center justify-center transition-colors">
+                            <span class="material-icons text-base">close</span>
+                        </a>
+                        <?php endif; ?>
+                        <button type="submit" class="bg-primary hover:bg-indigo-700 text-white px-4 py-2 rounded-r flex items-center justify-center transition-colors">
                             <span class="material-icons text-white">search</span>
                         </button>
                     </div>
                     <div class="lg:col-span-4 flex gap-2">
-                        <button type="button" class="bg-success hover:bg-emerald-600 text-white px-4 py-2.5 rounded text-xs font-semibold uppercase shadow transition-colors flex-1 text-center whitespace-nowrap">
+                        <button type="button" id="btnReadMyKad" class="bg-success hover:bg-emerald-600 text-white px-4 py-2.5 rounded text-xs font-semibold uppercase shadow transition-colors flex-1 text-center whitespace-nowrap"
+                            title="Scan a MyKad image to auto-search by IC number">
                             Read MyKad
                         </button>
                         <button type="button" id="btnToolbarReturnCard" disabled
@@ -366,7 +375,15 @@ $isSettings = str_contains($current, 'settings');
                         <span class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-icons text-sm">expand_more</span>
                     </div>
                 </div>
+            </form>
+
+            <?php if (! empty($searchTerm)): ?>
+            <div class="mb-4 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded px-3 py-2">
+                <span class="material-icons text-sm text-primary">filter_alt</span>
+                <span>Showing results for <strong class="text-gray-800 dark:text-white"><?= esc($searchTerm) ?></strong> — <?= count($visitors) ?> match<?= count($visitors) === 1 ? '' : 'es' ?></span>
+                <a href="<?= base_url('visitors') ?>" class="ml-auto text-primary hover:underline font-semibold">Clear</a>
             </div>
+            <?php endif; ?>
 
             <!-- Table -->
             <div class="overflow-x-auto rounded border border-gray-200 dark:border-gray-700 mb-6">
@@ -408,8 +425,9 @@ $isSettings = str_contains($current, 'settings');
                         <?php else: ?>
                         <?php foreach ($visitors as $visitor): ?>
                         <?php
-                            // Allow selecting any visitor who still has a card assigned (unbind API requires visitor_card_id).
-                            // Using only "in_use" left most rows with disabled boxes because DB often still shows active/in_use mismatch.
+                            // Only visitors with a bound visitor_card (iv.visitor_card_id IS NOT NULL) can be returned.
+                            // The checkbox stays disabled for the rest so the user cannot accidentally tick a row that
+                            // has nothing to return; the Card Status column shows "No card" so the reason is visible.
                             $hasBoundCard = ! empty($visitor['card_id']) || ! empty($visitor['visitor_card_table_id']);
                             $canReturnCard = $hasBoundCard;
                         ?>
@@ -420,9 +438,12 @@ $isSettings = str_contains($current, 'settings');
                             data-visitor-json="<?= esc(json_encode($visitor), 'attr') ?>"
                             onclick="openDetailModalFromRow(this, event)">
                             <td class="visitor-check-cell p-2 w-10 text-center align-middle" onclick="event.stopPropagation();">
-                                <input type="checkbox" class="visitor-row-check rounded border-gray-300 text-primary focus:ring-primary" data-invitation-visitor-id="<?= (int) $visitor['id'] ?>"
+                                <input type="checkbox"
+                                    class="visitor-row-check rounded border-gray-300 text-primary focus:ring-primary <?= $canReturnCard ? '' : 'opacity-40 cursor-not-allowed' ?>"
+                                    data-invitation-visitor-id="<?= (int) $visitor['id'] ?>"
+                                    data-returnable="<?= $canReturnCard ? '1' : '0' ?>"
                                     <?= $canReturnCard ? '' : 'disabled' ?>
-                                    title="<?= $canReturnCard ? 'Select to include in Return Card' : 'No visitor card is bound' ?>"
+                                    title="<?= $canReturnCard ? 'Select to include in Return Card' : 'No visitor card is bound to this row — nothing to return' ?>"
                                     aria-label="Select visitor row"/>
                             </td>
                             <td class="p-4"><?= $visitor['no'] ?></td>
@@ -439,6 +460,12 @@ $isSettings = str_contains($current, 'settings');
                             <td class="p-4">
                                 <?php if ($visitor['card_status'] === 'Active'): ?>
                                 <span class="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Active</span>
+                                <?php elseif ($visitor['card_status'] === 'In Use'): ?>
+                                <span class="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">In Use</span>
+                                <?php elseif (! empty($visitor['card_status']) && $visitor['card_status'] !== '-'): ?>
+                                <span class="bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold"><?= esc($visitor['card_status']) ?></span>
+                                <?php else: ?>
+                                <span class="text-gray-400 text-[10px]">No card</span>
                                 <?php endif; ?>
                             </td>
                             <td class="p-4"><?= esc($visitor['pass_no'] ?? '') ?></td>
@@ -472,6 +499,45 @@ $isSettings = str_contains($current, 'settings');
             </div>
         </div>
     </main>
+
+    <!-- MyKad OCR Modal -->
+    <div id="visitorMyKadModal" class="hidden fixed inset-0 z-[110] overflow-y-auto" aria-hidden="true">
+        <div class="flex min-h-screen items-center justify-center p-4">
+            <div class="fixed inset-0 bg-black/50 backdrop-blur-sm" id="visitorMyKadBackdrop"></div>
+            <div class="relative bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-2xl">
+                <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900 dark:text-white">Read MyKad</h3>
+                        <p class="text-sm text-slate-500 dark:text-slate-400">Upload a MyKad photo — the IC number will be used to search the list automatically.</p>
+                    </div>
+                    <button type="button" id="visitorMyKadClose" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+                <div class="p-6 space-y-4">
+                    <input type="file" id="visitorMyKadFileInput" accept="image/*" class="hidden"/>
+                    <div id="visitorMyKadDropzone" class="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-8 text-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-colors">
+                        <span class="material-symbols-outlined text-4xl text-slate-400">badge</span>
+                        <p class="mt-2 text-slate-700 dark:text-slate-200 font-semibold">Drop your MyKad image here</p>
+                        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">or <button type="button" id="visitorMyKadBrowse" class="text-primary underline font-semibold">browse files</button></p>
+                        <p class="text-xs text-slate-400 mt-2">Supports JPG, PNG (Max 5MB)</p>
+                    </div>
+                    <div id="visitorMyKadSelected" class="hidden rounded-lg border border-slate-200 dark:border-slate-700 p-3 bg-slate-50 dark:bg-slate-800/40 flex items-center justify-between gap-3">
+                        <div class="min-w-0">
+                            <p id="visitorMyKadFilename" class="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate"></p>
+                            <p id="visitorMyKadFilesize" class="text-xs text-slate-500 dark:text-slate-400"></p>
+                        </div>
+                        <button type="button" id="visitorMyKadClear" class="text-red-500 hover:text-red-700 text-sm font-semibold">Remove</button>
+                    </div>
+                    <div id="visitorMyKadError" class="hidden rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 px-3 py-2 text-sm text-red-700 dark:text-red-300"></div>
+                </div>
+                <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-3">
+                    <button type="button" id="visitorMyKadCancel" class="px-4 py-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300">Cancel</button>
+                    <button type="button" id="visitorMyKadProcess" disabled class="px-5 py-2 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed">Scan &amp; Search</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Detail Modal -->
     <div id="detailModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm p-4">
@@ -1143,6 +1209,9 @@ $isSettings = str_contains($current, 'settings');
             const checked = document.querySelectorAll('.visitor-row-check:checked:not(:disabled)');
             if (btn) {
                 btn.disabled = checked.length === 0;
+                btn.title = checked.length === 0
+                    ? 'Select one or more visitors whose Card Status is In Use or Active'
+                    : 'Return ' + checked.length + ' card(s)';
             }
             if (selAll && eligible.length > 0) {
                 selAll.checked = checked.length === eligible.length;
@@ -1150,21 +1219,20 @@ $isSettings = str_contains($current, 'settings');
             } else if (selAll) {
                 selAll.checked = false;
                 selAll.indeterminate = false;
+                selAll.disabled = eligible.length === 0;
             }
         }
 
         function returnCardsFromToolbar() {
             const ids = Array.from(document.querySelectorAll('.visitor-row-check:checked:not(:disabled)'))
-                .map(function (cb) {
-                    return parseInt(cb.getAttribute('data-invitation-visitor-id'), 10);
-                })
-                .filter(function (id) {
-                    return id > 0;
-                });
+                .map(function (cb) { return parseInt(cb.getAttribute('data-invitation-visitor-id'), 10); })
+                .filter(function (id) { return id > 0; });
+
             if (ids.length === 0) {
-                alert('Tick at least one visitor with a card in use (beside No.).');
+                alert('Tick at least one visitor with a bound card (Card Status = In Use or Active).');
                 return;
             }
+
             const msg = ids.length === 1
                 ? 'Return this card and mark it as available?'
                 : ('Return ' + ids.length + ' cards and mark them as available?');
@@ -1224,6 +1292,183 @@ $isSettings = str_contains($current, 'settings');
             });
             updateToolbarReturnCardState();
         });
+
+        /* ── READ MYKAD → upload image, OCR the IC, then auto-search the list ─── */
+        (function () {
+            const trigger = document.getElementById('btnReadMyKad');
+            const modal = document.getElementById('visitorMyKadModal');
+            const backdrop = document.getElementById('visitorMyKadBackdrop');
+            const closeBtn = document.getElementById('visitorMyKadClose');
+            const cancelBtn = document.getElementById('visitorMyKadCancel');
+            const dropzone = document.getElementById('visitorMyKadDropzone');
+            const browseBtn = document.getElementById('visitorMyKadBrowse');
+            const fileInput = document.getElementById('visitorMyKadFileInput');
+            const selected = document.getElementById('visitorMyKadSelected');
+            const filenameEl = document.getElementById('visitorMyKadFilename');
+            const filesizeEl = document.getElementById('visitorMyKadFilesize');
+            const clearBtn = document.getElementById('visitorMyKadClear');
+            const processBtn = document.getElementById('visitorMyKadProcess');
+            const errorEl = document.getElementById('visitorMyKadError');
+            const searchInput = document.getElementById('visitorSearchInput');
+            const searchForm = document.getElementById('visitorSearchForm');
+
+            if (!trigger || !modal) {
+                return;
+            }
+
+            let chosenFile = null;
+            const PROCESS_LABEL = 'Scan & Search';
+
+            function fmtSize(bytes) {
+                if (!bytes || bytes <= 0) return '0 B';
+                const u = ['B', 'KB', 'MB', 'GB'];
+                const e = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), u.length - 1);
+                return (bytes / Math.pow(1024, e)).toFixed(1) + ' ' + u[e];
+            }
+
+            function showError(msg) {
+                if (!errorEl) return;
+                errorEl.textContent = msg || '';
+                errorEl.classList.toggle('hidden', !msg);
+            }
+
+            function setFile(file) {
+                chosenFile = file || null;
+                showError('');
+                if (chosenFile) {
+                    filenameEl.textContent = chosenFile.name || 'MyKad image';
+                    filesizeEl.textContent = fmtSize(chosenFile.size || 0);
+                    selected.classList.remove('hidden');
+                    processBtn.disabled = false;
+                } else {
+                    filenameEl.textContent = '';
+                    filesizeEl.textContent = '';
+                    selected.classList.add('hidden');
+                    processBtn.disabled = true;
+                }
+            }
+
+            function validateFile(file) {
+                if (!file) return false;
+                if (!/^image\//.test(file.type || '')) {
+                    showError('Please choose an image file.');
+                    return false;
+                }
+                if ((file.size || 0) > 5 * 1024 * 1024) {
+                    showError('Image must be 5MB or smaller.');
+                    return false;
+                }
+                return true;
+            }
+
+            function openModal() {
+                modal.classList.remove('hidden');
+                modal.setAttribute('aria-hidden', 'false');
+                showError('');
+            }
+
+            function closeModal() {
+                modal.classList.add('hidden');
+                modal.setAttribute('aria-hidden', 'true');
+                if (fileInput) fileInput.value = '';
+                setFile(null);
+                processBtn.disabled = true;
+                processBtn.textContent = PROCESS_LABEL;
+            }
+
+            trigger.addEventListener('click', openModal);
+            closeBtn?.addEventListener('click', closeModal);
+            cancelBtn?.addEventListener('click', closeModal);
+            backdrop?.addEventListener('click', closeModal);
+
+            browseBtn?.addEventListener('click', function () { fileInput?.click(); });
+            dropzone?.addEventListener('click', function (e) {
+                if (e.target === browseBtn) return;
+                fileInput?.click();
+            });
+
+            fileInput?.addEventListener('change', function (e) {
+                const f = e.target.files && e.target.files[0];
+                if (!f) { setFile(null); return; }
+                if (!validateFile(f)) { this.value = ''; setFile(null); return; }
+                setFile(f);
+            });
+
+            clearBtn?.addEventListener('click', function () {
+                if (fileInput) fileInput.value = '';
+                setFile(null);
+            });
+
+            ['dragover', 'dragleave', 'drop'].forEach(function (evt) {
+                dropzone?.addEventListener(evt, function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                });
+            });
+            dropzone?.addEventListener('dragover', function () { this.classList.add('border-primary'); });
+            dropzone?.addEventListener('dragleave', function () { this.classList.remove('border-primary'); });
+            dropzone?.addEventListener('drop', function (e) {
+                this.classList.remove('border-primary');
+                const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+                if (!f) return;
+                if (!validateFile(f)) { setFile(null); return; }
+                setFile(f);
+            });
+
+            processBtn?.addEventListener('click', async function () {
+                if (!chosenFile) {
+                    showError('Please choose a MyKad image first.');
+                    return;
+                }
+                processBtn.disabled = true;
+                processBtn.textContent = 'Scanning…';
+                showError('');
+
+                try {
+                    const fd = new FormData();
+                    fd.append('mykad_image', chosenFile);
+
+                    const response = await fetch('<?= base_url('visitor-registration/processMyKad') ?>', {
+                        method: 'POST',
+                        body: fd,
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+
+                    const result = await response.json().catch(function () { return null; });
+                    if (!result || !result.success || !result.data) {
+                        showError((result && result.message) ? result.message : 'Could not read MyKad image. Please try a clearer photo.');
+                        processBtn.disabled = false;
+                        processBtn.textContent = PROCESS_LABEL;
+                        return;
+                    }
+
+                    const ic = result.data.ic_number ? String(result.data.ic_number).replace(/\D+/g, '') : '';
+                    if (!ic) {
+                        showError(result.data.warning || 'IC number not detected on the MyKad. Please try again with a clearer photo.');
+                        processBtn.disabled = false;
+                        processBtn.textContent = PROCESS_LABEL;
+                        return;
+                    }
+
+                    if (searchInput) searchInput.value = ic;
+                    if (searchForm) {
+                        searchForm.submit();
+                    } else {
+                        window.location.href = '<?= base_url('visitors') ?>?search=' + encodeURIComponent(ic);
+                    }
+                } catch (err) {
+                    showError('Network error while reading MyKad. Please try again.');
+                    processBtn.disabled = false;
+                    processBtn.textContent = PROCESS_LABEL;
+                }
+            });
+
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+                    closeModal();
+                }
+            });
+        })();
     </script>
 </body>
 </html>

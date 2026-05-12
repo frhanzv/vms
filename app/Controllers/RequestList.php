@@ -103,7 +103,14 @@ class RequestList extends BaseController
                 'purpose' => $first['reason'] ?? 'N/A',
                 'photo' => $first['profile_photo_path'] ? base_url('uploads/' . $first['profile_photo_path']) : '',
                 'government_id_image' => $first['government_id_path'] ? base_url('uploads/' . $first['government_id_path']) : '',
-                'invitation_letter' => $first['invitation_letter_path'] ? base_url('uploads/' . $first['invitation_letter_path']) : '',
+                'invitation_letter' => (function($raw) {
+                    if (!$raw) return [];
+                    $decoded = json_decode($raw, true);
+                    if (is_array($decoded)) {
+                        return array_map(fn($p) => base_url('uploads/' . $p), $decoded);
+                    }
+                    return [base_url('uploads/' . $raw)];
+                })($first['invitation_letter_path'] ?? ''),
                 'access_zones' => explode(', ', $first['location'] ?? ''),
                 'assets' => $assets,
                 'notes' => '',

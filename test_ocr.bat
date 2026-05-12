@@ -1,7 +1,7 @@
 @echo off
 REM Test script for Google Cloud Vision OCR
 
-set GOOGLE_APPLICATION_CREDENTIALS=C:\laragon\www\vms\credentials\vms-mykad-ocr-13799932dbd4.json
+set GOOGLE_APPLICATION_CREDENTIALS=C:\laragon\www\vms\credentials\vms-mykad-ocr-95e79619df8e.json
 set PYTHON_EXE=C:\laragon\www\vms\.venv\Scripts\python.exe
 set OCR_SCRIPT=C:\laragon\www\vms\ocr_mykad.py
 
