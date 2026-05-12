@@ -366,9 +366,11 @@ $isSettings = str_contains($current, 'settings');
                                             title="View Details">
                                             <span class="material-symbols-outlined text-[20px]">search</span>
                                         </button>
+                                        <?php if ($showPrintButton): ?>
                                         <button onclick="event.stopPropagation(); printStaff(<?= json_encode($staff) ?>)" class="text-primary hover:text-blue-700 transition-colors" title="Print">
                                             <span class="material-symbols-outlined text-[20px]">print</span>
                                         </button>
+                                        <?php endif; ?>
                                     </div>
                                 </td>
                                 <td class="p-4"><?= esc($staff['date']) ?></td>

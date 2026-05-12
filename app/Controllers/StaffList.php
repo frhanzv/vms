@@ -48,14 +48,19 @@ class StaffList extends BaseController
             ];
         }
 
+        $companyId       = (int) session()->get('company_id');
+        $formFieldModel  = new \App\Models\ClientFormFieldModel();
+        $showPrintButton = $formFieldModel->isEnabled($companyId, 'staff_pass_request', 'print_button');
+
         return view('staffs/list', [
-            'pageTitle' => 'Staff List - SafeG',
+            'pageTitle'       => 'Staff List - SafeG',
             'stats' => [
                 'total'     => $totalStaff,
                 'checkedIn' => $checkedIn,
                 'withCard'  => $withCard,
             ],
-            'staffList' => $staffList
+            'staffList'       => $staffList,
+            'showPrintButton' => $showPrintButton,
         ]);
     }
 }
