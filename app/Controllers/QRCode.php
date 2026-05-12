@@ -101,22 +101,77 @@ class QRCode extends ResourceController
      * Parse the raw QR code string into an invitation ID.
      *
      * Supported formats:
-     *   123          plain integer
-     *   INV-123      prefixed
-     *   inv-123      case-insensitive prefix
+     *   IC / passport only    exact match on invitations.ic_passport (Approved), latest id
+     *   123                   plain invitation id (legacy)
+     *   INV-123, VIS-123      prefixed (case-insensitive)
+     *   Multi-line legacy     first line if VIS-/INV-, else treat whole first line as ic_passport
      */
     protected function parseQrCode(string $raw): ?int
     {
         $raw = trim($raw);
-
-        // Plain integer
-        if (ctype_digit($raw)) {
-            return (int) $raw;
+        if ($raw === '') {
+            return null;
         }
 
-        // INV-{id} prefix (case-insensitive)
-        if (preg_match('/^INV-(\d+)$/i', $raw, $m)) {
+        $line = $raw;
+        if (preg_match('/\R/u', $raw)) {
+            $parts = preg_split('/\R/u', $raw, 2);
+            $first = trim((string) ($parts[0] ?? ''));
+            $second = trim((string) ($parts[1] ?? ''));
+            if (preg_match('/^(INV|VIS)-/i', $first)) {
+                $line = $first;
+            } elseif ($first !== '' && $second !== '') {
+                // Legacy: line1 IC, line2 VIS — try both
+                $byIc = $this->findInvitationIdByIcPassport($first);
+                if ($byIc !== null) {
+                    return $byIc;
+                }
+                $line = $second;
+            } else {
+                $line = $first;
+            }
+        }
+
+        // INV-{id}, VIS-{id}
+        if (preg_match('/^INV-(\d+)$/i', $line, $m)) {
             return (int) $m[1];
+        }
+        if (preg_match('/^VIS-(\d+)$/i', $line, $m)) {
+            return (int) $m[1];
+        }
+
+        // Document number only (approval QR encodes ic_passport as stored)
+        $byIc = $this->findInvitationIdByIcPassport($line);
+        if ($byIc !== null) {
+            return $byIc;
+        }
+
+        // Plain integer — invitation id (legacy cards)
+        if (ctype_digit($line)) {
+            return (int) $line;
+        }
+
+        return null;
+    }
+
+    /**
+     * Latest approved invitation for this IC/passport value.
+     */
+    protected function findInvitationIdByIcPassport(string $doc): ?int
+    {
+        $doc = trim($doc);
+        if ($doc === '') {
+            return null;
+        }
+
+        $row = $this->invitationModel
+            ->where('ic_passport', $doc)
+            ->where('status', 'Approved')
+            ->orderBy('id', 'DESC')
+            ->first();
+
+        if ($row && isset($row['id'])) {
+            return (int) $row['id'];
         }
 
         return null;
@@ -275,12 +330,19 @@ class QRCode extends ResourceController
                 }
             }
 
+            $resident = strtoupper(trim((string) ($invitation['resident'] ?? '')));
+            $idDoc    = trim((string) ($invitation['ic_passport'] ?? ''));
             $response = [
                 'success'  => true,
                 'action'   => $action,
                 'visitor'  => [
-                    'name'    => $invitation['full_name'] ?? 'Unknown',
-                    'company' => $invitation['company']   ?? 'N/A',
+                    'name'          => $invitation['full_name'] ?? 'Unknown',
+                    'company'       => $invitation['company']   ?? 'N/A',
+                    'resident'      => $resident !== '' ? $resident : null,
+                    'ic_passport'   => $idDoc,
+                    'id_document'   => $idDoc !== ''
+                        ? (($resident === 'FOREIGN' || (empty($resident) && preg_match('/[A-Z]/i', $idDoc))) ? ('Passport No.: ' . $idDoc) : ('IC No.: ' . $idDoc))
+                        : null,
                 ],
                 'time'     => $now,
                 'duration' => $duration,

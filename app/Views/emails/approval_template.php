@@ -100,6 +100,9 @@
                 <?php if (!empty($qr_code_text)): ?>
                     <p style="font-size: 12px; color: #666; margin-top: 6px; margin-bottom: 0;">Pass ID: <?= esc($qr_code_text) ?></p>
                 <?php endif; ?>
+                <?php if (!empty($visitor_id_document_line)): ?>
+                    <p style="font-size: 12px; color: #666; margin-top: 4px; margin-bottom: 0;"><?= esc($visitor_id_document_line) ?></p>
+                <?php endif; ?>
                 <p style="font-size: 12px; color: #666; margin-top: 10px;">Please present this QR code during check-in.</p>
             </div>
             <?php endif; ?>

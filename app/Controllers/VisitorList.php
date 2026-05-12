@@ -746,7 +746,17 @@ class VisitorList extends BaseController
      */
     public function generateQr($invitationId)
     {
-        $qrCodeData = 'VIS-' . (int)$invitationId;
+        $invitation = $this->invitationModel->find((int) $invitationId);
+        $passId     = 'VIS-' . (int) $invitationId;
+        $qrCodeData = $passId;
+
+        if (is_array($invitation)) {
+            $icPassport = trim((string) ($invitation['ic_passport'] ?? ''));
+            if ($icPassport !== '') {
+                $qrCodeData = $icPassport;
+            }
+        }
+
         $options = new \chillerlan\QRCode\QROptions([
             'outputInterface' => \chillerlan\QRCode\Output\QRGdImagePNG::class,
             'eccLevel'        => \chillerlan\QRCode\Common\EccLevel::L,
