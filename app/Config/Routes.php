@@ -212,6 +212,8 @@ $routes->post('config/checkDeviceStatus/(:num)', 'Config::checkDeviceStatus/$1')
 $routes->post('config/createDeviceAssignment', 'Config::createDeviceAssignment');
 $routes->post('config/updateDeviceAssignment/(:num)', 'Config::updateDeviceAssignment/$1');
 $routes->post('config/deleteDeviceAssignment/(:num)', 'Config::deleteDeviceAssignment/$1');
+$routes->get('config/getLanesForDeviceAssignment', 'Config::getLanesForDeviceAssignment');
+$routes->get('config/getDeviceAssignmentFormOptions', 'Config::getDeviceAssignmentFormOptions');
 
 // IP Range Settings
 $routes->get('config/getIpRangeSettings', 'Config::getIpRangeSettings');
@@ -475,6 +477,8 @@ $routes->group('config', ['filter' => $superadmins], function($routes) {
     $routes->post('createLane', 'Config::createLane');
     $routes->put('updateLane/(:num)', 'Config::updateLane/$1');
     $routes->delete('deleteLane/(:num)', 'Config::deleteLane/$1');
+    $routes->get('getLanesForDeviceAssignment', 'Config::getLanesForDeviceAssignment');
+    $routes->get('getDeviceAssignmentFormOptions', 'Config::getDeviceAssignmentFormOptions');
 
     // Reject Reasons
     $routes->get('getRejectReasons', 'Config::getRejectReasons');
@@ -587,6 +591,8 @@ $routes->group('config', ['filter' => 'role:superadmin'], function($routes) {
     $routes->post('createDeviceAssignment', 'Config::createDeviceAssignment');
     $routes->post('updateDeviceAssignment/(:num)', 'Config::updateDeviceAssignment/$1');
     $routes->post('deleteDeviceAssignment/(:num)', 'Config::deleteDeviceAssignment/$1');
+    $routes->get('getLanesForDeviceAssignment', 'Config::getLanesForDeviceAssignment');
+    $routes->get('getDeviceAssignmentFormOptions', 'Config::getDeviceAssignmentFormOptions');
 
     // IP Range Settings
     $routes->get('getIpRangeSettings', 'Config::getIpRangeSettings');

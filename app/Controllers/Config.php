@@ -3486,6 +3486,39 @@ class Config extends BaseController
         return $this->response->setJSON(['success' => true, 'data' => $this->locationModel->findAll()]);
     }
 
+    /**
+     * Lanes joined to locations for device assignment dropdowns (lane id = assignment location_id).
+     */
+    public function getLanesForDeviceAssignment()
+    {
+        $lanes = $this->laneModel->getAllWithLocationLabelsForDeviceAssignment();
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data'    => $lanes,
+        ]);
+    }
+
+    /**
+     * Device assignment modal: lanes (locations) + all devices from DB for dropdowns.
+     */
+    public function getDeviceAssignmentFormOptions()
+    {
+        $lanes = $this->laneModel->getAllWithLocationLabelsForDeviceAssignment();
+        $devices = $this->deviceAssignmentModel
+            ->select('id, device_id, ip_address')
+            ->orderBy('id', 'ASC')
+            ->findAll();
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data'    => [
+                'lanes'   => $lanes,
+                'devices' => $devices,
+            ],
+        ]);
+    }
+
     // ============== SETTINGS METHODS ==============
 
     private function getDefaultLoginPageSettings(): array

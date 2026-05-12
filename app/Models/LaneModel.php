@@ -177,4 +177,19 @@ class LaneModel extends Model
             ->orderBy('lane', 'ASC')
             ->findAll();
     }
+
+    /**
+     * All lanes with parent location labels for device assignment UI.
+     */
+    public function getAllWithLocationLabelsForDeviceAssignment(): array
+    {
+        return $this->builder()
+            ->select('lanes.*, locations.branch, locations.location_access')
+            ->join('locations', 'locations.id = lanes.location_id', 'left')
+            ->orderBy('locations.branch', 'ASC')
+            ->orderBy('locations.location_access', 'ASC')
+            ->orderBy('lanes.id', 'ASC')
+            ->get()
+            ->getResultArray();
+    }
 }
