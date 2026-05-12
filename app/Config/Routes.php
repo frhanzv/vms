@@ -166,22 +166,15 @@ $routes->post('config/createRejectReason', 'Config::createRejectReason');
 $routes->put('config/updateRejectReason/(:num)', 'Config::updateRejectReason/$1');
 $routes->delete('config/deleteRejectReason/(:num)', 'Config::deleteRejectReason/$1');
 
-// Staff Pass List Routes
-$routes->get('staffs', 'StaffList::index');
-$routes->get('staffs/staffpassrequest', 'StaffPassRequest::index');
-$routes->post('staffs/staffpassrequest/store', 'StaffPassRequest::store');
-//$routes->get('staff-pass-request', 'StaffList::downloadTemplate');
-$routes->post('staff-pass/import', 'StaffController::import');
-$routes->get('staffpassrequest/view/(:any)', 'StaffPassRequest::view/$1');
-
-
 
 // Visitor Card Management Routes
-$routes->get('config/getVisitorCards', 'Config::getVisitorCards');
-$routes->get('config/getVisitorCard/(:num)', 'Config::getVisitorCard/$1');
-$routes->post('config/createVisitorCard', 'Config::createVisitorCard');
-$routes->put('config/updateVisitorCard/(:num)', 'Config::updateVisitorCard/$1');
-$routes->delete('config/deleteVisitorCard/(:num)', 'Config::deleteVisitorCard/$1');
+$routes->group('', ['filter' => 'client_feature:visitor_card'], function($routes) {
+    $routes->get('config/getVisitorCards', 'Config::getVisitorCards');
+    $routes->get('config/getVisitorCard/(:num)', 'Config::getVisitorCard/$1');
+    $routes->post('config/createVisitorCard', 'Config::createVisitorCard');
+    $routes->put('config/updateVisitorCard/(:num)', 'Config::updateVisitorCard/$1');
+    $routes->delete('config/deleteVisitorCard/(:num)', 'Config::deleteVisitorCard/$1');
+});
 
 // Video Management Routes
 $routes->get('config/getVideos', 'Config::getVideos');
@@ -206,12 +199,14 @@ $routes->post('config/createVisitorType', 'Config::createVisitorType');
 $routes->post('config/updateVisitorType/(:num)', 'Config::updateVisitorType/$1');
 $routes->delete('config/deleteVisitorType/(:num)', 'Config::deleteVisitorType/$1');
 // Device Assignments Routes
-$routes->get('config/getDeviceAssignments', 'Config::getDeviceAssignments');
-$routes->get('config/getDeviceAssignment/(:num)', 'Config::getDeviceAssignment/$1');
-$routes->post('config/checkDeviceStatus/(:num)', 'Config::checkDeviceStatus/$1');
-$routes->post('config/createDeviceAssignment', 'Config::createDeviceAssignment');
-$routes->post('config/updateDeviceAssignment/(:num)', 'Config::updateDeviceAssignment/$1');
-$routes->post('config/deleteDeviceAssignment/(:num)', 'Config::deleteDeviceAssignment/$1');
+$routes->group('', ['filter' => 'client_feature:device_management'], function($routes) {
+    $routes->get('config/getDeviceAssignments', 'Config::getDeviceAssignments');
+    $routes->get('config/getDeviceAssignment/(:num)', 'Config::getDeviceAssignment/$1');
+    $routes->post('config/checkDeviceStatus/(:num)', 'Config::checkDeviceStatus/$1');
+    $routes->post('config/createDeviceAssignment', 'Config::createDeviceAssignment');
+    $routes->post('config/updateDeviceAssignment/(:num)', 'Config::updateDeviceAssignment/$1');
+    $routes->post('config/deleteDeviceAssignment/(:num)', 'Config::deleteDeviceAssignment/$1');
+});
 
 // IP Range Settings
 $routes->get('config/getIpRangeSettings', 'Config::getIpRangeSettings');
@@ -266,7 +261,7 @@ $routes->post('settings/removePhoto', 'Settings::removePhoto');
 // superadmin, clientsuperadmin, officer, host
 // ===========================
 
-$routes->group('', ['filter' => $plusHost], function($routes) {
+$routes->group('', ['filter' => [$plusHost, 'client_feature:invitations']], function($routes) {
     $routes->get('invitations', 'InvitationList::index');
     $routes->get('invitations/data', 'InvitationList::data');
     $routes->get('invitations/export', 'InvitationList::export');
@@ -275,9 +270,15 @@ $routes->group('', ['filter' => $plusHost], function($routes) {
     $routes->post('invitations/resend/(:num)', 'InvitationList::resend/$1');
     $routes->get('invitations/history-rows', 'InvitationList::historyRows');
     $routes->get('invitations/history-for-form/(:num)', 'InvitationList::historyForForm/$1');
+});
+
+$routes->group('', ['filter' => $plusHost], function($routes) {
     $routes->get('visitors', 'VisitorList::index');
     $routes->get('visitors/export', 'VisitorList::export');
     $routes->post('visitors/update', 'VisitorList::updateVisitor');
+});
+
+$routes->group('', ['filter' => [$plusHost, 'client_feature:visitor_card']], function($routes) {
     $routes->post('visitors/bindCard', 'VisitorList::bindCard');
     $routes->post('visitors/unbindCard', 'VisitorList::unbindCard');
     $routes->post('visitors/batchUnbindCards', 'VisitorList::batchUnbindCards');
@@ -310,7 +311,7 @@ $routes->group('', ['filter' => $plusAdmin], function($routes) {
 // superadmin, clientsuperadmin, admin, officer
 // ===========================
 
-$routes->group('', ['filter' => $plusAdminOfficer], function($routes) {
+$routes->group('', ['filter' => [$plusAdminOfficer, 'client_feature:staff_pass']], function($routes) {
     $routes->get('staffs', 'StaffList::index');
     $routes->get('staffs/staffpassrequest', 'StaffPassRequest::index');
     $routes->post('staffs/staffpassrequest/store', 'StaffPassRequest::store');
@@ -400,8 +401,6 @@ $routes->group('config', ['filter' => $superadmins], function($routes) {
     $routes->get('/', 'Config::index');
     $routes->get('getLogs', 'Config::getLogs');
     $routes->get('exportLogs', 'Config::exportLogs');
-    $routes->get('getAlertPriorities', 'Config::getAlertPriorities');
-    $routes->post('updateAlertPriority/(:num)', 'Config::updateAlertPriority/$1');
 
     // Roles
     $routes->get('getRoles', 'Config::getRoles');
@@ -482,13 +481,6 @@ $routes->group('config', ['filter' => $superadmins], function($routes) {
     $routes->post('createRejectReason', 'Config::createRejectReason');
     $routes->put('updateRejectReason/(:num)', 'Config::updateRejectReason/$1');
     $routes->delete('deleteRejectReason/(:num)', 'Config::deleteRejectReason/$1');
-
-    // Visitor Cards
-    $routes->get('getVisitorCards', 'Config::getVisitorCards');
-    $routes->get('getVisitorCard/(:num)', 'Config::getVisitorCard/$1');
-    $routes->post('createVisitorCard', 'Config::createVisitorCard');
-    $routes->put('updateVisitorCard/(:num)', 'Config::updateVisitorCard/$1');
-    $routes->delete('deleteVisitorCard/(:num)', 'Config::deleteVisitorCard/$1');
 
     // Videos
     $routes->get('getVideos', 'Config::getVideos');
@@ -579,14 +571,6 @@ $routes->group('config', ['filter' => 'role:superadmin'], function($routes) {
     $routes->get('getAppConfigs', 'AppConfig::getAll');
     $routes->get('getAppConfig/(:num)', 'AppConfig::get/$1');
     $routes->post('updateAppConfig/(:num)', 'AppConfig::update/$1');
-
-    // Device Assignments
-    $routes->get('getDeviceAssignments', 'Config::getDeviceAssignments');
-    $routes->get('getDeviceAssignment/(:num)', 'Config::getDeviceAssignment/$1');
-    $routes->post('checkDeviceStatus/(:num)', 'Config::checkDeviceStatus/$1');
-    $routes->post('createDeviceAssignment', 'Config::createDeviceAssignment');
-    $routes->post('updateDeviceAssignment/(:num)', 'Config::updateDeviceAssignment/$1');
-    $routes->post('deleteDeviceAssignment/(:num)', 'Config::deleteDeviceAssignment/$1');
 
     // IP Range Settings
     $routes->get('getIpRangeSettings', 'Config::getIpRangeSettings');

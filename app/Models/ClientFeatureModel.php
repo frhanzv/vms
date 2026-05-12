@@ -29,10 +29,7 @@ class ClientFeatureModel extends Model
             'workflows'           => 'Approval Workflows',
             'staff_pass'          => 'Staff Pass',
             'visitor_card'        => 'Visitor Card Issuance',
-            'visitor_license'     => 'Visitor Vehicle / License',
-            'visitor_equipment'   => 'Equipment Tracking',
             'security_alerts'     => 'Security Alerts',
-            'email_notifications' => 'Email Notifications',
             'device_management'   => 'Device Management',
         ];
     }
@@ -63,8 +60,6 @@ class ClientFeatureModel extends Model
      */
     public function saveForCompany(int $companyId, array $features): void
     {
-        $db = \Config\Database::connect();
-
         foreach ($features as $key => $enabled) {
             $enabled = $enabled ? 1 : 0;
             $existing = $this->where('company_id', $companyId)
