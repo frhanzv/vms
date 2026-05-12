@@ -372,7 +372,7 @@ History
 <?php if ($isFieldEnabled('company_visited')): ?>
 <div class="flex flex-col gap-2">
 <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Name of Company Visited</label>
-<select name="company_visited" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white" required>
+<select name="company_visited" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white">
 <option value="">Select company...</option>
 <?php if (isset($companies) && !empty($companies)): ?>
     <?php foreach ($companies as $company): ?>
@@ -404,7 +404,7 @@ History
 <!-- Reason for Visit -->
 <?php if ($isFieldEnabled('reason')): ?>
 <div class="flex flex-col gap-2">
-<label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Reason for Visit</label>
+<label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Reason for Visit <span class="text-red-500">*</span></label>
 <select name="reason" id="visit-reason" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white" required>
 <option value="">Select reason...</option>
 <?php if (isset($visitReasons) && !empty($visitReasons)): ?>
@@ -414,6 +414,14 @@ History
 <?php endif; ?>
 <option value="OTHER">OTHER</option>
 </select>
+</div>
+
+<!-- Link Expiry -->
+<div class="flex flex-col gap-2">
+<label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Link Expiry <span class="text-red-500">*</span></label>
+<div class="relative">
+<input name="link_expiry" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white" type="date" required/>
+</div>
 </div>
 
 <!-- Other Reason -->

@@ -521,9 +521,13 @@ class InvitationList extends BaseController
         $validation = \Config\Services::validation();
 
         $rules = [
-            'schedules'            => 'required',
+            'reason'         => 'required',
+            'schedules'      => 'required',
             'schedules.*.date_from' => 'required',
-            'schedules.*.date_to'  => 'required',
+            'schedules.*.date_to'   => 'required',
+            'staff_id'       => 'required|max_length[50]',
+            'contact_person' => 'required|max_length[20]',
+            'link_expiry'    => 'required',
         ];
         if ($isEnabled('reason'))         { $rules['reason']         = 'required'; }
         if ($isEnabled('staff_id'))       { $rules['staff_id']       = 'required|max_length[50]'; }

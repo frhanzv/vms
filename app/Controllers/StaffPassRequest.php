@@ -83,12 +83,20 @@ class StaffPassRequest extends BaseController
             $formData['government_id'] = $newName;
         }
 
-        // Other document upload
-        $otherDoc = $this->request->getFile('invitation_letter');
-        if ($otherDoc && $otherDoc->isValid() && !$otherDoc->hasMoved()) {
-            $newName = $otherDoc->getRandomName();
-            $otherDoc->move('uploads/other_docs', $newName);
-            $formData['other_doc'] = $newName;
+        // Other document upload (multiple)
+        $otherDocs = $this->request->getFiles('invitation_letter');
+        $otherDocPaths = [];
+        if ($otherDocs && isset($otherDocs['invitation_letter'])) {
+            foreach ($otherDocs['invitation_letter'] as $doc) {
+                if ($doc->isValid() && !$doc->hasMoved()) {
+                    $newName = $doc->getRandomName();
+                    $doc->move('uploads/other_docs', $newName);
+                    $otherDocPaths[] = $newName;
+                }
+            }
+        }
+        if (!empty($otherDocPaths)) {
+            $formData['other_doc'] = json_encode($otherDocPaths);
         }
 
         $db->table('staff')->insert($formData);

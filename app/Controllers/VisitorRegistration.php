@@ -227,13 +227,19 @@ class VisitorRegistration extends BaseController
                 $governmentIdPath = 'visitors/' . $newName;
             }
 
-            // Upload Invitation Letter
-            $invitationLetter = $this->request->getFile('invitation_letter');
-            if ($invitationLetter && $invitationLetter->isValid() && !$invitationLetter->hasMoved()) {
-                $newName = 'invitation_' . time() . '_' . $invitationLetter->getRandomName();
-                $invitationLetter->move($uploadPath, $newName);
-                $invitationLetterPath = 'visitors/' . $newName;
+            // Upload Additional Documents (multiple)
+            $additionalDocs = $this->request->getFiles('invitation_letter');
+            $additionalDocPaths = [];
+            if ($additionalDocs && isset($additionalDocs['invitation_letter'])) {
+                foreach ($additionalDocs['invitation_letter'] as $doc) {
+                    if ($doc->isValid() && !$doc->hasMoved()) {
+                        $newName = 'invitation_' . time() . '_' . $doc->getRandomName();
+                        $doc->move($uploadPath, $newName);
+                        $additionalDocPaths[] = 'visitors/' . $newName;
+                    }
+                }
             }
+            $invitationLetterPath = !empty($additionalDocPaths) ? json_encode($additionalDocPaths) : null;
 
             // Upload Profile Photo
             $profilePhoto = $this->request->getFile('profile_photo');
@@ -463,7 +469,7 @@ class VisitorRegistration extends BaseController
             // Use Google Cloud Vision OCR Python script for better accuracy
             $pythonPath = str_replace('/', DIRECTORY_SEPARATOR, ROOTPATH . '.venv/Scripts/python.exe');
             $scriptPath = str_replace('/', DIRECTORY_SEPARATOR, ROOTPATH . 'ocr_mykad.py');
-            $credentialsPath = str_replace('/', DIRECTORY_SEPARATOR, ROOTPATH . 'credentials/vms-mykad-ocr-13799932dbd4.json');
+            $credentialsPath = str_replace('/', DIRECTORY_SEPARATOR, ROOTPATH . 'credentials/vms-mykad-ocr-95e79619df8e.json');
             
             // Check if Python and script exist
             if (!file_exists($pythonPath)) {
