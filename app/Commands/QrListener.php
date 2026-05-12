@@ -126,10 +126,14 @@ class QrListener extends BaseCommand
         $action  = strtoupper($result['action'] ?? 'unknown');
         $name    = $result['visitor']['name']    ?? 'Unknown';
         $company = $result['visitor']['company'] ?? '';
+        $idDoc   = $result['visitor']['id_document'] ?? '';
         $time    = $result['time']               ?? '';
         $color   = ($result['action'] ?? '') === 'checkin' ? 'green' : 'yellow';
 
         CLI::write('  ✓ ' . $action . ': ' . $name . ($company ? ' (' . $company . ')' : ''), $color);
+        if ($idDoc !== '') {
+            CLI::write('    ' . $idDoc, 'white');
+        }
         CLI::write('    Time: ' . $time, 'white');
 
         if (!empty($result['duration'])) {

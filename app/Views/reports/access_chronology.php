@@ -343,6 +343,7 @@
                                             <th>Visit From</th>
                                             <th>Visit To</th>
                                             <th>Total Time Spent</th>
+                                            <th>Location</th>
                                             <th>Status</th>
                                             <th class="text-center">Actions</th>
                                         </tr>
@@ -605,7 +606,7 @@
         let fullChronologyData = [];
         let reportData = [];
 
-        const visitorHeaders = ["#", "Full Name", "IC No", "Company", "Contact No", "Visit From", "Visit To", "Total Time Spent", "Status", "Actions"];
+        const visitorHeaders = ["#", "Full Name", "IC No", "Company", "Contact No", "Visit From", "Visit To", "Total Time Spent", "Location", "Status", "Actions"];
         const chronologyHeaders = ["No", "Visitor Name", "Access Time", "Location"];
         const tableHeaders = [
             "No", "Visitor Name", "Contact", "IC No", "Person Visited",
@@ -729,7 +730,7 @@
 
             currentVisitorsData.forEach((v, idx) => {
                 const tr = document.createElement('tr');
-                const statusClass = v.status === 'Checked Out' ? 'bg-red-500' : 'bg-emerald-500';
+                const statusClass = (v.status === 'Checked Out' || v.status === 'OUT') ? 'bg-red-500' : 'bg-emerald-500';
                 tr.innerHTML = `
             <td class="text-center text-slate-400 font-semibold">${idx + 1}</td>
             <td class="font-bold text-slate-800 uppercase px-4">${escHtml(v.visitor_name)}</td>
@@ -739,6 +740,7 @@
             <td class="px-4 text-xs font-medium text-slate-500">${escHtml(v.visit_from)}</td>
             <td class="px-4 text-xs font-medium text-slate-500">${escHtml(v.visit_to)}</td>
             <td class="px-4 text-xs font-bold text-slate-700">${escHtml(v.visit_duration)}</td>
+            <td class="px-4 text-xs font-medium text-slate-600 uppercase">${escHtml(v.location || 'N/A')}</td>
             <td class="px-4 text-center">
                 <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase text-white ${statusClass}">${v.status}</span>
             </td>
@@ -1060,92 +1062,6 @@
             });
         }
 
-        function closeTimelineModal() {
-            document.getElementById('chronologyTimelineModal').classList.add('hidden');
-            document.body.classList.remove('overflow-hidden');
-        }
-
-        function downloadChronologyExcel(data) {
-            const rows = [];
-            rows.push(["Movement Summary"]);
-            rows.push(["Full Name", data.summary.full_name]);
-            rows.push(["IC No", data.summary.ic_no]);
-            rows.push(["Total Time", data.summary.total_time]);
-            rows.push(["Total Visits", data.summary.total_visits]);
-            rows.push(["Total Scans", data.summary.total_scans]);
-            rows.push([""]);
-
-            rows.push(["Date", "Movement #", "From", "To", "Entry Time", "Exit Time", "Time Spent", "Status"]);
-
-            data.dates.forEach(d => {
-                d.movements.forEach(m => {
-                    rows.push([
-                        d.display_date,
-                        m.movement_index,
-                        m.from,
-                        m.to,
-                        m.entry_time,
-                        m.exit_time,
-                        m.time_spent,
-                        m.status
-                    ]);
-                });
-            });
-
-            const ws = XLSX.utils.aoa_to_sheet(rows);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Chronology");
-            XLSX.writeFile(wb, "Visitor_Chronology_" + data.summary.full_name.replace(/\s+/g, '_') + ".xlsx");
-        }
-
-        function openDetailsModal(invId) {
-            const v = currentVisitorsData.find(x => x.invitation_id == invId);
-            if (!v) return;
-
-            const setText = (id, value) => {
-                const el = document.getElementById(id);
-                if (el) el.textContent = value ?? '';
-            };
-
-            setText('mdFullname', v.visitor_name);
-            setText('mdIcno', v.ic_no);
-            setText('mdPersonVisited', v.person_visited);
-            setText('mdVisitFrom', v.visit_from);
-            setText('mdReason', v.visit_reason);
-            setText('mdStaffno', v.staff_id);
-            setText('mdContactno', v.contact_no);
-            setText('mdVisitTo', v.visit_to);
-            setText('mdLastUpdated', v.last_updated);
-            setText('mdDuration', v.visit_duration);
-            setText('mdCompany', v.visitor_company);
-            
-            const badge = document.getElementById('mdStatusBadge');
-            if (badge) {
-                badge.textContent = v.status;
-                badge.className = 'ml-2 px-2 py-0.5 rounded text-[10px] font-black uppercase text-white ' + (v.status === 'Checked Out' ? 'bg-red-500' : 'bg-emerald-500');
-            }
-
-            const printBtn = document.getElementById('btnPrintDetails');
-            if (printBtn) {
-                printBtn.onclick = () => {
-                    window.open('<?= base_url('report/visitor/details') ?>/' + invId, '_blank');
-                };
-            }
-
-            document.getElementById('detailsModal').classList.remove('hidden');
-            document.body.classList.add('overflow-hidden');
-        }
-
-        function closeDetailsModal() {
-            document.getElementById('detailsModal').classList.add('hidden');
-            document.body.classList.remove('overflow-hidden');
-        }
-
-        function openColumnsModal() {
-            // Intentionally empty: this file contains a later, correct `openColumnsModal()` implementation.
-            // A previous copy-paste left an unterminated template literal here which broke all JS parsing.
-        }
-
 function closeTimelineModal() {
     document.getElementById('chronologyTimelineModal').classList.add('hidden');
     document.body.classList.remove('overflow-hidden');
@@ -1224,8 +1140,9 @@ function closeDetailsModal() {
 
 function openColumnsModal() {
     const table = visitorDt;
+    if (!table) return;
     const headers = visitorHeaders;
-    
+
     const container = document.getElementById('columnsCheckboxesList');
     container.innerHTML = '';
     
@@ -1279,20 +1196,6 @@ function openColumnsModal() {
             document.getElementById('invitation_id').value = '';
             showChronologyEmpty();
         });
-
-        function applyColumnsVisibility() {
-            const table = visitorDt;
-
-            document.querySelectorAll('.col-toggle-cb').forEach(cb => {
-                const idx = cb.getAttribute('data-col-idx');
-                table.column(idx).visible(cb.checked);
-            });
-            closeColumnsModal();
-        }
-
-        function toggleAllColumns(elem) {
-            document.querySelectorAll('.col-toggle-cb').forEach(cb => cb.checked = elem.checked);
-        }
 
         function exportExcel() {
             if (!reportData || reportData.length === 0 || !chronologyDt) return;

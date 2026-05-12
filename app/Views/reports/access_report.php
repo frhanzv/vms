@@ -308,6 +308,7 @@
                                         <th>Company</th>
                                         <th>Vehicle No</th>
                                         <th>Visit Reason</th>
+                                        <th>Location</th>
                                         <th>Total Access</th>
                                         <th>First Access</th>
                                         <th>Last Access</th>
@@ -423,7 +424,7 @@
     
     const tableHeaders = [
         "No", "Visitor Name", "Contact No", "IC No", "Person Visited", 
-        "Company", "Vehicle No", "Visit Reason", "Total Access", "First Access", 
+        "Company", "Vehicle No", "Visit Reason", "Location", "Total Access", "First Access", 
         "Last Access", "Actions"
     ];
 
@@ -545,6 +546,7 @@
                 <td>${escHtml(v.visitor_company)}</td>
                 <td>${escHtml(v.vehicle_no)}</td>
                 <td>${escHtml(v.visit_reason)}</td>
+                <td>${escHtml(v.location_name)}</td>
                 <td class="text-center">
                     <span class="inline-flex items-center justify-center px-2.5 py-1 rounded-full text-xs font-bold bg-primary/10 text-primary">${v.total_access}</span>
                 </td>
@@ -586,8 +588,8 @@
                 }
             },
             columnDefs: [
-                { orderable: false, targets: [0, 11] },
-                { className: 'text-center', targets: [0, 8, 11] }
+                { orderable: false, targets: [0, 12] },
+                { className: 'text-center', targets: [0, 9, 12] }
             ],
             initComplete: function () {
                 var api = this.api();
@@ -801,7 +803,7 @@
         if (!reportData || reportData.length === 0 || !dtTable) return;
 
         // Find visible columns to determine which to export (exclude Action column 11 if desired, but we'll respect visibility)
-        const visibleIndices = dtTable.columns().visible().toArray().map((v, i) => v && i !== 11 ? i : -1).filter(v => v !== -1);
+        const visibleIndices = dtTable.columns().visible().toArray().map((v, i) => v && i !== 12 ? i : -1).filter(v => v !== -1);
         const expHeaders = visibleIndices.map(i => tableHeaders[i]);
         
         const exportData = [expHeaders];
@@ -816,6 +818,7 @@
                 v.visitor_company || '-',
                 v.vehicle_no || '-',
                 v.visit_reason || '-',
+                v.location_name || '-',
                 v.total_access || '-',
                 v.first_access || '-',
                 v.last_access || '-'

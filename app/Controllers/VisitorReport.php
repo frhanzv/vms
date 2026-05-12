@@ -17,6 +17,14 @@ class VisitorReport extends BaseController
     {
         $db = \Config\Database::connect();
 
+        $from = $this->request->getGet('from');
+        $to = $this->request->getGet('to');
+
+        $where = "";
+        if ($from && $to) {
+            $where .= " AND DATE(i.created_at) BETWEEN " . $db->escape($from) . " AND " . $db->escape($to);
+        }
+
         $sql = "SELECT
                     i.id               AS invitation_id,
                     i.full_name        AS visitor_name,
@@ -34,17 +42,18 @@ class VisitorReport extends BaseController
                     MIN(iv.check_in_time)  AS reg_checkin_time,
                     MAX(iv.check_out_time) AS reg_checkout_time,
                     COUNT(vcl.id)       AS total_scans,
-                    (SELECT CONCAT(l.id, '. ', l.lane) FROM visitor_card_logs vcl2 LEFT JOIN lanes l ON l.id = vcl2.lane_id WHERE vcl2.invitation_id = i.id ORDER BY vcl2.scanned_at DESC LIMIT 1) AS last_lane_full,
-                    (SELECT GROUP_CONCAT(DISTINCT CONCAT(l.id, '. ', l.lane) SEPARATOR ', ') FROM visitor_card_logs vcl2 LEFT JOIN lanes l ON l.id = vcl2.lane_id WHERE vcl2.invitation_id = i.id) AS all_lanes
+                    (SELECT MAX(s.date_to) FROM invitation_schedules s WHERE s.invitation_id = i.id) as schedule_end,
+                    (SELECT GROUP_CONCAT(DISTINCT l.lane SEPARATOR ', ') FROM visitor_card_logs vcl JOIN lanes l ON l.id = vcl.lane_id WHERE vcl.invitation_id = i.id) as all_lanes,
+                    (SELECT l.lane FROM visitor_card_logs vcl JOIN lanes l ON l.id = vcl.lane_id WHERE vcl.invitation_id = i.id ORDER BY vcl.scanned_at DESC LIMIT 1) as last_lane_full
                 FROM invitations i
                 LEFT JOIN visitor_card_logs vcl ON vcl.invitation_id = i.id
                 LEFT JOIN invitation_visitors iv ON iv.invitation_id = i.id
+                WHERE 1=1" . $where . "
                 GROUP BY
                     i.id, i.full_name, i.contact, i.ic_passport,
                     i.company, i.invited_by, i.staff_id, i.reason,
                     i.location, i.status, DATE(i.created_at)
                 ORDER BY DATE(i.created_at) ASC, i.full_name ASC";
-
 
         $rows = $db->query($sql)->getResultArray();
 
@@ -66,9 +75,20 @@ class VisitorReport extends BaseController
                 $start = strtotime((string) $checkInSource);
                 $end = $checkOutSource ? strtotime((string) $checkOutSource) : time();
                 $diff = max(0, $end - $start);
-                $hours = floor($diff / 3600);
-                $mins = floor(($diff % 3600) / 60);
-                $durationStr = sprintf("%02d:%02d h", $hours, $mins) . ($checkOutSource ? '' : ' (ongoing)');
+                
+                // Dashboard logic: if overstaying, show '+' duration relative to schedule end
+                $schedEnd = !empty($row['schedule_end']) ? strtotime((string) $row['schedule_end']) : null;
+                $now = time();
+                if (!$checkOutSource && $schedEnd && $now > $schedEnd) {
+                    $overDiff = $now - $schedEnd;
+                    $overHours = floor($overDiff / 3600);
+                    $overMins = floor(($overDiff % 3600) / 60);
+                    $durationStr = sprintf("+%02d:%02d h", $overHours, $overMins);
+                } else {
+                    $hours = floor($diff / 3600);
+                    $mins = floor(($diff % 3600) / 60);
+                    $durationStr = sprintf("%02d:%02d h", $hours, $mins) . ($checkOutSource ? '' : ' (ongoing)');
+                }
             }
             
             if ($checkOutSource) {
@@ -78,7 +98,7 @@ class VisitorReport extends BaseController
             } else {
                 $activeCount++;
                 $visitStatus = 'Active';
-                $currentLocation = $row['last_lane_full'] ?? 'N/A';
+                $currentLocation = $row['last_lane_full'] ?? $row['location'] ?? 'N/A';
             }
             
             if ($row['visit_date'] === $todayStr) {
@@ -102,17 +122,15 @@ class VisitorReport extends BaseController
                 'duration'          => $durationStr,
                 'current_location'  => $currentLocation,
                 'location_accessed' => $locationAccessed,
-                'total_scans'       => (int) $row['total_scans'],
             ];
         }
 
         return $this->response->setJSON([
-            'success'         => true,
-            'total_visitors'  => count($visitors),
-            'completed'       => $completedCount,
-            'active_visitors' => $activeCount,
-            'today_visitors'  => $todayVisitors,
-            'visitors'        => $visitors,
+            'success'        => true,
+            'visitors'       => $visitors,
+            'completedCount' => $completedCount,
+            'activeCount'    => $activeCount,
+            'todayVisitors'  => $todayVisitors,
         ]);
     }
 }

@@ -29,6 +29,8 @@ $routes->group('api/rfid', function($routes) {
     $routes->get('test-connection', 'RFID::testConnection');
 });
 
+$routes->post('api/receive-worker-count', 'Api\WorkerCountReceiver::receive');
+
 $routes->group('api/qr', function($routes) {
     $routes->get('scan', 'QRCode::scan');
     $routes->get('scan-lane', 'QRCode::scanLane');
@@ -199,14 +201,12 @@ $routes->post('config/createVisitorType', 'Config::createVisitorType');
 $routes->post('config/updateVisitorType/(:num)', 'Config::updateVisitorType/$1');
 $routes->delete('config/deleteVisitorType/(:num)', 'Config::deleteVisitorType/$1');
 // Device Assignments Routes
-$routes->group('', ['filter' => 'client_feature:device_management'], function($routes) {
-    $routes->get('config/getDeviceAssignments', 'Config::getDeviceAssignments');
-    $routes->get('config/getDeviceAssignment/(:num)', 'Config::getDeviceAssignment/$1');
-    $routes->post('config/checkDeviceStatus/(:num)', 'Config::checkDeviceStatus/$1');
-    $routes->post('config/createDeviceAssignment', 'Config::createDeviceAssignment');
-    $routes->post('config/updateDeviceAssignment/(:num)', 'Config::updateDeviceAssignment/$1');
-    $routes->post('config/deleteDeviceAssignment/(:num)', 'Config::deleteDeviceAssignment/$1');
-});
+$routes->get('config/getDeviceAssignments', 'Config::getDeviceAssignments');
+$routes->get('config/getDeviceAssignment/(:num)', 'Config::getDeviceAssignment/$1');
+$routes->post('config/checkDeviceStatus/(:num)', 'Config::checkDeviceStatus/$1');
+$routes->post('config/createDeviceAssignment', 'Config::createDeviceAssignment');
+$routes->post('config/updateDeviceAssignment/(:num)', 'Config::updateDeviceAssignment/$1');
+$routes->post('config/deleteDeviceAssignment/(:num)', 'Config::deleteDeviceAssignment/$1');
 
 // IP Range Settings
 $routes->get('config/getIpRangeSettings', 'Config::getIpRangeSettings');
@@ -474,6 +474,8 @@ $routes->group('config', ['filter' => $superadmins], function($routes) {
     $routes->post('createLane', 'Config::createLane');
     $routes->put('updateLane/(:num)', 'Config::updateLane/$1');
     $routes->delete('deleteLane/(:num)', 'Config::deleteLane/$1');
+    $routes->get('getLanesForDeviceAssignment', 'Config::getLanesForDeviceAssignment');
+    $routes->get('getDeviceAssignmentFormOptions', 'Config::getDeviceAssignmentFormOptions');
 
     // Reject Reasons
     $routes->get('getRejectReasons', 'Config::getRejectReasons');
@@ -572,6 +574,14 @@ $routes->group('config', ['filter' => 'role:superadmin'], function($routes) {
     $routes->get('getAppConfig/(:num)', 'AppConfig::get/$1');
     $routes->post('updateAppConfig/(:num)', 'AppConfig::update/$1');
 
+    // Device Assignments
+    $routes->get('getDeviceAssignments', 'Config::getDeviceAssignments');
+    $routes->get('getDeviceAssignment/(:num)', 'Config::getDeviceAssignment/$1');
+    $routes->post('checkDeviceStatus/(:num)', 'Config::checkDeviceStatus/$1');
+    $routes->post('createDeviceAssignment', 'Config::createDeviceAssignment');
+    $routes->post('updateDeviceAssignment/(:num)', 'Config::updateDeviceAssignment/$1');
+    $routes->post('deleteDeviceAssignment/(:num)', 'Config::deleteDeviceAssignment/$1');
+
     // IP Range Settings
     $routes->get('getIpRangeSettings', 'Config::getIpRangeSettings');
     $routes->post('saveIpRangeSettings', 'Config::saveIpRangeSettings');
@@ -633,4 +643,5 @@ $routes->get('vms/api/visitor-types', 'Api\KioskApi::getVisitorTypes');
 
 $routes->group('api/v1', ['filter' => 'inbound_api_auth'], function($routes) {
     $routes->post('receive', 'Api\InboundApi::receive');
+
 });
