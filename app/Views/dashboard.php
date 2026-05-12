@@ -435,6 +435,43 @@
                 </div>
             </div>
 
+            <!-- Appointments Row -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Upcoming Appointments -->
+                <div class="bg-surface-light dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 flex flex-col">
+                    <div class="flex items-center gap-2 mb-4"><span class="material-symbols-outlined text-indigo-500 fill-1">event_upcoming</span><h3 class="text-base font-bold text-slate-900 dark:text-white">Upcoming Appointments</h3></div>
+                    <?php if (empty($upcomingAppointments)): ?>
+                    <div class="flex flex-col items-center justify-center py-8 text-center"><p class="text-4xl font-black text-slate-300 dark:text-slate-600 mb-2">0</p><p class="text-sm text-slate-400 italic">No upcoming appointments</p></div>
+                    <?php else: ?>
+                    <div class="flex flex-col gap-3 max-h-[200px] overflow-y-auto pr-1">
+                        <?php foreach ($upcomingAppointments as $appt): ?>
+                        <div class="flex items-start gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                            <div class="size-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 flex-shrink-0 mt-0.5"><span class="material-symbols-outlined text-[18px]">schedule</span></div>
+                            <div class="flex-1 min-w-0"><p class="text-sm font-semibold text-slate-900 dark:text-white truncate"><?= esc($appt['visitor_name']) ?></p><p class="text-xs text-slate-500"><?= esc($appt['time']) ?> - <?= esc($appt['date']) ?></p><p class="text-xs text-slate-400">Host: <?= esc($appt['host_name']) ?></p></div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                    <?php endif; ?>
+                </div>
+                <!-- Today's Appointments -->
+                <div class="bg-surface-light dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 flex flex-col">
+                    <div class="flex items-center gap-2 mb-4"><span class="material-symbols-outlined text-emerald-500 fill-1">today</span><h3 class="text-base font-bold text-slate-900 dark:text-white">Today's Appointments</h3><span class="bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-[10px] px-2 py-0.5 rounded-full font-bold"><?= count($todayAppointments) ?></span></div>
+                    <?php if (empty($todayAppointments)): ?>
+                    <p class="text-sm text-slate-400 italic text-center py-4">No appointments today</p>
+                    <?php else: ?>
+                    <div class="flex flex-col gap-2.5 max-h-[250px] overflow-y-auto pr-1">
+                        <?php foreach ($todayAppointments as $ta): ?>
+                        <div class="flex items-center gap-3 p-3 rounded-lg border border-slate-100 dark:border-slate-700 hover:border-emerald-200 dark:hover:border-emerald-800 transition-colors">
+                            <div class="flex-1 min-w-0"><p class="text-sm font-semibold text-slate-900 dark:text-white truncate"><?= esc($ta['visitor_name']) ?></p><p class="text-xs text-slate-500"><?= esc($ta['time']) ?> - <?= esc($ta['end_time']) ?></p><p class="text-xs text-slate-400">Host: <?= esc($ta['host_name']) ?></p></div>
+                            <?php $apptStatusColor = match($ta['status']) { 'In Progress' => 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400', 'Completed' => 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400', default => 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' }; ?>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold flex-shrink-0 <?= $apptStatusColor ?>"><?= esc($ta['status']) ?></span>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
             <!-- Charts and Activity Section -->
             <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
                 <!-- Visitor Occupancy Chart -->
@@ -664,10 +701,8 @@
                 </div>
             </div>
 
-            <!-- Currently On-Site & Appointments Row -->
-            <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                <!-- Currently On-Site Table -->
-                <div class="xl:col-span-2 bg-surface-light dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+            <!-- Currently On-Site -->
+            <div class="bg-surface-light dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
                     <div class="flex items-center justify-between p-6 pb-4">
                         <div class="flex items-center gap-2">
                             <span class="material-symbols-outlined text-primary fill-1">group</span>
@@ -705,43 +740,6 @@
                             </tbody>
                         </table>
                     </div>
-                </div>
-                <!-- Appointments Sidebar -->
-                <div class="flex flex-col gap-6">
-                    <!-- Upcoming Appointments -->
-                    <div class="bg-surface-light dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 flex flex-col">
-                        <div class="flex items-center gap-2 mb-4"><span class="material-symbols-outlined text-indigo-500 fill-1">event_upcoming</span><h3 class="text-base font-bold text-slate-900 dark:text-white">Upcoming Appointments</h3></div>
-                        <?php if (empty($upcomingAppointments)): ?>
-                        <div class="flex flex-col items-center justify-center py-8 text-center"><p class="text-4xl font-black text-slate-300 dark:text-slate-600 mb-2">0</p><p class="text-sm text-slate-400 italic">No upcoming appointments</p></div>
-                        <?php else: ?>
-                        <div class="flex flex-col gap-3 max-h-[200px] overflow-y-auto pr-1">
-                            <?php foreach ($upcomingAppointments as $appt): ?>
-                            <div class="flex items-start gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                                <div class="size-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 flex-shrink-0 mt-0.5"><span class="material-symbols-outlined text-[18px]">schedule</span></div>
-                                <div class="flex-1 min-w-0"><p class="text-sm font-semibold text-slate-900 dark:text-white truncate"><?= esc($appt['visitor_name']) ?></p><p class="text-xs text-slate-500"><?= esc($appt['time']) ?> - <?= esc($appt['date']) ?></p><p class="text-xs text-slate-400">Host: <?= esc($appt['host_name']) ?></p></div>
-                            </div>
-                            <?php endforeach; ?>
-                        </div>
-                        <?php endif; ?>
-                    </div>
-                    <!-- Today's Appointments -->
-                    <div class="bg-surface-light dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 flex flex-col">
-                        <div class="flex items-center gap-2 mb-4"><span class="material-symbols-outlined text-emerald-500 fill-1">today</span><h3 class="text-base font-bold text-slate-900 dark:text-white">Today's Appointments</h3><span class="bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-[10px] px-2 py-0.5 rounded-full font-bold"><?= count($todayAppointments) ?></span></div>
-                        <?php if (empty($todayAppointments)): ?>
-                        <p class="text-sm text-slate-400 italic text-center py-4">No appointments today</p>
-                        <?php else: ?>
-                        <div class="flex flex-col gap-2.5 max-h-[250px] overflow-y-auto pr-1">
-                            <?php foreach ($todayAppointments as $ta): ?>
-                            <div class="flex items-center gap-3 p-3 rounded-lg border border-slate-100 dark:border-slate-700 hover:border-emerald-200 dark:hover:border-emerald-800 transition-colors">
-                                <div class="flex-1 min-w-0"><p class="text-sm font-semibold text-slate-900 dark:text-white truncate"><?= esc($ta['visitor_name']) ?></p><p class="text-xs text-slate-500"><?= esc($ta['time']) ?> - <?= esc($ta['end_time']) ?></p><p class="text-xs text-slate-400">Host: <?= esc($ta['host_name']) ?></p></div>
-                                <?php $apptStatusColor = match($ta['status']) { 'In Progress' => 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400', 'Completed' => 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400', default => 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' }; ?>
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold flex-shrink-0 <?= $apptStatusColor ?>"><?= esc($ta['status']) ?></span>
-                            </div>
-                            <?php endforeach; ?>
-                        </div>
-                        <?php endif; ?>
-                    </div>
-                </div>
             </div>
 
             <!-- Visitor Traffic Analytics -->
