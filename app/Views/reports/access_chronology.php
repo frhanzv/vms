@@ -758,7 +758,7 @@
 
             currentVisitorsData.forEach((v, idx) => {
                 const tr = document.createElement('tr');
-                const statusClass = (v.status === 'Checked Out' || v.status === 'OUT') ? 'bg-red-500' : 'bg-emerald-500';
+                const statusClass = (v.status === 'Checked Out' || v.status === 'OUT') ? 'bg-red-500' : (v.status === '-' ? 'bg-slate-400' : 'bg-emerald-500');
                 tr.innerHTML = `
             <td class="text-center text-slate-400 font-semibold">${idx + 1}</td>
             <td class="font-bold text-slate-800 uppercase px-4">${escHtml(v.visitor_name)}</td>

@@ -129,7 +129,7 @@ class VisitorChronology extends BaseController
             } elseif ($scanFrom) {
                 $status = 'Checked In';
             } else {
-                $status = 'OUT';
+                $status = '-';
             }
 
             $visitFromDisp = $scanFrom
@@ -613,7 +613,7 @@ class VisitorChronology extends BaseController
             } elseif (! empty($vData['visit_from']) && ! empty($vData['visit_to']) && ! $sameScan) {
                 $realStatus = 'CHECKED OUT';
             } else {
-                $realStatus = 'OUT';
+                $realStatus = '-';
             }
         }
 
