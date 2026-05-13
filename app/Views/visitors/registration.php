@@ -2242,6 +2242,7 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
                     const residentField = document.querySelector('select[name="resident"]');
                     if (residentField) {
                         residentField.value = 'LOCAL';
+                        residentField.dispatchEvent(new Event('change'));
                         console.log('Resident set to LOCAL');
                     }
                     
@@ -2520,7 +2521,10 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
             const residentField = document.querySelector('select[name="resident"]');
 
             if (/^\d{12}$/.test(ic)) {
-                if (residentField) residentField.value = 'LOCAL';
+                if (residentField) {
+                    residentField.value = 'LOCAL';
+                    residentField.dispatchEvent(new Event('change'));
+                }
 
                 const lastDigit = parseInt(ic.slice(-1));
                 const sexField = document.querySelector('select[name="sex"]');
@@ -2535,7 +2539,53 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
                 if (dobField) dobField.value = `${fullYear}-${mm}-${dd}`;
 
             } else if (/[a-zA-Z]/.test(ic) || ic.length > 12) {
-                if (residentField) residentField.value = 'FOREIGN';
+                if (residentField) {
+                    residentField.value = 'FOREIGN';
+                    residentField.dispatchEvent(new Event('change'));
+                }
+            }
+        }
+
+        function handleResidentChange() {
+            const residentField = document.querySelector('select[name="resident"]');
+            if (!residentField) return;
+
+            const isForeign = residentField.value === 'FOREIGN';
+            
+            // Country selection: show if foreign
+            const countrySelect = document.querySelector('select[name="country"]');
+            const countryContainer = countrySelect ? countrySelect.closest('.space-y-2') : null;
+            if (countryContainer) {
+                countryContainer.style.display = isForeign ? 'block' : 'none';
+            }
+            if (countrySelect) {
+                countrySelect.disabled = !isForeign;
+                if (!isForeign) countrySelect.value = '';
+            }
+
+            // Disable unnecessary fields
+            const stateField = document.querySelector('select[name="state"]');
+            const cityField = document.querySelector('select[name="city"]');
+            const postcodeField = document.querySelector('input[name="postal_code"]');
+
+            const stateContainer = stateField ? stateField.closest('.space-y-2') : null;
+            const cityContainer = cityField ? cityField.closest('.space-y-2') : null;
+            const postcodeContainer = postcodeField ? postcodeField.closest('.space-y-2') : null;
+
+            if (stateField) {
+                stateField.disabled = isForeign;
+                if (stateContainer) stateContainer.style.display = isForeign ? 'none' : 'block';
+                if (isForeign) stateField.value = '';
+            }
+            if (cityField) {
+                cityField.disabled = isForeign;
+                if (cityContainer) cityContainer.style.display = isForeign ? 'none' : 'block';
+                if (isForeign) cityField.value = '';
+            }
+            if (postcodeField) {
+                postcodeField.disabled = isForeign;
+                if (postcodeContainer) postcodeContainer.style.display = isForeign ? 'none' : 'block';
+                if (isForeign) postcodeField.value = '';
             }
         }
 
@@ -2545,6 +2595,13 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
                 icField.addEventListener('input', function() {
                     autoDetectGenderFromIC(this.value);
                 });
+            }
+            
+            const residentField = document.querySelector('select[name="resident"]');
+            if (residentField) {
+                residentField.addEventListener('change', handleResidentChange);
+                // Initialize on load
+                handleResidentChange();
             }
         });
 
