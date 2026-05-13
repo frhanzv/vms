@@ -66,7 +66,7 @@
                 <div class="info-box"><?= esc($visitor['ic_passport']) ?></div>
             </div>
             <div>
-                <span class="label">Person Visited:</span>
+                <span class="label">Host Name:</span>
                 <div class="info-box uppercase"><?= esc($visitor['invited_by']) ?></div>
             </div>
             <div>

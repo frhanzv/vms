@@ -913,23 +913,20 @@
         
         const exportData = [expHeaders];
         
-        reportData.forEach((v, i) => {
-            const fullRowData = [
-                i + 1,
-                v.visitor_name || '-',
-                v.contact_no || '-',
-                v.ic_no || '-',
-                v.person_visited || '-',
-                v.visitor_company || '-',
-                v.vehicle_no || '-',
-                v.visit_reason || '-',
-                v.location_name || '-',
-                v.total_access || '-',
-                v.first_access || '-',
-                v.last_access || '-'
-            ];
-            
-            const rowData = visibleIndices.map(idx => fullRowData[idx]);
+        let exportIndex = 1;
+        dtTable.rows({ search: 'applied' }).every(function () {
+            const rawData = this.data();
+            const fullRowData = rawData.map(val => {
+                if (typeof val === 'string') {
+                    return val.replace(/<[^>]*>?/gm, '').trim();
+                }
+                return val;
+            });
+
+            // Override first column with sequential number
+            fullRowData[0] = exportIndex++;
+
+            const rowData = visibleIndices.map(idx => fullRowData[idx] || '-');
             exportData.push(rowData);
         });
 

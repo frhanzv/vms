@@ -890,19 +890,15 @@
 
             let exportIndex = 1;
             dtTable.rows({ search: 'applied' }).every(function () {
-                var tr = this.node();
-                var tds = $(tr).find('td');
-
-                const fullRowData = [];
-                tds.each(function (index) {
-                    if (index === 0) {
-                        fullRowData.push(exportIndex++);
-                    } else if (index === 7) {
-                        fullRowData.push('-');
-                    } else {
-                        fullRowData.push($(this).text().trim());
+                const rawData = this.data();
+                const fullRowData = rawData.map(val => {
+                    if (typeof val === 'string') {
+                        return val.replace(/<[^>]*>?/gm, '').trim();
                     }
+                    return val;
                 });
+
+                fullRowData[0] = exportIndex++;
 
                 const rowData = visibleIndices.map(idx => fullRowData[idx] || '-');
                 exportData.push(rowData);
