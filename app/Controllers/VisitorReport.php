@@ -126,11 +126,12 @@ class VisitorReport extends BaseController
         }
 
         return $this->response->setJSON([
-            'success'        => true,
-            'visitors'       => $visitors,
-            'completedCount' => $completedCount,
-            'activeCount'    => $activeCount,
-            'todayVisitors'  => $todayVisitors,
+            'success'         => true,
+            'visitors'        => $visitors,
+            'total_visitors'  => count($visitors),
+            'completed'       => $completedCount,
+            'active_visitors' => $activeCount,
+            'today_visitors'  => $todayVisitors,
         ]);
     }
 }

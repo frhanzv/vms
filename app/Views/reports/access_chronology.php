@@ -551,6 +551,10 @@
                     <span id="mdIcno" class="text-sm font-bold text-slate-700 dark:text-slate-200"></span>
                 </div>
                 <div>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Full Name</span>
+                    <span id="mdFullname" class="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase"></span>
+                </div>
+                <div>
                     <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Company Name</span>
                     <span id="mdCompany" class="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase"></span>
                 </div>
@@ -562,11 +566,7 @@
                     <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Host Name</span>
                     <span id="mdPersonVisited" class="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase"></span>
                 </div>
-                <div>
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Full Name</span>
-                    <span id="mdFullname" class="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase"></span>
-                </div>
-                <div class="col-span-2">
+                <div class="col-span-1">
                     <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Visit Reason</span>
                     <span id="mdReason" class="text-sm font-bold text-slate-700 dark:text-slate-200"></span>
                 </div>
@@ -609,7 +609,7 @@
         const visitorHeaders = ["#", "Full Name", "IC No", "Company", "Contact No", "Visit From", "Visit To", "Total Time Spent", "Location", "Status", "Actions"];
         const chronologyHeaders = ["No", "Visitor Name", "Access Time", "Location"];
         const tableHeaders = [
-            "No", "Visitor Name", "Contact", "IC No", "Person Visited",
+            "No", "Visitor Name", "Contact", "IC No", "Host Name",
             "Company", "Vehicle", "Reason", "Access Time", "Location"
         ];
         const todayStr = new Date().getFullYear() + '-' +
@@ -1284,51 +1284,32 @@ function openColumnsModal() {
         }
 
         function exportVisitorsExcel() {
-            const name = "Visitor_Details";
-            const data = currentVisitorsData;
-            if (!data || !data.length) return;
+            if (!currentVisitorsData || currentVisitorsData.length === 0 || !visitorDt) return;
 
-            const ws = XLSX.utils.json_to_sheet(data);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Report");
-            XLSX.writeFile(wb, name + "_" + new Date().toISOString().slice(0, 10) + ".xlsx");
-        }
-
-        document.getElementById('btnChronologySearch').addEventListener('click', runChronologySearch);
-        document.getElementById('btnChronologyClear').addEventListener('click', () => {
-            document.getElementById('search_term').value = '';
-            document.getElementById('invitation_id').value = '';
-            showChronologyEmpty();
-        });
-
-        function exportExcel() {
-            if (!reportData || reportData.length === 0 || !chronologyDt) return;
-
-            const visibleIndices = chronologyDt.columns().visible().toArray().map((v, i) => v ? i : -1).filter(v => v !== -1);
-            const expHeaders = visibleIndices.map(i => tableHeaders[i]);
+            const visibleIndices = visitorDt.columns().visible().toArray().map((v, i) => v && i !== 10 ? i : -1).filter(v => v !== -1);
+            const expHeaders = visibleIndices.map(i => visitorHeaders[i]);
 
             const exportData = [expHeaders];
 
             let exportIndex = 1;
-            chronologyDt.rows({ search: 'applied' }).every(function () {
-                var tr = this.node();
-                var tds = $(tr).find('td');
-
-                const fullRowData = [];
-                tds.each(function (index) {
-                    if (index === 0) {
-                        fullRowData.push(exportIndex++);
-                    } else {
-                        fullRowData.push($(this).text().trim());
+            visitorDt.rows({ search: 'applied' }).every(function () {
+                const rawData = this.data();
+                const fullRowData = rawData.map(val => {
+                    if (typeof val === 'string') {
+                        return val.replace(/<[^>]*>?/gm, '').trim();
                     }
+                    return val;
                 });
+
+                // Override first column with sequential number
+                fullRowData[0] = exportIndex++;
 
                 const rowData = visibleIndices.map(idx => fullRowData[idx] || '-');
                 exportData.push(rowData);
             });
 
             const ws = XLSX.utils.aoa_to_sheet(exportData);
-
+            
             for (let C = 0; C < expHeaders.length; ++C) {
                 const cell_ref = XLSX.utils.encode_cell({ c: C, r: 0 });
                 if (!ws[cell_ref]) continue;
@@ -1342,56 +1323,8 @@ function openColumnsModal() {
             ws['!cols'] = wscols;
 
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Visitor Chronology");
-            XLSX.writeFile(wb, "Visitor_Chronology_" + new Date().toISOString().slice(0, 10) + ".xlsx");
-        }
-
-        window.addEventListener('DOMContentLoaded', () => {
-            const p = new URLSearchParams(window.location.search);
-            const ic = p.get('ic_no');
-            const invId = p.get('invitation_id');
-            const from = p.get('from_datetime');
-            const to = p.get('to_datetime');
-            const auto = p.get('auto_search') === '1';
-
-            // Accept Access Report format: "Y-m-d H:i"
-            if (from && typeof fpChronFrom !== 'undefined') fpChronFrom.setDate(from, true, 'Y-m-d H:i');
-            if (to && typeof fpChronTo !== 'undefined') fpChronTo.setDate(to, true, 'Y-m-d H:i');
-
-            if (ic || invId) {
-                if (ic) {
-                    const st = document.getElementById('search_term');
-                    if (st) st.value = ic;
-                    const sb = document.getElementById('search_by');
-                    if (sb) sb.value = 'ic';
-                }
-                if (invId) {
-                    const hid = document.getElementById('invitation_id');
-                    if (hid) hid.value = invId;
-                }
-
-                // Slight delay to ensure elements are ready
-                if (auto) {
-                    setTimeout(runChronologySearch, 150);
-                }
-            }
-        });
-    </script>
-</body>
-</html>
-        function toggleAllColumns(elem) {
-            document.querySelectorAll('.col-toggle-cb').forEach(cb => cb.checked = elem.checked);
-        }
-
-        function exportVisitorsExcel() {
-            const name = "Visitor_Details";
-            const data = currentVisitorsData;
-            if (!data || !data.length) return;
-
-            const ws = XLSX.utils.json_to_sheet(data);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Report");
-            XLSX.writeFile(wb, name + "_" + new Date().toISOString().slice(0, 10) + ".xlsx");
+            XLSX.utils.book_append_sheet(wb, ws, "Visitor Details");
+            XLSX.writeFile(wb, "Visitor_Details_" + new Date().toISOString().slice(0, 10) + ".xlsx");
         }
 
         document.getElementById('btnChronologySearch').addEventListener('click', runChronologySearch);
@@ -1411,17 +1344,15 @@ function openColumnsModal() {
 
             let exportIndex = 1;
             chronologyDt.rows({ search: 'applied' }).every(function () {
-                var tr = this.node();
-                var tds = $(tr).find('td');
-
-                const fullRowData = [];
-                tds.each(function (index) {
-                    if (index === 0) {
-                        fullRowData.push(exportIndex++);
-                    } else {
-                        fullRowData.push($(this).text().trim());
+                const rawData = this.data();
+                const fullRowData = rawData.map(val => {
+                    if (typeof val === 'string') {
+                        return val.replace(/<[^>]*>?/gm, '').trim();
                     }
+                    return val;
                 });
+
+                fullRowData[0] = exportIndex++;
 
                 const rowData = visibleIndices.map(idx => fullRowData[idx] || '-');
                 exportData.push(rowData);
