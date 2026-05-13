@@ -1077,7 +1077,38 @@ $isSettings = str_contains($current, 'settings');
             }
         }
 
+        function autoDetectGenderFromIC(icValue) {
+            const ic = icValue.replace(/[-\s]/g, '');
+            const residentField = document.querySelector('select[name="resident"]');
+
+            if (/^\d{12}$/.test(ic)) {
+                if (residentField) residentField.value = 'LOCAL';
+
+                const lastDigit = parseInt(ic.slice(-1));
+                const sexField = document.querySelector('select[name="sex"]');
+                if (sexField) sexField.value = lastDigit % 2 !== 0 ? 'MALE' : 'FEMALE';
+
+                const yy = parseInt(ic.substring(0, 2));
+                const mm = ic.substring(2, 4);
+                const dd = ic.substring(4, 6);
+                const currentYY = new Date().getFullYear() % 100;
+                const fullYear = yy > currentYY ? 1900 + yy : 2000 + yy;
+                const dobField = document.querySelector('input[name="date_of_birth"]');
+                if (dobField) dobField.value = `${fullYear}-${mm}-${dd}`;
+
+            } else if (/[a-zA-Z]/.test(ic) || ic.length > 12) {
+                if (residentField) residentField.value = 'FOREIGN';
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
+            const icField = document.querySelector('input[name="ic_number"]');
+            if (icField) {
+                icField.addEventListener('input', function() {
+                    autoDetectGenderFromIC(this.value);
+                });
+            }
+
             const additionalDocsInput = document.querySelector('input[name="invitation_letter[]"]');
             if (additionalDocsInput) {
                 additionalDocsInput.addEventListener('change', function(e) {
@@ -1111,39 +1142,6 @@ $isSettings = str_contains($current, 'settings');
                             <button type="button" class="mt-1 text-xs text-red-600 hover:text-red-800" onclick="this.closest('.file-preview').remove(); document.querySelector('input[name=\\'invitation_letter[]\\']').value='';">Clear All</button>
                         </div>
                     `;
-                });
-            }
-        });
-
-        function autoDetectGenderFromIC(icValue) {
-            const ic = icValue.replace(/[-\s]/g, '');
-            const residentField = document.querySelector('select[name="resident"]');
-
-            if (/^\d{12}$/.test(ic)) {
-                if (residentField) residentField.value = 'LOCAL';
-
-                const lastDigit = parseInt(ic.slice(-1));
-                const sexField = document.querySelector('select[name="sex"]');
-                if (sexField) sexField.value = lastDigit % 2 !== 0 ? 'MALE' : 'FEMALE';
-
-                const yy = parseInt(ic.substring(0, 2));
-                const mm = ic.substring(2, 4);
-                const dd = ic.substring(4, 6);
-                const currentYY = new Date().getFullYear() % 100;
-                const fullYear = yy > currentYY ? 1900 + yy : 2000 + yy;
-                const dobField = document.querySelector('input[name="date_of_birth"]');
-                if (dobField) dobField.value = `${fullYear}-${mm}-${dd}`;
-
-            } else if (/[a-zA-Z]/.test(ic) || ic.length > 12) {
-                if (residentField) residentField.value = 'FOREIGN';
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const icField = document.querySelector('input[name="ic_number"]');
-            if (icField) {
-                icField.addEventListener('input', function() {
-                    autoDetectGenderFromIC(this.value);
                 });
             }
         });

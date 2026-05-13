@@ -31,6 +31,7 @@ class ClientFeatureModel extends Model
             'visitor_card'        => 'Visitor Card Issuance',
             'security_alerts'     => 'Security Alerts',
             'device_management'   => 'Device Management',
+            'company_visited'     => 'Company Visited Field (disable to use Visitor Type)',
         ];
     }
 

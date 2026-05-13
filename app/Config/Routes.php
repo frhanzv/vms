@@ -37,6 +37,9 @@ $routes->group('api/qr', function($routes) {
     $routes->get('status', 'QRCode::status');
 });
 
+$routes->get('scanner', 'Scanner::index');
+$routes->get('scanner/lanes', 'Scanner::getLanes');
+
 $routes->get('visitor-registration', 'VisitorRegistration::index');
 $routes->post('visitor-registration/submit', 'VisitorRegistration::submit');
 $routes->post('visitor-registration/processMyKad', 'VisitorRegistration::processMyKad');
