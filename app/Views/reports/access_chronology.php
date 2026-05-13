@@ -237,7 +237,7 @@
                         <p class="text-xs font-semibold uppercase tracking-widest text-primary mb-1">Reports</p>
                         <h1 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white">Visitor Details
                         </h1>
-                        <p class="text-slate-500 dark:text-slate-400 mt-1 font-medium">Search by IC or staff number,
+                        <p class="text-slate-500 dark:text-slate-400 mt-1 font-medium">Search by IC or visitor name,
                             then review access chronology.</p>
                     </div>
 
@@ -263,9 +263,9 @@
                             <div class="<?= $searchGrid ?> items-center">
                                 <select id="search_by" class="<?= $fieldInput ?> chronology-select">
                                     <option value="ic">IC Number</option>
-                                    <option value="staff">Staff No</option>
+                                    <option value="name">Visitor Name</option>
                                 </select>
-                                <input type="text" id="search_term" placeholder="Enter Staff No or IC"
+                                <input type="text" id="search_term" placeholder="Enter Name or IC"
                                     class="<?= $fieldInput ?>">
                                 <input type="text" id="chronology_from" class="<?= $fieldInput ?> flatpickr-input"
                                     readonly placeholder="Start Date">
@@ -329,9 +329,9 @@
                         </div>
 
                         <div
-                            class="bg-white dark:bg-slate-900 rounded-b-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden border-t-0 p-5 pt-0">
+                            class="bg-white dark:bg-slate-900 rounded-b-xl border border-slate-200 dark:border-slate-700 shadow-sm border-t-0 p-5 pt-0">
                             <!-- Visitor Records Table -->
-                            <div id="visitorTableWrap" class="overflow-x-auto custom-scrollbar pb-2">
+                            <div id="visitorTableWrap" class="overflow-x-auto custom-scrollbar pb-2 min-h-[380px] lg:min-h-[520px]">
                                 <table id="visitorTable" class="w-full" style="width:100%">
                                     <thead>
                                         <tr>
@@ -542,13 +542,17 @@
             </div>
 
             <div class="px-6 py-6 grid grid-cols-2 gap-y-6 gap-x-4 max-h-[70vh] overflow-y-auto custom-scrollbar bg-white dark:bg-slate-900">
-                <div>
+                <div class="hidden">
                     <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Staff No</span>
                     <span id="mdStaffno" class="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase"></span>
                 </div>
                 <div>
                     <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">IC Number</span>
                     <span id="mdIcno" class="text-sm font-bold text-slate-700 dark:text-slate-200"></span>
+                </div>
+                <div>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Full Name</span>
+                    <span id="mdFullname" class="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase"></span>
                 </div>
                 <div>
                     <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Company Name</span>
@@ -559,14 +563,10 @@
                     <span id="mdContactno" class="text-sm font-bold text-slate-700 dark:text-slate-200"></span>
                 </div>
                 <div>
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Person Visited</span>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Host Name</span>
                     <span id="mdPersonVisited" class="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase"></span>
                 </div>
-                <div>
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Full Name</span>
-                    <span id="mdFullname" class="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase"></span>
-                </div>
-                <div class="col-span-2">
+                <div class="col-span-1">
                     <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Visit Reason</span>
                     <span id="mdReason" class="text-sm font-bold text-slate-700 dark:text-slate-200"></span>
                 </div>
@@ -609,7 +609,7 @@
         const visitorHeaders = ["#", "Full Name", "IC No", "Company", "Contact No", "Visit From", "Visit To", "Total Time Spent", "Location", "Status", "Actions"];
         const chronologyHeaders = ["No", "Visitor Name", "Access Time", "Location"];
         const tableHeaders = [
-            "No", "Visitor Name", "Contact", "IC No", "Person Visited",
+            "No", "Visitor Name", "Contact", "IC No", "Host Name",
             "Company", "Vehicle", "Reason", "Access Time", "Location"
         ];
         const todayStr = new Date().getFullYear() + '-' +
@@ -640,6 +640,34 @@
                 .replace(/"/g, '&quot;');
         }
 
+        function cellTextForCheckboxFilter(raw) {
+            if (raw === null || raw === undefined) return '-';
+            var t = $('<div>').html(String(raw)).text().trim();
+            if (!t || t === 'NULL' || t === 'null') return '-';
+            return t;
+        }
+
+        (function installVmsCheckboxColumnFilterSearchOnce() {
+            if (window.__vmsDtCheckboxColumnFilterSearchInstalled) return;
+            window.__vmsDtCheckboxColumnFilterSearchInstalled = true;
+            if (typeof $ === 'undefined' || !$.fn.dataTable || !$.fn.dataTable.ext) return;
+            $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
+                if (!settings.oInit || !settings.oInit._checkboxColumnFilter) return true;
+                var cf = settings._colCheckboxFilters;
+                if (!cf) return true;
+                for (var key in cf) {
+                    if (!Object.prototype.hasOwnProperty.call(cf, key)) continue;
+                    var allowed = cf[key];
+                    if (!(allowed instanceof Set)) continue;
+                    if (allowed.size === 0) return false;
+                    var colIdx = parseInt(key, 10);
+                    var cellText = cellTextForCheckboxFilter(data[colIdx]);
+                    if (!allowed.has(cellText)) return false;
+                }
+                return true;
+            });
+        })();
+
         function showChronologyEmpty() {
             document.getElementById('chronologyResultsWrap').classList.add('hidden');
             document.getElementById('chronologySummary').classList.add('hidden');
@@ -661,7 +689,7 @@
                 return;
             }
             if (!invitationId && !searchTerm) {
-                alert('Enter IC number or staff number.');
+                alert('Enter IC number or visitor name.');
                 return;
             }
 
@@ -730,7 +758,7 @@
 
             currentVisitorsData.forEach((v, idx) => {
                 const tr = document.createElement('tr');
-                const statusClass = (v.status === 'Checked Out' || v.status === 'OUT') ? 'bg-red-500' : 'bg-emerald-500';
+                const statusClass = (v.status === 'Checked Out' || v.status === 'OUT') ? 'bg-red-500' : (v.status === '-' ? 'bg-slate-400' : 'bg-emerald-500');
                 tr.innerHTML = `
             <td class="text-center text-slate-400 font-semibold">${idx + 1}</td>
             <td class="font-bold text-slate-800 uppercase px-4">${escHtml(v.visitor_name)}</td>
@@ -760,7 +788,8 @@
 
             visitorDt = $('#visitorTable').DataTable({
                 pageLength: 10,
-                dom: '<"flex justify-end items-center mb-5 mt-2"f><"overflow-x-auto min-h-[300px]"t><"flex flex-col md:flex-row justify-between items-center gap-4 mt-6"p<"ml-auto"l>>',
+                _checkboxColumnFilter: true,
+                dom: '<"flex justify-end items-center mb-5 mt-2"f><"overflow-x-auto min-h-[380px] lg:min-h-[520px]"t><"flex flex-col md:flex-row justify-between items-center gap-4 mt-6"p<"ml-auto"l>>',
                 language: { search: "Search visitor:", lengthMenu: "_MENU_" },
                 columnDefs: [
                     { orderable: false, targets: [0, 9] },
@@ -768,6 +797,72 @@
                 ],
                 initComplete: function () {
                     var api = this.api();
+                    var st = api.settings()[0];
+                    st._colCheckboxFilters = {};
+                    api.columns().every(function () {
+                        this.search('');
+                    });
+                    api.draw(false);
+
+                    var syncingFilterOptions = false;
+
+                    function uniqueOptionsIgnoringColumnSearch(colIdx) {
+                        if (!st._colCheckboxFilters) st._colCheckboxFilters = {};
+                        var cf = st._colCheckboxFilters;
+                        var had = Object.prototype.hasOwnProperty.call(cf, colIdx);
+                        var saved = had ? cf[colIdx] : undefined;
+                        delete st._colCheckboxFilters[colIdx];
+                        api.draw(false);
+                        var opts = [];
+                        var seen = {};
+                        api.rows({ search: 'applied' }).every(function () {
+                            var rowData = this.data();
+                            var textVal = cellTextForCheckboxFilter(rowData[colIdx]);
+                            if (textVal && textVal !== '-' && textVal !== 'View' && textVal !== 'NULL' && textVal !== 'null' && !seen[textVal]) {
+                                seen[textVal] = true;
+                                opts.push(textVal);
+                            }
+                        });
+                        opts.sort();
+                        if (had) {
+                            st._colCheckboxFilters[colIdx] = saved;
+                        }
+                        api.draw(false);
+                        return opts;
+                    }
+
+                    function syncOtherColumnFilterDropdowns(sourceColIdx) {
+                        api.columns().every(function () {
+                            var col2 = this;
+                            var idx2 = col2.index();
+                            if (idx2 === sourceColIdx) return;
+                            var dd2 = $(col2.header()).find('.filter-dropdown');
+                            if (!dd2.length) return;
+
+                            var prev = {};
+                            dd2.find('.filter-item input').each(function () {
+                                var k = cellTextForCheckboxFilter($(this).val());
+                                prev[k] = $(this).prop('checked');
+                            });
+                            var newOpts = uniqueOptionsIgnoringColumnSearch(idx2);
+                            dd2.find('.filter-item').remove();
+                            var applyFn2 = dd2.data('applyFilter');
+                            var newItemCbs = [];
+                            newOpts.forEach(function (val) {
+                                var itemLabel = $('<label class="filter-item flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 cursor-pointer text-slate-600 capitalize"></label>');
+                                itemLabel.attr('data-filter-text', val.toLowerCase());
+                                var itemCb = $('<input type="checkbox" checked value="' + val.replace(/"/g, '&quot;') + '" class="form-checkbox h-4 w-4 text-[#137fec] accent-[#137fec] rounded border-slate-300 cursor-pointer">');
+                                itemLabel.append(itemCb).append('<span class="select-none">' + val + '</span>');
+                                dd2.append(itemLabel);
+                                itemCb.prop('checked', Object.prototype.hasOwnProperty.call(prev, val) ? prev[val] : true);
+                                if (applyFn2) itemCb.on('change', applyFn2);
+                                newItemCbs.push(itemCb);
+                            });
+                            dd2.data('itemCbs', newItemCbs);
+                            if (applyFn2) applyFn2();
+                        });
+                    }
+
                     api.columns().every(function () {
                         var column = this;
                         var header = $(column.header());
@@ -777,7 +872,7 @@
 
                             var wrapper = $('<div class="dt-filter-wrapper inline-block relative ml-1 align-middle" onclick="event.stopPropagation()"></div>');
                             var icon = $('<span class="material-symbols-outlined text-[16px] text-slate-300 hover:text-[#137fec] transition-colors cursor-pointer" style="vertical-align: middle;">filter_alt</span>');
-                            var dropdown = $('<div class="filter-dropdown hidden fixed mt-1 bg-white border border-slate-200 rounded shadow-xl z-[9999] p-2 text-left text-sm max-h-[250px] overflow-y-auto" style="min-width: 160px; font-weight: normal;"></div>');
+                            var dropdown = $('<div class="filter-dropdown hidden absolute left-0 top-full z-[200] mt-1 bg-white border border-slate-200 rounded shadow-xl p-2 text-left text-sm max-h-[min(60vh,32rem)] overflow-y-auto" style="min-width: 160px; font-weight: normal;"></div>');
 
                             wrapper.append(icon).append(dropdown);
                             header.append(wrapper);
@@ -787,7 +882,7 @@
 
                             var options = [];
                             column.data().unique().sort().each(function (d) {
-                                var textVal = $('<div>').html(d).text().trim();
+                                var textVal = cellTextForCheckboxFilter(d);
                                 if (textVal && textVal !== '-' && textVal !== 'View' && textVal !== 'NULL' && textVal !== 'null') {
                                     options.push(textVal);
                                 }
@@ -813,6 +908,7 @@
                                 dropdown.append(itemLabel);
                                 itemCbs.push(itemCb);
                             });
+                            dropdown.data('itemCbs', itemCbs);
 
                             searchInput.on('input', function () {
                                 var q = $(this).val().toLowerCase();
@@ -826,20 +922,6 @@
                                 e.stopPropagation();
                                 $('.filter-dropdown').not(dropdown).addClass('hidden');
                                 dropdown.toggleClass('hidden');
-
-                                if (!dropdown.hasClass('hidden')) {
-                                    var rect = icon[0].getBoundingClientRect();
-                                    var winW = $(window).width();
-                                    var dropW = dropdown.outerWidth();
-                                    var leftPos = rect.left;
-                                    if (leftPos + dropW > winW) {
-                                        leftPos = winW - dropW - 20;
-                                    }
-                                    dropdown.css({
-                                        top: (rect.bottom + 5) + 'px',
-                                        left: leftPos + 'px'
-                                    });
-                                }
                             });
 
                             $(document).on('click', function (e) {
@@ -849,49 +931,71 @@
                             });
 
                             function applyFilter() {
-                                var selected = [];
-                                var allChecked = true;
-                                var noneChecked = true;
-                                itemCbs.forEach(function (cb) {
+                                var cbs = dropdown.data('itemCbs') || itemCbs;
+                                var colIdx = column.index();
+                                if (!st._colCheckboxFilters) st._colCheckboxFilters = {};
+
+                                var checkedCount = 0;
+                                var allowedSet = new Set();
+                                cbs.forEach(function (cb) {
                                     if (cb.prop('checked')) {
-                                        selected.push($.fn.dataTable.util.escapeRegex(cb.val()));
-                                        noneChecked = false;
-                                    } else {
-                                        allChecked = false;
+                                        checkedCount++;
+                                        allowedSet.add(cellTextForCheckboxFilter(cb.val()));
                                     }
                                 });
+                                var optCount = cbs.length;
+                                var allChecked = optCount > 0 && checkedCount === optCount;
+                                var noneChecked = checkedCount === 0;
 
                                 allCb.prop('checked', allChecked);
                                 removeAllCb.prop('checked', noneChecked);
+                                allCb.prop('indeterminate', false);
+                                removeAllCb.prop('indeterminate', false);
 
-                                if (selected.length > 0 && selected.length < options.length) {
+                                if (optCount === 0) {
+                                    icon.removeClass('text-[#137fec] text-red-500').addClass('text-slate-300');
+                                    delete st._colCheckboxFilters[colIdx];
+                                } else if (checkedCount > 0 && checkedCount < optCount) {
                                     icon.removeClass('text-slate-300 text-red-500').addClass('text-[#137fec]');
-                                    var regex = '^(' + selected.join('|') + ')$';
-                                    column.search(regex, true, false).draw();
-                                } else if (selected.length === 0) {
+                                    st._colCheckboxFilters[colIdx] = allowedSet;
+                                } else if (checkedCount === 0) {
                                     icon.removeClass('text-slate-300 text-[#137fec]').addClass('text-red-500');
-                                    column.search('$.^', true, false).draw();
+                                    st._colCheckboxFilters[colIdx] = new Set();
                                 } else {
                                     icon.removeClass('text-[#137fec] text-red-500').addClass('text-slate-300');
-                                    column.search('', true, false).draw();
+                                    delete st._colCheckboxFilters[colIdx];
+                                }
+
+                                column.search('', false, false);
+                                api.draw(false);
+
+                                if (!syncingFilterOptions) {
+                                    syncingFilterOptions = true;
+                                    try {
+                                        syncOtherColumnFilterDropdowns(colIdx);
+                                    } finally {
+                                        syncingFilterOptions = false;
+                                    }
                                 }
                             }
+                            dropdown.data('applyFilter', applyFilter);
 
                             allCb.on('change', function () {
                                 var isChecked = $(this).prop('checked');
                                 removeAllCb.prop('checked', false);
-                                itemCbs.forEach(function (cb) { cb.prop('checked', isChecked); });
+                                (dropdown.data('itemCbs') || itemCbs).forEach(function (cb) { cb.prop('checked', isChecked); });
                                 applyFilter();
                             });
 
                             removeAllCb.on('change', function () {
                                 var isChecked = $(this).prop('checked');
+                                var cbs = dropdown.data('itemCbs') || itemCbs;
                                 if (isChecked) {
                                     allCb.prop('checked', false);
-                                    itemCbs.forEach(function (cb) { cb.prop('checked', false); });
+                                    cbs.forEach(function (cb) { cb.prop('checked', false); });
                                 } else {
                                     allCb.prop('checked', true);
-                                    itemCbs.forEach(function (cb) { cb.prop('checked', true); });
+                                    cbs.forEach(function (cb) { cb.prop('checked', true); });
                                 }
                                 applyFilter();
                             });
@@ -1180,14 +1284,47 @@ function openColumnsModal() {
         }
 
         function exportVisitorsExcel() {
-            const name = "Visitor_Details";
-            const data = currentVisitorsData;
-            if (!data || !data.length) return;
+            if (!currentVisitorsData || currentVisitorsData.length === 0 || !visitorDt) return;
 
-            const ws = XLSX.utils.json_to_sheet(data);
+            const visibleIndices = visitorDt.columns().visible().toArray().map((v, i) => v && i !== 10 ? i : -1).filter(v => v !== -1);
+            const expHeaders = visibleIndices.map(i => visitorHeaders[i]);
+
+            const exportData = [expHeaders];
+
+            let exportIndex = 1;
+            visitorDt.rows({ search: 'applied' }).every(function () {
+                const rawData = this.data();
+                const fullRowData = rawData.map(val => {
+                    if (typeof val === 'string') {
+                        return val.replace(/<[^>]*>?/gm, '').trim();
+                    }
+                    return val;
+                });
+
+                // Override first column with sequential number
+                fullRowData[0] = exportIndex++;
+
+                const rowData = visibleIndices.map(idx => fullRowData[idx] || '-');
+                exportData.push(rowData);
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(exportData);
+            
+            for (let C = 0; C < expHeaders.length; ++C) {
+                const cell_ref = XLSX.utils.encode_cell({ c: C, r: 0 });
+                if (!ws[cell_ref]) continue;
+                ws[cell_ref].s = {
+                    fill: { fgColor: { rgb: "FF535DEC" } },
+                    font: { color: { rgb: "FFFFFFFF" }, bold: true }
+                };
+            }
+
+            const wscols = visibleIndices.map(() => ({ wch: 18 }));
+            ws['!cols'] = wscols;
+
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Report");
-            XLSX.writeFile(wb, name + "_" + new Date().toISOString().slice(0, 10) + ".xlsx");
+            XLSX.utils.book_append_sheet(wb, ws, "Visitor Details");
+            XLSX.writeFile(wb, "Visitor_Details_" + new Date().toISOString().slice(0, 10) + ".xlsx");
         }
 
         document.getElementById('btnChronologySearch').addEventListener('click', runChronologySearch);
@@ -1207,17 +1344,15 @@ function openColumnsModal() {
 
             let exportIndex = 1;
             chronologyDt.rows({ search: 'applied' }).every(function () {
-                var tr = this.node();
-                var tds = $(tr).find('td');
-
-                const fullRowData = [];
-                tds.each(function (index) {
-                    if (index === 0) {
-                        fullRowData.push(exportIndex++);
-                    } else {
-                        fullRowData.push($(this).text().trim());
+                const rawData = this.data();
+                const fullRowData = rawData.map(val => {
+                    if (typeof val === 'string') {
+                        return val.replace(/<[^>]*>?/gm, '').trim();
                     }
+                    return val;
                 });
+
+                fullRowData[0] = exportIndex++;
 
                 const rowData = visibleIndices.map(idx => fullRowData[idx] || '-');
                 exportData.push(rowData);

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <?php
+$fs      = $fieldSettings ?? [];
 $current = service('uri')->getPath();
 $isDashboard = ($current === '' || $current === 'dashboard');
 $isStaff = str_contains($current, 'staffs') || str_contains($current, 'staff-pass-request');
@@ -294,13 +295,14 @@ $isSettings = str_contains($current, 'settings');
                 <?= csrf_field() ?>
 
                 <!-- Visit Information -->
+                <?php if ($fs['company_visiting'] ?? true): ?>
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8">
                     <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
                         <div class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-primary">
                             <span class="material-symbols-outlined">business</span>
                         </div>
                         <div>
-                            <h2 class="text-lg font-bold font-brand text-text-main dark:text-white">Visit Information</h2>
+                            <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Visit Information</h2>
                             <p class="text-sm text-text-sub dark:text-gray-400 font-brand">Where and when are you visiting?</p>
                         </div>
                     </div>
@@ -309,7 +311,7 @@ $isSettings = str_contains($current, 'settings');
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Company Visiting <span class="text-red-500">*</span></label>
                             <div class="p-4 rounded-lg border border-border-color dark:border-gray-700">
                                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                                <?php 
+                                <?php
                                 $locations = [
                                     'ADMIN B', 'ADMIN D', 'AMPANG KL', 'ANNEXE BUILDING',
                                     'CFS', 'COMMON WAREHOUSE', 'EAST WHARF', 'EPIC SOLAR',
@@ -318,7 +320,7 @@ $isSettings = str_contains($current, 'settings');
                                     'PHASE 4', 'SUKMA SAMUDERA', 'TELUK KALONG', 'WH27',
                                     'WHSET WHARF', 'WORKSHOP MAINTENANCE', 'WORKSHOP PHASE 2'
                                 ];
-                                foreach ($locations as $location): 
+                                foreach ($locations as $location):
                                 ?>
                                 <label class="flex items-center gap-2 cursor-pointer p-3 rounded-lg border border-transparent hover:border-primary/20 hover:bg-white dark:hover:bg-gray-800 transition-all">
                                     <input name="company_visiting[]" value="<?= $location ?>" class="form-checkbox rounded text-primary border-gray-300 focus:ring-primary h-5 w-5" type="checkbox"/>
@@ -330,6 +332,7 @@ $isSettings = str_contains($current, 'settings');
                         </div>
                     </div>
                 </section>
+                <?php endif; ?>
 
                 <!-- Date of Visit -->
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 overflow-hidden">
@@ -339,7 +342,7 @@ $isSettings = str_contains($current, 'settings');
                                 <span class="material-symbols-outlined">event</span>
                             </div>
                             <div>
-                                <h2 class="text-lg font-bold font-brand text-text-main dark:text-white">Date of Visit</h2>
+                                <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Date of Visit</h2>
                                 <p class="text-sm text-text-sub dark:text-gray-400 font-brand">When will the visit occur?</p>
                             </div>
                         </div>
@@ -387,7 +390,7 @@ $isSettings = str_contains($current, 'settings');
                             <span class="material-symbols-outlined">badge</span>
                         </div>
                         <div>
-                            <h2 class="text-lg font-bold font-brand text-text-main dark:text-white">Details of Visit</h2>
+                            <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Details of Visit</h2>
                             <p class="text-sm text-text-sub dark:text-gray-400 font-brand">Host and purpose details.</p>
                         </div>
                     </div>
@@ -419,7 +422,7 @@ $isSettings = str_contains($current, 'settings');
                                 <span class="material-symbols-outlined">person</span>
                             </div>
                             <div>
-                                <h2 class="text-lg font-bold font-brand text-text-main dark:text-white">Person Details</h2>
+                                <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Person Details</h2>
                                 <p class="text-sm text-text-sub dark:text-gray-400 font-brand">Visitor identification information.</p>
                             </div>
                         </div>
@@ -430,16 +433,16 @@ $isSettings = str_contains($current, 'settings');
                     </div>
                     <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="space-y-2">
+                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">IC / Passport Number <span class="text-red-500">*</span></label>
+                            <input name="ic_number" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="Enter IC / Passport Number" type="text" required/>
+                        </div>
+                        <div class="space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Resident <span class="text-red-500">*</span></label>
                             <select name="resident" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" required>
                                 <option value="">Select...</option>
                                 <option value="LOCAL">LOCAL</option>
                                 <option value="FOREIGN">FOREIGN</option>
                             </select>
-                        </div>
-                        <div class="space-y-2">
-                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">IC / Passport Number <span class="text-red-500">*</span></label>
-                            <input name="ic_number" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="Enter IC / Passport Number" type="text" required/>
                         </div>
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Date of Birth <span class="text-red-500">*</span></label>
@@ -545,7 +548,7 @@ $isSettings = str_contains($current, 'settings');
                                     <span class="material-symbols-outlined">badge</span>
                                 </div>
                                 <div>
-                                    <h2 class="text-lg font-bold font-brand text-text-main dark:text-white">Driving License</h2>
+                                    <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Driving License</h2>
                                     <p class="text-sm text-text-sub dark:text-gray-400 font-brand">Optional driving license information.</p>
                                 </div>
                             </div>
@@ -568,13 +571,14 @@ $isSettings = str_contains($current, 'settings');
                 </section>
 
                 <!-- Company Details -->
+                <?php if ($fs['company_details'] ?? false): ?>
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8">
                     <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
                         <div class="size-10 rounded-full bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center text-orange-600 dark:text-orange-400">
                             <span class="material-symbols-outlined">apartment</span>
                         </div>
                         <div>
-                            <h2 class="text-lg font-bold font-brand text-text-main dark:text-white">Company Details</h2>
+                            <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Company Details</h2>
                             <p class="text-sm text-text-sub dark:text-gray-400 font-brand">Your company information.</p>
                         </div>
                     </div>
@@ -589,6 +593,7 @@ $isSettings = str_contains($current, 'settings');
                         </div>
                     </div>
                 </section>
+                <?php endif; ?>
                 </section>
 
                 <!-- Asset/Equipment Details Section -->
@@ -600,7 +605,7 @@ $isSettings = str_contains($current, 'settings');
                                     <span class="material-symbols-outlined">inventory_2</span>
                                 </div>
                                 <div>
-                                    <h2 class="text-lg font-bold font-brand text-text-main dark:text-white">Asset/Equipment Details</h2>
+                                    <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Asset/Equipment Details</h2>
                                     <p class="text-sm text-text-sub dark:text-gray-400 font-brand">Equipment and assets being brought in.</p>
                                 </div>
                             </div>
@@ -629,7 +634,7 @@ $isSettings = str_contains($current, 'settings');
                             <span class="material-symbols-outlined">folder_open</span>
                         </div>
                         <div>
-                            <h2 class="text-lg font-bold font-brand text-text-main dark:text-white">Document Upload</h2>
+                            <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Document Upload</h2>
                             <p class="text-sm text-text-sub dark:text-gray-400 font-brand">Required for identity verification.</p>
                         </div>
                     </div>
@@ -666,7 +671,7 @@ $isSettings = str_contains($current, 'settings');
                             <span class="material-symbols-outlined">photo_camera</span>
                         </div>
                         <div>
-                            <h2 class="text-lg font-bold font-brand text-text-main dark:text-white">Profile Photo</h2>
+                            <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Profile Photo</h2>
                             <p class="text-sm text-text-sub dark:text-gray-400 font-brand">This will be used for your visitor badge.</p>
                         </div>
                     </div>

@@ -205,8 +205,8 @@
                     </div>
 
                     <!-- Data Table Card -->
-                    <div class="bg-white dark:bg-slate-900 rounded-b-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden border-t-0 p-5 pt-0">
-                        <div class="overflow-x-auto custom-scrollbar pb-2">
+                    <div class="bg-white dark:bg-slate-900 rounded-b-xl border border-slate-200 dark:border-slate-700 shadow-sm border-t-0 p-5 pt-0">
+                        <div class="overflow-x-auto custom-scrollbar pb-2 min-h-[380px] lg:min-h-[520px]">
                             <table id="visitorTable" class="w-full whitespace-nowrap" style="width:100%">
                                 <thead>
                                     <tr>
@@ -289,6 +289,34 @@
         "DURATION", "STATUS"
     ];
 
+    function cellTextForCheckboxFilter(raw) {
+        if (raw === null || raw === undefined) return '-';
+        var t = $('<div>').html(String(raw)).text().trim();
+        if (!t || t === 'NULL' || t === 'null') return '-';
+        return t;
+    }
+
+    (function installVmsCheckboxColumnFilterSearchOnce() {
+        if (window.__vmsDtCheckboxColumnFilterSearchInstalled) return;
+        window.__vmsDtCheckboxColumnFilterSearchInstalled = true;
+        if (typeof $ === 'undefined' || !$.fn.dataTable || !$.fn.dataTable.ext) return;
+        $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
+            if (!settings.oInit || !settings.oInit._checkboxColumnFilter) return true;
+            var cf = settings._colCheckboxFilters;
+            if (!cf) return true;
+            for (var key in cf) {
+                if (!Object.prototype.hasOwnProperty.call(cf, key)) continue;
+                var allowed = cf[key];
+                if (!(allowed instanceof Set)) continue;
+                if (allowed.size === 0) return false;
+                var colIdx = parseInt(key, 10);
+                var cellText = cellTextForCheckboxFilter(data[colIdx]);
+                if (!allowed.has(cellText)) return false;
+            }
+            return true;
+        });
+    })();
+
     function showState(state) {
         document.getElementById('loadingState').classList.toggle('hidden', state !== 'loading');
         document.getElementById('noDataState').classList.toggle('hidden', state !== 'nodata');
@@ -366,7 +394,8 @@
             ],
             ordering: true,
             responsive: false, // Disabling so horizontal scroll works
-            dom: '<"flex justify-end items-center mb-5 mt-2"f><"overflow-x-auto"t><"flex flex-col md:flex-row justify-between items-center gap-4 mt-6"p<"ml-auto"l>>',
+            _checkboxColumnFilter: true,
+            dom: '<"flex justify-end items-center mb-5 mt-2"f><"overflow-x-auto min-h-[380px] lg:min-h-[520px]"t><"flex flex-col md:flex-row justify-between items-center gap-4 mt-6"p<"ml-auto"l>>',
             language: { 
                 search: "Search visitors:",
                 searchPlaceholder: "",
@@ -380,6 +409,72 @@
             autoWidth: false,
             initComplete: function () {
                 var api = this.api();
+                var st = api.settings()[0];
+                st._colCheckboxFilters = {};
+                api.columns().every(function () {
+                    this.search('');
+                });
+                api.draw(false);
+
+                var syncingFilterOptions = false;
+
+                function uniqueOptionsIgnoringColumnSearch(colIdx) {
+                    if (!st._colCheckboxFilters) st._colCheckboxFilters = {};
+                    var cf = st._colCheckboxFilters;
+                    var had = Object.prototype.hasOwnProperty.call(cf, colIdx);
+                    var saved = had ? cf[colIdx] : undefined;
+                    delete st._colCheckboxFilters[colIdx];
+                    api.draw(false);
+                    var opts = [];
+                    var seen = {};
+                    api.rows({ search: 'applied' }).every(function () {
+                        var rowData = this.data();
+                        var textVal = cellTextForCheckboxFilter(rowData[colIdx]);
+                        if (textVal && textVal !== '-' && textVal !== 'View' && textVal !== 'NULL' && textVal !== 'null' && !seen[textVal]) {
+                            seen[textVal] = true;
+                            opts.push(textVal);
+                        }
+                    });
+                    opts.sort();
+                    if (had) {
+                        st._colCheckboxFilters[colIdx] = saved;
+                    }
+                    api.draw(false);
+                    return opts;
+                }
+
+                function syncOtherColumnFilterDropdowns(sourceColIdx) {
+                    api.columns().every(function () {
+                        var col2 = this;
+                        var idx2 = col2.index();
+                        if (idx2 === sourceColIdx) return;
+                        var dd2 = $(col2.header()).find('.filter-dropdown');
+                        if (!dd2.length) return;
+
+                        var prev = {};
+                        dd2.find('.filter-item input').each(function () {
+                            var k = cellTextForCheckboxFilter($(this).val());
+                            prev[k] = $(this).prop('checked');
+                        });
+                        var newOpts = uniqueOptionsIgnoringColumnSearch(idx2);
+                        dd2.find('.filter-item').remove();
+                        var applyFn2 = dd2.data('applyFilter');
+                        var newItemCbs = [];
+                        newOpts.forEach(function (val) {
+                            var itemLabel = $('<label class="filter-item flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 cursor-pointer text-slate-600 capitalize"></label>');
+                            itemLabel.attr('data-filter-text', val.toLowerCase());
+                            var itemCb = $('<input type="checkbox" checked value="' + val.replace(/"/g, '&quot;') + '" class="form-checkbox h-4 w-4 text-[#535dec] accent-[#535dec] rounded border-slate-300 cursor-pointer">');
+                            itemLabel.append(itemCb).append('<span class="select-none">' + val + '</span>');
+                            dd2.append(itemLabel);
+                            itemCb.prop('checked', Object.prototype.hasOwnProperty.call(prev, val) ? prev[val] : true);
+                            if (applyFn2) itemCb.on('change', applyFn2);
+                            newItemCbs.push(itemCb);
+                        });
+                        dd2.data('itemCbs', newItemCbs);
+                        if (applyFn2) applyFn2();
+                    });
+                }
+
                 api.columns().every(function () {
                     var column = this;
                     var header = $(column.header());
@@ -390,7 +485,7 @@
                         
                         var wrapper = $('<div class="dt-filter-wrapper inline-block relative ml-1 align-middle" onclick="event.stopPropagation()"></div>');
                         var icon = $('<span class="material-symbols-outlined text-[16px] text-slate-300 hover:text-[#535dec] transition-colors cursor-pointer" style="vertical-align: middle;">filter_alt</span>');
-                        var dropdown = $('<div class="filter-dropdown hidden fixed mt-1 bg-white border border-slate-200 rounded shadow-xl z-[9999] p-2 text-left text-sm max-h-[250px] overflow-y-auto" style="min-width: 160px; font-weight: normal;"></div>');
+                        var dropdown = $('<div class="filter-dropdown hidden absolute left-0 top-full z-[200] mt-1 bg-white border border-slate-200 rounded shadow-xl p-2 text-left text-sm max-h-[min(60vh,32rem)] overflow-y-auto" style="min-width: 160px; font-weight: normal;"></div>');
                         
                         wrapper.append(icon).append(dropdown);
                         header.append(wrapper);
@@ -401,7 +496,7 @@
                         // Only add unique non-empty string values
                         var options = [];
                         column.data().unique().sort().each(function (d, j) {
-                            var textVal = $('<div>').html(d).text().trim();
+                            var textVal = cellTextForCheckboxFilter(d);
                             if (textVal && textVal !== '-' && textVal !== 'View' && textVal !== 'NULL' && textVal !== 'null') {
                                 options.push(textVal);
                             }
@@ -427,6 +522,7 @@
                             dropdown.append(itemLabel);
                             itemCbs.push(itemCb);
                         });
+                        dropdown.data('itemCbs', itemCbs);
 
                         searchInput.on('input', function () {
                             var q = $(this).val().toLowerCase();
@@ -440,20 +536,6 @@
                             e.stopPropagation();
                             $('.filter-dropdown').not(dropdown).addClass('hidden');
                             dropdown.toggleClass('hidden');
-                            
-                            if (!dropdown.hasClass('hidden')) {
-                                var rect = icon[0].getBoundingClientRect();
-                                var winW = $(window).width();
-                                var dropW = dropdown.outerWidth();
-                                var leftPos = rect.left;
-                                if (leftPos + dropW > winW) {
-                                    leftPos = winW - dropW - 20;
-                                }
-                                dropdown.css({
-                                    top: (rect.bottom + 5) + 'px',
-                                    left: leftPos + 'px'
-                                });
-                            }
                         });
                         
                         $(document).on('click', function(e) {
@@ -463,49 +545,71 @@
                         });
 
                         function applyFilter() {
-                            var selected = [];
-                            var allChecked = true;
-                            var noneChecked = true;
-                            itemCbs.forEach(function(cb) {
-                                if(cb.prop('checked')) {
-                                    selected.push($.fn.dataTable.util.escapeRegex(cb.val()));
-                                    noneChecked = false;
-                                } else {
-                                    allChecked = false;
+                            var cbs = dropdown.data('itemCbs') || itemCbs;
+                            var colIdx = column.index();
+                            if (!st._colCheckboxFilters) st._colCheckboxFilters = {};
+
+                            var checkedCount = 0;
+                            var allowedSet = new Set();
+                            cbs.forEach(function (cb) {
+                                if (cb.prop('checked')) {
+                                    checkedCount++;
+                                    allowedSet.add(cellTextForCheckboxFilter(cb.val()));
                                 }
                             });
-                            
+                            var optCount = cbs.length;
+                            var allChecked = optCount > 0 && checkedCount === optCount;
+                            var noneChecked = checkedCount === 0;
+
                             allCb.prop('checked', allChecked);
                             removeAllCb.prop('checked', noneChecked);
+                            allCb.prop('indeterminate', false);
+                            removeAllCb.prop('indeterminate', false);
 
-                            if(selected.length > 0 && selected.length < options.length) {
+                            if (optCount === 0) {
+                                icon.removeClass('text-[#535dec] text-red-500').addClass('text-slate-300');
+                                delete st._colCheckboxFilters[colIdx];
+                            } else if (checkedCount > 0 && checkedCount < optCount) {
                                 icon.removeClass('text-slate-300 text-red-500').addClass('text-[#535dec]');
-                                var regex = '^(' + selected.join('|') + ')$';
-                                column.search(regex, true, false).draw();
-                            } else if (selected.length === 0) {
+                                st._colCheckboxFilters[colIdx] = allowedSet;
+                            } else if (checkedCount === 0) {
                                 icon.removeClass('text-slate-300 text-[#535dec]').addClass('text-red-500');
-                                column.search('$.^', true, false).draw(); // Matches nothing
+                                st._colCheckboxFilters[colIdx] = new Set();
                             } else {
                                 icon.removeClass('text-[#535dec] text-red-500').addClass('text-slate-300');
-                                column.search('', true, false).draw();
+                                delete st._colCheckboxFilters[colIdx];
+                            }
+
+                            column.search('', false, false);
+                            api.draw(false);
+
+                            if (!syncingFilterOptions) {
+                                syncingFilterOptions = true;
+                                try {
+                                    syncOtherColumnFilterDropdowns(colIdx);
+                                } finally {
+                                    syncingFilterOptions = false;
+                                }
                             }
                         }
+                        dropdown.data('applyFilter', applyFilter);
 
                         allCb.on('change', function() {
                             var isChecked = $(this).prop('checked');
                             removeAllCb.prop('checked', false);
-                            itemCbs.forEach(function(cb) { cb.prop('checked', isChecked); });
+                            (dropdown.data('itemCbs') || itemCbs).forEach(function(cb) { cb.prop('checked', isChecked); });
                             applyFilter();
                         });
 
                         removeAllCb.on('change', function () {
                             var isChecked = $(this).prop('checked');
+                            var cbs = dropdown.data('itemCbs') || itemCbs;
                             if (isChecked) {
                                 allCb.prop('checked', false);
-                                itemCbs.forEach(function (cb) { cb.prop('checked', false); });
+                                cbs.forEach(function (cb) { cb.prop('checked', false); });
                             } else {
                                 allCb.prop('checked', true);
-                                itemCbs.forEach(function (cb) { cb.prop('checked', true); });
+                                cbs.forEach(function (cb) { cb.prop('checked', true); });
                             }
                             applyFilter();
                         });
@@ -614,19 +718,18 @@
         const exportData = [expHeaders];
         
         let exportIndex = 1;
-        dtTable.rows({search: 'applied'}).every(function() {
-            var tr = this.node();
-            var tds = $(tr).find('td');
-            
-            const fullRowData = [];
-            tds.each(function(index) {
-                if (index === 0) {
-                    fullRowData.push(exportIndex++);
-                } else {
-                    fullRowData.push($(this).text().trim());
+        dtTable.rows({ search: 'applied' }).every(function () {
+            const rawData = this.data();
+            const fullRowData = rawData.map(val => {
+                if (typeof val === 'string') {
+                    return val.replace(/<[^>]*>?/gm, '').trim();
                 }
+                return val;
             });
-            
+
+            // Override first column with sequential number
+            fullRowData[0] = exportIndex++;
+
             const rowData = visibleIndices.map(idx => fullRowData[idx] || '-');
             exportData.push(rowData);
         });
