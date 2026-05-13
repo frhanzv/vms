@@ -84,10 +84,10 @@ class StaffPassRequest extends BaseController
         }
 
         // Other document upload (multiple)
-        $otherDocs = $this->request->getFiles('invitation_letter');
+        $otherDocs = $this->request->getFileMultiple('invitation_letter');
         $otherDocPaths = [];
-        if ($otherDocs && isset($otherDocs['invitation_letter'])) {
-            foreach ($otherDocs['invitation_letter'] as $doc) {
+        if ($otherDocs) {
+            foreach ($otherDocs as $doc) {
                 if ($doc->isValid() && !$doc->hasMoved()) {
                     $newName = $doc->getRandomName();
                     $doc->move('uploads/other_docs', $newName);

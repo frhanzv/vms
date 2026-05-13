@@ -188,9 +188,10 @@ class QRCode extends ResourceController
         try {
             // Lock the invitation row
             $invitation = $db->query(
-                'SELECT i.*, u.company_id
+                'SELECT i.*, u.company_id, vt.name as visitor_type_name
                  FROM invitations i
                  LEFT JOIN users u ON i.staff_id = u.staff_id
+                 LEFT JOIN visitor_types vt ON vt.id = i.visitor_type_id
                  WHERE i.id = ? AND i.status = ? FOR UPDATE',
                 [$invitationId, 'Approved']
             )->getRowArray();
@@ -202,6 +203,26 @@ class QRCode extends ResourceController
                     'message' => 'No approved invitation found for this QR code',
                     'qr_code' => $rawQr,
                 ]);
+            }
+
+            // Access control: validate lane against visitor type's pathway (entry only)
+            if ($laneId && $laneType !== 'exit') {
+                $accessCheck = $this->checkVisitorTypeAccess($invitation, (int) $laneId);
+                if (!$accessCheck['granted']) {
+                    $db->transRollback();
+                    return $this->respond([
+                        'success'        => false,
+                        'access_granted' => false,
+                        'action'         => 'denied',
+                        'message'        => $accessCheck['message'],
+                        'visitor'        => [
+                            'name'         => $invitation['full_name']        ?? 'Unknown',
+                            'company'      => $invitation['company']          ?? 'N/A',
+                            'visitor_type' => $invitation['visitor_type_name'] ?? null,
+                        ],
+                        'qr_code'        => $rawQr,
+                    ]);
+                }
             }
 
             // Find or auto-create the invitation_visitors record
@@ -333,14 +354,16 @@ class QRCode extends ResourceController
             $resident = strtoupper(trim((string) ($invitation['resident'] ?? '')));
             $idDoc    = trim((string) ($invitation['ic_passport'] ?? ''));
             $response = [
-                'success'  => true,
-                'action'   => $action,
-                'visitor'  => [
-                    'name'          => $invitation['full_name'] ?? 'Unknown',
-                    'company'       => $invitation['company']   ?? 'N/A',
-                    'resident'      => $resident !== '' ? $resident : null,
-                    'ic_passport'   => $idDoc,
-                    'id_document'   => $idDoc !== ''
+                'success'        => true,
+                'access_granted' => true,
+                'action'         => $action,
+                'visitor'        => [
+                    'name'         => $invitation['full_name']        ?? 'Unknown',
+                    'company'      => $invitation['company']          ?? 'N/A',
+                    'visitor_type' => $invitation['visitor_type_name'] ?? null,
+                    'resident'     => $resident !== '' ? $resident : null,
+                    'ic_passport'  => $idDoc,
+                    'id_document'  => $idDoc !== ''
                         ? (($resident === 'FOREIGN' || (empty($resident) && preg_match('/[A-Z]/i', $idDoc))) ? ('Passport No.: ' . $idDoc) : ('IC No.: ' . $idDoc))
                         : null,
                 ],
@@ -381,6 +404,52 @@ class QRCode extends ResourceController
             'scanned_at'      => date('Y-m-d H:i:s'),
             'created_at'      => date('Y-m-d H:i:s'),
         ]);
+    }
+
+    /**
+     * Check if the given lane is permitted for the visitor's type via pathway config.
+     * Returns ['granted' => bool, 'message' => string|null].
+     * When no visitor type or no pathway is set, access is unrestricted.
+     */
+    protected function checkVisitorTypeAccess(array $invitation, int $laneId): array
+    {
+        if (empty($invitation['visitor_type_id'])) {
+            return ['granted' => true, 'message' => null];
+        }
+
+        $db = \Config\Database::connect();
+
+        $visitorType = $db->table('visitor_types')
+            ->where('id', $invitation['visitor_type_id'])
+            ->get()->getRowArray();
+
+        if (!$visitorType || empty($visitorType['path'])) {
+            return ['granted' => true, 'message' => null];
+        }
+
+        $pathway = $db->table('pathways')
+            ->where('name', $visitorType['path'])
+            ->where('status', 'active')
+            ->get()->getRowArray();
+
+        if (!$pathway) {
+            return ['granted' => true, 'message' => null];
+        }
+
+        $inPathway = $db->table('pathway_lanes')
+            ->where('pathway_id', $pathway['id'])
+            ->where('lane_id', $laneId)
+            ->countAllResults() > 0;
+
+        if (!$inPathway) {
+            $typeName = $visitorType['name'] ?? 'Unknown';
+            return [
+                'granted' => false,
+                'message' => "Access denied: visitor type \"{$typeName}\" is not authorised for this lane.",
+            ];
+        }
+
+        return ['granted' => true, 'message' => null];
     }
 
     /**

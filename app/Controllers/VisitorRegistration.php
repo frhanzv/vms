@@ -13,6 +13,7 @@ use App\Models\VisitorLicenseModel;
 use App\Models\VisitorEquipmentModel;
 use App\Models\EmailTemplateFormFieldModel;
 use App\Models\ClientFormFieldModel;
+use App\Models\VisitorTypeModel;
 use App\Libraries\InvitationEmailSender;
 use App\Libraries\InvitationProcessFlowService;
 
@@ -104,11 +105,65 @@ class VisitorRegistration extends BaseController
 
         $prefillData = $this->resolvePrefillData($invitationId, $invitation);
 
+        // Load pre-fill licenses and equipment: current invitation first, fall back to history
+        $prefillLicenses = [];
+        $prefillEquipment = [];
+        $historyId = $prefillData['_history_invitation_id'] ?? null;
+
+        if ($invitationId) {
+            $prefillLicenses = $this->licenseModel->where('invitation_id', $invitationId)->findAll();
+            $prefillEquipment = $this->equipmentModel->where('invitation_id', $invitationId)->findAll();
+        }
+        if (empty($prefillLicenses) && $historyId && $historyId !== $invitationId) {
+            $prefillLicenses = $this->licenseModel->where('invitation_id', $historyId)->findAll();
+        }
+        if (empty($prefillEquipment) && $historyId && $historyId !== $invitationId) {
+            $prefillEquipment = $this->equipmentModel->where('invitation_id', $historyId)->findAll();
+        }
+
+        // Profile photo may live on a different invitation (e.g. captured by kiosk after check-in)
+        // Do a dedicated lookup so we always show the most recent photo for this visitor
+        if (empty($prefillData['profile_photo_path'])) {
+            $ic      = trim((string) ($prefillData['ic_passport']   ?? ''));
+            $email   = trim((string) ($prefillData['visitor_email'] ?? ''));
+            $contact = trim((string) ($prefillData['contact']       ?? ''));
+
+            if ($ic !== '' || $email !== '' || $contact !== '') {
+                $pb = $this->invitationModel->builder();
+                $pb->select('profile_photo_path');
+                $pb->where('profile_photo_path IS NOT NULL');
+                $pb->where('profile_photo_path !=', '');
+                $conditions = array_filter([
+                    $ic      !== '' ? ['ic_passport',   $ic]      : null,
+                    $email   !== '' ? ['visitor_email', $email]   : null,
+                    $contact !== '' ? ['contact',       $contact] : null,
+                ]);
+                $pb->groupStart();
+                $firstCond = true;
+                foreach ($conditions as [$col, $val]) {
+                    if ($firstCond) {
+                        $pb->where($col, $val);
+                        $firstCond = false;
+                    } else {
+                        $pb->orWhere($col, $val);
+                    }
+                }
+                $pb->groupEnd();
+                $photoRow = $pb->orderBy('updated_at', 'DESC')->get(1)->getRowArray();
+                if (!empty($photoRow['profile_photo_path'])) {
+                    $prefillData['profile_photo_path'] = $photoRow['profile_photo_path'];
+                }
+            }
+        }
+
         $workflowStep = $this->request->getGet('step');
         $flowStepKey = ($workflowStep === 'scan_mykad') ? 'scan_mykad' : 'registration';
         $flowNextUrl = $token
             ? $this->invitationProcessFlowService->getNextStepUrl($flowStepKey, $token)
             : null;
+
+        $visitorTypeModel = new VisitorTypeModel();
+        $visitorTypes = $visitorTypeModel->orderBy('name', 'ASC')->findAll();
 
         $data = [
             'pageTitle' => 'Visitor Registration - SafeG',
@@ -126,8 +181,11 @@ class VisitorRegistration extends BaseController
             'customFormFields' => $this->getEnabledCustomFields(),
             'customFormValues' => $customFormValues,
             'prefillData' => $prefillData,
+            'prefillLicenses' => $prefillLicenses,
+            'prefillEquipment' => $prefillEquipment,
             'workflow_step' => $workflowStep,
             'flow_next_url' => $flowNextUrl,
+            'visitorTypes' => $visitorTypes,
         ];
 
         return view('visitors/registration', $data);
@@ -228,10 +286,10 @@ class VisitorRegistration extends BaseController
             }
 
             // Upload Additional Documents (multiple)
-            $additionalDocs = $this->request->getFiles('invitation_letter');
+            $additionalDocs = $this->request->getFileMultiple('invitation_letter');
             $additionalDocPaths = [];
-            if ($additionalDocs && isset($additionalDocs['invitation_letter'])) {
-                foreach ($additionalDocs['invitation_letter'] as $doc) {
+            if ($additionalDocs) {
+                foreach ($additionalDocs as $doc) {
                     if ($doc->isValid() && !$doc->hasMoved()) {
                         $newName = 'invitation_' . time() . '_' . $doc->getRandomName();
                         $doc->move($uploadPath, $newName);
@@ -247,6 +305,26 @@ class VisitorRegistration extends BaseController
                 $newName = 'profile_' . time() . '_' . $profilePhoto->getRandomName();
                 $profilePhoto->move($uploadPath, $newName);
                 $profilePhotoPath = 'visitors/' . $newName;
+            }
+
+            // Fall back to previously uploaded files if visitor didn't upload new ones
+            if ($governmentIdPath === null) {
+                $existing = trim((string) ($this->request->getPost('existing_government_id_path') ?? ''));
+                if ($existing !== '') {
+                    $governmentIdPath = $existing;
+                }
+            }
+            if ($invitationLetterPath === null) {
+                $existing = trim((string) ($this->request->getPost('existing_invitation_letter_path') ?? ''));
+                if ($existing !== '') {
+                    $invitationLetterPath = $existing;
+                }
+            }
+            if ($profilePhotoPath === null) {
+                $existing = trim((string) ($this->request->getPost('existing_profile_photo_path') ?? ''));
+                if ($existing !== '') {
+                    $profilePhotoPath = $existing;
+                }
             }
 
             // Get company visiting (could be multiple)
@@ -284,6 +362,7 @@ class VisitorRegistration extends BaseController
                 'staff_id' => $this->getConfiguredPostValue('staff_id', $formConfig),
                 'host_contact' => $this->getConfiguredPostValue('host_contact', $formConfig),
                 'company_visited' => $this->getConfiguredPostValue('company_visited', $formConfig),
+                'visitor_type_id' => !client_feature_enabled('company_visited') ? ($this->request->getPost('visitor_type_id') ?: null) : ($inv['visitor_type_id'] ?? null),
                 'location' => $companyVisitingStr,
                 'reason' => $this->getConfiguredPostValue('visit_reason', $formConfig),
                 'status' => 'Submitted',
@@ -1116,7 +1195,16 @@ class VisitorRegistration extends BaseController
     {
         $source = is_array($invitation) ? $invitation : [];
         $history = $this->findLatestVisitorHistory($invitationId, $source);
-        $merged = array_merge($history, $source);
+        $historyInvitationId = isset($history['id']) ? (int) $history['id'] : null;
+        // Merge: history is the base; source only overrides fields that are non-empty
+        // so past visitor data fills in blanks that the new invitation didn't set
+        $merged = $history;
+        foreach ($source as $key => $value) {
+            if ($value !== null && $value !== '') {
+                $merged[$key] = $value;
+            }
+        }
+        $merged['_history_invitation_id'] = $historyInvitationId;
 
         $addressParts = $this->splitAddress((string) ($merged['address'] ?? ''));
         $merged['address_1'] = $addressParts['address_1'];
@@ -1136,7 +1224,8 @@ class VisitorRegistration extends BaseController
 
         $builder = $this->invitationModel->builder();
         $builder->select('*');
-        $builder->whereIn('status', ['Submitted', 'Approved']);
+        // Exclude only Pending (unfilled) invitations so we catch all processed visits
+        $builder->where('status !=', 'Pending');
 
         if ($excludeInvitationId) {
             $builder->where('id !=', $excludeInvitationId);

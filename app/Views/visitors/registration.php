@@ -3,6 +3,8 @@ $formConfig = $formConfig ?? [];
 $customFormFields = $customFormFields ?? [];
 $customFormValues = $customFormValues ?? [];
 $prefillData = $prefillData ?? ($invitation ?? []);
+$prefillLicenses = $prefillLicenses ?? [];
+$prefillEquipment = $prefillEquipment ?? [];
 $workflow_step = $workflow_step ?? null;
 $flow_next_url = $flow_next_url ?? null;
 $isFieldEnabled = static function (string $field) use ($formConfig): bool {
@@ -218,13 +220,18 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
 
     <main class="flex-1 w-full max-w-[960px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Progress Bar -->
+        <?php
+            $stepNum = (!empty($workflow_step) && $workflow_step === 'scan_mykad') ? 2 : 1;
+            $stepLabel = (!empty($workflow_step) && $workflow_step === 'scan_mykad') ? 'Identity Verification' : 'Registration Details';
+            $progressWidth = (!empty($workflow_step) && $workflow_step === 'scan_mykad') ? 'w-2/3' : 'w-1/3';
+        ?>
         <div class="mb-8">
             <div class="flex justify-between items-end mb-2">
-                <span class="text-sm font-semibold text-primary font-brand uppercase tracking-wider">Step 1 of 3</span>
-                <span class="text-xs text-text-sub dark:text-gray-400">Registration Details</span>
+                <span class="text-sm font-semibold text-primary font-brand uppercase tracking-wider">Step <?= $stepNum ?> of 3</span>
+                <span class="text-xs text-text-sub dark:text-gray-400"><?= $stepLabel ?></span>
             </div>
             <div class="h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                <div class="h-full bg-primary w-1/3 rounded-full shadow-[0_0_10px_rgba(19,127,236,0.5)]"></div>
+                <div class="h-full bg-primary <?= $progressWidth ?> rounded-full shadow-[0_0_10px_rgba(19,127,236,0.5)] transition-all duration-500"></div>
             </div>
         </div>
 
@@ -409,10 +416,23 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
                             <input name="host_contact" value="<?= esc($invitation['host_contact'] ?? '') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
                         </div>
                         <?php endif; ?>
-                        <?php if ($isFieldEnabled('company_visited')): ?>
+                        <?php if (client_feature_enabled('company_visited') && $isFieldEnabled('company_visited')): ?>
                         <div class="space-y-2 md:col-span-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand" data-translate="Name Of Company Visited">Name Of Company Visited</label>
                             <input name="company_visited" value="<?= esc($invitation['company_visited'] ?? '') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
+                        </div>
+                        <?php elseif (!client_feature_enabled('company_visited') && !empty($visitorTypes)): ?>
+                        <div class="space-y-2 md:col-span-2">
+                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Visitor Type <span class="text-red-500">*</span></label>
+                            <select name="visitor_type_id" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" required>
+                                <option value="">Select visitor type...</option>
+                                <?php foreach ($visitorTypes as $vt): ?>
+                                <option value="<?= esc($vt['id']) ?>" <?= (($invitation['visitor_type_id'] ?? '') == $vt['id']) ? 'selected' : '' ?>>
+                                    <?= esc($vt['name']) ?><?= !empty($vt['path']) ? ' — ' . esc($vt['path']) : '' ?>
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <p class="text-xs text-text-sub dark:text-gray-500 font-brand">Your visitor type determines which areas and doors you can access.</p>
                         </div>
                         <?php endif; ?>
                         <?php if ($isFieldEnabled('visit_reason')): ?>
@@ -565,14 +585,15 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
                         <?php if ($isFieldEnabled('category')): ?>
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Category</label>
+                            <?php $prefillVehicleCategory = $prefillData['vehicle_category'] ?? ''; ?>
                             <select name="category" id="vehicleCategory" onchange="updateVehicleType()" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
                                 <option value="">SELECT</option>
-                                <option value="CAR">Car</option>
-                                <option value="MOTORCYCLE">Motorcycle</option>
-                                <option value="TRUCK">Truck</option>
-                                <option value="BUS">Bus</option>
-                                <option value="VAN">Van</option>
-                                <option value="HEAVY_MACHINERY">Heavy Machinery</option>
+                                <option value="CAR" <?= $prefillVehicleCategory === 'CAR' ? 'selected' : '' ?>>Car</option>
+                                <option value="MOTORCYCLE" <?= $prefillVehicleCategory === 'MOTORCYCLE' ? 'selected' : '' ?>>Motorcycle</option>
+                                <option value="TRUCK" <?= $prefillVehicleCategory === 'TRUCK' ? 'selected' : '' ?>>Truck</option>
+                                <option value="BUS" <?= $prefillVehicleCategory === 'BUS' ? 'selected' : '' ?>>Bus</option>
+                                <option value="VAN" <?= $prefillVehicleCategory === 'VAN' ? 'selected' : '' ?>>Van</option>
+                                <option value="HEAVY_MACHINERY" <?= $prefillVehicleCategory === 'HEAVY_MACHINERY' ? 'selected' : '' ?>>Heavy Machinery</option>
                             </select>
                         </div>
                         <?php endif; ?>
@@ -587,7 +608,7 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
                         <?php if ($isFieldEnabled('vehicle_registration')): ?>
                         <div class="md:col-span-2 space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Vehicle Registration Number</label>
-                            <input name="vehicle_registration" value="<?= esc($invitation['vehicle_registration'] ?? '') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="e.g. ABC 1234" type="text"/>
+                            <input name="vehicle_registration" value="<?= esc($prefillData['vehicle_registration'] ?? '') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="e.g. ABC 1234" type="text"/>
                         </div>
                         <?php endif; ?>
                     </div>
@@ -617,10 +638,38 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
                             </div>
                         </div>
                         <div id="licenseContainer" class="flex flex-col gap-4">
+                            <?php if (empty($prefillLicenses)): ?>
                             <div class="text-center py-8 text-text-sub dark:text-gray-400">
                                 <span class="material-symbols-outlined text-5xl mb-3 block text-gray-300 dark:text-gray-600">badge</span>
                                 <p class="text-sm">No licenses added yet. Click <span class="text-primary font-semibold">+</span> to add driving license.</p>
                             </div>
+                            <?php else: ?>
+                            <?php foreach ($prefillLicenses as $li => $lic): ?>
+                            <div class="license-item bg-background-light dark:bg-background-dark/50 rounded-lg p-4 border border-border-color dark:border-gray-700">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h4 class="font-semibold text-text-main dark:text-white font-brand">License <?= $li + 1 ?></h4>
+                                    <button type="button" onclick="removeSpecificLicense(this)" class="text-red-600 hover:text-red-700 transition-colors p-1 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20" title="Delete this license">
+                                        <span class="material-symbols-outlined text-xl">delete</span>
+                                    </button>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div class="space-y-2">
+                                        <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">License Class</label>
+                                        <select name="licenses[<?= $li ?>][class]" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
+                                            <option value="">SELECT</option>
+                                            <?php foreach (['B','B2','C','D','DA','E','E1','E2'] as $cls): ?>
+                                            <option value="<?= $cls ?>" <?= ($lic['license_class'] ?? '') === $cls ? 'selected' : '' ?>><?= $cls ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">License Expiry <span class="text-red-500">*</span></label>
+                                        <input name="licenses[<?= $li ?>][expiry]" value="<?= esc($lic['expiry_date'] ?? '') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="date"/>
+                                    </div>
+                                </div>
+                            </div>
+                            <?php endforeach; ?>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </section>
@@ -702,11 +751,11 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Company Name</label>
-                            <input name="company_name" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
+                            <input name="company_name" value="<?= esc($prefillData['company'] ?? '') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
                         </div>
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Company Registration ID</label>
-                            <input name="company_reg_id" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
+                            <input name="company_reg_id" value="<?= esc($prefillData['registration_no'] ?? '') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
                         </div>
                     </div>
                 </section>
@@ -736,10 +785,72 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
                             </div>
                         </div>
                         <div id="equipmentContainer" class="flex flex-col gap-6">
+                            <?php if (empty($prefillEquipment)): ?>
                             <div class="text-center py-8 text-text-sub dark:text-gray-400">
                                 <span class="material-symbols-outlined text-5xl mb-3 block text-gray-300 dark:text-gray-600">inventory_2</span>
                                 <p class="text-sm">No equipment added yet. Click <span class="text-primary font-semibold">+</span> to add equipment.</p>
                             </div>
+                            <?php else: ?>
+                            <?php foreach ($prefillEquipment as $ei => $eq): ?>
+                            <div class="equipment-item">
+                                <div class="flex items-center justify-between mb-4">
+                                    <span class="equipment-number text-sm font-bold text-text-main dark:text-text-sub font-brand"><?= $ei + 1 ?>.</span>
+                                    <button type="button" onclick="removeSpecificEquipment(this)" class="text-red-600 hover:text-red-700 transition-colors p-1.5 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20" title="Remove this equipment">
+                                        <span class="material-symbols-outlined text-xl">delete</span>
+                                    </button>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div class="flex flex-col gap-2">
+                                        <label class="text-sm font-medium text-text-main dark:text-gray-200 font-brand">Category</label>
+                                        <select name="equipment[<?= $ei ?>][category]" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
+                                            <option value="">SELECT</option>
+                                            <?php foreach (['TOOLS','ELECTRONICS','MACHINERY','OTHER'] as $cat): ?>
+                                            <option value="<?= $cat ?>" <?= ($eq['category'] ?? '') === $cat ? 'selected' : '' ?>><?= $cat ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="flex flex-col gap-2">
+                                        <label class="text-sm font-medium text-text-main dark:text-gray-200 font-brand">Size</label>
+                                        <select name="equipment[<?= $ei ?>][size]" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
+                                            <option value="">SELECT</option>
+                                            <?php foreach (['SMALL','MEDIUM','LARGE'] as $s): ?>
+                                            <option value="<?= $s ?>" <?= ($eq['size'] ?? '') === $s ? 'selected' : '' ?>><?= $s ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="flex flex-col gap-2">
+                                        <label class="text-sm font-medium text-text-main dark:text-gray-200 font-brand">Transportation Method</label>
+                                        <select name="equipment[<?= $ei ?>][transport]" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
+                                            <option value="">SELECT</option>
+                                            <?php foreach (['HAND CARRY','VEHICLE','TRUCK'] as $t): ?>
+                                            <option value="<?= $t ?>" <?= ($eq['transport'] ?? '') === $t ? 'selected' : '' ?>><?= $t ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="flex flex-col gap-2">
+                                        <label class="text-sm font-medium text-text-main dark:text-gray-200 font-brand">Purpose</label>
+                                        <input name="equipment[<?= $ei ?>][purpose]" value="<?= esc($eq['purpose'] ?? '') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
+                                    </div>
+                                    <div class="flex flex-col gap-2">
+                                        <label class="text-sm font-medium text-text-main dark:text-gray-200 font-brand">Type of Equipment</label>
+                                        <input name="equipment[<?= $ei ?>][type]" value="<?= esc($eq['equipment_type'] ?? '') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
+                                    </div>
+                                    <div class="flex flex-col gap-2">
+                                        <label class="text-sm font-medium text-text-main dark:text-gray-200 font-brand">Voltage Use</label>
+                                        <input name="equipment[<?= $ei ?>][voltage]" value="<?= esc($eq['voltage'] ?? '') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="e.g. 240V" type="text"/>
+                                    </div>
+                                    <div class="flex flex-col gap-2">
+                                        <label class="text-sm font-medium text-text-main dark:text-gray-200 font-brand">Quantity</label>
+                                        <input name="equipment[<?= $ei ?>][quantity]" value="<?= esc($eq['quantity'] ?? 1) ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="number" min="1"/>
+                                    </div>
+                                    <div class="flex flex-col gap-2">
+                                        <label class="text-sm font-medium text-text-main dark:text-gray-200 font-brand">Serial Number</label>
+                                        <input name="equipment[<?= $ei ?>][serial]" value="<?= esc($eq['serial_number'] ?? '') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
+                                    </div>
+                                </div>
+                            </div>
+                            <?php endforeach; ?>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </section>
@@ -757,23 +868,90 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
                             <p class="text-sm text-text-sub dark:text-gray-400 font-brand">Required for identity verification.</p>
                         </div>
                     </div>
+                    <?php
+                        $existingGovIdPath     = $prefillData['government_id_path']    ?? '';
+                        $existingInvLetterPath = $prefillData['invitation_letter_path'] ?? '';
+                        $imageExts = ['jpg','jpeg','png','gif','svg','webp'];
+                        $govIdExt  = strtolower(pathinfo($existingGovIdPath, PATHINFO_EXTENSION));
+                        $govIdIsImage = in_array($govIdExt, $imageExts);
+                        $govIdFileUrl = $existingGovIdPath ? base_url('uploads/' . $existingGovIdPath) : '';
+
+                        $existingDocs = [];
+                        if ($existingInvLetterPath) {
+                            $decoded = json_decode($existingInvLetterPath, true);
+                            $existingDocs = is_array($decoded) ? $decoded : [$existingInvLetterPath];
+                        }
+                    ?>
+                    <input type="hidden" name="existing_government_id_path" id="existingGovIdPath" value="<?= esc($existingGovIdPath) ?>">
+                    <input type="hidden" name="existing_invitation_letter_path" id="existingInvLetterPath" value="<?= esc($existingInvLetterPath) ?>">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Government ID -->
                         <div class="flex flex-col gap-3">
                             <p class="text-sm font-medium text-text-main dark:text-gray-200 font-brand">ID <span class="text-red-500">*</span></p>
-                            <div class="group relative flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer">
-                                <input name="government_id" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" type="file"/>
-                                <div class="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4">
+                            <?php if ($existingGovIdPath): ?>
+                            <div id="govIdExisting" class="relative w-full h-48 border-2 border-green-300 dark:border-green-700 rounded-xl overflow-hidden bg-gray-50 dark:bg-gray-900">
+                                <a href="<?= esc($govIdFileUrl) ?>" target="_blank" class="block w-full h-full" id="govIdPreviewLink">
+                                    <?php if ($govIdIsImage): ?>
+                                        <img src="<?= esc($govIdFileUrl) ?>"
+                                             alt="<?= esc(basename($existingGovIdPath)) ?>"
+                                             class="w-full h-full object-contain"
+                                             id="govIdPreviewImg"
+                                             onerror="govIdImgFallback()">
+                                    <?php else: ?>
+                                        <div class="flex flex-col items-center justify-center w-full h-full gap-2 p-4">
+                                            <span class="material-symbols-outlined text-5xl text-red-500">picture_as_pdf</span>
+                                            <p class="text-xs text-text-sub font-brand text-center break-all"><?= esc(basename($existingGovIdPath)) ?></p>
+                                            <span class="text-xs text-primary font-brand">Click to view</span>
+                                        </div>
+                                    <?php endif; ?>
+                                </a>
+                                <div class="absolute bottom-0 inset-x-0 bg-black/50 flex items-center justify-between px-3 py-1.5">
+                                    <span class="text-xs text-white font-brand">Previously uploaded</span>
+                                    <button type="button" onclick="replaceGovId()" class="text-xs text-green-300 hover:text-white font-brand underline">Replace</button>
+                                </div>
+                            </div>
+                            <?php endif; ?>
+                            <div id="govIdUpload" class="<?= $existingGovIdPath ? 'hidden' : '' ?> group relative flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer">
+                                <input name="government_id" id="governmentIdInput" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" type="file"/>
+                                <div class="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4 pointer-events-none">
                                     <span class="material-symbols-outlined text-4xl text-gray-400 group-hover:text-primary mb-3 transition-colors">id_card</span>
                                     <p class="mb-1 text-sm text-text-main dark:text-gray-300 font-brand"><span class="font-semibold text-primary">Click to upload</span> or drag and drop</p>
                                     <p class="text-xs text-text-sub dark:text-gray-500 font-brand">SVG, PNG, JPG or PDF (MAX. 5MB)</p>
                                 </div>
                             </div>
                         </div>
+                        <!-- Additional Documents -->
                         <div class="flex flex-col gap-3">
                             <p class="text-sm font-medium text-text-main dark:text-gray-200 font-brand">Additional Documents</p>
-                            <div class="group relative flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer">
+                            <?php if (!empty($existingDocs)): ?>
+                            <div id="invLetterExisting" class="relative w-full border-2 border-green-300 dark:border-green-700 rounded-xl overflow-hidden bg-gray-50 dark:bg-gray-900" style="min-height:12rem">
+                                <div class="flex flex-col divide-y divide-green-100 dark:divide-gray-700 overflow-y-auto" style="max-height:10rem">
+                                    <?php foreach ($existingDocs as $docPath):
+                                        $docExt     = strtolower(pathinfo($docPath, PATHINFO_EXTENSION));
+                                        $docIsImage = in_array($docExt, $imageExts);
+                                        $docUrl     = base_url('uploads/' . $docPath);
+                                    ?>
+                                    <a href="<?= esc($docUrl) ?>" target="_blank" class="flex items-center gap-3 px-3 py-2 hover:bg-green-50 dark:hover:bg-gray-800 transition-colors">
+                                        <?php if ($docIsImage): ?>
+                                            <img src="<?= esc($docUrl) ?>" alt="<?= esc(basename($docPath)) ?>"
+                                                 class="w-10 h-10 object-cover rounded flex-shrink-0"
+                                                 onerror="this.outerHTML='<span class=\'material-symbols-outlined text-3xl text-indigo-400 flex-shrink-0\'>image</span>'">
+                                        <?php else: ?>
+                                            <span class="material-symbols-outlined text-3xl text-red-500 flex-shrink-0">picture_as_pdf</span>
+                                        <?php endif; ?>
+                                        <span class="text-xs text-text-main dark:text-gray-200 font-brand break-all"><?= esc(basename($docPath)) ?></span>
+                                    </a>
+                                    <?php endforeach; ?>
+                                </div>
+                                <div class="absolute bottom-0 inset-x-0 bg-black/50 flex items-center justify-between px-3 py-1.5">
+                                    <span class="text-xs text-white font-brand"><?= count($existingDocs) ?> file<?= count($existingDocs) !== 1 ? 's' : '' ?> on file</span>
+                                    <button type="button" onclick="replaceInvLetter()" class="text-xs text-green-300 hover:text-white font-brand underline">Replace</button>
+                                </div>
+                            </div>
+                            <?php endif; ?>
+                            <div id="invLetterUpload" class="<?= !empty($existingDocs) ? 'hidden' : '' ?> group relative flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer">
                                 <input name="invitation_letter[]" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" type="file" multiple/>
-                                <div class="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4">
+                                <div class="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4 pointer-events-none">
                                     <span class="material-symbols-outlined text-4xl text-gray-400 group-hover:text-primary mb-3 transition-colors">upload_file</span>
                                     <p class="mb-1 text-sm text-text-main dark:text-gray-300 font-brand"><span class="font-semibold text-primary">Click to upload</span> or drag and drop</p>
                                     <p class="text-xs text-text-sub dark:text-gray-500 font-brand">PDF or Images</p>
@@ -796,10 +974,19 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
                             <p class="text-sm text-text-sub dark:text-gray-400 font-brand">This will be used for your visitor badge.</p>
                         </div>
                     </div>
+                    <?php $existingProfilePhoto = $prefillData['profile_photo_path'] ?? ''; ?>
+                    <input type="hidden" name="existing_profile_photo_path" id="existingProfilePhotoPath" value="<?= esc($existingProfilePhoto) ?>">
                     <div class="flex flex-col sm:flex-row items-center gap-8">
                         <div class="relative group">
                             <div id="profilePhotoPreview" class="size-32 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden border-4 border-white dark:border-gray-700 shadow-lg">
-                                <span class="material-symbols-outlined text-6xl text-gray-300 dark:text-gray-600">account_circle</span>
+                                <?php if ($existingProfilePhoto): ?>
+                                    <img src="<?= base_url('uploads/' . esc($existingProfilePhoto)) ?>"
+                                         alt="Profile"
+                                         class="w-full h-full object-cover"
+                                         onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'material-symbols-outlined text-6xl text-gray-300 dark:text-gray-600',textContent:'account_circle'}))">
+                                <?php else: ?>
+                                    <span class="material-symbols-outlined text-6xl text-gray-300 dark:text-gray-600">account_circle</span>
+                                <?php endif; ?>
                             </div>
                             <button id="editProfilePhoto" class="absolute bottom-0 right-0 p-2 bg-white dark:bg-gray-700 rounded-full shadow-md text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary transition-colors border border-gray-200 dark:border-gray-600" type="button">
                                 <span class="material-symbols-outlined text-xl">edit</span>
@@ -1036,6 +1223,8 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
             profilePhotoInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
+                // Clear existing photo path so the new upload is used instead
+                document.getElementById('existingProfilePhotoPath').value = '';
                 // Validate file type
                 if (!file.type.startsWith('image/')) {
                     alert('Please select an image file');
@@ -1078,6 +1267,8 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
             governmentIdInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
+                // If visitor uploads a new file, clear the existing-path so it won't be reused
+                document.getElementById('existingGovIdPath').value = '';
                 // Validate file size (5MB)
                 if (file.size > 5 * 1024 * 1024) {
                     alert('File size must be less than 5MB');
@@ -1147,6 +1338,33 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
             if (input) input.value = '';
             const preview = button.closest('.file-preview');
             if (preview) preview.remove();
+        };
+
+        // Government ID image onerror fallback — replace broken img with icon + filename
+        window.govIdImgFallback = function() {
+            const img = document.getElementById('govIdPreviewImg');
+            const link = document.getElementById('govIdPreviewLink');
+            if (!img || !link) return;
+            const filename = img.alt || 'Government ID';
+            link.innerHTML = '<div class="flex flex-col items-center justify-center w-full h-full gap-2 p-4">'
+                + '<span class="material-symbols-outlined text-5xl text-indigo-400">id_card</span>'
+                + '<p class="text-xs text-text-sub font-brand text-center break-all">' + filename + '</p>'
+                + '<span class="text-xs text-primary font-brand">Click to view</span>'
+                + '</div>';
+        };
+
+        // Show upload zone and clear existing-file badge for government ID
+        window.replaceGovId = function() {
+            document.getElementById('govIdExisting').classList.add('hidden');
+            document.getElementById('govIdUpload').classList.remove('hidden');
+            document.getElementById('existingGovIdPath').value = '';
+        };
+
+        // Show upload zone and clear existing-file badge for additional docs
+        window.replaceInvLetter = function() {
+            document.getElementById('invLetterExisting').classList.add('hidden');
+            document.getElementById('invLetterUpload').classList.remove('hidden');
+            document.getElementById('existingInvLetterPath').value = '';
         };
 
         // Function to clear file input
@@ -1302,7 +1520,7 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
         }
 
         // License dynamic addition
-        let licenseCount = 0;
+        let licenseCount = <?= count($prefillLicenses) ?>;
         function addLicense() {
             const container = document.getElementById('licenseContainer');
             
@@ -1401,7 +1619,7 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
         }
 
         // Equipment dynamic addition
-        let equipmentCount = 0;
+        let equipmentCount = <?= count($prefillEquipment) ?>;
         
         function addEquipment() {
             const container = document.getElementById('equipmentContainer');
@@ -1945,10 +2163,10 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('Registration submitted successfully!');
-                    // Redirect to security briefing
+                    // Redirect immediately to next step — no blocking alert
                     if (data.redirect) {
                         window.location.href = data.redirect;
+                        return;
                     }
                 } else {
                     alert('Error: ' + (data.message || 'Please check your inputs'));
@@ -2545,6 +2763,23 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
                 icField.addEventListener('input', function() {
                     autoDetectGenderFromIC(this.value);
                 });
+                // Auto-detect resident/sex from pre-filled IC (PHP value won't trigger input event)
+                if (icField.value) {
+                    const residentField = document.querySelector('select[name="resident"]');
+                    const sexField = document.querySelector('select[name="sex"]');
+                    if (!residentField?.value || !sexField?.value) {
+                        autoDetectGenderFromIC(icField.value);
+                    }
+                }
+            }
+
+            // Pre-select vehicle type based on pre-filled category
+            const prefillVehicleType = <?= json_encode($prefillData['vehicle_type'] ?? '') ?>;
+            const catSelect = document.getElementById('vehicleCategory');
+            const typeSelect = document.getElementById('vehicleType');
+            if (catSelect && catSelect.value && prefillVehicleType) {
+                updateVehicleType();
+                if (typeSelect) typeSelect.value = prefillVehicleType;
             }
         });
 

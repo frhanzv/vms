@@ -416,6 +416,7 @@ class Dashboard extends BaseController
         // 3. Currently On-Site visitors table (detailed, for the new section)
         $onSiteVisitorsQuery = "SELECT iv.id as visitor_id,
                                        COALESCE(i.full_name, iv.full_name) as visitor_name,
+                                       i.ic_passport as ic_number,
                                        COALESCE(i.invited_by, 'N/A') as host_name,
                                        iv.check_in_time,
                                        COALESCE(ld.lane, 'N/A') as last_door_entry
@@ -442,6 +443,7 @@ class Dashboard extends BaseController
         foreach ($onSiteVisitorsData as $v) {
             $onSiteVisitors[] = [
                 'name' => $v['visitor_name'] ?? 'N/A',
+                'ic_number' => $v['ic_number'] ?? 'N/A',
                 'host' => $v['host_name'] ?? 'N/A',
                 'check_in_time' => !empty($v['check_in_time']) ? date('M d, Y h:i A', strtotime($v['check_in_time'])) : 'N/A',
                 'last_door_entry' => $v['last_door_entry'] ?? 'N/A',
@@ -770,12 +772,16 @@ class Dashboard extends BaseController
         $db = \Config\Database::connect();
         $visitors = $db->query(
             "SELECT iv.id, COALESCE(i.full_name, iv.full_name) as visitor_name,
+                    i.ic_passport as ic_number,
                     i.company, COALESCE(i.invited_by, 'N/A') as host_name,
                     iv.check_in_time, COALESCE(ld.lane, 'N/A') as last_door_entry,
                     COALESCE(iv.contact, i.contact) as contact,
-                    i.visitor_email, i.profile_photo_path
+                    i.visitor_email, i.profile_photo_path,
+                    COALESCE(vt.name, 'N/A') as visitor_type_name,
+                    vt.path as visitor_type_path
              FROM invitation_visitors iv
              JOIN invitations i ON i.id = iv.invitation_id
+             LEFT JOIN visitor_types vt ON vt.id = i.visitor_type_id
              LEFT JOIN (
                  SELECT vcl.visitor_card_id, l.lane
                  FROM visitor_card_logs vcl
@@ -856,10 +862,9 @@ class Dashboard extends BaseController
         if ($db->tableExists('security_alerts')) {
             $alerts = $db->query(
                 "SELECT sa.id, sa.incident_type, sa.severity, sa.visitor_name,
-                        sa.location, sa.description, sa.created_at
+                        sa.location, sa.description, sa.created_at, sa.is_acknowledged
                  FROM security_alerts sa
-                 WHERE sa.is_acknowledged = 0
-                 ORDER BY sa.created_at DESC"
+                 ORDER BY sa.is_acknowledged ASC, sa.created_at DESC"
             )->getResultArray();
         }
 
@@ -952,7 +957,6 @@ class Dashboard extends BaseController
             )->getRow()->c ?? 0);
 
             $activeSecurityAlertCount = $db->table('security_alerts')
-                ->where('is_acknowledged', 0)
                 ->countAllResults();
         }
 
