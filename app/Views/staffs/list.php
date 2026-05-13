@@ -371,6 +371,16 @@ $isSettings = str_contains($current, 'settings');
                                             <span class="material-symbols-outlined text-[20px]">print</span>
                                         </button>
                                         <?php endif; ?>
+                                        <?php if ($canEdit ?? false): ?>
+                                        <button onclick="event.stopPropagation(); window.location.href='<?= base_url('staffpassrequest/edit/') ?><?= $staff['id'] ?>'" class="text-amber-500 hover:text-amber-700 transition-colors" title="Edit">
+                                            <span class="material-symbols-outlined text-[20px]">edit</span>
+                                        </button>
+                                        <?php endif; ?>
+                                        <?php if ($canDelete ?? false): ?>
+                                        <button onclick="event.stopPropagation(); confirmDelete(<?= $staff['id'] ?>)" class="text-red-500 hover:text-red-700 transition-colors" title="Delete">
+                                            <span class="material-symbols-outlined text-[20px]">delete</span>
+                                        </button>
+                                        <?php endif; ?>
                                     </div>
                                 </td>
                                 <td class="p-4"><?= esc($staff['date']) ?></td>
@@ -383,39 +393,40 @@ $isSettings = str_contains($current, 'settings');
                             </tr>
                             <?php endforeach; ?>
                         <?php endif; ?>
-                        <div id="uploadModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                            <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md mx-4">
-                                
-                                <div class="flex items-center justify-between p-4 border-b dark:border-slate-700">
-                                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">UPLOAD FILE</h3>
-                                    <button onclick="document.getElementById('uploadModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600">
-                                        <span class="material-icons">close</span>
-                                    </button>
-                                </div>
-
-                                <form action="<?= base_url('staff-pass/import') ?>" method="post" enctype="multipart/form-data">
-                                    <?= csrf_field() ?>
-                                    <div class="p-6">
-                                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">Choose Excel File</label>
-                                        <input name="upload_file" type="file" accept=".xlsx, .xls" required 
-                                            class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none dark:bg-slate-700 dark:border-slate-600 dark:placeholder-gray-400">
-                                        <p class="mt-2 text-xs text-gray-500">Only .xlsx or .xls files allowed.</p>
-                                    </div>
-                                    
-                                    <div class="flex justify-end gap-2 p-4 border-t dark:border-slate-700">
-                                        <button type="button" onclick="document.getElementById('uploadModal').classList.add('hidden')" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200">
-                                            Cancel
-                                        </button>
-                                        <button type="submit" class="bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-2 rounded text-sm font-medium flex items-center transition-colors">
-                                            <span class="material-icons text-sm mr-1">publish</span>
-                                            Import
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
                     </tbody>
                 </table>
+            </div>
+
+            <div id="uploadModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md mx-4">
+
+                    <div class="flex items-center justify-between p-4 border-b dark:border-slate-700">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">UPLOAD FILE</h3>
+                        <button onclick="document.getElementById('uploadModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600">
+                            <span class="material-icons">close</span>
+                        </button>
+                    </div>
+
+                    <form action="<?= base_url('staff-pass/import') ?>" method="post" enctype="multipart/form-data">
+                        <?= csrf_field() ?>
+                        <div class="p-6">
+                            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">Choose Excel File</label>
+                            <input name="upload_file" type="file" accept=".xlsx, .xls" required
+                                class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none dark:bg-slate-700 dark:border-slate-600 dark:placeholder-gray-400">
+                            <p class="mt-2 text-xs text-gray-500">Only .xlsx or .xls files allowed.</p>
+                        </div>
+
+                        <div class="flex justify-end gap-2 p-4 border-t dark:border-slate-700">
+                            <button type="button" onclick="document.getElementById('uploadModal').classList.add('hidden')" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200">
+                                Cancel
+                            </button>
+                            <button type="submit" class="bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-2 rounded text-sm font-medium flex items-center transition-colors">
+                                <span class="material-icons text-sm mr-1">publish</span>
+                                Import
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
 
             <!-- Pagination -->
@@ -441,9 +452,23 @@ $isSettings = str_contains($current, 'settings');
             
         </div>
     </main>
-    
-    
-    
+    <script>
+        function openDetailModal(staff) {
+            // TODO: implement detail modal
+            console.log('View staff', staff);
+        }
 
+        function printStaff(staff) {
+            window.print();
+        }
+
+        function confirmDelete(id) {
+            if (!confirm('Are you sure you want to delete this staff record? This action cannot be undone.')) return;
+            fetch('<?= base_url('staffs/delete/') ?>' + id, {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': '<?= csrf_hash() ?>' },
+            }).then(r => r.ok ? location.reload() : alert('Delete failed.'));
+        }
+    </script>
 </body>
 </html>

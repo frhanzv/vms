@@ -22,9 +22,10 @@ class ClientFormFieldModel extends Model
     public static function formTypes(): array
     {
         return [
-            'visitor_registration' => 'Visitor Registration',
-            'invitation'           => 'Invitation Form',
-            'staff_pass_request'   => 'Staff Pass Request',
+            'visitor_registration'  => 'Visitor Registration',
+            'invitation'            => 'Invitation Form',
+            'staff_pass_request'    => 'Staff Pass Request',
+            'visitor_pass_request'  => 'Visitor Pass Request',
         ];
     }
 
@@ -54,6 +55,8 @@ class ClientFormFieldModel extends Model
             ['field_key' => 'postal_code',          'label' => 'Postal Code'],
             ['field_key' => 'driving_license',      'label' => 'Driving License Section'],
             ['field_key' => 'document_upload',      'label' => 'Document Upload Section'],
+            ['field_key' => 'csp_number',           'label' => 'CSP Number & Expiry Date',       'default_enabled' => false],
+            ['field_key' => 'evetting',             'label' => 'E-Vetting Section',              'default_enabled' => false],
             ['field_key' => 'print_button',         'label' => 'Show Print Button (Staff List)', 'default_enabled' => false],
         ];
     }
@@ -75,6 +78,14 @@ class ClientFormFieldModel extends Model
             ['field_key' => 'visitor_contact',    'label' => 'Visitor Contact Number'],
             ['field_key' => 'visitor_email',      'label' => 'Visitor Email'],
             ['field_key' => 'schedule',           'label' => 'Visit Schedule (Date & Time)'],
+        ];
+    }
+
+    public static function visitorPassRequestFields(): array
+    {
+        return [
+            ['field_key' => 'company_visiting',  'label' => 'Company Visiting (Visit Information)'],
+            ['field_key' => 'company_details',   'label' => 'Company Details Section (Name & Registration ID)', 'default_enabled' => false],
         ];
     }
 
@@ -174,6 +185,10 @@ class ClientFormFieldModel extends Model
 
         if ($formType === 'staff_pass_request') {
             return self::staffPassFields();
+        }
+
+        if ($formType === 'visitor_pass_request') {
+            return self::visitorPassRequestFields();
         }
 
         return [];

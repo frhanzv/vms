@@ -61,6 +61,8 @@ class StaffList extends BaseController
             ],
             'staffList'       => $staffList,
             'showPrintButton' => $showPrintButton,
+            'canEdit'         => $this->userCan('edit'),
+            'canDelete'       => $this->userCan('delete'),
         ]);
     }
 }

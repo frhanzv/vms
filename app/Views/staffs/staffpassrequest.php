@@ -312,7 +312,7 @@ $isSettings = str_contains($current, 'settings');
                                 <span class="material-symbols-outlined">business</span>
                             </div>
                             <div>
-                                <h2 class="text-lg font-bold font-brand text-text-main dark:text-white">Application Info</h2>
+                                <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Application Info</h2>
                             </div>
                         </div>
                         <?php $fs = $fieldSettings ?? []; ?>
@@ -497,7 +497,7 @@ $isSettings = str_contains($current, 'settings');
                                     <span class="material-symbols-outlined">person</span>
                                 </div>
                                 <div>
-                                    <h2 class="text-lg font-bold font-brand text-text-main dark:text-white">Staff Details</h2>
+                                    <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Staff Details</h2>
                                 </div>
                             </div>
                         </div>
@@ -673,7 +673,7 @@ $isSettings = str_contains($current, 'settings');
                                         <span class="material-symbols-outlined">cards_stack</span>
                                     </div>
                                     <div>
-                                        <h2 class="text-lg font-bold font-brand text-text-main dark:text-white">Driving License</h2>
+                                        <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Driving License</h2>
                                         <p class="text-sm text-text-sub dark:text-gray-400 font-brand">Optional driving license information.</p>
                                     </div>
                                 </div>
@@ -697,23 +697,23 @@ $isSettings = str_contains($current, 'settings');
                     <?php endif; ?>
 
                     <!-- CSP Details -->
-
-                    <!-- <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 p-6 sm:p-8">
+                    <?php if ($fs['csp_number'] ?? false): ?>
+                    <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 p-6 sm:p-8">
                         <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
                             <div class="size-10 rounded-full bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center text-orange-600 dark:text-orange-400">
                                 <span class="material-symbols-outlined">apartment</span>
                             </div>
                             <div>
-                                <h2 class="text-lg font-bold font-brand text-text-main dark:text-white">CSP</h2>
+                                <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">CSP</h2>
                             </div>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div class="space-y-2">
-                                <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">CSP Number</label>
+                                <label class="block text-sm font-semibold text-text-main dark:text-gray-200 font-brand">CSP Number</label>
                                 <input name="company_reg_id" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
                             </div>
                             <div class="space-y-2">
-                                <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Expiry Date</label>
+                                <label class="block text-sm font-semibold text-text-main dark:text-gray-200 font-brand">Expiry Date</label>
                                 <div class="relative">
                                     <input name="csp_expiry_date" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 pr-12 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="DD/MM/YYYY" type="date"/>
                                     <span class="material-symbols-outlined absolute right-4 top-3 text-text-sub cursor-pointer" onclick="this.previousElementSibling.showPicker()">calendar_month</span>
@@ -721,16 +721,17 @@ $isSettings = str_contains($current, 'settings');
                             </div>
                         </div>
                     </section>
+                    <?php endif; ?>
 
-                    E-Vetting
-
+                    <!-- E-Vetting -->
+                    <?php if ($fs['evetting'] ?? false): ?>
                     <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 p-6 sm:p-8">
                         <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
                             <div class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400">
                                 <span class="material-symbols-outlined">verified_user</span>
                             </div>
                             <div>
-                                <h2 class="text-lg font-bold font-brand text-text-main dark:text-white">E-Vetting</h2>
+                                <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">E-Vetting</h2>
                             </div>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -776,7 +777,8 @@ $isSettings = str_contains($current, 'settings');
                                 </select>
                             </div>
                         </div>
-                    </section> -->
+                    </section>
+                    <?php endif; ?>
                     
                     
                     <!-- Document Upload -->
@@ -787,7 +789,7 @@ $isSettings = str_contains($current, 'settings');
                                 <span class="material-symbols-outlined">folder_open</span>
                             </div>
                             <div>
-                                <h2 class="text-lg font-bold font-brand text-text-main dark:text-white">Document Upload</h2>
+                                <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Document Upload</h2>
                                 <p class="text-sm text-text-sub dark:text-gray-400 font-brand">Required for identity verification.</p>
                             </div>
                         </div>

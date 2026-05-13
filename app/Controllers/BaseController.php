@@ -44,6 +44,31 @@ abstract class BaseController extends Controller
     }
 
     /**
+     * Role-based permission check.
+     * superadmin can do everything. Other roles have an explicit action allowlist.
+     */
+    protected function userCan(string $action): bool
+    {
+        $role = session()->get('role') ?? 'guest';
+
+        $map = [
+            'superadmin'       => true,
+            'clientsuperadmin' => ['edit', 'delete', 'export', 'approve_request', 'manage_blacklist'],
+            'host'             => ['view', 'create_invitation'],
+        ];
+
+        if (!isset($map[$role])) {
+            return false;
+        }
+
+        if ($map[$role] === true) {
+            return true;
+        }
+
+        return in_array($action, (array) $map[$role], true);
+    }
+
+    /**
      * Whether DB has visitor type support (visitor_types table + invitations.visitor_type_id).
      * Avoids SQL errors if migrations are not applied on an environment.
      */
