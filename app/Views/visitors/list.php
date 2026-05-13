@@ -748,7 +748,7 @@ $cardEnabled = client_feature_enabled('visitor_card');
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-3">
                         <span class="material-symbols-outlined text-white text-3xl">badge</span>
-                        <h3 class="text-xl font-bold text-white">Bind Visitor Card</h3>
+                        <h3 class="text-xl font-bold text-white">Issue Card</h3>
                     </div>
                     <button onclick="closeCardBindingModal()" class="text-white hover:bg-white/20 rounded-lg p-1 transition-colors">
                         <span class="material-symbols-outlined">close</span>
@@ -760,11 +760,11 @@ $cardEnabled = client_feature_enabled('visitor_card');
             <div class="p-6">
                 <div class="mb-4">
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                        Select an available card or enter a new EPC number to bind to this visitor.
+                        Select an available card to issue to this visitor.
                     </p>
                     
                     <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                        Card EPC Number
+                        Card Number
                     </label>
                     <select id="cardEpcSelect" class="w-full px-4 py-2.5 bg-white dark:bg-slate-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                         <option value="">-- Select Available Card --</option>
@@ -773,7 +773,7 @@ $cardEnabled = client_feature_enabled('visitor_card');
                         <?php endforeach; ?>
                     </select>
                     
-                    <div class="mt-4">
+                    <div class="mt-4 hidden">
                         <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                             Or Enter New EPC Number
                         </label>
@@ -798,7 +798,7 @@ $cardEnabled = client_feature_enabled('visitor_card');
                 </button>
                 <button onclick="bindCardToVisitor()" class="px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
                     <span class="material-symbols-outlined text-lg">link</span>
-                    Bind Card
+                    Issue Card
                 </button>
             </div>
         </div>
