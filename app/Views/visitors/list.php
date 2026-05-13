@@ -1041,7 +1041,9 @@ $cardEnabled = client_feature_enabled('visitor_card');
                 alert('No invitation data available for this visitor.');
                 return;
             }
-            const passId = 'VIS-' + invitationId;
+            
+            const icPassport = document.getElementById('editIcPassport').value.trim();
+            const passId = icPassport !== '' ? icPassport : 'VIS-' + invitationId;
             const qrUrl = '<?= base_url('visitors/generateQr') ?>/' + invitationId;
             
             document.getElementById('qrCodeImage').src = qrUrl;
