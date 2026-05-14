@@ -139,7 +139,7 @@ class VisitorChronology extends BaseController
             if ($regOut) {
                 $visitToDisp = date('M j, Y g:i A', strtotime((string) $regOut));
             } elseif ($status === 'Checked In') {
-                $visitToDisp = '—';
+                $visitToDisp = $scanTo ? date('M j, Y g:i A', strtotime((string) $scanTo)) : '—';
             } else {
                 $visitToDisp = $scanTo ? date('M j, Y g:i A', strtotime((string) $scanTo)) : '-';
             }

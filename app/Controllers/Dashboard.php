@@ -543,7 +543,7 @@ class Dashboard extends BaseController
 
         $data = [
             'pageTitle' => 'Host Dashboard - SafeG',
-            'currentDate' => date('M jS, Y'),
+            'currentDate' => date('M j, Y'),
             'userName' => $currentUser['full_name'] ?? session()->get('full_name') ?? 'Admin',
             'userRole' => $currentUser['role'] ?? session()->get('role') ?? 'Admin',
             'userPhoto' => $currentUser['profile_photo'] ?? null,
@@ -930,7 +930,7 @@ class Dashboard extends BaseController
                     'location' => $alert['location'] ?? 'Unknown',
                     'description' => $alert['description'] ?? '',
                     'visitor_name' => $alert['visitor_name'] ?? '',
-                    'time' => !empty($alert['created_at']) ? date('Y-m-d h:i A', strtotime($alert['created_at'])) : 'N/A',
+                    'time' => !empty($alert['created_at']) ? date('M j, Y g:i A', strtotime($alert['created_at'])) : 'N/A',
                     'time_ago' => !empty($alert['created_at']) ? $this->getTimeAgo($alert['created_at']) : 'N/A',
                 ];
             }
@@ -1019,7 +1019,7 @@ class Dashboard extends BaseController
         return $this->response->setJSON([
             'success'        => true,
             'message'        => 'Visitor checked in successfully',
-            'check_in_time'  => date('h:i A', strtotime($now)),
+            'check_in_time'  => date('g:i A', strtotime($now)),
             'visitor_name'   => $invitation['full_name'] ?? 'N/A',
         ]);
     }

@@ -555,14 +555,6 @@
                     <span id="mdIcno" class="text-sm font-bold text-slate-700 dark:text-slate-200"></span>
                 </div>
                 <div>
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Visit Reason</span>
-                    <span id="mdReason" class="text-sm font-bold text-slate-700 dark:text-slate-200"></span>
-                </div>
-                <div>
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Host Name</span>
-                    <span id="mdPersonVisited" class="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase"></span>
-                </div>
-                <div>
                     <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Contact No</span>
                     <span id="mdContactno" class="text-sm font-bold text-slate-700 dark:text-slate-200"></span>
                 </div>
@@ -571,24 +563,29 @@
                     <span id="mdCompany" class="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase"></span>
                 </div>
                 <div>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Visit Reason</span>
+                    <span id="mdReason" class="text-sm font-bold text-slate-700 dark:text-slate-200"></span>
+                </div>
+                <div>
                     <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Host Name</span>
                     <span id="mdPersonVisited" class="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase"></span>
                 </div>
+
                 <div>
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">First Scanned At</span>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Visit From</span>
                     <span id="mdVisitFrom" class="text-xs font-medium text-slate-500"></span>
                 </div>
                 <div>
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Last Scanned At</span>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Visit To</span>
                     <span id="mdVisitTo" class="text-xs font-medium text-slate-500"></span>
                 </div>
                 <div>
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Stay Duration</span>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Visit Duration</span>
                     <span id="mdDuration" class="text-xs font-black text-primary"></span>
                 </div>
                 <div>
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Last Database Update</span>
-                    <span id="mdLastUpdated" class="text-[10px] text-slate-400 italic"></span>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Last Updated</span>
+                    <span id="mdLastUpdated" class="text-xs font-medium text-slate-500"></span>
                 </div>
             </div>
 

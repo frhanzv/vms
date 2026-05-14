@@ -155,7 +155,7 @@ class VisitorList extends BaseController
                 'invitation_id' => $row['invitation_id'],
                 'schedule_id' => isset($row['schedule_id']) ? (int) $row['schedule_id'] : null,
                 'no' => $index + 1,
-                'date' => date('d/m/Y', strtotime($dateSrc)),
+                'date' => date('M j, Y', strtotime($dateSrc)),
                 'full_name' => $row['visitor_name'],
                 'ic_passport' => $row['visitor_ic_passport'] ?? '',
                 'contact' => $row['visitor_contact'] ?? '',
@@ -293,7 +293,7 @@ class VisitorList extends BaseController
 
             fputcsv($handle, [
                 $index + 1,
-                $dateSrc ? date('d/m/Y', strtotime((string) $dateSrc)) : '',
+                $dateSrc ? date('M j, Y', strtotime((string) $dateSrc)) : '',
                 $row['visitor_name'] ?? '',
                 $row['visitor_ic_passport'] ?? '',
                 $row['visitor_contact'] ?? '',
@@ -305,8 +305,8 @@ class VisitorList extends BaseController
                 $cardStatus,
                 $row['card_epc'] ?? '',
                 $row['visit_purpose'] ?? '',
-                ! empty($row['check_in_time']) ? date('d/m/Y H:i:s', strtotime((string) $row['check_in_time'])) : '',
-                ! empty($row['check_out_time']) ? date('d/m/Y H:i:s', strtotime((string) $row['check_out_time'])) : '',
+                ! empty($row['check_in_time']) ? date('M j, Y g:i A', strtotime((string) $row['check_in_time'])) : '',
+                ! empty($row['check_out_time']) ? date('M j, Y g:i A', strtotime((string) $row['check_out_time'])) : '',
             ]);
         }
 
