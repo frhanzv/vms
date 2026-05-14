@@ -45,7 +45,102 @@
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
+        /* DataTables — security alerts modal (match visitor report) */
+        #dash-modal .dataTables_wrapper .dataTables_length select {
+            appearance: none;
+            background-color: white;
+            border: 1px solid #d1d5db;
+            color: #374151;
+            padding: 0.375rem 2rem 0.375rem 0.75rem;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            outline: none;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236b7280'%3e%3cpath d='M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 0.5rem center;
+            background-size: 1.25em;
+        }
+        #dash-modal .dataTables_wrapper .dataTables_length label { margin: 0; color: transparent; }
+        #dash-modal .dataTables_wrapper .dataTables_filter label {
+            font-size: 1rem;
+            color: #334155;
+            display: flex;
+            align-items: center;
+        }
+        #dash-modal .dataTables_wrapper .dataTables_filter input {
+            border: 1px solid #cbd5e1;
+            border-radius: 0.375rem;
+            padding: 0.375rem 0.75rem;
+            font-size: 0.875rem;
+            outline: none;
+            min-width: 200px;
+            margin-left: 0.5rem;
+        }
+        #dash-modal .dataTables_wrapper .dataTables_filter input:focus {
+            border-color: #137fec;
+            box-shadow: 0 0 0 2px rgba(19,127,236,0.15);
+        }
+        #dash-modal .dataTables_wrapper .dataTables_info,
+        #dash-modal .dataTables_wrapper .dataTables_length,
+        #dash-modal .dataTables_wrapper .dataTables_filter {
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+        #dash-modal .dataTables_wrapper .dataTables_paginate .paginate_button {
+            border-radius: 0.25rem !important;
+            border: 1px solid #e2e8f0 !important;
+            font-size: 0.8rem;
+            padding: 0.3rem 0.85rem !important;
+            margin: 0 0.15rem;
+            background: white !important;
+            color: #64748b !important;
+        }
+        #dash-modal .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+        #dash-modal .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+            background: #137fec !important;
+            color: white !important;
+            border: none !important;
+        }
+        #dash-modal .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+            background: #e0effe !important;
+            color: #137fec !important;
+            border: none !important;
+        }
+        #dash-modal table.dataTable thead th {
+            background: #f8fafc;
+            color: #475569;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 2px solid #e2e8f0 !important;
+            padding: 0.85rem 1rem;
+            white-space: nowrap;
+            overflow: visible;
+        }
+        #dash-modal table.dataTable tbody td {
+            font-size: 0.82rem;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #f1f5f9;
+            color: #334155;
+            vertical-align: middle;
+        }
+        #dash-modal table.dataTable tbody tr:hover td { background: #f0f7ff; }
+        #dash-modal table.dataTable { border-collapse: collapse !important; width: 100% !important; }
+        #dash-modal .dash-alerts-dt-scroll {
+            min-height: 16rem;
+        }
+        @media (min-width: 768px) {
+            #dash-modal .dash-alerts-dt-scroll { min-height: 22rem; }
+        }
+        body > .dash-alerts-filter-dropdown {
+            box-shadow: 0 12px 40px rgba(15, 23, 42, 0.18);
+        }
     </style>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
 
     <!-- Blacklist dropdown function-->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
@@ -816,7 +911,7 @@
 <!-- Dashboard Drill-Down Modal -->
 <div id="dash-modal" class="fixed inset-0 z-[100] hidden">
     <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeModal()"></div>
-    <div class="absolute inset-4 md:inset-y-8 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-4xl bg-surface-light dark:bg-surface-dark rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-slate-200 dark:border-slate-700">
+    <div class="absolute inset-4 md:inset-y-6 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-6xl bg-surface-light dark:bg-surface-dark rounded-2xl shadow-2xl flex flex-col max-h-[min(92vh,920px)] min-h-0 border border-slate-200 dark:border-slate-700">
         <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex-shrink-0">
             <div class="flex items-center gap-3">
                 <button id="modal-back-btn" onclick="modalGoBack()" class="hidden size-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" title="Back">
@@ -832,7 +927,7 @@
                 <span class="material-symbols-outlined text-[20px]">close</span>
             </button>
         </div>
-        <div id="modal-body" class="flex-1 overflow-y-auto p-6">
+        <div id="modal-body" class="flex-1 min-h-0 overflow-y-auto p-6">
             <div class="flex items-center justify-center py-12">
                 <div class="flex items-center gap-3 text-slate-400">
                     <svg class="animate-spin size-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
@@ -843,6 +938,8 @@
     </div>
 </div>
 
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script>
 const BASE = '<?= base_url() ?>';
 const UPCOMING_APPTS = <?= json_encode($upcomingAppointments) ?>;
@@ -1127,12 +1224,384 @@ const modalBody = document.getElementById('modal-body');
 const LOADER = '<div class="flex items-center justify-center py-12"><div class="flex items-center gap-3 text-slate-400"><svg class="animate-spin size-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg><span class="text-sm font-medium">Loading...</span></div></div>';
 const EMPTY = (msg) => '<div class="flex flex-col items-center justify-center py-12 text-center"><span class="material-symbols-outlined text-5xl text-slate-300 dark:text-slate-600 mb-3">inbox</span><p class="text-slate-400 font-medium">' + msg + '</p></div>';
 
+function destroyDashActiveAlertsTable() {
+    if (typeof $ !== 'undefined') {
+        try {
+            $('.dash-alerts-filter-dropdown').each(function () {
+                var $dd = $(this);
+                $dd.addClass('hidden');
+                var w = $dd.data('anchorWrapper');
+                if (w && w.length) $dd.appendTo(w);
+            });
+            $('body > .dash-alerts-filter-dropdown').remove();
+        } catch (e1) {}
+        try {
+            $(window).off('resize.dashAlertFilterScroll');
+            $('#modal-body').off('scroll.dashAlertFilter');
+        } catch (e2) {}
+    }
+    var t = document.getElementById('dash-active-alerts-table');
+    if (typeof $ !== 'undefined' && $.fn && $.fn.DataTable && t && $.fn.DataTable.isDataTable(t)) {
+        $(t).DataTable().destroy();
+    }
+}
+
+function cellTextForCheckboxFilter(raw) {
+    if (raw === null || raw === undefined) return '-';
+    var t = $('<div>').html(String(raw)).text().trim();
+    if (!t || t === 'NULL' || t === 'null') return '-';
+    return t;
+}
+
+(function installVmsCheckboxColumnFilterSearchOnce() {
+    if (window.__vmsDtCheckboxColumnFilterSearchInstalled) return;
+    window.__vmsDtCheckboxColumnFilterSearchInstalled = true;
+    if (typeof $ === 'undefined' || !$.fn.dataTable || !$.fn.dataTable.ext) return;
+    $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
+        if (!settings.oInit || !settings.oInit._checkboxColumnFilter) return true;
+        var cf = settings._colCheckboxFilters;
+        if (!cf) return true;
+        for (var key in cf) {
+            if (!Object.prototype.hasOwnProperty.call(cf, key)) continue;
+            var allowed = cf[key];
+            if (!(allowed instanceof Set)) continue;
+            if (allowed.size === 0) return false;
+            var colIdx = parseInt(key, 10);
+            var cellText = cellTextForCheckboxFilter(data[colIdx]);
+            if (!allowed.has(cellText)) return false;
+        }
+        return true;
+    });
+})();
+
+function refreshActiveAlertsSummaryLine() {
+    var el = document.getElementById('active-alerts-summary');
+    if (!el || typeof $ === 'undefined' || !$.fn.DataTable) return;
+    var t = document.getElementById('dash-active-alerts-table');
+    if (!t || !$.fn.DataTable.isDataTable(t)) return;
+    var api = $(t).DataTable();
+    var n = api.rows({ search: 'applied' }).count();
+    var active = 0;
+    api.rows({ search: 'applied' }).every(function () {
+        var node = this.node();
+        if (node && node.getAttribute('data-active') === '1') active++;
+    });
+    el.innerHTML = n + ' total alert' + (n !== 1 ? 's' : '') + ' &mdash; <span class="text-red-600 font-semibold">' + active + ' active</span>';
+}
+
+function closeAllDashAlertFilterDropdowns() {
+    if (typeof $ === 'undefined') return;
+    $('.dash-alerts-filter-dropdown').each(function () {
+        var $dd = $(this);
+        if (!$dd.hasClass('hidden')) {
+            $dd.addClass('hidden');
+            var w = $dd.data('anchorWrapper');
+            if (w && w.length) $dd.appendTo(w);
+        }
+    });
+    $('body > .dash-alerts-filter-dropdown').each(function () {
+        var $dd = $(this);
+        var w = $dd.data('anchorWrapper');
+        if (w && w.length) $dd.addClass('hidden').appendTo(w);
+    });
+    $(window).off('resize.dashAlertFilterScroll');
+    $('#modal-body').off('scroll.dashAlertFilter');
+}
+
+function positionDashAlertFilterDropdown($dropdown, $icon) {
+    var el = $icon[0];
+    if (!el || !el.getBoundingClientRect) return;
+    var r = el.getBoundingClientRect();
+    var pad = 8;
+    var minW = Math.min(360, Math.max(200, r.width, 220));
+    var vw = window.innerWidth;
+    var left = Math.min(Math.max(pad, r.left), vw - minW - pad);
+    var maxH = Math.min(window.innerHeight * 0.58, 480);
+    var spaceBelow = window.innerHeight - r.bottom - pad;
+    var top = r.bottom + 6;
+    if (spaceBelow < 200 && r.top > spaceBelow + 40) {
+        top = Math.max(pad, r.top - maxH - 6);
+    }
+    $dropdown.css({
+        position: 'fixed',
+        left: left + 'px',
+        top: top + 'px',
+        minWidth: minW + 'px',
+        maxHeight: maxH + 'px',
+        zIndex: 10050,
+        overflowY: 'auto'
+    });
+}
+
+function repositionOpenDashAlertFilters() {
+    if (typeof $ === 'undefined') return;
+    $('.dash-alerts-filter-dropdown:not(.hidden)').each(function () {
+        var $dd = $(this);
+        var $icon = $dd.data('anchorIcon');
+        if ($icon && $icon.length) positionDashAlertFilterDropdown($dd, $icon);
+    });
+}
+
+function initActiveAlertsDataTable() {
+    if (typeof $ === 'undefined' || !$.fn.DataTable) return;
+    var $t = $('#dash-active-alerts-table');
+    if (!$t.length) return;
+    if ($.fn.DataTable.isDataTable($t[0])) $t.DataTable().destroy();
+
+    $t.DataTable({
+        pageLength: 10,
+        lengthMenu: [[10, 25, 50], ['10 ITEMS PER PAGE', '25 ITEMS PER PAGE', '50 ITEMS PER PAGE']],
+        ordering: true,
+        responsive: false,
+        _checkboxColumnFilter: true,
+        dom: '<"flex justify-end items-center mb-4 mt-1"f><"dash-alerts-dt-scroll overflow-x-auto"t><"flex flex-col md:flex-row justify-between items-center gap-4 mt-4"p<"ml-auto"l>>',
+        language: {
+            search: 'Search alerts:',
+            searchPlaceholder: '',
+            lengthMenu: '_MENU_',
+            paginate: { previous: '&laquo;', next: '&raquo;' }
+        },
+        autoWidth: false,
+        initComplete: function () {
+            var api = this.api();
+            var st = api.settings()[0];
+            st._colCheckboxFilters = {};
+            api.columns().every(function () { this.search(''); });
+            api.draw(false);
+
+            var syncingFilterOptions = false;
+
+            function uniqueOptionsIgnoringColumnSearch(colIdx) {
+                if (!st._colCheckboxFilters) st._colCheckboxFilters = {};
+                var cf = st._colCheckboxFilters;
+                var had = Object.prototype.hasOwnProperty.call(cf, colIdx);
+                var saved = had ? cf[colIdx] : undefined;
+                delete st._colCheckboxFilters[colIdx];
+                api.draw(false);
+                var opts = [];
+                var seen = {};
+                api.rows({ search: 'applied' }).every(function () {
+                    var rowData = this.data();
+                    var textVal = cellTextForCheckboxFilter(rowData[colIdx]);
+                    if (textVal && textVal !== '-' && textVal !== 'View' && textVal !== 'NULL' && textVal !== 'null' && !seen[textVal]) {
+                        seen[textVal] = true;
+                        opts.push(textVal);
+                    }
+                });
+                opts.sort();
+                if (had) st._colCheckboxFilters[colIdx] = saved;
+                api.draw(false);
+                return opts;
+            }
+
+            function syncOtherColumnFilterDropdowns(sourceColIdx) {
+                api.columns().every(function () {
+                    var col2 = this;
+                    var idx2 = col2.index();
+                    if (idx2 === sourceColIdx) return;
+                    var $wrap2 = $(col2.header()).find('.dt-filter-wrapper').first();
+                    var dd2 = $wrap2.length ? $wrap2.data('filterDropdownEl') : null;
+                    if (!dd2 || !dd2.length) return;
+                    var prev = {};
+                    dd2.find('.filter-item input').each(function () {
+                        var k = cellTextForCheckboxFilter($(this).val());
+                        prev[k] = $(this).prop('checked');
+                    });
+                    var newOpts = uniqueOptionsIgnoringColumnSearch(idx2);
+                    dd2.find('.filter-item').remove();
+                    var applyFn2 = dd2.data('applyFilter');
+                    var newItemCbs = [];
+                    newOpts.forEach(function (val) {
+                        var itemLabel = $('<label class="filter-item flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 cursor-pointer text-slate-600 capitalize"></label>');
+                        itemLabel.attr('data-filter-text', val.toLowerCase());
+                        var itemCb = $('<input type="checkbox" checked value="' + String(val).replace(/"/g, '&quot;') + '" class="form-checkbox h-4 w-4 text-[#535dec] accent-[#535dec] rounded border-slate-300 cursor-pointer">');
+                        itemLabel.append(itemCb).append('<span class="select-none">' + val + '</span>');
+                        dd2.append(itemLabel);
+                        itemCb.prop('checked', Object.prototype.hasOwnProperty.call(prev, val) ? prev[val] : true);
+                        if (applyFn2) itemCb.on('change', applyFn2);
+                        newItemCbs.push(itemCb);
+                    });
+                    dd2.data('itemCbs', newItemCbs);
+                    if (applyFn2) applyFn2();
+                });
+            }
+
+            api.columns().every(function () {
+                var column = this;
+                var header = $(column.header());
+                var headerText = header.clone().children().remove().end().text().trim().toUpperCase();
+                if (headerText === 'NO' || headerText === 'NO.' || headerText === 'ACTIONS') return;
+
+                header.find('.dt-filter-wrapper').remove();
+
+                var wrapper = $('<div class="dt-filter-wrapper inline-block relative ml-1 align-middle" onclick="event.stopPropagation()"></div>');
+                var icon = $('<span class="material-symbols-outlined text-[16px] text-slate-300 hover:text-[#535dec] transition-colors cursor-pointer" style="vertical-align: middle;">filter_alt</span>');
+                var dropdown = $('<div class="filter-dropdown dash-alerts-filter-dropdown hidden fixed z-[10050] bg-white border border-slate-200 rounded shadow-xl p-2 text-left text-sm" style="min-width: 200px; font-weight: normal; box-sizing: border-box;"></div>');
+
+                wrapper.append(icon).append(dropdown);
+                header.append(wrapper);
+                wrapper.data('filterDropdownEl', dropdown);
+
+                var searchInput = $('<input type="text" placeholder="Search in this column..." class="w-full mb-2 border border-slate-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20">');
+                dropdown.append(searchInput);
+
+                var options = [];
+                column.data().unique().sort().each(function (d) {
+                    var textVal = cellTextForCheckboxFilter(d);
+                    if (textVal && textVal !== '-' && textVal !== 'View' && textVal !== 'NULL' && textVal !== 'null') options.push(textVal);
+                });
+
+                var allLabel = $('<label class="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 cursor-pointer font-semibold text-slate-700 capitalize mb-1"></label>');
+                var allCb = $('<input type="checkbox" checked class="form-checkbox h-4 w-4 text-[#535dec] accent-[#535dec] rounded border-slate-300 cursor-pointer">');
+                allLabel.append(allCb).append('<span class="select-none">All</span>');
+                dropdown.append(allLabel);
+
+                var removeAllLabel = $('<label class="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 cursor-pointer font-semibold text-slate-700 capitalize mb-1"></label>');
+                var removeAllCb = $('<input type="checkbox" class="form-checkbox h-4 w-4 text-red-500 accent-red-500 rounded border-slate-300 cursor-pointer">');
+                removeAllLabel.append(removeAllCb).append('<span class="select-none">Remove All</span>');
+                dropdown.append(removeAllLabel);
+                dropdown.append('<hr class="my-1 border-slate-200">');
+
+                var itemCbs = [];
+                options.forEach(function (val) {
+                    var itemLabel = $('<label class="filter-item flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 cursor-pointer text-slate-600 capitalize"></label>');
+                    itemLabel.attr('data-filter-text', val.toLowerCase());
+                    var itemCb = $('<input type="checkbox" checked value="' + String(val).replace(/"/g, '&quot;') + '" class="form-checkbox h-4 w-4 text-[#535dec] accent-[#535dec] rounded border-slate-300 cursor-pointer">');
+                    itemLabel.append(itemCb).append('<span class="select-none">' + val + '</span>');
+                    dropdown.append(itemLabel);
+                    itemCbs.push(itemCb);
+                });
+                dropdown.data('itemCbs', itemCbs);
+
+                searchInput.on('input', function () {
+                    var q = $(this).val().toLowerCase();
+                    dropdown.find('.filter-item').each(function () {
+                        var text = ($(this).attr('data-filter-text') || '');
+                        $(this).toggle(text.includes(q));
+                    });
+                });
+
+                icon.on('click', function (e) {
+                    e.stopPropagation();
+                    var opening = dropdown.hasClass('hidden');
+                    $('.dash-alerts-filter-dropdown:not(.hidden)').each(function () {
+                        var o = $(this);
+                        if (o[0] !== dropdown[0]) {
+                            o.addClass('hidden');
+                            var w0 = o.data('anchorWrapper');
+                            if (w0 && w0.length) o.appendTo(w0);
+                        }
+                    });
+                    if (opening) {
+                        dropdown.data('anchorIcon', icon);
+                        dropdown.data('anchorWrapper', wrapper);
+                        dropdown.appendTo('body').removeClass('hidden');
+                        positionDashAlertFilterDropdown(dropdown, icon);
+                        $(window).off('resize.dashAlertFilterScroll').on('resize.dashAlertFilterScroll', repositionOpenDashAlertFilters);
+                        $('#modal-body').off('scroll.dashAlertFilter').on('scroll.dashAlertFilter', repositionOpenDashAlertFilters);
+                    } else {
+                        dropdown.addClass('hidden');
+                        dropdown.appendTo(wrapper);
+                        if (!$('.dash-alerts-filter-dropdown:not(.hidden)').length) {
+                            $(window).off('resize.dashAlertFilterScroll');
+                            $('#modal-body').off('scroll.dashAlertFilter');
+                        }
+                    }
+                });
+
+                function applyFilter() {
+                    var cbs = dropdown.data('itemCbs') || itemCbs;
+                    var colIdx = column.index();
+                    if (!st._colCheckboxFilters) st._colCheckboxFilters = {};
+                    var checkedCount = 0;
+                    var allowedSet = new Set();
+                    cbs.forEach(function (cb) {
+                        if (cb.prop('checked')) {
+                            checkedCount++;
+                            allowedSet.add(cellTextForCheckboxFilter(cb.val()));
+                        }
+                    });
+                    var optCount = cbs.length;
+                    var allChecked = optCount > 0 && checkedCount === optCount;
+                    var noneChecked = checkedCount === 0;
+                    allCb.prop('checked', allChecked);
+                    removeAllCb.prop('checked', noneChecked);
+                    allCb.prop('indeterminate', false);
+                    removeAllCb.prop('indeterminate', false);
+                    if (optCount === 0) {
+                        icon.removeClass('text-[#535dec] text-red-500').addClass('text-slate-300');
+                        delete st._colCheckboxFilters[colIdx];
+                    } else if (checkedCount > 0 && checkedCount < optCount) {
+                        icon.removeClass('text-slate-300 text-red-500').addClass('text-[#535dec]');
+                        st._colCheckboxFilters[colIdx] = allowedSet;
+                    } else if (checkedCount === 0) {
+                        icon.removeClass('text-slate-300 text-[#535dec]').addClass('text-red-500');
+                        st._colCheckboxFilters[colIdx] = new Set();
+                    } else {
+                        icon.removeClass('text-[#535dec] text-red-500').addClass('text-slate-300');
+                        delete st._colCheckboxFilters[colIdx];
+                    }
+                    column.search('', false, false);
+                    api.draw(false);
+                    if (!syncingFilterOptions) {
+                        syncingFilterOptions = true;
+                        try { syncOtherColumnFilterDropdowns(colIdx); } finally { syncingFilterOptions = false; }
+                    }
+                    refreshActiveAlertsSummaryLine();
+                    if (!dropdown.hasClass('hidden') && dropdown.parent()[0] === document.body) {
+                        requestAnimationFrame(function () { positionDashAlertFilterDropdown(dropdown, icon); });
+                    }
+                }
+                dropdown.data('applyFilter', applyFilter);
+
+                allCb.on('change', function () {
+                    var isChecked = $(this).prop('checked');
+                    removeAllCb.prop('checked', false);
+                    (dropdown.data('itemCbs') || itemCbs).forEach(function (cb) { cb.prop('checked', isChecked); });
+                    applyFilter();
+                });
+
+                removeAllCb.on('change', function () {
+                    var isChecked = $(this).prop('checked');
+                    var cbs = dropdown.data('itemCbs') || itemCbs;
+                    if (isChecked) {
+                        allCb.prop('checked', false);
+                        cbs.forEach(function (cb) { cb.prop('checked', false); });
+                    } else {
+                        allCb.prop('checked', true);
+                        cbs.forEach(function (cb) { cb.prop('checked', true); });
+                    }
+                    applyFilter();
+                });
+
+                itemCbs.forEach(function (cb) { cb.on('change', applyFilter); });
+            });
+
+            $(document).off('click.dashAlertDtFilter').on('click.dashAlertDtFilter', function (e) {
+                var $tg = $(e.target);
+                if ($tg.closest('.dt-filter-wrapper').length || $tg.closest('.dash-alerts-filter-dropdown').length) return;
+                closeAllDashAlertFilterDropdowns();
+            });
+
+            api.on('draw', function () {
+                refreshActiveAlertsSummaryLine();
+                repositionOpenDashAlertFilters();
+            });
+        }
+    });
+}
+
 function fmtTime(dt) { if (!dt) return 'N/A'; const d = new Date(dt.replace(' ', 'T')); return d.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit', hour12: true}); }
 function fmtDateTime(dt) { if (!dt) return 'N/A'; const d = new Date(dt.replace(' ', 'T')); return d.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'}) + ' ' + d.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit', hour12: true}); }
 function initials(n) { return (n || 'NA').substring(0, 2).toUpperCase(); }
 function sevBadge(s) { const c = {critical:'bg-red-100 text-red-700',high:'bg-orange-100 text-orange-700',medium:'bg-amber-100 text-amber-700',low:'bg-slate-100 text-slate-600'}; return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold ' + (c[s] || c.low) + '">' + esc((s||'').charAt(0).toUpperCase()+(s||'').slice(1)) + '</span>'; }
 
 function openModal(type) {
+    closeAllDashAlertFilterDropdowns();
+    destroyDashActiveAlertsTable();
+    if (typeof $ !== 'undefined') {
+        try { $(document).off('click.dashAlertDtFilter'); } catch (e) {}
+    }
     modalBody.innerHTML = LOADER;
     modalEl.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
@@ -1147,11 +1616,17 @@ function openModal(type) {
     if (cfg.localData !== undefined) {
         cfg.render(cfg.localData);
     } else {
-        fetch(BASE + cfg.url).then(r => r.json()).then(d => cfg.render(d)).catch(() => { modalBody.innerHTML = EMPTY('Failed to load data'); });
+        let fetchUrl = BASE + cfg.url;
+        fetch(fetchUrl).then(r => r.json()).then(d => cfg.render(d)).catch(() => { modalBody.innerHTML = EMPTY('Failed to load data'); });
     }
 }
 
 function closeModal() {
+    closeAllDashAlertFilterDropdowns();
+    destroyDashActiveAlertsTable();
+    if (typeof $ !== 'undefined') {
+        try { $(document).off('click.dashAlertDtFilter'); } catch (e) {}
+    }
     modalEl.classList.add('hidden');
     document.body.style.overflow = '';
     document.getElementById('modal-back-btn').classList.add('hidden');
@@ -1238,6 +1713,21 @@ function ackFromModal(id, btn) {
     fetch(BASE + '/dashboard/acknowledgeAlert', { method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest'}, body: 'alert_id=' + id })
     .then(r => r.json()).then(d => {
         if (!d.success) { btn.disabled = false; btn.textContent = 'Acknowledge'; return; }
+        var table = document.getElementById('dash-active-alerts-table');
+        if (table && typeof $ !== 'undefined' && $.fn.DataTable && $.fn.DataTable.isDataTable(table)) {
+            var dt = $(table).DataTable();
+            dt.row($(btn).closest('tr')).remove().draw(false);
+            refreshActiveAlertsSummaryLine();
+            if (dt.rows().count() === 0) {
+                destroyDashActiveAlertsTable();
+                if (typeof $ !== 'undefined') {
+                    try { $(document).off('click.dashAlertDtFilter'); } catch (e2) {}
+                }
+                modalBody.innerHTML = '<p id="active-alerts-summary" class="text-sm text-slate-500 mb-4">0 total alerts</p>' + EMPTY('No security alerts');
+            }
+            applySecurityWidgetPayload(d);
+            return;
+        }
         const row = btn.closest('tr'); if (row) { row.style.transition = 'opacity .3s'; row.style.opacity = '0'; setTimeout(() => row.remove(), 300); }
         applySecurityWidgetPayload(d);
     });
@@ -1434,26 +1924,49 @@ const modalConfigs = {
         icon: 'shield', iconCls: 'bg-red-100 text-red-600',
         url: '/dashboard/activeAlertsData',
         render(d) {
-            if (!d.success || !d.data.length) { modalBody.innerHTML = EMPTY('No security alerts found'); return; }
-            const rows = d.data.map(a => {
+            if (!d.success) {
+                modalBody.innerHTML = EMPTY('Failed to load data');
+                return;
+            }
+            if (!d.data.length) {
+                modalBody.innerHTML = '<p id="active-alerts-summary" class="text-sm text-slate-500 mb-4">0 total alerts</p>' + EMPTY('No security alerts');
+                return;
+            }
+
+            const active = d.data.filter(a => a.is_acknowledged != 1).length;
+            let tbody = '';
+            d.data.forEach((a, i) => {
                 const ackBadge = a.is_acknowledged == 1
                     ? '<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700">Acknowledged</span>'
                     : '<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700">Active</span>';
                 const actions = a.is_acknowledged == 1
-                    ? '<button onclick="openAlertDetail(' + a.id + ', \'activeAlerts\')" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold rounded transition-colors">View</button>'
-                    : '<div class="flex gap-1"><button onclick="openAlertDetail(' + a.id + ', \'activeAlerts\')" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold rounded transition-colors">View</button><button onclick="ackFromModal(' + a.id + ', this)" class="px-2 py-1 bg-primary hover:bg-primary-dark text-white text-[10px] font-bold rounded transition-colors">Acknowledge</button></div>';
-                return [
-                    '<div class="flex items-center gap-2"><span class="material-symbols-outlined text-red-500 text-[16px] fill-1">warning</span>' + esc(a.incident_type) + '</div>',
-                    sevBadge(a.severity),
-                    esc(a.visitor_name || 'Unknown'),
-                    esc(a.location || 'N/A'),
-                    fmtDateTime(a.created_at),
-                    ackBadge,
-                    actions
-                ];
+                    ? '<button type="button" onclick="openAlertDetail(' + a.id + ', \'activeAlerts\')" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold rounded transition-colors">View</button>'
+                    : '<div class="flex gap-1"><button type="button" onclick="openAlertDetail(' + a.id + ', \'activeAlerts\')" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold rounded transition-colors">View</button><button type="button" onclick="ackFromModal(' + a.id + ', this)" class="px-2 py-1 bg-primary hover:bg-primary-dark text-white text-[10px] font-bold rounded transition-colors">Acknowledge</button></div>';
+                const isActive = a.is_acknowledged != 1 ? '1' : '0';
+                const incidentCell = '<div class="flex items-center gap-2"><span class="material-symbols-outlined text-red-500 text-[16px] fill-1">warning</span>' + esc(a.incident_type) + '</div>';
+                tbody += '<tr data-active="' + isActive + '">'
+                    + '<td class="text-slate-500 font-medium">' + (i + 1) + '</td>'
+                    + '<td>' + incidentCell + '</td>'
+                    + '<td>' + sevBadge(a.severity) + '</td>'
+                    + '<td>' + esc(a.visitor_name || 'Unknown') + '</td>'
+                    + '<td>' + esc(a.location || 'N/A') + '</td>'
+                    + '<td>' + fmtDateTime(a.created_at) + '</td>'
+                    + '<td>' + ackBadge + '</td>'
+                    + '<td>' + actions + '</td>'
+                    + '</tr>';
             });
-            const active = d.data.filter(a => a.is_acknowledged != 1).length;
-            modalBody.innerHTML = '<p class="text-sm text-slate-500 mb-4">' + d.data.length + ' total alert' + (d.data.length !== 1 ? 's' : '') + ' &mdash; <span class="text-red-600 font-semibold">' + active + ' active</span></p>' + buildTable(['Incident', 'Severity', 'Visitor', 'Location', 'Date & Time', 'Status', 'Actions'], rows);
+
+            modalBody.innerHTML = ''
+                + '<p id="active-alerts-summary" class="text-sm text-slate-500 mb-4">' + d.data.length + ' total alert' + (d.data.length !== 1 ? 's' : '') + ' &mdash; <span class="text-red-600 font-semibold">' + active + ' active</span></p>'
+                + '<div class="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-3 sm:p-5">'
+                + '<div class="overflow-x-auto custom-scrollbar pb-1">'
+                + '<table id="dash-active-alerts-table" class="w-full whitespace-nowrap display" style="width:100%">'
+                + '<thead><tr>'
+                + '<th>NO</th><th>INCIDENT</th><th>SEVERITY</th><th>VISITOR</th><th>LOCATION</th><th>DATE &amp; TIME</th><th>STATUS</th><th>ACTIONS</th>'
+                + '</tr></thead><tbody>' + tbody + '</tbody></table>'
+                + '</div></div>';
+
+            initActiveAlertsDataTable();
         }
     },
     upcomingAppts: {
@@ -1489,6 +2002,11 @@ const modalConfigs = {
 };
 
 function openAlertDetail(id, backTarget) {
+    closeAllDashAlertFilterDropdowns();
+    destroyDashActiveAlertsTable();
+    if (typeof $ !== 'undefined') {
+        try { $(document).off('click.dashAlertDtFilter'); } catch (e) {}
+    }
     modalBody.innerHTML = LOADER;
     modalEl.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
