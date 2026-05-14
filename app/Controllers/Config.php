@@ -2468,9 +2468,15 @@ class Config extends BaseController
 
     public function createVisitorCard()
     {
+        $input = $this->request->getJSON(true);
+        if (!is_array($input)) {
+            $input = $this->request->getPost();
+        }
+
         $data = [
-            'card_id' => $this->request->getPost('card_id'),
-            'status' => $this->request->getPost('status')
+            'card_id' => $input['card_id'] ?? null,
+            'serial_no' => $input['serial_no'] ?? null,
+            'status' => $input['status'] ?? null
         ];
 
         if (!$this->visitorCardModel->insert($data)) {
@@ -2503,7 +2509,9 @@ class Config extends BaseController
             $input = [];
         }
         $data = [
+            'id' => $id,
             'card_id' => $input['card_id'] ?? null,
+            'serial_no' => $input['serial_no'] ?? null,
             'status' => $input['status'] ?? null,
         ];
 
@@ -2540,6 +2548,31 @@ class Config extends BaseController
             'success' => true,
             'message' => 'Visitor card deleted successfully'
         ]);
+    }
+
+    public function generateVisitorCardQr($cardId)
+    {
+        $qrCodeData = urldecode($cardId);
+
+        $options = new \chillerlan\QRCode\QROptions([
+            'outputInterface' => \chillerlan\QRCode\Output\QRGdImagePNG::class,
+            'eccLevel'        => \chillerlan\QRCode\Common\EccLevel::L,
+            'scale'           => 5,
+            'outputBase64'    => false,
+        ]);
+
+        try {
+            $qrcode = new \chillerlan\QRCode\QRCode($options);
+            $output = $qrcode->render($qrCodeData);
+
+            $this->response->setHeader('Content-Type', 'image/png');
+            echo $output;
+        } catch (\Throwable $e) {
+            log_message('error', 'generateVisitorCardQr failed: ' . $e->getMessage());
+            $this->response->setStatusCode(500);
+            echo json_encode(['error' => 'QR generation failed: ' . $e->getMessage()]);
+        }
+        exit;
     }
 
     // ========================

@@ -2406,14 +2406,16 @@
                                     <thead
                                         class="text-xs text-gray-600 dark:text-slate-400 uppercase border-b border-gray-200 dark:border-slate-700">
                                         <tr>
-                                            <th class="px-4 py-3">Card EPC</th>
-                                            <th class="px-4 py-3">Status</th>
-                                            <th class="px-4 py-3 w-32">Actions</th>
+                                            <th class="px-4 py-3 w-1/5">Card EPC</th>
+                                            <th class="px-4 py-3 w-1/5">Serial No</th>
+                                            <th class="px-4 py-3 w-1/5">Status</th>
+                                            <th class="px-4 py-3 w-1/5">QR</th>
+                                            <th class="px-4 py-3 w-1/5">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody id="visitorCardTableBody" class="text-gray-700 dark:text-slate-300">
                                         <tr>
-                                            <td colspan="3" class="px-4 py-12 text-center">
+                                            <td colspan="5" class="px-4 py-12 text-center">
                                                 <div class="flex flex-col items-center justify-center">
                                                     <div
                                                         class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4">
@@ -10788,7 +10790,7 @@
                     } else {
                         document.getElementById('visitorCardTableBody').innerHTML = `
                             <tr>
-                                <td colspan="4" class="px-4 py-12 text-center">
+                                <td colspan="5" class="px-4 py-12 text-center">
                                     <div class="flex flex-col items-center justify-center">
                                         <span class="material-symbols-outlined text-red-500 text-5xl mb-2">error</span>
                                         <p class="text-gray-500 dark:text-slate-400">${data.message || 'Error loading visitor cards'}</p>
@@ -10802,7 +10804,7 @@
                     console.error('Error loading visitor cards:', error);
                     document.getElementById('visitorCardTableBody').innerHTML = `
                         <tr>
-                            <td colspan="4" class="px-4 py-12 text-center">
+                            <td colspan="5" class="px-4 py-12 text-center">
                                 <div class="flex flex-col items-center justify-center">
                                     <span class="material-symbols-outlined text-red-500 text-5xl mb-2">error</span>
                                     <p class="text-gray-500 dark:text-slate-400">An error occurred while loading visitor cards</p>
@@ -10819,7 +10821,7 @@
             if (visitorCards.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="3" class="px-4 py-12 text-center">
+                        <td colspan="5" class="px-4 py-12 text-center">
                             <div class="flex flex-col items-center justify-center">
                                 <span class="material-symbols-outlined text-gray-400 text-5xl mb-2">inventory_2</span>
                                 <p class="text-gray-500 dark:text-slate-400">No visitor cards found</p>
@@ -10844,10 +10846,21 @@
                     statusBadge = '<span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">Inactive</span>';
                 }
 
+                let generateBtn = '';
+                if (status === 'active' || status === 'in_use') {
+                    generateBtn = `<button onclick="openVisitorCardQrModal('${escapeHtml(card.card_id)}')" class="px-3 py-1.5 bg-primary text-white text-xs font-medium rounded hover:bg-blue-600 transition-colors">Generate</button>`;
+                } else {
+                    generateBtn = `<button disabled class="px-3 py-1.5 bg-gray-300 text-gray-500 text-xs font-medium rounded cursor-not-allowed" title="Card must be active or in use">Generate</button>`;
+                }
+
                 return `
                     <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
                         <td class="px-4 py-3 font-medium">${escapeHtml(card.card_id)}</td>
+                        <td class="px-4 py-3">${escapeHtml(card.serial_no || '')}</td>
                         <td class="px-4 py-3">${statusBadge}</td>
+                        <td class="px-4 py-3">
+                            ${generateBtn}
+                        </td>
                         <td class="px-4 py-3 w-32">
                             <div class="flex gap-2">
                                 <button onclick="openEditVisitorCardModal(${card.id})" class="text-primary hover:text-primary/80">
@@ -10941,6 +10954,11 @@
                                     <span id="cardIdError" class="text-red-500 text-xs mt-1 hidden"></span>
                                 </div>
                                 <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Serial No <span class="text-red-500">*</span></label>
+                                    <input type="text" id="cardSerialNo" name="serial_no" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Enter serial no" required>
+                                    <span id="cardSerialNoError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                </div>
+                                <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Status <span class="text-red-500">*</span></label>
                                     <select id="cardStatus" name="status" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" required>
                                         <option value="">Select Status</option>
@@ -10990,6 +11008,11 @@
                                             <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Card EPC <span class="text-red-500">*</span></label>
                                             <input type="text" id="cardId" name="card_id" value="${escapeHtml(card.card_id)}" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Enter card EPC" required>
                                             <span id="cardIdError" class="text-red-500 text-xs mt-1 hidden"></span>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Serial No <span class="text-red-500">*</span></label>
+                                            <input type="text" id="cardSerialNo" name="serial_no" value="${escapeHtml(card.serial_no || '')}" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Enter serial no" required>
+                                            <span id="cardSerialNoError" class="text-red-500 text-xs mt-1 hidden"></span>
                                         </div>
                                         <div>
                                             <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Status <span class="text-red-500">*</span></label>
@@ -11057,6 +11080,66 @@
             `);
         }
 
+        function openVisitorCardQrModal(cardId) {
+            const qrUrl = `<?= base_url('config/generateVisitorCardQr') ?>/${encodeURIComponent(cardId)}`;
+            
+            document.body.insertAdjacentHTML('beforeend', `
+                <div id="visitorCardQrModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md">
+                        <div class="border-b border-gray-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between">
+                            <h3 class="text-lg font-bold text-gray-800 dark:text-white">Visitor Card QR</h3>
+                            <button onclick="closeVisitorCardQrModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 border border-gray-300 dark:border-slate-600 px-2 py-0.5 rounded">
+                                <span class="text-sm font-bold">x</span>
+                            </button>
+                        </div>
+                        <div class="p-6">
+                            <div class="mb-4">
+                                <span class="material-symbols-outlined text-gray-800 dark:text-white text-3xl">home</span>
+                                <span class="material-symbols-outlined text-yellow-500 text-xl -ml-2">shield</span>
+                            </div>
+                            <div class="flex justify-center">
+                                <img src="${qrUrl}" alt="QR Code for ${cardId}" class="w-64 h-64 object-contain">
+                            </div>
+                        </div>
+                        <div class="px-6 py-4 flex justify-between gap-3">
+                            <button onclick="closeVisitorCardQrModal()" class="px-5 py-2.5 rounded text-white font-medium bg-yellow-500 hover:bg-yellow-600 transition-colors text-sm">
+                                Close
+                            </button>
+                            <button onclick="printVisitorCardQr('${qrUrl}')" class="px-5 py-2.5 rounded bg-secondary text-white font-medium hover:bg-blue-600 transition-colors text-sm">
+                                Print
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `);
+        }
+
+        function closeVisitorCardQrModal() {
+            const modal = document.getElementById('visitorCardQrModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        function printVisitorCardQr(qrUrl) {
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>Print QR Code</title>
+                    <style>
+                        body { display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+                        img { max-width: 100%; height: auto; }
+                    </style>
+                </head>
+                <body>
+                    <img src="${qrUrl}" onload="window.print(); window.close();">
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+
         function closeVisitorCardModal() {
             const modal = document.getElementById('visitorCardModal');
             if (modal) {
@@ -11073,9 +11156,11 @@
 
         function clearVisitorCardErrors() {
             const cardIdError = document.getElementById('cardIdError');
+            const cardSerialNoError = document.getElementById('cardSerialNoError');
             const cardStatusError = document.getElementById('cardStatusError');
 
             if (cardIdError) cardIdError.classList.add('hidden');
+            if (cardSerialNoError) cardSerialNoError.classList.add('hidden');
             if (cardStatusError) cardStatusError.classList.add('hidden');
         }
 
@@ -11083,9 +11168,11 @@
             e.preventDefault();
             clearVisitorCardErrors();
 
-            const formData = new FormData();
-            formData.append('card_id', document.getElementById('cardId').value.trim());
-            formData.append('status', document.getElementById('cardStatus').value);
+            const payload = {
+                card_id: document.getElementById('cardId').value.trim(),
+                serial_no: document.getElementById('cardSerialNo').value.trim(),
+                status: document.getElementById('cardStatus').value
+            };
 
             const url = currentVisitorCardId
                 ? `<?= base_url('config/updateVisitorCard') ?>/${currentVisitorCardId}`
@@ -11100,7 +11187,11 @@
 
             fetch(url, {
                 method: method,
-                body: formData
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(payload)
             })
                 .then(response => response.json())
                 .then(data => {
@@ -11113,6 +11204,10 @@
                             if (data.errors.card_id) {
                                 document.getElementById('cardIdError').textContent = data.errors.card_id;
                                 document.getElementById('cardIdError').classList.remove('hidden');
+                            }
+                            if (data.errors.serial_no) {
+                                document.getElementById('cardSerialNoError').textContent = data.errors.serial_no;
+                                document.getElementById('cardSerialNoError').classList.remove('hidden');
                             }
                             if (data.errors.status) {
                                 document.getElementById('cardStatusError').textContent = data.errors.status;
