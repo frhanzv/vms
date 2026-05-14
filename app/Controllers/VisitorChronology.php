@@ -191,7 +191,7 @@ class VisitorChronology extends BaseController
                 'visit_duration'  => $duration,
                 'status'          => $status,
                 'location'        => $v['i_location'] ?? 'N/A',
-                'last_updated'    => date('n/j/Y, g:i:s A', strtotime($v['updated_at'] ?? 'now')),
+                'last_updated'    => date('M j, Y g:i A', strtotime($v['updated_at'] ?? 'now')),
                 'search_type'     => 'Auto Detect'
             ];
         }
@@ -232,7 +232,7 @@ class VisitorChronology extends BaseController
         foreach ($chronologyData as $row) {
             $formattedChron[] = [
                 'visitor_name'    => $row['visitor_name'] ?? 'N/A',
-                'access_time'     => ! empty($row['access_time']) ? date('d/m/Y H:i', strtotime($row['access_time'])) : '-',
+                'access_time'     => ! empty($row['access_time']) ? date('M j, Y g:i A', strtotime($row['access_time'])) : '-',
                 'location_detail' => ($row['lane_name'] ?? '') . ' · ' . ($row['branch'] ?? '') . ' — ' . ($row['location_access'] ?? ''),
             ];
         }
@@ -240,8 +240,8 @@ class VisitorChronology extends BaseController
         return $this->response->setJSON([
             'success'       => true,
             'location_name' => $locationName,
-            'from_datetime' => date('d M Y, h:i A', strtotime($fromDatetime)),
-            'to_datetime'   => date('d M Y, h:i A', strtotime($toDatetime)),
+            'from_datetime' => date('M j, Y g:i A', strtotime($fromDatetime)),
+            'to_datetime'   => date('M j, Y g:i A', strtotime($toDatetime)),
             'visitors'      => $formattedVisitors,
             'chronology'    => $formattedChron,
         ]);
@@ -305,7 +305,7 @@ class VisitorChronology extends BaseController
             'visitor' => $visitor,
             'visit_duration' => $duration,
             'status_text' => $statusText,
-            'generated_at' => date('n/j/Y, g:i:s A')
+            'generated_at' => date('M j, Y g:i A')
         ];
 
         return view('reports/visitor_details_print', $data);
@@ -384,15 +384,15 @@ class VisitorChronology extends BaseController
                 ],
                 'dates' => (!empty($ivRow['check_in_time']) ? [
                     [
-                        'display_date' => date('d-M-Y', strtotime($ivRow['check_in_time'])),
+                        'display_date' => date('M j, Y', strtotime($ivRow['check_in_time'])),
                         'logs_count' => 0,
                         'movements' => [
                             [
                                 'movement_index' => 1,
                                 'from' => 'Manual Registration',
                                 'to'   => ($ivRow['check_out_time'] ? 'Manual Checkout' : 'STILL AT SITE'),
-                                'entry_time' => date('h:i:s A', strtotime($ivRow['check_in_time'])),
-                                'exit_time'  => ($ivRow['check_out_time'] ? date('h:i:s A', strtotime($ivRow['check_out_time'])) : '-'),
+                                'entry_time' => date('g:i A', strtotime($ivRow['check_in_time'])),
+                                'exit_time'  => ($ivRow['check_out_time'] ? date('g:i A', strtotime($ivRow['check_out_time'])) : '-'),
                                 'time_spent' => ($ivRow['check_out_time'] ? $this->formatDuration(strtotime($ivRow['check_out_time']) - strtotime($ivRow['check_in_time'])) : '-'),
                                 'status'     => 'GRANTED'
                             ]
@@ -413,7 +413,7 @@ class VisitorChronology extends BaseController
             $dateStr = date('Y-m-d', strtotime($log['scanned_at']));
             if (!isset($dates[$dateStr])) {
                 $dates[$dateStr] = [
-                    'display_date' => date('d-M-Y', strtotime($dateStr)),
+                    'display_date' => date('M j, Y', strtotime($dateStr)),
                     'logs_count' => 0,
                     'movements' => []
                 ];
@@ -440,14 +440,14 @@ class VisitorChronology extends BaseController
             }
 
             // Create Movement object
-            $exitTime = $nextLog ? date('h:i:s A', strtotime($nextLog['scanned_at'])) : '-';
+            $exitTime = $nextLog ? date('g:i A', strtotime($nextLog['scanned_at'])) : '-';
             $durationStr = $this->formatDuration($durationSeconds);
 
             $dates[$dateStr]['movements'][] = [
                 'movement_index' => count($dates[$dateStr]['movements']) + 1,
                 'from' => ($currentLog['lane_name'] ?? 'Unknown Road'),
                 'to'   => ($nextLog ? ($nextLog['lane_name'] ?? 'Unknown Road') : 'STILL AT SITE'),
-                'entry_time' => date('h:i:s A', strtotime($currentLog['scanned_at'])),
+                'entry_time' => date('g:i A', strtotime($currentLog['scanned_at'])),
                 'exit_time'  => $exitTime,
                 'time_spent' => ($nextLog ? $durationStr : '-'),
                 'status'     => 'GRANTED' // Action is always granted in logs unless denied logs exist
@@ -465,7 +465,7 @@ class VisitorChronology extends BaseController
                 if ($lastMIdx >= 0 && ($movements[$lastMIdx]['to'] ?? '') === 'STILL AT SITE' && $checkoutTs >= $entryTs) {
                     $dur = $checkoutTs - $entryTs;
                     $movements[$lastMIdx]['to']         = 'Recorded checkout';
-                    $movements[$lastMIdx]['exit_time']  = date('h:i:s A', $checkoutTs);
+                    $movements[$lastMIdx]['exit_time']  = date('g:i A', $checkoutTs);
                     $movements[$lastMIdx]['time_spent'] = $this->formatDuration($dur);
                 }
             }
@@ -548,7 +548,7 @@ class VisitorChronology extends BaseController
             $dateStr = date('Y-m-d', strtotime($log['scanned_at']));
             if (!isset($dates[$dateStr])) {
                 $dates[$dateStr] = [
-                    'display_date' => date('d-M-Y', strtotime($dateStr)),
+                    'display_date' => date('M j, Y', strtotime($dateStr)),
                     'logs_count' => 0,
                     'movements' => []
                 ];
@@ -569,14 +569,14 @@ class VisitorChronology extends BaseController
                 $totalSeconds += $durationSeconds;
             }
 
-            $exitTime = $nextLog ? date('H:i:s', strtotime($nextLog['scanned_at'])) : '-';
+            $exitTime = $nextLog ? date('g:i A', strtotime($nextLog['scanned_at'])) : '-';
             $durationStr = $this->formatDuration($durationSeconds);
 
             $dates[$dateStr]['movements'][] = [
                 'movement_index' => count($dates[$dateStr]['movements']) + 1,
                 'from' => ($currentLog['lane_name'] ?? 'Unknown Road'),
                 'to'   => ($nextLog ? ($nextLog['lane_name'] ?? 'Unknown Road') : 'STILL AT SITE'),
-                'entry_time' => date('H:i:s', strtotime($currentLog['scanned_at'])),
+                'entry_time' => date('g:i A', strtotime($currentLog['scanned_at'])),
                 'exit_time'  => $exitTime,
                 'time_spent' => ($nextLog ? $durationStr : '-'),
                 'status'     => 'GRANTED'
@@ -594,7 +594,7 @@ class VisitorChronology extends BaseController
                 if ($lastMIdx >= 0 && ($movements[$lastMIdx]['to'] ?? '') === 'STILL AT SITE' && $checkoutTs >= $entryTs) {
                     $dur = $checkoutTs - $entryTs;
                     $movements[$lastMIdx]['to']         = 'Recorded checkout';
-                    $movements[$lastMIdx]['exit_time']  = date('H:i:s', $checkoutTs);
+                    $movements[$lastMIdx]['exit_time']  = date('g:i A', $checkoutTs);
                     $movements[$lastMIdx]['time_spent'] = $this->formatDuration($dur);
                 }
             }
@@ -629,7 +629,7 @@ class VisitorChronology extends BaseController
             'dates' => array_values($dates)
         ];
 
-        return view('reports/visitor_chronology_print', ['data' => $data, 'generated_at' => date('n/j/Y, g:i:s A')]);
+        return view('reports/visitor_chronology_print', ['data' => $data, 'generated_at' => date('M j, Y g:i A')]);
     }
 
     /**

@@ -55,69 +55,65 @@
 
     <!-- Content Grid -->
     <div class="grid grid-cols-2 gap-x-8 gap-y-6">
-        <!-- Left Column -->
-        <div class="space-y-6">
-            <div>
-                <span class="label">Staff No:</span>
-                <div class="info-box"><?= esc($visitor['staff_id']) ?: 'N/A' ?></div>
-            </div>
-            <div>
-                <span class="label">IC No:</span>
-                <div class="info-box"><?= esc($visitor['ic_passport']) ?></div>
-            </div>
-            <div>
-                <span class="label">Host Name:</span>
-                <div class="info-box uppercase"><?= esc($visitor['invited_by']) ?></div>
-            </div>
-            <div>
-                <span class="label">Visit From:</span>
-                <div class="info-box">
-                    <?= !empty($visitor['visit_from']) ? date('l, F j, Y \a\t g:i:s A', strtotime($visitor['visit_from'])) : 'N/A' ?> 
-                    <?php if(!empty($visitor['visit_from'])): ?><span class="text-xs text-slate-400 ml-1 font-normal">(From device_access_logs)</span><?php endif; ?>
-                </div>
-            </div>
-            <div>
-                <span class="label">Last Updated:</span>
-                <div class="info-box"><?= date('n/j/Y, g:i:s A', strtotime($visitor['updated_at'])) ?></div>
-            </div>
+        <!-- Row 1 -->
+        <div>
+            <span class="label">Full Name:</span>
+            <div class="info-box uppercase"><?= esc($visitor['full_name']) ?></div>
+        </div>
+        <div>
+            <span class="label">IC No:</span>
+            <div class="info-box"><?= esc($visitor['ic_passport']) ?></div>
         </div>
 
-        <!-- Right Column -->
-        <div class="space-y-6">
-            <div>
-                <span class="label">Reason for Visit:</span>
-                <div class="info-box uppercase"><?= esc($visitor['reason']) ?: 'N/A' ?></div>
+        <!-- Row 2 -->
+        <div>
+            <span class="label">Reason for Visit:</span>
+            <div class="info-box uppercase"><?= esc($visitor['reason']) ?: 'N/A' ?></div>
+        </div>
+        <div>
+            <span class="label">Host Name:</span>
+            <div class="info-box uppercase"><?= esc($visitor['invited_by']) ?></div>
+        </div>
+
+        <!-- Row 3 -->
+        <div>
+            <span class="label">Contact No:</span>
+            <div class="info-box"><?= esc($visitor['contact']) ?></div>
+        </div>
+        <div>
+            <span class="label">Company Name:</span>
+            <div class="info-box uppercase"><?= esc($visitor['company']) ?: 'N/A' ?></div>
+        </div>
+
+        <!-- Scanned Times -->
+        <div>
+            <span class="label">First Scanned At:</span>
+            <div class="info-box">
+                <?= !empty($visitor['visit_from']) ? date('M j, Y g:i A', strtotime($visitor['visit_from'])) : 'N/A' ?> 
+                <?php if(!empty($visitor['visit_from'])): ?><span class="text-xs text-slate-400 ml-1 font-normal">(From device_access_logs)</span><?php endif; ?>
             </div>
-            <div>
-                <span class="label">Full Name:</span>
-                <div class="info-box uppercase"><?= esc($visitor['full_name']) ?></div>
-            </div>
-            <div>
-                <span class="label">Contact No:</span>
-                <div class="info-box"><?= esc($visitor['contact']) ?></div>
-            </div>
-            <div>
-                <span class="label">Visit To:</span>
-                <div class="info-box">
-                    <?= !empty($visitor['visit_to']) ? date('l, F j, Y \a\t g:i:s A', strtotime($visitor['visit_to'])) : 'N/A' ?>
-                    <?php if(!empty($visitor['visit_to'])): ?><span class="text-xs text-slate-400 ml-1 font-normal">(From device_access_logs)</span><?php endif; ?>
-                </div>
+        </div>
+        <div>
+            <span class="label">Last Scanned At:</span>
+            <div class="info-box">
+                <?= !empty($visitor['visit_to']) ? date('M j, Y g:i A', strtotime($visitor['visit_to'])) : 'N/A' ?>
+                <?php if(!empty($visitor['visit_to'])): ?><span class="text-xs text-slate-400 ml-1 font-normal">(From device_access_logs)</span><?php endif; ?>
             </div>
         </div>
     </div>
 
-    <!-- Full Width Section (Duration) -->
-    <div class="mt-8">
-        <span class="label">Visit Duration:</span>
-        <div class="info-box bg-blue-50/50 border-blue-100">
-            <span class="text-blue-600 font-bold"><?= esc($visit_duration) ?> <?= esc($status_text) ?></span>
+    <!-- Duration and Update Info -->
+    <div class="grid grid-cols-2 gap-x-8 gap-y-6 mt-6">
+        <div>
+            <span class="label">Visit Duration:</span>
+            <div class="info-box bg-blue-50/50 border-blue-100">
+                <span class="text-blue-600 font-bold"><?= esc($visit_duration) ?> <?= esc($status_text) ?></span>
+            </div>
         </div>
-    </div>
-
-    <!-- Company Name -->
-    <div class="mt-6">
-        <span class="label">Company Name:</span>
-        <div class="info-box bg-blue-50/50 border-blue-100 uppercase"><?= esc($visitor['company']) ?: 'N/A' ?></div>
+        <div>
+            <span class="label">Last Database Update:</span>
+            <div class="info-box"><?= date('M j, Y g:i A', strtotime($visitor['updated_at'])) ?></div>
+        </div>
     </div>
 
     <!-- Footer -->

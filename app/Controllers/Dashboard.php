@@ -166,13 +166,13 @@ class Dashboard extends BaseController
             }
             
             if (!empty($visitor['check_out_time'])) {
-                $timeDisplay = date('M d, h:i A', strtotime($visitor['check_out_time']));
+                $timeDisplay = date('M j, Y g:i A', strtotime($visitor['check_out_time']));
                 $dateRaw = $visitor['check_out_time'];
             } elseif (!empty($visitor['check_in_time'])) {
-                $timeDisplay = date('M d, h:i A', strtotime($visitor['check_in_time']));
+                $timeDisplay = date('M j, Y g:i A', strtotime($visitor['check_in_time']));
                 $dateRaw = $visitor['check_in_time'];
             } else {
-                $timeDisplay = date('h:i A', strtotime($visitor['date_from']));
+                $timeDisplay = date('g:i A', strtotime($visitor['date_from']));
                 $dateRaw = $visitor['date_from'];
             }
 
@@ -445,7 +445,7 @@ class Dashboard extends BaseController
                 'name' => $v['visitor_name'] ?? 'N/A',
                 'ic_number' => $v['ic_number'] ?? 'N/A',
                 'host' => $v['host_name'] ?? 'N/A',
-                'check_in_time' => !empty($v['check_in_time']) ? date('M d, Y h:i A', strtotime($v['check_in_time'])) : 'N/A',
+                'check_in_time' => !empty($v['check_in_time']) ? date('M j, Y g:i A', strtotime($v['check_in_time'])) : 'N/A',
                 'last_door_entry' => $v['last_door_entry'] ?? 'N/A',
             ];
         }
@@ -468,8 +468,8 @@ class Dashboard extends BaseController
             $upcomingAppointments[] = [
                 'visitor_name' => $appt['visitor_name'] ?? 'N/A',
                 'host_name' => $appt['host_name'] ?? 'N/A',
-                'time' => date('h:i A', strtotime($appt['date_from'])),
-                'date' => date('M d, Y', strtotime($appt['date_from'])),
+                'time' => date('g:i A', strtotime($appt['date_from'])),
+                'date' => date('M j, Y', strtotime($appt['date_from'])),
                 'reason' => $appt['reason'] ?? 'Visit',
             ];
         }
@@ -507,8 +507,8 @@ class Dashboard extends BaseController
             $todayAppointments[] = [
                 'visitor_name' => $appt['visitor_name'] ?? 'N/A',
                 'host_name' => $appt['host_name'] ?? 'N/A',
-                'time' => date('h:i A', strtotime($appt['date_from'])),
-                'end_time' => date('h:i A', strtotime($appt['date_to'])),
+                'time' => date('g:i A', strtotime($appt['date_from'])),
+                'end_time' => date('g:i A', strtotime($appt['date_to'])),
                 'reason' => $appt['reason'] ?? 'Visit',
                 'status' => $apptStatus,
             ];
@@ -543,7 +543,7 @@ class Dashboard extends BaseController
 
         $data = [
             'pageTitle' => 'Host Dashboard - SafeG',
-            'currentDate' => date('F jS, Y'),
+            'currentDate' => date('M jS, Y'),
             'userName' => $currentUser['full_name'] ?? session()->get('full_name') ?? 'Admin',
             'userRole' => $currentUser['role'] ?? session()->get('role') ?? 'Admin',
             'userPhoto' => $currentUser['profile_photo'] ?? null,

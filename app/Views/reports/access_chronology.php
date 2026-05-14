@@ -547,28 +547,28 @@
                     <span id="mdStaffno" class="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase"></span>
                 </div>
                 <div>
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">IC Number</span>
-                    <span id="mdIcno" class="text-sm font-bold text-slate-700 dark:text-slate-200"></span>
-                </div>
-                <div>
                     <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Full Name</span>
                     <span id="mdFullname" class="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase"></span>
                 </div>
                 <div>
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Company Name</span>
-                    <span id="mdCompany" class="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase"></span>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">IC Number</span>
+                    <span id="mdIcno" class="text-sm font-bold text-slate-700 dark:text-slate-200"></span>
+                </div>
+                <div>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Visit Reason</span>
+                    <span id="mdReason" class="text-sm font-bold text-slate-700 dark:text-slate-200"></span>
+                </div>
+                <div>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Host Name</span>
+                    <span id="mdPersonVisited" class="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase"></span>
                 </div>
                 <div>
                     <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Contact No</span>
                     <span id="mdContactno" class="text-sm font-bold text-slate-700 dark:text-slate-200"></span>
                 </div>
                 <div>
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Host Name</span>
-                    <span id="mdPersonVisited" class="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase"></span>
-                </div>
-                <div class="col-span-1">
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Visit Reason</span>
-                    <span id="mdReason" class="text-sm font-bold text-slate-700 dark:text-slate-200"></span>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Company Name</span>
+                    <span id="mdCompany" class="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase"></span>
                 </div>
                 <div>
                     <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">First Scanned At</span>

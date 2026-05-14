@@ -129,8 +129,8 @@ class AccessReport extends BaseController
                 'visitor_company' => $row['visitor_company'] ?? 'N/A',
                 'vehicle_no'      => $row['vehicle_no']      ?? '-',
                 'visit_reason'    => $row['visit_reason']    ?? 'N/A',
-                'first_access'    => $row['first_access']    ? date('d/m/Y H:i', strtotime($row['first_access'])) : '-',
-                'last_access'     => $row['last_access']     ? date('d/m/Y H:i', strtotime($row['last_access']))  : '-',
+                'first_access'    => $row['first_access']    ? date('M j, Y g:i A', strtotime($row['first_access'])) : '-',
+                'last_access'     => $row['last_access']     ? date('M j, Y g:i A', strtotime($row['last_access']))  : '-',
                 'total_access'    => (int) $row['total_access'],
                 'location_name'   => $row['location_name']   ?? 'N/A',
             ];
@@ -140,8 +140,8 @@ class AccessReport extends BaseController
             'success'       => true,
             'total_visitors'=> count($visitors),
             'location_name' => $locationName,
-            'from_datetime' => date('d M Y, h:i A', strtotime($fromDatetime)),
-            'to_datetime'   => date('d M Y, h:i A', strtotime($toDatetime)),
+            'from_datetime' => date('M j, Y g:i A', strtotime($fromDatetime)),
+            'to_datetime'   => date('M j, Y g:i A', strtotime($toDatetime)),
             'visitors'      => $visitors,
         ]);
     }
@@ -271,7 +271,7 @@ class AccessReport extends BaseController
 
             $movements[] = [
                 'date_time' => ! empty($row['scanned_at'])
-                    ? date('d M Y h:i:s A', strtotime($row['scanned_at']))
+                    ? date('M j, Y g:i A', strtotime($row['scanned_at']))
                     : '—',
                 'current_location'  => $currentLocation,
                 'location_accessed' => $locationAccessed,
