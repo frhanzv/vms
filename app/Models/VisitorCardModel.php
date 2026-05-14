@@ -17,6 +17,7 @@ class VisitorCardModel extends Model
     protected $protectFields = true;
     protected $allowedFields = [
         'card_id',
+        'serial_no',
         'status',
         'version'
     ];
@@ -30,6 +31,7 @@ class VisitorCardModel extends Model
     // Validation
     protected $validationRules = [
         'card_id' => 'required|max_length[50]|is_unique[visitor_cards.card_id,id,{id}]',
+        'serial_no' => 'required|max_length[100]',
         'status' => 'required|in_list[active,in_use,lost,inactive]'
     ];
 
@@ -39,6 +41,10 @@ class VisitorCardModel extends Model
             'max_length' => 'Card EPC cannot exceed 50 characters',
             'is_unique' => 'This card EPC already exists'
         ],
+        'serial_no' => [
+            'required' => 'Serial No is required',
+            'max_length' => 'Serial No cannot exceed 100 characters',
+        ],
         'status' => [
             'required' => 'Status is required',
             'in_list' => 'Status must be active, in_use, lost, or inactive'
@@ -47,6 +53,17 @@ class VisitorCardModel extends Model
 
     protected $skipValidation = false;
     protected $cleanValidationRules = true;
+
+    /**
+     * Override update to dynamically set the is_unique validation rule for card_id.
+     */
+    public function update($id = null, $data = null): bool
+    {
+        if ($id !== null) {
+            $this->validationRules['card_id'] = "required|max_length[50]|is_unique[visitor_cards.card_id,id,{$id}]";
+        }
+        return parent::update($id, $data);
+    }
 
     /**
      * Get visitor cards with pagination, search, and sorting

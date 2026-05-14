@@ -179,6 +179,7 @@ $routes->group('', ['filter' => 'client_feature:visitor_card'], function($routes
     $routes->post('config/createVisitorCard', 'Config::createVisitorCard');
     $routes->put('config/updateVisitorCard/(:num)', 'Config::updateVisitorCard/$1');
     $routes->delete('config/deleteVisitorCard/(:num)', 'Config::deleteVisitorCard/$1');
+    $routes->get('config/generateVisitorCardQr/(:any)', 'Config::generateVisitorCardQr/$1');
 });
 
 // Video Management Routes
