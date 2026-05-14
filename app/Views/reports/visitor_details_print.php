@@ -100,7 +100,6 @@
                 <?php if(!empty($visitor['visit_to'])): ?><span class="text-xs text-slate-400 ml-1 font-normal">(From device_access_logs)</span><?php endif; ?>
             </div>
         </div>
-    </div>
 
     <!-- Duration and Update Info -->
     <div class="grid grid-cols-2 gap-x-8 gap-y-6 mt-6">

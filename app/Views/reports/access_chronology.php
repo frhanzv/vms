@@ -571,6 +571,10 @@
                     <span id="mdCompany" class="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase"></span>
                 </div>
                 <div>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Host Name</span>
+                    <span id="mdPersonVisited" class="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase"></span>
+                </div>
+                <div>
                     <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">First Scanned At</span>
                     <span id="mdVisitFrom" class="text-xs font-medium text-slate-500"></span>
                 </div>
