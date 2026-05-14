@@ -3,6 +3,7 @@
 namespace App\Libraries;
 
 use App\Models\SettingModel;
+use App\Models\WorkflowModel;
 
 class InvitationProcessFlowService
 {
@@ -58,10 +59,12 @@ class InvitationProcessFlowService
     ];
 
     private SettingModel $settingModel;
+    private WorkflowModel $workflowModel;
 
     public function __construct()
     {
         $this->settingModel = new SettingModel();
+        $this->workflowModel = new WorkflowModel();
     }
 
     /**
@@ -69,38 +72,59 @@ class InvitationProcessFlowService
      */
     public function getSequence(): array
     {
-        $raw = $this->settingModel->getSetting(self::SETTING_KEY);
-        $decoded = $raw ? json_decode((string) $raw, true) : null;
-        $arr = is_array($decoded) ? $decoded : [];
-        $hasStoredSequence = is_string($raw) && trim($raw) !== '';
+        $workflows = $this->workflowModel
+            ->where('is_active', 1)
+            ->orderBy('step_order', 'ASC')
+            ->findAll();
 
-        $normalized = $this->normalizeSequence($arr);
-
-        // First-run bootstrap: persist the default 9-step workflow so all devices read
-        // the same sequence from DB even before anyone clicks "Save Sequence".
-        if (! $hasStoredSequence) {
-            $this->settingModel->setSetting(self::SETTING_KEY, json_encode($normalized));
+        $sequence = [];
+        foreach ($workflows as $w) {
+            $sequence[] = $w['step_key'];
         }
 
-        return $normalized;
+        // Bootstrap if empty
+        if ($sequence === []) {
+            $allowed = $this->getAllowedStepKeys();
+            foreach ($allowed as $i => $key) {
+                $this->workflowModel->insert([
+                    'step_name' => self::STEP_DEFINITIONS[$key]['label'],
+                    'step_key' => $key,
+                    'step_order' => $i + 1,
+                    'is_active' => 1
+                ]);
+                $sequence[] = $key;
+            }
+        }
+
+        return $sequence;
     }
 
     /**
+     * Update step_order for the provided sequence of step_keys.
+     * Keys not in the array are unaffected (or disabled if we choose to, but we only reorder active ones).
+     *
      * @param array<int, string> $sequence
      */
     public function saveSequence(array $sequence): bool
     {
-        $normalized = $this->normalizeSequence($sequence);
-
-        return (bool) $this->settingModel->setSetting(self::SETTING_KEY, json_encode($normalized));
+        // $sequence contains active step_keys in the desired order
+        $order = 1;
+        foreach ($sequence as $key) {
+            $workflow = $this->workflowModel->where('step_key', $key)->first();
+            if ($workflow) {
+                $this->workflowModel->update($workflow['id'], [
+                    'step_order' => $order,
+                    'is_active' => 1
+                ]);
+                $order++;
+            }
+        }
+        return true;
     }
 
-    /**
-     * @param array<int, array{key:string,label:string,route:string}> $steps
-     */
     public function saveCustomSteps(array $steps): bool
     {
-        $sanitized = [];
+        // Custom steps logic can be migrated to DB directly.
         foreach ($steps as $row) {
             $key = trim((string) ($row['key'] ?? ''));
             $label = trim((string) ($row['label'] ?? ''));
@@ -108,34 +132,62 @@ class InvitationProcessFlowService
             if ($key === '' || $label === '' || $route === '') {
                 continue;
             }
-
-            $sanitized[] = [
-                'key' => $key,
-                'label' => $label,
-                'route' => $route,
-            ];
+            
+            $triggerEvent = trim((string) ($row['trigger_event'] ?? ''));
+            
+            // For now, if we create a custom step, we just insert it into workflows table
+            if (!$this->workflowModel->where('step_key', $key)->first()) {
+                $this->workflowModel->insert([
+                    'step_name' => $label,
+                    'step_key' => $key,
+                    'route' => $route,
+                    'trigger_event' => $triggerEvent === '' ? null : $triggerEvent,
+                    'step_order' => 999, // Will be reordered
+                    'is_active' => 1
+                ]);
+            }
         }
-
-        return (bool) $this->settingModel->setSetting(self::CUSTOM_STEPS_SETTING_KEY, json_encode($sanitized));
+        // Save the route into settings as fallback since `workflows` table has no route column
+        $existing = $this->getCustomSteps();
+        foreach ($steps as $s) {
+            $exists = false;
+            foreach ($existing as $e) {
+                if ($e['key'] === $s['key']) $exists = true;
+            }
+            if (!$exists) $existing[] = $s;
+        }
+        $this->settingModel->setSetting(self::CUSTOM_STEPS_SETTING_KEY, json_encode($existing));
+        return true;
     }
 
     /**
-     * @return array<int, array{key: string, label: string, route: string, is_custom: bool}>
+     * @return array<int, array{id: int, key: string, label: string, route: string, is_custom: bool, is_active: int, step_order: int}>
      */
-    public function getOrderedSteps(): array
+    public function getOrderedSteps(bool $onlyActive = true): array
     {
         $definitions = $this->getDefinitions();
+        
+        if ($onlyActive) {
+            $this->workflowModel->where('is_active', 1);
+        }
+        
+        $workflows = $this->workflowModel->orderBy('step_order', 'ASC')->findAll();
+        
         $steps = [];
-        foreach ($this->getSequence() as $key) {
-            if (! isset($definitions[$key])) {
-                continue;
-            }
-            $definition = $definitions[$key];
+        foreach ($workflows as $w) {
+            $key = $w['step_key'];
+            $def = $definitions[$key] ?? ['route' => '#', 'is_custom' => true];
+            
             $steps[] = [
+                'id' => $w['id'],
                 'key' => $key,
-                'label' => $definition['label'],
-                'route' => $definition['route'],
-                'is_custom' => (bool) ($definition['is_custom'] ?? false),
+                'label' => $w['step_name'],
+                'route' => $w['route'] ?: $def['route'],
+                'db_route' => $w['route'],
+                'is_active' => (int) $w['is_active'],
+                'step_order' => (int) $w['step_order'],
+                'trigger_event' => $w['trigger_event'],
+                'is_custom' => (bool) ($def['is_custom'] ?? false),
             ];
         }
 

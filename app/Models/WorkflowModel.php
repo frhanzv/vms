@@ -16,6 +16,8 @@ class WorkflowModel extends Model
         'client_id',
         'step_name',
         'step_key',
+        'route',
+        'trigger_event',
         'step_order',
         'is_active',
     ];
@@ -29,10 +31,12 @@ class WorkflowModel extends Model
 
     // Validation
     protected $validationRules      = [
-        'step_name'  => 'required|max_length[100]',
-        'step_key'   => 'required|max_length[50]',
-        'step_order' => 'required|integer',
-        'is_active'  => 'required|in_list[0,1]',
+        'step_name'     => 'required|max_length[100]',
+        'step_key'      => 'required|max_length[50]',
+        'route'         => 'permit_empty|max_length[255]',
+        'trigger_event' => 'permit_empty|max_length[100]',
+        'step_order'    => 'required|integer',
+        'is_active'     => 'required|in_list[0,1]',
     ];
     protected $validationMessages   = [];
     protected $skipValidation       = false;

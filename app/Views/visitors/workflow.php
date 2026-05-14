@@ -91,37 +91,221 @@
                     </div>
                 </div>
 
-                <div class="flex flex-1 flex-col bg-surface-light dark:bg-surface-dark rounded-xl border border-border-light dark:border-border-dark shadow-sm overflow-hidden">
+                <!-- Active Workflows Table -->
+                <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-4">Active Workflows</h2>
+                <div class="flex flex-col bg-surface-light dark:bg-surface-dark rounded-xl border border-border-light dark:border-border-dark shadow-sm overflow-hidden mb-8">
                     <div class="grid grid-cols-12 gap-4 p-4 border-b border-border-light dark:border-border-dark bg-gray-50 dark:bg-[#1a242f] text-xs font-semibold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-wider">
                         <div class="col-span-4">Workflow Name</div>
                         <div class="col-span-3">Trigger</div>
                         <div class="col-span-1">Order</div>
                         <div class="col-span-2">Status</div>
-                        <div class="col-span-2">Source</div>
+                        <div class="col-span-2">Actions</div>
                     </div>
-                    <div class="flex flex-col">
-                        <?php foreach ($workflows as $workflow): ?>
-                            <div class="grid grid-cols-12 gap-4 p-4 border-b border-border-light dark:border-border-dark items-center">
-                                <div class="col-span-4 flex items-center gap-3">
-                                    <div class="size-10 rounded bg-primary/10 flex items-center justify-center text-primary shrink-0">
-                                        <span class="material-symbols-outlined"><?= esc((string) $workflow['icon']) ?></span>
+                    <div class="flex flex-col divide-y divide-border-light dark:divide-border-dark">
+                        <?php if (empty($activeWorkflows)): ?>
+                            <div class="p-8 text-center text-gray-500 dark:text-gray-400">No active workflows.</div>
+                        <?php else: ?>
+                            <?php foreach ($activeWorkflows as $workflow): ?>
+                                <div class="grid grid-cols-12 gap-4 p-4 items-center hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-colors group">
+                                    <div class="col-span-4 flex items-center gap-3">
+                                        <div class="size-10 rounded bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                                            <span class="material-symbols-outlined"><?= esc((string) $workflow['icon']) ?></span>
+                                        </div>
+                                        <div>
+                                            <p class="text-text-main-light dark:text-white font-medium text-sm flex items-center gap-2">
+                                                <?= esc((string) $workflow['name']) ?>
+                                            </p>
+                                            <p class="text-text-secondary-light dark:text-text-secondary-dark text-xs"><?= esc((string) $workflow['route']) ?></p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p class="text-text-main-light dark:text-white font-medium text-sm"><?= esc((string) $workflow['name']) ?></p>
-                                        <p class="text-text-secondary-light dark:text-text-secondary-dark text-xs"><?= esc((string) $workflow['route']) ?></p>
+                                    <div class="col-span-3 text-sm text-gray-600 dark:text-gray-300"><?= esc((string) $workflow['trigger']) ?></div>
+                                    <div class="col-span-1">
+                                        <span class="inline-flex items-center px-2 py-1 rounded bg-gray-100 dark:bg-[#233648] text-xs font-medium"><?= esc((string) ($workflow['step_order'] ?? '')) ?></span>
+                                    </div>
+                                    <div class="col-span-2">
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/10 text-green-600 dark:text-green-400 text-xs font-bold border border-green-500/20">
+                                            <span class="size-1.5 rounded-full bg-green-500"></span>Active
+                                        </span>
+                                    </div>
+                                    <div class="col-span-2 flex items-center justify-start gap-2">
+                                        <button onclick="openEditModal(<?= $workflow['id'] ?>, '<?= esc((string)$workflow['name'], 'js') ?>', '<?= esc((string)($workflow['db_route'] ?? ''), 'js') ?>', '<?= esc((string)($workflow['trigger'] ?? ''), 'js') ?>')" class="p-1.5 text-gray-500 hover:text-primary hover:bg-primary/10 rounded transition-colors" title="Edit">
+                                            <span class="material-symbols-outlined text-[20px]">edit</span>
+                                        </button>
+                                        <button onclick="toggleWorkflow(<?= $workflow['id'] ?>)" class="p-1.5 text-gray-500 hover:text-orange-500 hover:bg-orange-500/10 rounded transition-colors" title="Set Inactive">
+                                            <span class="material-symbols-outlined text-[20px]">toggle_on</span>
+                                        </button>
+                                        <button onclick="openDeleteModal(<?= $workflow['id'] ?>)" class="p-1.5 text-gray-500 hover:text-red-500 hover:bg-red-500/10 rounded transition-colors" title="Delete">
+                                            <span class="material-symbols-outlined text-[20px]">delete</span>
+                                        </button>
                                     </div>
                                 </div>
-                                <div class="col-span-3 text-sm"><?= esc((string) $workflow['trigger']) ?></div>
-                                <div class="col-span-1"><span class="inline-flex items-center px-2 py-1 rounded bg-gray-100 dark:bg-[#233648] text-xs font-medium"><?= esc((string) ($workflow['step_order'] ?? '')) ?></span></div>
-                                <div class="col-span-2"><span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/10 text-green-600 dark:text-green-400 text-xs font-bold border border-green-500/20"><span class="size-1.5 rounded-full bg-green-500"></span><?= esc((string) $workflow['status']) ?></span></div>
-                                <div class="col-span-2 text-sm text-text-secondary-light dark:text-text-secondary-dark"><?= esc((string) ($workflow['modified'] ?? '')) ?></div>
-                            </div>
-                        <?php endforeach; ?>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                     </div>
                 </div>
+
+                <!-- Inactive Workflows Table -->
+                <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-4 mt-8">Inactive Workflows</h2>
+                <div class="flex flex-col bg-surface-light dark:bg-surface-dark rounded-xl border border-border-light dark:border-border-dark shadow-sm overflow-hidden opacity-80">
+                    <div class="grid grid-cols-12 gap-4 p-4 border-b border-border-light dark:border-border-dark bg-gray-50 dark:bg-[#1a242f] text-xs font-semibold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-wider">
+                        <div class="col-span-4">Workflow Name</div>
+                        <div class="col-span-3">Trigger</div>
+                        <div class="col-span-1">Order</div>
+                        <div class="col-span-2">Status</div>
+                        <div class="col-span-2">Actions</div>
+                    </div>
+                    <div class="flex flex-col divide-y divide-border-light dark:divide-border-dark">
+                        <?php if (empty($disabledWorkflows)): ?>
+                            <div class="p-8 text-center text-gray-500 dark:text-gray-400">No inactive workflows.</div>
+                        <?php else: ?>
+                            <?php foreach ($disabledWorkflows as $workflow): ?>
+                                <div class="grid grid-cols-12 gap-4 p-4 items-center hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-colors group">
+                                    <div class="col-span-4 flex items-center gap-3">
+                                        <div class="size-10 rounded bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400 shrink-0">
+                                            <span class="material-symbols-outlined"><?= esc((string) $workflow['icon']) ?></span>
+                                        </div>
+                                        <div>
+                                            <p class="text-text-main-light dark:text-white font-medium text-sm flex items-center gap-2">
+                                                <?= esc((string) $workflow['name']) ?>
+                                            </p>
+                                            <p class="text-text-secondary-light dark:text-text-secondary-dark text-xs"><?= esc((string) $workflow['route']) ?></p>
+                                        </div>
+                                    </div>
+                                    <div class="col-span-3 text-sm text-gray-500 dark:text-gray-400"><?= esc((string) $workflow['trigger']) ?></div>
+                                    <div class="col-span-1">
+                                        <span class="inline-flex items-center px-2 py-1 rounded bg-gray-100 dark:bg-[#233648] text-xs font-medium text-gray-500">-</span>
+                                    </div>
+                                    <div class="col-span-2">
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-500/10 text-gray-600 dark:text-gray-400 text-xs font-bold border border-gray-500/20">
+                                            <span class="size-1.5 rounded-full bg-gray-500"></span>Inactive
+                                        </span>
+                                    </div>
+                                    <div class="col-span-2 flex items-center justify-start gap-2">
+                                        <button onclick="openEditModal(<?= $workflow['id'] ?>, '<?= esc((string)$workflow['name'], 'js') ?>', '<?= esc((string)($workflow['db_route'] ?? ''), 'js') ?>', '<?= esc((string)($workflow['trigger'] ?? ''), 'js') ?>')" class="p-1.5 text-gray-500 hover:text-primary hover:bg-primary/10 rounded transition-colors" title="Edit">
+                                            <span class="material-symbols-outlined text-[20px]">edit</span>
+                                        </button>
+                                        <button onclick="toggleWorkflow(<?= $workflow['id'] ?>)" class="p-1.5 text-gray-500 hover:text-green-500 hover:bg-green-500/10 rounded transition-colors" title="Set Active">
+                                            <span class="material-symbols-outlined text-[20px]">toggle_off</span>
+                                        </button>
+                                        <button onclick="openDeleteModal(<?= $workflow['id'] ?>)" class="p-1.5 text-gray-500 hover:text-red-500 hover:bg-red-500/10 rounded transition-colors" title="Delete">
+                                            <span class="material-symbols-outlined text-[20px]">delete</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
             </div>
         </main>
     </div>
 </div>
+
+<!-- Edit Modal -->
+<div id="editModal" class="fixed inset-0 z-50 flex items-center justify-center hidden bg-black/50 backdrop-blur-sm">
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-200 dark:border-slate-700 w-full max-w-md mx-4 overflow-hidden transform transition-all">
+        <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50">
+            <h3 class="text-lg font-bold text-gray-800 dark:text-white">Edit Workflow</h3>
+            <button onclick="closeEditModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <form id="editForm" method="post" action="">
+            <?= csrf_field() ?>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Workflow Name <span class="text-red-500">*</span></label>
+                    <input type="text" id="editWorkflowName" name="step_name" required class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Trigger</label>
+                    <input type="text" id="editTriggerEvent" name="trigger_event" placeholder="e.g. On Arrival, Custom, Manual Trigger" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary outline-none">
+                    <p class="text-xs text-gray-500 mt-1">Leave blank to use the default system trigger.</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Route / Path</label>
+                    <input type="text" id="editRoute" name="route" placeholder="e.g. security/document-check" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary outline-none">
+                    <p class="text-xs text-gray-500 mt-1">Leave blank to use the system default route.</p>
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 p-4 border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50">
+                <button type="button" onclick="closeEditModal()" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors">Cancel</button>
+                <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary-hover rounded-lg transition-colors shadow-sm">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div id="deleteModal" class="fixed inset-0 z-50 flex items-center justify-center hidden bg-black/50 backdrop-blur-sm">
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-200 dark:border-slate-700 w-full max-w-md mx-4 overflow-hidden transform transition-all">
+        <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-slate-700 bg-red-50 dark:bg-red-900/20">
+            <h3 class="text-lg font-bold text-red-600 dark:text-red-400 flex items-center gap-2">
+                <span class="material-symbols-outlined">warning</span> Delete Workflow
+            </h3>
+            <button onclick="closeDeleteModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <form id="deleteForm" method="post" action="">
+            <?= csrf_field() ?>
+            <div class="p-6">
+                <p class="text-gray-700 dark:text-gray-300">Are you sure you want to delete this workflow? This action cannot be undone.</p>
+            </div>
+            <div class="flex justify-end gap-3 p-4 border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50">
+                <button type="button" onclick="closeDeleteModal()" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors">Cancel</button>
+                <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-sm">Delete</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function toggleWorkflow(id) {
+        fetch('<?= base_url("workflow/toggleActive/") ?>' + id, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                '<?= csrf_header() ?>': '<?= csrf_hash() ?>'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert(data.message || 'Failed to toggle workflow status');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while toggling workflow status');
+        });
+    }
+
+    function openEditModal(id, currentName, route, triggerEvent) {
+        document.getElementById('editWorkflowName').value = currentName;
+        document.getElementById('editRoute').value = route;
+        document.getElementById('editTriggerEvent').value = triggerEvent;
+
+        document.getElementById('editForm').action = '<?= base_url("workflow/edit/") ?>' + id;
+        document.getElementById('editModal').classList.remove('hidden');
+    }
+
+    function closeEditModal() {
+        document.getElementById('editModal').classList.add('hidden');
+    }
+
+    function openDeleteModal(id) {
+        document.getElementById('deleteForm').action = '<?= base_url("workflow/delete/") ?>' + id;
+        document.getElementById('deleteModal').classList.remove('hidden');
+    }
+
+    function closeDeleteModal() {
+        document.getElementById('deleteModal').classList.add('hidden');
+    }
+</script>
+
 </body>
 </html>

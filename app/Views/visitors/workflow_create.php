@@ -39,7 +39,7 @@
             <div class="flex items-start justify-between gap-4 mb-6">
                 <div>
                     <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Edit Invitation Process Sequence</h1>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Drag to reorder, delete workflow steps you do not need, then click <strong>Save Sequence</strong>. <strong>Undo changes</strong> only reverts the current page state before save.</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Drag to reorder active workflows, then click <strong>Save Sequence</strong>. <strong>Undo changes</strong> only reverts the current page state before save. Use <strong>+ Add Workflow</strong> to create custom workflows.</p>
                 </div>
                 <a href="<?= base_url('workflow') ?>" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800">Back</a>
             </div>
@@ -50,8 +50,8 @@
                 <input type="hidden" name="custom_steps_json" id="customStepsJson" value="">
                 <div class="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
                     <div class="bg-gray-50 dark:bg-gray-800 px-4 py-3 flex items-center justify-between gap-3">
-                        <span class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">Drag to reorder</span>
-                        <button type="button" id="addWorkflowBtn" class="px-3 py-1.5 rounded border border-primary text-primary text-xs font-semibold hover:bg-primary/10">
+                        <span class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">Drag to reorder active steps</span>
+                        <button type="button" id="addWorkflowBtn" onclick="openAddModal()" class="px-5 py-2 rounded border border-primary text-primary text-sm font-bold hover:bg-primary hover:text-white transition-colors shadow-sm">
                             + Add Workflow
                         </button>
                     </div>
@@ -66,19 +66,13 @@
                                         <p class="text-xs text-gray-500 dark:text-gray-400"><?= esc((string) $step['route']) ?></p>
                                     </div>
                                 </div>
-                                <button type="button" class="delete-step-btn inline-flex items-center justify-center size-8 rounded text-gray-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400" title="Delete this workflow step">
-                                    <span class="material-symbols-outlined text-[18px]">delete</span>
-                                </button>
                             </li>
                         <?php endforeach; ?>
                     </ul>
                 </div>
             </form>
 
-                <div class="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <p class="text-xs text-gray-500 dark:text-gray-400 order-2 sm:order-1">
-                        Deleted rows are applied only after <strong>Save Sequence</strong>.
-                    </p>
+                <div class="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3">
                     <div class="flex justify-end gap-2 order-1 sm:order-2">
                         <button type="button" id="resetOrderBtn" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800">Undo changes</button>
                         <button type="submit" form="workflowForm" class="px-4 py-2 rounded-lg bg-primary hover:bg-blue-700 text-white text-sm font-semibold">Save Sequence</button>
@@ -86,7 +80,57 @@
                 </div>
         </div>
     </main>
+
+    <!-- Add Custom Workflow Modal -->
+    <div id="addModal" class="fixed inset-0 z-50 flex items-center justify-center hidden bg-black/50 backdrop-blur-sm">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-200 dark:border-slate-700 w-full max-w-md mx-4 overflow-hidden transform transition-all">
+            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50">
+                <h3 class="text-lg font-bold text-gray-800 dark:text-white">Add Custom Workflow</h3>
+                <button type="button" onclick="closeAddModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <form id="addForm" onsubmit="submitAddModal(event)">
+                <div class="p-6 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Workflow Name <span class="text-red-500">*</span></label>
+                        <input type="text" id="addWorkflowName" required placeholder="e.g. Document Check" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Trigger</label>
+                        <input type="text" id="addTriggerEvent" placeholder="e.g. On Arrival, Custom, Manual Trigger" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary outline-none">
+                        <p class="text-xs text-gray-500 mt-1">Leave blank to use the default system trigger.</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Route / Path</label>
+                        <input type="text" id="addWorkflowRoute" placeholder="e.g. security/document-check" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary outline-none">
+                        <p class="text-xs text-gray-500 mt-1">Leave blank to use the system default route.</p>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 p-4 border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50">
+                    <button type="button" onclick="closeAddModal()" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors">Cancel</button>
+                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary-hover rounded-lg transition-colors shadow-sm">Add Workflow</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
+        function openAddModal() {
+            document.getElementById('addModal').classList.remove('hidden');
+            document.getElementById('addWorkflowName').focus();
+        }
+        function closeAddModal() {
+            document.getElementById('addModal').classList.add('hidden');
+            document.getElementById('addForm').reset();
+        }
+        
+        // Expose submit to global scope for the modal
+        function submitAddModal(e) {
+            e.preventDefault();
+            if (window._submitAddWorkflow) window._submitAddWorkflow();
+        }
+
         (function () {
             const list = document.getElementById('workflowStepList');
             const jsonInput = document.getElementById('stepsJson');
@@ -94,9 +138,25 @@
             const resetBtn = document.getElementById('resetOrderBtn');
             const addWorkflowBtn = document.getElementById('addWorkflowBtn');
             const originalOrder = Array.from(list.querySelectorAll('.step-item')).map((el) => el.dataset.stepKey);
+            const allSteps = <?= json_encode($allSteps ?? []) ?>;
             const customCounterSeed = Date.now();
             let customCounter = 0;
             let draggingItem = null;
+
+            const nameInput = document.getElementById('addWorkflowName');
+            const routeInput = document.getElementById('addWorkflowRoute');
+            const triggerInput = document.getElementById('addTriggerEvent');
+
+            nameInput.addEventListener('input', (e) => {
+                const val = e.target.value.trim().toLowerCase();
+                if (!val) return;
+                
+                const match = allSteps.find(s => s.label.toLowerCase() === val);
+                if (match) {
+                    routeInput.value = match.db_route || match.route || '';
+                    triggerInput.value = match.trigger_event || '';
+                }
+            });
 
             function escapeHtml(text) {
                 return String(text)
@@ -118,6 +178,8 @@
                             key: item.dataset.stepKey,
                             label: item.dataset.stepLabel || '',
                             route: item.dataset.stepRoute || '',
+                            api_link: item.dataset.apiLink || '',
+                            trigger_event: item.dataset.triggerEvent || '',
                         });
                     }
                 });
@@ -156,57 +218,72 @@
                         list.insertBefore(draggingItem, item.nextSibling);
                     }
                 });
-                const deleteBtn = item.querySelector('.delete-step-btn');
-                if (deleteBtn) {
-                    deleteBtn.addEventListener('click', () => {
-                        const items = Array.from(list.querySelectorAll('.step-item'));
-                        if (items.length <= 1) {
-                            window.alert('At least one workflow step is required.');
-                            return;
-                        }
-                        item.remove();
-                        updateNumbersAndPayload();
-                    });
-                }
             }
 
             Array.from(list.querySelectorAll('.step-item')).forEach(bindStepEvents);
 
-            function createCustomStepElement(stepKey, label, route) {
+            function createCustomStepElement(stepKey, label, route, apiLink, triggerEvent, isCustom = '1') {
                 const item = document.createElement('li');
                 item.className = 'step-item flex items-center justify-between px-4 py-4 bg-white dark:bg-gray-900';
                 item.setAttribute('draggable', 'true');
                 item.dataset.stepKey = stepKey;
-                item.dataset.isCustom = '1';
+                item.dataset.isCustom = isCustom;
                 item.dataset.stepLabel = label;
                 item.dataset.stepRoute = route;
+                item.dataset.apiLink = apiLink;
+                item.dataset.triggerEvent = triggerEvent;
+                
+                let apiBadge = apiLink ? `<span class="inline-flex items-center justify-center px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[10px] font-bold border border-blue-500/20" title="Webhook attached: ${escapeHtml(apiLink)}">API</span>` : '';
+                
                 item.innerHTML = `
                     <div class="flex items-center gap-3">
                         <span class="material-symbols-outlined text-gray-400 cursor-grab">drag_indicator</span>
                         <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-primary/10 text-primary text-xs font-bold step-no">0</span>
                         <div>
-                            <p class="text-sm font-semibold text-gray-900 dark:text-white">${escapeHtml(label)}</p>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">${escapeHtml(route)}</p>
+                            <p class="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                ${escapeHtml(label)}
+                                ${apiBadge}
+                            </p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">${escapeHtml(triggerEvent || 'Custom Trigger')} • ${escapeHtml(route)}</p>
                         </div>
                     </div>
-                    <button type="button" class="delete-step-btn inline-flex items-center justify-center size-8 rounded text-gray-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400" title="Delete this workflow step">
-                        <span class="material-symbols-outlined text-[18px]">delete</span>
-                    </button>
                 `;
                 bindStepEvents(item);
                 return item;
             }
 
-            addWorkflowBtn.addEventListener('click', () => {
-                const label = window.prompt('New workflow name (e.g. Document Check):');
+            window._submitAddWorkflow = function() {
+                const label = document.getElementById('addWorkflowName').value.trim();
+                let route = document.getElementById('addWorkflowRoute').value.trim();
+                const triggerEvent = document.getElementById('addTriggerEvent').value.trim();
+
                 if (!label) return;
-                const route = window.prompt('Route/path for this workflow (e.g. security/document-check):');
-                if (!route) return;
-                const stepKey = `custom_${customCounterSeed}_${customCounter++}`;
-                const item = createCustomStepElement(stepKey, label.trim(), route.trim());
+                
+                const match = allSteps.find(s => s.label.toLowerCase() === label.toLowerCase());
+                
+                let stepKey;
+                let isCustom = '1';
+                
+                if (match) {
+                    stepKey = match.key;
+                    isCustom = match.is_custom ? '1' : '0';
+                    const items = Array.from(list.querySelectorAll('.step-item'));
+                    if (items.some(item => item.dataset.stepKey === stepKey)) {
+                        alert('This workflow is already in the sequence.');
+                        return;
+                    }
+                } else {
+                    if (!route) {
+                        route = '#';
+                    }
+                    stepKey = `custom_${customCounterSeed}_${customCounter++}`;
+                }
+                
+                const item = createCustomStepElement(stepKey, label, route, '', triggerEvent, isCustom);
                 list.appendChild(item);
                 updateNumbersAndPayload();
-            });
+                closeAddModal();
+            };
 
             resetBtn.addEventListener('click', () => rebuildFromOrder(originalOrder));
             updateNumbersAndPayload();
