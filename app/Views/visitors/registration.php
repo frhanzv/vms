@@ -464,6 +464,12 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
                         </div>
                     </div>
                     <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <?php if ($isFieldEnabled('ic_number')): ?>
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">IC / Passport Number <span class="text-red-500">*</span></label>
+                            <input name="ic_number" value="<?= esc($prefillData['ic_passport'] ?? '') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="Enter IC / Passport Number" type="text" required/>
+                        </div>
+                        <?php endif; ?>
                         <?php if ($isFieldEnabled('resident')): ?>
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Resident <span class="text-red-500">*</span></label>
@@ -472,12 +478,6 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
                                 <option value="LOCAL" <?= (($prefillData['resident'] ?? '') === 'LOCAL') ? 'selected' : '' ?>>LOCAL</option>
                                 <option value="FOREIGN" <?= (($prefillData['resident'] ?? '') === 'FOREIGN') ? 'selected' : '' ?>>FOREIGN</option>
                             </select>
-                        </div>
-                        <?php endif; ?>
-                        <?php if ($isFieldEnabled('ic_number')): ?>
-                        <div class="space-y-2">
-                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">IC / Passport Number <span class="text-red-500">*</span></label>
-                            <input name="ic_number" value="<?= esc($prefillData['ic_passport'] ?? '') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="Enter IC / Passport Number" type="text" required/>
                         </div>
                         <?php endif; ?>
                         <?php if ($isFieldEnabled('date_of_birth')): ?>

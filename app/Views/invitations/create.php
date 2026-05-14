@@ -394,7 +394,7 @@ History
 <!-- Link Expiry -->
 <?php if ($isFieldEnabled('link_expiry')): ?>
 <div class="flex flex-col gap-2">
-<label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Link Expiry</label>
+<label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Link Expiry <span class="text-red-500">*</span></label>
 <div class="relative">
 <input name="link_expiry" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white" type="date" required/>
 </div>
@@ -416,13 +416,6 @@ History
 </select>
 </div>
 
-<!-- Link Expiry -->
-<div class="flex flex-col gap-2">
-<label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Link Expiry <span class="text-red-500">*</span></label>
-<div class="relative">
-<input name="link_expiry" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white" type="date" required/>
-</div>
-</div>
 
 <!-- Other Reason -->
 <div class="flex flex-col gap-2">
