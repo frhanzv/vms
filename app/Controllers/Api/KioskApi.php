@@ -184,11 +184,11 @@ class KioskApi extends BaseController
 
         // Expose only non-sensitive keys relevant to the kiosk
         $kiosk = [
-            'project'         => $config['project_name']          ?? 'VMS',
-            'visitorPassPrint' => $config['visitor_pass_print']   ?? 'enabled',
-            'facialVerification' => $config['facial_verification'] ?? 'disabled',
-            'securityBriefing'  => $config['security_briefing']   ?? 'disabled',
-            'allowWalkIn'       => $config['allow_walk_in']       ?? 'enabled',
+            'project'            => $config['project_name']          ?? 'VMS',
+            'visitorPassPrint'   => $config['visitor_pass_print']    ?? 'enabled',
+            'facialVerification' => $config['facial_verification']   ?? 'disabled',
+            'securityBriefing'   => $config['security_briefing']     ?? 'disabled',
+            'allowWalkIn'        => $config['allow_walk_in']         ?? 'enabled',
         ];
 
         return $this->respond(['status' => 'success', 'data' => $kiosk]);
@@ -300,15 +300,15 @@ class KioskApi extends BaseController
     {
         $body = $this->request->getJSON(true) ?? $this->request->getPost();
 
-        $fullName  = trim($body['visitorName'] ?? $body['full_name'] ?? '');
-        $icNo      = trim($body['icNo']        ?? $body['ic_no']    ?? $body['ic_passport'] ?? '');
-        $contact   = trim($body['phoneNo']     ?? $body['contact']  ?? '');
+        $fullName  = trim($body['visitorName'] ?? $body['full_name']    ?? '');
+        $icNo      = trim($body['icNo']        ?? $body['ic_no']        ?? $body['ic_passport'] ?? '');
+        $contact   = trim($body['phoneNo']     ?? $body['contact']      ?? '');
         $email     = trim($body['email']       ?? $body['visitorEmail'] ?? '');
-        $company   = trim($body['companyName'] ?? $body['company']  ?? '');
+        $company   = trim($body['companyName'] ?? $body['company']      ?? '');
         $vehicleNo = trim($body['vehicleNo']   ?? $body['vehicle_registration'] ?? '');
-        $location  = trim($body['locationAccess'] ?? $body['location'] ?? '');
-        $rawReason = trim($body['visitReason'] ?? $body['reason']   ?? '');
-        $invitedBy = trim($body['invitedBy']   ?? $body['invited_by'] ?? '');
+        $location  = trim($body['locationAccess'] ?? $body['location']  ?? '');
+        $rawReason = trim($body['visitReason'] ?? $body['reason']       ?? '');
+        $invitedBy = trim($body['invitedBy']   ?? $body['invited_by']   ?? '');
 
         if ($fullName === '' || $contact === '' || $rawReason === '') {
             return $this->failValidationErrors('visitorName, phoneNo, and visitReason are required');
@@ -323,28 +323,28 @@ class KioskApi extends BaseController
         }
 
         $data = [
-            'full_name'          => $fullName,
-            'ic_passport'        => $icNo,
-            'contact'            => $contact,
-            'visitor_email'      => $email,
-            'company'            => $company,
+            'full_name'            => $fullName,
+            'ic_passport'          => $icNo,
+            'contact'              => $contact,
+            'visitor_email'        => $email,
+            'company'              => $company,
             'vehicle_registration' => $vehicleNo,
-            'location'           => $location,
-            'reason'             => $reason,
-            'invited_by'         => $invitedBy,
-            'visitor_type_id'    => (int) ($body['visitorTypeId'] ?? $body['visitor_type_id'] ?? 0) ?: null,
-            'host_contact'       => trim($body['hostContact'] ?? $body['host_contact'] ?? ''),
-            'company_visited'    => trim($body['companyVisited'] ?? $body['company_visited'] ?? ''),
-            'date_of_birth'      => $body['dateOfBirth']  ?? $body['date_of_birth']  ?? null,
-            'sex'                => $body['sex']           ?? null,
-            'resident'           => $body['resident']      ?? null,
-            'address'            => $body['address']       ?? null,
-            'postcode'           => $body['postcode']      ?? null,
-            'city'               => $body['city']          ?? null,
-            'state'              => $body['state']         ?? null,
-            'country'            => $body['country']       ?? null,
-            'registration_source' => 'kiosk',
-            'status'             => 'Submitted',
+            'location'             => $location,
+            'reason'               => $reason,
+            'invited_by'           => $invitedBy,
+            'visitor_type_id'      => (int) ($body['visitorTypeId'] ?? $body['visitor_type_id'] ?? 0) ?: null,
+            'host_contact'         => trim($body['hostContact']    ?? $body['host_contact']    ?? ''),
+            'company_visited'      => trim($body['companyVisited'] ?? $body['company_visited'] ?? ''),
+            'date_of_birth'        => $body['dateOfBirth']  ?? $body['date_of_birth']  ?? null,
+            'sex'                  => $body['sex']          ?? null,
+            'resident'             => $body['resident']     ?? null,
+            'address'              => $body['address']      ?? null,
+            'postcode'             => $body['postcode']     ?? null,
+            'city'                 => $body['city']         ?? null,
+            'state'                => $body['state']        ?? null,
+            'country'              => $body['country']      ?? null,
+            'registration_source'  => 'kiosk',
+            'status'               => 'Submitted',
         ];
 
         // Remove null fields so model validation stays clean
@@ -503,10 +503,17 @@ class KioskApi extends BaseController
 
     /**
      * GET /api/user/getStaffPassByStaffNoOrName?keyword=...
+     * Also accepts POST body { "username": "..." } for Android app compatibility.
      */
     public function getStaffPassByStaffNoOrName(): \CodeIgniter\HTTP\Response
     {
-        $keyword = trim($this->request->getGet('keyword') ?? $this->request->getGet('staffNo') ?? '');
+        // Accept GET param OR POST body (Android sends POST with "username" key)
+        $keyword = trim(
+            $this->request->getGet('keyword')
+                ?? $this->request->getGet('staffNo')
+                ?? $this->request->getPost('username')
+                ?? ($this->request->getJSON(true)['username'] ?? '')
+        );
 
         if ($keyword === '') {
             return $this->respond(['status' => 'success', 'data' => []]);
@@ -523,18 +530,26 @@ class KioskApi extends BaseController
             ->findAll(20);
 
         $data = array_map(fn($s) => [
-            'id'            => (int) $s['id'],
-            'staffNo'       => $s['staff_no'],
-            'fullName'      => $s['full_name'],
-            'nameOnPass'    => $s['name_on_staff_pass'] ?? $s['full_name'],
-            'icPassport'    => $s['ic_passport'] ?? '',
-            'department'    => $s['department']  ?? '',
-            'designation'   => $s['designation'] ?? '',
+            'id'             => (int) $s['id'],
+            'staffNo'        => $s['staff_no'],
+            'username'       => $s['staff_no'],        // Android uses 'username' field
+            'fullName'       => $s['full_name'],
+            'name'           => $s['full_name'],        // Android uses 'name' field
+            'nameOnPass'     => $s['name_on_staff_pass'] ?? $s['full_name'],
+            'icPassport'     => $s['ic_passport'] ?? '',
+            'icNo'           => $s['ic_passport'] ?? '', // Android uses 'icNo' field
+            'passportNo'     => '',                      // Staff won't have passport
+            'department'     => $s['department']  ?? '',
+            'designation'    => $s['designation'] ?? '',
             'locationAccess' => $s['location_access'] ?? '',
-            'cardStatus'    => $s['card_status'] ?? '',
-            'cardExpiry'    => $s['card_expiry'] ?? '',
-            'mobileNo'     => $s['contact_number'] ?? '',
-            'status'        => $s['status'],
+            'cardStatus'     => $s['card_status'] ?? '',
+            'cardExpiry'     => $s['card_expiry'] ?? '',
+            'mobileNo'       => $s['contact_number'] ?? '', // Android uses 'mobileNo' field
+            'email'          => $s['email'] ?? '',
+            'photo'          => $s['photo_path'] ?? '',     // Android uses 'photo' field
+            'visitorType'    => '',                          // Staff don't have visitorType
+            'status'         => $s['status'],
+            'message'        => '',
         ], $staff);
 
         return $this->respond(['status' => 'success', 'data' => $data]);
@@ -542,10 +557,18 @@ class KioskApi extends BaseController
 
     /**
      * GET /api/user/getVisitorPassByStaffNoOrName?keyword=...
+     * Also accepts POST body { "username": "..." } for Android app compatibility.
+     * Used by PortraitCaptureActivity to look up invitation by QR scan data.
      */
     public function getVisitorPassByStaffNoOrName(): \CodeIgniter\HTTP\Response
     {
-        $keyword = trim($this->request->getGet('keyword') ?? $this->request->getGet('staffNo') ?? '');
+        // Accept GET param OR POST body (Android sends POST with "username" key)
+        $keyword = trim(
+            $this->request->getGet('keyword')
+                ?? $this->request->getGet('staffNo')
+                ?? $this->request->getPost('username')
+                ?? ($this->request->getJSON(true)['username'] ?? '')
+        );
 
         if ($keyword === '') {
             return $this->respond(['status' => 'success', 'data' => []]);
@@ -638,40 +661,79 @@ class KioskApi extends BaseController
     // Helper
     // -------------------------------------------------------------------------
 
+    /**
+     * Format an invitation row into the response shape expected by the Android app.
+     *
+     * Android model: GetStaffPassByStaffNoOrNameResponseItem
+     * Required fields: username, name, mobileNo, icNo, passportNo, photo, visitorType,
+     *                  email, status, message
+     *
+     * Extra fields used by CardDetailsActivity auto-fill:
+     *   companyName, vehicleNo/regNum, address, postcode, city, state, country,
+     *   dateOfBirth, visitReason/reason
+     */
     private function formatInvitation(array $inv): array
     {
+        // Split ic_passport into icNo vs passportNo based on resident field
+        // Non-Malaysian / Foreigner → passportNo, Malaysian → icNo
+        $icPassport  = $inv['ic_passport'] ?? '';
+        $isForeigner = in_array(
+            strtolower($inv['resident'] ?? ''),
+            ['non-malaysian', 'foreigner', 'non malaysian']
+        );
+        $icNo       = $isForeigner ? '' : $icPassport;
+        $passportNo = $isForeigner ? $icPassport : '';
+
         return [
-            'id'                => (int) $inv['id'],
-            'visitorName'       => $inv['full_name']            ?? '',
-            'fullName'          => $inv['full_name']            ?? '',
-            'icPassport'        => $inv['ic_passport']          ?? '',
-            'icNo'              => $inv['ic_passport']          ?? '',
-            'phoneNo'           => $inv['contact']              ?? '',
-            'contact'           => $inv['contact']              ?? '',
-            'email'             => $inv['visitor_email']        ?? '',
-            'companyName'       => $inv['company']              ?? '',
-            'company'           => $inv['company']              ?? '',
-            'vehicleNo'         => $inv['vehicle_registration'] ?? '',
-            'vehicleRegistration' => $inv['vehicle_registration'] ?? '',
-            'location'          => $inv['location']             ?? '',
-            'locationAccess'    => $inv['location']             ?? '',
-            'visitReason'       => $inv['reason']               ?? '',
-            'reason'            => $inv['reason']               ?? '',
-            'invitedBy'         => $inv['invited_by']           ?? '',
-            'visitorTypeId'     => (int) ($inv['visitor_type_id'] ?? 0),
-            'dateOfBirth'       => $inv['date_of_birth']        ?? '',
-            'sex'               => $inv['sex']                  ?? '',
-            'resident'          => $inv['resident']             ?? '',
-            'address'           => $inv['address']              ?? '',
-            'postcode'          => $inv['postcode']             ?? '',
-            'city'              => $inv['city']                 ?? '',
-            'state'             => $inv['state']                ?? '',
-            'country'           => $inv['country']              ?? '',
-            'profilePhotoPath'  => $inv['profile_photo_path']   ?? '',
-            'registrationSource' => $inv['registration_source'] ?? '',
-            'status'            => $inv['status']               ?? '',
-            'checkedInAt'       => $inv['checked_in_at']        ?? '',
-            'createdAt'         => $inv['created_at']           ?? '',
+            // Core fields Android app model expects
+            'id'          => (int) $inv['id'],
+            'username'    => $inv['ic_passport']   ?? '',   // used as QR lookup key
+            'name'        => $inv['full_name']      ?? '',   // Android uses 'name'
+            'fullName'    => $inv['full_name']      ?? '',   // alias
+            'mobileNo'    => $inv['contact']        ?? '',   // Android uses 'mobileNo'
+            'contactNo'   => $inv['contact']        ?? '',   // alias for mobileNo
+            'icNo'        => $icNo,                          // Malaysian IC
+            'passportNo'  => $passportNo,                    // Foreigner passport
+            'photo'       => $inv['profile_photo_path'] ?? '', // Android uses 'photo'
+            'visitorType' => $inv['visitor_type_id']         // Android uses 'visitorType'
+                ? $this->resolveVisitorType((int) $inv['visitor_type_id'])
+                : '',
+            'email'       => $inv['visitor_email']  ?? '',
+            'status'      => $inv['status']         ?? '',
+            'message'     => '',                             // placeholder for error msg
+
+            // Extra fields for CardDetailsActivity auto-fill
+            'companyName'  => $inv['company']              ?? '',
+            'company'      => $inv['company']              ?? '',
+            'vehicleNo'    => $inv['vehicle_registration'] ?? '',
+            'regNum'       => $inv['vehicle_registration'] ?? '', // alias used by CardDetails
+            'address'      => $inv['address']              ?? '',
+            'postcode'     => $inv['postcode']             ?? '',
+            'city'         => $inv['city']                 ?? '',
+            'state'        => $inv['state']                ?? '',
+            'country'      => $inv['country']              ?? '', // needed for foreigner country box
+
+            // Additional fields
+            'dateOfBirth'        => $inv['date_of_birth']        ?? '',
+            'visitReason'        => $inv['reason']               ?? '',
+            'reason'             => $inv['reason']               ?? '',
+            'location'           => $inv['location']             ?? '',
+            'invitedBy'          => $inv['invited_by']           ?? '',
+            'visitorTypeId'      => (int) ($inv['visitor_type_id'] ?? 0),
+            'resident'           => $inv['resident']             ?? '',
+            'registrationSource' => $inv['registration_source']  ?? '',
+            'createdAt'          => $inv['created_at']           ?? '',
         ];
+    }
+
+    /**
+     * Resolve visitor type name from visitor_type_id.
+     * Used by formatInvitation() to populate 'visitorType' field.
+     */
+    private function resolveVisitorType(int $id): string
+    {
+        $model = new VisitorTypeModel();
+        $type  = $model->find($id);
+        return $type ? ($type['name'] ?? '') : '';
     }
 }
