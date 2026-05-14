@@ -405,13 +405,12 @@
                         <p class="text-slate-800 dark:text-slate-200 font-medium text-sm" id="mContact">-</p>
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1 uppercase tracking-wider">Host Name</label>
-                        <p class="text-[#137fec] font-medium text-sm" id="mPerson">-</p>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1 uppercase tracking-wider">Purpose of Visit</label>
+                        <p class="text-slate-800 dark:text-slate-200 font-medium text-sm" id="mReason">-</p>
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1 uppercase tracking-wider">Purpose
-                            of Visit</label>
-                        <p class="text-slate-800 dark:text-slate-200 font-medium text-sm" id="mReason">-</p>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1 uppercase tracking-wider">Host Name</label>
+                        <p class="text-[#137fec] font-medium text-sm" id="mPerson">-</p>
                     </div>
                 </div>
             </div>
@@ -460,7 +459,7 @@
 
         // Table Headers specifically mapped for Export
         const tableHeaders = [
-            "No.", "Visitor Name", "Contact No", "Staff No", "Host Name", "Check-in Time", "Location", "Actions"
+            "No.", "Visitor Name", "Contact No", "Host Name", "Check-in Time", "Location", "Actions"
         ];
 
         function cellTextForCheckboxFilter(raw) {
@@ -1001,106 +1000,4 @@
             document.getElementById('detailModal').classList.add('hidden');
         }
     </script>
-</body>
-
-</html>
-            const ws = XLSX.utils.aoa_to_sheet(exportData);
-
-            for (let C = 0; C < expHeaders.length; ++C) {
-                const cell_ref = XLSX.utils.encode_cell({ c: C, r: 0 });
-                if (!ws[cell_ref]) continue;
-                ws[cell_ref].s = {
-                    fill: { fgColor: { rgb: "FF535DEC" } },
-                    font: { color: { rgb: "FFFFFFFF" }, bold: true }
-                };
-            }
-
-            const wscols = visibleIndices.map(() => ({ wch: 20 }));
-            ws['!cols'] = wscols;
-
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Visitor Report");
-            XLSX.writeFile(wb, "Visitor_Door_Report_" + new Date().toISOString().slice(0, 10) + ".xlsx");
-        }
-
-        // Modal & Columns Toggle Logic
-        function initColumnsCheckboxes() {
-            const container = document.getElementById('columnsCheckboxesList');
-            container.innerHTML = '';
-            let allChecked = true;
-
-            tableHeaders.forEach((colName, idx) => {
-                const isVisible = dtTable.column(idx).visible();
-                if (!isVisible) allChecked = false;
-
-                const div = document.createElement('div');
-                div.className = 'flex items-center gap-2';
-                div.innerHTML = `
-                <input type="checkbox" id="col_${idx}" data-col-idx="${idx}" class="col-toggle-cb rounded border-slate-300 text-[#137fec] focus:ring-[#137fec] h-4 w-4 cursor-pointer" ${isVisible ? 'checked' : ''}>
-                <label for="col_${idx}" class="text-sm text-slate-600 dark:text-slate-300 uppercase cursor-pointer">${colName}</label>
-            `;
-                container.appendChild(div);
-            });
-
-            document.getElementById('selectAllColumns').checked = allChecked;
-
-            // Add event listeners
-            document.querySelectorAll('.col-toggle-cb').forEach(cb => {
-                cb.addEventListener('change', function () {
-                    const total = document.querySelectorAll('.col-toggle-cb').length;
-                    const checked = document.querySelectorAll('.col-toggle-cb:checked').length;
-                    document.getElementById('selectAllColumns').checked = (total === checked);
-                });
-            });
-        }
-
-        function openColumnsModal() {
-            if (!dtTable) return;
-            document.getElementById('columnsModal').classList.remove('hidden');
-        }
-
-        function closeColumnsModal() {
-            document.getElementById('columnsModal').classList.add('hidden');
-            initColumnsCheckboxes();
-        }
-
-        function toggleAllColumns(elem) {
-            const isChecked = elem.checked;
-            document.querySelectorAll('.col-toggle-cb').forEach(cb => {
-                cb.checked = isChecked;
-            });
-        }
-
-        function applyColumnsVisibility() {
-            document.querySelectorAll('.col-toggle-cb').forEach(cb => {
-                const idx = cb.getAttribute('data-col-idx');
-                dtTable.column(idx).visible(cb.checked);
-            });
-            document.getElementById('columnsModal').classList.add('hidden');
-        }
-
-        function openModal(idx) {
-            const v = globalVisitorData[idx];
-            if (!v) return;
-
-            document.getElementById('mFullName').textContent = v.full_name;
-            document.getElementById('mCompany').textContent = v.company;
-            document.getElementById('mStatusBadge').innerHTML = getStatusPillBadge(v.status);
-
-            document.getElementById('mIC').textContent = v.ic_passport;
-            document.getElementById('mContact').textContent = v.contact_no;
-            document.getElementById('mPerson').textContent = v.person_visited;
-            document.getElementById('mCheckIn').textContent = v.checkin_time;
-            document.getElementById('mLocation').textContent = v.location;
-            document.getElementById('mReason').textContent = v.reason;
-
-            document.getElementById('detailModal').classList.remove('hidden');
-        }
-
-        function closeModal() {
-            document.getElementById('detailModal').classList.add('hidden');
-        }
-    </script>
-</body>
-
-</html>
+</body>

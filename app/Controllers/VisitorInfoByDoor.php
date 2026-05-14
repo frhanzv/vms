@@ -76,12 +76,11 @@ class VisitorInfoByDoor extends BaseController
 
         $records = [];
         foreach ($rows as $row) {
-            $timeStr = $row['checkin_time'] ? date('d M Y h:i A', strtotime($row['checkin_time'])) : '-';
+            $timeStr = $row['checkin_time'] ? date('M j, Y g:i A', strtotime($row['checkin_time'])) : '-';
             
             $records[] = [
                 'visitor_name'    => $row['visitor_name'] ?? 'Unknown',
                 'contact_no'      => $row['contact_no'] ?: 'N/A',
-                'staff_no'        => $row['staff_no'] ?: 'null',
                 'person_visited'  => $row['person_visited'] ?: 'N/A',
                 'checkin_time'    => $timeStr,
                 'location_name'   => $locName,
@@ -91,7 +90,7 @@ class VisitorInfoByDoor extends BaseController
                 'ic_passport'     => $row['ic_passport'] ?: 'NULL',
                 'company'         => $row['company'] ?: 'N/A',
                 'reason'          => $row['reason'] ?: 'N/A',
-                'date'            => $row['invitation_date'] ? date('d/m/Y', strtotime($row['invitation_date'])) : '-',
+                'date'            => $row['invitation_date'] ? date('M j, Y', strtotime($row['invitation_date'])) : '-',
                 'status'          => $row['visit_status'] ?: 'Pending',
                 'location'        => $locName
             ];
@@ -103,7 +102,7 @@ class VisitorInfoByDoor extends BaseController
             'visitors'      => $records,
             'location_text' => $locName,
             'date_range_text' => date('Y-m-d', strtotime($fromDate)) . ' to ' . date('Y-m-d', strtotime($toDate)),
-            'last_updated'  => date('d M Y h:i A')
+            'last_updated'  => date('M j, Y g:i A')
         ]);
     }
 }
