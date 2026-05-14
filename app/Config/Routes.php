@@ -334,6 +334,9 @@ $routes->group('', ['filter' => $plusOfficer], function($routes) {
     $routes->get('workflow', 'VisitorWorkflow::index');
     $routes->get('workflow/create', 'VisitorWorkflow::create');
     $routes->post('workflow/save', 'VisitorWorkflow::save');
+    $routes->post('workflow/toggleActive/(:num)', 'VisitorWorkflow::toggleActive/$1');
+    $routes->post('workflow/edit/(:num)', 'VisitorWorkflow::editWorkflow/$1');
+    $routes->post('workflow/delete/(:num)', 'VisitorWorkflow::deleteWorkflow/$1');
 });
 
 // ===========================

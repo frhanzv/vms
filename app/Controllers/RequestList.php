@@ -6,6 +6,7 @@ use App\Models\InvitationModel;
 use App\Models\InvitationScheduleModel;
 use App\Models\VisitorLicenseModel;
 use App\Models\VisitorEquipmentModel;
+use App\Libraries\InvitationProcessFlowService;
 
 class RequestList extends BaseController
 {
@@ -13,6 +14,7 @@ class RequestList extends BaseController
     protected $scheduleModel;
     protected $licenseModel;
     protected $equipmentModel;
+    protected $flowService;
 
     public function __construct()
     {
@@ -20,15 +22,38 @@ class RequestList extends BaseController
         $this->scheduleModel = new InvitationScheduleModel();
         $this->licenseModel = new VisitorLicenseModel();
         $this->equipmentModel = new VisitorEquipmentModel();
+        $this->flowService = new InvitationProcessFlowService();
     }
 
     public function index()
     {
-        // Get all submitted invitations with status 'Submitted'
-        $submittedRequests = $this->invitationModel
-            ->where('status', 'Submitted')
-            ->orderBy('created_at', 'DESC')
-            ->findAll();
+        $activeSteps = $this->flowService->getOrderedSteps(true);
+        $requiresBriefing = false;
+        $requiresFacial = false;
+
+        foreach ($activeSteps as $step) {
+            if ($step['key'] === 'approval') {
+                break;
+            }
+            if ($step['key'] === 'security_briefing' || $step['key'] === 'video') {
+                $requiresBriefing = true;
+            }
+            if ($step['key'] === 'facial_verification' || $step['key'] === 'take_photo') {
+                $requiresFacial = true;
+            }
+        }
+
+        // Get all submitted invitations that meet the workflow requirements
+        $query = $this->invitationModel->where('status', 'Submitted');
+        
+        if ($requiresBriefing) {
+            $query->where('video_watched', 1);
+        }
+        if ($requiresFacial) {
+            $query->where('facial_verified_at IS NOT NULL');
+        }
+
+        $submittedRequests = $query->orderBy('created_at', 'DESC')->findAll();
 
         // Format queue requests
         $queueRequests = [];
@@ -127,9 +152,13 @@ class RequestList extends BaseController
         }
 
         // Calculate stats
+        $flaggedQuery = $this->invitationModel->where('status', 'Submitted');
+        if ($requiresBriefing) $flaggedQuery->where('video_watched', 1);
+        if ($requiresFacial) $flaggedQuery->where('facial_verified_at IS NOT NULL');
+
         $stats = [
             'pending' => $this->invitationModel->where('status', 'Pending')->countAllResults(),
-            'flagged' => $this->invitationModel->where('status', 'Submitted')->countAllResults(),
+            'flagged' => $flaggedQuery->countAllResults(),
             'expected' => $this->invitationModel->where('status', 'Approved')->countAllResults(),
             'rejected' => $this->invitationModel->where('status', 'Rejected')->countAllResults()
         ];

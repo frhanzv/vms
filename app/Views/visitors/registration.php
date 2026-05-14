@@ -537,19 +537,6 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
                             <input name="address_3" value="<?= esc($prefillData['address_3'] ?? '') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
                         </div>
                         <?php endif; ?>
-                        <?php if ($isFieldEnabled('city')): ?>
-                        <div class="space-y-2">
-                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">City</label>
-                            <select name="city" id="citySelect" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
-                                <option value="">SELECT</option>
-                                <?php if (isset($cities) && is_array($cities)): ?>
-                                    <?php foreach ($cities as $city): ?>
-                                        <option value="<?= esc($city['id']) ?>" data-state-id="<?= esc($city['state_id']) ?>" <?= ((string) ($prefillData['city'] ?? '') === (string) $city['id']) ? 'selected' : '' ?>><?= esc($city['name']) ?></option>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                            </select>
-                        </div>
-                        <?php endif; ?>
                         <?php if ($isFieldEnabled('state')): ?>
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">State</label>
@@ -558,6 +545,19 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
                                 <?php if (isset($states) && is_array($states)): ?>
                                     <?php foreach ($states as $state): ?>
                                         <option value="<?= esc($state['id']) ?>" data-country-id="<?= esc($state['country_id']) ?>" <?= ((string) ($prefillData['state'] ?? '') === (string) $state['id']) ? 'selected' : '' ?>><?= esc($state['name']) ?></option>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </select>
+                        </div>
+                        <?php endif; ?>
+                        <?php if ($isFieldEnabled('city')): ?>
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">City</label>
+                            <select name="city" id="citySelect" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
+                                <option value="">SELECT</option>
+                                <?php if (isset($cities) && is_array($cities)): ?>
+                                    <?php foreach ($cities as $city): ?>
+                                        <option value="<?= esc($city['id']) ?>" data-state-id="<?= esc($city['state_id']) ?>" <?= ((string) ($prefillData['city'] ?? '') === (string) $city['id']) ? 'selected' : '' ?>><?= esc($city['name']) ?></option>
                                     <?php endforeach; ?>
                                 <?php endif; ?>
                             </select>
