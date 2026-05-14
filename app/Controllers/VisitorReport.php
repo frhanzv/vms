@@ -67,8 +67,8 @@ class VisitorReport extends BaseController
             $checkInSource = $row['reg_checkin_time'] ?: $row['checkin_time'];
             $checkOutSource = $row['reg_checkout_time'] ?: $row['checkout_time'];
 
-            $checkinTimeStr = $checkInSource ? date('H:i:s', strtotime((string) $checkInSource)) : '-';
-            $checkoutTimeStr = $checkOutSource ? date('H:i:s', strtotime((string) $checkOutSource)) : '-';
+            $checkinTimeStr = $checkInSource ? date('g:i A', strtotime((string) $checkInSource)) : '-';
+            $checkoutTimeStr = $checkOutSource ? date('g:i A', strtotime((string) $checkOutSource)) : '-';
             
             $durationStr = '-';
             if ($checkInSource) {
@@ -116,7 +116,7 @@ class VisitorReport extends BaseController
                 'staff_id'          => $row['staff_id']        ?? 'N/A',
                 'visit_reason'      => $row['visit_reason']    ?? 'N/A',
                 'visit_status'      => $visitStatus,
-                'visit_date'        => $row['visit_date']      ? date('Y-m-d', strtotime($row['visit_date'])) : '-',
+                'visit_date'        => $row['visit_date']      ? date('M j, Y', strtotime($row['visit_date'])) : '-',
                 'checkin_time'      => $checkinTimeStr,
                 'checkout_time'     => $checkoutTimeStr,
                 'duration'          => $durationStr,
