@@ -59,6 +59,9 @@ class WorkflowSeeder extends Seeder
             ],
         ];
 
+        // Clear existing workflows first
+        $this->db->table('workflows')->truncate();
+        
         $this->db->table('workflows')->insertBatch($data);
     }
 }
