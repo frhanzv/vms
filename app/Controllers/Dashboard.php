@@ -858,15 +858,17 @@ class Dashboard extends BaseController
     public function activeAlertsData()
     {
         $db = \Config\Database::connect();
-        $alerts = [];
-        if ($db->tableExists('security_alerts')) {
-            $alerts = $db->query(
-                "SELECT sa.id, sa.incident_type, sa.severity, sa.visitor_name,
-                        sa.location, sa.description, sa.created_at, sa.is_acknowledged
-                 FROM security_alerts sa
-                 ORDER BY sa.is_acknowledged ASC, sa.created_at DESC"
-            )->getResultArray();
+
+        if (! $db->tableExists('security_alerts')) {
+            return $this->response->setJSON(['success' => true, 'data' => []]);
         }
+
+        $builder = $db->table('security_alerts sa');
+        $builder->select('sa.id, sa.incident_type, sa.severity, sa.visitor_name, sa.location, sa.description, sa.created_at, sa.is_acknowledged');
+        $builder->orderBy('sa.is_acknowledged', 'ASC');
+        $builder->orderBy('sa.created_at', 'DESC');
+
+        $alerts = $builder->get()->getResultArray();
 
         return $this->response->setJSON(['success' => true, 'data' => $alerts]);
     }
