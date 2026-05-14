@@ -601,9 +601,21 @@ $cardEnabled = client_feature_enabled('visitor_card');
                             <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Company</label>
                             <input type="text" id="editCompany" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
                         </div>
+                        <div class="md:col-span-2">
+                            <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Reason</label>
+                            <textarea id="editReason" rows="2" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"></textarea>
+                        </div>
+                        <div>
+                            <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Host / Invited By</label>
+                            <input type="text" id="editInvitedBy" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
+                        </div>
                         <div>
                             <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Vehicle Registration</label>
                             <input type="text" id="editVehicle" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
+                        </div>
+                        <div>
+                            <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Location</label>
+                            <input type="text" id="editLocation" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
                         </div>
                     </div>
                 </div>
@@ -637,18 +649,7 @@ $cardEnabled = client_feature_enabled('visitor_card');
                             <p id="detailVisitorTypeReadonly" class="text-sm font-semibold text-gray-900 dark:text-white py-2 min-h-[2.5rem]"></p>
                         <?php endif; ?>
                         </div>
-                        <div>
-                            <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Host / Invited By</label>
-                            <input type="text" id="editInvitedBy" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
-                        </div>
-                        <div>
-                            <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Location</label>
-                            <input type="text" id="editLocation" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
-                        </div>
-                        <div class="md:col-span-2">
-                            <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Reason</label>
-                            <textarea id="editReason" rows="2" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"></textarea>
-                        </div>
+
                         <div>
                             <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Check-in</label>
                             <input type="datetime-local" id="editCheckIn" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
