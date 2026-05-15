@@ -584,38 +584,56 @@ $cardEnabled = client_feature_enabled('visitor_card');
                         <span class="material-symbols-outlined text-lg">badge</span>
                         Visitor Information
                     </h3>
-                    <div class="bg-gray-50 dark:bg-slate-800 rounded-lg p-4 grid grid-cols-1 md:grid-cols-2 gap-4 border border-gray-200 dark:border-gray-700">
-                        <div>
-                            <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Full Name</label>
-                            <input type="text" id="editFullName" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
-                        </div>
-                        <div>
-                            <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">IC / Passport No</label>
-                            <input type="text" id="editIcPassport" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
-                        </div>
-                        <div>
-                            <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Contact Number</label>
-                            <input type="text" id="editContact" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
-                        </div>
-                        <div>
-                            <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Company</label>
-                            <input type="text" id="editCompany" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
-                        </div>
-                        <div class="md:col-span-2">
-                            <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Reason</label>
-                            <textarea id="editReason" rows="2" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"></textarea>
-                        </div>
-                        <div>
-                            <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Host / Invited By</label>
-                            <input type="text" id="editInvitedBy" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
-                        </div>
-                        <div>
-                            <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Vehicle Registration</label>
-                            <input type="text" id="editVehicle" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
-                        </div>
-                        <div>
-                            <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Location</label>
-                            <input type="text" id="editLocation" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
+                    <div class="bg-gray-50 dark:bg-slate-800 rounded-lg p-5 border border-gray-200 dark:border-gray-700">
+                        <div class="flex flex-col md:flex-row gap-6">
+                            <!-- Photo Section -->
+                            <div class="flex flex-col items-center gap-3">
+                                <div class="w-32 h-40 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden shadow-sm flex items-center justify-center relative">
+                                    <img id="detailProfilePhoto" src="" class="absolute inset-0 w-full h-full object-cover hidden" alt="Visitor">
+                                    <div id="detailPhotoPlaceholder" class="flex flex-col items-center text-slate-300 dark:text-slate-600">
+                                        <div class="size-16 rounded-full border-4 border-slate-100 dark:border-slate-800 flex items-center justify-center mb-2">
+                                            <span class="material-symbols-outlined text-4xl">person</span>
+                                        </div>
+                                        <p class="text-[10px] font-bold uppercase tracking-widest">No Photo</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Fields Grid -->
+                            <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Full Name</label>
+                                    <input type="text" id="editFullName" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">IC / Passport No</label>
+                                    <input type="text" id="editIcPassport" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Contact Number</label>
+                                    <input type="text" id="editContact" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Company</label>
+                                    <input type="text" id="editCompany" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Reason</label>
+                                    <textarea id="editReason" rows="2" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"></textarea>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Host / Invited By</label>
+                                    <input type="text" id="editInvitedBy" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Vehicle Registration</label>
+                                    <input type="text" id="editVehicle" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Location</label>
+                                    <input type="text" id="editLocation" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -983,6 +1001,21 @@ $cardEnabled = client_feature_enabled('visitor_card');
 
             document.getElementById('editCheckIn').value = mysqlToDatetimeLocal(visitor.check_in_time);
             document.getElementById('editCheckOut').value = mysqlToDatetimeLocal(visitor.check_out_time);
+
+            // Profile Photo with fallback: profile_photo_path -> facial_verification_image -> placeholder
+            const photoImg = document.getElementById('detailProfilePhoto');
+            const placeholder = document.getElementById('detailPhotoPlaceholder');
+            const photoPath = visitor.profile_photo_path || visitor.facial_verification_image;
+            
+            if (photoPath) {
+                photoImg.src = '<?= base_url('uploads') ?>/' + photoPath;
+                photoImg.classList.remove('hidden');
+                placeholder.classList.add('hidden');
+            } else {
+                photoImg.src = '';
+                photoImg.classList.add('hidden');
+                placeholder.classList.remove('hidden');
+            }
 
             const hasCard = !!(visitor.card_id || visitor.visitor_card_table_id);
             document.getElementById('editPassNo').disabled = !hasCard;

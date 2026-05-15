@@ -38,6 +38,8 @@ class VisitorList extends BaseController
                           i.reason as visit_purpose,
                           i.vehicle_registration as vehicle_reg,
                           i.location,
+                          i.profile_photo_path,
+                          i.facial_verification_image,
                           i.registration_source,
                           i.created_at as invitation_created_at,
                           i.version as invitation_version,
@@ -183,6 +185,8 @@ class VisitorList extends BaseController
                 'date_to' => $row['sch_date_to'] ?? '',
                 'iv_version' => (int) ($row['iv_version'] ?? 1),
                 'invitation_version' => (int) ($row['invitation_version'] ?? 1),
+                'profile_photo_path' => $row['profile_photo_path'] ?? null,
+                'facial_verification_image' => $row['facial_verification_image'] ?? null,
             ];
         }
 
