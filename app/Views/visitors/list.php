@@ -620,6 +620,36 @@ $cardEnabled = client_feature_enabled('visitor_card');
                     </div>
                 </div>
 
+                <!-- Date of Visit -->
+                <div class="mb-6">
+                    <h3 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-lg">event_available</span>
+                        Date of Visit
+                    </h3>
+                    <div class="bg-gray-50 dark:bg-slate-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                        <div class="mb-3 border-b border-gray-300 dark:border-gray-600 pb-2">
+                            <span class="text-sm font-bold text-gray-800 dark:text-white">No 1</span>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                            <div>
+                                <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Date From:</label>
+                                <input type="text" id="displayDateFrom" readonly class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-gray-100 dark:bg-slate-700 text-gray-900 dark:text-white cursor-not-allowed"/>
+                            </div>
+                            <div>
+                                <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Date To:</label>
+                                <input type="text" id="displayDateTo" readonly class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-gray-100 dark:bg-slate-700 text-gray-900 dark:text-white cursor-not-allowed"/>
+                            </div>
+                            <?php if (in_array(session()->get('role'), ['admin', 'superadmin', 'clientsuperadmin'])): ?>
+                            <div>
+                                <button type="button" onclick="openEditVisitDateModal()" class="w-full md:w-auto px-6 py-2 bg-secondary hover:bg-blue-600 text-white font-medium rounded-lg shadow-sm transition-colors duration-200">
+                                    Update
+                                </button>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Visit Details -->
                 <div class="mb-6">
                     <h3 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-2">
@@ -627,10 +657,6 @@ $cardEnabled = client_feature_enabled('visitor_card');
                         Visit Details
                     </h3>
                     <div class="bg-gray-50 dark:bg-slate-800 rounded-lg p-4 grid grid-cols-1 md:grid-cols-2 gap-4 border border-gray-200 dark:border-gray-700">
-                        <div>
-                            <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Date of Visit</label>
-                            <input type="date" id="editVisitDate" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
-                        </div>
                         <div>
                             <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Visit Type (from check-in)</p>
                             <p id="detailType" class="text-sm font-semibold text-gray-900 dark:text-white py-2"></p>
@@ -806,6 +832,41 @@ $cardEnabled = client_feature_enabled('visitor_card');
     </div>
     <?php endif; ?>
 
+    <!-- Edit Visit Date Modal -->
+    <div id="editVisitDateModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-md w-full">
+            <div class="px-6 py-4 rounded-t-xl border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <h3 class="text-lg font-bold text-gray-800 dark:text-white uppercase tracking-wide">Edit Visit Date</h3>
+                <button onclick="closeEditVisitDateModal()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white transition-colors p-1 bg-gray-100 dark:bg-gray-700 rounded-full">
+                    <span class="material-symbols-outlined block text-xl">close</span>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        Date From
+                    </label>
+                    <input type="datetime-local" id="editSchDateFrom" class="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 dark:text-white text-sm" placeholder="DATE AND TIME FROM"/>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        Date To
+                    </label>
+                    <input type="datetime-local" id="editSchDateTo" class="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 dark:text-white text-sm" placeholder="DATE AND TIME TO"/>
+                </div>
+                <div id="editVisitDateError" class="hidden p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-600 dark:text-red-400"></div>
+            </div>
+            <div class="border-t border-gray-200 dark:border-gray-700 px-6 py-4 rounded-b-xl flex gap-3 justify-end">
+                <button type="button" onclick="saveVisitDate()" id="btnSaveVisitDate" class="px-5 py-2.5 bg-success hover:bg-emerald-600 text-white font-medium rounded-lg transition-colors duration-200 shadow-sm">
+                    Save
+                </button>
+                <button type="button" onclick="closeEditVisitDateModal()" class="px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg transition-colors duration-200 shadow-sm">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
     <?php if ($cardEnabled): ?>
     <!-- QR Code Modal -->
     <div id="qrCodeModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4">
@@ -904,7 +965,9 @@ $cardEnabled = client_feature_enabled('visitor_card');
             document.getElementById('editInvitedBy').value = visitor.invited_by || visitor.host || '';
             document.getElementById('editLocation').value = (visitor.location && visitor.location !== 'N/A') ? visitor.location : '';
             document.getElementById('editReason').value = visitor.reason || '';
-            document.getElementById('editVisitDate').value = visitor.visit_date_iso || '';
+            
+            document.getElementById('displayDateFrom').value = visitor.date_from || '';
+            document.getElementById('displayDateTo').value = visitor.date_to || '';
 
             document.getElementById('detailType').textContent = visitor.type || '—';
 
@@ -952,6 +1015,66 @@ $cardEnabled = client_feature_enabled('visitor_card');
             document.body.style.overflow = 'hidden';
         }
 
+        function openEditVisitDateModal() {
+            document.getElementById('editVisitDateModal').classList.remove('hidden');
+            document.getElementById('editVisitDateModal').classList.add('flex');
+            
+            const fromVal = document.getElementById('displayDateFrom').value;
+            const toVal = document.getElementById('displayDateTo').value;
+            
+            document.getElementById('editSchDateFrom').value = fromVal ? fromVal.replace(' ', 'T').slice(0, 16) : '';
+            document.getElementById('editSchDateTo').value = toVal ? toVal.replace(' ', 'T').slice(0, 16) : '';
+            document.getElementById('editVisitDateError').classList.add('hidden');
+        }
+
+        function closeEditVisitDateModal() {
+            document.getElementById('editVisitDateModal').classList.add('hidden');
+            document.getElementById('editVisitDateModal').classList.remove('flex');
+        }
+
+        function saveVisitDate() {
+            const errEl = document.getElementById('editVisitDateError');
+            errEl.classList.add('hidden');
+            
+            const btn = document.getElementById('btnSaveVisitDate');
+            const prev = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="material-symbols-outlined text-sm animate-spin mr-1 align-middle">progress_activity</span> Saving...';
+
+            const payload = {
+                schedule_id: parseInt(document.getElementById('editScheduleId').value, 10) || 0,
+                invitation_id: parseInt(document.getElementById('editInvitationId').value, 10) || 0,
+                date_from: document.getElementById('editSchDateFrom').value,
+                date_to: document.getElementById('editSchDateTo').value
+            };
+
+            fetch('<?= base_url('visitors/updateVisitDate') ?>', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(r => r.json())
+            .then(result => {
+                btn.disabled = false;
+                btn.innerHTML = prev;
+                if (result.success) {
+                    closeEditVisitDateModal();
+                    document.getElementById('displayDateFrom').value = payload.date_from.replace('T', ' ') + ':00';
+                    document.getElementById('displayDateTo').value = payload.date_to.replace('T', ' ') + ':00';
+                    location.reload();
+                } else {
+                    errEl.textContent = result.message || 'Save failed';
+                    errEl.classList.remove('hidden');
+                }
+            })
+            .catch(() => {
+                btn.disabled = false;
+                btn.innerHTML = prev;
+                errEl.textContent = 'Network error while saving.';
+                errEl.classList.remove('hidden');
+            });
+        }
+
         function saveVisitorChanges() {
             const errEl = document.getElementById('visitorSaveError');
             errEl.classList.add('hidden');
@@ -969,7 +1092,6 @@ $cardEnabled = client_feature_enabled('visitor_card');
                 invited_by: document.getElementById('editInvitedBy').value.trim(),
                 location: document.getElementById('editLocation').value.trim(),
                 reason: document.getElementById('editReason').value.trim(),
-                visit_date_iso: document.getElementById('editVisitDate').value,
                 check_in_time: document.getElementById('editCheckIn').value || null,
                 check_out_time: document.getElementById('editCheckOut').value || null,
                 pass_no: document.getElementById('editPassNo').disabled ? '' : document.getElementById('editPassNo').value.trim(),
@@ -1181,6 +1303,12 @@ $cardEnabled = client_feature_enabled('visitor_card');
             }
         });
 
+        document.getElementById('editVisitDateModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeEditVisitDateModal();
+            }
+        });
+
         document.getElementById('cardBindingModal').addEventListener('click', function(e) {
             if (e.target === this) {
                 closeCardBindingModal();
@@ -1198,8 +1326,11 @@ $cardEnabled = client_feature_enabled('visitor_card');
             if (e.key === 'Escape') {
                 const cardModal = document.getElementById('cardBindingModal');
                 const detailModal = document.getElementById('detailModal');
+                const visitDateModal = document.getElementById('editVisitDateModal');
                 
-                if (!cardModal.classList.contains('hidden')) {
+                if (visitDateModal && !visitDateModal.classList.contains('hidden')) {
+                    closeEditVisitDateModal();
+                } else if (!cardModal.classList.contains('hidden')) {
                     closeCardBindingModal();
                 } else if (!document.getElementById('qrCodeModal').classList.contains('hidden')) {
                     closeQrCodeModal();

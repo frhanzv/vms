@@ -280,6 +280,7 @@ $routes->group('', ['filter' => $plusHost], function($routes) {
     $routes->get('visitors', 'VisitorList::index');
     $routes->get('visitors/export', 'VisitorList::export');
     $routes->post('visitors/update', 'VisitorList::updateVisitor');
+    $routes->post('visitors/updateVisitDate', 'VisitorList::updateVisitDate');
 });
 
 $routes->group('', ['filter' => [$plusHost, 'client_feature:visitor_card']], function($routes) {
