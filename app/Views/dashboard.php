@@ -1430,7 +1430,7 @@ function initActiveAlertsDataTable() {
                 var column = this;
                 var header = $(column.header());
                 var headerText = header.clone().children().remove().end().text().trim().toUpperCase();
-                if (headerText === 'NO' || headerText === 'NO.' || headerText === 'ACTIONS') return;
+                if (headerText === 'NO' || headerText === 'NO.' || headerText === '#' || headerText === 'ACTIONS') return;
 
                 header.find('.dt-filter-wrapper').remove();
 
@@ -1743,7 +1743,7 @@ const modalConfigs = {
             const rows = d.data.map(a => [
                 '<div class="flex items-center gap-2"><span class="material-symbols-outlined text-red-500 text-[16px]">block</span>' + esc(a.incident_type) + '</div>',
                 sevBadge(a.severity),
-                esc(a.visitor_name || 'Unknown'),
+                '<div class="flex items-center gap-2"><div class="size-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 text-[10px] font-bold">' + initials(a.visitor_name || 'Unknown') + '</div><div><p class="font-medium text-slate-900 dark:text-white">' + esc(a.visitor_name || 'Unknown') + '</p></div></div>',
                 esc(a.location || 'N/A'),
                 fmtDateTime(a.created_at),
                 a.is_acknowledged == 1
@@ -1767,17 +1767,24 @@ const modalConfigs = {
                     const overMin = Math.max(0, Math.floor((Date.now() - endTs) / 60000));
                     const overH = Math.floor(overMin / 60), overM = overMin % 60;
                     const overLabel = overH > 0 ? overH + 'h ' + overM + 'm' : overM + 'm';
+                    const nowLabel = new Date().toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit', hour12: true});
                     return [
-                        '<div class="flex items-center gap-2"><div class="size-7 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 text-[10px] font-bold">' + initials(v.visitor_name) + '</div>' + esc(v.visitor_name) + '</div>',
-                        esc(v.host_name), fmtDateTime(v.check_in_time), fmtDateTime(v.schedule_end), esc(v.location),
+                        '<div class="flex items-center gap-2"><div class="size-7 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 text-[10px] font-bold">' + initials(v.visitor_name) + '</div><div><p class="font-medium text-slate-900 dark:text-white">' + esc(v.visitor_name) + '</p></div></div>',
+                        esc(v.host_name), esc(v.contact_no || 'N/A'), esc(v.ic_no || 'N/A'), esc(v.location), fmtDateTime(v.check_in_time), fmtDateTime(v.schedule_end), nowLabel,
                         '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700"><span class="material-symbols-outlined text-[12px]">schedule</span>+' + overLabel + '</span>'
                     ];
                 });
-                html += buildTable(['Visitor', 'Host', 'Date & Time', 'Schedule End', 'Location', 'Overstay'], rows);
+                html += buildTable(['Visitor Name', 'Host', 'Contact No', 'IC No', 'Location', 'Check-in Time', 'Expected End', 'Current Time', 'Overstay Duration'], rows);
             }
             if (d.alertRows && d.alertRows.length) {
                 html += '<h4 class="text-sm font-bold text-slate-900 dark:text-white mt-6 mb-3 flex items-center gap-2"><span class="material-symbols-outlined text-amber-500 text-[18px]">notifications_active</span>Overstay Alert Records (' + d.alertRows.length + ')</h4>';
-                const rows = d.alertRows.map(a => [esc(a.incident_type), sevBadge(a.severity), esc(a.visitor_name || 'Unknown'), esc(a.location || 'N/A'), fmtDateTime(a.created_at)]);
+                const rows = d.alertRows.map(a => [
+                    esc(a.incident_type),
+                    sevBadge(a.severity),
+                    '<div class="flex items-center gap-2"><div class="size-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 text-[10px] font-bold">' + initials(a.visitor_name || 'Unknown') + '</div><div><p class="font-medium text-slate-900 dark:text-white">' + esc(a.visitor_name || 'Unknown') + '</p></div></div>',
+                    esc(a.location || 'N/A'),
+                    fmtDateTime(a.created_at)
+                ]);
                 html += buildTable(['Incident', 'Severity', 'Visitor', 'Location', 'Date & Time'], rows);
             }
             if (!html) html = EMPTY('No visitor overstay alerts at this time');
@@ -1813,17 +1820,17 @@ const modalConfigs = {
         url: '/dashboard/expectedTodayData',
         render(d) {
             if (!d.success || !d.data.length) { modalBody.innerHTML = EMPTY('No visitors expected today'); return; }
-            const rows = d.data.map(v => {
-                let status, cls;
-                if (v.check_in_time) { if (v.check_out_time) { status = 'Checked Out'; cls = 'bg-slate-100 text-slate-600'; } else { status = 'On-Site'; cls = 'bg-green-100 text-green-700'; } } else { status = 'Pre-Arrival'; cls = 'bg-amber-100 text-amber-700'; }
+            const rows = d.data.map((v, i) => {
                 return [
+                    '<span class="text-slate-500 font-medium">' + (i + 1) + '</span>',
                     '<div class="flex items-center gap-2"><div class="size-7 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-[10px] font-bold">' + initials(v.full_name) + '</div><div><p class="font-medium text-slate-900 dark:text-white">' + esc(v.full_name || 'N/A') + '</p></div></div>',
-                    esc(v.company || 'N/A'), esc(v.host_name || 'N/A'),
-                    fmtTime(v.date_from) + ' - ' + fmtTime(v.date_to),
-                    '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold ' + cls + '">' + status + '</span>'
+                    esc(v.host_name || 'N/A'),
+                    fmtTime(v.date_from),
+                    esc(v.contact_no || 'N/A'),
+                    esc(v.ic_no || 'N/A')
                 ];
             });
-            modalBody.innerHTML = '<p class="text-sm text-slate-500 mb-4">' + d.data.length + ' visitor' + (d.data.length !== 1 ? 's' : '') + ' expected</p>' + buildTable(['Visitor', 'Company', 'Host', 'Schedule', 'Status'], rows);
+            modalBody.innerHTML = '<p class="text-sm text-slate-500 mb-4">' + d.data.length + ' visitor' + (d.data.length !== 1 ? 's' : '') + ' expected</p>' + buildTable(['#', 'Visitor Name', 'Host', 'Appointment Time', 'Contact No', 'IC No'], rows);
         }
     },
     onSite: {
@@ -1832,25 +1839,22 @@ const modalConfigs = {
         url: '/dashboard/onSiteData',
         render(d) {
             if (!d.success || !d.data.length) { modalBody.innerHTML = EMPTY('No visitors currently on-site'); return; }
-            const companyVisited = <?= client_feature_enabled('company_visited') ? 'true' : 'false' ?>;
-            const rows = d.data.map(v => {
+            const rows = d.data.map((v, i) => {
                 const nm = v.visitor_name || v.visitor_email || '-';
                 const avatarEl = '<div class="size-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px] font-bold relative overflow-hidden">'
                     + initials(nm)
                     + (v.profile_photo_path ? '<img src="' + BASE + 'uploads/' + esc(v.profile_photo_path) + '" class="absolute inset-0 size-7 object-cover" alt="" onerror="this.remove()">' : '')
                     + '</div>';
-                const secondCol = companyVisited
-                    ? esc(v.company || 'N/A')
-                    : '<div><p class="font-medium">' + esc(v.visitor_type_name || 'N/A') + '</p>'
-                        + (v.visitor_type_path ? '<p class="text-[11px] text-slate-400">' + esc(v.visitor_type_path) + '</p>' : '') + '</div>';
                 return [
+                    '<span class="text-slate-500 font-medium">' + (i + 1) + '</span>',
                     '<div class="flex items-center gap-2">' + avatarEl + '<div><p class="font-medium text-slate-900 dark:text-white">' + esc(nm) + '</p><p class="text-[11px] text-slate-400">' + esc(v.contact || '') + '</p></div></div>',
-                    esc(v.ic_number || 'N/A'),
-                    secondCol, esc(String(v.host_name || 'N/A').toUpperCase()), fmtDateTime(v.check_in_time), esc(v.last_door_entry || 'N/A')
+                    esc(String(v.host_name || 'N/A').toUpperCase()),
+                    fmtDateTime(v.check_in_time),
+                    esc(v.location || 'N/A'),
+                    esc(v.staff_no || 'N/A')
                 ];
             });
-            const secondHeader = companyVisited ? 'Company' : 'Visitor Type';
-            modalBody.innerHTML = '<p class="text-sm text-slate-500 mb-4">' + d.data.length + ' visitor' + (d.data.length !== 1 ? 's' : '') + ' on-site</p>' + buildTable(['Visitor', 'IC Number', secondHeader, 'Host', 'Date & Time', 'Last Door Entry'], rows);
+            modalBody.innerHTML = '<p class="text-sm text-slate-500 mb-4">' + d.data.length + ' visitor' + (d.data.length !== 1 ? 's' : '') + ' on-site</p>' + buildTable(['#', 'Visitor Name', 'Host', 'Check-in Time', 'Location', 'Staff No'], rows);
         }
     },
     checkedOut: {
@@ -1859,19 +1863,17 @@ const modalConfigs = {
         url: '/dashboard/checkedOutData',
         render(d) {
             if (!d.success || !d.data.length) { modalBody.innerHTML = EMPTY('No visitors checked out today'); return; }
-            const rows = d.data.map(v => {
-                let dur = '';
-                if (v.check_in_time && v.check_out_time) {
-                    const m = Math.floor((new Date(v.check_out_time.replace(' ','T')) - new Date(v.check_in_time.replace(' ','T'))) / 60000);
-                    const h = Math.floor(m / 60), mm = m % 60;
-                    dur = h > 0 ? h + 'h ' + mm + 'm' : mm + 'm';
-                }
+            const rows = d.data.map((v, i) => {
                 return [
-                    '<div class="flex items-center gap-2"><div class="size-7 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 text-[10px] font-bold">' + initials(v.visitor_name) + '</div>' + esc(v.visitor_name) + '</div>',
-                    esc(v.company || 'N/A'), esc(v.host_name), fmtDateTime(v.check_in_time), fmtDateTime(v.check_out_time), dur, esc(v.location)
+                    '<span class="text-slate-500 font-medium">' + (i + 1) + '</span>',
+                    '<div class="flex items-center gap-2"><div class="size-7 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 text-[10px] font-bold">' + initials(v.visitor_name) + '</div><div><p class="font-medium text-slate-900 dark:text-white">' + esc(v.visitor_name || 'N/A') + '</p></div></div>',
+                    esc(v.host_name || 'N/A'),
+                    fmtDateTime(v.check_out_time),
+                    esc(v.contact_no || 'N/A'),
+                    esc(v.ic_no || 'N/A')
                 ];
             });
-            modalBody.innerHTML = '<p class="text-sm text-slate-500 mb-4">' + d.data.length + ' checked out today</p>' + buildTable(['Visitor', 'Company', 'Host', 'Check-in', 'Check-out', 'Duration', 'Location'], rows);
+            modalBody.innerHTML = '<p class="text-sm text-slate-500 mb-4">' + d.data.length + ' visitor' + (d.data.length !== 1 ? 's' : '') + ' checked out</p>' + buildTable(['#', 'Visitor Name', 'Host', 'Check Out Time', 'Contact No', 'IC No'], rows);
         }
     },
     recentActivity: {
@@ -1948,7 +1950,10 @@ const modalConfigs = {
                     + '<td class="text-slate-500 font-medium">' + (i + 1) + '</td>'
                     + '<td>' + incidentCell + '</td>'
                     + '<td>' + sevBadge(a.severity) + '</td>'
-                    + '<td>' + esc(a.visitor_name || 'Unknown') + '</td>'
+                    + '<td><div class="flex items-center gap-2"><div class="size-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 text-[10px] font-bold">' + initials(a.visitor_name || 'Unknown') + '</div><div><p class="font-medium text-slate-900 dark:text-white">' + esc(a.visitor_name || 'Unknown') + '</p></div></div></td>'
+                    + '<td>' + esc(a.contact_no || 'N/A') + '</td>'
+                    + '<td>' + esc(a.ic_no || 'N/A') + '</td>'
+                    + '<td>' + esc(a.host_name || 'N/A') + '</td>'
                     + '<td>' + esc(a.location || 'N/A') + '</td>'
                     + '<td>' + fmtDateTime(a.created_at) + '</td>'
                     + '<td>' + ackBadge + '</td>'
@@ -1962,7 +1967,7 @@ const modalConfigs = {
                 + '<div class="overflow-x-auto custom-scrollbar pb-1">'
                 + '<table id="dash-active-alerts-table" class="w-full whitespace-nowrap display" style="width:100%">'
                 + '<thead><tr>'
-                + '<th>NO</th><th>INCIDENT</th><th>SEVERITY</th><th>VISITOR</th><th>LOCATION</th><th>DATE &amp; TIME</th><th>STATUS</th><th>ACTIONS</th>'
+                + '<th>#</th><th>INCIDENT</th><th>SEVERITY</th><th>VISITOR</th><th>CONTACT NO</th><th>IC NO</th><th>HOST</th><th>LOCATION</th><th>DATE &amp; TIME</th><th>STATUS</th><th>ACTIONS</th>'
                 + '</tr></thead><tbody>' + tbody + '</tbody></table>'
                 + '</div></div>';
 

@@ -32,8 +32,13 @@ class Dashboard extends BaseController
                  SELECT 1 FROM invitation_schedules s
                  WHERE s.invitation_id = i.id
                  AND DATE(s.date_from) <= ? AND DATE(s.date_to) >= ?
+             )
+             AND NOT EXISTS (
+                 SELECT 1 FROM invitation_visitors iv
+                 WHERE iv.invitation_id = i.id
+                 AND (DATE(iv.check_in_time) = ? OR (iv.check_in_time IS NOT NULL AND iv.check_out_time IS NULL))
              )',
-            ['Approved', $today, $today]
+            ['Approved', $today, $today, $today]
         )->getRow()->c ?? 0);
 
         // Yesterday's expected count for trend
@@ -45,8 +50,13 @@ class Dashboard extends BaseController
                  SELECT 1 FROM invitation_schedules s
                  WHERE s.invitation_id = i.id
                  AND DATE(s.date_from) <= ? AND DATE(s.date_to) >= ?
+             )
+             AND NOT EXISTS (
+                 SELECT 1 FROM invitation_visitors iv
+                 WHERE iv.invitation_id = i.id
+                 AND (DATE(iv.check_in_time) = ? OR (iv.check_in_time IS NOT NULL AND iv.check_out_time IS NULL))
              )',
-            ['Approved', $yesterday, $yesterday]
+            ['Approved', $yesterday, $yesterday, $yesterday]
         )->getRow()->c ?? 0);
         
         $trend = $expectedToday - $expectedYesterday;
@@ -722,6 +732,8 @@ class Dashboard extends BaseController
             "SELECT iv.id, COALESCE(i.full_name, iv.full_name) as visitor_name,
                     COALESCE(i.invited_by, 'N/A') as host_name,
                     iv.check_in_time, COALESCE(i.location, 'N/A') as location,
+                    COALESCE(iv.contact, i.contact, 'N/A') as contact_no,
+                    COALESCE(i.ic_passport, 'N/A') as ic_no,
                     (SELECT MAX(s.date_to) FROM invitation_schedules s WHERE s.invitation_id = i.id) as schedule_end
              FROM invitation_visitors iv
              INNER JOIN invitations i ON i.id = iv.invitation_id
@@ -778,10 +790,12 @@ class Dashboard extends BaseController
                     COALESCE(iv.contact, i.contact) as contact,
                     i.visitor_email, i.profile_photo_path,
                     COALESCE(vt.name, 'N/A') as visitor_type_name,
-                    vt.path as visitor_type_path
+                    vt.path as visitor_type_path,
+                    i.location, COALESCE(s.staff_no, 'N/A') as staff_no
              FROM invitation_visitors iv
              JOIN invitations i ON i.id = iv.invitation_id
              LEFT JOIN visitor_types vt ON vt.id = i.visitor_type_id
+             LEFT JOIN staff s ON s.id = i.staff_id OR s.staff_no = i.staff_id
              LEFT JOIN (
                  SELECT vcl.visitor_card_id, l.lane
                  FROM visitor_card_logs vcl
@@ -811,6 +825,7 @@ class Dashboard extends BaseController
 
         $visitors = $db->query(
             "SELECT i.full_name, i.visitor_email, i.company,
+                    i.contact as contact_no, i.ic_passport as ic_no,
                     iv.check_in_time, iv.check_out_time,
                     COALESCE(i.invited_by, 'N/A') as host_name,
                     s.date_from, s.date_to
@@ -822,8 +837,9 @@ class Dashboard extends BaseController
              )
              WHERE i.status = 'Approved'
              AND DATE(s.date_from) <= ? AND DATE(s.date_to) >= ?
+             AND (iv.check_in_time IS NULL OR (DATE(iv.check_in_time) < ? AND iv.check_out_time IS NOT NULL))
              ORDER BY s.date_from ASC",
-            [$today, $today]
+            [$today, $today, $today]
         )->getResultArray();
 
         return $this->response->setJSON(['success' => true, 'data' => $visitors]);
@@ -839,6 +855,8 @@ class Dashboard extends BaseController
 
         $visitors = $db->query(
             "SELECT iv.id, COALESCE(i.full_name, iv.full_name) as visitor_name,
+                    COALESCE(iv.contact, i.contact) as contact_no,
+                    COALESCE(iv.ic_passport, i.ic_passport) as ic_no,
                     i.company, COALESCE(i.invited_by, 'N/A') as host_name,
                     iv.check_in_time, iv.check_out_time, COALESCE(i.location, 'N/A') as location
              FROM invitation_visitors iv
@@ -864,7 +882,13 @@ class Dashboard extends BaseController
         }
 
         $builder = $db->table('security_alerts sa');
-        $builder->select('sa.id, sa.incident_type, sa.severity, sa.visitor_name, sa.location, sa.description, sa.created_at, sa.is_acknowledged');
+        $builder->select('sa.id, sa.incident_type, sa.severity, sa.visitor_name, sa.location, sa.description, sa.created_at, sa.is_acknowledged, 
+                          COALESCE(iv.contact, i.contact) as contact_no, 
+                          COALESCE(iv.ic_passport, i.ic_passport) as ic_no, 
+                          h.full_name as host_name');
+        $builder->join('invitations i', 'i.id = sa.invitation_id', 'left');
+        $builder->join('invitation_visitors iv', 'iv.invitation_id = sa.invitation_id AND iv.full_name = sa.visitor_name', 'left');
+        $builder->join('staff h', 'h.id = i.staff_id', 'left');
         $builder->orderBy('sa.is_acknowledged', 'ASC');
         $builder->orderBy('sa.created_at', 'DESC');
 
