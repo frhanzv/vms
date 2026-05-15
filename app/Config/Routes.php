@@ -536,6 +536,8 @@ $routes->group('config', ['filter' => $superadmins], function($routes) {
     $routes->post('updateEmailTemplateFormField/(:num)', 'Config::updateEmailTemplateFormField/$1');
     $routes->post('deleteEmailTemplateFormField/(:num)', 'Config::deleteEmailTemplateFormField/$1');
     $routes->post('reorderEmailTemplateFormFields', 'Config::reorderEmailTemplateFormFields');
+    $routes->get('getEmailRecipientRolesConfig', 'Config::getEmailRecipientRolesConfig');
+    $routes->post('saveEmailRecipientRolesConfig', 'Config::saveEmailRecipientRolesConfig');
 
     // Pathways
     $routes->get('getPathways', 'Config::getPathways');

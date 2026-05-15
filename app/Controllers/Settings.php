@@ -56,7 +56,8 @@ class Settings extends BaseController
         $updateData = [
             'full_name' => $this->request->getPost('full_name'),
             'email' => $newEmail,
-            'contact_no' => $this->request->getPost('contact_no')
+            'contact_no' => $this->request->getPost('contact_no'),
+            'receive_email_notifications' => $this->request->getPost('receive_email_notifications') ? 1 : 0
         ];
 
         // Skip model validation since we already validated in controller
@@ -70,6 +71,7 @@ class Settings extends BaseController
             session()->set('full_name', $updateData['full_name']);
             session()->set('email', $updateData['email']);
             session()->set('contact_no', $updateData['contact_no']);
+            session()->set('receive_email_notifications', $updateData['receive_email_notifications']);
             return redirect()->to('/settings')->with('success', 'Profile updated successfully!');
         }
 
