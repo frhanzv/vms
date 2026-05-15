@@ -552,6 +552,37 @@
                 </div>
                 */ ?>
                 
+                <!-- Email Notification Recipients -->
+                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                    <button onclick="toggleSection('emailrecipients'); if(emailRoles.length === 0) loadEmailRecipients();" class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                        <div class="flex items-center gap-4">
+                            <div class="p-2 bg-primary/10 rounded-lg">
+                                <span class="material-symbols-outlined text-primary text-xl">mark_email_read</span>
+                            </div>
+                            <div class="text-left">
+                                <h3 class="text-base font-bold text-gray-800 dark:text-white">Email Notification Recipients</h3>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Configure which roles receive specific email notifications</p>
+                            </div>
+                        </div>
+                        <span id="emailrecipients-icon" class="material-symbols-outlined text-gray-400 dark:text-slate-400 transition-transform">expand_more</span>
+                    </button>
+                    <div id="emailrecipients-content" class="hidden border-t border-gray-200 dark:border-slate-700">
+                        <div class="p-6 bg-gray-50 dark:bg-slate-800/50">
+                            <form id="emailRecipientsForm" class="space-y-6">
+                                <div id="emailRecipientsContainer" class="space-y-4">
+                                    <div class="text-center py-4 text-slate-500">Loading configuration...</div>
+                                </div>
+                                <div class="flex justify-end mt-6">
+                                    <button type="button" onclick="saveEmailRecipients()" class="px-5 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-[18px]">save</span>
+                                        Save Configuration
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
                 <?php if (false): ?>
                 <!-- Registration Type -->
                 <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
@@ -4517,6 +4548,15 @@
                         </select>
                         <p id="userCompany_idError" class="text-red-500 text-xs mt-1 hidden"></p>
                     </div>
+
+                    <div id="userEmailNotificationsRow" class="mt-4">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" id="userReceiveEmailNotifications" name="receive_email_notifications" value="1" checked
+                                class="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary dark:focus:ring-primary dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                            <span class="text-sm font-medium text-gray-700 dark:text-slate-300">Receive Email Notifications</span>
+                        </label>
+                        <p class="text-xs text-gray-500 mt-1">If unchecked, this user will not receive any event-based email notifications regardless of their role.</p>
+                    </div>
                 </div>
                 <div
                     class="px-6 py-4 border-t border-gray-200 dark:border-slate-700 flex items-center justify-end gap-3">
@@ -5745,6 +5785,7 @@
             document.getElementById('userModalTitle').textContent = 'Create New User';
             document.getElementById('userId').value = '';
             document.getElementById('userForm').reset();
+            document.getElementById('userReceiveEmailNotifications').checked = true;
             document.getElementById('userPassword').required = true;
             document.getElementById('passwordRequired').classList.remove('hidden');
             document.getElementById('passwordOptional').classList.add('hidden');
@@ -5773,6 +5814,7 @@
                         document.getElementById('userStaffId').value = data.data.staff_id || '';
                         document.getElementById('userContactNo').value = data.data.contact_no || '';
                         document.getElementById('userStatus').value = data.data.is_active;
+                        document.getElementById('userReceiveEmailNotifications').checked = (data.data.receive_email_notifications == 1);
                         clearUserErrors();
                         loadRolesForDropdown();
                         // Set role and company after dropdowns are loaded
@@ -5820,6 +5862,7 @@
             const userId = document.getElementById('userId').value;
             const formData = new FormData(event.target);
             const data = Object.fromEntries(formData.entries());
+            data.receive_email_notifications = document.getElementById('userReceiveEmailNotifications').checked ? 1 : 0;
 
             // Remove password if empty in edit mode
             if (!userId || data.password) {
@@ -16267,6 +16310,108 @@
                 }
             })
             .catch(() => alert('Network error while saving templates.'));
+        }
+
+        let emailRoles = [];
+        let emailConfig = {};
+        const emailEvents = [
+            { key: 'PROCESS_INVITATION', label: 'Visitor Invitation Created' },
+            { key: 'PROCESS_APPROVAL', label: 'Visitor Approved' },
+            { key: 'PROCESS_REJECTION', label: 'Visitor Rejected' },
+            { key: 'CHECK_IN', label: 'Visitor Check-In' },
+            { key: 'CHECK_OUT', label: 'Visitor Check-Out' }
+        ];
+
+        function loadEmailRecipients() {
+            document.getElementById('emailRecipientsContainer').innerHTML = '<div class="text-center py-4 text-slate-500">Loading configuration...</div>';
+            
+            Promise.all([
+                fetch(`${configBaseUrl}/getAllRoles`).then(r => r.json()),
+                fetch(`${configBaseUrl}/getEmailRecipientRolesConfig`).then(r => r.json())
+            ]).then(([rolesRes, configRes]) => {
+                emailRoles = [{id: 'host', name: 'host', description: 'Host / Employee'}]; // Insert dynamic host role
+                if (rolesRes.success && Array.isArray(rolesRes.data)) {
+                    // Extract roles and merge
+                    rolesRes.data.forEach(r => {
+                        emailRoles.push({ id: r.name, name: r.name, description: r.description || r.name });
+                    });
+                }
+                
+                emailConfig = configRes.success && configRes.data ? configRes.data : {};
+                renderEmailRecipients();
+            }).catch(err => {
+                console.error(err);
+                document.getElementById('emailRecipientsContainer').innerHTML = '<div class="text-center py-4 text-red-500">Failed to load configuration.</div>';
+            });
+        }
+
+        function renderEmailRecipients() {
+            const container = document.getElementById('emailRecipientsContainer');
+            let html = '';
+            
+            emailEvents.forEach(evt => {
+                const configuredRoles = emailConfig[evt.key] || [];
+                html += `
+                <div class="bg-white dark:bg-slate-700 rounded-lg border border-gray-200 dark:border-slate-600 p-4">
+                    <h4 class="text-sm font-semibold text-gray-800 dark:text-white mb-3">${evt.label}</h4>
+                    <div class="flex flex-wrap gap-4">
+                `;
+                
+                emailRoles.forEach(role => {
+                    const isChecked = configuredRoles.includes(role.name);
+                    html += `
+                        <label class="inline-flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" 
+                                class="rounded border-gray-300 text-primary focus:ring-primary/20 email-role-cb" 
+                                data-event="${evt.key}" 
+                                value="${role.name}" 
+                                ${isChecked ? 'checked' : ''} />
+                            <span class="text-sm text-gray-700 dark:text-slate-300">${role.description}</span>
+                        </label>
+                    `;
+                });
+                
+                html += `</div></div>`;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function saveEmailRecipients() {
+            const payload = {};
+            emailEvents.forEach(evt => {
+                payload[evt.key] = [];
+            });
+            
+            document.querySelectorAll('.email-role-cb').forEach(cb => {
+                if (cb.checked) {
+                    const evtKey = cb.getAttribute('data-event');
+                    payload[evtKey].push(cb.value);
+                }
+            });
+            
+            fetch(`${configBaseUrl}/saveEmailRecipientRolesConfig`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '<?= csrf_hash() ?>'
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(r => r.json())
+            .then(res => {
+                if (res.success) {
+                    if (typeof showToast === 'function') showToast('Email recipient configuration saved', 'success');
+                    else alert('Email recipient configuration saved');
+                } else {
+                    alert('Failed to save: ' + (res.message || 'Unknown error'));
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Network error while saving email configuration.');
+            });
         }
     </script>
 </body>

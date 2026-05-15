@@ -45,37 +45,64 @@ class InvitationEmailSender
     }
 
     /**
-     * Collect all secondary recipients (host + company admins) for an invitation,
+     * Collect all secondary recipients (host + configured roles) for an invitation,
      * excluding the visitor themselves to avoid duplicates.
      *
      * @param array<string, mixed> $invitation
+     * @param string|null $eventType
      * @return array<int, array{email: string, full_name: string}>
      */
-    protected function getSecondaryRecipients(array $invitation): array
+    protected function getSecondaryRecipients(array $invitation, ?string $eventType = null): array
     {
         $recipients = [];
         $seen = [];
         $visitorEmail = strtolower((string) ($invitation['visitor_email'] ?? ''));
 
-        // Host
-        $host = $invitation['host_user'] ?? null;
-        if (is_array($host) && !empty($host['email'])) {
-            $email = strtolower((string) $host['email']);
-            if ($email !== $visitorEmail && !isset($seen[$email])) {
-                $recipients[] = ['email' => $host['email'], 'full_name' => $host['full_name'] ?? ''];
-                $seen[$email] = true;
+        // Default legacy fallback if no config found
+        $configuredRoles = ['host', 'admin', 'clientsuperadmin'];
+
+        if ($eventType) {
+            $configRaw = $this->settingModel->getSetting('email_recipient_roles_config');
+            if ($configRaw) {
+                $config = json_decode((string) $configRaw, true);
+                if (is_array($config) && isset($config[$eventType])) {
+                    $configuredRoles = $config[$eventType];
+                }
             }
         }
 
-        // Company admins
-        foreach ((array) ($invitation['company_admins'] ?? []) as $admin) {
-            if (empty($admin['email'])) {
-                continue;
+        // 1. Host
+        if (in_array('host', $configuredRoles)) {
+            $host = $invitation['host_user'] ?? null;
+            if (is_array($host) && !empty($host['email']) && (!isset($host['receive_email_notifications']) || $host['receive_email_notifications'] == 1)) {
+                $email = strtolower((string) $host['email']);
+                if ($email !== $visitorEmail && !isset($seen[$email])) {
+                    $recipients[] = ['email' => $host['email'], 'full_name' => $host['full_name'] ?? ''];
+                    $seen[$email] = true;
+                }
             }
-            $email = strtolower((string) $admin['email']);
-            if ($email !== $visitorEmail && !isset($seen[$email])) {
-                $recipients[] = ['email' => $admin['email'], 'full_name' => $admin['full_name'] ?? ''];
-                $seen[$email] = true;
+        }
+
+        // 2. Configured roles in the company
+        $dbRoles = array_filter($configuredRoles, fn($r) => $r !== 'host');
+        if (!empty($dbRoles) && !empty($invitation['company'])) {
+            $users = $this->userModel
+                ->select('id, full_name, email, contact_no')
+                ->whereIn('role', array_values($dbRoles))
+                ->where('company_id', $invitation['company'])
+                ->where('is_active', 1)
+                ->where('receive_email_notifications', 1)
+                ->findAll();
+
+            foreach ($users as $user) {
+                if (empty($user['email'])) {
+                    continue;
+                }
+                $email = strtolower((string) $user['email']);
+                if ($email !== $visitorEmail && !isset($seen[$email])) {
+                    $recipients[] = ['email' => $user['email'], 'full_name' => $user['full_name'] ?? ''];
+                    $seen[$email] = true;
+                }
             }
         }
 
@@ -172,7 +199,7 @@ class InvitationEmailSender
         $invitation['host_user'] = null;
         if (!empty($invitation['staff_id'])) {
             $invitation['host_user'] = $this->userModel
-                ->select('id, full_name, email, contact_no')
+                ->select('id, full_name, email, contact_no, receive_email_notifications')
                 ->where('staff_id', $invitation['staff_id'])
                 ->where('is_active', 1)
                 ->first();
@@ -313,7 +340,7 @@ class InvitationEmailSender
                 $this->sendToSecondaryRecipients(
                     $customSubject ?: $templateConfig['subject'],
                     $message,
-                    $this->getSecondaryRecipients($invitation)
+                    $this->getSecondaryRecipients($invitation, EmailTemplateService::PROCESS_INVITATION)
                 );
             } else {
                 log_message('error', 'Email sending failed to: ' . $invitation['visitor_email']);
@@ -494,7 +521,7 @@ class InvitationEmailSender
                 $this->sendToSecondaryRecipients(
                     $customSubject ?: $templateConfig['subject'],
                     $message,
-                    $this->getSecondaryRecipients($invitation)
+                    $this->getSecondaryRecipients($invitation, EmailTemplateService::PROCESS_APPROVAL)
                 );
             } else {
                 log_message('error', 'Approval email sending failed to: ' . $invitation['visitor_email']);
@@ -630,7 +657,7 @@ class InvitationEmailSender
                 $this->sendToSecondaryRecipients(
                     $customSubject ?: $templateConfig['subject'],
                     $message,
-                    $this->getSecondaryRecipients($invitation)
+                    $this->getSecondaryRecipients($invitation, EmailTemplateService::PROCESS_REJECTION)
                 );
             } else {
                 log_message('error', 'Rejection email sending failed to: ' . $invitation['visitor_email']);
@@ -657,7 +684,7 @@ class InvitationEmailSender
                 return false;
             }
 
-            $recipients = $this->getSecondaryRecipients($invitation);
+            $recipients = $this->getSecondaryRecipients($invitation, 'CHECK_IN');
             if (empty($recipients)) {
                 return true;
             }
@@ -690,7 +717,7 @@ class InvitationEmailSender
                 return false;
             }
 
-            $recipients = $this->getSecondaryRecipients($invitation);
+            $recipients = $this->getSecondaryRecipients($invitation, 'CHECK_OUT');
             if (empty($recipients)) {
                 return true;
             }

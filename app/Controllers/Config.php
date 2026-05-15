@@ -576,7 +576,7 @@ class Config extends BaseController
      */
     public function getUser($id)
     {
-        $user = $this->userModel->select('id, username, email, full_name, staff_id, contact_no, role, is_active, company_id')
+        $user = $this->userModel->select('id, username, email, full_name, staff_id, contact_no, role, is_active, company_id, receive_email_notifications')
             ->find($id);
 
         if (!$user) {
@@ -609,6 +609,7 @@ class Config extends BaseController
             'role'       => 'required',
             'is_active'  => 'required|in_list[0,1]',
             'company_id' => 'permit_empty|is_natural_no_zero',
+            'receive_email_notifications' => 'permit_empty|in_list[0,1]',
         ];
 
         if (!$this->validate($rules)) {
@@ -630,6 +631,7 @@ class Config extends BaseController
             'role'       => $role,
             'is_active'  => $input['is_active'],
             'company_id' => ($role === 'superadmin') ? null : ($input['company_id'] ?? null),
+            'receive_email_notifications' => isset($input['receive_email_notifications']) ? $input['receive_email_notifications'] : 1,
         ];
 
         try {
@@ -682,6 +684,7 @@ class Config extends BaseController
             'role'       => 'required',
             'is_active'  => 'required|in_list[0,1]',
             'company_id' => 'permit_empty|is_natural_no_zero',
+            'receive_email_notifications' => 'permit_empty|in_list[0,1]',
         ];
 
         // If password is provided and not empty, validate it
@@ -707,6 +710,7 @@ class Config extends BaseController
             'role'       => $role,
             'is_active'  => $input['is_active'],
             'company_id' => ($role === 'superadmin') ? null : ($input['company_id'] ?? null),
+            'receive_email_notifications' => isset($input['receive_email_notifications']) ? $input['receive_email_notifications'] : 1,
         ];
 
         // Only update password if provided and not empty
@@ -5177,5 +5181,27 @@ class Config extends BaseController
         $this->whatsappTemplateModel->saveForCompany($companyId, $sanitised);
 
         return $this->response->setJSON(['success' => true, 'message' => 'WhatsApp templates saved']);
+    }
+
+    public function getEmailRecipientRolesConfig()
+    {
+        $configRaw = $this->settingModel->getSetting('email_recipient_roles_config');
+        $config = $configRaw ? json_decode((string) $configRaw, true) : [];
+        return $this->response->setJSON([
+            'success' => true,
+            'data'    => is_array($config) ? $config : []
+        ]);
+    }
+
+    public function saveEmailRecipientRolesConfig()
+    {
+        $input = $this->request->getJSON(true);
+        if (!is_array($input)) {
+            return $this->response->setStatusCode(400)->setJSON(['success' => false, 'message' => 'Invalid payload']);
+        }
+
+        $this->settingModel->setSetting('email_recipient_roles_config', json_encode($input));
+
+        return $this->response->setJSON(['success' => true, 'message' => 'Email recipient configuration saved successfully']);
     }
 }

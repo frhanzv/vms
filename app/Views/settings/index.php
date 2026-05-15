@@ -463,6 +463,21 @@ $isSettings = str_contains($current, 'settings');
                             <?php endif; ?>
                         </div>
 
+                        <div class="pt-2">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" 
+                                       id="receive_email_notifications" 
+                                       name="receive_email_notifications" 
+                                       value="1" 
+                                       <?= ($user['receive_email_notifications'] ?? 1) == 1 ? 'checked' : '' ?>
+                                       class="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary dark:focus:ring-primary dark:ring-offset-slate-800 focus:ring-2 dark:bg-slate-700 dark:border-slate-600">
+                                <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Receive Email Notifications</span>
+                            </label>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 pl-6">
+                                If unchecked, you will not receive event-based emails (e.g. check-in, check-out) even if your role is configured to receive them.
+                            </p>
+                        </div>
+
                         <div class="flex justify-end pt-2">
                             <button type="submit" 
                                     class="px-6 py-2.5 bg-primary hover:bg-primary-dark text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
