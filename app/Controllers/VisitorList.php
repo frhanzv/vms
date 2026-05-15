@@ -179,6 +179,8 @@ class VisitorList extends BaseController
                 'check_in_time' => $row['check_in_time'],
                 'check_out_time' => $row['check_out_time'],
                 'visit_date_iso' => $visitDateIso,
+                'date_from' => $row['sch_date_from'] ?? '',
+                'date_to' => $row['sch_date_to'] ?? '',
                 'iv_version' => (int) ($row['iv_version'] ?? 1),
                 'invitation_version' => (int) ($row['invitation_version'] ?? 1),
             ];
@@ -484,6 +486,48 @@ class VisitorList extends BaseController
         }
 
         return $this->response->setJSON(['success' => true, 'message' => 'Visitor updated successfully']);
+    }
+
+    public function updateVisitDate()
+    {
+        $payload = $this->request->getJSON(true);
+        if (! is_array($payload)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Invalid request']);
+        }
+
+        $invitationId = (int) ($payload['invitation_id'] ?? 0);
+        $scheduleId = (int) ($payload['schedule_id'] ?? 0);
+        
+        $dateFrom = trim((string) ($payload['date_from'] ?? ''));
+        $dateTo = trim((string) ($payload['date_to'] ?? ''));
+
+        if ($invitationId < 1 || $dateFrom === '' || $dateTo === '') {
+            return $this->response->setJSON(['success' => false, 'message' => 'Missing required fields']);
+        }
+
+        $dateFrom = date('Y-m-d H:i:s', strtotime($dateFrom));
+        $dateTo = date('Y-m-d H:i:s', strtotime($dateTo));
+
+        $this->invitationScheduleModel->skipValidation(true);
+        if ($scheduleId > 0) {
+            $existing = $this->invitationScheduleModel->find($scheduleId);
+            if ($existing && (int) $existing['invitation_id'] === $invitationId) {
+                $this->invitationScheduleModel->update($scheduleId, [
+                    'date_from' => $dateFrom,
+                    'date_to' => $dateTo,
+                ]);
+            } else {
+                return $this->response->setJSON(['success' => false, 'message' => 'Schedule record not found']);
+            }
+        } else {
+            $this->invitationScheduleModel->insert([
+                'invitation_id' => $invitationId,
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
+            ]);
+        }
+
+        return $this->response->setJSON(['success' => true, 'message' => 'Visit date updated successfully']);
     }
 
     private function normalizeDateTimeInput($value): ?string
