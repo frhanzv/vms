@@ -38,6 +38,8 @@ class VisitorList extends BaseController
                           i.reason as visit_purpose,
                           i.vehicle_registration as vehicle_reg,
                           i.location,
+                          i.profile_photo_path AS invitation_profile_photo_path,
+                          i.facial_verification_image AS invitation_facial_verification_image,
                           i.registration_source,
                           i.created_at as invitation_created_at,
                           i.version as invitation_version,
@@ -150,6 +152,9 @@ class VisitorList extends BaseController
                 : ($row['invitation_created_at'] ?? $row['created_at']);
             $visitDateIso = date('Y-m-d', strtotime($dateSrc));
 
+            $profilePath = $row['invitation_profile_photo_path'] ?? null;
+            $facialPath  = $row['invitation_facial_verification_image'] ?? null;
+
             $visitors[] = [
                 'id' => $row['id'],
                 'invitation_id' => $row['invitation_id'],
@@ -183,6 +188,10 @@ class VisitorList extends BaseController
                 'date_to' => $row['sch_date_to'] ?? '',
                 'iv_version' => (int) ($row['iv_version'] ?? 1),
                 'invitation_version' => (int) ($row['invitation_version'] ?? 1),
+                'profile_photo_path' => $profilePath,
+                'facial_verification_image' => $facialPath,
+                'profile_photo_url' => $this->invitationUploadPublicUrl($profilePath),
+                'facial_verification_url' => $this->invitationUploadPublicUrl($facialPath),
             ];
         }
 
@@ -542,6 +551,23 @@ class VisitorList extends BaseController
         $ts = strtotime($s);
 
         return $ts ? date('Y-m-d H:i:s', $ts) : null;
+    }
+
+    /**
+     * Absolute URL for invitation files served under /uploads/{folder}/{file}
+     * (FileServer + public/uploads). Keeps visitor list photos correct regardless of JS base URL.
+     */
+    private function invitationUploadPublicUrl(?string $relativePath): ?string
+    {
+        if ($relativePath === null || $relativePath === '') {
+            return null;
+        }
+        $relativePath = str_replace('\\', '/', trim($relativePath));
+        if ($relativePath === '') {
+            return null;
+        }
+
+        return base_url('uploads/' . ltrim($relativePath, '/'));
     }
 
     /**
