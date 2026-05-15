@@ -154,6 +154,8 @@ class VisitorList extends BaseController
 
             $profilePath = $row['invitation_profile_photo_path'] ?? null;
             $facialPath  = $row['invitation_facial_verification_image'] ?? null;
+            $profileExists = $this->invitationUploadFileExists($profilePath);
+            $facialExists = $this->invitationUploadFileExists($facialPath);
 
             $visitors[] = [
                 'id' => $row['id'],
@@ -190,8 +192,10 @@ class VisitorList extends BaseController
                 'invitation_version' => (int) ($row['invitation_version'] ?? 1),
                 'profile_photo_path' => $profilePath,
                 'facial_verification_image' => $facialPath,
-                'profile_photo_url' => $this->invitationUploadPublicUrl($profilePath),
-                'facial_verification_url' => $this->invitationUploadPublicUrl($facialPath),
+                'profile_photo_exists' => $profileExists,
+                'facial_verification_exists' => $facialExists,
+                'profile_photo_url' => $profileExists ? $this->invitationUploadPublicUrl($profilePath) : null,
+                'facial_verification_url' => $facialExists ? $this->invitationUploadPublicUrl($facialPath) : null,
             ];
         }
 
@@ -337,7 +341,8 @@ class VisitorList extends BaseController
      */
     public function updateVisitor()
     {
-        $payload = $this->request->getJSON(true);
+        $isMultipart = stripos($this->request->getHeaderLine('Content-Type'), 'multipart/form-data') !== false;
+        $payload = $isMultipart ? $this->request->getPost() : $this->request->getJSON(true);
         if (! is_array($payload)) {
             return $this->response->setJSON(['success' => false, 'message' => 'Invalid request']);
         }
@@ -394,6 +399,31 @@ class VisitorList extends BaseController
             } else {
                 $invitationUpdate['visitor_type_id'] = (int) $vtId;
             }
+        }
+
+        $profilePhoto = $this->request->getFile('profile_photo');
+        if ($profilePhoto && $profilePhoto->getError() !== UPLOAD_ERR_NO_FILE) {
+            if (! $profilePhoto->isValid() || $profilePhoto->hasMoved()) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Profile photo upload failed. Please choose another image.']);
+            }
+
+            $allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+            if (! in_array((string) $profilePhoto->getMimeType(), $allowedMimes, true)) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Profile photo must be a JPG, PNG, WEBP, or GIF image.']);
+            }
+
+            if ($profilePhoto->getSize() > 5 * 1024 * 1024) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Profile photo must be 5MB or smaller.']);
+            }
+
+            $uploadPath = WRITEPATH . 'uploads/visitors/';
+            if (! is_dir($uploadPath) && ! mkdir($uploadPath, 0777, true)) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Could not prepare profile photo upload folder.']);
+            }
+
+            $newName = 'profile_' . time() . '_' . $profilePhoto->getRandomName();
+            $profilePhoto->move($uploadPath, $newName);
+            $invitationUpdate['profile_photo_path'] = 'visitors/' . $newName;
         }
 
         try {
@@ -568,6 +598,20 @@ class VisitorList extends BaseController
         }
 
         return base_url('uploads/' . ltrim($relativePath, '/'));
+    }
+
+    private function invitationUploadFileExists(?string $relativePath): bool
+    {
+        if ($relativePath === null || $relativePath === '') {
+            return false;
+        }
+        $relativePath = ltrim(str_replace('\\', '/', trim($relativePath)), '/');
+        if ($relativePath === '' || preg_match('#^https?://#i', $relativePath)) {
+            return $relativePath !== '';
+        }
+
+        return is_file(WRITEPATH . 'uploads/' . $relativePath)
+            || is_file(FCPATH . 'uploads/' . $relativePath);
     }
 
     /**
