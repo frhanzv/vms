@@ -14,9 +14,22 @@ class FileServer extends BaseController
         $folder   = basename($folder);
         $filename = basename($filename);
 
-        $filePath = WRITEPATH . 'uploads/' . $folder . '/' . $filename;
+        // Writable uploads (registration, facial, gov docs, etc.) and public/uploads
+        // (e.g. kiosk API stores under FCPATH . 'uploads/visitor_photos/').
+        $candidates = [
+            WRITEPATH . 'uploads/' . $folder . '/' . $filename,
+            FCPATH . 'uploads/' . $folder . '/' . $filename,
+        ];
 
-        if (!file_exists($filePath) || !is_readable($filePath)) {
+        $filePath = null;
+        foreach ($candidates as $candidate) {
+            if (is_file($candidate) && is_readable($candidate)) {
+                $filePath = $candidate;
+                break;
+            }
+        }
+
+        if ($filePath === null) {
             return $this->response->setStatusCode(404, 'File not found');
         }
 
