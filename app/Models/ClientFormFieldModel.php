@@ -22,10 +22,10 @@ class ClientFormFieldModel extends Model
     public static function formTypes(): array
     {
         return [
+            'visitor_pass_request'  => 'Visitor Pass Request',
             'visitor_registration'  => 'Visitor Registration',
             'invitation'            => 'Invitation Form',
             'staff_pass_request'    => 'Staff Pass Request',
-            'visitor_pass_request'  => 'Visitor Pass Request',
         ];
     }
 
@@ -84,8 +84,30 @@ class ClientFormFieldModel extends Model
     public static function visitorPassRequestFields(): array
     {
         return [
-            ['field_key' => 'company_visiting',  'label' => 'Company Visiting (Visit Information)'],
-            ['field_key' => 'company_details',   'label' => 'Company Details Section (Name & Registration ID)', 'default_enabled' => false],
+            ['field_key' => 'application_info', 'label' => 'Application Info'],
+            ['field_key' => 'date_of_visit',    'label' => 'Date of Visit'],
+            ['field_key' => 'person_details',   'label' => 'Person'],
+            ['field_key' => 'driving_license',  'label' => 'Driving License'],
+            ['field_key' => 'company',          'label' => 'Company'],
+            ['field_key' => 'asset_equipment',  'label' => 'Asset / Equipment Details'],
+            ['field_key' => 'document_upload',  'label' => 'Upload'],
+        ];
+    }
+
+    // Section-level toggles for the Visitor Registration form (visitor-registration?token=...).
+    // Individual field visibility within sections is handled globally via EmailTemplateFormFieldModel.
+    public static function visitorRegistrationFields(): array
+    {
+        return [
+            ['field_key' => 'company_visiting',         'label' => 'Visit Information (Company Visiting)'],
+            ['field_key' => 'date_of_visit',            'label' => 'Date of Visit'],
+            ['field_key' => 'details_of_visit',         'label' => 'Details of Visit'],
+            ['field_key' => 'person_details',           'label' => 'Person Details'],
+            ['field_key' => 'driving_license_section',  'label' => 'Driving License Section'],
+            ['field_key' => 'company_details_section',  'label' => 'Company Details Section', 'default_enabled' => false],
+            ['field_key' => 'asset_equipment_section',  'label' => 'Asset / Equipment Section'],
+            ['field_key' => 'document_upload_section',  'label' => 'Document Upload Section'],
+            ['field_key' => 'profile_photo_section',    'label' => 'Profile Photo Section'],
         ];
     }
 
@@ -172,15 +194,7 @@ class ClientFormFieldModel extends Model
         }
 
         if ($formType === 'visitor_registration') {
-            $rows = (new EmailTemplateFormFieldModel())
-                ->where('is_system', 1)
-                ->orderBy('sort_order', 'ASC')
-                ->findAll();
-
-            return array_map(fn($r) => [
-                'field_key' => $r['field_key'],
-                'label'     => $r['label'],
-            ], $rows);
+            return self::visitorRegistrationFields();
         }
 
         if ($formType === 'staff_pass_request') {

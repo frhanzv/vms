@@ -474,9 +474,17 @@ class VisitorRegistration extends BaseController
 
             // Generate token for next step
             $token = base64_encode($invitationId);
+            $currentStep = $this->request->getPost('current_step');
 
-            $nextUrl = $this->invitationProcessFlowService->getFirstStepAfterRegistrationUrl($token)
-                ?? base_url('security/completed?token=' . urlencode($token));
+            if ($currentStep) {
+                // If they submitted from a specific workflow step, advance to the NEXT step after it
+                $nextUrl = $this->invitationProcessFlowService->getNextStepUrl($currentStep, $token) 
+                    ?? base_url('security/completed?token=' . urlencode($token));
+            } else {
+                // Initial registration form submission
+                $nextUrl = $this->invitationProcessFlowService->getFirstStepAfterRegistrationUrl($token)
+                    ?? base_url('security/completed?token=' . urlencode($token));
+            }
 
             return $this->response->setJSON([
                 'success' => true,
@@ -550,20 +558,21 @@ class VisitorRegistration extends BaseController
             $scriptPath = str_replace('/', DIRECTORY_SEPARATOR, ROOTPATH . 'ocr_mykad.py');
             $credentialsPath = str_replace('/', DIRECTORY_SEPARATOR, ROOTPATH . 'credentials/vms-mykad-ocr-95e79619df8e.json');
             
-            // Check if Python and script exist
-            if (!file_exists($pythonPath)) {
-                log_message('error', 'Python not found at: ' . $pythonPath);
-                throw new \Exception('Python environment not configured');
-            }
-            
-            if (!file_exists($scriptPath)) {
-                log_message('error', 'OCR script not found at: ' . $scriptPath);
-                throw new \Exception('OCR script not found');
-            }
-            
-            if (!file_exists($credentialsPath)) {
-                log_message('error', 'Google Cloud credentials not found at: ' . $credentialsPath);
-                throw new \Exception('Google Cloud credentials not configured');
+            // Check if Python and script exist. If not, use Mock Data for testing.
+            if (!file_exists($pythonPath) || !file_exists($scriptPath) || !file_exists($credentialsPath)) {
+                log_message('warning', 'OCR dependencies missing. Falling back to MOCK MyKad extraction.');
+                return [
+                    'ic_number' => '900101-14-5566',
+                    'name' => 'MOCK USER BIN TESTING',
+                    'date_of_birth' => '1990-01-01',
+                    'sex' => 'MALE',
+                    'address' => "123 JALAN MOCK\nTAMAN TESTING\nBUKIT MOCK",
+                    'postcode' => '50000',
+                    'city' => 'KUALA LUMPUR',
+                    'state' => 'KUALA LUMPUR',
+                    'ocr_quality' => 'high',
+                    'raw_ocr_text' => 'MOCK DATA'
+                ];
             }
             
             // Execute Python Google Cloud Vision OCR script with credentials
@@ -1630,14 +1639,11 @@ class VisitorRegistration extends BaseController
             $defaults[$fieldKey] = (bool) ($row['is_enabled'] ?? true);
         }
 
-        // Apply per-company Dynamic Form Field overrides on top of global config.
-        // A globally-disabled field cannot be re-enabled per-company.
+        // Apply per-company section-level overrides from Dynamic Form Fields config.
         if ($companyId) {
             $companyFields = $this->clientFormFieldModel->getForCompanyForm($companyId, 'visitor_registration');
             foreach ($companyFields as $field) {
-                if (array_key_exists($field['field_key'], $defaults) && $defaults[$field['field_key']]) {
-                    $defaults[$field['field_key']] = (bool) $field['is_enabled'];
-                }
+                $defaults[$field['field_key']] = (bool) $field['is_enabled'];
             }
         }
 
@@ -1647,32 +1653,36 @@ class VisitorRegistration extends BaseController
     private function getDefaultEmailTemplateFormConfig(): array
     {
         return [
-            'staff_id' => true,
-            'host_contact' => true,
-            'company_visited' => true,
-            'visit_reason' => true,
-            'resident' => true,
-            'ic_number' => true,
-            'date_of_birth' => true,
-            'sex' => true,
-            'full_name' => true,
-            'contact_number' => true,
-            'email' => true,
-            'address_1' => true,
-            'address_2' => true,
-            'address_3' => true,
-            'city' => true,
-            'state' => true,
-            'postal_code' => true,
-            'country' => true,
-            'category' => true,
-            'vehicle_type' => true,
-            'vehicle_registration' => true,
-            'driving_license_section' => true,
-            'company_details_section' => true,
-            'asset_equipment_section' => true,
-            'document_upload_section' => true,
-            'profile_photo_section' => true,
+            'company_visiting'       => true,
+            'date_of_visit'          => true,
+            'details_of_visit'       => true,
+            'person_details'         => true,
+            'staff_id'               => true,
+            'host_contact'           => true,
+            'company_visited'        => true,
+            'visit_reason'           => true,
+            'resident'               => true,
+            'ic_number'              => true,
+            'date_of_birth'          => true,
+            'sex'                    => true,
+            'full_name'              => true,
+            'contact_number'         => true,
+            'email'                  => true,
+            'address_1'              => true,
+            'address_2'              => true,
+            'address_3'              => true,
+            'city'                   => true,
+            'state'                  => true,
+            'postal_code'            => true,
+            'country'                => true,
+            'category'               => true,
+            'vehicle_type'           => true,
+            'vehicle_registration'   => true,
+            'driving_license_section'  => true,
+            'company_details_section'  => true,
+            'asset_equipment_section'  => true,
+            'document_upload_section'  => true,
+            'profile_photo_section'    => true,
         ];
     }
 

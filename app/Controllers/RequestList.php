@@ -55,119 +55,31 @@ class RequestList extends BaseController
 
         $submittedRequests = $query->orderBy('created_at', 'DESC')->findAll();
 
-        // Format queue requests
-        $queueRequests = [];
-        foreach ($submittedRequests as $request) {
+        $requestsList = [];
+        foreach ($submittedRequests as $index => $request) {
             $schedule = $this->scheduleModel
                 ->where('invitation_id', $request['id'])
                 ->orderBy('date_from', 'ASC')
                 ->first();
 
-            $timeUntilVisit = '';
-            if ($schedule) {
-                $visitTime = strtotime($schedule['date_from']);
-                $now = time();
-                $diff = $visitTime - $now;
-                
-                if ($diff > 0) {
-                    $hours = floor($diff / 3600);
-                    $minutes = floor(($diff % 3600) / 60);
-                    
-                    if ($hours > 0) {
-                        $timeUntilVisit = $hours . 'h ' . $minutes . 'm';
-                    } else {
-                        $timeUntilVisit = $minutes . 'm';
-                    }
-                } else {
-                    $timeUntilVisit = 'Now';
-                }
-            }
+            $date = $schedule ? date('d/m/Y', strtotime($schedule['date_from'])) : date('d/m/Y', strtotime($request['created_at']));
+            $reason = $request['reason'] ?? ($request['purpose_of_visit'] ?? '-');
 
-            $queueRequests[] = [
+            $requestsList[] = [
                 'id' => $request['id'],
-                'name' => $request['full_name'],
-                'company' => $request['company'] ?? 'N/A',
-                'host' => $request['invited_by'] ?? '',
-                'time' => $timeUntilVisit,
-                'photo' => $request['profile_photo_path'] ? base_url('uploads/' . $request['profile_photo_path']) : '',
-                'initials' => strtoupper(substr($request['full_name'], 0, 2)),
-                'status' => 'normal',
-                'is_flagged' => false
+                'no' => $index + 1,
+                'date' => $date,
+                'name' => strtoupper($request['full_name']),
+                'ic_passport' => $request['ic_passport'] ?? '-',
+                'type' => 'Invitation',
+                'status' => 'Pending', // Legacy design shows Pending for awaiting approval
+                'reason' => strtoupper($reason)
             ];
         }
-
-        // Get the first request as current
-        $currentRequest = null;
-        if (count($submittedRequests) > 0) {
-            $first = $submittedRequests[0];
-            $schedule = $this->scheduleModel
-                ->where('invitation_id', $first['id'])
-                ->orderBy('date_from', 'ASC')
-                ->first();
-
-            // Get equipment
-            $equipment = $this->equipmentModel
-                ->where('invitation_id', $first['id'])
-                ->findAll();
-
-            $assets = [];
-            foreach ($equipment as $item) {
-                $assets[] = [
-                    'type' => 'inventory_2',
-                    'name' => ($item['equipment_type'] ?? 'Equipment') . 
-                            ($item['serial_number'] ? ' (Serial: ' . $item['serial_number'] . ')' : '')
-                ];
-            }
-
-            $currentRequest = [
-                'id' => 'VIS-' . $first['id'],
-                'name' => $first['full_name'],
-                'company' => $first['company'] ?? 'N/A',
-                'host' => $first['invited_by'] ?? 'N/A',
-                'arrival' => $schedule ? date('h:i A - d/m/Y', strtotime($schedule['date_from'])) : 'N/A',
-                'purpose' => $first['reason'] ?? 'N/A',
-                'photo' => $first['profile_photo_path'] ? base_url('uploads/' . $first['profile_photo_path']) : '',
-                'government_id_image' => $first['government_id_path'] ? base_url('uploads/' . $first['government_id_path']) : '',
-                'invitation_letter' => (function($raw) {
-                    if (!$raw) return [];
-                    $decoded = json_decode($raw, true);
-                    if (is_array($decoded)) {
-                        return array_map(fn($p) => base_url('uploads/' . $p), $decoded);
-                    }
-                    return [base_url('uploads/' . $raw)];
-                })($first['invitation_letter_path'] ?? ''),
-                'access_zones' => explode(', ', $first['location'] ?? ''),
-                'assets' => $assets,
-                'notes' => '',
-                'watchlist_status' => 'cleared',
-                'ai_match' => $first['facial_verified_at'] ? 95 : 0,
-                'ic_passport' => $first['ic_passport'] ?? 'N/A',
-                'contact' => $first['contact'] ?? 'N/A',
-                'email' => $first['visitor_email'] ?? 'N/A',
-                'vehicle' => $first['vehicle_registration'] ?? 'N/A',
-                'staff_id' => $first['staff_id'] ?? 'N/A',
-                'host_contact' => $first['host_contact'] ?? 'N/A',
-                'company_visited' => $first['company_visited'] ?? 'N/A'
-            ];
-        }
-
-        // Calculate stats
-        $flaggedQuery = $this->invitationModel->where('status', 'Submitted');
-        if ($requiresBriefing) $flaggedQuery->where('video_watched', 1);
-        if ($requiresFacial) $flaggedQuery->where('facial_verified_at IS NOT NULL');
-
-        $stats = [
-            'pending' => $this->invitationModel->where('status', 'Pending')->countAllResults(),
-            'flagged' => $flaggedQuery->countAllResults(),
-            'expected' => $this->invitationModel->where('status', 'Approved')->countAllResults(),
-            'rejected' => $this->invitationModel->where('status', 'Rejected')->countAllResults()
-        ];
 
         $data = [
-            'pageTitle' => 'Request List - SafeG',
-            'stats' => $stats,
-            'currentRequest' => $currentRequest,
-            'queueRequests' => $queueRequests
+            'pageTitle' => 'Visitor Pass Request List - SafeG',
+            'requestsList' => $requestsList
         ];
 
         return view('requests/list', $data);

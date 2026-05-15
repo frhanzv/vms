@@ -121,4 +121,37 @@ class RoleModel extends Model
     {
         return $this->where('name', $name)->first();
     }
+
+    /**
+     * Get permission keys for a specific role
+     */
+    public function getPermissions($roleId): array
+    {
+        return $this->db->table('role_permissions')
+            ->where('role_id', $roleId)
+            ->get()
+            ->getResultArray();
+    }
+
+    /**
+     * Set permission keys for a specific role
+     */
+    public function setPermissions($roleId, array $permissions): bool
+    {
+        $this->db->table('role_permissions')->where('role_id', $roleId)->delete();
+        
+        if (empty($permissions)) {
+            return true;
+        }
+
+        $data = [];
+        foreach ($permissions as $key) {
+            $data[] = [
+                'role_id' => $roleId,
+                'permission_key' => $key
+            ];
+        }
+
+        return $this->db->table('role_permissions')->insertBatch($data) > 0;
+    }
 }

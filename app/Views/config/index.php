@@ -4280,9 +4280,14 @@
 
                                 <!-- Tabs -->
                                 <div class="flex gap-2 mb-5 border-b border-gray-200 dark:border-slate-700">
+                                    <button type="button" id="dff-tab-visitor_pass_request"
+                                        onclick="dffSwitchTab('visitor_pass_request')"
+                                        class="px-4 py-2 text-sm font-medium font-brand border-b-2 border-primary text-primary -mb-px">
+                                        Visitor Pass Request
+                                    </button>
                                     <button type="button" id="dff-tab-visitor_registration"
                                         onclick="dffSwitchTab('visitor_registration')"
-                                        class="px-4 py-2 text-sm font-medium font-brand border-b-2 border-primary text-primary -mb-px">
+                                        class="px-4 py-2 text-sm font-medium font-brand border-b-2 border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 -mb-px">
                                         Visitor Registration
                                     </button>
                                     <button type="button" id="dff-tab-invitation"
@@ -4305,8 +4310,20 @@
                                 <!-- Field grid -->
                                 <div id="dff-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6"></div>
 
-                                <!-- Save -->
-                                <div class="flex justify-end">
+                                <!-- Actions: Enable All / Disable All + Save -->
+                                <div class="flex items-center justify-between gap-3">
+                                    <div class="flex items-center gap-2">
+                                        <button type="button" onclick="dffSetAll(true)"
+                                            class="px-4 py-2 rounded-lg border border-primary text-primary hover:bg-primary hover:text-white text-sm font-medium transition-colors font-brand flex items-center gap-1.5">
+                                            <span class="material-symbols-outlined text-base">toggle_on</span>
+                                            Enable All
+                                        </button>
+                                        <button type="button" onclick="dffSetAll(false)"
+                                            class="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 text-sm font-medium transition-colors font-brand flex items-center gap-1.5">
+                                            <span class="material-symbols-outlined text-base">toggle_off</span>
+                                            Disable All
+                                        </button>
+                                    </div>
                                     <button onclick="dffSave()"
                                         class="px-5 py-2.5 rounded-lg bg-primary hover:bg-blue-600 text-white font-medium text-sm flex items-center gap-2 transition-colors font-brand">
                                         <span class="material-symbols-outlined text-base">save</span>
@@ -4330,42 +4347,74 @@
 
     <!-- Role Create/Edit Modal -->
     <div id="roleModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md mx-4">
+        <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-6xl mx-4 max-h-[90vh] flex flex-col">
             <div class="px-6 py-4 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
                 <h3 id="roleModalTitle" class="text-lg font-bold text-gray-800 dark:text-white">Create New Role</h3>
                 <button onclick="closeRoleModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                     <span class="material-symbols-outlined">close</span>
                 </button>
             </div>
-            <form id="roleForm" onsubmit="submitRoleForm(event)">
-                <div class="p-6 space-y-4">
+            <form id="roleForm" onsubmit="submitRoleForm(event)" class="flex flex-col flex-1 overflow-hidden">
+                <div class="p-6 space-y-6 overflow-y-auto flex-1 custom-scrollbar">
                     <input type="hidden" id="roleId" name="roleId">
                     <input type="hidden" id="roleVersion" name="version">
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Role Name
-                            <span class="text-red-500">*</span></label>
-                        <input type="text" id="roleName" name="name" required
-                            class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none"
-                            placeholder="Enter role name">
-                        <p id="roleNameError" class="text-red-500 text-xs mt-1 hidden"></p>
+                    
+                    <!-- Basic Info Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Role Name
+                                <span class="text-red-500">*</span></label>
+                            <input type="text" id="roleName" name="name" required
+                                class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none"
+                                placeholder="Enter role name">
+                            <p id="roleNameError" class="text-red-500 text-xs mt-1 hidden"></p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Status <span
+                                    class="text-red-500">*</span></label>
+                            <select id="roleStatus" name="status" required
+                                class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none">
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                            <p id="roleStatusError" class="text-red-500 text-xs mt-1 hidden"></p>
+                        </div>
+                        <div>
+                            <label
+                                class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Description</label>
+                            <textarea id="roleDescription" name="description" rows="1"
+                                class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none"
+                                placeholder="Role description..."></textarea>
+                            <p id="roleDescriptionError" class="text-red-500 text-xs mt-1 hidden"></p>
+                        </div>
                     </div>
-                    <div>
-                        <label
-                            class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Description</label>
-                        <textarea id="roleDescription" name="description" rows="3"
-                            class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none"
-                            placeholder="Enter role description"></textarea>
-                        <p id="roleDescriptionError" class="text-red-500 text-xs mt-1 hidden"></p>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Status <span
-                                class="text-red-500">*</span></label>
-                        <select id="roleStatus" name="status" required
-                            class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none">
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                        </select>
-                        <p id="roleStatusError" class="text-red-500 text-xs mt-1 hidden"></p>
+
+                    <!-- Permissions Section -->
+                    <div class="pt-6 border-t border-gray-100 dark:border-slate-700">
+                        <div class="flex items-center justify-between mb-4">
+                            <div>
+                                <h4 class="text-base font-bold text-gray-800 dark:text-white">Access Permissions</h4>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Select the modules and actions this role can access</p>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <div class="relative">
+                                    <input type="text" id="permissionSearch" oninput="filterPermissions()" 
+                                        placeholder="Search permissions..." 
+                                        class="pl-9 pr-4 py-2 text-xs border border-gray-200 dark:border-slate-700 dark:bg-slate-900 rounded-lg focus:ring-primary outline-none w-64">
+                                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">search</span>
+                                </div>
+                                <button type="button" onclick="toggleAllPermissions(true)" class="text-xs text-primary hover:underline font-medium">Select All</button>
+                                <button type="button" onclick="toggleAllPermissions(false)" class="text-xs text-gray-500 hover:underline font-medium">Clear All</button>
+                            </div>
+                        </div>
+                        
+                        <div id="permissionsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <!-- Permission Cards will be injected here -->
+                            <div class="col-span-full py-12 flex flex-col items-center justify-center text-gray-400">
+                                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
+                                <p>Loading permissions structure...</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div
@@ -4721,106 +4770,81 @@
             const content = document.getElementById(`${section}-content`);
             const icon = document.getElementById(`${section}-icon`);
 
-            if (content.classList.contains('hidden')) {
-                content.classList.remove('hidden');
-                icon.style.transform = 'rotate(180deg)';
+            if (!content) {
+                console.error(`Section content not found: ${section}-content`);
+                return;
+            }
 
-                // Load logs when System Logs section is opened
-                if (section === 'logs') {
-                    loadLogs();
-                }
-                // Load app configs when App Config section is opened
-                if (section === 'appconfig') {
-                    loadAppConfigs();
-                }
-                // Load roles when Role Management section is opened
-                if (section === 'role') {
-                    loadRoles();
-                }
-                // Load users when User Management section is opened
-                if (section === 'user') {
-                    loadUsers();
-                }
-                // Load email templates when Email Template section is opened
-                if (section === 'email-template') {
-                    fetchEmailTemplates();
-                }
-                // Load companies when Company Management section is opened
-                if (section === 'company') {
-                    loadCompanies();
-                }
-                // Load sub companies when Sub Company Management section is opened
-                if (section === 'subcompany') {
-                    loadSubCompanies();
-                    loadCompaniesForFilter();
-                }
-                // Load countries when Country Management section is opened
-                if (section === 'country') {
-                    loadCountries();
-                }
-                // Load states when State Management section is opened
-                if (section === 'state') {
-                    loadStates();
-                    loadCountriesForFilter();
-                }
-                // Load cities when City Management section is opened
-                if (section === 'city') {
-                    loadCities();
-                    loadCountriesForCityFilter();
-                    loadStatesForCityFilter();
-                }
-                // Load departments when Department Management section is opened
-                if (section === 'department') {
-                    loadDepartments();
-                }
-                // Load designations when Designation Management section is opened
-                if (section === 'designation') {
-                    loadDesignations();
-                }
-                // Load locations when Location Access Management section is opened
-                if (section === 'location') {
-                    loadLocations();
-                }
-                // Load lanes when Lane Management section is opened
-                if (section === 'lane') {
-                    loadLanes();
-                }
-                // Load reject reasons when Reject Reason Management section is opened
-                if (section === 'reject') {
-                    loadRejectReasons();
-                }
-                // Load visitor cards when Visitor Card Management section is opened
-                if (section === 'card') {
-                    loadVisitorCards();
-                }
-                // Load videos when Video Management section is opened
-                if (section === 'video') {
-                    loadVideos();
-                }
-                // Load visit reasons when Visit Reason Management section is opened
-                if (section === 'reason') {
-                    loadVisitReasons();
-                }
-                if (section === 'location-visited') {
-                    loadLocationVisited();
-                }
-                if (section === 'visitortype') {
-                    loadVisitorTypes();
-                }
-                if (section === 'alertpriority') {
-                    loadAlertPriorities();
-                }
-                if (section === 'apimanagement') {
-                    loadApiKeys(1);
-                }
-                if (section === 'pathway') {
-                    loadPathways();
+            if (content.classList.contains('hidden')) {
+                // Close other sections first (optional, based on desired UX)
+                // document.querySelectorAll('[id$="-content"]').forEach(el => el.classList.add('hidden'));
+                // document.querySelectorAll('[id$="-icon"]').forEach(el => el.style.transform = 'rotate(0deg)');
+
+                content.classList.remove('hidden');
+                if (icon) icon.style.transform = 'rotate(180deg)';
+
+                // Load data based on section
+                try {
+                    if (section === 'logs') {
+                        loadLogs();
+                    } else if (section === 'appconfig') {
+                        loadAppConfigs();
+                    } else if (section === 'role') {
+                        if (typeof loadRoles === 'function') loadRoles();
+                    } else if (section === 'user') {
+                        if (typeof loadUsers === 'function') loadUsers();
+                        if (typeof loadCompaniesForUserDropdown === 'function') loadCompaniesForUserDropdown();
+                    } else if (section === 'email-template') {
+                        if (typeof fetchEmailTemplates === 'function') fetchEmailTemplates();
+                    } else if (section === 'company') {
+                        if (typeof loadCompanies === 'function') loadCompanies();
+                    } else if (section === 'subcompany') {
+                        if (typeof loadSubCompanies === 'function') loadSubCompanies();
+                        if (typeof loadCompaniesForFilter === 'function') loadCompaniesForFilter();
+                    } else if (section === 'country') {
+                        if (typeof loadCountries === 'function') loadCountries();
+                    } else if (section === 'state') {
+                        if (typeof loadStates === 'function') loadStates();
+                    } else if (section === 'city') {
+                        if (typeof loadCities === 'function') loadCities();
+                    } else if (section === 'department') {
+                        if (typeof loadDepartments === 'function') loadDepartments();
+                    } else if (section === 'designation') {
+                        if (typeof loadDesignations === 'function') loadDesignations();
+                    } else if (section === 'location') {
+                        if (typeof loadLocations === 'function') loadLocations();
+                    } else if (section === 'lane') {
+                        if (typeof loadLanes === 'function') loadLanes();
+                    } else if (section === 'reject') {
+                        if (typeof loadRejectReasons === 'function') loadRejectReasons();
+                    } else if (section === 'card') {
+                        if (typeof loadVisitorCards === 'function') loadVisitorCards();
+                    } else if (section === 'video') {
+                        if (typeof loadVideos === 'function') loadVideos();
+                    } else if (section === 'reason') {
+                        if (typeof loadVisitReasons === 'function') loadVisitReasons();
+                    } else if (section === 'location-visited') {
+                        if (typeof loadLocationVisited === 'function') loadLocationVisited();
+                    } else if (section === 'visitortype') {
+                        if (typeof loadVisitorTypes === 'function') loadVisitorTypes();
+                    } else if (section === 'alertpriority') {
+                        if (typeof loadAlertPriorities === 'function') loadAlertPriorities();
+                    } else if (section === 'apimanagement') {
+                        if (typeof loadApiKeys === 'function') loadApiKeys(1);
+                    } else if (section === 'pathway') {
+                        if (typeof loadPathways === 'function') loadPathways();
+                    } else if (section === 'regtype') {
+                        if (typeof loadRegType === 'function') loadRegType();
+                    }
+                } catch (e) {
+                    console.error(`Error loading data for section ${section}:`, e);
                 }
             } else {
                 content.classList.add('hidden');
-                icon.style.transform = 'rotate(0deg)';
+                if (icon) icon.style.transform = 'rotate(0deg)';
             }
         }
+
 
         
         // APP CONFIG FUNCTIONS
@@ -5215,6 +5239,112 @@
 
         // ============== ROLE MANAGEMENT FUNCTIONS ==============
 
+        let groupedPermissions = null;
+
+        async function fetchPermissions() {
+            if (groupedPermissions) return groupedPermissions;
+            
+            try {
+                const response = await fetch('<?= base_url('config/getGroupedPermissions') ?>');
+                const data = await response.json();
+                if (data.success) {
+                    groupedPermissions = data.data;
+                    return groupedPermissions;
+                }
+            } catch (error) {
+                console.error('Error fetching permissions:', error);
+            }
+            return null;
+        }
+
+        function renderPermissionGrid(selectedKeys = []) {
+            const grid = document.getElementById('permissionsGrid');
+            if (!groupedPermissions) return;
+
+            grid.innerHTML = Object.entries(groupedPermissions).map(([category, perms]) => {
+                const allSelected = perms.every(p => selectedKeys.includes(p.key));
+                
+                return `
+                    <div class="permission-card bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-700 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow" data-category="${category.toLowerCase()}">
+                        <div class="bg-gray-50 dark:bg-slate-800/50 px-4 py-3 border-b border-gray-100 dark:border-slate-700 flex items-center justify-between">
+                            <h5 class="text-sm font-bold text-gray-800 dark:text-white uppercase tracking-wider">${category}</h5>
+                            <label class="inline-flex items-center cursor-pointer">
+                                <input type="checkbox" class="category-toggle rounded border-gray-300 text-primary focus:ring-primary/20 h-4 w-4" 
+                                    onchange="toggleCategory('${category}', this.checked)" ${allSelected ? 'checked' : ''}>
+                                <span class="ml-2 text-[10px] font-bold text-gray-400 uppercase">Select All</span>
+                            </label>
+                        </div>
+                        <div class="p-4 space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
+                            ${perms.map(p => `
+                                <label class="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors cursor-pointer group permission-item" data-label="${p.label.toLowerCase()}">
+                                    <input type="checkbox" name="permissions[]" value="${p.key}" 
+                                        class="permission-checkbox mt-0.5 rounded border-gray-300 text-primary focus:ring-primary/20 h-4 w-4"
+                                        ${selectedKeys.includes(p.key) ? 'checked' : ''}
+                                        onchange="updateCategoryToggle('${category}')">
+                                    <div class="flex-1">
+                                        <div class="text-xs font-medium text-gray-700 dark:text-slate-300 group-hover:text-primary transition-colors">${p.label}</div>
+                                        <div class="text-[10px] text-gray-400 font-mono">${p.key}</div>
+                                    </div>
+                                </label>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function toggleCategory(category, checked) {
+            const card = document.querySelector(`.permission-card[data-category="${category.toLowerCase()}"]`);
+            if (card) {
+                card.querySelectorAll('input[name="permissions[]"]').forEach(cb => {
+                    cb.checked = checked;
+                });
+            }
+        }
+
+        function updateCategoryToggle(category) {
+            const card = document.querySelector(`.permission-card[data-category="${category.toLowerCase()}"]`);
+            if (card) {
+                const checkboxes = card.querySelectorAll('input[name="permissions[]"]');
+                const toggle = card.querySelector('.category-toggle');
+                if (checkboxes.length > 0) {
+                    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+                    toggle.checked = allChecked;
+                }
+            }
+        }
+
+        function toggleAllPermissions(checked) {
+            document.querySelectorAll('input[name="permissions[]"]').forEach(cb => cb.checked = checked);
+            document.querySelectorAll('.category-toggle').forEach(cb => cb.checked = checked);
+        }
+
+        function filterPermissions() {
+            const query = document.getElementById('permissionSearch').value.toLowerCase();
+            const cards = document.querySelectorAll('.permission-card');
+            
+            cards.forEach(card => {
+                const items = card.querySelectorAll('.permission-item');
+                let hasVisible = false;
+                
+                items.forEach(item => {
+                    const label = item.getAttribute('data-label');
+                    if (label.includes(query)) {
+                        item.classList.remove('hidden');
+                        hasVisible = true;
+                    } else {
+                        item.classList.add('hidden');
+                    }
+                });
+                
+                if (hasVisible) {
+                    card.classList.remove('hidden');
+                } else {
+                    card.classList.add('hidden');
+                }
+            });
+        }
+
         function loadRoles(page = 1, search = '') {
             currentPage = page;
             currentSearch = search;
@@ -5369,38 +5499,59 @@
             }
         });
 
-        function openCreateRoleModal() {
+        async function openCreateRoleModal() {
             document.getElementById('roleModalTitle').textContent = 'Create New Role';
             document.getElementById('roleId').value = '';
             document.getElementById('roleVersion').value = '';
             document.getElementById('roleForm').reset();
             clearRoleErrors();
+            
+            // Open modal
             document.getElementById('roleModal').classList.remove('hidden');
             document.getElementById('roleModal').classList.add('flex');
+
+            // Load permissions
+            await fetchPermissions();
+            renderPermissionGrid([]);
         }
 
-        function openEditRoleModal(roleId) {
-            fetch(`<?= base_url('config/getRole') ?>/${roleId}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        document.getElementById('roleModalTitle').textContent = 'Edit Role';
-                        document.getElementById('roleId').value = data.data.id;
-                        document.getElementById('roleVersion').value = data.data.version || 1;
-                        document.getElementById('roleName').value = data.data.name;
-                        document.getElementById('roleDescription').value = data.data.description || '';
-                        document.getElementById('roleStatus').value = data.data.status;
-                        clearRoleErrors();
-                        document.getElementById('roleModal').classList.remove('hidden');
-                        document.getElementById('roleModal').classList.add('flex');
-                    } else {
-                        showToast('Failed to load role data', 'error');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading role:', error);
-                    showToast('Error loading role data', 'error');
-                });
+        async function openEditRoleModal(roleId) {
+            // Open modal first with loader
+            document.getElementById('roleModalTitle').textContent = 'Edit Role';
+            document.getElementById('roleModal').classList.remove('hidden');
+            document.getElementById('roleModal').classList.add('flex');
+            document.getElementById('permissionsGrid').innerHTML = `
+                <div class="col-span-full py-12 flex flex-col items-center justify-center text-gray-400">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
+                    <p>Fetching role details...</p>
+                </div>
+            `;
+
+            try {
+                const [roleData, permsData] = await Promise.all([
+                    fetch(`<?= base_url('config/getRole') ?>/${roleId}`).then(r => r.json()),
+                    fetchPermissions()
+                ]);
+
+                if (roleData.success) {
+                    const role = roleData.data;
+                    document.getElementById('roleId').value = role.id;
+                    document.getElementById('roleName').value = role.name;
+                    document.getElementById('roleDescription').value = role.description || '';
+                    document.getElementById('roleStatus').value = role.status;
+                    document.getElementById('roleVersion').value = role.version || '';
+                    
+                    clearRoleErrors();
+                    renderPermissionGrid(role.permissions || []);
+                } else {
+                    showToast('Failed to load role details', 'error');
+                    closeRoleModal();
+                }
+            } catch (error) {
+                console.error('Error opening edit modal:', error);
+                showToast('An unexpected error occurred', 'error');
+                closeRoleModal();
+            }
         }
 
         function closeRoleModal() {
@@ -5412,8 +5563,21 @@
 
         function clearRoleErrors() {
             ['roleNameError', 'roleDescriptionError', 'roleStatusError'].forEach(id => {
-                document.getElementById(id).classList.add('hidden');
-                document.getElementById(id).textContent = '';
+                const el = document.getElementById(id);
+                if (el) {
+                    el.classList.add('hidden');
+                    el.textContent = '';
+                }
+            });
+        }
+
+        function displayRoleErrors(errors) {
+            Object.keys(errors).forEach(field => {
+                const errorEl = document.getElementById(`role${field.charAt(0).toUpperCase() + field.slice(1)}Error`);
+                if (errorEl) {
+                    errorEl.textContent = errors[field];
+                    errorEl.classList.remove('hidden');
+                }
             });
         }
 
@@ -5422,51 +5586,62 @@
             clearRoleErrors();
 
             const roleId = document.getElementById('roleId').value;
-            const formData = new FormData(event.target);
-            const data = Object.fromEntries(formData.entries());
-
-            const url = roleId
+            const isEdit = roleId !== '';
+            const url = isEdit
                 ? `<?= base_url('config/updateRole') ?>/${roleId}`
                 : `<?= base_url('config/createRole') ?>`;
 
             const submitBtn = document.getElementById('roleSubmitBtn');
+            const originalBtnContent = submitBtn.innerHTML;
+
+            // Collect checked permissions
+            const checkedPermissions = Array.from(document.querySelectorAll('input[name="permissions[]"]:checked'))
+                .map(cb => cb.value);
+
+            const formData = {
+                name: document.getElementById('roleName').value,
+                description: document.getElementById('roleDescription').value,
+                status: document.getElementById('roleStatus').value,
+                version: document.getElementById('roleVersion').value,
+                permissions: checkedPermissions
+            };
+
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span class="material-symbols-outlined text-base animate-spin">progress_activity</span> Saving...';
+            submitBtn.innerHTML = `
+                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                Saving...
+            `;
 
             fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
                 },
-                body: JSON.stringify(data)
+                body: JSON.stringify(formData)
             })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        closeRoleModal();
-                        loadRoles(currentPage, currentSearch);
-                        showNotification(data.message, 'success');
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    closeRoleModal();
+                    loadRoles(currentPage, currentSearch);
+                } else {
+                    if (data.errors) {
+                        displayRoleErrors(data.errors);
                     } else {
-                        if (data.errors) {
-                            Object.keys(data.errors).forEach(field => {
-                                const errorEl = document.getElementById(`role${field.charAt(0).toUpperCase() + field.slice(1)}Error`);
-                                if (errorEl) {
-                                    errorEl.textContent = data.errors[field];
-                                    errorEl.classList.remove('hidden');
-                                }
-                            });
-                        }
-                        showNotification(data.message || 'Failed to save role', 'error');
+                        showToast(data.message || 'Failed to save role', 'error');
                     }
-                })
-                .catch(error => {
-                    console.error('Error saving role:', error);
-                    showNotification('Error saving role', 'error');
-                })
-                .finally(() => {
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = '<span class="material-symbols-outlined text-base">save</span> Save Role';
-                });
+                }
+            })
+            .catch(error => {
+                console.error('Error saving role:', error);
+                showToast('An unexpected error occurred', 'error');
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnContent;
+            });
         }
 
         function openDeleteModal(roleId, roleName) {
@@ -5486,23 +5661,26 @@
             if (!deleteRoleId) return;
 
             fetch(`<?= base_url('config/deleteRole') ?>/${deleteRoleId}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
             })
-                .then(response => response.json())
-                .then(data => {
-                    closeDeleteModal();
-                    if (data.success) {
-                        loadRoles(currentPage, currentSearch);
-                        showNotification(data.message, 'success');
-                    } else {
-                        showNotification(data.message || 'Failed to delete role', 'error');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error deleting role:', error);
-                    closeDeleteModal();
-                    showNotification('Error deleting role', 'error');
-                });
+            .then(response => response.json())
+            .then(data => {
+                closeDeleteModal();
+                if (data.success) {
+                    loadRoles(currentPage, currentSearch);
+                    showToast(data.message, 'success');
+                } else {
+                    showToast(data.message || 'Failed to delete role', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting role:', error);
+                closeDeleteModal();
+                showToast('Error deleting role', 'error');
+            });
         }
 
         function showNotification(message, type = 'info') {
@@ -15698,7 +15876,7 @@
 
         // ── Dynamic Form Fields ──────────────────────────────────────
         let dffCompanyId = null;
-        let dffActiveTab = 'visitor_registration';
+        let dffActiveTab = 'visitor_pass_request';
         let dffFields    = {};        // { form_type: { field_key: bool } }
         let dffLabels    = {};        // { form_type: { field_key: label } }
 
@@ -15733,13 +15911,13 @@
             empty.classList.add('hidden');
             dffFields = {};
             dffLabels = {};
-            dffSwitchTab('visitor_registration');
+            dffSwitchTab('visitor_pass_request');
         }
 
         function dffSwitchTab(formType) {
             dffActiveTab = formType;
 
-            ['visitor_registration', 'invitation', 'staff_pass_request'].forEach(t => {
+            ['visitor_pass_request', 'visitor_registration', 'invitation', 'staff_pass_request'].forEach(t => {
                 const btn = document.getElementById(`dff-tab-${t}`);
                 if (!btn) return;
                 if (t === formType) {
@@ -15806,6 +15984,14 @@
                 knob.classList.replace('translate-x-5', 'translate-x-0');
             }
             btn.setAttribute('aria-checked', on);
+        }
+
+        function dffSetAll(enabled) {
+            if (!dffActiveTab || !dffFields[dffActiveTab]) return;
+            Object.keys(dffFields[dffActiveTab]).forEach(key => {
+                dffFields[dffActiveTab][key] = enabled;
+            });
+            dffRenderGrid(dffActiveTab);
         }
 
         function dffSave() {

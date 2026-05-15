@@ -198,7 +198,7 @@ class VisitorList extends BaseController
         }
 
         $data = [
-            'pageTitle' => 'Visitor Past List - SafeG',
+            'pageTitle' => 'Visitor Pass List - SafeG',
             'stats' => [
                 'total' => $totalApproved,
                 'checkedIn' => $checkedIn,

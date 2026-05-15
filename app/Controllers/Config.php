@@ -386,9 +386,38 @@ class Config extends BaseController
             ])->setStatusCode(404);
         }
 
+        // Get associated permission keys
+        $permissions = $this->roleModel->getPermissions($id);
+        $role['permissions'] = array_column($permissions, 'permission_key');
+
         return $this->response->setJSON([
             'success' => true,
             'data' => $role
+        ]);
+    }
+
+    /**
+     * Get grouped permissions for role management UI.
+     * Uses PermissionRegistry as the authoritative source so the grid
+     * is always in sync with the codebase — no DB dependency.
+     */
+    public function getGroupedPermissions()
+    {
+        $rawGroups = \App\Libraries\PermissionRegistry::getPermissions();
+
+        // Reshape to [{key, label}, ...] per category for the frontend
+        $grouped = [];
+        foreach ($rawGroups as $category => $perms) {
+            $grouped[$category] = array_map(
+                fn($key, $label) => ['key' => $key, 'label' => $label],
+                array_keys($perms),
+                array_values($perms)
+            );
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data'    => $grouped,
         ]);
     }
 
@@ -423,6 +452,11 @@ class Config extends BaseController
             $roleId = $this->roleModel->insert($data);
 
             if ($roleId) {
+                // Save permissions
+                if (isset($input['permissions']) && is_array($input['permissions'])) {
+                    $this->roleModel->setPermissions($roleId, $input['permissions']);
+                }
+
                 return $this->response->setJSON([
                     'success' => true,
                     'message' => 'Role created successfully',
@@ -483,6 +517,11 @@ class Config extends BaseController
             $error = $this->versionedUpdate($this->roleModel, $id, $data, $input, 'role');
             if ($error) {
                 return $error;
+            }
+
+            // Update permissions
+            if (isset($input['permissions']) && is_array($input['permissions'])) {
+                $this->roleModel->setPermissions($id, $input['permissions']);
             }
 
             return $this->response->setJSON([

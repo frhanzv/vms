@@ -47,25 +47,35 @@ abstract class BaseController extends Controller
      * Role-based permission check.
      * superadmin can do everything. Other roles have an explicit action allowlist.
      */
-    protected function userCan(string $action): bool
+    protected function userCan(string $permission): bool
     {
-        $role = session()->get('role') ?? 'guest';
+        $roleName = session()->get('role') ?? 'guest';
 
-        $map = [
-            'superadmin'       => true,
-            'clientsuperadmin' => ['edit', 'delete', 'export', 'approve_request', 'manage_blacklist'],
-            'host'             => ['view', 'create_invitation'],
-        ];
-
-        if (!isset($map[$role])) {
-            return false;
-        }
-
-        if ($map[$role] === true) {
+        // Superadmin always has access
+        if ($roleName === 'superadmin') {
             return true;
         }
 
-        return in_array($action, (array) $map[$role], true);
+        // Use static cache for request-level performance
+        static $userPermissions = null;
+        if ($userPermissions === null) {
+            try {
+                $roleModel = new \App\Models\RoleModel();
+                $role = $roleModel->where('name', $roleName)->first();
+                
+                if ($role) {
+                    $raw = $roleModel->getPermissions($role['id']);
+                    $userPermissions = array_column($raw, 'permission_key');
+                } else {
+                    $userPermissions = [];
+                }
+            } catch (\Throwable $e) {
+                log_message('error', 'Error in userCan: ' . $e->getMessage());
+                $userPermissions = [];
+            }
+        }
+
+        return in_array($permission, $userPermissions, true);
     }
 
     /**

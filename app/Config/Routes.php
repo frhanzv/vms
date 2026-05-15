@@ -413,9 +413,11 @@ $routes->group('config', ['filter' => $superadmins], function($routes) {
     // Roles
     $routes->get('getRoles', 'Config::getRoles');
     $routes->get('getRole/(:num)', 'Config::getRole/$1');
+    $routes->get('getGroupedPermissions', 'Config::getGroupedPermissions');
     $routes->post('createRole', 'Config::createRole');
     $routes->post('updateRole/(:num)', 'Config::updateRole/$1');
     $routes->delete('deleteRole/(:num)', 'Config::deleteRole/$1');
+
 
     // Companies
     $routes->get('getCompanies', 'Config::getCompanies');

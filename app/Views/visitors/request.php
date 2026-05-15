@@ -294,56 +294,31 @@ $isSettings = str_contains($current, 'settings');
             <form action="<?= base_url('visitor-pass-request/store') ?>" method="post" enctype="multipart/form-data" class="space-y-8">
                 <?= csrf_field() ?>
 
-                <!-- Visit Information -->
-                <?php if ($fs['company_visiting'] ?? true): ?>
+                <!-- Application Info -->
+                <?php if ($fs['application_info'] ?? true): ?>
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8">
                     <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
                         <div class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-primary">
-                            <span class="material-symbols-outlined">business</span>
+                            <span class="material-symbols-outlined">description</span>
                         </div>
                         <div>
-                            <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Visit Information</h2>
-                            <p class="text-sm text-text-sub dark:text-gray-400 font-brand">Where and when are you visiting?</p>
+                            <h2 class="text-xl font-bold font-brand text-text-main dark:text-white uppercase tracking-wider">Application Info</h2>
                         </div>
                     </div>
-                    <div class="space-y-6">
-                        <div class="space-y-2">
-                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Company Visiting <span class="text-red-500">*</span></label>
-                            <div class="p-4 rounded-lg border border-border-color dark:border-gray-700">
-                                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                                <?php
-                                $locations = [
-                                    'ADMIN B', 'ADMIN D', 'AMPANG KL', 'ANNEXE BUILDING',
-                                    'CFS', 'COMMON WAREHOUSE', 'EAST WHARF', 'EPIC SOLAR',
-                                    'KPK GATE', 'KSB PHASE 2 GATE', 'KTSB K.TRG', 'KUALA TERENGGANU',
-                                    'LCB', 'OPERATION PHASE 1', 'PHASE 1', 'PHASE 3',
-                                    'PHASE 4', 'SUKMA SAMUDERA', 'TELUK KALONG', 'WH27',
-                                    'WHSET WHARF', 'WORKSHOP MAINTENANCE', 'WORKSHOP PHASE 2'
-                                ];
-                                foreach ($locations as $location):
-                                ?>
-                                <label class="flex items-center gap-2 cursor-pointer p-3 rounded-lg border border-transparent hover:border-primary/20 hover:bg-white dark:hover:bg-gray-800 transition-all">
-                                    <input name="company_visiting[]" value="<?= $location ?>" class="form-checkbox rounded text-primary border-gray-300 focus:ring-primary h-5 w-5" type="checkbox"/>
-                                    <span class="text-text-main dark:text-white font-medium font-brand text-sm"><?= $location ?></span>
-                                </label>
-                                <?php endforeach; ?>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+
                 </section>
                 <?php endif; ?>
 
                 <!-- Date of Visit -->
-                <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 overflow-hidden">
+                <?php if ($fs['date_of_visit'] ?? true): ?>
+                <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 overflow-hidden mt-8">
                     <div class="flex items-center justify-between px-6 sm:px-8 py-4 border-b border-border-color dark:border-gray-800">
                         <div class="flex items-center gap-3">
                             <div class="size-10 rounded-full bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
                                 <span class="material-symbols-outlined">event</span>
                             </div>
                             <div>
-                                <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Date of Visit</h2>
-                                <p class="text-sm text-text-sub dark:text-gray-400 font-brand">When will the visit occur?</p>
+                                <h2 class="text-xl font-bold font-brand text-text-main dark:text-white uppercase tracking-wider">Date of Visit</h2>
                             </div>
                         </div>
                         <div class="flex items-center gap-2">
@@ -382,48 +357,20 @@ $isSettings = str_contains($current, 'settings');
                         </div>
                     </div>
                 </section>
+                <?php endif; ?>
 
-                <!-- Details of Visit -->
-                <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8">
-                    <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
-                        <div class="size-10 rounded-full bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center text-purple-600 dark:text-purple-400">
-                            <span class="material-symbols-outlined">badge</span>
-                        </div>
-                        <div>
-                            <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Details of Visit</h2>
-                            <p class="text-sm text-text-sub dark:text-gray-400 font-brand">Host and purpose details.</p>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="space-y-2">
-                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Staff ID Of Person Visited</label>
-                            <input name="staff_id" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
-                        </div>
-                        <div class="space-y-2">
-                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Contact No Of Person Visited</label>
-                            <input name="host_contact" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
-                        </div>
-                        <div class="space-y-2 md:col-span-2">
-                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Name Of Company Visited</label>
-                            <input name="company_visited" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
-                        </div>
-                        <div class="space-y-2 md:col-span-2">
-                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Reason</label>
-                            <input name="visit_reason" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
-                        </div>
-                    </div>
-                </section>
 
-                <!-- Person Details -->
-                <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8">
+
+                <!-- Person -->
+                <?php if ($fs['person_details'] ?? true): ?>
+                <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8 mt-8">
                     <div class="flex items-center justify-between mb-6 pb-4 border-b border-border-color dark:border-gray-800">
                         <div class="flex items-center gap-3">
                             <div class="size-10 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center text-green-600 dark:text-green-400">
                                 <span class="material-symbols-outlined">person</span>
                             </div>
                             <div>
-                                <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Person Details</h2>
-                                <p class="text-sm text-text-sub dark:text-gray-400 font-brand">Visitor identification information.</p>
+                                <h2 class="text-xl font-bold font-brand text-text-main dark:text-white uppercase tracking-wider">Person</h2>
                             </div>
                         </div>
                         <button type="button" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-semibold uppercase shadow-lg transition-all flex items-center gap-2 font-brand">
@@ -532,13 +479,26 @@ $isSettings = str_contains($current, 'settings');
                                 <option value="">SELECT CATEGORY FIRST</option>
                             </select>
                         </div>
-                        <div class="md:col-span-2 space-y-2">
+                        <div class="space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Vehicle Registration Number</label>
                             <input name="vehicle_registration" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="e.g. ABC 1234" type="text"/>
                         </div>
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Type Of Visitor</label>
+                            <select name="visitor_type" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
+                                <option value="">SELECT</option>
+                                <option value="BUSINESS MEETING">BUSINESS MEETING</option>
+                                <option value="CONTRACTOR">CONTRACTOR</option>
+                                <option value="DELIVERY">DELIVERY</option>
+                                <option value="INTERVIEW">INTERVIEW</option>
+                                <option value="OTHER">OTHER</option>
+                            </select>
+                        </div>
                     </div>
                 </section>
+                <?php endif; ?>
 
+                <?php if ($fs['driving_license'] ?? true): ?>
                 <!-- Driving License Section -->
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 mt-8">
                     <div class="p-6 sm:p-8">
@@ -548,7 +508,7 @@ $isSettings = str_contains($current, 'settings');
                                     <span class="material-symbols-outlined">badge</span>
                                 </div>
                                 <div>
-                                    <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Driving License</h2>
+                                    <h2 class="text-xl font-bold font-brand text-text-main dark:text-white uppercase tracking-wider">DRIVING LICENSE</h2>
                                     <p class="text-sm text-text-sub dark:text-gray-400 font-brand">Optional driving license information.</p>
                                 </div>
                             </div>
@@ -569,33 +529,55 @@ $isSettings = str_contains($current, 'settings');
                         </div>
                     </div>
                 </section>
+                <?php endif; ?>
 
-                <!-- Company Details -->
-                <?php if ($fs['company_details'] ?? false): ?>
-                <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8">
+                <?php if ($fs['company'] ?? true): ?>
+                <!-- Company -->
+                <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8 mt-8">
                     <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
-                        <div class="size-10 rounded-full bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center text-orange-600 dark:text-orange-400">
+                        <div class="size-10 rounded-full bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center text-purple-600 dark:text-purple-400">
                             <span class="material-symbols-outlined">apartment</span>
                         </div>
                         <div>
-                            <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Company Details</h2>
-                            <p class="text-sm text-text-sub dark:text-gray-400 font-brand">Your company information.</p>
+                            <h2 class="text-xl font-bold font-brand text-text-main dark:text-white uppercase tracking-wider">Company</h2>
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Company Registration ID</label>
+                            <input name="company_reg_id" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
+                        </div>
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Company Name</label>
                             <input name="company_name" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
                         </div>
                         <div class="space-y-2">
-                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Company Registration ID</label>
-                            <input name="company_reg_id" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
+                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Staff ID Of Person Visited</label>
+                            <input name="staff_id" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Name <span class="text-red-500">*</span></label>
+                            <input name="company_visited" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text" required/>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Contact No Of Person Visited <span class="text-red-500">*</span></label>
+                            <input name="host_contact" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text" required/>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Reason <span class="text-red-500">*</span></label>
+                            <select name="visit_reason" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" required>
+                                <option value="">SELECT</option>
+                                <option value="MEETING">MEETING</option>
+                                <option value="DELIVERY">DELIVERY</option>
+                                <option value="MAINTENANCE">MAINTENANCE</option>
+                                <option value="OTHER">OTHER</option>
+                            </select>
                         </div>
                     </div>
                 </section>
                 <?php endif; ?>
-                </section>
 
+                <?php if ($fs['asset_equipment'] ?? true): ?>
                 <!-- Asset/Equipment Details Section -->
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 mt-8">
                     <div class="p-6 sm:p-8">
@@ -605,8 +587,7 @@ $isSettings = str_contains($current, 'settings');
                                     <span class="material-symbols-outlined">inventory_2</span>
                                 </div>
                                 <div>
-                                    <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Asset/Equipment Details</h2>
-                                    <p class="text-sm text-text-sub dark:text-gray-400 font-brand">Equipment and assets being brought in.</p>
+                                    <h2 class="text-xl font-bold font-brand text-text-main dark:text-white uppercase tracking-wider">Asset/Equipment Details</h2>
                                 </div>
                             </div>
                             <div class="flex items-center gap-2">
@@ -626,7 +607,9 @@ $isSettings = str_contains($current, 'settings');
                         </div>
                     </div>
                 </section>
+                <?php endif; ?>
 
+                <?php if ($fs['document_upload'] ?? true): ?>
                 <!-- Document Upload -->
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8 mt-8">
                     <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
@@ -634,13 +617,12 @@ $isSettings = str_contains($current, 'settings');
                             <span class="material-symbols-outlined">folder_open</span>
                         </div>
                         <div>
-                            <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Document Upload</h2>
-                            <p class="text-sm text-text-sub dark:text-gray-400 font-brand">Required for identity verification.</p>
+                            <h2 class="text-xl font-bold font-brand text-text-main dark:text-white uppercase tracking-wider">Upload</h2>
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="flex flex-col gap-3">
-                            <p class="text-sm font-medium text-text-main dark:text-gray-200 font-brand">ID <span class="text-red-500">*</span></p>
+                            <p class="text-sm font-medium text-text-main dark:text-gray-200 font-brand">IC / MyKAD <span class="text-red-500">*</span></p>
                             <div class="group relative flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer">
                                 <input name="government_id" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" type="file"/>
                                 <div class="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4">
@@ -651,7 +633,7 @@ $isSettings = str_contains($current, 'settings');
                             </div>
                         </div>
                         <div class="flex flex-col gap-3">
-                            <p class="text-sm font-medium text-text-main dark:text-gray-200 font-brand">Additional Documents</p>
+                            <p class="text-sm font-medium text-text-main dark:text-gray-200 font-brand">Additional Documents (Optional)</p>
                             <div class="group relative flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer">
                                 <input name="invitation_letter[]" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" type="file" multiple/>
                                 <div class="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4">
@@ -663,45 +645,9 @@ $isSettings = str_contains($current, 'settings');
                         </div>
                     </div>
                 </section>
+                <?php endif; ?>
 
-                <!-- Profile Photo -->
-                <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8 mt-8">
-                    <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
-                        <div class="size-10 rounded-full bg-teal-50 dark:bg-teal-900/20 flex items-center justify-center text-teal-600 dark:text-teal-400">
-                            <span class="material-symbols-outlined">photo_camera</span>
-                        </div>
-                        <div>
-                            <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Profile Photo</h2>
-                            <p class="text-sm text-text-sub dark:text-gray-400 font-brand">This will be used for your visitor badge.</p>
-                        </div>
-                    </div>
-                    <div class="flex flex-col sm:flex-row items-center gap-8">
-                        <div class="relative group">
-                            <div class="size-32 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden border-4 border-white dark:border-gray-700 shadow-lg">
-                                <span class="material-symbols-outlined text-6xl text-gray-300 dark:text-gray-600">account_circle</span>
-                            </div>
-                            <button class="absolute bottom-0 right-0 p-2 bg-white dark:bg-gray-700 rounded-full shadow-md text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary transition-colors border border-gray-200 dark:border-gray-600" type="button">
-                                <span class="material-symbols-outlined text-xl">edit</span>
-                            </button>
-                        </div>
-                        <div class="flex-1 space-y-4 text-center sm:text-left">
-                            <div>
-                                <h3 class="font-medium text-text-main dark:text-white font-brand">Upload or Capture</h3>
-                                <p class="text-sm text-text-sub dark:text-gray-400 mt-1 font-brand">Please ensure your face is clearly visible. No sunglasses or hats.</p>
-                            </div>
-                            <div class="flex flex-wrap justify-center sm:justify-start gap-3">
-                                <button class="px-5 py-2.5 rounded-lg bg-primary hover:bg-primary-hover text-white font-medium text-sm flex items-center gap-2 transition-all shadow-lg shadow-primary/25 font-brand" type="button">
-                                    <span class="material-symbols-outlined text-lg">upload</span>
-                                    Upload Photo
-                                </button>
-                                <button class="px-5 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-text-main dark:text-white font-medium text-sm flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all font-brand" type="button">
-                                    <span class="material-symbols-outlined text-lg">camera_alt</span>
-                                    Take Photo
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </section>
+
 
                 <!-- Form Actions -->
                 <div class="flex items-center justify-end gap-4 py-6 border-t border-border-color dark:border-gray-800 mt-8">
