@@ -174,7 +174,7 @@ class KioskApi extends BaseController
     /** GET /api/admin/moduleConfig/getByProject */
     public function getModuleConfig(): \CodeIgniter\HTTP\Response
     {
-        $model = new SettingModel();
+        $model    = new SettingModel();
         $settings = $model->findAll();
 
         $config = [];
@@ -197,7 +197,7 @@ class KioskApi extends BaseController
     /** GET /api/admin/campanies/all  (typo kept for mobile app compatibility) */
     public function getAllCompanies(): \CodeIgniter\HTTP\Response
     {
-        $model = new CompanyModel();
+        $model     = new CompanyModel();
         $companies = $model->where('status', 'active')
             ->orderBy('name', 'ASC')
             ->findAll();
@@ -259,8 +259,8 @@ class KioskApi extends BaseController
      */
     public function checkICExist(): \CodeIgniter\HTTP\Response
     {
-        $body   = $this->request->getJSON(true) ?? $this->request->getPost();
-        $icNo   = trim($body['icNo'] ?? $body['ic_no'] ?? $body['icPassport'] ?? '');
+        $body = $this->request->getJSON(true) ?? $this->request->getPost();
+        $icNo = trim($body['icNo'] ?? $body['ic_no'] ?? $body['icPassport'] ?? '');
 
         if ($icNo === '') {
             return $this->failValidationErrors('icNo is required');
@@ -293,22 +293,27 @@ class KioskApi extends BaseController
      *
      * Expected body fields (camelCase from mobile):
      *   visitorName, icNo, phoneNo, email, companyName, vehicleNo,
-     *   locationId, visitReason, visitorTypeId, invitedBy, hostContact,
-     *   dateOfBirth, sex, resident, address, postcode, city, state, country
+     *   visitReason, visitorTypeId, invitedBy, resident, address,
+     *   photo_base64 (optional — face photo from FaceDetectionActivity)
+     *
+     * Note: Android sends resident as "Local" or "Foreigner"
+     *       DB stores as "Malaysian" or "Non-Malaysian"
+     * Note: Android does NOT send country/state/city — auto-set Malaysia for local.
+     * Note: country, state, city are sent as int IDs from Android — resolved to names here.
      */
     public function doVisitorPassReqMobile(): \CodeIgniter\HTTP\Response
     {
         $body = $this->request->getJSON(true) ?? $this->request->getPost();
 
-        $fullName  = trim($body['visitorName'] ?? $body['full_name']    ?? '');
-        $icNo      = trim($body['icNo']        ?? $body['ic_no']        ?? $body['ic_passport'] ?? '');
-        $contact   = trim($body['phoneNo']     ?? $body['contact']      ?? '');
-        $email     = trim($body['email']       ?? $body['visitorEmail'] ?? '');
-        $company   = trim($body['companyName'] ?? $body['company']      ?? '');
-        $vehicleNo = trim($body['vehicleNo']   ?? $body['vehicle_registration'] ?? '');
-        $location  = trim($body['locationAccess'] ?? $body['location']  ?? '');
-        $rawReason = trim($body['visitReason'] ?? $body['reason']       ?? '');
-        $invitedBy = trim($body['invitedBy']   ?? $body['invited_by']   ?? '');
+        $fullName  = trim($body['visitorName']    ?? $body['full_name']             ?? '');
+        $icNo      = trim($body['icNo']           ?? $body['ic_no']                ?? $body['ic_passport'] ?? '');
+        $contact   = trim($body['phoneNo']        ?? $body['contact']              ?? '');
+        $email     = trim($body['email']          ?? $body['visitorEmail']         ?? '');
+        $company   = trim($body['companyName']    ?? $body['company']              ?? '');
+        $vehicleNo = trim($body['vehicleNo']      ?? $body['vehicle_registration'] ?? '');
+        $location  = trim($body['locationAccess'] ?? $body['location']             ?? '');
+        $rawReason = trim($body['visitReason']    ?? $body['reason']               ?? '');
+        $invitedBy = trim($body['invitedBy']      ?? $body['invited_by']           ?? '');
 
         if ($fullName === '' || $contact === '' || $rawReason === '') {
             return $this->failValidationErrors('visitorName, phoneNo, and visitReason are required');
@@ -317,9 +322,73 @@ class KioskApi extends BaseController
         // Resolve numeric reason ID to the actual reason text
         if (ctype_digit($rawReason)) {
             $reasonRow = (new VisitReasonModel())->find((int) $rawReason);
-            $reason = $reasonRow ? $reasonRow['reason'] : $rawReason;
+            $reason    = $reasonRow ? $reasonRow['reason'] : $rawReason;
         } else {
             $reason = $rawReason;
+        }
+
+        // Normalize resident field
+        // Android sends "Local" or "Foreigner"
+        // DB stores "Malaysian" or "Non-Malaysian"
+        // Fallback: auto-detect from IC format if not provided
+        $residentRaw        = trim($body['resident'] ?? '');
+        $residentNormalized = match (strtolower($residentRaw)) {
+            'local', 'malaysian'              => 'Malaysian',
+            'foreigner', 'non-malaysian',
+            'non malaysian'                   => 'Non-Malaysian',
+            // Not provided — auto-detect from IC format
+            // Malaysian IC = exactly 12 digits numeric
+            default => preg_match('/^\d{12}$/', $icNo) ? 'Malaysian' : 'Non-Malaysian',
+        };
+
+        log_message('info', "KioskApi::doVisitorPassReqMobile resident raw='{$residentRaw}' normalized='{$residentNormalized}' ic='{$icNo}'");
+
+        // Resolve country ID to name — Android sends int country ID
+        // If local and no country sent — auto-set Malaysia
+        // If foreigner and no country sent — leave null (Android never sends country)
+        $countryRaw  = $body['country'] ?? null;
+        $countryName = null;
+        if ($countryRaw !== null && is_numeric($countryRaw) && (int) $countryRaw > 0) {
+            // Numeric ID — look up country name from DB
+            $countryModel = new CountryModel();
+            $countryRow   = $countryModel->find((int) $countryRaw);
+            $countryName  = $countryRow ? $countryRow['name'] : null;
+        } elseif ($countryRaw !== null && !is_numeric($countryRaw) && trim($countryRaw) !== '') {
+            // Already a string name — use as is
+            $countryName = trim($countryRaw);
+        } elseif ($residentNormalized === 'Malaysian') {
+            // Local visitor — Android never sends country, auto-set Malaysia
+            $countryModel = new CountryModel();
+            $malaysia     = $countryModel->where('name', 'Malaysia')->first();
+            $countryName  = $malaysia ? $malaysia['name'] : 'Malaysia';
+            log_message('info', "KioskApi::doVisitorPassReqMobile auto-set country=Malaysia for local visitor");
+        }
+        // Foreigner — country stays null, Android never sends it
+
+        // Resolve state ID to name — Android sends int state ID
+        $stateRaw  = $body['state'] ?? null;
+        $stateName = null;
+        if ($stateRaw !== null && is_numeric($stateRaw) && (int) $stateRaw > 0) {
+            // Numeric ID — look up state name from DB
+            $stateModel = new StateModel();
+            $stateRow   = $stateModel->find((int) $stateRaw);
+            $stateName  = $stateRow ? $stateRow['name'] : null;
+        } elseif ($stateRaw !== null && !is_numeric($stateRaw) && trim($stateRaw) !== '') {
+            // Already a string name — use as is
+            $stateName = trim($stateRaw);
+        }
+
+        // Resolve city ID to name — Android sends int city ID
+        $cityRaw  = $body['city'] ?? null;
+        $cityName = null;
+        if ($cityRaw !== null && is_numeric($cityRaw) && (int) $cityRaw > 0) {
+            // Numeric ID — look up city name from DB
+            $cityModel = new CityModel();
+            $cityRow   = $cityModel->find((int) $cityRaw);
+            $cityName  = $cityRow ? $cityRow['name'] : null;
+        } elseif ($cityRaw !== null && !is_numeric($cityRaw) && trim($cityRaw) !== '') {
+            // Already a string name — use as is
+            $cityName = trim($cityRaw);
         }
 
         $data = [
@@ -333,16 +402,18 @@ class KioskApi extends BaseController
             'reason'               => $reason,
             'invited_by'           => $invitedBy,
             'visitor_type_id'      => (int) ($body['visitorTypeId'] ?? $body['visitor_type_id'] ?? 0) ?: null,
-            'host_contact'         => trim($body['hostContact']    ?? $body['host_contact']    ?? ''),
-            'company_visited'      => trim($body['companyVisited'] ?? $body['company_visited'] ?? ''),
-            'date_of_birth'        => $body['dateOfBirth']  ?? $body['date_of_birth']  ?? null,
-            'sex'                  => $body['sex']          ?? null,
-            'resident'             => $body['resident']     ?? null,
-            'address'              => $body['address']      ?? null,
-            'postcode'             => $body['postcode']     ?? null,
-            'city'                 => $body['city']         ?? null,
-            'state'                => $body['state']        ?? null,
-            'country'              => $body['country']      ?? null,
+            'host_contact'         => trim($body['hostContact']     ?? $body['host_contact']     ?? ''),
+            'company_visited'      => trim($body['companyVisited']  ?? $body['company_visited']  ?? ''),
+            'date_of_birth'        => $body['dateOfBirth'] ?? $body['date_of_birth'] ?? null,
+            'sex'                  => $body['sex']         ?? null,
+            // Use normalized resident — "Malaysian" or "Non-Malaysian"
+            'resident'             => $residentNormalized,
+            'address'              => $body['address']     ?? null,
+            'postcode'             => $body['postcode']    ?? null,
+            // Use resolved names instead of raw IDs
+            'city'                 => $cityName,
+            'state'                => $stateName,
+            'country'              => $countryName,
             'registration_source'  => 'kiosk',
             'status'               => 'Submitted',
         ];
@@ -358,7 +429,39 @@ class KioskApi extends BaseController
             return $this->failServerError('Failed to create visitor pass');
         }
 
+        // Save face photo if provided in payload
+        // Android ThankYouActivity sends photo_base64 inside doVisitorPassReqMobile body
+        $photoBase64 = $body['photo_base64'] ?? $body['photo'] ?? null;
+        if ($photoBase64) {
+            $imageData = base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', $photoBase64));
+            if ($imageData !== false) {
+                $savePath = WRITEPATH . '../public/uploads/visitor_photos/';
+                if (!is_dir($savePath)) {
+                    mkdir($savePath, 0775, true);
+                }
+
+                $newName      = 'kiosk_' . $id . '_' . time() . '.jpg';
+                file_put_contents($savePath . $newName, $imageData);
+                $relativePath = 'visitor_photos/' . $newName;
+
+                // Update invitation with photo path + facial verification fields
+                $model->skipValidation(true)->update($id, [
+                    'profile_photo_path'        => $relativePath,
+                    'facial_verification_image' => $relativePath,
+                    'facial_verified_at'        => date('Y-m-d H:i:s'),
+                    'updated_at'                => date('Y-m-d H:i:s'),
+                ]);
+
+                log_message('info', "KioskApi::doVisitorPassReqMobile photo saved: {$relativePath} for invitation_id={$id}");
+            } else {
+                log_message('warning', "KioskApi::doVisitorPassReqMobile invalid base64 photo for invitation_id={$id}");
+            }
+        }
+
+        // Refresh invitation record (includes photo path and resolved names if saved)
         $invitation = $model->find($id);
+
+        log_message('info', "KioskApi::doVisitorPassReqMobile created invitation_id={$id} name={$fullName} resident={$residentNormalized} country={$countryName} state={$stateName} city={$cityName}");
 
         return $this->respondCreated([
             'status'  => 'success',
@@ -366,7 +469,6 @@ class KioskApi extends BaseController
             'data'    => $this->formatInvitation($invitation),
         ]);
     }
-
     // -------------------------------------------------------------------------
     // Vendor pass — card assignment & photo upload
     // -------------------------------------------------------------------------
@@ -374,7 +476,13 @@ class KioskApi extends BaseController
     /**
      * POST /api/vendorpass/insertVendorPassCard
      * Binds a visitor card to an invitation.
-     * Body: { "cardId": "...", "invitationId": 123 }
+     *
+     * Android sends: { "cardId": "...", "invitationId": 123 }
+     * After success:
+     *   - Card status → in_use
+     *   - Invitation status → Approved + checked_in_at set
+     *   - invitation_visitors record created/updated
+     *   - VisitorCardLog entry created
      */
     public function insertVendorPassCard(): \CodeIgniter\HTTP\Response
     {
@@ -406,6 +514,13 @@ class KioskApi extends BaseController
         // Mark card as in_use
         $cardModel->update($card['id'], ['status' => 'in_use']);
 
+        // Auto-approve invitation + set checked_in_at
+        $invModel->skipValidation(true)->update($invitationId, [
+            'status'        => 'Approved',
+            'checked_in_at' => date('Y-m-d H:i:s'),
+            'updated_at'    => date('Y-m-d H:i:s'),
+        ]);
+
         // Log the card check-in assignment
         $logModel = new VisitorCardLogModel();
         $logModel->insert([
@@ -414,6 +529,38 @@ class KioskApi extends BaseController
             'action'          => 'checkin',
             'scanned_at'      => date('Y-m-d H:i:s'),
         ]);
+
+        // Insert into invitation_visitors so visitor appears in Visitors List
+        $db       = \Config\Database::connect();
+        $existing = $db->table('invitation_visitors')
+            ->where('invitation_id', $invitationId)
+            ->get()->getFirstRow('array');
+
+        if (!$existing) {
+            // Create new invitation_visitor record
+            $db->table('invitation_visitors')->insert([
+                'invitation_id'        => $invitationId,
+                'full_name'            => $invitation['full_name'],
+                'ic_passport'          => $invitation['ic_passport']          ?? 'PENDING',
+                'contact'              => $invitation['contact']               ?? 'N/A',
+                'company'              => $invitation['company']               ?? '',
+                'vehicle_registration' => $invitation['vehicle_registration']  ?? '',
+                'visitor_card_id'      => $card['id'],
+                'check_in_time'        => date('Y-m-d H:i:s'),
+                'created_at'           => date('Y-m-d H:i:s'),
+                'updated_at'           => date('Y-m-d H:i:s'),
+                'version'              => 1,
+            ]);
+        } else {
+            // Update existing record with card and check-in time
+            $db->table('invitation_visitors')
+                ->where('invitation_id', $invitationId)
+                ->update([
+                    'visitor_card_id' => $card['id'],
+                    'check_in_time'   => date('Y-m-d H:i:s'),
+                    'updated_at'      => date('Y-m-d H:i:s'),
+                ]);
+        }
 
         return $this->respond([
             'status'       => 'success',
@@ -425,12 +572,25 @@ class KioskApi extends BaseController
 
     /**
      * POST /api/vendorpass/uploadVendorPassPhotoMobile
-     * Accepts a visitor photo (multipart or base64) and stores it.
-     * Form fields: file (image), invitationId
+     * Accepts a visitor face photo and stores it against the invitation.
+     *
+     * Android sends via addBodyParameter:
+     *   invitationId — invitation ID from StaticData.invitationId
+     *   photo_base64 — base64 encoded face image
+     *
+     * Also supports multipart file upload as fallback.
      */
     public function uploadVendorPassPhotoMobile(): \CodeIgniter\HTTP\Response
     {
-        $invitationId = (int) ($this->request->getPost('invitationId') ?? $this->request->getPost('invitation_id') ?? 0);
+        // Accept invitationId from POST body param (Android addBodyParameter)
+        $body         = $this->request->getJSON(true) ?? [];
+        $invitationId = (int) (
+            $this->request->getPost('invitationId')
+            ?? $this->request->getPost('invitation_id')
+            ?? $body['invitationId']
+            ?? $body['invitation_id']
+            ?? 0
+        );
 
         if ($invitationId === 0) {
             return $this->failValidationErrors('invitationId is required');
@@ -442,6 +602,45 @@ class KioskApi extends BaseController
             return $this->failNotFound('Invitation not found');
         }
 
+        // Accept photo_base64 from POST body param (Android addBodyParameter)
+        // Also accept 'photo' key as fallback
+        $base64 = $this->request->getPost('photo_base64')
+            ?? $this->request->getPost('photo')
+            ?? $body['photo_base64']
+            ?? $body['photo']
+            ?? null;
+
+        if ($base64) {
+            $imageData = base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', $base64));
+            if ($imageData === false) {
+                return $this->failValidationErrors('Invalid base64 image data');
+            }
+
+            $savePath = WRITEPATH . '../public/uploads/visitor_photos/';
+            if (!is_dir($savePath)) {
+                mkdir($savePath, 0775, true);
+            }
+
+            $newName      = 'kiosk_' . $invitationId . '_' . time() . '.jpg';
+            file_put_contents($savePath . $newName, $imageData);
+            $relativePath = 'visitor_photos/' . $newName;
+
+            // Save photo path + mark facial verification done
+            $invModel->skipValidation(true)->update($invitationId, [
+                'profile_photo_path'        => $relativePath,
+                'facial_verification_image' => $relativePath,
+                'facial_verified_at'        => date('Y-m-d H:i:s'),
+                'updated_at'                => date('Y-m-d H:i:s'),
+            ]);
+
+            return $this->respond([
+                'status'  => 'success',
+                'message' => 'Photo uploaded successfully',
+                'path'    => $relativePath,
+            ]);
+        }
+
+        // Fallback: accept multipart file upload
         $file = $this->request->getFile('file') ?? $this->request->getFile('photo');
 
         if ($file && $file->isValid() && !$file->hasMoved()) {
@@ -455,36 +654,12 @@ class KioskApi extends BaseController
             $file->move($savePath, $newName);
             $relativePath = 'visitor_photos/' . $newName;
 
+            // Save photo path + mark facial verification done
             $invModel->skipValidation(true)->update($invitationId, [
-                'profile_photo_path' => $relativePath,
-            ]);
-
-            return $this->respond([
-                'status'  => 'success',
-                'message' => 'Photo uploaded successfully',
-                'path'    => $relativePath,
-            ]);
-        }
-
-        // Fallback: accept base64-encoded image
-        $base64 = $this->request->getPost('photo_base64') ?? ($this->request->getJSON(true)['photo_base64'] ?? null);
-        if ($base64) {
-            $imageData = base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', $base64));
-            if ($imageData === false) {
-                return $this->failValidationErrors('Invalid base64 image data');
-            }
-
-            $savePath = WRITEPATH . '../public/uploads/visitor_photos/';
-            if (!is_dir($savePath)) {
-                mkdir($savePath, 0775, true);
-            }
-
-            $newName = 'kiosk_' . $invitationId . '_' . time() . '.jpg';
-            file_put_contents($savePath . $newName, $imageData);
-            $relativePath = 'visitor_photos/' . $newName;
-
-            $invModel->skipValidation(true)->update($invitationId, [
-                'profile_photo_path' => $relativePath,
+                'profile_photo_path'        => $relativePath,
+                'facial_verification_image' => $relativePath,
+                'facial_verified_at'        => date('Y-m-d H:i:s'),
+                'updated_at'                => date('Y-m-d H:i:s'),
             ]);
 
             return $this->respond([
@@ -507,7 +682,7 @@ class KioskApi extends BaseController
      */
     public function getStaffPassByStaffNoOrName(): \CodeIgniter\HTTP\Response
     {
-        // Accept GET param OR POST body (Android sends POST with "username" key)
+        // ✅ Accept GET param OR POST body (Android sends POST with "username" key)
         $keyword = trim(
             $this->request->getGet('keyword')
                 ?? $this->request->getGet('staffNo')
@@ -532,22 +707,22 @@ class KioskApi extends BaseController
         $data = array_map(fn($s) => [
             'id'             => (int) $s['id'],
             'staffNo'        => $s['staff_no'],
-            'username'       => $s['staff_no'],        // Android uses 'username' field
+            'username'       => $s['staff_no'],              // Android uses 'username' field
             'fullName'       => $s['full_name'],
-            'name'           => $s['full_name'],        // Android uses 'name' field
-            'nameOnPass'     => $s['name_on_staff_pass'] ?? $s['full_name'],
-            'icPassport'     => $s['ic_passport'] ?? '',
-            'icNo'           => $s['ic_passport'] ?? '', // Android uses 'icNo' field
-            'passportNo'     => '',                      // Staff won't have passport
-            'department'     => $s['department']  ?? '',
-            'designation'    => $s['designation'] ?? '',
-            'locationAccess' => $s['location_access'] ?? '',
-            'cardStatus'     => $s['card_status'] ?? '',
-            'cardExpiry'     => $s['card_expiry'] ?? '',
-            'mobileNo'       => $s['contact_number'] ?? '', // Android uses 'mobileNo' field
-            'email'          => $s['email'] ?? '',
-            'photo'          => $s['photo_path'] ?? '',     // Android uses 'photo' field
-            'visitorType'    => '',                          // Staff don't have visitorType
+            'name'           => $s['full_name'],              // Android uses 'name' field
+            'nameOnPass'     => $s['name_on_staff_pass']     ?? $s['full_name'],
+            'icPassport'     => $s['ic_passport']            ?? '',
+            'icNo'           => $s['ic_passport']            ?? '', // Android uses 'icNo' field
+            'passportNo'     => '',                                  // Staff won't have passport
+            'department'     => $s['department']             ?? '',
+            'designation'    => $s['designation']            ?? '',
+            'locationAccess' => $s['location_access']        ?? '',
+            'cardStatus'     => $s['card_status']            ?? '',
+            'cardExpiry'     => $s['card_expiry']            ?? '',
+            'mobileNo'       => $s['contact_number']         ?? '', // Android uses 'mobileNo' field
+            'email'          => $s['email']                  ?? '',
+            'photo'          => $s['photo_path']             ?? '', // Android uses 'photo' field
+            'visitorType'    => '',                                  // Staff don't have visitorType
             'status'         => $s['status'],
             'message'        => '',
         ], $staff);
@@ -614,6 +789,7 @@ class KioskApi extends BaseController
      * POST /decrypt
      * Body: { "data": "<encrypted_string>" }
      *
+     * Android sends "data" key (not "ciphertext").
      * Compatible with the AES-256-CBC encryption used in the VMS QR workflow.
      * The secret key is read from the setting key "qr_encryption_key" or
      * falls back to the CI4 encryption key.
@@ -621,7 +797,8 @@ class KioskApi extends BaseController
     public function decrypt(): \CodeIgniter\HTTP\Response
     {
         $body      = $this->request->getJSON(true) ?? $this->request->getPost();
-        $encrypted = trim($body['data'] ?? $body['text'] ?? $body['encrypted'] ?? '');
+        // Android sends "data" key — also accept "text", "encrypted", "ciphertext" as fallback
+        $encrypted = trim($body['data'] ?? $body['ciphertext'] ?? $body['text'] ?? $body['encrypted'] ?? '');
 
         if ($encrypted === '') {
             return $this->failValidationErrors('data field is required');
@@ -640,6 +817,7 @@ class KioskApi extends BaseController
                 $plain   = openssl_decrypt($cipher, 'AES-256-CBC', $key, OPENSSL_RAW_DATA, $iv);
 
                 if ($plain !== false) {
+                    // Return "data" key — Android reads response.optString("data", "")
                     return $this->respond(['status' => 'success', 'data' => $plain]);
                 }
             }
@@ -674,12 +852,17 @@ class KioskApi extends BaseController
      */
     private function formatInvitation(array $inv): array
     {
-        // Split ic_passport into icNo vs passportNo based on resident field
-        // Non-Malaysian / Foreigner → passportNo, Malaysian → icNo
+        // Detect foreigner
+        // Malaysian IC = exactly 12 digits numeric (e.g. 550101010101)
+        // Foreigner passport = anything else (letters, shorter, longer)
         $icPassport  = $inv['ic_passport'] ?? '';
         $isForeigner = in_array(
             strtolower($inv['resident'] ?? ''),
             ['non-malaysian', 'foreigner', 'non malaysian']
+        ) || (
+            // If resident not set — auto detect by IC format
+            // Malaysian IC = exactly 12 digits only
+            $icPassport !== '' && !preg_match('/^\d{12}$/', $icPassport)
         );
         $icNo       = $isForeigner ? '' : $icPassport;
         $passportNo = $isForeigner ? $icPassport : '';
@@ -687,31 +870,33 @@ class KioskApi extends BaseController
         return [
             // Core fields Android app model expects
             'id'          => (int) $inv['id'],
-            'username'    => $inv['ic_passport']   ?? '',   // used as QR lookup key
-            'name'        => $inv['full_name']      ?? '',   // Android uses 'name'
-            'fullName'    => $inv['full_name']      ?? '',   // alias
-            'mobileNo'    => $inv['contact']        ?? '',   // Android uses 'mobileNo'
-            'contactNo'   => $inv['contact']        ?? '',   // alias for mobileNo
-            'icNo'        => $icNo,                          // Malaysian IC
-            'passportNo'  => $passportNo,                    // Foreigner passport
-            'photo'       => $inv['profile_photo_path'] ?? '', // Android uses 'photo'
-            'visitorType' => $inv['visitor_type_id']         // Android uses 'visitorType'
+            'username'    => $inv['ic_passport']        ?? '', // used as QR lookup key
+            'name'        => $inv['full_name']           ?? '', // Android uses 'name'
+            'fullName'    => $inv['full_name']           ?? '', // alias
+            'mobileNo'    => $inv['contact']             ?? '', // Android uses 'mobileNo'
+            'contactNo'   => $inv['contact']             ?? '', // alias — CardDetailsActivity reads 'contactNo'
+            'contact'     => $inv['contact']             ?? '', // alias
+            'phoneNo'     => $inv['contact']             ?? '', // alias
+            'icNo'        => $icNo,                             // Malaysian IC
+            'passportNo'  => $passportNo,                       // Foreigner passport
+            'photo'       => $inv['profile_photo_path']  ?? '', // Android uses 'photo'
+            'visitorType' => $inv['visitor_type_id']            // Android uses 'visitorType'
                 ? $this->resolveVisitorType((int) $inv['visitor_type_id'])
                 : '',
-            'email'       => $inv['visitor_email']  ?? '',
-            'status'      => $inv['status']         ?? '',
-            'message'     => '',                             // placeholder for error msg
+            'email'       => $inv['visitor_email']       ?? '',
+            'status'      => $inv['status']              ?? '',
+            'message'     => '',                                // placeholder for error msg
 
             // Extra fields for CardDetailsActivity auto-fill
-            'companyName'  => $inv['company']              ?? '',
-            'company'      => $inv['company']              ?? '',
-            'vehicleNo'    => $inv['vehicle_registration'] ?? '',
-            'regNum'       => $inv['vehicle_registration'] ?? '', // alias used by CardDetails
-            'address'      => $inv['address']              ?? '',
-            'postcode'     => $inv['postcode']             ?? '',
-            'city'         => $inv['city']                 ?? '',
-            'state'        => $inv['state']                ?? '',
-            'country'      => $inv['country']              ?? '', // needed for foreigner country box
+            'companyName'  => $inv['company']               ?? '',
+            'company'      => $inv['company']               ?? '',
+            'vehicleNo'    => $inv['vehicle_registration']  ?? '',
+            'regNum'       => $inv['vehicle_registration']  ?? '', // alias used by CardDetails
+            'address'      => $inv['address']               ?? '',
+            'postcode'     => $inv['postcode']              ?? '',
+            'city'         => $inv['city']                  ?? '',
+            'state'        => $inv['state']                 ?? '',
+            'country'      => $inv['country']               ?? '', // needed for foreigner country box
 
             // Additional fields
             'dateOfBirth'        => $inv['date_of_birth']        ?? '',
