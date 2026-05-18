@@ -253,6 +253,12 @@ $routes->get('dashboard/activeAlertsData', 'Dashboard::activeAlertsData');
 $routes->get('dashboard/widgetSnapshot', 'Dashboard::widgetSnapshot');
 $routes->get('dashboard/recentActivityData', 'Dashboard::recentActivityData');
 $routes->post('dashboard/quickCheckIn', 'Dashboard::quickCheckIn');
+$routes->post('dashboard/assistantAsk', 'Dashboard::assistantAsk');
+$routes->get('dashboard/assistantHistory', 'Dashboard::assistantHistory');
+$routes->post('dashboard/assistantChatCreate', 'Dashboard::assistantChatCreate');
+$routes->post('dashboard/assistantChatRename', 'Dashboard::assistantChatRename');
+$routes->post('dashboard/assistantChatDelete', 'Dashboard::assistantChatDelete');
+$routes->post('dashboard/assistantChatClear', 'Dashboard::assistantChatClear');
 
 $routes->get('settings', 'Settings::index');
 $routes->post('settings/updateProfile', 'Settings::updateProfile');
@@ -318,10 +324,13 @@ $routes->group('', ['filter' => $plusAdmin], function($routes) {
 
 $routes->group('', ['filter' => [$plusAdminOfficer, 'client_feature:staff_pass']], function($routes) {
     $routes->get('staffs', 'StaffList::index');
+    $routes->post('staffs/delete/(:num)', 'StaffList::delete/$1');
     $routes->get('staffs/staffpassrequest', 'StaffPassRequest::index');
     $routes->post('staffs/staffpassrequest/store', 'StaffPassRequest::store');
     $routes->post('staff-pass/import', 'StaffController::import');
     $routes->get('staffpassrequest/view/(:any)', 'StaffPassRequest::view/$1');
+    $routes->get('staffpassrequest/edit/(:num)', 'StaffPassRequest::edit/$1');
+    $routes->post('staffpassrequest/update/(:num)', 'StaffPassRequest::update/$1');
 });
 
 // ===========================
@@ -546,6 +555,14 @@ $routes->group('config', ['filter' => $superadmins], function($routes) {
     $routes->post('updatePathway/(:num)', 'Config::updatePathway/$1');
     $routes->delete('deletePathway/(:num)', 'Config::deletePathway/$1');
     $routes->get('getAllLanes', 'Config::getAllLanes');
+
+    // Sub Location Access
+    $routes->get('getSubLocations', 'Config::getSubLocations');
+    $routes->get('getSubLocation/(:num)', 'Config::getSubLocation/$1');
+    $routes->post('createSubLocation', 'Config::createSubLocation');
+    $routes->post('updateSubLocation/(:num)', 'Config::updateSubLocation/$1');
+    $routes->delete('deleteSubLocation/(:num)', 'Config::deleteSubLocation/$1');
+    $routes->get('getActiveSubLocations', 'Config::getActiveSubLocations');
 
     $routes->get('getAllLocations', 'Config::getAllLocations');
 

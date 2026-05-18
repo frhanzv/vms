@@ -740,25 +740,48 @@ class KioskApi extends BaseController
         // Accept GET param OR POST body (Android sends POST with "username" key)
         $keyword = trim(
             $this->request->getGet('keyword')
-                ?? $this->request->getGet('staffNo')
-                ?? $this->request->getPost('username')
-                ?? ($this->request->getJSON(true)['username'] ?? '')
+            ?? $this->request->getGet('staffNo')
+            ?? $this->request->getPost('username')
+            ?? ($this->request->getJSON(true)['username'] ?? '')
+        );
+
+        // Flow flag — sent by Android to indicate which flow called this
+        // Values: "invitation", "collect_card", "walk_in"
+        $flow = trim(
+            $this->request->getGet('flow')
+            ?? $this->request->getPost('flow')
+            ?? ($this->request->getJSON(true)['flow'] ?? '')
         );
 
         if ($keyword === '') {
             return $this->respond(['status' => 'success', 'data' => []]);
         }
 
-        $model    = new InvitationModel();
-        $visitors = $model->groupStart()
+        $model = new InvitationModel();
+        $query = $model->groupStart()
             ->like('ic_passport', $keyword)
             ->orLike('full_name', $keyword)
-            ->groupEnd()
-            ->orderBy('created_at', 'DESC')
-            ->findAll(20);
+            ->groupEnd();
+
+        // Invitation flow — only return web-created invitations (not kiosk walk-ins)
+        if ($flow === 'invitation') {
+            $query->where('registration_source', 'Invitation')
+                ->whereIn('status', ['Submitted', 'Approved']);
+        }
+
+        $visitors = $query->orderBy('created_at', 'DESC')->findAll(20);
+
+        // Invitation flow — no valid invitation found
+        // Android will show error and redirect to SelectOptionActivity
+        if ($flow === 'invitation' && empty($visitors)) {
+            return $this->respond([
+                'status'  => 'success',
+                'data'    => [],
+                'message' => 'no_invitation',
+            ]);
+        }
 
         $data = array_map(fn($v) => $this->formatInvitation($v), $visitors);
-
         return $this->respond(['status' => 'success', 'data' => $data]);
     }
 

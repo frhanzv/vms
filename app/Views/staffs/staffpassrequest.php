@@ -299,11 +299,17 @@ $isSettings = str_contains($current, 'settings');
         <div class="max-w-[960px] mx-auto">
             <!-- Page Header -->
                 <div class="mb-8 space-y-2">
-                    <h1 class="text-3xl sm:text-4xl font-black text-text-main dark:text-white font-brand tracking-tight">Staff Pass Request</h1>
+                    <h1 class="text-3xl sm:text-4xl font-black text-text-main dark:text-white font-brand tracking-tight"><?= isset($isEdit) ? 'Edit Staff' : 'Staff Pass Request' ?></h1>
                 </div>
 
-                <form action="<?= base_url('staffs/staffpassrequest/store') ?>" method="post" enctype="multipart/form-data" class="space-y-8">
+                <form action="<?= base_url($formAction ?? 'staffs/staffpassrequest/store') ?>" method="post" enctype="multipart/form-data" class="space-y-8">
                     <?= csrf_field() ?>
+                    <?php
+                        $s    = $staff ?? [];
+                        $v    = fn($f, $db = null) => esc(old($f, $s[$db ?? $f] ?? ''));
+                        $sel  = fn($f, $val) => ($s[$f] ?? '') === $val ? 'selected' : '';
+                        $chkd = fn($val) => in_array($val, array_filter(explode(',', $s['location_access'] ?? ''))) ? 'checked' : '';
+                    ?>
 
                     <!-- Application Information -->
                     <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 p-6 sm:p-8">
@@ -322,15 +328,15 @@ $isSettings = str_contains($current, 'settings');
                             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Date Of Application</label>
-                                    <input name="date_of_application" value="<?= date('d/m/Y') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-gray-100 dark:bg-background-dark text-text-main dark:text-white px-4 outline-none font-brand" type="text" readonly/>
+                                    <input name="date_of_application" value="<?= isset($isEdit) ? esc($s['date_of_application'] ?? '') : date('d/m/Y') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-gray-100 dark:bg-background-dark text-text-main dark:text-white px-4 outline-none font-brand" type="text" readonly/>
                                 </div>
                                 <?php if ($fs['type_of_application'] ?? true): ?>
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Type Of Application</label>
                                     <select name="type_of_application" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
-                                        <option value="NEW">NEW</option>
-                                        <option value="RENEWAL">RENEWAL</option>
-                                        <option value="REPLACEMENT">REPLACEMENT</option>
+                                        <option value="NEW" <?= $sel('type_of_application','NEW') ?>>NEW</option>
+                                        <option value="RENEWAL" <?= $sel('type_of_application','RENEWAL') ?>>RENEWAL</option>
+                                        <option value="REPLACEMENT" <?= $sel('type_of_application','REPLACEMENT') ?>>REPLACEMENT</option>
                                     </select>
                                 </div>
                                 <?php endif; ?>
@@ -339,11 +345,11 @@ $isSettings = str_contains($current, 'settings');
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Designation <span class="text-red-500">*</span></label>
                                     <select name="designation" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" required>
                                         <option value="">SELECT</option>
-                                        <option value="PEN. LORI">PEN. LORI</option>
-                                        <option value="OPERATOR">OPERATOR</option>
-                                        <option value="SUPERVISOR">SUPERVISOR</option>
-                                        <option value="ENGINEER">ENGINEER</option>
-                                        <option value="MANAGER">MANAGER</option>
+                                        <option value="PEN. LORI" <?= $sel('designation','PEN. LORI') ?>>PEN. LORI</option>
+                                        <option value="OPERATOR" <?= $sel('designation','OPERATOR') ?>>OPERATOR</option>
+                                        <option value="SUPERVISOR" <?= $sel('designation','SUPERVISOR') ?>>SUPERVISOR</option>
+                                        <option value="ENGINEER" <?= $sel('designation','ENGINEER') ?>>ENGINEER</option>
+                                        <option value="MANAGER" <?= $sel('designation','MANAGER') ?>>MANAGER</option>
                                     </select>
                                 </div>
                                 <?php endif; ?>
@@ -351,8 +357,8 @@ $isSettings = str_contains($current, 'settings');
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Resident</label>
                                     <select name="resident" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
-                                        <option value="LOCAL">LOCAL</option>
-                                        <option value="FOREIGN">FOREIGN</option>
+                                        <option value="LOCAL" <?= $sel('resident','LOCAL') ?>>LOCAL</option>
+                                        <option value="FOREIGN" <?= $sel('resident','FOREIGN') ?>>FOREIGN</option>
                                     </select>
                                 </div>
                                 <?php endif; ?>
@@ -364,9 +370,9 @@ $isSettings = str_contains($current, 'settings');
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Sub Type</label>
                                     <select name="sub_type" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
-                                        <option value="PERMANENT">PERMANENT</option>
-                                        <option value="TEMPORARY">TEMPORARY</option>
-                                        <option value="CONTRACT">CONTRACT</option>
+                                        <option value="PERMANENT" <?= $sel('sub_type','PERMANENT') ?>>PERMANENT</option>
+                                        <option value="TEMPORARY" <?= $sel('sub_type','TEMPORARY') ?>>TEMPORARY</option>
+                                        <option value="CONTRACT" <?= $sel('sub_type','CONTRACT') ?>>CONTRACT</option>
                                     </select>
                                 </div>
                             </div>
@@ -467,10 +473,10 @@ $isSettings = str_contains($current, 'settings');
                                             <span class="text-sm font-medium text-text-main dark:text-gray-100 font-brand flex-1 pr-4"><?= $loc['label'] ?></span>
                                             <div class="flex items-center gap-4 flex-shrink-0">
                                                 <label class="flex items-center justify-center cursor-pointer w-8">
-                                                    <input data-group="<?= $groupId ?>" name="location_access[]" value="<?= $loc['in'] ?>" class="form-checkbox rounded text-primary border-2 border-gray-300 dark:border-gray-600 focus:ring-primary h-5 w-5 cursor-pointer" type="checkbox"/>
+                                                    <input data-group="<?= $groupId ?>" name="location_access[]" value="<?= $loc['in'] ?>" class="form-checkbox rounded text-primary border-2 border-gray-300 dark:border-gray-600 focus:ring-primary h-5 w-5 cursor-pointer" type="checkbox" <?= $chkd($loc['in']) ?>/>
                                                 </label>
                                                 <label class="flex items-center justify-center cursor-pointer w-8">
-                                                    <input data-group="<?= $groupId ?>" name="location_access[]" value="<?= $loc['out'] ?>" class="form-checkbox rounded text-primary border-2 border-gray-300 dark:border-gray-600 focus:ring-primary h-5 w-5 cursor-pointer" type="checkbox"/>
+                                                    <input data-group="<?= $groupId ?>" name="location_access[]" value="<?= $loc['out'] ?>" class="form-checkbox rounded text-primary border-2 border-gray-300 dark:border-gray-600 focus:ring-primary h-5 w-5 cursor-pointer" type="checkbox" <?= $chkd($loc['out']) ?>/>
                                                 </label>
                                             </div>
                                         </div>
@@ -516,13 +522,13 @@ $isSettings = str_contains($current, 'settings');
                                 <?php if ($fs['ic_number'] ?? true): ?>
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">IC / Passport Number <span class="text-red-500">*</span></label>
-                                    <input name="ic_number" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="Enter IC / Passport Number" type="text" required/>
+                                    <input name="ic_number" value="<?= $v('ic_number', 'ic_passport') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="Enter IC / Passport Number" type="text" required/>
                                 </div>
                                 <?php endif; ?>
                                 <?php if ($fs['date_of_birth'] ?? true): ?>
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Date Of Birth <span class="text-red-500">*</span></label>
-                                    <input name="date_of_birth" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="DD/MM/YYYY" type="date" required/>
+                                    <input name="date_of_birth" value="<?= $v('date_of_birth') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="DD/MM/YYYY" type="date" required/>
                                 </div>
                                 <?php endif; ?>
                             </div>
@@ -533,21 +539,21 @@ $isSettings = str_contains($current, 'settings');
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Sex</label>
                                     <select name="sex" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
-                                        <option value="MALE">MALE</option>
-                                        <option value="FEMALE">FEMALE</option>
+                                        <option value="MALE" <?= $sel('sex','MALE') ?>>MALE</option>
+                                        <option value="FEMALE" <?= $sel('sex','FEMALE') ?>>FEMALE</option>
                                     </select>
                                 </div>
                                 <?php endif; ?>
                                 <?php if ($fs['full_name'] ?? true): ?>
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Full Name <span class="text-red-500">*</span></label>
-                                    <input name="full_name" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="Full name as per ID" type="text" required/>
+                                    <input name="full_name" value="<?= $v('full_name') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="Full name as per ID" type="text" required/>
                                 </div>
                                 <?php endif; ?>
                                 <?php if ($fs['name_on_staff_pass'] ?? true): ?>
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Name On Staff Pass <span class="text-red-500">*</span></label>
-                                    <input name="name_on_staff_pass" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text" required/>
+                                    <input name="name_on_staff_pass" value="<?= $v('name_on_staff_pass') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text" required/>
                                 </div>
                                 <?php endif; ?>
                             </div>
@@ -557,19 +563,19 @@ $isSettings = str_contains($current, 'settings');
                                 <?php if ($fs['staff_no'] ?? true): ?>
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Staff No <span class="text-red-500">*</span></label>
-                                    <input name="staff_no" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text" required/>
+                                    <input name="staff_no" value="<?= $v('staff_no') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text" required/>
                                 </div>
                                 <?php endif; ?>
                                 <?php if ($fs['contact_number'] ?? true): ?>
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Contact Number <span class="text-red-500">*</span></label>
-                                    <input name="contact_number" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="+60 1x-xxx xxxx" type="tel" required/>
+                                    <input name="contact_number" value="<?= $v('contact_number') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="+60 1x-xxx xxxx" type="tel" required/>
                                 </div>
                                 <?php endif; ?>
                                 <?php if ($fs['email'] ?? true): ?>
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Email Address <span class="text-red-500">*</span></label>
-                                    <input name="email" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="staff@example.com" type="email" required/>
+                                    <input name="email" value="<?= $v('email') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="staff@example.com" type="email" required/>
                                 </div>
                                 <?php endif; ?>
                             </div>
@@ -581,12 +587,12 @@ $isSettings = str_contains($current, 'settings');
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Department <span class="text-red-500">*</span></label>
                                     <select name="department" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" required>
                                         <option value="">SELECT</option>
-                                        <option value="EPIC">EPIC</option>
-                                        <option value="HR">HR</option>
-                                        <option value="FINANCE">FINANCE</option>
-                                        <option value="OPERATIONS">OPERATIONS</option>
-                                        <option value="IT">IT</option>
-                                        <option value="MAINTENANCE">MAINTENANCE</option>
+                                        <option value="EPIC" <?= $sel('department','EPIC') ?>>EPIC</option>
+                                        <option value="HR" <?= $sel('department','HR') ?>>HR</option>
+                                        <option value="FINANCE" <?= $sel('department','FINANCE') ?>>FINANCE</option>
+                                        <option value="OPERATIONS" <?= $sel('department','OPERATIONS') ?>>OPERATIONS</option>
+                                        <option value="IT" <?= $sel('department','IT') ?>>IT</option>
+                                        <option value="MAINTENANCE" <?= $sel('department','MAINTENANCE') ?>>MAINTENANCE</option>
                                     </select>
                                 </div>
                             </div>
@@ -597,13 +603,13 @@ $isSettings = str_contains($current, 'settings');
                                 <?php if ($fs['address_1'] ?? true): ?>
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Address 1 <span class="text-red-500">*</span></label>
-                                    <input name="address_1" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text" required/>
+                                    <input name="address_1" value="<?= $v('address_1') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text" required/>
                                 </div>
                                 <?php endif; ?>
                                 <?php if ($fs['address_2'] ?? true): ?>
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Address 2</label>
-                                    <input name="address_2" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
+                                    <input name="address_2" value="<?= $v('address_2') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
                                 </div>
                                 <?php endif; ?>
                             </div>
@@ -612,7 +618,7 @@ $isSettings = str_contains($current, 'settings');
                             <?php if ($fs['address_3'] ?? true): ?>
                             <div class="space-y-2">
                                 <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Address 3</label>
-                                <input name="address_3" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
+                                <input name="address_3" value="<?= $v('address_3') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
                             </div>
                             <?php endif; ?>
 
@@ -641,7 +647,7 @@ $isSettings = str_contains($current, 'settings');
                                 <?php if ($fs['postal_code'] ?? true): ?>
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Postal Code <span class="text-red-500">*</span></label>
-                                    <input name="postal_code" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text" required/>
+                                    <input name="postal_code" value="<?= $v('postal_code') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text" required/>
                                 </div>
                                 <?php endif; ?>
                                 <?php if ($fs['country'] ?? true): ?>
@@ -649,9 +655,13 @@ $isSettings = str_contains($current, 'settings');
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Country</label>
                                     <select name="country" id="staff-country" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
                                         <option value="">SELECT</option>
+                                        <?php
+                                            $savedCountry = $s['country'] ?? '';
+                                            $defaultCountry = $savedCountry ?: 'MALAYSIA';
+                                        ?>
                                         <?php foreach ($countries ?? [] as $c): ?>
                                         <option value="<?= esc($c['name']) ?>" data-id="<?= (int) $c['id'] ?>"
-                                            <?= strtoupper($c['name']) === 'MALAYSIA' ? 'selected' : '' ?>>
+                                            <?= strtoupper($c['name']) === strtoupper($defaultCountry) ? 'selected' : '' ?>>
                                             <?= esc($c['name']) ?>
                                         </option>
                                         <?php endforeach; ?>
@@ -710,12 +720,12 @@ $isSettings = str_contains($current, 'settings');
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div class="space-y-2">
                                 <label class="block text-sm font-semibold text-text-main dark:text-gray-200 font-brand">CSP Number</label>
-                                <input name="company_reg_id" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
+                                <input name="company_reg_id" value="<?= $v('company_reg_id', 'csp_number') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
                             </div>
                             <div class="space-y-2">
                                 <label class="block text-sm font-semibold text-text-main dark:text-gray-200 font-brand">Expiry Date</label>
                                 <div class="relative">
-                                    <input name="csp_expiry_date" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 pr-12 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="DD/MM/YYYY" type="date"/>
+                                    <input name="csp_expiry_date" value="<?= $v('csp_expiry_date') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 pr-12 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="DD/MM/YYYY" type="date"/>
                                     <span class="material-symbols-outlined absolute right-4 top-3 text-text-sub cursor-pointer" onclick="this.previousElementSibling.showPicker()">calendar_month</span>
                                 </div>
                             </div>
@@ -742,6 +752,7 @@ $isSettings = str_contains($current, 'settings');
                                 <div class="relative">
                                     <input
                                         name="evetting_date_of_application"
+                                        value="<?= $v('evetting_date_of_application') ?>"
                                         class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 pr-12 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand"
                                         placeholder="DD/MM/YYYY"
                                         type="date"
@@ -756,6 +767,7 @@ $isSettings = str_contains($current, 'settings');
                                 <div class="relative">
                                     <input
                                         name="evetting_date_of_result"
+                                        value="<?= $v('evetting_date_of_result') ?>"
                                         class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 pr-12 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand"
                                         placeholder="DD/MM/YYYY"
                                         type="date"
@@ -771,9 +783,9 @@ $isSettings = str_contains($current, 'settings');
                                     name="evetting_result"
                                     class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand appearance-none cursor-pointer"
                                 >
-                                    <option value="In Progress" selected>In Progress</option>
-                                    <option value="Pass">Pass</option>
-                                    <option value="Fail">Fail</option>
+                                    <option value="In Progress" <?= ($s['evetting_result'] ?? 'In Progress') === 'In Progress' ? 'selected' : '' ?>>In Progress</option>
+                                    <option value="Pass" <?= ($s['evetting_result'] ?? '') === 'Pass' ? 'selected' : '' ?>>Pass</option>
+                                    <option value="Fail" <?= ($s['evetting_result'] ?? '') === 'Fail' ? 'selected' : '' ?>>Fail</option>
                                 </select>
                             </div>
                         </div>
@@ -828,8 +840,8 @@ $isSettings = str_contains($current, 'settings');
                             Cancel
                         </button>
                         <button type="submit" class="px-8 py-3 rounded-lg bg-primary text-white font-bold hover:bg-primary-hover shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2 font-brand">
-                            <span>Submit Request</span>
-                            <span class="material-symbols-outlined text-sm">send</span>
+                            <span><?= isset($isEdit) ? 'Save Changes' : 'Submit Request' ?></span>
+                            <span class="material-symbols-outlined text-sm"><?= isset($isEdit) ? 'save' : 'send' ?></span>
                         </button>
                     </div>
                 </form>
@@ -1125,10 +1137,16 @@ staffStateEl?.addEventListener('change', function() {
     staffLoadCities(opt?.dataset?.id || '');
 });
 
-// Trigger on page load for pre-selected country (Malaysia)
+// Trigger on page load for pre-selected country; pass state/city for edit pre-fill
 (function() {
     const preselected = staffCountryEl?.querySelector('option[selected]');
-    if (preselected?.dataset?.id) staffLoadStates(preselected.dataset.id);
+    if (preselected?.dataset?.id) {
+        staffLoadStates(
+            preselected.dataset.id,
+            '<?= esc($s['state'] ?? '') ?>',
+            '<?= esc($s['city'] ?? '') ?>'
+        );
+    }
 })();
 
 // ── Read MyKad ────────────────────────────────────────────────────────────────

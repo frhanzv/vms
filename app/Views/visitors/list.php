@@ -265,7 +265,7 @@ $cardEnabled = client_feature_enabled('visitor_card');
             <!-- Header -->
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                 <h1 class="text-xl md:text-2xl font-bold tracking-tight text-gray-800 dark:text-white uppercase">
-                    Visitor Past List
+                    Visitor Pass List
                 </h1>
                 <div class="flex gap-2">
                     <a href="<?= base_url('visitors/export') ?>" class="bg-secondary hover:bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
@@ -594,9 +594,14 @@ $cardEnabled = client_feature_enabled('visitor_card');
                                         <div class="size-16 rounded-full border-4 border-slate-100 dark:border-slate-800 flex items-center justify-center mb-2">
                                             <span class="material-symbols-outlined text-4xl">person</span>
                                         </div>
-                                        <p class="text-[10px] font-bold uppercase tracking-widest">NO PHOTO</p>
+                                        <p id="detailPhotoPlaceholderText" class="text-[10px] font-bold uppercase tracking-widest">NO PHOTO</p>
                                     </div>
                                 </div>
+                                <input type="file" id="editProfilePhotoInput" accept="image/*" class="hidden" onchange="handleProfilePhotoSelected(event)">
+                                <button type="button" onclick="document.getElementById('editProfilePhotoInput').click()" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 hover:border-primary hover:text-primary transition-colors">
+                                    <span class="material-symbols-outlined text-sm">add_a_photo</span>
+                                    Change photo
+                                </button>
                             </div>
 
                             <!-- Fields Grid -->
@@ -921,13 +926,38 @@ $cardEnabled = client_feature_enabled('visitor_card');
     <script>
         let currentVisitorId = null;
         let currentInvitationVisitorId = null;
+        let selectedProfilePhotoPreviewUrl = null;
 
         function mysqlToDatetimeLocal(v) {
             if (!v) return '';
             return String(v).replace(' ', 'T').slice(0, 16);
         }
 
-        const VISITOR_UPLOADS_BASE = <?= json_encode(rtrim(base_url('uploads'), '/')) ?>;
+        const SERVER_UPLOADS_BASE = <?= json_encode(rtrim(base_url('uploads'), '/')) ?>;
+        const VISITOR_UPLOADS_BASE = (function () {
+            try {
+                const configured = new URL(SERVER_UPLOADS_BASE, window.location.href);
+                return (window.location.origin || configured.origin) + configured.pathname.replace(/\/+$/, '');
+            } catch (e) {
+                return SERVER_UPLOADS_BASE;
+            }
+        })();
+
+        function normalizeVisitorMediaUrl(url) {
+            const raw = (url && String(url).trim()) || '';
+            if (!raw) {
+                return '';
+            }
+            try {
+                const parsed = new URL(raw, window.location.href);
+                if (parsed.pathname.indexOf('/uploads/') !== -1) {
+                    return (window.location.origin || parsed.origin) + parsed.pathname + parsed.search + parsed.hash;
+                }
+            } catch (e) {
+                return raw;
+            }
+            return raw;
+        }
 
         /** Build URL for invitation media stored as relative paths (visitors/…, facial/…, visitor_photos/…). */
         function visitorUploadMediaUrl(path) {
@@ -936,7 +966,7 @@ $cardEnabled = client_feature_enabled('visitor_card');
                 return '';
             }
             if (/^https?:\/\//i.test(p) || p.startsWith('//')) {
-                return p;
+                return normalizeVisitorMediaUrl(p);
             }
             if (p.charAt(0) === '/') {
                 const origin = window.location.origin || '';
@@ -960,16 +990,19 @@ $cardEnabled = client_feature_enabled('visitor_card');
             };
             const profile = norm(v.profile_photo_path) || norm(v.profile_picture_path);
             const facial = norm(v.facial_verification_image);
-            const profileUrl = norm(v.profile_photo_url) || (profile ? visitorUploadMediaUrl(profile) : '');
-            const facialUrl = norm(v.facial_verification_url) || (facial ? visitorUploadMediaUrl(facial) : '');
+            const profileUrl = normalizeVisitorMediaUrl(norm(v.profile_photo_url)) || (profile ? visitorUploadMediaUrl(profile) : '');
+            const facialUrl = normalizeVisitorMediaUrl(norm(v.facial_verification_url)) || (facial ? visitorUploadMediaUrl(facial) : '');
+            const profileMissing = !!profile && v.profile_photo_exists === false;
+            const facialMissing = !!facial && v.facial_verification_exists === false;
 
-            return { profileUrl, facialUrl };
+            return { profileUrl, facialUrl, profileMissing, facialMissing };
         }
 
         function syncVisitorDetailPhoto(visitor) {
             const photoImg = document.getElementById('detailProfilePhoto');
             const placeholder = document.getElementById('detailPhotoPlaceholder');
-            if (!photoImg || !placeholder) {
+            const placeholderText = document.getElementById('detailPhotoPlaceholderText');
+            if (!photoImg || !placeholder || !placeholderText) {
                 return;
             }
 
@@ -981,6 +1014,7 @@ $cardEnabled = client_feature_enabled('visitor_card');
                 photoImg.onerror = null;
                 photoImg.removeAttribute('src');
                 photoImg.classList.add('hidden');
+                placeholderText.textContent = 'NO PHOTO';
                 placeholder.classList.remove('hidden');
             }
 
@@ -991,22 +1025,24 @@ $cardEnabled = client_feature_enabled('visitor_card');
                 };
                 photoImg.src = url;
                 photoImg.classList.remove('hidden');
+                placeholderText.textContent = 'NO PHOTO';
                 placeholder.classList.add('hidden');
             }
 
-            if (profileUrl) {
+            if (profileUrl && !paths.profileMissing) {
                 photoImg.classList.remove('hidden');
                 placeholder.classList.add('hidden');
+                placeholderText.textContent = 'NO PHOTO';
                 photoImg.onerror = function () {
                     this.onerror = null;
-                    if (facialUrl) {
+                    if (facialUrl && !paths.facialMissing) {
                         showUrl(facialUrl);
                     } else {
                         showNoPhoto();
                     }
                 };
                 photoImg.src = profileUrl;
-            } else if (facialUrl) {
+            } else if (facialUrl && !paths.facialMissing) {
                 showUrl(facialUrl);
             } else {
                 showNoPhoto();
@@ -1014,6 +1050,26 @@ $cardEnabled = client_feature_enabled('visitor_card');
         }
 
         /** Match pass-list UX: footer “Visitor Type” jumps to the type field and opens the picker when supported. */
+        function handleProfilePhotoSelected(event) {
+            const file = event.target.files && event.target.files[0] ? event.target.files[0] : null;
+            if (!file) {
+                return;
+            }
+            const photoImg = document.getElementById('detailProfilePhoto');
+            const placeholder = document.getElementById('detailPhotoPlaceholder');
+            if (!photoImg || !placeholder) {
+                return;
+            }
+            if (selectedProfilePhotoPreviewUrl) {
+                URL.revokeObjectURL(selectedProfilePhotoPreviewUrl);
+            }
+            selectedProfilePhotoPreviewUrl = URL.createObjectURL(file);
+            photoImg.onerror = null;
+            photoImg.src = selectedProfilePhotoPreviewUrl;
+            photoImg.classList.remove('hidden');
+            placeholder.classList.add('hidden');
+        }
+
         function openVisitorTypeFromFooter() {
             const sel = document.getElementById('editVisitorTypeId');
             const wrap = document.getElementById('visitorTypeFieldWrap');
@@ -1060,6 +1116,11 @@ $cardEnabled = client_feature_enabled('visitor_card');
             document.getElementById('editScheduleId').value = visitor.schedule_id != null ? visitor.schedule_id : '';
             document.getElementById('editIvVersion').value = visitor.iv_version ?? 1;
             document.getElementById('editInvitationVersion').value = visitor.invitation_version ?? 1;
+            document.getElementById('editProfilePhotoInput').value = '';
+            if (selectedProfilePhotoPreviewUrl) {
+                URL.revokeObjectURL(selectedProfilePhotoPreviewUrl);
+                selectedProfilePhotoPreviewUrl = null;
+            }
 
             document.getElementById('editFullName').value = visitor.full_name || '';
             document.getElementById('editIcPassport').value = (visitor.ic_passport && visitor.ic_passport !== 'N/A') ? visitor.ic_passport : '';
@@ -1220,11 +1281,30 @@ $cardEnabled = client_feature_enabled('visitor_card');
             btn.disabled = true;
             btn.innerHTML = '<span class="material-symbols-outlined text-lg animate-spin">progress_activity</span> Saving…';
 
-            fetch('<?= base_url('visitors/update') ?>', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            })
+            const photoInput = document.getElementById('editProfilePhotoInput');
+            const photoFile = photoInput && photoInput.files && photoInput.files[0] ? photoInput.files[0] : null;
+            let fetchOptions;
+            if (photoFile) {
+                const formData = new FormData();
+                Object.keys(payload).forEach(function (key) {
+                    if (payload[key] !== undefined && payload[key] !== null) {
+                        formData.append(key, payload[key]);
+                    }
+                });
+                formData.append('profile_photo', photoFile);
+                fetchOptions = {
+                    method: 'POST',
+                    body: formData
+                };
+            } else {
+                fetchOptions = {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                };
+            }
+
+            fetch('<?= base_url('visitors/update') ?>', fetchOptions)
             .then(r => r.json())
             .then(result => {
                 btn.disabled = false;

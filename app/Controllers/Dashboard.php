@@ -716,18 +716,6 @@ class Dashboard extends BaseController
         $db = \Config\Database::connect();
         $now = date('Y-m-d H:i:s');
 
-        $alertRows = [];
-        if ($db->tableExists('security_alerts')) {
-            $alertRows = $db->query(
-                "SELECT sa.id, sa.incident_type, sa.severity, sa.visitor_name,
-                        sa.location, sa.description, sa.created_at
-                 FROM security_alerts sa
-                 WHERE sa.is_acknowledged = 0
-                 AND LOWER(sa.incident_type) LIKE '%overstay%'
-                 ORDER BY sa.created_at DESC"
-            )->getResultArray();
-        }
-
         $physicalOverstays = $db->query(
             "SELECT iv.id, COALESCE(i.full_name, iv.full_name) as visitor_name,
                     COALESCE(i.invited_by, 'N/A') as host_name,
@@ -747,7 +735,6 @@ class Dashboard extends BaseController
 
         return $this->response->setJSON([
             'success'           => true,
-            'alertRows'         => $alertRows,
             'physicalOverstays' => $physicalOverstays,
         ]);
     }
@@ -898,6 +885,247 @@ class Dashboard extends BaseController
     }
 
     /**
+     * AJAX: Analytics Assistant backed by the configured LLM service.
+     */
+    public function assistantAsk()
+    {
+        $db = \Config\Database::connect();
+        if (! $this->assistantChatTablesReady($db)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Assistant chat tables are missing. Please run database migrations.',
+            ]);
+        }
+
+        $question = trim((string) ($this->request->getPost('message') ?? ''));
+        $chatId = (int) ($this->request->getPost('chat_id') ?? 0);
+        $userId = (int) (session()->get('user_id') ?? 0);
+
+        if ($question === '') {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Please enter a question.',
+            ]);
+        }
+
+        if (strlen($question) > 1200) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Please keep the question under 1200 characters.',
+            ]);
+        }
+
+        $chat = $chatId > 0 ? $this->getAssistantChat($db, $chatId, $userId) : null;
+        if (! $chat) {
+            $chatId = $this->createAssistantChat($db, $userId, 'New Chat');
+            $chat = $this->getAssistantChat($db, $chatId, $userId);
+        }
+
+        $history = $this->getAssistantChatHistory($db, $chatId, $userId, 10);
+        $this->saveAssistantMessage($db, $chatId, 'user', $question);
+
+        if (($chat['title'] ?? '') === 'New Chat') {
+            $title = strlen($question) > 40 ? substr($question, 0, 37) . '...' : $question;
+            $this->renameAssistantChat($db, $chatId, $userId, $title);
+        }
+
+        $schema = $this->buildAssistantDatabaseSchema($db);
+        $sqlResult = \Config\Services::llm()->generateText($this->buildAssistantSqlPrompt($question, $schema, $history), [
+            'system_prompt' => 'You translate SafeG VMS database questions into one safe MySQL SELECT query. Return only JSON with a sql key. Never write markdown.',
+            'temperature' => 0,
+            'max_tokens' => 700,
+        ]);
+
+        if (! $sqlResult['success']) {
+            $message = $sqlResult['error'] ?? 'Analytics Assistant is unavailable.';
+            $this->saveAssistantMessage($db, $chatId, 'assistant', $message);
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => $message,
+                'chat_id' => $chatId,
+            ]);
+        }
+
+        $sql = $this->extractAssistantSql($sqlResult['text']);
+        $validation = $this->validateAssistantSql($sql, array_keys($schema['tables']), $schema['blocked_columns']);
+
+        if (! $validation['success']) {
+            $this->saveAssistantMessage($db, $chatId, 'assistant', $validation['message']);
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => $validation['message'],
+                'chat_id' => $chatId,
+            ]);
+        }
+
+        $sql = $this->applyAssistantQueryLimit($sql);
+
+        try {
+            $rows = $db->query($sql)->getResultArray();
+        } catch (\Throwable $e) {
+            log_message('error', 'Analytics Assistant SQL failed: ' . $e->getMessage() . ' | SQL: ' . $sql);
+            $message = 'I could not run the database query for that question.';
+            $this->saveAssistantMessage($db, $chatId, 'assistant', $message);
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => $message,
+                'chat_id' => $chatId,
+            ]);
+        }
+
+        $summaryResult = \Config\Services::llm()->generateText($this->buildAssistantAnswerPrompt($question, $sql, $rows, $history), [
+            'system_prompt' => 'You are the SafeG VMS Analytics Assistant. Explain SQL results clearly for security, host, and reception users.',
+            'temperature' => 0.2,
+            'max_tokens' => 900,
+        ]);
+
+        if (! $summaryResult['success']) {
+            $fallback = $this->formatAssistantRowsFallback($rows);
+            $this->saveAssistantMessage($db, $chatId, 'assistant', $fallback);
+            return $this->response->setJSON([
+                'success' => true,
+                'answer' => $fallback,
+                'sql' => $sql,
+                'row_count' => count($rows),
+                'chat_id' => $chatId,
+                'title' => $this->getAssistantChat($db, $chatId, $userId)['title'] ?? 'New Chat',
+            ]);
+        }
+
+        $this->saveAssistantMessage($db, $chatId, 'assistant', $summaryResult['text']);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'answer' => $summaryResult['text'],
+            'model' => $summaryResult['model'] ?? null,
+            'sql' => $sql,
+            'row_count' => count($rows),
+            'chat_id' => $chatId,
+            'title' => $this->getAssistantChat($db, $chatId, $userId)['title'] ?? 'New Chat',
+        ]);
+    }
+
+    public function assistantHistory()
+    {
+        $db = \Config\Database::connect();
+        if (! $this->assistantChatTablesReady($db)) {
+            return $this->response->setJSON(['success' => true, 'chats' => []]);
+        }
+        $userId = (int) (session()->get('user_id') ?? 0);
+
+        $chats = $db->table('llm_chat_sessions')
+            ->where('user_id', $userId)
+            ->orderBy('updated_at', 'DESC')
+            ->limit(50)
+            ->get()
+            ->getResultArray();
+
+        $ids = array_column($chats, 'id');
+        $messages = [];
+        if ($ids !== []) {
+            $rows = $db->table('llm_chat_messages')
+                ->whereIn('session_id', $ids)
+                ->orderBy('id', 'ASC')
+                ->get()
+                ->getResultArray();
+
+            foreach ($rows as $row) {
+                $messages[(int) $row['session_id']][] = [
+                    'role' => $row['role'],
+                    'text' => $row['content'],
+                ];
+            }
+        }
+
+        $data = array_map(static function (array $chat) use ($messages): array {
+            $id = (int) $chat['id'];
+            return [
+                'id' => (string) $id,
+                'title' => $chat['title'] ?: 'New Chat',
+                'date' => ! empty($chat['updated_at']) ? date('M j', strtotime($chat['updated_at'])) : '',
+                'messages' => $messages[$id] ?? [],
+            ];
+        }, $chats);
+
+        return $this->response->setJSON(['success' => true, 'chats' => $data]);
+    }
+
+    public function assistantChatCreate()
+    {
+        $db = \Config\Database::connect();
+        if (! $this->assistantChatTablesReady($db)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Assistant chat tables are missing. Please run database migrations.',
+            ]);
+        }
+        $userId = (int) (session()->get('user_id') ?? 0);
+        $id = $this->createAssistantChat($db, $userId, 'New Chat');
+
+        return $this->response->setJSON([
+            'success' => true,
+            'chat' => [
+                'id' => (string) $id,
+                'title' => 'New Chat',
+                'date' => date('M j'),
+                'messages' => [],
+            ],
+        ]);
+    }
+
+    public function assistantChatRename()
+    {
+        $db = \Config\Database::connect();
+        if (! $this->assistantChatTablesReady($db)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Assistant chat tables are missing. Please run database migrations.',
+            ]);
+        }
+        $userId = (int) (session()->get('user_id') ?? 0);
+        $chatId = (int) ($this->request->getPost('chat_id') ?? 0);
+        $title = trim((string) ($this->request->getPost('title') ?? ''));
+
+        if ($chatId <= 0 || $title === '') {
+            return $this->response->setJSON(['success' => false, 'message' => 'Invalid chat title.']);
+        }
+
+        $title = strlen($title) > 80 ? substr($title, 0, 77) . '...' : $title;
+        $this->renameAssistantChat($db, $chatId, $userId, $title);
+
+        return $this->response->setJSON(['success' => true, 'title' => $title]);
+    }
+
+    public function assistantChatDelete()
+    {
+        $db = \Config\Database::connect();
+        if (! $this->assistantChatTablesReady($db)) {
+            return $this->response->setJSON(['success' => true]);
+        }
+        $userId = (int) (session()->get('user_id') ?? 0);
+        $chatId = (int) ($this->request->getPost('chat_id') ?? 0);
+
+        if ($chatId > 0) {
+            $db->table('llm_chat_sessions')->where('id', $chatId)->where('user_id', $userId)->delete();
+        }
+
+        return $this->response->setJSON(['success' => true]);
+    }
+
+    public function assistantChatClear()
+    {
+        $db = \Config\Database::connect();
+        if (! $this->assistantChatTablesReady($db)) {
+            return $this->response->setJSON(['success' => true]);
+        }
+        $userId = (int) (session()->get('user_id') ?? 0);
+
+        $db->table('llm_chat_sessions')->where('user_id', $userId)->delete();
+
+        return $this->response->setJSON(['success' => true]);
+    }
+
+    /**
      * AJAX: refresh security-related dashboard numbers + critical alert queue (no full page reload).
      */
     public function widgetSnapshot()
@@ -975,18 +1203,11 @@ class Dashboard extends BaseController
                 [$since24h]
             )->getRow()->c ?? 0);
 
-            $overstayCount = (int) ($db->query(
-                "SELECT COUNT(*) AS c FROM security_alerts
-                 WHERE is_acknowledged = 0
-                 AND LOWER(incident_type) LIKE '%overstay%'",
-                []
-            )->getRow()->c ?? 0);
-
             $activeSecurityAlertCount = $db->table('security_alerts')
                 ->countAllResults();
         }
 
-        $overstayCount = max($overstayCount, $outOfWindow);
+        $overstayCount = $outOfWindow;
 
         return [
             'criticalAlerts' => $criticalAlerts,
@@ -1145,6 +1366,499 @@ class Dashboard extends BaseController
         }, $rows);
 
         return $this->response->setJSON(['success' => true, 'data' => $data]);
+    }
+
+    /**
+     * @return array{tables: array<string, list<array{name: string, type: string|null}>>, blocked_columns: list<string>}
+     */
+    protected function buildAssistantDatabaseSchema($db): array
+    {
+        $blockedPatterns = [
+            'password', 'api_key', 'apikey', 'token', 'secret', 'credential',
+            'smtp', 'session', 'remember', 'reset', 'otp', 'private_key', 'access_key',
+        ];
+        $systemTables = ['migrations'];
+        $schema = [];
+        $blockedColumns = [];
+
+        foreach ($db->listTables() as $table) {
+            if (in_array($table, $systemTables, true)) {
+                continue;
+            }
+
+            $columns = [];
+            foreach ($db->getFieldData($table) as $field) {
+                $name = (string) ($field->name ?? '');
+                if ($name === '') {
+                    continue;
+                }
+
+                if ($this->isAssistantBlockedColumn($name, $blockedPatterns)) {
+                    $blockedColumns[] = $name;
+                    continue;
+                }
+
+                $columns[] = [
+                    'name' => $name,
+                    'type' => isset($field->type) ? (string) $field->type : null,
+                ];
+            }
+
+            if ($columns !== []) {
+                $schema[$table] = $columns;
+            }
+        }
+
+        return [
+            'tables' => $schema,
+            'blocked_columns' => array_values(array_unique($blockedColumns)),
+        ];
+    }
+
+    /**
+     * @param list<string> $blockedPatterns
+     */
+    protected function isAssistantBlockedColumn(string $column, array $blockedPatterns): bool
+    {
+        $name = strtolower($column);
+        foreach ($blockedPatterns as $pattern) {
+            if (str_contains($name, $pattern)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    protected function assistantChatTablesReady($db): bool
+    {
+        return $db->tableExists('llm_chat_sessions') && $db->tableExists('llm_chat_messages');
+    }
+
+    protected function createAssistantChat($db, int $userId, string $title): int
+    {
+        $now = date('Y-m-d H:i:s');
+        $db->table('llm_chat_sessions')->insert([
+            'user_id' => $userId,
+            'title' => $title,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        return (int) $db->insertID();
+    }
+
+    protected function getAssistantChat($db, int $chatId, int $userId): ?array
+    {
+        if ($chatId <= 0) {
+            return null;
+        }
+
+        $chat = $db->table('llm_chat_sessions')
+            ->where('id', $chatId)
+            ->where('user_id', $userId)
+            ->get()
+            ->getRowArray();
+
+        return $chat ?: null;
+    }
+
+    protected function renameAssistantChat($db, int $chatId, int $userId, string $title): void
+    {
+        $db->table('llm_chat_sessions')
+            ->where('id', $chatId)
+            ->where('user_id', $userId)
+            ->update([
+                'title' => $title,
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+    }
+
+    protected function saveAssistantMessage($db, int $chatId, string $role, string $content): void
+    {
+        if (! in_array($role, ['user', 'assistant'], true) || trim($content) === '') {
+            return;
+        }
+
+        $now = date('Y-m-d H:i:s');
+        $db->table('llm_chat_messages')->insert([
+            'session_id' => $chatId,
+            'role' => $role,
+            'content' => $content,
+            'created_at' => $now,
+        ]);
+        $db->table('llm_chat_sessions')
+            ->where('id', $chatId)
+            ->update(['updated_at' => $now]);
+    }
+
+    /**
+     * @return list<array{role: string, content: string}>
+     */
+    protected function getAssistantChatHistory($db, int $chatId, int $userId, int $limit = 10): array
+    {
+        if (! $this->getAssistantChat($db, $chatId, $userId)) {
+            return [];
+        }
+
+        $rows = $db->table('llm_chat_messages')
+            ->where('session_id', $chatId)
+            ->orderBy('id', 'DESC')
+            ->limit($limit)
+            ->get()
+            ->getResultArray();
+
+        $rows = array_reverse($rows);
+
+        return array_map(static fn (array $row): array => [
+            'role' => $row['role'],
+            'content' => $row['content'],
+        ], $rows);
+    }
+
+    /**
+     * @return list<array{role: string, content: string}>
+     */
+    protected function normalizeAssistantHistory(string $historyJson): array
+    {
+        $decoded = json_decode($historyJson, true);
+        if (! is_array($decoded)) {
+            return [];
+        }
+
+        $history = [];
+        foreach (array_slice($decoded, -10) as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+
+            $role = (string) ($item['role'] ?? '');
+            $content = trim((string) ($item['content'] ?? ''));
+
+            if (! in_array($role, ['user', 'assistant'], true) || $content === '') {
+                continue;
+            }
+
+            $history[] = [
+                'role' => $role,
+                'content' => substr($content, 0, 1200),
+            ];
+        }
+
+        return $history;
+    }
+
+    /**
+     * @param list<array{role: string, content: string}> $history
+     */
+    protected function formatAssistantHistoryForPrompt(array $history): string
+    {
+        if ($history === []) {
+            return 'No previous messages in this chat.';
+        }
+
+        $lines = [];
+        foreach ($history as $message) {
+            $lines[] = strtoupper($message['role']) . ': ' . $message['content'];
+        }
+
+        return implode("\n", $lines);
+    }
+
+    /**
+     * @param array{tables: array<string, list<array{name: string, type: string|null}>>, blocked_columns: list<string>} $schema
+     * @param list<array{role: string, content: string}> $history
+     */
+    protected function buildAssistantSqlPrompt(string $question, array $schema, array $history = []): string
+    {
+        $schemaLines = [];
+        foreach ($schema['tables'] as $table => $columns) {
+            $colText = array_map(
+                static fn (array $col): string => $col['name'] . ($col['type'] ? ' ' . $col['type'] : ''),
+                $columns
+            );
+            $schemaLines[] = $table . '(' . implode(', ', $colText) . ')';
+        }
+
+        return "Create one MySQL SELECT query to answer the user's VMS database question.\n"
+            . "Rules:\n"
+            . "- Return JSON only: {\"sql\":\"SELECT ...\"}\n"
+            . "- Use only the tables and columns listed below.\n"
+            . "- Read-only SELECT only. No INSERT, UPDATE, DELETE, DROP, ALTER, CREATE, SET, CALL, SHOW, DESCRIBE, EXPLAIN, or stored procedures.\n"
+            . "- Do not use SELECT * or table.*. Name only the columns needed.\n"
+            . "- Add useful aliases for computed columns.\n"
+            . "- Prefer LIMIT 100 or less for detail lists.\n"
+            . "- If the question asks for today, use CURDATE().\n"
+            . "- Use the chat history to resolve follow-up phrases like \"that visitor\", \"same host\", \"above\", \"those\", or \"how many\".\n\n"
+            . "Chat history:\n" . $this->formatAssistantHistoryForPrompt($history) . "\n\n"
+            . "Database schema:\n" . implode("\n", $schemaLines) . "\n\n"
+            . "User question: " . $question;
+    }
+
+    protected function extractAssistantSql(string $text): string
+    {
+        $clean = trim($text);
+        $clean = preg_replace('/^```(?:json|sql)?\s*/i', '', $clean) ?? $clean;
+        $clean = preg_replace('/\s*```$/', '', $clean) ?? $clean;
+        $decoded = json_decode($clean, true);
+
+        if (is_array($decoded) && isset($decoded['sql'])) {
+            return trim((string) $decoded['sql']);
+        }
+
+        if (preg_match('/"sql"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $clean, $m)) {
+            return trim(stripcslashes($m[1]));
+        }
+
+        return trim($clean);
+    }
+
+    /**
+     * @param list<string> $allowedTables
+     * @param list<string> $blockedColumns
+     *
+     * @return array{success: bool, message: string}
+     */
+    protected function validateAssistantSql(string $sql, array $allowedTables, array $blockedColumns): array
+    {
+        $normalized = trim($sql);
+        $lower = strtolower($normalized);
+
+        if ($normalized === '') {
+            return ['success' => false, 'message' => 'I could not build a database query for that question.'];
+        }
+
+        if (! preg_match('/^select\b/i', $normalized)) {
+            return ['success' => false, 'message' => 'Only read-only SELECT questions are allowed.'];
+        }
+
+        if (str_contains($normalized, ';') || str_contains($normalized, '--') || str_contains($normalized, '/*') || str_contains($normalized, '*/') || preg_match('/(^|\s)#/', $normalized)) {
+            return ['success' => false, 'message' => 'The generated query was rejected for safety.'];
+        }
+
+        if (preg_match('/\b(insert|update|delete|drop|alter|truncate|create|replace|grant|revoke|call|set|use|show|describe|explain|handler|load|outfile|infile|lock|unlock)\b/i', $normalized)) {
+            return ['success' => false, 'message' => 'Only read-only database questions are allowed.'];
+        }
+
+        if (preg_match('/\b(information_schema|mysql|performance_schema|sys)\b/i', $normalized)) {
+            return ['success' => false, 'message' => 'System database tables are not available to the assistant.'];
+        }
+
+        if (preg_match_all('/\b(?:from|join)\s+`?([a-zA-Z0-9_]+)`?/i', $normalized, $matches)) {
+            $allowedLookup = array_fill_keys(array_map('strtolower', $allowedTables), true);
+            foreach ($matches[1] as $table) {
+                if (! isset($allowedLookup[strtolower($table)])) {
+                    return ['success' => false, 'message' => 'The generated query referenced a table that is not available to the assistant.'];
+                }
+            }
+        }
+
+        if (preg_match('/(^|\s)select\s+\*|\b[a-zA-Z0-9_]+\s*\.\s*\*/i', $normalized)) {
+            return ['success' => false, 'message' => 'The assistant must request specific columns, not all columns.'];
+        }
+
+        foreach ($blockedColumns as $column) {
+            if ($column !== '' && preg_match('/\b' . preg_quote(strtolower($column), '/') . '\b/i', $lower)) {
+                return ['success' => false, 'message' => 'Credential and secret fields are not available to the assistant.'];
+            }
+        }
+
+        return ['success' => true, 'message' => 'OK'];
+    }
+
+    protected function applyAssistantQueryLimit(string $sql): string
+    {
+        $clean = rtrim(trim($sql), " \t\n\r\0\x0B;");
+
+        if (preg_match('/\blimit\s+(\d+)/i', $clean, $m)) {
+            $limit = (int) $m[1];
+            if ($limit > 100) {
+                return preg_replace('/\blimit\s+\d+/i', 'LIMIT 100', $clean, 1) ?? $clean;
+            }
+
+            return $clean;
+        }
+
+        return $clean . ' LIMIT 100';
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     * @param list<array{role: string, content: string}> $history
+     */
+    protected function buildAssistantAnswerPrompt(string $question, string $sql, array $rows, array $history = []): string
+    {
+        return "Answer the user's VMS database question using these SQL results.\n"
+            . "Mention if the result is limited to 100 rows. Keep the answer concise and useful.\n\n"
+            . "Chat history:\n" . $this->formatAssistantHistoryForPrompt($history) . "\n\n"
+            . "Question: {$question}\n\n"
+            . "SQL used:\n{$sql}\n\n"
+            . "Row count: " . count($rows) . "\n"
+            . "Rows JSON:\n" . json_encode($rows, JSON_PRETTY_PRINT);
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     */
+    protected function formatAssistantRowsFallback(array $rows): string
+    {
+        if ($rows === []) {
+            return 'No matching database records were found.';
+        }
+
+        $preview = array_slice($rows, 0, 10);
+        $lines = ['I found ' . count($rows) . ' record' . (count($rows) === 1 ? '' : 's') . '.'];
+
+        foreach ($preview as $idx => $row) {
+            $parts = [];
+            foreach ($row as $key => $value) {
+                $parts[] = $key . ': ' . (is_scalar($value) || $value === null ? (string) $value : json_encode($value));
+            }
+            $lines[] = ($idx + 1) . '. ' . implode(', ', $parts);
+        }
+
+        if (count($rows) > count($preview)) {
+            $lines[] = 'Showing the first ' . count($preview) . ' records.';
+        }
+
+        return implode("\n", $lines);
+    }
+
+    /**
+     * Build a compact dashboard snapshot for LLM analytics answers.
+     *
+     * @return array<string, mixed>
+     */
+    protected function buildAssistantAnalyticsContext(): array
+    {
+        $db = \Config\Database::connect();
+        $today = date('Y-m-d');
+        $now = date('Y-m-d H:i:s');
+
+        $expectedToday = (int) ($db->query(
+            'SELECT COUNT(*) AS c
+             FROM invitations i
+             WHERE i.status = ?
+             AND EXISTS (
+                 SELECT 1 FROM invitation_schedules s
+                 WHERE s.invitation_id = i.id
+                 AND DATE(s.date_from) <= ? AND DATE(s.date_to) >= ?
+             )
+             AND NOT EXISTS (
+                 SELECT 1 FROM invitation_visitors iv
+                 WHERE iv.invitation_id = i.id
+                 AND (DATE(iv.check_in_time) = ? OR (iv.check_in_time IS NOT NULL AND iv.check_out_time IS NULL))
+             )',
+            ['Approved', $today, $today, $today]
+        )->getRow()->c ?? 0);
+
+        $onSite = $db->query(
+            "SELECT COALESCE(i.full_name, iv.full_name) as visitor_name,
+                    COALESCE(iv.contact, i.contact, 'N/A') as contact,
+                    COALESCE(i.invited_by, 'N/A') as host_name,
+                    COALESCE(i.location, 'N/A') as location,
+                    iv.check_in_time,
+                    COALESCE(s.staff_no, 'N/A') as staff_no
+             FROM invitation_visitors iv
+             JOIN invitations i ON i.id = iv.invitation_id
+             LEFT JOIN staff s ON s.id = i.staff_id OR s.staff_no = i.staff_id
+             WHERE i.status = 'Approved'
+             AND iv.check_in_time IS NOT NULL
+             AND iv.check_out_time IS NULL
+             ORDER BY iv.check_in_time DESC
+             LIMIT 25"
+        )->getResultArray();
+
+        $checkedOutToday = (int) ($db->query(
+            'SELECT COUNT(*) AS c
+             FROM invitation_visitors iv
+             JOIN invitations i ON i.id = iv.invitation_id
+             WHERE i.status = ?
+             AND DATE(iv.check_out_time) = ?',
+            ['Approved', $today]
+        )->getRow()->c ?? 0);
+
+        $overstays = $db->query(
+            "SELECT COALESCE(i.full_name, iv.full_name) as visitor_name,
+                    COALESCE(i.invited_by, 'N/A') as host_name,
+                    COALESCE(i.location, 'N/A') as location,
+                    iv.check_in_time,
+                    (SELECT MAX(s.date_to) FROM invitation_schedules s WHERE s.invitation_id = i.id) as schedule_end
+             FROM invitation_visitors iv
+             INNER JOIN invitations i ON i.id = iv.invitation_id
+             WHERE i.status = 'Approved'
+             AND iv.check_in_time IS NOT NULL
+             AND iv.check_out_time IS NULL
+             AND (SELECT MAX(s.date_to) FROM invitation_schedules s WHERE s.invitation_id = i.id) < ?
+             ORDER BY iv.check_in_time ASC
+             LIMIT 25",
+            [$now]
+        )->getResultArray();
+
+        $expectedRows = $db->query(
+            "SELECT i.full_name as visitor_name,
+                    COALESCE(i.invited_by, 'N/A') as host_name,
+                    COALESCE(i.location, 'N/A') as location,
+                    i.contact,
+                    s.date_from,
+                    s.date_to
+             FROM invitations i
+             JOIN invitation_schedules s ON s.invitation_id = i.id
+             LEFT JOIN invitation_visitors iv ON iv.id = (
+                 SELECT iv2.id FROM invitation_visitors iv2
+                 WHERE iv2.invitation_id = i.id ORDER BY iv2.id DESC LIMIT 1
+             )
+             WHERE i.status = 'Approved'
+             AND DATE(s.date_from) <= ? AND DATE(s.date_to) >= ?
+             AND (iv.check_in_time IS NULL OR (DATE(iv.check_in_time) < ? AND iv.check_out_time IS NOT NULL))
+             ORDER BY s.date_from ASC
+             LIMIT 25",
+            [$today, $today, $today]
+        )->getResultArray();
+
+        $alerts = [];
+        $activeAlertCount = 0;
+        if ($db->tableExists('security_alerts')) {
+            $activeAlertCount = (int) ($db->query(
+                'SELECT COUNT(*) AS c FROM security_alerts WHERE is_acknowledged = 0'
+            )->getRow()->c ?? 0);
+
+            $alerts = $db->query(
+                "SELECT incident_type, severity, visitor_name, location, created_at, is_acknowledged
+                 FROM security_alerts
+                 ORDER BY is_acknowledged ASC, created_at DESC
+                 LIMIT 25"
+            )->getResultArray();
+        }
+
+        $trafficByHour = $db->query(
+            "SELECT HOUR(iv.check_in_time) AS hour, COUNT(*) AS count
+             FROM invitation_visitors iv
+             JOIN invitations i ON i.id = iv.invitation_id
+             WHERE i.status = 'Approved'
+             AND iv.check_in_time IS NOT NULL
+             AND DATE(iv.check_in_time) = ?
+             GROUP BY HOUR(iv.check_in_time)
+             ORDER BY hour ASC",
+            [$today]
+        )->getResultArray();
+
+        return [
+            'generated_at' => $now,
+            'date' => $today,
+            'summary' => [
+                'expected_today' => $expectedToday,
+                'currently_on_site' => count($onSite),
+                'checked_out_today' => $checkedOutToday,
+                'currently_overstaying' => count($overstays),
+                'active_security_alerts' => $activeAlertCount,
+            ],
+            'currently_on_site' => $onSite,
+            'expected_today' => $expectedRows,
+            'currently_overstaying' => $overstays,
+            'security_alerts' => $alerts,
+            'checkins_by_hour' => $trafficByHour,
+        ];
     }
 
     private function getTimeAgo($datetime)

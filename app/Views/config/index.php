@@ -3941,6 +3941,89 @@
                     </div>
                 </div>
 
+                <!-- Sub Location Access -->
+                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                    <button onclick="toggleSection('sublocation')" class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                        <div class="flex items-center gap-4">
+                            <div class="p-2 bg-primary/10 rounded-lg">
+                                <span class="material-symbols-outlined text-primary text-xl">account_tree</span>
+                            </div>
+                            <div class="text-left">
+                                <h3 class="text-base font-bold text-gray-800 dark:text-white">Sub Location Access</h3>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Define sub-locations under each Location Access entry</p>
+                            </div>
+                        </div>
+                        <span id="sublocation-icon" class="material-symbols-outlined text-gray-400 dark:text-slate-400 transition-transform">expand_more</span>
+                    </button>
+                    <div id="sublocation-content" class="hidden border-t border-gray-200 dark:border-slate-700">
+                        <div class="p-6 bg-gray-50 dark:bg-slate-800/50">
+                            <!-- Search, Filter and Create -->
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                                <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                                    <div class="flex shadow-sm w-full sm:w-80">
+                                        <input id="subLocSearchInput" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Search sub location..." type="text" onkeyup="if(event.key==='Enter') searchSubLocations()" />
+                                        <button onclick="searchSubLocations()" class="bg-primary hover:bg-blue-600 text-white px-6 py-2.5 rounded-r flex items-center justify-center transition-colors">
+                                            <span class="material-symbols-outlined text-white text-[20px]">search</span>
+                                        </button>
+                                    </div>
+                                    <div class="relative w-full sm:w-52">
+                                        <select id="subLocLocationFilter" onchange="searchSubLocations()" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm appearance-none focus:ring-primary focus:border-primary text-gray-700 dark:text-gray-300">
+                                            <option value="">All Locations</option>
+                                        </select>
+                                        <span class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-symbols-outlined text-[20px]">expand_more</span>
+                                    </div>
+                                    <div class="relative w-full sm:w-44">
+                                        <select id="subLocSortSelect" onchange="searchSubLocations()" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm appearance-none focus:ring-primary focus:border-primary text-gray-700 dark:text-gray-300">
+                                            <option value="">Sort By</option>
+                                            <option value="name_asc">Name (A-Z)</option>
+                                            <option value="name_desc">Name (Z-A)</option>
+                                            <option value="location_asc">Location (A-Z)</option>
+                                            <option value="location_desc">Location (Z-A)</option>
+                                            <option value="status">Status</option>
+                                        </select>
+                                        <span class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-symbols-outlined text-[20px]">expand_more</span>
+                                    </div>
+                                </div>
+                                <button onclick="openCreateSubLocationModal()" class="px-4 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm flex items-center gap-2 w-full sm:w-auto">
+                                    <span class="material-symbols-outlined text-base">add</span>
+                                    Create Sub Location
+                                </button>
+                            </div>
+
+                            <!-- Sub Location Table -->
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-sm">
+                                    <thead class="text-xs text-gray-600 dark:text-slate-400 uppercase border-b border-gray-200 dark:border-slate-700">
+                                        <tr>
+                                            <th class="px-4 py-3">Sub Location Access</th>
+                                            <th class="px-4 py-3">Location Access</th>
+                                            <th class="px-4 py-3">Status</th>
+                                            <th class="px-4 py-3 w-32">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="subLocTableBody" class="text-gray-700 dark:text-slate-300">
+                                        <tr>
+                                            <td colspan="4" class="px-4 py-8 text-center">
+                                                <div class="flex justify-center items-center">
+                                                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Pagination -->
+                            <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6">
+                                <p class="text-sm text-gray-600 dark:text-slate-400">
+                                    Showing <span id="subLocShowingFrom" class="font-medium">0</span> to <span id="subLocShowingTo" class="font-medium">0</span> of <span id="subLocTotalCount" class="font-medium">0</span> sub locations
+                                </p>
+                                <div id="subLocPaginationButtons" class="flex items-center gap-2"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Pathway Management -->
                 <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('pathway')" class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
@@ -4325,6 +4408,11 @@
                                         onclick="dffSwitchTab('staff_pass_request')"
                                         class="px-4 py-2 text-sm font-medium font-brand border-b-2 border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 -mb-px">
                                         Staff Pass Request
+                                    </button>
+                                    <button type="button" id="dff-tab-visitor_pass_request"
+                                        onclick="dffSwitchTab('visitor_pass_request')"
+                                        class="px-4 py-2 text-sm font-medium font-brand border-b-2 border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 -mb-px">
+                                        Visitor Pass Request
                                     </button>
                                 </div>
 
@@ -5017,6 +5105,10 @@
                 }
                 if (section === 'apimanagement') {
                     loadApiKeys(1);
+                }
+                if (section === 'sublocation') {
+                    loadSubLocations();
+                    populateSubLocLocationFilter();
                 }
                 if (section === 'pathway') {
                     loadPathways();
@@ -14721,6 +14813,368 @@
         }                                    
 
         
+        // ====================================================================================
+        // Sub Location Access Management
+        // ====================================================================================
+
+        let currentSubLocPage   = 1;
+        let currentSubLocSearch = '';
+        let currentSubLocSort   = '';
+        let currentSubLocFilter = '';
+        let currentSubLocId     = null;
+
+        function loadSubLocations(page = 1, search = '', sortBy = '', locationId = '') {
+            currentSubLocPage   = page;
+            currentSubLocSearch = search;
+            currentSubLocSort   = sortBy;
+            currentSubLocFilter = locationId;
+
+            const tbody = document.getElementById('subLocTableBody');
+            tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-8 text-center"><div class="flex justify-center items-center"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div></td></tr>';
+
+            const params = new URLSearchParams({ page, limit: 10, search, sortBy, location_id: locationId });
+
+            fetch(`<?= base_url('config/getSubLocations') ?>?${params}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        displaySubLocations(data.data);
+                        updateSubLocPagination(data.pagination);
+                    } else {
+                        tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-8 text-center text-red-500">Failed to load sub locations</td></tr>';
+                    }
+                })
+                .catch(() => {
+                    tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-8 text-center text-red-500">An error occurred</td></tr>';
+                });
+        }
+
+        function searchSubLocations() {
+            const search   = document.getElementById('subLocSearchInput').value;
+            const sort     = document.getElementById('subLocSortSelect').value;
+            const locId    = document.getElementById('subLocLocationFilter').value;
+            loadSubLocations(1, search, sort, locId);
+        }
+
+        function displaySubLocations(rows) {
+            const tbody = document.getElementById('subLocTableBody');
+
+            if (rows.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">No sub locations found</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = rows.map(row => {
+                const statusBadge = row.status === 'active'
+                    ? '<span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span>'
+                    : '<span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">Inactive</span>';
+
+                return `
+                    <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
+                        <td class="px-4 py-3 font-medium">${escapeHtml(row.name)}</td>
+                        <td class="px-4 py-3 text-gray-600 dark:text-slate-400">${escapeHtml(row.location_access || '—')}</td>
+                        <td class="px-4 py-3">${statusBadge}</td>
+                        <td class="px-4 py-3 w-32">
+                            <div class="flex gap-2">
+                                <button onclick="openEditSubLocationModal(${row.id})" class="text-primary hover:text-primary/80" title="Edit">
+                                    <span class="material-symbols-outlined text-xl">edit</span>
+                                </button>
+                                <button onclick="openDeleteSubLocationModal(${row.id}, '${escapeHtml(row.name)}')" class="text-red-500 hover:text-red-400" title="Delete">
+                                    <span class="material-symbols-outlined text-xl">delete</span>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function updateSubLocPagination(pagination) {
+            const from = pagination.total === 0 ? 0 : ((pagination.page - 1) * pagination.limit) + 1;
+            const to   = Math.min(pagination.page * pagination.limit, pagination.total);
+
+            document.getElementById('subLocShowingFrom').textContent = from;
+            document.getElementById('subLocShowingTo').textContent   = to;
+            document.getElementById('subLocTotalCount').textContent   = pagination.total;
+
+            const container = document.getElementById('subLocPaginationButtons');
+            let html = '';
+
+            html += `<button onclick="loadSubLocations(${pagination.page - 1}, currentSubLocSearch, currentSubLocSort, currentSubLocFilter)" class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" ${pagination.page === 1 ? 'disabled' : ''}><span class="material-symbols-outlined text-base">chevron_left</span></button>`;
+
+            for (let i = 1; i <= pagination.totalPages; i++) {
+                if (i === pagination.page) {
+                    html += `<button class="px-3 py-2 rounded-lg bg-primary text-white font-medium text-sm min-w-[40px]">${i}</button>`;
+                } else {
+                    html += `<button onclick="loadSubLocations(${i}, currentSubLocSearch, currentSubLocSort, currentSubLocFilter)" class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors font-medium text-sm min-w-[40px]">${i}</button>`;
+                }
+            }
+
+            html += `<button onclick="loadSubLocations(${pagination.page + 1}, currentSubLocSearch, currentSubLocSort, currentSubLocFilter)" class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" ${pagination.page === pagination.totalPages || pagination.totalPages === 0 ? 'disabled' : ''}><span class="material-symbols-outlined text-base">chevron_right</span></button>`;
+
+            container.innerHTML = html;
+        }
+
+        // Populate the Location filter dropdown once (locations are stable data)
+        let _subLocLocationsLoaded = false;
+        function populateSubLocLocationFilter() {
+            if (_subLocLocationsLoaded) return;
+            fetch('<?= base_url('config/getAllLocations') ?>')
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.success) return;
+                    const select = document.getElementById('subLocLocationFilter');
+                    data.data.forEach(loc => {
+                        const opt = document.createElement('option');
+                        opt.value       = loc.id;
+                        opt.textContent = loc.location_access;
+                        select.appendChild(opt);
+                    });
+                    _subLocLocationsLoaded = true;
+                });
+        }
+
+        // ---- Sub Location Modal ----
+
+        function buildSubLocModalHTML(title, buttonText, row = null) {
+            const isEdit = !!row;
+            return `
+            <div id="subLocModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                <div class="bg-white dark:bg-slate-800 rounded-xl max-w-lg w-full shadow-2xl">
+                    <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-700">
+                        <h3 class="text-lg font-bold text-gray-800 dark:text-white">${title}</h3>
+                        <button onclick="closeSubLocModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                            <span class="material-symbols-outlined">close</span>
+                        </button>
+                    </div>
+                    <form onsubmit="saveSubLocation(event)" class="p-6 space-y-5">
+                        ${isEdit ? `<input type="hidden" id="subLocVersion" value="${row.version}">` : ''}
+                        <div id="subLocErrorContainer" class="hidden mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-300 rounded-lg text-sm"></div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Sub Location Name <span class="text-red-500">*</span></label>
+                            <input type="text" id="subLocName" required value="${isEdit ? escapeHtml(row.name) : ''}"
+                                class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2.5 text-sm focus:ring-primary focus:border-primary"
+                                placeholder="e.g. 1. VISITOR STAIRCASE" />
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Location Access <span class="text-red-500">*</span></label>
+                            <div class="relative" id="subLocDropdownWrapper">
+                                <input type="hidden" id="subLocLocationId" />
+                                <button type="button" id="subLocDropdownBtn"
+                                    onclick="toggleSubLocDropdown()"
+                                    class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2.5 text-sm text-left flex items-center justify-between focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary">
+                                    <span id="subLocDropdownLabel" class="truncate text-gray-400 dark:text-gray-500">Select location...</span>
+                                    <span class="material-symbols-outlined text-gray-400 text-base flex-shrink-0">expand_more</span>
+                                </button>
+                                <div id="subLocDropdownList" class="hidden absolute z-[200] w-full mt-1 bg-white dark:bg-slate-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-xl overflow-hidden" style="top:100%;left:0;">
+                                    <div class="p-2 border-b border-gray-200 dark:border-slate-600">
+                                        <input type="text" id="subLocLocationSearch"
+                                            oninput="filterSubLocOptions(this.value)"
+                                            class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                                            placeholder="Search..." autocomplete="off" />
+                                    </div>
+                                    <ul id="subLocOptionsList" class="max-h-44 overflow-y-auto py-1"></ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Status <span class="text-red-500">*</span></label>
+                            <select id="subLocStatus" required
+                                class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2.5 text-sm focus:ring-primary focus:border-primary">
+                                <option value="active" ${isEdit && row.status === 'active' ? 'selected' : ''}>Active</option>
+                                <option value="inactive" ${isEdit && row.status === 'inactive' ? 'selected' : ''}>Inactive</option>
+                            </select>
+                        </div>
+
+                        <div class="flex gap-3 justify-end pt-3 border-t border-gray-200 dark:border-slate-700">
+                            <button type="button" onclick="closeSubLocModal()" class="px-4 py-2.5 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">Cancel</button>
+                            <button type="submit" class="px-5 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm">${buttonText}</button>
+                        </div>
+                    </form>
+                </div>
+            </div>`;
+        }
+
+        function populateSubLocLocationDropdown(selectedId = null) {
+            fetch('<?= base_url('config/getAllLocations') ?>')
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.success) return;
+                    const ul = document.getElementById('subLocOptionsList');
+                    if (!ul) return;
+                    data.data.forEach(loc => {
+                        const li = document.createElement('li');
+                        li.className = 'px-4 py-2 text-sm cursor-pointer hover:bg-blue-50 dark:hover:bg-slate-600 text-gray-800 dark:text-white';
+                        li.textContent = loc.location_access;
+                        li.onclick = () => selectSubLocOption(loc.id, loc.location_access);
+                        ul.appendChild(li);
+                        if (selectedId && String(loc.id) === String(selectedId)) {
+                            selectSubLocOption(loc.id, loc.location_access);
+                        }
+                    });
+                });
+        }
+
+        function toggleSubLocDropdown() {
+            const list = document.getElementById('subLocDropdownList');
+            if (!list) return;
+            if (list.classList.contains('hidden')) {
+                list.classList.remove('hidden');
+                setTimeout(() => document.getElementById('subLocLocationSearch')?.focus(), 50);
+            } else {
+                list.classList.add('hidden');
+            }
+        }
+
+        function filterSubLocOptions(query) {
+            const q = query.toLowerCase();
+            document.querySelectorAll('#subLocOptionsList li').forEach(li => {
+                li.style.display = li.textContent.toLowerCase().includes(q) ? '' : 'none';
+            });
+        }
+
+        function selectSubLocOption(id, label) {
+            document.getElementById('subLocLocationId').value = id;
+            const lbl = document.getElementById('subLocDropdownLabel');
+            if (!lbl) return;
+            lbl.textContent = label;
+            lbl.classList.remove('text-gray-400', 'dark:text-gray-500');
+            lbl.classList.add('text-gray-900', 'dark:text-white');
+            document.getElementById('subLocDropdownList')?.classList.add('hidden');
+        }
+
+        document.addEventListener('click', function (e) {
+            const wrapper = document.getElementById('subLocDropdownWrapper');
+            if (wrapper && !wrapper.contains(e.target)) {
+                document.getElementById('subLocDropdownList')?.classList.add('hidden');
+            }
+        });
+
+        function openCreateSubLocationModal() {
+            currentSubLocId = null;
+            document.body.insertAdjacentHTML('beforeend', buildSubLocModalHTML('Create Sub Location', 'Create'));
+            populateSubLocLocationDropdown();
+        }
+
+        function openEditSubLocationModal(id) {
+            currentSubLocId = id;
+            fetch(`<?= base_url('config/getSubLocation') ?>/${id}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.success) { showNotification('Failed to load record', 'error'); return; }
+                    const row = data.data;
+                    document.body.insertAdjacentHTML('beforeend', buildSubLocModalHTML('Edit Sub Location', 'Update', row));
+                    populateSubLocLocationDropdown(row.location_id);
+                })
+                .catch(() => showNotification('An error occurred', 'error'));
+        }
+
+        function closeSubLocModal() {
+            document.getElementById('subLocModal')?.remove();
+        }
+
+        function saveSubLocation(e) {
+            e.preventDefault();
+
+            const locId = parseInt(document.getElementById('subLocLocationId').value);
+            if (!locId) {
+                const ec = document.getElementById('subLocErrorContainer');
+                ec.innerHTML = '<div>• Location Access is required</div>';
+                ec.classList.remove('hidden');
+                return;
+            }
+
+            const payload = {
+                name:        document.getElementById('subLocName').value,
+                location_id: locId,
+                status:      document.getElementById('subLocStatus').value,
+            };
+
+            if (currentSubLocId) {
+                const versionEl = document.getElementById('subLocVersion');
+                if (versionEl) payload.version = parseInt(versionEl.value);
+            }
+
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.disabled    = true;
+            submitBtn.textContent = currentSubLocId ? 'Updating...' : 'Creating...';
+
+            const url = currentSubLocId
+                ? `<?= base_url('config/updateSubLocation') ?>/${currentSubLocId}`
+                : '<?= base_url('config/createSubLocation') ?>';
+
+            fetch(url, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify(payload),
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    closeSubLocModal();
+                    loadSubLocations(currentSubLocPage, currentSubLocSearch, currentSubLocSort, currentSubLocFilter);
+                } else {
+                    const ec = document.getElementById('subLocErrorContainer');
+                    ec.innerHTML = data.errors
+                        ? Object.values(data.errors).flat().map(m => `<div>• ${m}</div>`).join('')
+                        : (data.message || 'Failed to save');
+                    ec.classList.remove('hidden');
+                    submitBtn.textContent = currentSubLocId ? 'Update' : 'Create';
+                    submitBtn.disabled    = false;
+                }
+            })
+            .catch(() => {
+                showNotification('An error occurred', 'error');
+                submitBtn.textContent = currentSubLocId ? 'Update' : 'Create';
+                submitBtn.disabled    = false;
+            });
+        }
+
+        function openDeleteSubLocationModal(id, name) {
+            currentSubLocId = id;
+            document.body.insertAdjacentHTML('beforeend', `
+            <div id="subLocDeleteModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                <div class="bg-white dark:bg-slate-800 rounded-xl max-w-md w-full shadow-2xl">
+                    <div class="p-6">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
+                                <span class="material-symbols-outlined text-red-500 text-xl">warning</span>
+                            </div>
+                            <h3 class="text-lg font-bold text-gray-800 dark:text-white">Delete Sub Location</h3>
+                        </div>
+                        <p class="text-sm text-gray-600 dark:text-slate-400 mb-6">Are you sure you want to delete <strong>${escapeHtml(name)}</strong>? This action cannot be undone.</p>
+                        <div class="flex gap-3 justify-end">
+                            <button onclick="closeDeleteSubLocModal()" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">Cancel</button>
+                            <button onclick="confirmDeleteSubLocation()" class="px-4 py-2 rounded-lg bg-red-500 text-white font-medium hover:bg-red-600 transition-colors text-sm">Delete</button>
+                        </div>
+                    </div>
+                </div>
+            </div>`);
+        }
+
+        function closeDeleteSubLocModal() {
+            document.getElementById('subLocDeleteModal')?.remove();
+        }
+
+        function confirmDeleteSubLocation() {
+            fetch(`<?= base_url('config/deleteSubLocation') ?>/${currentSubLocId}`, { method: 'DELETE' })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification(data.message, 'success');
+                        closeDeleteSubLocModal();
+                        loadSubLocations(currentSubLocPage, currentSubLocSearch, currentSubLocSort, currentSubLocFilter);
+                    } else {
+                        showNotification(data.message || 'Failed to delete', 'error');
+                    }
+                })
+                .catch(() => showNotification('An error occurred', 'error'));
+        }
+
         // ============== PATHWAY MANAGEMENT FUNCTIONS ==============
 
         let currentPathwayPage = 1;
@@ -14766,9 +15220,18 @@
                     ? '<span class="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold">Active</span>'
                     : '<span class="px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs font-semibold">Inactive</span>';
 
-                const laneBadges = (pw.lanes || []).map(l =>
-                    `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">${escapeHtml(l.lane)}</span>`
-                ).join(' ');
+                // Unified doors: lanes (blue) and sub-locations (purple)
+                const doorBadges = (pw.doors || pw.lanes || []).map(d => {
+                    const label = d.type === 'sub_location'
+                        ? escapeHtml(d.name)
+                        : escapeHtml(d.name || d.lane || '');
+                    const cls = d.type === 'sub_location'
+                        ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300'
+                        : 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300';
+                    return `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${cls}">${label}</span>`;
+                }).join(' ');
+
+                const laneBadges = doorBadges; // alias kept for template below
 
                 return `
                     <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
@@ -14831,7 +15294,6 @@
         }
 
         function buildPathwayModalHTML(title, buttonText, pathway = null) {
-            const selectedLanes = pathway ? (pathway.lanes || []) : [];
             const isEdit = !!pathway;
 
             return `
@@ -14844,6 +15306,7 @@
                         </button>
                     </div>
                     <form onsubmit="savePathway(event)" class="p-6">
+                        ${isEdit ? `<input type="hidden" id="pathwayVersion" value="${pathway.version || 1}">` : ''}
                         <div id="pathwayErrorContainer" class="hidden mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-300 rounded-lg text-sm"></div>
 
                         <div class="space-y-5">
@@ -14894,26 +15357,32 @@
             `;
         }
 
-        let pathwayAllLanes = [];
-        let pathwaySelectedIds = [];
+        // pathwayAllDoors: unified pool of lanes + sub-locations (prefixed IDs: 'l_N', 'sl_N')
+        let pathwayAllDoors     = [];
+        let pathwaySelectedKeys = []; // e.g. ['l_3', 'sl_7', 'l_1']
+
+        function _buildDoorPool(lanesData, subLocsData) {
+            const lanes    = (lanesData.data || []).map(l => ({ key: `l_${l.id}`,  raw_id: l.id,  name: l.lane, type: 'lane' }));
+            const subLocs  = (subLocsData.data || []).map(s => ({ key: `sl_${s.id}`, raw_id: s.id, name: s.name, type: 'sub_location', location_access: s.location_access }));
+            return [...lanes, ...subLocs];
+        }
 
         function openCreatePathwayModal() {
-            currentPathwayId = null;
-            pathwaySelectedIds = [];
+            currentPathwayId    = null;
+            pathwaySelectedKeys = [];
 
-            fetch('<?= base_url('config/getAllLanes') ?>')
-                .then(r => r.json())
-                .then(data => {
-                    if (!data.success) {
-                        showNotification('Failed to load lanes', 'error');
-                        return;
-                    }
-                    pathwayAllLanes = data.data;
-                    document.body.insertAdjacentHTML('beforeend', buildPathwayModalHTML('Create New Pathway', 'Create Pathway'));
-                    renderAvailableLanes();
-                    renderSelectedLanes();
-                })
-                .catch(() => showNotification('Failed to load lanes', 'error'));
+            Promise.all([
+                fetch('<?= base_url('config/getAllLanes') ?>').then(r => r.json()),
+                fetch('<?= base_url('config/getActiveSubLocations') ?>').then(r => r.json()),
+            ])
+            .then(([lanesData, slData]) => {
+                if (!lanesData.success) { showNotification('Failed to load lanes', 'error'); return; }
+                pathwayAllDoors = _buildDoorPool(lanesData, slData.success ? slData : { data: [] });
+                document.body.insertAdjacentHTML('beforeend', buildPathwayModalHTML('Create New Pathway', 'Create Pathway'));
+                renderAvailableLanes();
+                renderSelectedLanes();
+            })
+            .catch(() => showNotification('Failed to load doors', 'error'));
         }
 
         function openEditPathwayModal(id) {
@@ -14921,16 +15390,19 @@
 
             Promise.all([
                 fetch('<?= base_url('config/getAllLanes') ?>').then(r => r.json()),
-                fetch(`<?= base_url('config/getPathway') ?>/${id}`).then(r => r.json())
+                fetch('<?= base_url('config/getActiveSubLocations') ?>').then(r => r.json()),
+                fetch(`<?= base_url('config/getPathway') ?>/${id}`).then(r => r.json()),
             ])
-            .then(([lanesData, pwData]) => {
-                if (!lanesData.success || !pwData.success) {
-                    showNotification('Failed to load data', 'error');
-                    return;
-                }
-                pathwayAllLanes = lanesData.data;
+            .then(([lanesData, slData, pwData]) => {
+                if (!lanesData.success || !pwData.success) { showNotification('Failed to load data', 'error'); return; }
+                pathwayAllDoors = _buildDoorPool(lanesData, slData.success ? slData : { data: [] });
+
                 const pathway = pwData.data;
-                pathwaySelectedIds = (pathway.lanes || []).map(l => String(l.lane_id));
+                // Rebuild selected keys in sort_order sequence from the unified doors array
+                const doorsInOrder = (pathway.doors || []).map(d =>
+                    d.type === 'sub_location' ? `sl_${d.raw_id}` : `l_${d.raw_id || d.lane_id}`
+                );
+                pathwaySelectedKeys = doorsInOrder;
 
                 document.body.insertAdjacentHTML('beforeend', buildPathwayModalHTML('Edit Pathway', 'Update Pathway', pathway));
                 renderAvailableLanes();
@@ -14941,57 +15413,67 @@
 
         function renderAvailableLanes() {
             const container = document.getElementById('pathwayAvailableLanes');
-            const filter = (document.getElementById('pathwayLaneFilter')?.value || '').toLowerCase();
+            const filter    = (document.getElementById('pathwayLaneFilter')?.value || '').toLowerCase();
 
-            const available = pathwayAllLanes.filter(l => !pathwaySelectedIds.includes(String(l.id)));
-            const filtered = available.filter(l => l.lane.toLowerCase().includes(filter));
+            const available = pathwayAllDoors.filter(d => !pathwaySelectedKeys.includes(d.key));
+            const filtered  = available.filter(d => d.name.toLowerCase().includes(filter)
+                || (d.location_access || '').toLowerCase().includes(filter));
 
             if (filtered.length === 0) {
                 container.innerHTML = '<div class="px-3 py-4 text-center text-gray-400 text-xs">No available doors</div>';
                 return;
             }
 
-            container.innerHTML = filtered.map(l => `
-                <button type="button" onclick="pathwayAddLane('${l.id}')" class="w-full text-left px-3 py-2 text-sm rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-700 dark:text-slate-300 flex items-center gap-2 transition-colors">
-                    <span class="material-symbols-outlined text-base text-blue-500">add_circle</span>
-                    ${escapeHtml(l.lane)}
-                </button>
-            `).join('');
+            container.innerHTML = filtered.map(d => {
+                const iconColor  = d.type === 'sub_location' ? 'text-purple-500' : 'text-blue-500';
+                const sublabel   = d.type === 'sub_location' && d.location_access
+                    ? `<span class="text-xs text-gray-400">${escapeHtml(d.location_access)}</span>`
+                    : '';
+                return `
+                <button type="button" onclick="pathwayAddLane('${d.key}')" class="w-full text-left px-3 py-2 text-sm rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-700 dark:text-slate-300 flex items-center gap-2 transition-colors">
+                    <span class="material-symbols-outlined text-base ${iconColor}">add_circle</span>
+                    <span class="flex flex-col"><span>${escapeHtml(d.name)}</span>${sublabel}</span>
+                </button>`;
+            }).join('');
         }
 
         function renderSelectedLanes() {
             const container = document.getElementById('pathwaySelectedLanes');
-            const emptyMsg = document.getElementById('pathwaySelectedEmpty');
 
-            if (pathwaySelectedIds.length === 0) {
+            if (pathwaySelectedKeys.length === 0) {
                 container.innerHTML = '<div id="pathwaySelectedEmpty" class="px-3 py-4 text-center text-gray-400 text-xs">Click doors on the left to add them</div>';
                 return;
             }
 
-            container.innerHTML = pathwaySelectedIds.map((id, idx) => {
-                const lane = pathwayAllLanes.find(l => String(l.id) === String(id));
-                const name = lane ? lane.lane : `Lane #${id}`;
+            container.innerHTML = pathwaySelectedKeys.map((key, idx) => {
+                const door  = pathwayAllDoors.find(d => d.key === key);
+                const name  = door ? door.name : key;
+                const bg    = door?.type === 'sub_location'
+                    ? 'bg-purple-50 dark:bg-purple-900/20'
+                    : 'bg-blue-50 dark:bg-blue-900/20';
+                const badge = door?.type === 'sub_location'
+                    ? 'bg-purple-100 dark:bg-purple-800 text-purple-600 dark:text-purple-300'
+                    : 'bg-blue-100 dark:bg-blue-800 text-blue-600 dark:text-blue-300';
                 return `
-                <div class="flex items-center gap-2 px-3 py-2 rounded bg-blue-50 dark:bg-blue-900/20 mb-1 group" draggable="true" ondragstart="pathwayDragStart(event, ${idx})" ondragover="pathwayDragOver(event)" ondrop="pathwayDrop(event, ${idx})" data-idx="${idx}">
+                <div class="flex items-center gap-2 px-3 py-2 rounded ${bg} mb-1 group" draggable="true" ondragstart="pathwayDragStart(event, ${idx})" ondragover="pathwayDragOver(event)" ondrop="pathwayDrop(event, ${idx})" data-idx="${idx}">
                     <span class="material-symbols-outlined text-base text-gray-400 cursor-grab">drag_indicator</span>
                     <span class="flex-1 text-sm font-medium text-gray-700 dark:text-slate-300">${escapeHtml(name)}</span>
-                    <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-800 text-blue-600 dark:text-blue-300 text-xs font-bold">${idx + 1}</span>
+                    <span class="inline-flex items-center justify-center w-5 h-5 rounded-full ${badge} text-xs font-bold">${idx + 1}</span>
                     <button type="button" onclick="pathwayRemoveLane(${idx})" class="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity">
                         <span class="material-symbols-outlined text-base">close</span>
                     </button>
-                </div>
-                `;
+                </div>`;
             }).join('');
         }
 
-        function pathwayAddLane(laneId) {
-            pathwaySelectedIds.push(String(laneId));
+        function pathwayAddLane(key) {
+            pathwaySelectedKeys.push(key);
             renderAvailableLanes();
             renderSelectedLanes();
         }
 
         function pathwayRemoveLane(idx) {
-            pathwaySelectedIds.splice(idx, 1);
+            pathwaySelectedKeys.splice(idx, 1);
             renderAvailableLanes();
             renderSelectedLanes();
         }
@@ -15008,8 +15490,8 @@
         function pathwayDrop(e, dropIdx) {
             e.preventDefault();
             if (pathwayDragIdx === null || pathwayDragIdx === dropIdx) return;
-            const [moved] = pathwaySelectedIds.splice(pathwayDragIdx, 1);
-            pathwaySelectedIds.splice(dropIdx, 0, moved);
+            const [moved] = pathwaySelectedKeys.splice(pathwayDragIdx, 1);
+            pathwaySelectedKeys.splice(dropIdx, 0, moved);
             pathwayDragIdx = null;
             renderSelectedLanes();
         }
@@ -15025,10 +15507,22 @@
         function savePathway(e) {
             e.preventDefault();
 
+            // Build unified doors array with type, raw id and sort_order position
+            const doors = pathwaySelectedKeys.map((key, idx) => {
+                const isSub = key.startsWith('sl_');
+                return {
+                    type:       isSub ? 'sub_location' : 'lane',
+                    id:         parseInt(key.replace(/^[ls]l?_/, '')),
+                    sort_order: idx,
+                };
+            });
+
+            const versionEl = document.getElementById('pathwayVersion');
             const formData = {
-                name: document.getElementById('pathwayName').value,
-                status: document.getElementById('pathwayStatus').value,
-                lane_ids: pathwaySelectedIds.map(Number),
+                name:    document.getElementById('pathwayName').value,
+                status:  document.getElementById('pathwayStatus').value,
+                doors,
+                version: versionEl ? parseInt(versionEl.value) : undefined,
             };
 
             const submitBtn = e.target.querySelector('button[type="submit"]');
@@ -15992,7 +16486,7 @@
         function dffSwitchTab(formType) {
             dffActiveTab = formType;
 
-            ['visitor_registration', 'invitation', 'staff_pass_request'].forEach(t => {
+            ['visitor_registration', 'invitation', 'staff_pass_request', 'visitor_pass_request'].forEach(t => {
                 const btn = document.getElementById(`dff-tab-${t}`);
                 if (!btn) return;
                 if (t === formType) {

@@ -36,15 +36,16 @@ class VisitorPassRequest extends BaseController
             $fieldSettings[$f['field_key']] = (bool) $f['is_enabled'];
         }
 
-        $rules = [
-            'ic_number'      => 'required',
-            'resident'       => 'required',
-            'full_name'      => 'required',
-            'contact_number' => 'required',
-            'email'          => 'required|valid_email',
-        ];
+        $rules = [];
 
-        // Only require company_visiting if the field is enabled
+        if ($fieldSettings['person_details'] ?? true) {
+            $rules['ic_number']      = 'required';
+            $rules['resident']       = 'required';
+            $rules['full_name']      = 'required';
+            $rules['contact_number'] = 'required';
+            $rules['email']          = 'required|valid_email';
+        }
+
         if ($fieldSettings['company_visiting'] ?? true) {
             $rules['company_visiting'] = 'required';
         }
