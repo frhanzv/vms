@@ -44,7 +44,8 @@ class StaffList extends BaseController
                 'next_action'       => $row['next_action'] ?? '-',
                 'card_status'       => $row['card_status'] ?? '-',
                 'card_expiry'       => $row['card_expiry'] ?? '-',
-                'remark'            => $row['remark'] ?? '-'
+                'remark'            => $row['remark'] ?? '-',
+                'created_at'        => $row['created_at'] ?? ''
             ];
         }
 
@@ -64,5 +65,12 @@ class StaffList extends BaseController
             'canEdit'         => $this->userCan('edit'),
             'canDelete'       => $this->userCan('delete'),
         ]);
+    }
+
+    public function delete($id)
+    {
+        $db = \Config\Database::connect();
+        $db->table('staff')->where('id', (int) $id)->delete();
+        return $this->response->setJSON(['success' => true, 'message' => 'Staff record deleted.']);
     }
 }

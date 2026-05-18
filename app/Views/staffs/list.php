@@ -307,13 +307,13 @@ $isSettings = str_contains($current, 'settings');
 
             <div class="flex items-center justify-between gap-4 mb-6">
                 <div class="flex shadow-sm w-full max-w-lg">
-                    <input class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-xs focus:ring-primary focus:border-primary outline-none" placeholder="IC / PASSPORT / FULL NAME / STAFF NO" type="text"/>
-                    <button class="bg-primary hover:bg-indigo-700 text-white px-4 py-2 rounded-r flex items-center justify-center transition-colors">
+                    <input id="staffSearchInput" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-xs focus:ring-primary focus:border-primary outline-none" placeholder="IC / PASSPORT / FULL NAME / STAFF NO" type="text"/>
+                    <button id="staffSearchBtn" class="bg-primary hover:bg-indigo-700 text-white px-4 py-2 rounded-r flex items-center justify-center transition-colors">
                         <span class="material-icons text-white">search</span>
                     </button>
                 </div>
                 <div class="w-48">
-                    <select class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-xs focus:ring-primary focus:border-primary outline-none appearance-none bg-white">
+                    <select id="staffSortSelect" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-xs focus:ring-primary focus:border-primary outline-none appearance-none bg-white">
                         <option value="" disabled selected>SORT BY</option>
                         <option value="name_asc">Name (A - Z)</option>
                         <option value="name_desc">Name (Z - A)</option>
@@ -339,7 +339,7 @@ $isSettings = str_contains($current, 'settings');
                             <th class="p-4 border-b dark:border-gray-600">Remark</th>
                         </tr>
                     </thead>
-                    <tbody class="text-xs text-gray-600 dark:text-gray-300 font-medium">
+                    <tbody id="staffTableBody" class="text-xs text-gray-600 dark:text-gray-300 font-medium">
                         <?php if (empty($staffList)): ?>
                         <tr>
                             <td colspan="9" class="p-8 text-center">
@@ -356,7 +356,13 @@ $isSettings = str_contains($current, 'settings');
                         </tr>
                         <?php else: ?>
                             <?php foreach ($staffList as $staff): ?>
-                            <tr onclick='openDetailModal(<?= json_encode($staff) ?>)' class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-b border-gray-100 dark:border-gray-700 cursor-pointer">
+                            <tr data-name="<?= strtolower(esc($staff['full_name'])) ?>"
+                                data-ic="<?= strtolower(esc($staff['ic_passport'])) ?>"
+                                data-staffno="<?= strtolower(esc($staff['staff_no'])) ?>"
+                                data-appno="<?= strtolower(esc($staff['app_no'])) ?>"
+                                data-status="<?= strtolower(esc($staff['status'])) ?>"
+                                data-created="<?= esc($staff['created_at']) ?>"
+                                onclick='openDetailModal(<?= json_encode($staff) ?>)' class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-b border-gray-100 dark:border-gray-700 cursor-pointer">
                                 <td class="p-4"><?= $staff['no'] ?></td>
                                 <td class="p-4">
                                     <div class="flex items-center gap-2">
@@ -431,31 +437,96 @@ $isSettings = str_contains($current, 'settings');
 
             <!-- Pagination -->
             <div class="flex flex-col md:flex-row justify-between items-center gap-4 text-xs font-medium text-gray-500 dark:text-gray-400">
-                <div class="flex items-center gap-1">
-                    <button class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50">«</button>
-                    <button class="w-8 h-8 flex items-center justify-center bg-primary text-white rounded shadow-sm">1</button>
-                    <button class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">2</button>
-                    <button class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">3</button>
-                    <span class="w-8 h-8 flex items-center justify-center">...</span>
-                    <button class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">1392</button>
-                    <button class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">»</button>
-                </div>
-                <div class="relative">
-                    <select class="appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 py-1.5 pl-3 pr-8 rounded focus:outline-none focus:ring-1 focus:ring-primary text-xs font-medium cursor-pointer shadow-sm">
-                        <option>10 ITEMS PER PAGE</option>
-                        <option>25 ITEMS PER PAGE</option>
-                        <option>50 ITEMS PER PAGE</option>
-                    </select>
-                    <span class="absolute right-2 top-1.5 pointer-events-none material-icons text-sm text-gray-500">expand_more</span>
+                <span id="staffPaginationInfo"></span>
+                <div class="flex items-center gap-2">
+                    <div id="staffPaginationBtns" class="flex items-center gap-1"></div>
+                    <div class="relative">
+                        <select id="staffPerPageSelect" class="appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 py-1.5 pl-3 pr-8 rounded focus:outline-none focus:ring-1 focus:ring-primary text-xs font-medium cursor-pointer shadow-sm">
+                            <option value="10" selected>10 ITEMS PER PAGE</option>
+                            <option value="25">25 ITEMS PER PAGE</option>
+                            <option value="50">50 ITEMS PER PAGE</option>
+                        </select>
+                        <span class="absolute right-2 top-1.5 pointer-events-none material-icons text-sm text-gray-500">expand_more</span>
+                    </div>
                 </div>
             </div>
             
         </div>
     </main>
     <script>
+        const _canEdit   = <?= json_encode($canEdit   ?? false) ?>;
+        const _canDelete = <?= json_encode($canDelete ?? false) ?>;
+
         function openDetailModal(staff) {
-            // TODO: implement detail modal
-            console.log('View staff', staff);
+            document.getElementById('staffDetailModal')?.remove();
+
+            const statusColors = {
+                'ACTIVE':    'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+                'INACTIVE':  'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+                'SUSPENDED': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+                'BLACKLIST': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+            };
+            const statusBadge = statusColors[(staff.status || '').toUpperCase()] || 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300';
+
+            const field = (label, value) => `
+                <div class="space-y-1">
+                    <p class="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wide">${label}</p>
+                    <p class="text-sm text-gray-800 dark:text-white font-semibold">${value || '—'}</p>
+                </div>`;
+
+            const editBtn = _canEdit ? `
+                <button onclick="event.stopPropagation(); document.getElementById('staffDetailModal').remove(); window.location.href='<?= base_url('staffpassrequest/edit/') ?>${staff.id}'"
+                    class="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium transition-colors flex items-center gap-1">
+                    <span class="material-symbols-outlined text-base">edit</span> Edit
+                </button>` : '';
+
+            const deleteBtn = _canDelete ? `
+                <button onclick="event.stopPropagation(); document.getElementById('staffDetailModal').remove(); confirmDelete(${staff.id})"
+                    class="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition-colors flex items-center gap-1">
+                    <span class="material-symbols-outlined text-base">delete</span> Delete
+                </button>` : '';
+
+            document.body.insertAdjacentHTML('beforeend', `
+            <div id="staffDetailModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" onclick="if(event.target===this)this.remove()">
+                <div class="bg-white dark:bg-slate-800 rounded-xl max-w-lg w-full shadow-2xl" onclick="event.stopPropagation()">
+                    <div class="flex items-start justify-between p-6 border-b border-gray-200 dark:border-slate-700">
+                        <div>
+                            <h3 class="text-base font-bold text-gray-800 dark:text-white">${staff.full_name || '—'}</h3>
+                            <div class="flex items-center gap-2 mt-1.5">
+                                <span class="text-xs font-medium px-2 py-0.5 rounded-full ${statusBadge}">${staff.status || 'N/A'}</span>
+                                <span class="text-xs text-gray-500 dark:text-gray-400">${staff.app_no || ''}</span>
+                            </div>
+                        </div>
+                        <button onclick="document.getElementById('staffDetailModal').remove()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 ml-4 flex-shrink-0">
+                            <span class="material-symbols-outlined">close</span>
+                        </button>
+                    </div>
+                    <div class="p-6 space-y-5">
+                        <div class="grid grid-cols-2 gap-4">
+                            ${field('IC / Passport', staff.ic_passport)}
+                            ${field('Staff No', staff.staff_no)}
+                            ${field('Date', staff.date)}
+                            ${field('Card Status', staff.card_status)}
+                            ${field('Card Expiry', staff.card_expiry)}
+                            ${field('Suspension Period', staff.suspension_period)}
+                            ${field('Next Action', staff.next_action)}
+                            ${field('Remark', staff.remark)}
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between p-6 border-t border-gray-200 dark:border-slate-700 gap-3">
+                        <div class="flex gap-2">
+                            ${editBtn}
+                            ${deleteBtn}
+                        </div>
+                        <div class="flex gap-2 ml-auto">
+                            <button onclick="document.getElementById('staffDetailModal').remove()" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">Close</button>
+                            <a href="<?= base_url('staffpassrequest/view/') ?>${staff.id}" class="px-4 py-2 rounded-lg bg-primary hover:bg-blue-600 text-white text-sm font-medium transition-colors flex items-center gap-1">
+                                <span class="material-symbols-outlined text-base">open_in_new</span> Full Details
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>`);
         }
 
         function printStaff(staff) {
@@ -469,6 +540,124 @@ $isSettings = str_contains($current, 'settings');
                 headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': '<?= csrf_hash() ?>' },
             }).then(r => r.ok ? location.reload() : alert('Delete failed.'));
         }
+
+        (function () {
+            const tbody  = document.getElementById('staffTableBody');
+            const search = document.getElementById('staffSearchInput');
+            const sortSel = document.getElementById('staffSortSelect');
+            const perSel  = document.getElementById('staffPerPageSelect');
+            const info    = document.getElementById('staffPaginationInfo');
+            const btnCon  = document.getElementById('staffPaginationBtns');
+
+            if (!tbody) return;
+
+            const allRows = Array.from(tbody.querySelectorAll('tr[data-name]'));
+            let filtered = [...allRows];
+            let currentPage = 1;
+            let perPage = 10;
+
+            function applyFilter() {
+                const q = (search?.value || '').toLowerCase().trim();
+                filtered = allRows.filter(row =>
+                    !q ||
+                    row.dataset.name.includes(q) ||
+                    row.dataset.ic.includes(q) ||
+                    row.dataset.staffno.includes(q) ||
+                    row.dataset.appno.includes(q)
+                );
+                currentPage = 1;
+                applySort();
+            }
+
+            function applySort() {
+                const s = sortSel?.value || '';
+                filtered.sort((a, b) => {
+                    switch (s) {
+                        case 'name_asc':  return a.dataset.name.localeCompare(b.dataset.name);
+                        case 'name_desc': return b.dataset.name.localeCompare(a.dataset.name);
+                        case 'date_asc':  return a.dataset.created.localeCompare(b.dataset.created);
+                        case 'date_desc': return b.dataset.created.localeCompare(a.dataset.created);
+                        default: return 0;
+                    }
+                });
+                render();
+            }
+
+            function render() {
+                const start = (currentPage - 1) * perPage;
+                const end   = start + perPage;
+                allRows.forEach(r => (r.style.display = 'none'));
+                filtered.forEach((r, i) => {
+                    r.style.display = (i >= start && i < end) ? '' : 'none';
+                });
+                renderPagination();
+            }
+
+            function renderPagination() {
+                const total      = filtered.length;
+                const totalPages = Math.max(1, Math.ceil(total / perPage));
+                if (currentPage > totalPages) currentPage = totalPages;
+
+                const start = total === 0 ? 0 : (currentPage - 1) * perPage + 1;
+                const end   = Math.min(currentPage * perPage, total);
+                if (info) info.textContent = `Showing ${start}–${end} of ${total}`;
+
+                if (!btnCon) return;
+                btnCon.innerHTML = '';
+
+                const makeBtn = (label, disabled, active = false) => {
+                    const b = document.createElement('button');
+                    b.textContent = label;
+                    b.className = active
+                        ? 'w-8 h-8 flex items-center justify-center bg-primary text-white rounded shadow-sm text-xs'
+                        : 'w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-xs' + (disabled ? ' opacity-50 cursor-not-allowed' : '');
+                    b.disabled = disabled;
+                    return b;
+                };
+
+                const prev = makeBtn('«', currentPage === 1);
+                prev.onclick = () => { currentPage--; render(); };
+                btnCon.appendChild(prev);
+
+                pageNumbers(currentPage, totalPages).forEach(p => {
+                    if (p === '…') {
+                        const sp = document.createElement('span');
+                        sp.textContent = '…';
+                        sp.className = 'w-8 h-8 flex items-center justify-center text-xs';
+                        btnCon.appendChild(sp);
+                    } else {
+                        const b = makeBtn(p, false, p === currentPage);
+                        b.onclick = () => { currentPage = p; render(); };
+                        btnCon.appendChild(b);
+                    }
+                });
+
+                const next = makeBtn('»', currentPage === totalPages);
+                next.onclick = () => { currentPage++; render(); };
+                btnCon.appendChild(next);
+            }
+
+            function pageNumbers(cur, total) {
+                if (total <= 7) return Array.from({length: total}, (_, i) => i + 1);
+                const p = [1];
+                if (cur > 3) p.push('…');
+                for (let i = Math.max(2, cur - 1); i <= Math.min(total - 1, cur + 1); i++) p.push(i);
+                if (cur < total - 2) p.push('…');
+                p.push(total);
+                return p;
+            }
+
+            search?.addEventListener('input', applyFilter);
+            document.getElementById('staffSearchBtn')?.addEventListener('click', applyFilter);
+            sortSel?.addEventListener('change', () => { currentPage = 1; applySort(); });
+            perSel?.addEventListener('change', () => {
+                perPage = parseInt(perSel.value);
+                currentPage = 1;
+                render();
+            });
+
+            render();
+        })();
     </script>
 </body>
 </html>

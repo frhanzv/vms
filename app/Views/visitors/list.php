@@ -265,7 +265,7 @@ $cardEnabled = client_feature_enabled('visitor_card');
             <!-- Header -->
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                 <h1 class="text-xl md:text-2xl font-bold tracking-tight text-gray-800 dark:text-white uppercase">
-                    Visitor Past List
+                    Visitor Pass List
                 </h1>
                 <div class="flex gap-2">
                     <a href="<?= base_url('visitors/export') ?>" class="bg-secondary hover:bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">

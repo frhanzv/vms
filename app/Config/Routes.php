@@ -318,10 +318,13 @@ $routes->group('', ['filter' => $plusAdmin], function($routes) {
 
 $routes->group('', ['filter' => [$plusAdminOfficer, 'client_feature:staff_pass']], function($routes) {
     $routes->get('staffs', 'StaffList::index');
+    $routes->post('staffs/delete/(:num)', 'StaffList::delete/$1');
     $routes->get('staffs/staffpassrequest', 'StaffPassRequest::index');
     $routes->post('staffs/staffpassrequest/store', 'StaffPassRequest::store');
     $routes->post('staff-pass/import', 'StaffController::import');
     $routes->get('staffpassrequest/view/(:any)', 'StaffPassRequest::view/$1');
+    $routes->get('staffpassrequest/edit/(:num)', 'StaffPassRequest::edit/$1');
+    $routes->post('staffpassrequest/update/(:num)', 'StaffPassRequest::update/$1');
 });
 
 // ===========================
