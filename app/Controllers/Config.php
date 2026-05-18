@@ -4672,7 +4672,6 @@ class Config extends BaseController
             $db->table('visitor_types')->where('path', $oldName)->update(['path' => $newName]);
         }
 
-        if (isset($input['lane_ids']) && is_array($input['lane_ids'])) {
         // Support both legacy lane_ids and new unified doors array
         if (isset($input['doors']) && is_array($input['doors'])) {
             $laneItems        = array_values(array_filter($input['doors'], fn($d) => ($d['type'] ?? '') === 'lane'));
