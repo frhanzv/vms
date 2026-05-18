@@ -921,7 +921,7 @@ class Dashboard extends BaseController
             $chat = $this->getAssistantChat($db, $chatId, $userId);
         }
 
-        $history = $this->getAssistantChatHistory($db, $chatId, $userId, 10);
+        $history = $this->getAssistantChatHistory($db, $chatId, $userId, 20);
         $this->saveAssistantMessage($db, $chatId, 'user', $question);
 
         if (($chat['title'] ?? '') === 'New Chat') {
@@ -929,11 +929,23 @@ class Dashboard extends BaseController
             $this->renameAssistantChat($db, $chatId, $userId, $title);
         }
 
+        if ($this->isAssistantMetaQuestion($question)) {
+            $metaAnswer = $this->buildAssistantMetaAnswer();
+            $this->saveAssistantMessage($db, $chatId, 'assistant', $metaAnswer);
+            return $this->response->setJSON([
+                'success' => true,
+                'answer'  => $metaAnswer,
+                'sql'     => null,
+                'chat_id' => $chatId,
+                'title'   => $this->getAssistantChat($db, $chatId, $userId)['title'] ?? 'New Chat',
+            ]);
+        }
+
         $schema = $this->buildAssistantDatabaseSchema($db);
         $sqlResult = \Config\Services::llm()->generateText($this->buildAssistantSqlPrompt($question, $schema, $history), [
-            'system_prompt' => 'You translate SafeG VMS database questions into one safe MySQL SELECT query. Return only JSON with a sql key. Never write markdown.',
+            'system_prompt' => 'You are an expert MySQL query writer for a Visitor Management System (VMS). Translate questions into one safe, correct MySQL SELECT query. Return ONLY valid JSON: {"sql":"SELECT ..."}. No markdown, no explanation, no extra keys.',
             'temperature' => 0,
-            'max_tokens' => 700,
+            'max_tokens' => 1200,
         ]);
 
         if (! $sqlResult['success']) {
@@ -946,7 +958,7 @@ class Dashboard extends BaseController
             ]);
         }
 
-        $sql = $this->extractAssistantSql($sqlResult['text']);
+        $sql = rtrim(trim($this->extractAssistantSql($sqlResult['text'])), " \t\n\r\0\x0B;");
         $validation = $this->validateAssistantSql($sql, array_keys($schema['tables']), $schema['blocked_columns']);
 
         if (! $validation['success']) {
@@ -960,10 +972,49 @@ class Dashboard extends BaseController
 
         $sql = $this->applyAssistantQueryLimit($sql);
 
-        try {
-            $rows = $db->query($sql)->getResultArray();
-        } catch (\Throwable $e) {
-            log_message('error', 'Analytics Assistant SQL failed: ' . $e->getMessage() . ' | SQL: ' . $sql);
+        $rows = null;
+        $lastSqlError = null;
+        $maxRetries = 2;
+
+        for ($attempt = 0; $attempt <= $maxRetries; $attempt++) {
+            try {
+                $rows = $db->query($sql)->getResultArray();
+                $lastSqlError = null;
+                break;
+            } catch (\Throwable $e) {
+                $lastSqlError = $e->getMessage();
+                log_message('error', 'Analytics Assistant SQL attempt ' . ($attempt + 1) . ' failed: ' . $lastSqlError . ' | SQL: ' . $sql);
+
+                if ($attempt < $maxRetries) {
+                    $retryResult = \Config\Services::llm()->generateText(
+                        $this->buildAssistantSqlPrompt($question, $schema, $history)
+                        . "\n\nThe previous query failed with this MySQL error:\n" . $lastSqlError
+                        . "\n\nPrevious (broken) SQL:\n" . $sql
+                        . "\n\nFix the query and return corrected JSON: {\"sql\":\"SELECT ...\"}",
+                        [
+                            'system_prompt' => 'You are an expert MySQL query writer for a Visitor Management System (VMS). Fix the broken SQL query based on the error. Return ONLY valid JSON: {"sql":"SELECT ..."}. No markdown, no explanation.',
+                            'temperature' => 0,
+                            'max_tokens' => 1200,
+                        ]
+                    );
+
+                    if (! $retryResult['success']) {
+                        break;
+                    }
+
+                    $retrySql = rtrim(trim($this->extractAssistantSql($retryResult['text'])), " \t\n\r\0\x0B;");
+                    $retryValidation = $this->validateAssistantSql($retrySql, array_keys($schema['tables']), $schema['blocked_columns']);
+
+                    if (! $retryValidation['success']) {
+                        break;
+                    }
+
+                    $sql = $this->applyAssistantQueryLimit($retrySql);
+                }
+            }
+        }
+
+        if ($rows === null) {
             $message = 'I could not run the database query for that question.';
             $this->saveAssistantMessage($db, $chatId, 'assistant', $message);
             return $this->response->setJSON([
@@ -974,9 +1025,9 @@ class Dashboard extends BaseController
         }
 
         $summaryResult = \Config\Services::llm()->generateText($this->buildAssistantAnswerPrompt($question, $sql, $rows, $history), [
-            'system_prompt' => 'You are the SafeG VMS Analytics Assistant. Explain SQL results clearly for security, host, and reception users.',
-            'temperature' => 0.2,
-            'max_tokens' => 900,
+            'system_prompt' => 'You are the SafeG VMS Analytics Assistant. Explain SQL results clearly and helpfully for security officers, hosts, and reception staff. Format lists neatly. If results are empty, suggest why and what the user could try instead.',
+            'temperature' => 0.3,
+            'max_tokens' => 1200,
         ]);
 
         if (! $summaryResult['success']) {
@@ -1569,29 +1620,106 @@ class Dashboard extends BaseController
      * @param array{tables: array<string, list<array{name: string, type: string|null}>>, blocked_columns: list<string>} $schema
      * @param list<array{role: string, content: string}> $history
      */
+    protected function isAssistantMetaQuestion(string $question): bool
+    {
+        $q = strtolower(trim($question));
+        $metaPatterns = [
+            '/what (can|could) (i|we|you) ask/i',
+            '/what (question|questions|things)/i',
+            '/what (do you|can you) (know|do|help|answer)/i',
+            '/what (are you|is this)/i',
+            '/how (do|can) (i|we) use/i',
+            '/help me/i',
+            '/show (me )?(example|examples|sample|samples)/i',
+            '/what (topics?|info|information|data)/i',
+            '/what (is available|can be asked)/i',
+            '/capabilities/i',
+            '/^help$/i',
+        ];
+
+        foreach ($metaPatterns as $pattern) {
+            if (preg_match($pattern, $q)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    protected function buildAssistantMetaAnswer(): string
+    {
+        return "I can answer questions about data in the Visitor Management System database. Here are some things you can ask:\n\n"
+            . "**Visitors & Check-in**\n"
+            . "- Who is currently on-site?\n"
+            . "- How many visitors checked in today?\n"
+            . "- Show all visitors from [company name]\n"
+            . "- When did [visitor name] check in?\n"
+            . "- When will [visitor name]'s visit end?\n\n"
+            . "**Security Alerts**\n"
+            . "- How many active security alerts are there?\n"
+            . "- Show all unacknowledged alerts\n"
+            . "- Which location has the most alerts?\n\n"
+            . "**Appointments & Invitations**\n"
+            . "- How many visitors are expected today?\n"
+            . "- Show upcoming appointments for [host name]\n"
+            . "- List all pending invitations\n\n"
+            . "**Overstay & Reporting**\n"
+            . "- Which visitors are overstaying?\n"
+            . "- How many visitors checked out today?\n"
+            . "- Show visitor count by host\n\n"
+            . "Just ask in plain language — I will query the database and explain the results.";
+    }
+
     protected function buildAssistantSqlPrompt(string $question, array $schema, array $history = []): string
     {
         $schemaLines = [];
+        $relationships = [];
+
+        $tableNames = array_keys($schema['tables']);
+
         foreach ($schema['tables'] as $table => $columns) {
             $colText = array_map(
                 static fn (array $col): string => $col['name'] . ($col['type'] ? ' ' . $col['type'] : ''),
                 $columns
             );
             $schemaLines[] = $table . '(' . implode(', ', $colText) . ')';
+
+            foreach ($columns as $col) {
+                if (! preg_match('/^(.+)_id$/', $col['name'], $m)) {
+                    continue;
+                }
+                $base = $m[1];
+                // Try plural, singular, and exact match
+                foreach ([$base . 's', $base . 'es', $base] as $candidate) {
+                    if (in_array($candidate, $tableNames, true)) {
+                        $relationships[] = "{$table}.{$col['name']} → {$candidate}.id";
+                        break;
+                    }
+                }
+            }
         }
 
-        return "Create one MySQL SELECT query to answer the user's VMS database question.\n"
-            . "Rules:\n"
-            . "- Return JSON only: {\"sql\":\"SELECT ...\"}\n"
-            . "- Use only the tables and columns listed below.\n"
-            . "- Read-only SELECT only. No INSERT, UPDATE, DELETE, DROP, ALTER, CREATE, SET, CALL, SHOW, DESCRIBE, EXPLAIN, or stored procedures.\n"
-            . "- Do not use SELECT * or table.*. Name only the columns needed.\n"
-            . "- Add useful aliases for computed columns.\n"
-            . "- Prefer LIMIT 100 or less for detail lists.\n"
-            . "- If the question asks for today, use CURDATE().\n"
-            . "- Use the chat history to resolve follow-up phrases like \"that visitor\", \"same host\", \"above\", \"those\", or \"how many\".\n\n"
-            . "Chat history:\n" . $this->formatAssistantHistoryForPrompt($history) . "\n\n"
+        $relSection = $relationships
+            ? "Known relationships (use for JOINs):\n" . implode("\n", $relationships) . "\n\n"
+            : '';
+
+        return "Create one MySQL SELECT query to answer the user's VMS question.\n\n"
+            . "RULES:\n"
+            . "- Return ONLY valid JSON: {\"sql\":\"SELECT ...\"} — no markdown, no extra text.\n"
+            . "- Use only the tables and columns listed in the schema below.\n"
+            . "- SELECT only. Never INSERT, UPDATE, DELETE, DROP, ALTER, CREATE, SET, SHOW, or stored procedures.\n"
+            . "- Never use SELECT * or table.*. Name only the columns you need.\n"
+            . "- Use JOINs when data spans multiple tables (see relationships below).\n"
+            . "- Use COALESCE or IS NULL / IS NOT NULL to handle missing values.\n"
+            . "- For \"today\" use CURDATE(); for date+time comparisons use DATE(column) = CURDATE().\n"
+            . "- For \"on-site\" visitors: checked_in IS NOT NULL AND (checked_out IS NULL OR checked_out = '').\n"
+            . "- For visit duration or end date, look for date_to, end_time, expected_end, or check_out columns.\n"
+            . "- Add AS aliases on computed or ambiguous columns (e.g. COUNT(*) AS total).\n"
+            . "- Default LIMIT 100 unless the question asks for a specific count (then use COUNT(*)).\n"
+            . "- Use the chat history to resolve pronouns like \"that visitor\", \"same host\", \"those\", \"how many\".\n\n"
+            . $relSection
             . "Database schema:\n" . implode("\n", $schemaLines) . "\n\n"
+            . "Chat history:\n" . $this->formatAssistantHistoryForPrompt($history) . "\n\n"
             . "User question: " . $question;
     }
 
@@ -1688,13 +1816,22 @@ class Dashboard extends BaseController
      */
     protected function buildAssistantAnswerPrompt(string $question, string $sql, array $rows, array $history = []): string
     {
-        return "Answer the user's VMS database question using these SQL results.\n"
-            . "Mention if the result is limited to 100 rows. Keep the answer concise and useful.\n\n"
+        $rowCount = count($rows);
+        $rowsJson = json_encode(array_slice($rows, 0, 100), JSON_PRETTY_PRINT);
+
+        return "Answer the user's VMS question based on the SQL query results below.\n"
+            . "Guidelines:\n"
+            . "- Be concise and clear. Use plain language a receptionist or security guard would understand.\n"
+            . "- Format lists with numbers or bullet points when there are multiple records.\n"
+            . "- If row count is 0, explain what was searched for and suggest the data might not exist, might use a different spelling, or that the field may be empty in the system.\n"
+            . "- If row count is 100, note that results are capped at 100 and there may be more.\n"
+            . "- For date/time fields, format them in a human-readable way.\n"
+            . "- Use the chat history to keep your answer consistent with prior context.\n\n"
             . "Chat history:\n" . $this->formatAssistantHistoryForPrompt($history) . "\n\n"
-            . "Question: {$question}\n\n"
-            . "SQL used:\n{$sql}\n\n"
-            . "Row count: " . count($rows) . "\n"
-            . "Rows JSON:\n" . json_encode($rows, JSON_PRETTY_PRINT);
+            . "User question: {$question}\n\n"
+            . "SQL executed:\n{$sql}\n\n"
+            . "Total rows returned: {$rowCount}\n"
+            . "Results:\n" . $rowsJson;
     }
 
     /**
