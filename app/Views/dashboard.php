@@ -1211,11 +1211,22 @@ function destroyDashActiveAlertsTable() {
     if (typeof $ !== 'undefined' && $.fn && $.fn.DataTable && t && $.fn.DataTable.isDataTable(t)) {
         $(t).DataTable().destroy();
     }
+    if (typeof $ !== 'undefined' && $.fn && $.fn.DataTable) {
+        $('.dash-filterable-table').each(function () {
+            if ($.fn.DataTable.isDataTable(this)) {
+                $(this).DataTable().destroy();
+            }
+        });
+    }
 }
 
 function cellTextForCheckboxFilter(raw) {
     if (raw === null || raw === undefined) return '-';
-    var t = $('<div>').html(String(raw)).text().trim();
+    var $cell = raw && raw.jquery
+        ? raw.clone()
+        : (raw && raw.nodeType ? $(raw).clone() : $('<div>').html(String(raw)));
+    var primaryText = $cell.find('p.font-medium').first().text().trim();
+    var t = primaryText || $cell.text().trim();
     if (!t || t === 'NULL' || t === 'null') return '-';
     return t;
 }
@@ -1234,7 +1245,9 @@ function cellTextForCheckboxFilter(raw) {
             if (!(allowed instanceof Set)) continue;
             if (allowed.size === 0) return false;
             var colIdx = parseInt(key, 10);
-            var cellText = cellTextForCheckboxFilter(data[colIdx]);
+            var rowMeta = settings.aoData && settings.aoData[dataIndex] ? settings.aoData[dataIndex] : null;
+            var cellNode = rowMeta && rowMeta.anCells ? rowMeta.anCells[colIdx] : null;
+            var cellText = cellTextForCheckboxFilter(cellNode || data[colIdx]);
             if (!allowed.has(cellText)) return false;
         }
         return true;
@@ -1309,9 +1322,10 @@ function repositionOpenDashAlertFilters() {
     });
 }
 
-function initActiveAlertsDataTable() {
+function initDashFilterableDataTable(tableSelector, config) {
+    config = config || {};
     if (typeof $ === 'undefined' || !$.fn.DataTable) return;
-    var $t = $('#dash-active-alerts-table');
+    var $t = $(tableSelector);
     if (!$t.length) return;
     if ($.fn.DataTable.isDataTable($t[0])) $t.DataTable().destroy();
 
@@ -1323,7 +1337,7 @@ function initActiveAlertsDataTable() {
         _checkboxColumnFilter: true,
         dom: '<"flex justify-end items-center mb-4 mt-1"f><"dash-alerts-dt-scroll overflow-x-auto"t><"flex flex-col md:flex-row justify-between items-center gap-4 mt-4"p<"ml-auto"l>>',
         language: {
-            search: 'Search alerts:',
+            search: config.searchLabel || 'Search:',
             searchPlaceholder: '',
             lengthMenu: '_MENU_',
             paginate: { previous: '&laquo;', next: '&raquo;' }
@@ -1514,7 +1528,7 @@ function initActiveAlertsDataTable() {
                         syncingFilterOptions = true;
                         try { syncOtherColumnFilterDropdowns(colIdx); } finally { syncingFilterOptions = false; }
                     }
-                    refreshActiveAlertsSummaryLine();
+                    if (typeof config.onDraw === 'function') config.onDraw();
                     if (!dropdown.hasClass('hidden') && dropdown.parent()[0] === document.body) {
                         requestAnimationFrame(function () { positionDashAlertFilterDropdown(dropdown, icon); });
                     }
@@ -1551,10 +1565,24 @@ function initActiveAlertsDataTable() {
             });
 
             api.on('draw', function () {
-                refreshActiveAlertsSummaryLine();
+                if (typeof config.onDraw === 'function') config.onDraw();
                 repositionOpenDashAlertFilters();
             });
         }
+    });
+}
+
+function initActiveAlertsDataTable() {
+    initDashFilterableDataTable('#dash-active-alerts-table', {
+        searchLabel: 'Search alerts:',
+        onDraw: refreshActiveAlertsSummaryLine
+    });
+}
+
+function initDashModalDataTables(type) {
+    if (type === 'activeAlerts' || typeof $ === 'undefined' || !$.fn.DataTable) return;
+    $('.dash-filterable-table').each(function () {
+        initDashFilterableDataTable(this, { searchLabel: 'Search:' });
     });
 }
 
@@ -1582,9 +1610,13 @@ function openModal(type) {
     modalIcon.innerHTML = '<span class="material-symbols-outlined fill-1">' + cfg.icon + '</span>';
     if (cfg.localData !== undefined) {
         cfg.render(cfg.localData);
+        initDashModalDataTables(type);
     } else {
         let fetchUrl = BASE + cfg.url;
-        fetch(fetchUrl).then(r => r.json()).then(d => cfg.render(d)).catch(() => { modalBody.innerHTML = EMPTY('Failed to load data'); });
+        fetch(fetchUrl).then(r => r.json()).then(d => {
+            cfg.render(d);
+            initDashModalDataTables(type);
+        }).catch(() => { modalBody.innerHTML = EMPTY('Failed to load data'); });
     }
 }
 
@@ -1667,7 +1699,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal()
 
 function buildTable(headers, rows) {
     if (!rows.length) return '';
-    let h = '<table class="w-full text-left border-collapse"><thead><tr class="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">';
+    let h = '<table class="dash-filterable-table display w-full text-left border-collapse" style="width:100%"><thead><tr class="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">';
     headers.forEach(th => { h += '<th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">' + th + '</th>'; });
     h += '</tr></thead><tbody class="divide-y divide-slate-200 dark:divide-slate-700">';
     rows.forEach(tr => { h += '<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">'; tr.forEach(td => { h += '<td class="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 whitespace-nowrap">' + td + '</td>'; }); h += '</tr>'; });
@@ -1728,7 +1760,6 @@ const modalConfigs = {
             if (!d.success) { modalBody.innerHTML = EMPTY('Failed to load data'); return; }
             let html = '';
             if (d.physicalOverstays && d.physicalOverstays.length) {
-                html += '<h4 class="text-sm font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2"><span class="material-symbols-outlined text-amber-500 text-[18px] fill-1">warning</span>Currently Overstaying (' + d.physicalOverstays.length + ')</h4>';
                 const rows = d.physicalOverstays.map(v => {
                     const endTs = new Date(v.schedule_end.replace(' ', 'T')).getTime();
                     const overMin = Math.max(0, Math.floor((Date.now() - endTs) / 60000));
@@ -1737,22 +1768,12 @@ const modalConfigs = {
                     const nowLabel = new Date().toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit', hour12: true});
                     return [
                         '<div class="flex items-center gap-2"><div class="size-7 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 text-[10px] font-bold">' + initials(v.visitor_name) + '</div><div><p class="font-medium text-slate-900 dark:text-white">' + esc(v.visitor_name) + '</p></div></div>',
-                        esc(v.host_name), esc(v.contact_no || 'N/A'), esc(v.ic_no || 'N/A'), esc(v.location), fmtDateTime(v.check_in_time), fmtDateTime(v.schedule_end), nowLabel,
-                        '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700"><span class="material-symbols-outlined text-[12px]">schedule</span>+' + overLabel + '</span>'
+                        esc(v.contact_no || 'N/A'), esc(v.ic_no || 'N/A'), esc(v.location), fmtDateTime(v.check_in_time), fmtDateTime(v.schedule_end), nowLabel,
+                        '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700"><span class="material-symbols-outlined text-[12px]">schedule</span>+' + overLabel + '</span>',
+                        esc(v.host_name)
                     ];
                 });
-                html += buildTable(['Visitor Name', 'Host', 'Contact No', 'IC No', 'Location', 'Check-in Time', 'Expected End', 'Current Time', 'Overstay Duration'], rows);
-            }
-            if (d.alertRows && d.alertRows.length) {
-                html += '<h4 class="text-sm font-bold text-slate-900 dark:text-white mt-6 mb-3 flex items-center gap-2"><span class="material-symbols-outlined text-amber-500 text-[18px]">notifications_active</span>Overstay Alert Records (' + d.alertRows.length + ')</h4>';
-                const rows = d.alertRows.map(a => [
-                    esc(a.incident_type),
-                    sevBadge(a.severity),
-                    '<div class="flex items-center gap-2"><div class="size-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 text-[10px] font-bold">' + initials(a.visitor_name || 'Unknown') + '</div><div><p class="font-medium text-slate-900 dark:text-white">' + esc(a.visitor_name || 'Unknown') + '</p></div></div>',
-                    esc(a.location || 'N/A'),
-                    fmtDateTime(a.created_at)
-                ]);
-                html += buildTable(['Incident', 'Severity', 'Visitor', 'Location', 'Date & Time'], rows);
+                html += buildTable(['Visitor Name', 'Contact No', 'IC No', 'Location', 'Check-in Time', 'Expected End', 'Current Time', 'Overstay Duration', 'Host'], rows);
             }
             if (!html) html = EMPTY('No visitor overstay alerts at this time');
             modalBody.innerHTML = html;
@@ -1791,13 +1812,13 @@ const modalConfigs = {
                 return [
                     '<span class="text-slate-500 font-medium">' + (i + 1) + '</span>',
                     '<div class="flex items-center gap-2"><div class="size-7 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-[10px] font-bold">' + initials(v.full_name) + '</div><div><p class="font-medium text-slate-900 dark:text-white">' + esc(v.full_name || 'N/A') + '</p></div></div>',
-                    esc(v.host_name || 'N/A'),
                     fmtTime(v.date_from),
                     esc(v.contact_no || 'N/A'),
-                    esc(v.ic_no || 'N/A')
+                    esc(v.ic_no || 'N/A'),
+                    esc(v.host_name || 'N/A')
                 ];
             });
-            modalBody.innerHTML = '<p class="text-sm text-slate-500 mb-4">' + d.data.length + ' visitor' + (d.data.length !== 1 ? 's' : '') + ' expected</p>' + buildTable(['#', 'Visitor Name', 'Host', 'Appointment Time', 'Contact No', 'IC No'], rows);
+            modalBody.innerHTML = '<p class="text-sm text-slate-500 mb-4">' + d.data.length + ' visitor' + (d.data.length !== 1 ? 's' : '') + ' expected</p>' + buildTable(['#', 'Visitor Name', 'Appointment Time', 'Contact No', 'IC No', 'Host'], rows);
         }
     },
     onSite: {
@@ -1815,13 +1836,13 @@ const modalConfigs = {
                 return [
                     '<span class="text-slate-500 font-medium">' + (i + 1) + '</span>',
                     '<div class="flex items-center gap-2">' + avatarEl + '<div><p class="font-medium text-slate-900 dark:text-white">' + esc(nm) + '</p><p class="text-[11px] text-slate-400">' + esc(v.contact || '') + '</p></div></div>',
-                    esc(String(v.host_name || 'N/A').toUpperCase()),
-                    fmtDateTime(v.check_in_time),
                     esc(v.location || 'N/A'),
+                    fmtDateTime(v.check_in_time),
+                    esc(String(v.host_name || 'N/A').toUpperCase()),
                     esc(v.staff_no || 'N/A')
                 ];
             });
-            modalBody.innerHTML = '<p class="text-sm text-slate-500 mb-4">' + d.data.length + ' visitor' + (d.data.length !== 1 ? 's' : '') + ' on-site</p>' + buildTable(['#', 'Visitor Name', 'Host', 'Check-in Time', 'Location', 'Staff No'], rows);
+            modalBody.innerHTML = '<p class="text-sm text-slate-500 mb-4">' + d.data.length + ' visitor' + (d.data.length !== 1 ? 's' : '') + ' on-site</p>' + buildTable(['#', 'Visitor Name', 'Location', 'Check-in Time', 'Host', 'Staff No'], rows);
         }
     },
     checkedOut: {

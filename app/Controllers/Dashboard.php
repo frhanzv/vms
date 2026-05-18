@@ -716,18 +716,6 @@ class Dashboard extends BaseController
         $db = \Config\Database::connect();
         $now = date('Y-m-d H:i:s');
 
-        $alertRows = [];
-        if ($db->tableExists('security_alerts')) {
-            $alertRows = $db->query(
-                "SELECT sa.id, sa.incident_type, sa.severity, sa.visitor_name,
-                        sa.location, sa.description, sa.created_at
-                 FROM security_alerts sa
-                 WHERE sa.is_acknowledged = 0
-                 AND LOWER(sa.incident_type) LIKE '%overstay%'
-                 ORDER BY sa.created_at DESC"
-            )->getResultArray();
-        }
-
         $physicalOverstays = $db->query(
             "SELECT iv.id, COALESCE(i.full_name, iv.full_name) as visitor_name,
                     COALESCE(i.invited_by, 'N/A') as host_name,
@@ -747,7 +735,6 @@ class Dashboard extends BaseController
 
         return $this->response->setJSON([
             'success'           => true,
-            'alertRows'         => $alertRows,
             'physicalOverstays' => $physicalOverstays,
         ]);
     }
@@ -975,18 +962,11 @@ class Dashboard extends BaseController
                 [$since24h]
             )->getRow()->c ?? 0);
 
-            $overstayCount = (int) ($db->query(
-                "SELECT COUNT(*) AS c FROM security_alerts
-                 WHERE is_acknowledged = 0
-                 AND LOWER(incident_type) LIKE '%overstay%'",
-                []
-            )->getRow()->c ?? 0);
-
             $activeSecurityAlertCount = $db->table('security_alerts')
                 ->countAllResults();
         }
 
-        $overstayCount = max($overstayCount, $outOfWindow);
+        $overstayCount = $outOfWindow;
 
         return [
             'criticalAlerts' => $criticalAlerts,
