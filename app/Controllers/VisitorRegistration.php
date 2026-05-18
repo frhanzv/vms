@@ -84,10 +84,17 @@ class VisitorRegistration extends BaseController
         $states = $this->stateModel->where('status', 'active')->orderBy('name', 'ASC')->findAll();
         $cities = $this->cityModel->where('status', 'active')->orderBy('name', 'ASC')->findAll();
         
-        // Get company registration ID if company name exists in invitation
+        // Resolve client company ID for DFF — prefer the stored company_id on the invitation,
+        // fall back to looking up by visitor's company name for legacy records.
         $companyRegistrationId = null;
         $companyId = null;
-        if ($invitation && !empty($invitation['company'])) {
+        if ($invitation && !empty($invitation['company_id'])) {
+            $companyId = (int) $invitation['company_id'];
+            $company = $this->companyModel->find($companyId);
+            if ($company) {
+                $companyRegistrationId = $company['registration_no'];
+            }
+        } elseif ($invitation && !empty($invitation['company'])) {
             $company = $this->companyModel->where('name', $invitation['company'])->first();
             if ($company) {
                 $companyRegistrationId = $company['registration_no'];

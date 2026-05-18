@@ -113,7 +113,7 @@ class StaffController extends BaseController
                 'resident'                     => $get('resident'),
                 'sub_type'                     => $get('sub_type'),
                 'type_of_application'          => $get('type_of_application'),
-                'date_of_application'          => $get('date_of_application'),
+                'date_of_application'          => $this->parseDate($get('date_of_application')) ?? $get('date_of_application'),
                 'location_access'              => $get('location_access'),
                 'status'                       => $get('status'),
                 'suspension_period'            => $get('suspension_period'),

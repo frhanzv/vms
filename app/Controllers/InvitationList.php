@@ -304,8 +304,8 @@ class InvitationList extends BaseController
                 $dateFrom ? date('d/m/Y H:i', strtotime((string) $dateFrom)) : '-',
                 $dateTo ? date('d/m/Y H:i', strtotime((string) $dateTo)) : '-',
                 $row['full_name'] ?? '',
-                $row['ic_passport'] ?? '',
-                $row['contact'] ?? '',
+                !empty($row['ic_passport']) ? '="' . $row['ic_passport'] . '"' : '',
+                !empty($row['contact'])     ? '="' . $row['contact']     . '"' : '',
                 $row['visitor_email'] ?? '',
                 $row['company'] ?? '',
                 $row['vehicle_registration'] ?? '',
@@ -623,6 +623,7 @@ class InvitationList extends BaseController
             log_message('info', 'Invitation POST data: ' . print_r($this->request->getPost(), true));
 
             $shared = [
+                'company_id'          => (int) session()->get('company_id') ?: null,
                 'ic_passport'         => null,
                 'vehicle_registration' => null,
                 'invited_by'          => $currentUser,

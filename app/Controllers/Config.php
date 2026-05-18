@@ -29,6 +29,7 @@ use App\Models\BlacklistReasonModel;
 
 use App\Models\EmailTemplateModel;
 use App\Models\PathwayModel;
+use App\Models\SubLocationModel;
 use App\Models\SecurityAlertPriorityModel;
 use App\Libraries\EmailTemplateService;
 use App\Models\ApiKeyModel;
@@ -67,6 +68,7 @@ class Config extends BaseController
 
     protected $emailTemplateModel;
     protected $pathwayModel;
+    protected $subLocationModel;
     protected $alertPriorityModel;
     protected $apiKeyModel;
     protected $clientFeatureModel;
@@ -145,7 +147,8 @@ class Config extends BaseController
 
 
         $this->emailTemplateModel = new EmailTemplateModel();
-        $this->pathwayModel = new PathwayModel();
+        $this->pathwayModel       = new PathwayModel();
+        $this->subLocationModel   = new SubLocationModel();
         $this->alertPriorityModel = new SecurityAlertPriorityModel();
         $this->apiKeyModel = new ApiKeyModel();
         $this->workflowModel = new \App\Models\WorkflowModel();
@@ -4436,16 +4439,28 @@ class Config extends BaseController
         $pathways = $this->pathwayModel->getPathwaysWithPagination($search, $sortBy, $limit, $offset);
         $total    = $this->pathwayModel->getTotalPathways($search);
 
-        $pathwayIds = array_column($pathways, 'id');
-        $allLanes   = $this->pathwayModel->getLanesForPathways($pathwayIds);
+        $pathwayIds      = array_column($pathways, 'id');
+        $allLanes        = $this->pathwayModel->getLanesForPathways($pathwayIds);
+        $allSubLocations = $this->pathwayModel->getSubLocationsForPathways($pathwayIds);
 
         $lanesMap = [];
         foreach ($allLanes as $row) {
-            $lanesMap[$row['pathway_id']][] = $row;
+            $row['type']                          = 'lane';
+            $lanesMap[$row['pathway_id']][]       = $row;
+        }
+
+        $subLocMap = [];
+        foreach ($allSubLocations as $row) {
+            $row['type']                          = 'sub_location';
+            $subLocMap[$row['pathway_id']][]      = $row;
         }
 
         foreach ($pathways as &$p) {
             $p['lanes'] = $lanesMap[$p['id']] ?? [];
+            // Merge lanes and sub-locations into a unified sorted doors array for the table view
+            $doors = array_merge($lanesMap[$p['id']] ?? [], $subLocMap[$p['id']] ?? []);
+            usort($doors, fn($a, $b) => ($a['sort_order'] ?? 0) <=> ($b['sort_order'] ?? 0));
+            $p['doors'] = $doors;
         }
         unset($p);
 
@@ -4537,7 +4552,15 @@ class Config extends BaseController
 
         $pathwayId = $this->pathwayModel->getInsertID();
 
-        if (!empty($input['lane_ids']) && is_array($input['lane_ids'])) {
+        // Support both legacy lane_ids and new unified doors array
+        if (!empty($input['doors']) && is_array($input['doors'])) {
+            $laneItems        = array_values(array_filter($input['doors'], fn($d) => ($d['type'] ?? '') === 'lane'));
+            $subLocationItems = array_values(array_filter($input['doors'], fn($d) => ($d['type'] ?? '') === 'sub_location'));
+
+            // Pass full items so syncLanes preserves the unified sort_order position
+            $this->pathwayModel->syncLanes($pathwayId, $laneItems);
+            $this->pathwayModel->syncSubLocations($pathwayId, $subLocationItems);
+        } elseif (!empty($input['lane_ids']) && is_array($input['lane_ids'])) {
             $this->pathwayModel->syncLanes($pathwayId, $input['lane_ids']);
         }
 
@@ -4634,7 +4657,14 @@ class Config extends BaseController
             return $error;
         }
 
-        if (isset($input['lane_ids']) && is_array($input['lane_ids'])) {
+        // Support both legacy lane_ids and new unified doors array
+        if (isset($input['doors']) && is_array($input['doors'])) {
+            $laneItems        = array_values(array_filter($input['doors'], fn($d) => ($d['type'] ?? '') === 'lane'));
+            $subLocationItems = array_values(array_filter($input['doors'], fn($d) => ($d['type'] ?? '') === 'sub_location'));
+
+            $this->pathwayModel->syncLanes($id, $laneItems);
+            $this->pathwayModel->syncSubLocations($id, $subLocationItems);
+        } elseif (isset($input['lane_ids']) && is_array($input['lane_ids'])) {
             $this->pathwayModel->syncLanes($id, $input['lane_ids']);
         }
 
@@ -4687,6 +4717,143 @@ class Config extends BaseController
         return $this->response->setJSON([
             'success' => true,
             'message' => 'Pathway deleted successfully',
+        ]);
+    }
+
+    // ============================================
+    // Sub Location Access Management
+    // Each sub-location is a named subdivision beneath a Location Access entry.
+    // Active sub-locations are selectable as "doors" in Pathway Management.
+    // ============================================
+
+    public function getSubLocations()
+    {
+        $page           = (int) ($this->request->getGet('page') ?? 1);
+        $limit          = (int) ($this->request->getGet('limit') ?? 10);
+        $search         = $this->request->getGet('search') ?? '';
+        $locationFilter = $this->request->getGet('location_id') ?? '';
+        $sortBy         = $this->request->getGet('sortBy') ?? '';
+
+        $offset = ($page - 1) * $limit;
+
+        $data  = $this->subLocationModel->getWithPagination($search, $locationFilter, $sortBy, $limit, $offset);
+        $total = $this->subLocationModel->getTotal($search, $locationFilter);
+
+        return $this->response->setJSON([
+            'success'    => true,
+            'data'       => $data,
+            'pagination' => [
+                'page'       => $page,
+                'limit'      => $limit,
+                'total'      => $total,
+                'totalPages' => $total > 0 ? (int) ceil($total / $limit) : 1,
+            ],
+        ]);
+    }
+
+    public function getSubLocation($id)
+    {
+        $row = $this->subLocationModel->find($id);
+
+        if (!$row) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Sub location not found',
+            ])->setStatusCode(404);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data'    => $row,
+        ]);
+    }
+
+    public function createSubLocation()
+    {
+        $input = $this->request->getJSON(true);
+
+        $data = [
+            'name'        => trim($input['name'] ?? ''),
+            'location_id' => (int) ($input['location_id'] ?? 0),
+            'status'      => $input['status'] ?? 'active',
+        ];
+
+        if (!$this->subLocationModel->insert($data)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to create sub location',
+                'errors'  => $this->subLocationModel->errors(),
+            ])->setStatusCode(400);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Sub location created successfully',
+            'data'    => ['id' => $this->subLocationModel->getInsertID()],
+        ]);
+    }
+
+    public function updateSubLocation($id)
+    {
+        if (!$this->subLocationModel->find($id)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Sub location not found',
+            ])->setStatusCode(404);
+        }
+
+        $input = $this->request->getJSON(true);
+        if (!is_array($input)) {
+            $input = [];
+        }
+
+        $data = [
+            'name'        => trim($input['name'] ?? ''),
+            'location_id' => (int) ($input['location_id'] ?? 0),
+            'status'      => $input['status'] ?? 'active',
+        ];
+
+        $error = $this->versionedUpdate($this->subLocationModel, $id, $data, $input, 'sub location');
+        if ($error) {
+            return $error;
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Sub location updated successfully',
+        ]);
+    }
+
+    public function deleteSubLocation($id)
+    {
+        if (!$this->subLocationModel->find($id)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Sub location not found',
+            ])->setStatusCode(404);
+        }
+
+        if (!$this->subLocationModel->delete($id)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to delete sub location',
+            ])->setStatusCode(500);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Sub location deleted successfully',
+        ]);
+    }
+
+    // Returns all active sub-locations for use in the Pathway Management "Available Doors" panel
+    public function getActiveSubLocations()
+    {
+        $data = $this->subLocationModel->getAllActive();
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data'    => $data,
         ]);
     }
 

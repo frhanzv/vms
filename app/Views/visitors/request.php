@@ -334,6 +334,7 @@ $isSettings = str_contains($current, 'settings');
                 </section>
                 <?php endif; ?>
 
+                <?php if ($fs['date_of_visit'] ?? true): ?>
                 <!-- Date of Visit -->
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 overflow-hidden">
                     <div class="flex items-center justify-between px-6 sm:px-8 py-4 border-b border-border-color dark:border-gray-800">
@@ -382,7 +383,9 @@ $isSettings = str_contains($current, 'settings');
                         </div>
                     </div>
                 </section>
+                <?php endif; ?>
 
+                <?php if ($fs['details_of_visit'] ?? true): ?>
                 <!-- Details of Visit -->
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8">
                     <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
@@ -413,7 +416,9 @@ $isSettings = str_contains($current, 'settings');
                         </div>
                     </div>
                 </section>
+                <?php endif; ?>
 
+                <?php if ($fs['person_details'] ?? true): ?>
                 <!-- Person Details -->
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8">
                     <div class="flex items-center justify-between mb-6 pb-4 border-b border-border-color dark:border-gray-800">
@@ -538,7 +543,9 @@ $isSettings = str_contains($current, 'settings');
                         </div>
                     </div>
                 </section>
+                <?php endif; ?>
 
+                <?php if ($fs['driving_license'] ?? true): ?>
                 <!-- Driving License Section -->
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 mt-8">
                     <div class="p-6 sm:p-8">
@@ -569,6 +576,7 @@ $isSettings = str_contains($current, 'settings');
                         </div>
                     </div>
                 </section>
+                <?php endif; ?>
 
                 <!-- Company Details -->
                 <?php if ($fs['company_details'] ?? false): ?>
@@ -594,8 +602,8 @@ $isSettings = str_contains($current, 'settings');
                     </div>
                 </section>
                 <?php endif; ?>
-                </section>
 
+                <?php if ($fs['asset_equipment'] ?? true): ?>
                 <!-- Asset/Equipment Details Section -->
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 mt-8">
                     <div class="p-6 sm:p-8">
@@ -626,7 +634,9 @@ $isSettings = str_contains($current, 'settings');
                         </div>
                     </div>
                 </section>
+                <?php endif; ?>
 
+                <?php if ($fs['document_upload'] ?? true): ?>
                 <!-- Document Upload -->
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8 mt-8">
                     <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
@@ -663,7 +673,9 @@ $isSettings = str_contains($current, 'settings');
                         </div>
                     </div>
                 </section>
+                <?php endif; ?>
 
+                <?php if ($fs['profile_photo'] ?? true): ?>
                 <!-- Profile Photo -->
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8 mt-8">
                     <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
@@ -702,6 +714,7 @@ $isSettings = str_contains($current, 'settings');
                         </div>
                     </div>
                 </section>
+                <?php endif; ?>
 
                 <!-- Form Actions -->
                 <div class="flex items-center justify-end gap-4 py-6 border-t border-border-color dark:border-gray-800 mt-8">

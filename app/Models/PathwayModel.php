@@ -89,33 +89,87 @@ class PathwayModel extends Model
             return null;
         }
 
-        $pathway['lanes'] = $this->db->table('pathway_lanes')
-            ->select('pathway_lanes.lane_id, pathway_lanes.sort_order, lanes.lane')
+        $lanes = $this->db->table('pathway_lanes')
+            ->select('pathway_lanes.lane_id AS raw_id, pathway_lanes.sort_order, lanes.lane AS name')
             ->join('lanes', 'lanes.id = pathway_lanes.lane_id', 'left')
             ->where('pathway_lanes.pathway_id', $id)
-            ->orderBy('pathway_lanes.sort_order', 'ASC')
             ->get()
             ->getResultArray();
+
+        $subLocations = $this->db->table('pathway_sub_locations psl')
+            ->select('psl.sub_location_id AS raw_id, psl.sort_order, sl.name, l.location_access')
+            ->join('sub_locations sl', 'sl.id = psl.sub_location_id', 'left')
+            ->join('locations l', 'l.id = sl.location_id', 'left')
+            ->where('psl.pathway_id', $id)
+            ->get()
+            ->getResultArray();
+
+        // Tag each item with its type then return a unified sorted doors array
+        foreach ($lanes as &$l) {
+            $l['type']    = 'lane';
+            $l['lane_id'] = $l['raw_id'];
+        }
+        unset($l);
+
+        foreach ($subLocations as &$s) {
+            $s['type'] = 'sub_location';
+        }
+        unset($s);
+
+        $doors = array_merge($lanes, $subLocations);
+        usort($doors, fn($a, $b) => $a['sort_order'] <=> $b['sort_order']);
+
+        $pathway['lanes'] = $lanes;          // kept for legacy callers
+        $pathway['doors'] = $doors;          // unified list for the modal
 
         return $pathway;
     }
 
-    public function syncLanes($pathwayId, array $laneIds)
+    // Accepts either a plain array of IDs (legacy) or an array of {id, sort_order} objects
+    public function syncLanes($pathwayId, array $laneItems)
     {
         $this->db->table('pathway_lanes')
             ->where('pathway_id', $pathwayId)
             ->delete();
 
-        if (!empty($laneIds)) {
+        if (!empty($laneItems)) {
             $batch = [];
-            foreach ($laneIds as $order => $laneId) {
-                $batch[] = [
-                    'pathway_id' => $pathwayId,
-                    'lane_id'    => (int) $laneId,
-                    'sort_order' => $order,
-                ];
+            foreach ($laneItems as $order => $item) {
+                if (is_array($item)) {
+                    $batch[] = [
+                        'pathway_id' => $pathwayId,
+                        'lane_id'    => (int) $item['id'],
+                        'sort_order' => isset($item['sort_order']) ? (int) $item['sort_order'] : $order,
+                    ];
+                } else {
+                    $batch[] = [
+                        'pathway_id' => $pathwayId,
+                        'lane_id'    => (int) $item,
+                        'sort_order' => $order,
+                    ];
+                }
             }
             $this->db->table('pathway_lanes')->insertBatch($batch);
+        }
+    }
+
+    // Sync sub-location stops for a pathway (sort_order is position in unified door sequence)
+    public function syncSubLocations($pathwayId, array $items)
+    {
+        $this->db->table('pathway_sub_locations')
+            ->where('pathway_id', $pathwayId)
+            ->delete();
+
+        if (!empty($items)) {
+            $batch = [];
+            foreach ($items as $item) {
+                $batch[] = [
+                    'pathway_id'       => $pathwayId,
+                    'sub_location_id'  => (int) $item['id'],
+                    'sort_order'       => (int) $item['sort_order'],
+                ];
+            }
+            $this->db->table('pathway_sub_locations')->insertBatch($batch);
         }
     }
 
@@ -126,18 +180,35 @@ class PathwayModel extends Model
             ->findAll();
     }
 
-    public function getLanesForPathways(array $pathwayIds)
+    public function getLanesForPathways(array $pathwayIds): array
     {
         if (empty($pathwayIds)) {
             return [];
         }
 
         return $this->db->table('pathway_lanes')
-            ->select('pathway_lanes.pathway_id, pathway_lanes.lane_id, pathway_lanes.sort_order, lanes.lane')
+            ->select('pathway_lanes.pathway_id, pathway_lanes.lane_id AS raw_id, pathway_lanes.sort_order, lanes.lane AS name')
             ->join('lanes', 'lanes.id = pathway_lanes.lane_id', 'left')
             ->whereIn('pathway_lanes.pathway_id', $pathwayIds)
             ->orderBy('pathway_lanes.pathway_id', 'ASC')
             ->orderBy('pathway_lanes.sort_order', 'ASC')
+            ->get()
+            ->getResultArray();
+    }
+
+    public function getSubLocationsForPathways(array $pathwayIds): array
+    {
+        if (empty($pathwayIds)) {
+            return [];
+        }
+
+        return $this->db->table('pathway_sub_locations psl')
+            ->select('psl.pathway_id, psl.sub_location_id AS raw_id, psl.sort_order, sl.name, l.location_access')
+            ->join('sub_locations sl', 'sl.id = psl.sub_location_id', 'left')
+            ->join('locations l', 'l.id = sl.location_id', 'left')
+            ->whereIn('psl.pathway_id', $pathwayIds)
+            ->orderBy('psl.pathway_id', 'ASC')
+            ->orderBy('psl.sort_order', 'ASC')
             ->get()
             ->getResultArray();
     }

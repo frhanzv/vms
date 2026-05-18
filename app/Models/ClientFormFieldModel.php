@@ -85,7 +85,14 @@ class ClientFormFieldModel extends Model
     {
         return [
             ['field_key' => 'company_visiting',  'label' => 'Company Visiting (Visit Information)'],
+            ['field_key' => 'date_of_visit',     'label' => 'Date of Visit Section'],
+            ['field_key' => 'details_of_visit',  'label' => 'Details of Visit Section'],
+            ['field_key' => 'person_details',    'label' => 'Person Details Section'],
+            ['field_key' => 'driving_license',   'label' => 'Driving License Section'],
             ['field_key' => 'company_details',   'label' => 'Company Details Section (Name & Registration ID)', 'default_enabled' => false],
+            ['field_key' => 'asset_equipment',   'label' => 'Asset / Equipment Details Section'],
+            ['field_key' => 'document_upload',   'label' => 'Document Upload Section'],
+            ['field_key' => 'profile_photo',     'label' => 'Profile Photo Section'],
         ];
     }
 

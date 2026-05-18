@@ -547,6 +547,14 @@ $routes->group('config', ['filter' => $superadmins], function($routes) {
     $routes->delete('deletePathway/(:num)', 'Config::deletePathway/$1');
     $routes->get('getAllLanes', 'Config::getAllLanes');
 
+    // Sub Location Access
+    $routes->get('getSubLocations', 'Config::getSubLocations');
+    $routes->get('getSubLocation/(:num)', 'Config::getSubLocation/$1');
+    $routes->post('createSubLocation', 'Config::createSubLocation');
+    $routes->post('updateSubLocation/(:num)', 'Config::updateSubLocation/$1');
+    $routes->delete('deleteSubLocation/(:num)', 'Config::deleteSubLocation/$1');
+    $routes->get('getActiveSubLocations', 'Config::getActiveSubLocations');
+
     $routes->get('getAllLocations', 'Config::getAllLocations');
 
     // Registration Types
