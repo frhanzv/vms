@@ -4448,47 +4448,212 @@
     </main>
 
     <!-- Role Create/Edit Modal -->
-    <div id="roleModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md mx-4">
-            <div class="px-6 py-4 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
+    <div id="roleModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4 sm:p-6">
+        <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-4xl flex flex-col max-h-[90vh]">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between shrink-0">
                 <h3 id="roleModalTitle" class="text-lg font-bold text-gray-800 dark:text-white">Create New Role</h3>
-                <button onclick="closeRoleModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                <button type="button" onclick="closeRoleModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                     <span class="material-symbols-outlined">close</span>
                 </button>
             </div>
-            <form id="roleForm" onsubmit="submitRoleForm(event)">
-                <div class="p-6 space-y-4">
+            <form id="roleForm" onsubmit="submitRoleForm(event)" class="flex flex-col flex-1 min-h-0">
+                <div class="p-6 overflow-y-auto flex-1 space-y-6 custom-scrollbar">
                     <input type="hidden" id="roleId" name="roleId">
                     <input type="hidden" id="roleVersion" name="version">
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Role Name
-                            <span class="text-red-500">*</span></label>
-                        <input type="text" id="roleName" name="name" required
-                            class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none"
-                            placeholder="Enter role name">
-                        <p id="roleNameError" class="text-red-500 text-xs mt-1 hidden"></p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Role Name
+                                <span class="text-red-500">*</span></label>
+                            <input type="text" id="roleName" name="name" required
+                                class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none"
+                                placeholder="Enter role name">
+                            <p id="roleNameError" class="text-red-500 text-xs mt-1 hidden"></p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Status <span class="text-red-500">*</span></label>
+                            <select id="roleStatus" name="status" required
+                                class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none">
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                            <p id="roleStatusError" class="text-red-500 text-xs mt-1 hidden"></p>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Description</label>
+                            <textarea id="roleDescription" name="description" rows="2"
+                                class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none"
+                                placeholder="Enter role description"></textarea>
+                            <p id="roleDescriptionError" class="text-red-500 text-xs mt-1 hidden"></p>
+                        </div>
                     </div>
-                    <div>
-                        <label
-                            class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Description</label>
-                        <textarea id="roleDescription" name="description" rows="3"
-                            class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none"
-                            placeholder="Enter role description"></textarea>
-                        <p id="roleDescriptionError" class="text-red-500 text-xs mt-1 hidden"></p>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Status <span
-                                class="text-red-500">*</span></label>
-                        <select id="roleStatus" name="status" required
-                            class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none">
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                        </select>
-                        <p id="roleStatusError" class="text-red-500 text-xs mt-1 hidden"></p>
+
+                    <div class="mt-4 pt-4 border-t border-gray-200 dark:border-slate-700">
+                        <div class="flex items-center justify-between mb-4">
+                            <label class="block text-base font-bold text-gray-700 dark:text-slate-300">ACCESS</label>
+                            <button type="button" onclick="toggleAllAccess()" class="text-sm text-primary hover:text-blue-600 font-medium px-3 py-1 rounded-md hover:bg-primary/10 transition-colors">
+                                Select All
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" id="roleAccessContainer">
+                            <!-- Dashboard -->
+                            <div>
+                                <h4 class="font-medium text-sm text-gray-800 dark:text-white mb-2">Dashboard</h4>
+                                <div class="ml-4 space-y-2">
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[dashboard][view]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> View
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- Visitor Pass List -->
+                            <div>
+                                <h4 class="font-medium text-sm text-gray-800 dark:text-white mb-2">Visitor Pass List</h4>
+                                <div class="ml-4 space-y-2">
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[visitor_pass_list][invitations]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Invitations
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[visitor_pass_list][request_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Request List
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[visitor_pass_list][visitors_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Visitors List
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Staff Pass List -->
+                            <div>
+                                <h4 class="font-medium text-sm text-gray-800 dark:text-white mb-2">Staff Pass List</h4>
+                                <div class="ml-4 space-y-2">
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[staff_pass_list][view]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> View
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Visitor Workflow -->
+                            <div>
+                                <h4 class="font-medium text-sm text-gray-800 dark:text-white mb-2">Visitor Workflow</h4>
+                                <div class="ml-4 space-y-2">
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[visitor_workflow][view]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> View
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Blacklist -->
+                            <div>
+                                <h4 class="font-medium text-sm text-gray-800 dark:text-white mb-2">Blacklist</h4>
+                                <div class="ml-4 space-y-2">
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[blacklist][request_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Request List
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[blacklist][closed_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Closed List
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Report -->
+                            <div>
+                                <h4 class="font-medium text-sm text-gray-800 dark:text-white mb-2">Report</h4>
+                                <div class="ml-4 space-y-2">
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[report][access_report]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Access Report
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[report][visitor_report]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Visitor Report
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[report][visitor_chronology]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Visitor Chronology
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[report][visitor_info_by_door]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Visitor Info By Door
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Settings -->
+                            <div>
+                                <h4 class="font-medium text-sm text-gray-800 dark:text-white mb-2">Settings</h4>
+                                <div class="ml-4 space-y-2">
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[settings][view]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> View
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Config -->
+                            <div class="col-span-1 sm:col-span-2 lg:col-span-3 mt-4">
+                                <h4 class="font-medium text-sm text-gray-800 dark:text-white mb-4 border-b border-gray-200 dark:border-slate-700 pb-2">Config Modules</h4>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-4 gap-x-6 ml-4">
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[config][alert_priority]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Alert Priority
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[config][api_management]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> API Management
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[config][general_settings]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> General Settings
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[config][application_settings]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Application Settings
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[config][email_notification_recipients]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Email Notification Recipients
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[config][registration_type]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Registration Type
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[config][business_type]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Business Type
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[config][blacklist_reason]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Blacklist Reason
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[config][role_management]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Role Management
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[config][user_management]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> User Management
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[config][company]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Company
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[config][sub_company]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Sub Company
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[config][country]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Country
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[config][state]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> State
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[config][city]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> City
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[config][department]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Department
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[config][designation]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Designation
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[config][location]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Location
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[config][lane]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Lane
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[config][reject_reason]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Reject Reason
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div
-                    class="px-6 py-4 border-t border-gray-200 dark:border-slate-700 flex items-center justify-end gap-3">
+                <div class="px-6 py-4 border-t border-gray-200 dark:border-slate-700 shrink-0 flex items-center justify-end gap-3">
                     <button type="button" onclick="closeRoleModal()"
                         class="px-4 py-2.5 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">
                         Cancel
@@ -5506,6 +5671,7 @@
             document.getElementById('roleId').value = '';
             document.getElementById('roleVersion').value = '';
             document.getElementById('roleForm').reset();
+            document.querySelectorAll('.access-checkbox').forEach(cb => cb.checked = false);
             clearRoleErrors();
             document.getElementById('roleModal').classList.remove('hidden');
             document.getElementById('roleModal').classList.add('flex');
@@ -5522,6 +5688,22 @@
                         document.getElementById('roleName').value = data.data.name;
                         document.getElementById('roleDescription').value = data.data.description || '';
                         document.getElementById('roleStatus').value = data.data.status;
+                        
+                        document.querySelectorAll('.access-checkbox').forEach(cb => cb.checked = false);
+                        try {
+                            if (data.data.access) {
+                                const accessData = JSON.parse(data.data.access);
+                                Object.keys(accessData).forEach(module => {
+                                    Object.keys(accessData[module]).forEach(action => {
+                                        if (accessData[module][action]) {
+                                            const cb = document.querySelector(`input[name="access[${module}][${action}]"]`);
+                                            if (cb) cb.checked = true;
+                                        }
+                                    });
+                                });
+                            }
+                        } catch (e) { console.error('Error parsing access data', e); }
+                        
                         clearRoleErrors();
                         document.getElementById('roleModal').classList.remove('hidden');
                         document.getElementById('roleModal').classList.add('flex');
@@ -5542,6 +5724,17 @@
             clearRoleErrors();
         }
 
+        function toggleAllAccess() {
+            const checkboxes = document.querySelectorAll('.access-checkbox');
+            const btn = document.querySelector('button[onclick="toggleAllAccess()"]');
+            
+            // Check if all are already checked
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            
+            checkboxes.forEach(cb => cb.checked = !allChecked);
+            btn.textContent = allChecked ? 'Select All' : 'Deselect All';
+        }
+
         function clearRoleErrors() {
             ['roleNameError', 'roleDescriptionError', 'roleStatusError'].forEach(id => {
                 document.getElementById(id).classList.add('hidden');
@@ -5556,6 +5749,23 @@
             const roleId = document.getElementById('roleId').value;
             const formData = new FormData(event.target);
             const data = Object.fromEntries(formData.entries());
+
+            // Build access tree
+            const access = {};
+            document.querySelectorAll('.access-checkbox:checked').forEach(cb => {
+                const match = cb.name.match(/access\[(.*?)\]\[(.*?)\]/);
+                if (match) {
+                    const module = match[1];
+                    const action = match[2];
+                    if (!access[module]) access[module] = {};
+                    access[module][action] = true;
+                }
+            });
+            data.access = access;
+            
+            Object.keys(data).forEach(key => {
+                if (key.startsWith('access[')) delete data[key];
+            });
 
             const url = roleId
                 ? `<?= base_url('config/updateRole') ?>/${roleId}`

@@ -63,7 +63,7 @@ class RFID extends ResourceController
             // Lock the invitation_visitors row to prevent concurrent scan race
             $invitation = $db->query(
                 'SELECT iv.*, iv.id as iv_id, i.full_name as visitor_name, i.company as visitor_company,
-                        i.id as invitation_id, i.ic_passport, u.company_id
+                        i.id as invitation_id, i.ic_passport, u.company_id, i.visitor_type_id
                  FROM invitation_visitors iv
                  JOIN invitations i ON i.id = iv.invitation_id
                  LEFT JOIN users u ON i.staff_id = u.staff_id
@@ -230,7 +230,7 @@ class RFID extends ResourceController
             // Lock the row to prevent concurrent scan race
             $invitation = $db->query(
                 'SELECT iv.*, iv.id as iv_id, i.full_name as visitor_name, i.company as visitor_company,
-                        i.id as invitation_id, i.ic_passport, u.company_id
+                        i.id as invitation_id, i.ic_passport, u.company_id, i.visitor_type_id
                  FROM invitation_visitors iv
                  JOIN invitations i ON i.id = iv.invitation_id
                  LEFT JOIN users u ON i.staff_id = u.staff_id
@@ -250,32 +250,54 @@ class RFID extends ResourceController
                 ]);
             }
 
+            $laneName = null;
+            if ($laneId) {
+                $laneName = $db->table('lanes')->where('id', $laneId)->get()->getRowArray()['lane'] ?? '';
+                
+                $accessCheck = $this->checkVisitorTypeAccess($invitation, (int) $laneId);
+                if (!$accessCheck['granted']) {
+                    $db->transRollback();
+                    if ($db->tableExists('security_alerts')) {
+                        $db->table('security_alerts')->insert([
+                            'incident_type'   => 'Unauthorized Access',
+                            'severity'        => 'high',
+                            'visitor_name'    => $invitation['visitor_name'] ?? 'Unknown',
+                            'location'        => $laneName ?: 'Security',
+                            'description'     => 'Visitor attempted to access an unauthorized door (' . $laneName . ').',
+                            'is_acknowledged' => 0,
+                            'created_at'      => date('Y-m-d H:i:s'),
+                            'updated_at'      => date('Y-m-d H:i:s'),
+                        ]);
+                    }
+                    return $this->respond([
+                        'success' => false,
+                        'message' => $accessCheck['message'],
+                        'card_epc' => $cardEpc
+                    ]);
+                }
+            }
+
             $action = 'checkin';
             $duration = null;
             $now = date('Y-m-d H:i:s');
             $nextVersion = ($invitation['version'] ?? 1) + 1;
+            $isTurnstile = ($laneId && stripos($laneName ?? '', 'TURNSTILE') !== false);
 
-            if ($laneType === 'exit') {
-                $action = 'checkout';
+            if ($invitation['check_out_time']) {
+                $db->transRollback();
+                return $this->respond([
+                    'success' => false,
+                    'message' => 'Visitor has already checked out for today',
+                    'card_epc' => $cardEpc
+                ]);
+            }
 
-                if ($invitation['check_out_time']) {
-                    $db->transRollback();
-                    return $this->respond([
-                        'success' => false,
-                        'message' => 'Visitor has already checked out',
-                        'card_epc' => $cardEpc
-                    ]);
-                }
-
-                if ($invitation['check_in_time']) {
-                    $duration = $this->formatDuration(time() - strtotime($invitation['check_in_time']));
-                }
-
+            if (!$invitation['check_in_time']) {
                 $db->table('invitation_visitors')
                     ->where('id', $invitation['iv_id'])
-                    ->where('check_out_time IS NULL')
+                    ->where('check_in_time IS NULL')
                     ->update([
-                        'check_out_time' => $now,
+                        'check_in_time' => $now,
                         'version' => $nextVersion,
                         'updated_at' => $now
                     ]);
@@ -284,66 +306,37 @@ class RFID extends ResourceController
                     $db->transRollback();
                     return $this->respond([
                         'success' => false,
-                        'message' => 'Visitor has already been checked out',
+                        'message' => 'Visitor has already been checked in',
                         'card_epc' => $cardEpc
                     ]);
                 }
 
-                $this->visitorCardModel->update($card['id'], ['status' => 'active']);
-
+                $this->visitorCardModel->update($card['id'], ['status' => 'in_use']);
             } else {
-                if ($invitation['check_in_time'] && !$invitation['check_out_time']) {
+                $isCheckout = false;
+                if ($laneType === 'exit' && $isTurnstile) {
+                    $isCheckout = true;
+                } elseif (!$laneType && $isTurnstile) {
+                    $isCheckout = true;
+                }
+
+                if ($isCheckout) {
                     $action = 'checkout';
                     $duration = $this->formatDuration(time() - strtotime($invitation['check_in_time']));
 
                     $db->table('invitation_visitors')
                         ->where('id', $invitation['iv_id'])
-                        ->where('check_in_time IS NOT NULL')
                         ->where('check_out_time IS NULL')
                         ->update([
                             'check_out_time' => $now,
                             'version' => $nextVersion,
-                            'updated_at' => $now
+                            'updated_at' => $now,
+                            'visitor_card_id' => null
                         ]);
-
-                    if ($db->affectedRows() === 0) {
-                        $db->transRollback();
-                        return $this->respond([
-                            'success' => false,
-                            'message' => 'Visitor status has changed. Please try again.',
-                            'card_epc' => $cardEpc
-                        ]);
-                    }
 
                     $this->visitorCardModel->update($card['id'], ['status' => 'active']);
-
-                } elseif ($invitation['check_out_time']) {
-                    $db->transRollback();
-                    return $this->respond([
-                        'success' => false,
-                        'message' => 'Visitor has already checked out for today',
-                        'card_epc' => $cardEpc
-                    ]);
                 } else {
-                    $db->table('invitation_visitors')
-                        ->where('id', $invitation['iv_id'])
-                        ->where('check_in_time IS NULL')
-                        ->update([
-                            'check_in_time' => $now,
-                            'version' => $nextVersion,
-                            'updated_at' => $now
-                        ]);
-
-                    if ($db->affectedRows() === 0) {
-                        $db->transRollback();
-                        return $this->respond([
-                            'success' => false,
-                            'message' => 'Visitor has already been checked in',
-                            'card_epc' => $cardEpc
-                        ]);
-                    }
-
-                    $this->visitorCardModel->update($card['id'], ['status' => 'in_use']);
+                    $action = 'door_access';
                 }
             }
 
@@ -480,5 +473,53 @@ class RFID extends ResourceController
         }
 
         return sprintf('%d minute%s', $minutes, $minutes != 1 ? 's' : '');
+    }
+
+    /**
+     * Check if the given lane is permitted for the visitor's type via pathway config.
+     * Returns ['granted' => bool, 'message' => string|null].
+     */
+    protected function checkVisitorTypeAccess(array $invitation, int $laneId): array
+    {
+        if (empty($invitation['visitor_type_id'])) {
+            return ['granted' => true, 'message' => null];
+        }
+
+        $db = \Config\Database::connect();
+
+        $visitorType = $db->table('visitor_types')
+            ->where('id', $invitation['visitor_type_id'])
+            ->get()->getRowArray();
+
+        if (!$visitorType || empty($visitorType['path'])) {
+            return ['granted' => true, 'message' => null];
+        }
+
+        $pathway = $db->table('pathways')
+            ->where('name', $visitorType['path'])
+            ->where('status', 'active')
+            ->get()->getRowArray();
+
+        if (!$pathway) {
+            return [
+                'granted' => false,
+                'message' => 'Access denied: Assigned pathway is inactive or no longer exists.',
+            ];
+        }
+
+        $inPathway = $db->table('pathway_lanes')
+            ->where('pathway_id', $pathway['id'])
+            ->where('lane_id', $laneId)
+            ->countAllResults() > 0;
+
+        if (!$inPathway) {
+            $typeName = $visitorType['name'] ?? 'Unknown';
+            return [
+                'granted' => false,
+                'message' => "Access denied: visitor type \"{$typeName}\" is not authorised for this lane.",
+            ];
+        }
+
+        return ['granted' => true, 'message' => null];
     }
 }

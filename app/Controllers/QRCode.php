@@ -205,11 +205,28 @@ class QRCode extends ResourceController
                 ]);
             }
 
-            // Access control: validate lane against visitor type's pathway (entry only)
-            if ($laneId && $laneType !== 'exit') {
+            $laneName = null;
+            if ($laneId) {
+                $laneName = $db->table('lanes')->where('id', $laneId)->get()->getRowArray()['lane'] ?? '';
+            }
+
+            // Access control: validate lane against visitor type's pathway
+            if ($laneId) {
                 $accessCheck = $this->checkVisitorTypeAccess($invitation, (int) $laneId);
                 if (!$accessCheck['granted']) {
                     $db->transRollback();
+                    if ($db->tableExists('security_alerts')) {
+                        $db->table('security_alerts')->insert([
+                            'incident_type'   => 'Unauthorized Access',
+                            'severity'        => 'high',
+                            'visitor_name'    => $invitation['full_name'] ?? 'Unknown',
+                            'location'        => $laneName ?: 'Security',
+                            'description'     => 'Visitor attempted to access an unauthorized door (' . ($laneName ?: 'ID: ' . $laneId) . ').',
+                            'is_acknowledged' => 0,
+                            'created_at'      => date('Y-m-d H:i:s'),
+                            'updated_at'      => date('Y-m-d H:i:s'),
+                        ]);
+                    }
                     return $this->respond([
                         'success'        => false,
                         'access_granted' => false,
@@ -251,73 +268,53 @@ class QRCode extends ResourceController
             $duration = null;
             $now      = date('Y-m-d H:i:s');
             $nextVer  = ((int) ($iv['version'] ?? 1)) + 1;
+            $isTurnstile = ($laneId && stripos($laneName ?? '', 'TURNSTILE') !== false);
 
-            if ($laneType === 'exit') {
-                // Dedicated exit lane — force checkout
-                $action = 'checkout';
-
-                if ($iv['check_out_time']) {
-                    $db->transRollback();
-                    return $this->respond([
-                        'success' => false,
-                        'message' => 'Visitor has already checked out',
-                        'qr_code' => $rawQr,
+            if ($laneId && empty($iv['visitor_card_id'])) {
+                $db->transRollback();
+                if ($db->tableExists('security_alerts')) {
+                    $db->table('security_alerts')->insert([
+                        'incident_type'   => 'Unauthorized Access',
+                        'severity'        => 'high',
+                        'visitor_name'    => $invitation['full_name'] ?? 'Unknown',
+                        'location'        => $laneName ?: 'Security',
+                        'description'     => 'Visitor attempted to access a door without a bound card.',
+                        'is_acknowledged' => 0,
+                        'created_at'      => $now,
+                        'updated_at'      => $now,
                     ]);
                 }
+                return $this->respond([
+                    'success'        => false,
+                    'access_granted' => false,
+                    'action'         => 'denied',
+                    'message'        => 'Access denied: No bound card.',
+                    'visitor'        => [
+                        'name'         => $invitation['full_name']        ?? 'Unknown',
+                        'company'      => $invitation['company']          ?? 'N/A',
+                        'visitor_type' => $invitation['visitor_type_name'] ?? null,
+                    ],
+                    'qr_code'        => $rawQr,
+                ]);
+            }
 
-                if ($iv['check_in_time']) {
-                    $duration = $this->formatDuration(time() - strtotime($iv['check_in_time']));
-                }
-
-                $db->table('invitation_visitors')
-                    ->where('id', $iv['id'])
-                    ->where('check_out_time IS NULL')
-                    ->update(['check_out_time' => $now, 'version' => $nextVer, 'updated_at' => $now]);
-
-                if ($db->affectedRows() === 0) {
-                    $db->transRollback();
-                    return $this->respond([
-                        'success' => false,
-                        'message' => 'Visitor has already been checked out',
-                        'qr_code' => $rawQr,
-                    ]);
-                }
-
-            } elseif ($iv['check_in_time'] && !$iv['check_out_time']) {
-                // Toggled checkout (single reader, both in+out)
-                $action   = 'checkout';
-                $duration = $this->formatDuration(time() - strtotime($iv['check_in_time']));
-
-                $db->table('invitation_visitors')
-                    ->where('id', $iv['id'])
-                    ->where('check_in_time IS NOT NULL')
-                    ->where('check_out_time IS NULL')
-                    ->update(['check_out_time' => $now, 'version' => $nextVer, 'updated_at' => $now]);
-
-                if ($db->affectedRows() === 0) {
-                    $db->transRollback();
-                    return $this->respond([
-                        'success' => false,
-                        'message' => 'Visitor has already been checked out',
-                        'qr_code' => $rawQr,
-                    ]);
-                }
-
-            } elseif ($iv['check_out_time']) {
+            if ($iv['check_out_time']) {
                 $db->transRollback();
                 return $this->respond([
                     'success' => false,
                     'message' => 'Visitor has already checked out for today',
                     'qr_code' => $rawQr,
                 ]);
+            }
 
-            } else {
+            if (!$iv['check_in_time']) {
                 // Check in
+                $action = 'checkin';
                 $db->table('invitation_visitors')
                     ->where('id', $iv['id'])
                     ->where('check_in_time IS NULL')
                     ->update(['check_in_time' => $now, 'version' => $nextVer, 'updated_at' => $now]);
-
+                    
                 if ($db->affectedRows() === 0) {
                     $db->transRollback();
                     return $this->respond([
@@ -326,7 +323,31 @@ class QRCode extends ResourceController
                         'qr_code' => $rawQr,
                     ]);
                 }
+            } else {
+                $isCheckout = false;
+                if ($laneType === 'exit' && $isTurnstile) {
+                    $isCheckout = true;
+                } elseif (!$laneType && $isTurnstile) {
+                    $isCheckout = true;
+                }
+
+                if ($isCheckout) {
+                    $action = 'checkout';
+                    $duration = $this->formatDuration(time() - strtotime($iv['check_in_time']));
+
+                    $db->table('invitation_visitors')
+                        ->where('id', $iv['id'])
+                        ->where('check_out_time IS NULL')
+                        ->update(['check_out_time' => $now, 'version' => $nextVer, 'updated_at' => $now, 'visitor_card_id' => null]);
+
+                    if (!empty($iv['visitor_card_id'])) {
+                        $db->table('visitor_cards')->where('id', $iv['visitor_card_id'])->update(['status' => 'active']);
+                    }
+                } else {
+                    $action = 'door_access';
+                }
             }
+
 
             $this->logQrScan($invitationId, $action, $laneId);
 
@@ -433,7 +454,10 @@ class QRCode extends ResourceController
             ->get()->getRowArray();
 
         if (!$pathway) {
-            return ['granted' => true, 'message' => null];
+            return [
+                'granted' => false,
+                'message' => 'Access denied: Assigned pathway is inactive or no longer exists.',
+            ];
         }
 
         $inPathway = $db->table('pathway_lanes')

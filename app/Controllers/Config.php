@@ -419,7 +419,8 @@ class Config extends BaseController
         $data = [
             'name' => $input['name'],
             'description' => $input['description'] ?? null,
-            'status' => $input['status']
+            'status' => $input['status'],
+            'access' => isset($input['access']) ? json_encode($input['access']) : null
         ];
 
         try {
@@ -479,13 +480,18 @@ class Config extends BaseController
         $data = [
             'name' => $input['name'],
             'description' => $input['description'] ?? null,
-            'status' => $input['status']
+            'status' => $input['status'],
+            'access' => isset($input['access']) ? json_encode($input['access']) : null
         ];
 
         try {
             $error = $this->versionedUpdate($this->roleModel, $id, $data, $input, 'role');
             if ($error) {
                 return $error;
+            }
+
+            if (session()->get('role') === $role['name'] || strtolower(session()->get('role')) === strtolower($role['name'])) {
+                session()->remove('role_access_data');
             }
 
             return $this->response->setJSON([
@@ -4621,7 +4627,8 @@ class Config extends BaseController
 
     public function updatePathway($id)
     {
-        if (!$this->pathwayModel->find($id)) {
+        $pathway = $this->pathwayModel->find($id);
+        if (!$pathway) {
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Pathway not found',
@@ -4647,8 +4654,11 @@ class Config extends BaseController
             ]);
         }
 
+        $oldName = $pathway['name'];
+        $newName = $input['name'] ?? '';
+
         $data = [
-            'name'   => $input['name'] ?? '',
+            'name'   => $newName,
             'status' => $input['status'] ?? 'active',
         ];
 
@@ -4657,6 +4667,12 @@ class Config extends BaseController
             return $error;
         }
 
+        if ($oldName !== $newName && !empty($newName)) {
+            $db = \Config\Database::connect();
+            $db->table('visitor_types')->where('path', $oldName)->update(['path' => $newName]);
+        }
+
+        if (isset($input['lane_ids']) && is_array($input['lane_ids'])) {
         // Support both legacy lane_ids and new unified doors array
         if (isset($input['doors']) && is_array($input['doors'])) {
             $laneItems        = array_values(array_filter($input['doors'], fn($d) => ($d['type'] ?? '') === 'lane'));

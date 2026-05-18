@@ -175,18 +175,19 @@ class InvitationProcessFlowService
         
         $steps = [];
         foreach ($workflows as $w) {
-            $key = $w['step_key'];
+            $key = $w['step_key'] ?? '';
             $def = $definitions[$key] ?? ['route' => '#', 'is_custom' => true];
+            $wRoute = $w['route'] ?? null;
             
             $steps[] = [
-                'id' => $w['id'],
+                'id' => $w['id'] ?? null,
                 'key' => $key,
-                'label' => $w['step_name'],
-                'route' => $w['route'] ?: $def['route'],
-                'db_route' => $w['route'],
-                'is_active' => (int) $w['is_active'],
-                'step_order' => (int) $w['step_order'],
-                'trigger_event' => $w['trigger_event'],
+                'label' => $w['step_name'] ?? '',
+                'route' => $wRoute ?: $def['route'],
+                'db_route' => $wRoute,
+                'is_active' => (int) ($w['is_active'] ?? 0),
+                'step_order' => (int) ($w['step_order'] ?? 0),
+                'trigger_event' => $w['trigger_event'] ?? null,
                 'is_custom' => (bool) ($def['is_custom'] ?? false),
             ];
         }
