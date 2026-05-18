@@ -943,7 +943,7 @@ class Dashboard extends BaseController
 
         $schema = $this->buildAssistantDatabaseSchema($db);
         $sqlResult = \Config\Services::llm()->generateText($this->buildAssistantSqlPrompt($question, $schema, $history), [
-            'system_prompt' => 'You are an expert MySQL query writer for a Visitor Management System (VMS). Translate questions into one safe, correct MySQL SELECT query. Return ONLY valid JSON: {"sql":"SELECT ..."}. No markdown, no explanation, no extra keys.',
+            'system_prompt' => 'You are an expert MySQL query writer for a Visitor Management System (VMS). Translate questions into one safe, correct MySQL SELECT query. Use only listed schema columns. Never use SQL keywords as table aliases. Return ONLY valid JSON: {"sql":"SELECT ..."}. No markdown, no explanation, no extra keys.',
             'temperature' => 0,
             'max_tokens' => 1200,
         ]);
@@ -958,10 +958,11 @@ class Dashboard extends BaseController
             ]);
         }
 
-        $sql = rtrim(trim($this->extractAssistantSql($sqlResult['text'])), " \t\n\r\0\x0B;");
+        $sql = $this->normalizeAssistantSqlSyntax(rtrim(trim($this->extractAssistantSql($sqlResult['text'])), " \t\n\r\0\x0B;"));
         $validation = $this->validateAssistantSql($sql, array_keys($schema['tables']), $schema['blocked_columns']);
 
         if (! $validation['success']) {
+            log_message('warning', 'Analytics Assistant rejected SQL: ' . $validation['message'] . ' | SQL: ' . $sql);
             $this->saveAssistantMessage($db, $chatId, 'assistant', $validation['message']);
             return $this->response->setJSON([
                 'success' => false,
@@ -992,7 +993,7 @@ class Dashboard extends BaseController
                         . "\n\nPrevious (broken) SQL:\n" . $sql
                         . "\n\nFix the query and return corrected JSON: {\"sql\":\"SELECT ...\"}",
                         [
-                            'system_prompt' => 'You are an expert MySQL query writer for a Visitor Management System (VMS). Fix the broken SQL query based on the error. Return ONLY valid JSON: {"sql":"SELECT ..."}. No markdown, no explanation.',
+                            'system_prompt' => 'You are an expert MySQL query writer for a Visitor Management System (VMS). Fix the broken SQL query based on the error. Use only listed schema columns and never use SQL keywords as table aliases. Return ONLY valid JSON: {"sql":"SELECT ..."}. No markdown, no explanation.',
                             'temperature' => 0,
                             'max_tokens' => 1200,
                         ]
@@ -1002,10 +1003,11 @@ class Dashboard extends BaseController
                         break;
                     }
 
-                    $retrySql = rtrim(trim($this->extractAssistantSql($retryResult['text'])), " \t\n\r\0\x0B;");
+                    $retrySql = $this->normalizeAssistantSqlSyntax(rtrim(trim($this->extractAssistantSql($retryResult['text'])), " \t\n\r\0\x0B;"));
                     $retryValidation = $this->validateAssistantSql($retrySql, array_keys($schema['tables']), $schema['blocked_columns']);
 
                     if (! $retryValidation['success']) {
+                        log_message('warning', 'Analytics Assistant rejected retry SQL: ' . $retryValidation['message'] . ' | SQL: ' . $retrySql);
                         break;
                     }
 
@@ -1667,6 +1669,7 @@ class Dashboard extends BaseController
             . "- Which visitors are overstaying?\n"
             . "- How many visitors checked out today?\n"
             . "- Show visitor count by host\n\n"
+            . "I also understand VMS terms like expected today, on-site, checked out, overstay, host, staff number, access denied, and active alerts.\n\n"
             . "Just ask in plain language — I will query the database and explain the results.";
     }
 
@@ -1699,6 +1702,11 @@ class Dashboard extends BaseController
             }
         }
 
+        $relationships = array_values(array_unique(array_merge(
+            $this->buildAssistantRelationshipHints($schema),
+            $relationships
+        )));
+
         $relSection = $relationships
             ? "Known relationships (use for JOINs):\n" . implode("\n", $relationships) . "\n\n"
             : '';
@@ -1710,17 +1718,116 @@ class Dashboard extends BaseController
             . "- SELECT only. Never INSERT, UPDATE, DELETE, DROP, ALTER, CREATE, SET, SHOW, or stored procedures.\n"
             . "- Never use SELECT * or table.*. Name only the columns you need.\n"
             . "- Use JOINs when data spans multiple tables (see relationships below).\n"
+            . "- Use safe table aliases such as i, iv, sch, sa, vc, vcl, l, s. Never use SQL keywords as aliases, especially is, in, on, by, group, order, select, where, join, from, left, right, inner, outer, limit, or having.\n"
             . "- Use COALESCE or IS NULL / IS NOT NULL to handle missing values.\n"
+            . "- When a text column can be blank, use NULLIF(column, '') inside COALESCE.\n"
             . "- For \"today\" use CURDATE(); for date+time comparisons use DATE(column) = CURDATE().\n"
-            . "- For \"on-site\" visitors: checked_in IS NOT NULL AND (checked_out IS NULL OR checked_out = '').\n"
-            . "- For visit duration or end date, look for date_to, end_time, expected_end, or check_out columns.\n"
+            . "- For visitor names, prefer COALESCE(NULLIF(invitation_visitors.full_name, ''), invitations.full_name).\n"
+            . "- For contact numbers, prefer COALESCE(NULLIF(invitation_visitors.contact, ''), NULLIF(invitations.contact, '')).\n"
+            . "- Do not invent columns. For check-out use invitation_visitors.check_out_time. For check-in use invitation_visitors.check_in_time or invitations.checked_in_at only if the question is about registration-level check-in.\n"
+            . "- For scheduled end time, join invitation_schedules and use invitation_schedules.date_to. There is no expected_end column unless it appears in the schema.\n"
+            . "- Host normally means invitations.invited_by. Staff number normally comes from staff.staff_no joined through invitations.staff_id.\n"
             . "- Add AS aliases on computed or ambiguous columns (e.g. COUNT(*) AS total).\n"
             . "- Default LIMIT 100 unless the question asks for a specific count (then use COUNT(*)).\n"
             . "- Use the chat history to resolve pronouns like \"that visitor\", \"same host\", \"those\", \"how many\".\n\n"
+            . $this->buildAssistantDomainGuide($schema) . "\n\n"
             . $relSection
             . "Database schema:\n" . implode("\n", $schemaLines) . "\n\n"
             . "Chat history:\n" . $this->formatAssistantHistoryForPrompt($history) . "\n\n"
             . "User question: " . $question;
+    }
+
+    /**
+     * @param array{tables: array<string, list<array{name: string, type: string|null}>>, blocked_columns: list<string>} $schema
+     *
+     * @return list<string>
+     */
+    protected function buildAssistantRelationshipHints(array $schema): array
+    {
+        $relationships = [];
+        $explicit = [
+            ['invitation_visitors', 'invitation_id', 'invitations', 'id'],
+            ['invitation_visitors', 'visitor_card_id', 'visitor_cards', 'id'],
+            ['invitation_schedules', 'invitation_id', 'invitations', 'id'],
+            ['visitor_card_logs', 'invitation_id', 'invitations', 'id'],
+            ['visitor_card_logs', 'visitor_card_id', 'visitor_cards', 'id'],
+            ['visitor_card_logs', 'lane_id', 'lanes', 'id'],
+            ['visitor_assets', 'invitation_id', 'invitations', 'id'],
+            ['visitor_licenses', 'invitation_id', 'invitations', 'id'],
+            ['security_alerts', 'invitation_id', 'invitations', 'id'],
+            ['security_alerts', 'acknowledged_by', 'users', 'id'],
+            ['invitations', 'visitor_type_id', 'visitor_types', 'id'],
+            ['invitations', 'company_id', 'companies', 'id'],
+            ['users', 'company_id', 'companies', 'id'],
+            ['lanes', 'location_id', 'locations', 'id'],
+            ['sub_locations', 'location_id', 'locations', 'id'],
+            ['pathway_sub_locations', 'pathway_id', 'pathways', 'id'],
+            ['pathway_sub_locations', 'sub_location_id', 'sub_locations', 'id'],
+            ['staff_cards', 'staff_id', 'staff', 'id'],
+        ];
+
+        foreach ($explicit as [$fromTable, $fromColumn, $toTable, $toColumn]) {
+            if (
+                $this->assistantSchemaHasColumn($schema, $fromTable, $fromColumn)
+                && $this->assistantSchemaHasColumn($schema, $toTable, $toColumn)
+            ) {
+                $relationships[] = "{$fromTable}.{$fromColumn} -> {$toTable}.{$toColumn}";
+            }
+        }
+
+        if (
+            $this->assistantSchemaHasColumn($schema, 'invitations', 'staff_id')
+            && $this->assistantSchemaHasColumn($schema, 'staff', 'id')
+        ) {
+            $relationships[] = 'invitations.staff_id -> staff.id; if staff_id stores a staff number, also allow staff.staff_no = invitations.staff_id';
+        }
+
+        return array_values(array_unique($relationships));
+    }
+
+    /**
+     * @param array{tables: array<string, list<array{name: string, type: string|null}>>, blocked_columns: list<string>} $schema
+     */
+    protected function assistantSchemaHasColumn(array $schema, string $table, string $column): bool
+    {
+        foreach ($schema['tables'][$table] ?? [] as $field) {
+            if (strcasecmp($field['name'], $column) === 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param array{tables: array<string, list<array{name: string, type: string|null}>>, blocked_columns: list<string>} $schema
+     */
+    protected function buildAssistantDomainGuide(array $schema): string
+    {
+        $lines = [
+            'VMS domain guide:',
+            '- invitations: appointment/request record. Important fields: full_name, contact, ic_passport, company, invited_by, staff_id, location, reason, status, registration_source.',
+            '- invitation_visitors: physical visitor pass/check-in record. Important fields: check_in_time, check_out_time, full_name, contact, ic_passport, visitor_card_id.',
+            '- invitation_schedules: scheduled visit windows. Use date_from and date_to for expected, appointment time, visit end, and overstay checks.',
+            '- security_alerts: incident records. is_acknowledged = 0 means active/unacknowledged; severity can be low, medium, high, critical.',
+            '- locations and lanes: physical access areas and device/door lanes.',
+            '- visitor_card_logs: door/card scan history. action usually identifies checkin/checkout or entry/exit activity.',
+            'Common VMS definitions:',
+            "- Expected today: invitations.status = 'Approved' and an invitation_schedules row overlaps CURDATE(), excluding visitors already checked in today or still on-site unless the user asks otherwise.",
+            "- Currently on-site: invitations.status = 'Approved' and invitation_visitors.check_in_time IS NOT NULL and invitation_visitors.check_out_time IS NULL.",
+            "- Checked out today: invitations.status = 'Approved' and DATE(invitation_visitors.check_out_time) = CURDATE().",
+            '- Overstaying: currently on-site and the latest invitation_schedules.date_to for that invitation is earlier than NOW().',
+            '- Active security alerts: security_alerts.is_acknowledged = 0.',
+            '- Access denied incidents: security_alerts.incident_type contains access denied, unauthorized access, or access refused.',
+            '- Visitor IC/passport can be invitations.ic_passport or invitation_visitors.ic_passport.',
+            '- Location can be invitations.location, security_alerts.location, lanes.lane, locations.location_access, or sub_locations.name depending on the question.',
+        ];
+
+        if (! isset($schema['tables']['security_alerts'])) {
+            $lines[] = '- security_alerts is not available in this database, so do not query it.';
+        }
+
+        return implode("\n", $lines);
     }
 
     protected function extractAssistantSql(string $text): string
@@ -1739,6 +1846,94 @@ class Dashboard extends BaseController
         }
 
         return trim($clean);
+    }
+
+    protected function normalizeAssistantSqlSyntax(string $sql): string
+    {
+        $clean = trim($sql);
+
+        if ($clean === '') {
+            return $clean;
+        }
+
+        $reservedAliases = $this->assistantReservedSqlAliases();
+        $reservedPattern = implode('|', array_map(static fn (string $word): string => preg_quote($word, '/'), $reservedAliases));
+        $clausePattern = 'ON|USING|JOIN|LEFT|RIGHT|INNER|OUTER|CROSS|WHERE|GROUP|ORDER|HAVING|LIMIT|UNION|,|$';
+        $aliasMap = [];
+        $aliasCounter = 1;
+
+        $clean = preg_replace_callback(
+            '/\b(FROM|JOIN)\s+(`?[a-zA-Z0-9_]+`?)\s+(?:AS\s+)?`?(' . $reservedPattern . ')`?(?=\s*(\b(?:' . $clausePattern . ')\b|,|$))/i',
+            static function (array $match) use (&$aliasMap, &$aliasCounter): string {
+                $badAlias = strtolower($match[3]);
+                $nextToken = strtolower(trim($match[4] ?? ''));
+                if (in_array($badAlias, ['left', 'right', 'inner', 'outer', 'cross'], true) && $nextToken === 'join') {
+                    return $match[0];
+                }
+
+                if (! isset($aliasMap[$badAlias])) {
+                    $aliasMap[$badAlias] = 'a' . $aliasCounter++;
+                }
+
+                return $match[1] . ' ' . $match[2] . ' ' . $aliasMap[$badAlias];
+            },
+            $clean
+        ) ?? $clean;
+
+        $clean = preg_replace_callback(
+            '/,\s+(`?[a-zA-Z0-9_]+`?)\s+(?:AS\s+)?`?(' . $reservedPattern . ')`?(?=\s*(\b(?:' . $clausePattern . ')\b|,|$))/i',
+            static function (array $match) use (&$aliasMap, &$aliasCounter): string {
+                $badAlias = strtolower($match[2]);
+                if (! isset($aliasMap[$badAlias])) {
+                    $aliasMap[$badAlias] = 'a' . $aliasCounter++;
+                }
+
+                return ', ' . $match[1] . ' ' . $aliasMap[$badAlias];
+            },
+            $clean
+        ) ?? $clean;
+
+        foreach ($aliasMap as $badAlias => $safeAlias) {
+            $clean = preg_replace('/(?<![a-zA-Z0-9_`])`?' . preg_quote($badAlias, '/') . '`?\s*\./i', $safeAlias . '.', $clean) ?? $clean;
+        }
+
+        return $clean;
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function assistantReservedSqlAliases(): array
+    {
+        return [
+            'all', 'and', 'as', 'between', 'by', 'case', 'cross', 'delete', 'desc',
+            'distinct', 'else', 'end', 'exists', 'from', 'group', 'having', 'if',
+            'in', 'inner', 'insert', 'is', 'join', 'left', 'like', 'limit', 'not',
+            'null', 'on', 'or', 'order', 'outer', 'right', 'select', 'set', 'then',
+            'union', 'update', 'using', 'when', 'where',
+        ];
+    }
+
+    protected function hasAssistantReservedSqlAlias(string $sql): bool
+    {
+        $reservedPattern = implode('|', array_map(static fn (string $word): string => preg_quote($word, '/'), $this->assistantReservedSqlAliases()));
+        $clausePattern = 'ON|USING|JOIN|LEFT|RIGHT|INNER|OUTER|CROSS|WHERE|GROUP|ORDER|HAVING|LIMIT|UNION|,|$';
+
+        if (! preg_match_all('/\b(FROM|JOIN)\s+`?[a-zA-Z0-9_]+`?\s+(?:AS\s+)?`?(' . $reservedPattern . ')`?(?=\s*(\b(?:' . $clausePattern . ')\b|,|$))/i', $sql, $matches, PREG_SET_ORDER)) {
+            return false;
+        }
+
+        foreach ($matches as $match) {
+            $badAlias = strtolower($match[2]);
+            $nextToken = strtolower(trim($match[3] ?? ''));
+            if (in_array($badAlias, ['left', 'right', 'inner', 'outer', 'cross'], true) && $nextToken === 'join') {
+                continue;
+            }
+
+            return true;
+        }
+
+        return (bool) preg_match('/,\s+`?[a-zA-Z0-9_]+`?\s+(?:AS\s+)?`?(' . $reservedPattern . ')`?(?=\s*(\b(?:' . $clausePattern . ')\b|,|$))/i', $sql);
     }
 
     /**
@@ -1770,6 +1965,10 @@ class Dashboard extends BaseController
 
         if (preg_match('/\b(information_schema|mysql|performance_schema|sys)\b/i', $normalized)) {
             return ['success' => false, 'message' => 'System database tables are not available to the assistant.'];
+        }
+
+        if ($this->hasAssistantReservedSqlAlias($normalized)) {
+            return ['success' => false, 'message' => 'The generated query used a reserved SQL keyword as a table alias.'];
         }
 
         if (preg_match_all('/\b(?:from|join)\s+`?([a-zA-Z0-9_]+)`?/i', $normalized, $matches)) {
@@ -1821,11 +2020,15 @@ class Dashboard extends BaseController
 
         return "Answer the user's VMS question based on the SQL query results below.\n"
             . "Guidelines:\n"
+            . "- Put the direct answer first, then supporting details.\n"
             . "- Be concise and clear. Use plain language a receptionist or security guard would understand.\n"
-            . "- Format lists with numbers or bullet points when there are multiple records.\n"
+            . "- For count questions, answer with the number first.\n"
+            . "- For 2 to 12 record lists, use a compact markdown table with the most useful columns.\n"
+            . "- For longer lists, summarize first and then show the most important rows.\n"
             . "- If row count is 0, explain what was searched for and suggest the data might not exist, might use a different spelling, or that the field may be empty in the system.\n"
             . "- If row count is 100, note that results are capped at 100 and there may be more.\n"
             . "- For date/time fields, format them in a human-readable way.\n"
+            . "- Prefer names, host names, locations, and times over raw IDs unless IDs were requested.\n"
             . "- Use the chat history to keep your answer consistent with prior context.\n\n"
             . "Chat history:\n" . $this->formatAssistantHistoryForPrompt($history) . "\n\n"
             . "User question: {$question}\n\n"

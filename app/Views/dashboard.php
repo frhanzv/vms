@@ -1346,10 +1346,57 @@ function appendAssistantMessage(role, text, isLoading = false) {
     return rendered;
 }
 
+function assistantInlineFormat(text) {
+    return esc(text).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+}
+
+function assistantIsMarkdownTableStart(lines, index) {
+    if (index + 1 >= lines.length) return false;
+    const header = lines[index] || '';
+    const separator = lines[index + 1] || '';
+    return /^\s*\|.*\|\s*$/.test(header)
+        && /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(separator);
+}
+
+function assistantRenderMarkdownTable(tableLines) {
+    const rows = tableLines.map(line => line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(cell => assistantInlineFormat(cell.trim())));
+    const headers = rows[0] || [];
+    const bodyRows = rows.slice(2);
+    let html = '<div class="my-2 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700">';
+    html += '<table class="min-w-full text-left text-xs">';
+    html += '<thead class="bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200"><tr>';
+    headers.forEach(header => { html += '<th class="px-3 py-2 font-bold">' + header + '</th>'; });
+    html += '</tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-700">';
+    bodyRows.forEach(row => {
+        html += '<tr>';
+        headers.forEach((_, idx) => { html += '<td class="px-3 py-2 align-top">' + (row[idx] || '') + '</td>'; });
+        html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+    return html;
+}
+
 function assistantFormatText(text) {
-    return esc(text)
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\n/g, '<br>');
+    const lines = String(text || '').split(/\r?\n/);
+    const parts = [];
+
+    for (let i = 0; i < lines.length; i++) {
+        if (assistantIsMarkdownTableStart(lines, i)) {
+            const tableLines = [lines[i], lines[i + 1]];
+            i += 2;
+            while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i])) {
+                tableLines.push(lines[i]);
+                i++;
+            }
+            i--;
+            parts.push(assistantRenderMarkdownTable(tableLines));
+            continue;
+        }
+
+        parts.push(assistantInlineFormat(lines[i]));
+    }
+
+    return parts.join('<br>');
 }
 
 function setAssistantBusy(isBusy) {
