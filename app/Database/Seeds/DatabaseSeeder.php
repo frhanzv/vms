@@ -10,6 +10,11 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(UserSeeder::class);
         $this->call(RegistrationTypeSeeder::class);
+        $this->call(BlacklistReasonSeeder::class);
+        $this->call(BusinessTypeSeeder::class);
+        $this->call(CountriesSeeder::class);
+        $this->call(VisitorTypeSeeder::class);
+        $this->call(WorkflowSeeder::class);
         $this->call(ClientFeaturesSeeder::class);
         $this->call(ClientFormFieldsSeeder::class);
         $this->call(ClientNotificationSettingsSeeder::class);
