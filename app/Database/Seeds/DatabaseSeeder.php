@@ -12,5 +12,6 @@ class DatabaseSeeder extends Seeder
         $this->call(RegistrationTypeSeeder::class);
         $this->call(ClientFeaturesSeeder::class);
         $this->call(ClientFormFieldsSeeder::class);
+        $this->call(ClientNotificationSettingsSeeder::class);
     }
 }
