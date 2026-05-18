@@ -986,35 +986,36 @@
                 </div>
             </div>
         </aside>
-        <div id="analytics-assistant-messages" class="flex-1 min-w-0 overflow-y-auto p-5 space-y-4">
-            <div class="flex items-start gap-3">
-                <div class="size-9 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-                    <span class="material-symbols-outlined text-[20px]">monitoring</span>
-                </div>
-                <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 text-sm text-slate-600 dark:text-slate-300 max-w-[90%] shadow-sm">
-                    <p class="font-bold text-slate-900 dark:text-white mb-2">Hello! I&apos;m your Analytics Assistant</p>
-                    <p>Ask me anything about VMS database records. Examples:</p>
-                    <ul class="list-disc pl-5 mt-3 space-y-1 text-slate-500 dark:text-slate-400">
-                        <li>Who is currently on-site?</li>
-                        <li>Which visitors are overstaying?</li>
-                        <li>How many visitors are expected today?</li>
-                        <li>Show active security alerts.</li>
-                    </ul>
+        <div class="flex-1 min-w-0 min-h-0 flex flex-col">
+            <div id="analytics-assistant-messages" class="flex-1 overflow-y-auto p-5 space-y-4">
+                <div class="flex items-start gap-3">
+                    <div class="size-9 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                        <span class="material-symbols-outlined text-[20px]">monitoring</span>
+                    </div>
+                    <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 text-sm text-slate-600 dark:text-slate-300 max-w-[90%] shadow-sm">
+                        <p class="font-bold text-slate-900 dark:text-white mb-2">Hello! I&apos;m your Analytics Assistant</p>
+                        <p>Ask me anything about VMS database records. Examples:</p>
+                        <ul class="list-disc pl-5 mt-3 space-y-1 text-slate-500 dark:text-slate-400">
+                            <li>Who is currently on-site?</li>
+                            <li>Which visitors are overstaying?</li>
+                            <li>How many visitors are expected today?</li>
+                            <li>Show active security alerts.</li>
+                        </ul>
+                    </div>
                 </div>
             </div>
+            <form id="analytics-assistant-form" class="border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 flex gap-3 flex-shrink-0" onsubmit="sendAnalyticsAssistantMessage(event)">
+                <input id="analytics-assistant-input" type="text" autocomplete="off" maxlength="1200" placeholder="Ask anything about your data..." class="flex-1 min-w-0 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                <button id="analytics-assistant-send" type="submit" class="rounded-lg bg-primary hover:bg-primary-dark text-white px-5 py-3 text-sm font-bold flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
+                    Send
+                    <span class="material-symbols-outlined text-[18px]">send</span>
+                </button>
+            </form>
+            <p class="px-4 pb-4 -mt-2 bg-white dark:bg-slate-900 text-[11px] text-slate-400 flex-shrink-0">
+                Smart AI can query VMS records in read-only mode.
+            </p>
         </div>
     </div>
-
-    <form id="analytics-assistant-form" class="border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 flex gap-3 flex-shrink-0" onsubmit="sendAnalyticsAssistantMessage(event)">
-        <input id="analytics-assistant-input" type="text" autocomplete="off" maxlength="1200" placeholder="Ask anything about your data..." class="flex-1 min-w-0 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
-        <button id="analytics-assistant-send" type="submit" class="rounded-lg bg-primary hover:bg-primary-dark text-white px-5 py-3 text-sm font-bold flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
-            Send
-            <span class="material-symbols-outlined text-[18px]">send</span>
-        </button>
-    </form>
-    <p class="px-4 pb-4 -mt-2 bg-white dark:bg-slate-900 text-[11px] text-slate-400 flex-shrink-0">
-        Smart AI can query VMS records in read-only mode.
-    </p>
 </section>
 
 <!-- Dashboard Drill-Down Modal -->
@@ -1064,7 +1065,10 @@ function openAnalyticsAssistant() {
     const launcher = document.getElementById('analytics-assistant-launcher');
     panel.classList.remove('hidden', 'analytics-assistant-minimized');
     launcher.classList.add('hidden');
-    setTimeout(() => document.getElementById('analytics-assistant-input')?.focus(), 80);
+    setTimeout(() => {
+        scrollAnalyticsToBottom();
+        document.getElementById('analytics-assistant-input')?.focus();
+    }, 80);
 }
 
 function minimizeAnalyticsAssistant() {
@@ -1220,6 +1224,7 @@ function renderAnalyticsHistory() {
 
 function clearAnalyticsHistory() {
     closeAnalyticsHistoryMenu();
+    if (!confirm('Are you sure you want to clear all chat history? This action cannot be undone.')) return;
     postAssistantAction('/dashboard/assistantChatClear').finally(() => {
         analyticsChats = [];
         activeAnalyticsChatId = '';
@@ -1233,6 +1238,7 @@ function switchAnalyticsChat(chatId) {
     closeAnalyticsHistoryMenu();
     renderActiveAnalyticsChat();
     renderAnalyticsHistory();
+    scrollAnalyticsToBottom();
 }
 
 function openAnalyticsHistoryMenu(event, chatId) {
@@ -1287,12 +1293,18 @@ document.addEventListener('click', function (event) {
     closeAnalyticsHistoryMenu();
 });
 
+function scrollAnalyticsToBottom() {
+    const wrap = document.getElementById('analytics-assistant-messages');
+    if (!wrap) return;
+    requestAnimationFrame(() => requestAnimationFrame(() => { wrap.scrollTop = wrap.scrollHeight; }));
+}
+
 function renderActiveAnalyticsChat() {
     const wrap = document.getElementById('analytics-assistant-messages');
     const chat = activeAnalyticsChat();
     wrap.innerHTML = analyticsWelcomeHtml();
     chat.messages.forEach(message => renderAssistantMessage(message.role, message.text, false));
-    wrap.scrollTop = wrap.scrollHeight;
+    scrollAnalyticsToBottom();
 }
 
 function renderAssistantMessage(role, text, isLoading = false) {
@@ -1322,7 +1334,7 @@ function renderAssistantMessage(role, text, isLoading = false) {
 
     if (isLoading) row.dataset.loading = '1';
     wrap.appendChild(row);
-    wrap.scrollTop = wrap.scrollHeight;
+    scrollAnalyticsToBottom();
     return {row, rowId};
 }
 
