@@ -41,11 +41,11 @@ class StaffController extends BaseController
         $columnAliases = [
             'app_no'               => ['app no', 'app_no', 'application no', 'application number'],
             'full_name'            => ['full name', 'full_name', 'name'],
-            'ic_passport'          => ['ic/passport', 'ic / passport', 'ic_passport', 'ic', 'passport', 'ic no', 'passport no', 'ic/passport no'],
-            'staff_no'             => ['staff no', 'staff_no', 'staff number', 'staff id'],
+            'ic_passport'          => ['ic/passport', 'ic / passport', 'ic_passport', 'ic no.', 'ic no', 'ic', 'passport no.', 'passport no', 'passport', 'ic/passport no'],
+            'staff_no'             => ['staff no.', 'staff no', 'staff_no', 'staff number', 'staff id'],
             'date_of_birth'        => ['date of birth', 'date_of_birth', 'dob'],
             'sex'                  => ['sex', 'gender'],
-            'contact_number'       => ['contact number', 'contact_number', 'phone', 'mobile', 'tel'],
+            'contact_number'       => ['contact number', 'contact_number', 'contact no.', 'contact no', 'phone', 'mobile', 'tel'],
             'email'                => ['email', 'email address'],
             'department'           => ['department', 'dept'],
             'designation'          => ['designation', 'position'],
@@ -63,7 +63,7 @@ class StaffController extends BaseController
             'evetting_date_of_application' => ['evetting date of application', 'evetting_date_of_application'],
             'evetting_date_of_result'      => ['evetting date of result', 'evetting_date_of_result', 'evetting result date'],
             'evetting_result'      => ['evetting result', 'evetting_result'],
-            'address_1'            => ['address 1', 'address_1', 'address1'],
+            'address_1'            => ['address 1', 'address_1', 'address1', 'address'],
             'address_2'            => ['address 2', 'address_2', 'address2'],
             'address_3'            => ['address 3', 'address_3', 'address3'],
             'city'                 => ['city'],
@@ -79,6 +79,22 @@ class StaffController extends BaseController
                 if (isset($headerMap[$alias])) {
                     $fieldIndex[$field] = $headerMap[$alias];
                     break;
+                }
+            }
+        }
+
+        // When the template has separate "IC No." and "Passport No." columns,
+        // ic_passport maps to IC No. (primary). Store Passport No. as fallback
+        // so rows with no IC but a passport number are still captured.
+        $passportFallbackIndex = null;
+        if (isset($fieldIndex['ic_passport'])) {
+            $icHeader = $rawHeaders[$fieldIndex['ic_passport']] ?? '';
+            if (in_array($icHeader, ['ic no.', 'ic no', 'ic'])) {
+                foreach (['passport no.', 'passport no', 'passport'] as $passAlias) {
+                    if (isset($headerMap[$passAlias])) {
+                        $passportFallbackIndex = $headerMap[$passAlias];
+                        break;
+                    }
                 }
             }
         }
@@ -102,7 +118,11 @@ class StaffController extends BaseController
             $record = [
                 'app_no'                       => $get('app_no'),
                 'full_name'                    => $get('full_name'),
-                'ic_passport'                  => $get('ic_passport'),
+                'ic_passport'                  => $get('ic_passport') ?? (
+                    $passportFallbackIndex !== null
+                        ? (trim((string) ($row[$passportFallbackIndex] ?? '')) ?: null)
+                        : null
+                ),
                 'staff_no'                     => $get('staff_no'),
                 'date_of_birth'                => $this->parseDate($get('date_of_birth')),
                 'sex'                          => $get('sex'),

@@ -276,8 +276,8 @@ $isSettings = str_contains($current, 'settings');
                             <span class="material-icons text-sm mr-1">add</span>
                             Import
                         </button>
-                        <a href="<?= base_url('files/StaffTemplate.xlsx') ?>" 
-                            download="StaffTemplate.xlsx" 
+                        <a href="<?= base_url('files/StaffTemplateNew.xlsx') ?>"
+                            download="StaffTemplateNew.xlsx"
                             class="bg-primary hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
                             <span class="material-icons text-sm mr-1">file_download</span>
                             Template
