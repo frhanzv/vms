@@ -253,6 +253,12 @@ $routes->get('dashboard/activeAlertsData', 'Dashboard::activeAlertsData');
 $routes->get('dashboard/widgetSnapshot', 'Dashboard::widgetSnapshot');
 $routes->get('dashboard/recentActivityData', 'Dashboard::recentActivityData');
 $routes->post('dashboard/quickCheckIn', 'Dashboard::quickCheckIn');
+$routes->post('dashboard/assistantAsk', 'Dashboard::assistantAsk');
+$routes->get('dashboard/assistantHistory', 'Dashboard::assistantHistory');
+$routes->post('dashboard/assistantChatCreate', 'Dashboard::assistantChatCreate');
+$routes->post('dashboard/assistantChatRename', 'Dashboard::assistantChatRename');
+$routes->post('dashboard/assistantChatDelete', 'Dashboard::assistantChatDelete');
+$routes->post('dashboard/assistantChatClear', 'Dashboard::assistantChatClear');
 
 $routes->get('settings', 'Settings::index');
 $routes->post('settings/updateProfile', 'Settings::updateProfile');

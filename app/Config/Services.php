@@ -19,6 +19,15 @@ use CodeIgniter\Config\BaseService;
  */
 class Services extends BaseService
 {
+    public static function llm(bool $getShared = true): \App\Services\LlmService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('llm');
+        }
+
+        return new \App\Services\LlmService();
+    }
+
     /*
      * public static function example($getShared = true)
      * {
