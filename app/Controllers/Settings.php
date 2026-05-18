@@ -16,6 +16,11 @@ class Settings extends BaseController
 
     public function index()
     {
+        helper('access');
+        if (!has_access('settings', 'view')) {
+            return redirect()->to('/dashboard')->with('error', 'Unauthorized access. You do not have permission to view Settings.');
+        }
+
         $userId = session()->get('user_id');
         $user = $this->userModel->find($userId);
 
@@ -34,6 +39,11 @@ class Settings extends BaseController
 
     public function updateProfile()
     {
+        helper('access');
+        if (!has_access('settings', 'view')) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Unauthorized'])->setStatusCode(403);
+        }
+
         $userId = session()->get('user_id');
         $currentUser = $this->userModel->find($userId);
 
