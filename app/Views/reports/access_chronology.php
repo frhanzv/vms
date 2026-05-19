@@ -273,8 +273,8 @@
                                     readonly placeholder="End Date">
                                 <select id="chronology_lane_id" class="<?= $fieldInput ?> chronology-select min-w-0">
                                     <option value="">All Locations</option>
-                                    <?php foreach ($lanes as $lane): ?>
-                                        <option value="<?= esc($lane['id']) ?>"><?= esc($lane['lane']) ?></option>
+                                    <?php foreach ($subLocations as $sl): ?>
+                                        <option value="<?= esc($sl['id']) ?>"><?= esc(strtoupper($sl['name'])) ?></option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
@@ -683,7 +683,7 @@
             const searchBy = document.getElementById('search_by').value;
             const fromDatetime = document.getElementById('chronology_from').value;
             const toDatetime = document.getElementById('chronology_to').value;
-            const laneId = document.getElementById('chronology_lane_id').value;
+            const subLocationId = document.getElementById('chronology_lane_id').value;
 
             if (!fromDatetime || !toDatetime) {
                 alert('Please set From and To date/time.');
@@ -697,7 +697,7 @@
             const formData = new FormData();
             formData.append('from_datetime', fromDatetime);
             formData.append('to_datetime', toDatetime);
-            formData.append('lane_id', laneId);
+            formData.append('sub_location_id', subLocationId);
             formData.append('search_by', searchBy);
             formData.append('search_term', searchTerm);
             if (invitationId) formData.append('invitation_id', invitationId);

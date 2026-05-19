@@ -43,8 +43,8 @@ class VisitorReport extends BaseController
                     MAX(iv.check_out_time) AS reg_checkout_time,
                     COUNT(vcl.id)       AS total_scans,
                     (SELECT MAX(s.date_to) FROM invitation_schedules s WHERE s.invitation_id = i.id) as schedule_end,
-                    (SELECT GROUP_CONCAT(DISTINCT l.lane SEPARATOR ', ') FROM visitor_card_logs vcl JOIN lanes l ON l.id = vcl.lane_id WHERE vcl.invitation_id = i.id) as all_lanes,
-                    (SELECT l.lane FROM visitor_card_logs vcl JOIN lanes l ON l.id = vcl.lane_id WHERE vcl.invitation_id = i.id ORDER BY vcl.scanned_at DESC LIMIT 1) as last_lane_full
+                    (SELECT GROUP_CONCAT(DISTINCT sl.name SEPARATOR ', ') FROM visitor_card_logs vcl JOIN lanes l ON l.id = vcl.lane_id JOIN sub_locations sl ON sl.location_id = l.location_id WHERE vcl.invitation_id = i.id) as all_lanes,
+                    (SELECT sl.name FROM visitor_card_logs vcl JOIN lanes l ON l.id = vcl.lane_id JOIN sub_locations sl ON sl.location_id = l.location_id WHERE vcl.invitation_id = i.id ORDER BY vcl.scanned_at DESC LIMIT 1) as last_lane_full
                 FROM invitations i
                 LEFT JOIN visitor_card_logs vcl ON vcl.invitation_id = i.id
                 LEFT JOIN invitation_visitors iv ON iv.invitation_id = i.id

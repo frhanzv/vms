@@ -103,6 +103,7 @@ class SubLocationModel extends Model
             ->select('sl.id, sl.name, l.location_access, l.branch')
             ->join('locations l', 'l.id = sl.location_id', 'left')
             ->where('sl.status', 'active')
+            ->groupBy('sl.id')
             ->orderBy('l.location_access', 'ASC')
             ->orderBy('sl.name', 'ASC')
             ->get()

@@ -208,14 +208,14 @@
                         <!-- Location Dropdown -->
                         <div class="flex flex-col gap-1.5 min-w-0">
                             <label class="text-xs font-semibold text-slate-500 tracking-wider" for="laneSelect">
-                                Select Location
+                                Select Sub Location
                             </label>
                             <div class="relative">
                                 <select id="laneSelect" style="width: 100%;"
                                     class="w-full border border-slate-200 dark:border-slate-700 rounded-lg pl-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary appearance-none chronology-select cursor-pointer">
-                                    <option value="">Select Location</option>
-                                    <?php foreach ($lanes as $lane): ?>
-                                        <option value="<?= esc($lane['id']) ?>"><?= esc($lane['lane']) ?></option>
+                                    <option value="">Select Sub Location</option>
+                                    <?php foreach ($subLocations as $sl): ?>
+                                        <option value="<?= esc($sl['id']) ?>"><?= esc(strtoupper($sl['name'])) ?></option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
@@ -767,12 +767,12 @@
         }
 
         function fetchVisitors() {
-            const laneId = $('#laneSelect').val();
+            const subLocationId = $('#laneSelect').val();
             const fromDate = document.getElementById('fromDateSelect').value;
             const toDate = document.getElementById('toDateSelect').value;
 
-            if (!laneId || !fromDate || !toDate) {
-                alert('Please select a Location and complete the date range to proceed.');
+            if (!subLocationId || !fromDate || !toDate) {
+                alert('Please select a Sub Location and complete the date range to proceed.');
                 return;
             }
 
@@ -792,7 +792,7 @@
             document.getElementById('resultsSection').classList.remove('flex');
 
             const fd = new FormData();
-            fd.append('lane_id', laneId);
+            fd.append('sub_location_id', subLocationId);
             fd.append('from_date', fromDate);
             fd.append('to_date', toDate);
 
@@ -1000,4 +1000,4 @@
             document.getElementById('detailModal').classList.add('hidden');
         }
     </script>
-</body>
+</body>
