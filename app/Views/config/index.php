@@ -4501,11 +4501,309 @@
                                 <h4 class="font-medium text-sm text-gray-800 dark:text-white mb-2">Dashboard</h4>
                                 <div class="ml-4 space-y-2">
                                     <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                                        <input type="checkbox" name="access[dashboard][view]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> View
+                                        <input type="checkbox" name="access[dashboard][main_menu]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Main Menu
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[dashboard][visitor_pass]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Visitor Pass
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[dashboard][emergency]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Emergency
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[dashboard][vehicle]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Vehicle
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[dashboard][vendor_pass]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Vendor Pass
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[dashboard][gate_monitoring]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Gate Monitoring
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[dashboard][student]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Student
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[dashboard][visitor_dashboard]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Visitor Dashboard
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[dashboard][security_dashboard]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Security Dashboard
                                     </label>
                                 </div>
                             </div>
                             
+                            <!-- Mobile App -->
+                            <div>
+                                <h4 class="font-medium text-sm text-gray-800 dark:text-white mb-2">Mobile App</h4>
+                                <div class="ml-4 space-y-2">
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[mobile_app][login]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Login
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Vendor Pass -->
+                            <div class="col-span-1 sm:col-span-2 lg:col-span-3 mt-4">
+                                <h4 class="font-medium text-sm text-gray-800 dark:text-white mb-4 border-b border-gray-200 dark:border-slate-700 pb-2">Vendor Pass</h4>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-4 gap-x-6 ml-4">
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vendor_pass][my_pass]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> My Pass
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vendor_pass][staff]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Staff
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vendor_pass][student]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Student
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vendor_pass][visitor_pass_invitation_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Visitor Pass Invitation List
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vendor_pass][visitor_pass_request_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Visitor Pass Request List
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vendor_pass][visitor_pass_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Visitor Pass List
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vendor_pass][request_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Vendor Pass Request List
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vendor_pass][reject_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Vendor Pass Reject List
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vendor_pass][approved_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Vendor Pass Approved List
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vendor_pass][urine_test]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Vendor Pass Urine Test
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vendor_pass][suspend_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Vendor Pass Suspend List
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vendor_pass][process_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Vendor Pass Process List
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vendor_pass][issuance_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Vendor Pass Issuance List
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vendor_pass][closed_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Vendor Pass Closed List
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vendor_pass][vendor_pass_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Vendor Pass List
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vendor_pass][search]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Search Vendor Pass
+                                    </label>
+                                    <div class="ml-6 space-y-2 col-span-1 sm:col-span-2 lg:col-span-3">
+                                        <label class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                                            <input type="checkbox" name="access[vendor_pass][developer_tools]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Developer Tools
+                                        </label>
+                                    </div>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vendor_pass][hse_training_calendar]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> HSE & Security Training Calendar
+                                    </label>
+                                    <div class="ml-6 space-y-2 col-span-1 sm:col-span-2 lg:col-span-3">
+                                        <label class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                                            <input type="checkbox" name="access[vendor_pass][edit_training]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Edit Training
+                                        </label>
+                                        <label class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                                            <input type="checkbox" name="access[vendor_pass][mark_attendance]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Mark Attendance
+                                        </label>
+                                        <label class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                                            <input type="checkbox" name="access[vendor_pass][delete_training]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Delete Training
+                                        </label>
+                                    </div>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vendor_pass][online_training]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Online Training
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vendor_pass][change_company]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Change Company
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Blacklist -->
+                            <div class="col-span-1 sm:col-span-2 lg:col-span-3 mt-4">
+                                <h4 class="font-medium text-sm text-gray-800 dark:text-white mb-4 border-b border-gray-200 dark:border-slate-700 pb-2">Blacklist</h4>
+                                <div class="ml-4 space-y-2">
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[blacklist][individual_request_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Blacklist Individual Request List
+                                    </label>
+                                    <div class="ml-6 space-y-2">
+                                        <label class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                                            <input type="checkbox" name="access[blacklist][approval_for_release]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Approval for Release
+                                        </label>
+                                    </div>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[blacklist][individual_closed_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Blacklist Individual Closed List
+                                    </label>
+                                    <div class="ml-6 space-y-2">
+                                        <label class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                                            <input type="checkbox" name="access[blacklist][request_for_release]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Request for Release
+                                        </label>
+                                    </div>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[blacklist][company_request_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Blacklist Company Request List
+                                    </label>
+                                    <div class="ml-6 space-y-2">
+                                        <label class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                                            <input type="checkbox" name="access[blacklist][approval_for_entry_release]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Approval for Entry & Release
+                                        </label>
+                                    </div>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[blacklist][company_closed_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Blacklist Company Closed List
+                                    </label>
+                                    <div class="ml-6 space-y-2">
+                                        <label class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                                            <input type="checkbox" name="access[blacklist][company_request_for_release]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Request for Release
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Vehicle -->
+                            <div class="col-span-1 sm:col-span-2 lg:col-span-3 mt-4">
+                                <h4 class="font-medium text-sm text-gray-800 dark:text-white mb-4 border-b border-gray-200 dark:border-slate-700 pb-2">Vehicle</h4>
+                                <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider ml-4 mb-2 mt-3">Public</p>
+                                <div class="ml-4 space-y-2">
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vehicle][my_vehicle_pass]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> My Vehicle Pass
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vehicle][my_vehicle_daily_pass]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> My Vehicle Daily Pass
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vehicle][daily_pass_request_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Daily Pass Request List
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vehicle][daily_pass_reject_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Daily Pass Reject List
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vehicle][daily_pass_closed_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Daily Pass Closed List
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vehicle][staff_vehicle_pass]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Staff Vehicle Pass
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vehicle][new_staff_request]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> New Staff Request
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vehicle][public_reject_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Reject List
+                                    </label>
+                                    <div class="ml-6 space-y-2">
+                                        <label class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                                            <input type="checkbox" name="access[vehicle][public_reject_delete]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Delete Application
+                                        </label>
+                                    </div>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vehicle][public_request_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Request List
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vehicle][public_approved_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Approved List
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vehicle][public_closed_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Closed List
+                                    </label>
+                                    <div class="ml-6 space-y-2">
+                                        <label class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                                            <input type="checkbox" name="access[vehicle][public_closed_delete]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Delete Application
+                                        </label>
+                                    </div>
+                                </div>
+                                <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider ml-4 mb-2 mt-4">Cargo | Non-Cargo</p>
+                                <div class="ml-4 space-y-2">
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vehicle][cargo_my_vehicle_pass]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> My Vehicle Pass
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vehicle][cargo_reject_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Reject List
+                                    </label>
+                                    <div class="ml-6 space-y-2">
+                                        <label class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                                            <input type="checkbox" name="access[vehicle][cargo_reject_delete]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Delete Application
+                                        </label>
+                                    </div>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vehicle][cargo_request_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Request List
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vehicle][cargo_approved_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Approved List
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vehicle][cargo_closed_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Closed List
+                                    </label>
+                                    <div class="ml-6 space-y-2">
+                                        <label class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                                            <input type="checkbox" name="access[vehicle][cargo_closed_delete]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Delete Application
+                                        </label>
+                                    </div>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vehicle][transfer_ownership]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Transfer Ownership
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Monitoring -->
+                            <div class="col-span-1 sm:col-span-2 lg:col-span-3 mt-4">
+                                <h4 class="font-medium text-sm text-gray-800 dark:text-white mb-4 border-b border-gray-200 dark:border-slate-700 pb-2">Monitoring</h4>
+                                <div class="ml-4 space-y-2">
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[monitoring][gate_in_out]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Gate In / Out
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[monitoring][on_hold_reject]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> On Hold / Reject Gate In / Out
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[monitoring][monitoring]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Monitoring
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Attendance -->
+                            <div>
+                                <h4 class="font-medium text-sm text-gray-800 dark:text-white mb-2">Attendance</h4>
+                                <div class="ml-4 space-y-2">
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[attendance][staff_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Staff List
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[attendance][vendor_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Vendor List
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[attendance][student_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Student List
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Worker KPI -->
+                            <div>
+                                <h4 class="font-medium text-sm text-gray-800 dark:text-white mb-2">Worker KPI</h4>
+                                <div class="ml-4 space-y-2">
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[worker_kpi][worker_registration]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Worker Registration
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[worker_kpi][request_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Request List
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[worker_kpi][closed_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Closed List
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[worker_kpi][zone]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Zone
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[worker_kpi][camera]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Camera
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[worker_kpi][url_setup]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> URL Setup
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[worker_kpi][project]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Project
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[worker_kpi][worker_project]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Worker Project
+                                    </label>
+                                </div>
+                            </div>
+
                             <!-- Visitor Pass List -->
                             <div>
                                 <h4 class="font-medium text-sm text-gray-800 dark:text-white mb-2">Visitor Pass List</h4>
@@ -4542,31 +4840,71 @@
                                 </div>
                             </div>
 
-                            <!-- Blacklist -->
-                            <div>
-                                <h4 class="font-medium text-sm text-gray-800 dark:text-white mb-2">Blacklist</h4>
-                                <div class="ml-4 space-y-2">
-                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                                        <input type="checkbox" name="access[blacklist][request_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Request List
-                                    </label>
-                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                                        <input type="checkbox" name="access[blacklist][closed_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Closed List
-                                    </label>
-                                </div>
-                            </div>
-
                             <!-- Report -->
-                            <div>
-                                <h4 class="font-medium text-sm text-gray-800 dark:text-white mb-2">Report</h4>
+                            <div class="col-span-1 sm:col-span-2 lg:col-span-3 mt-4">
+                                <h4 class="font-medium text-sm text-gray-800 dark:text-white mb-4 border-b border-gray-200 dark:border-slate-700 pb-2">Report</h4>
                                 <div class="ml-4 space-y-2">
                                     <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                                        <input type="checkbox" name="access[report][access_report]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Access Report
+                                        <input type="checkbox" name="access[report][gate_in_out]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Gate In / Out
+                                    </label>
+                                    <div class="ml-6 space-y-2">
+                                        <label class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                                            <input type="checkbox" name="access[report][gate_in_out_export]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Export Excel
+                                        </label>
+                                        <label class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                                            <input type="checkbox" name="access[report][delete_gate_in]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Delete Gate In
+                                        </label>
+                                    </div>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[report][out_window_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Out Window List
+                                    </label>
+                                    <div class="ml-6 space-y-2">
+                                        <label class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                                            <input type="checkbox" name="access[report][out_window_export]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Export Excel
+                                        </label>
+                                    </div>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[report][port_pass_monthly]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Port Pass Monthly Report
+                                    </label>
+                                    <div class="ml-6 space-y-2">
+                                        <label class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                                            <input type="checkbox" name="access[report][port_pass_monthly_generate]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Generate Report
+                                        </label>
+                                    </div>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[report][port_pass_summary]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Port Pass Summary Report
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[report][company_permit_ageing]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Company Permit Ageing Report
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[report][company_permit_monthly]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Company Permit Monthly Report
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[report][vehicle_sticker_summary]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Vehicle Sticker Summary Report
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[report][blacklist_report]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Blacklist Report
+                                    </label>
+                                    <div class="ml-6 space-y-2">
+                                        <label class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                                            <input type="checkbox" name="access[report][blacklist_report_export]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Export Excel
+                                        </label>
+                                    </div>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[report][attendance_report]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Attendance Report
                                     </label>
                                     <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                                         <input type="checkbox" name="access[report][visitor_report]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Visitor Report
                                     </label>
                                     <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                                        <input type="checkbox" name="access[report][visitor_chronology]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Visitor Chronology
+                                        <input type="checkbox" name="access[report][monitoring_report]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Monitoring Report
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[report][access_report]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Access Report
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[report][visitor_chronology]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Visitor Detail & Chronology
                                     </label>
                                     <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                                         <input type="checkbox" name="access[report][visitor_info_by_door]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Visitor Info By Door
@@ -5693,6 +6031,18 @@
                         try {
                             if (data.data.access) {
                                 const accessData = JSON.parse(data.data.access);
+                                // Migrate legacy keys
+                                if (accessData.dashboard && accessData.dashboard.view && !accessData.dashboard.main_menu) {
+                                    accessData.dashboard.main_menu = true;
+                                }
+                                if (accessData.blacklist) {
+                                    if (accessData.blacklist.request_list && !accessData.blacklist.individual_request_list) {
+                                        accessData.blacklist.individual_request_list = true;
+                                    }
+                                    if (accessData.blacklist.closed_list && !accessData.blacklist.individual_closed_list) {
+                                        accessData.blacklist.individual_closed_list = true;
+                                    }
+                                }
                                 Object.keys(accessData).forEach(module => {
                                     Object.keys(accessData[module]).forEach(action => {
                                         if (accessData[module][action]) {
@@ -5786,8 +6136,9 @@
                 .then(data => {
                     if (data.success) {
                         closeRoleModal();
-                        loadRoles(currentPage, currentSearch);
                         showNotification(data.message, 'success');
+                        // Reload page so sidebar reflects new permissions
+                        setTimeout(() => location.reload(), 500);
                     } else {
                         if (data.errors) {
                             Object.keys(data.errors).forEach(field => {

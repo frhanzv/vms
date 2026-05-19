@@ -1,13 +1,16 @@
 <?php
 helper('access');
 $current     = service('uri')->getPath();
-$role        = session()->get('role');
-$can         = fn(array $roles) => in_array($role, $roles);
 $isDashboard = ($current === '' || $current === 'dashboard');
 $isStaff     = str_contains($current, 'staffs') || str_contains($current, 'staff-pass-request');
 $isWorkflow  = str_contains($current, 'workflow');
 $isConfig    = str_contains($current, 'config');
 $isSettings  = str_contains($current, 'settings');
+
+$hasVisitorPassAccess = has_access('visitor_pass_list', 'invitations') || has_access('visitor_pass_list', 'request_list') || has_access('visitor_pass_list', 'visitors_list');
+$hasBlacklistAccess   = has_access('blacklist', 'request_list') || has_access('blacklist', 'closed_list') || has_access('blacklist', 'individual_request_list') || has_access('blacklist', 'individual_closed_list') || has_access('blacklist', 'company_request_list') || has_access('blacklist', 'company_closed_list');
+$hasReportAccess      = has_access('report', 'access_report') || has_access('report', 'visitor_report') || has_access('report', 'visitor_chronology') || has_access('report', 'visitor_info_by_door') || has_access('report', 'gate_in_out') || has_access('report', 'out_window_list') || has_access('report', 'port_pass_monthly') || has_access('report', 'port_pass_summary') || has_access('report', 'company_permit_ageing') || has_access('report', 'company_permit_monthly') || has_access('report', 'vehicle_sticker_summary') || has_access('report', 'blacklist_report') || has_access('report', 'attendance_report') || has_access('report', 'monitoring_report');
+$hasConfigAccess      = has_access('config', 'view') || has_access('config', 'alert_priority') || has_access('config', 'api_management') || has_access('config', 'general_settings') || has_access('config', 'application_settings') || has_access('config', 'role_management') || has_access('config', 'user_management') || has_access('config', 'company');
 ?>
 
 <aside class="w-64 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col p-4 hidden md:flex h-full overflow-hidden">
@@ -20,13 +23,16 @@ $isSettings  = str_contains($current, 'settings');
         </div>
         <nav class="flex flex-col gap-2 overflow-y-auto pr-1 custom-scrollbar">
 
-            <!-- Dashboard — all roles -->
+            <!-- Dashboard -->
+            <?php if (has_access('dashboard', 'main_menu')): ?>
             <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?= $isDashboard ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white' ?> transition-colors group" href="<?= base_url('dashboard') ?>">
                 <span class="material-symbols-outlined text-[22px] <?= $isDashboard ? 'font-medium fill-1' : '' ?> group-hover:scale-110 transition-transform">dashboard</span>
                 <p class="text-sm <?= $isDashboard ? 'font-semibold' : 'font-medium' ?>">Dashboard</p>
             </a>
+            <?php endif; ?>
 
-            <!-- Visitor Pass List — all roles (sub-items vary) -->
+            <!-- Visitor Pass List -->
+            <?php if ($hasVisitorPassAccess): ?>
             <div x-data="{ openVisitorPass: <?= (str_contains($current, 'invitations') || str_contains($current, 'requests') || str_contains($current, 'visitors')) ? 'true' : 'false' ?> }">
                 <button type="button" @click="openVisitorPass = !openVisitorPass"
                     class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= (str_contains($current, 'invitations') || str_contains($current, 'requests') || str_contains($current, 'visitors')) ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
@@ -44,21 +50,21 @@ $isSettings  = str_contains($current, 'settings');
                     x-transition:leave-start="opacity-100 translate-y-0"
                     x-transition:leave-end="opacity-0 -translate-y-1"
                     class="ml-4 mt-1 flex flex-col gap-1">
-                    <?php if (client_feature_enabled('invitations') && $can(['superadmin', 'clientsuperadmin', 'officer', 'host'])): ?>
+                    <?php if (client_feature_enabled('invitations') && has_access('visitor_pass_list', 'invitations')): ?>
                     <a href="<?= base_url('invitations') ?>"
                         class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= str_contains($current, 'invitations') ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
                         <span class="w-1.5 h-1.5 rounded-full <?= str_contains($current, 'invitations') ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
                         Invitations
                     </a>
                     <?php endif; ?>
-                    <?php if ($can(['superadmin', 'clientsuperadmin', 'admin', 'host'])): ?>
+                    <?php if (has_access('visitor_pass_list', 'request_list')): ?>
                     <a href="<?= base_url('requests') ?>"
                         class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= str_contains($current, 'requests') ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
                         <span class="w-1.5 h-1.5 rounded-full <?= str_contains($current, 'requests') ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
                         Request List
                     </a>
                     <?php endif; ?>
-                    <?php if ($can(['superadmin', 'clientsuperadmin', 'officer', 'host'])): ?>
+                    <?php if (has_access('visitor_pass_list', 'visitors_list')): ?>
                     <a href="<?= base_url('visitors') ?>"
                         class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= str_contains($current, 'visitors') ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
                         <span class="w-1.5 h-1.5 rounded-full <?= str_contains($current, 'visitors') ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
@@ -67,24 +73,25 @@ $isSettings  = str_contains($current, 'settings');
                     <?php endif; ?>
                 </div>
             </div>
+            <?php endif; ?>
 
-            <!-- Staff Pass — superadmin, clientsuperadmin, admin, officer -->
-            <?php if (client_feature_enabled('staff_pass') && $can(['superadmin', 'clientsuperadmin', 'admin', 'officer'])): ?>
+            <!-- Staff Pass List -->
+            <?php if (client_feature_enabled('staff_pass') && has_access('staff_pass_list', 'view')): ?>
             <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?= $isStaff ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white' ?> transition-colors group" href="<?= base_url('staffs') ?>">
                 <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">badge</span>
                 <p class="text-sm <?= $isStaff ? 'font-semibold' : 'font-medium' ?>">Staff Pass List</p>
             </a>
             <?php endif; ?>
 
-            <!-- Visitor Workflow — superadmin, clientsuperadmin, officer -->
-            <?php if ($can(['superadmin', 'clientsuperadmin', 'officer'])): ?>
+            <!-- Visitor Workflow -->
+            <?php if (has_access('visitor_workflow', 'view')): ?>
             <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?= $isWorkflow ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white' ?> transition-colors group" href="<?= base_url('workflow') ?>">
                 <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">account_tree</span>
                 <p class="text-sm <?= $isWorkflow ? 'font-semibold' : 'font-medium' ?>">Visitor Workflow</p>
             </a>
             <?php endif; ?>
 
-            <!-- Blacklist — superadmin, clientsuperadmin, officer -->
+            <!-- Blacklist -->
             <?php
                 $_blCompanyId = (int) (
                     session()->get('company_id')
@@ -93,7 +100,7 @@ $isSettings  = str_contains($current, 'settings');
                 $_blEnabled = session()->get('role') === 'superadmin'
                     || (new \App\Models\ClientFeatureModel())->isEnabled($_blCompanyId, 'blacklist');
             ?>
-            <?php if ($can(['superadmin', 'clientsuperadmin', 'officer']) && $_blEnabled): ?>
+            <?php if ($hasBlacklistAccess && $_blEnabled): ?>
             <div x-data="{ openBlacklist: <?= str_contains($current, 'blacklist') ? 'true' : 'false' ?>, openIndividual: <?= str_contains($current, 'blacklist') ? 'true' : 'false' ?> }">
                 <button type="button" @click="openBlacklist = !openBlacklist"
                     class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= str_contains($current, 'blacklist') ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
@@ -127,23 +134,27 @@ $isSettings  = str_contains($current, 'settings');
                         x-transition:leave-start="opacity-100 translate-y-0"
                         x-transition:leave-end="opacity-0 -translate-y-1"
                         class="ml-4 mt-1 flex flex-col gap-1">
+                        <?php if (has_access('blacklist', 'individual_request_list') || has_access('blacklist', 'request_list')): ?>
                         <a href="<?= base_url('blacklist/blacklistrequest') ?>"
                             class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'blacklist/blacklistrequest' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
                             <span class="w-1.5 h-1.5 rounded-full <?= $current == 'blacklist/blacklistrequest' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
                             Request List
                         </a>
+                        <?php endif; ?>
+                        <?php if (has_access('blacklist', 'individual_closed_list') || has_access('blacklist', 'closed_list')): ?>
                         <a href="<?= base_url('blacklist/closedlist') ?>"
                             class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'blacklist/closedlist' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
                             <span class="w-1.5 h-1.5 rounded-full <?= $current == 'blacklist/closedlist' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
                             Closed List
                         </a>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
             <?php endif; ?>
 
-            <!-- Report — superadmin, clientsuperadmin, admin, officer -->
-            <?php if ($can(['superadmin', 'clientsuperadmin', 'admin', 'officer'])): ?>
+            <!-- Report -->
+            <?php if ($hasReportAccess): ?>
             <div x-data="{ openReport: <?= str_contains($current, 'report') ? 'true' : 'false' ?> }">
                 <button type="button" @click="openReport = !openReport"
                     class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= str_contains($current, 'report') ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
@@ -161,32 +172,40 @@ $isSettings  = str_contains($current, 'settings');
                     x-transition:leave-start="opacity-100 translate-y-0"
                     x-transition:leave-end="opacity-0 -translate-y-1"
                     class="ml-4 mt-1 flex flex-col gap-1">
+                    <?php if (has_access('report', 'access_report')): ?>
                     <a href="<?= base_url('report/access') ?>"
                         class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'report/access' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
                         <span class="w-1.5 h-1.5 rounded-full <?= $current == 'report/access' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
                         Access Report
                     </a>
+                    <?php endif; ?>
+                    <?php if (has_access('report', 'visitor_report')): ?>
                     <a href="<?= base_url('report/visitor') ?>"
                         class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'report/visitor' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
                         <span class="w-1.5 h-1.5 rounded-full <?= $current == 'report/visitor' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
                         Visitor Report
                     </a>
+                    <?php endif; ?>
+                    <?php if (has_access('report', 'visitor_chronology')): ?>
                     <a href="<?= base_url('report/chronology') ?>"
                         class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= str_contains($current, 'report/chronology') ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
                         <span class="w-1.5 h-1.5 rounded-full <?= str_contains($current, 'report/chronology') ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
                         Visitor Chronology
                     </a>
+                    <?php endif; ?>
+                    <?php if (has_access('report', 'visitor_info_by_door')): ?>
                     <a href="<?= base_url('report/bydoor') ?>"
                         class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= str_contains($current, 'report/bydoor') ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
                         <span class="w-1.5 h-1.5 rounded-full <?= str_contains($current, 'report/bydoor') ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
                         Visitor Info By Door
                     </a>
+                    <?php endif; ?>
                 </div>
             </div>
             <?php endif; ?>
 
             <!-- Config -->
-            <?php if (has_access('config', 'view')): ?>
+            <?php if ($hasConfigAccess): ?>
             <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?= $isConfig ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white' ?> transition-colors group" href="<?= base_url('config') ?>">
                 <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">tune</span>
                 <p class="text-sm <?= $isConfig ? 'font-semibold' : 'font-medium' ?>">Config</p>
