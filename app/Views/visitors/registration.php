@@ -736,7 +736,6 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
                 </section>
                 <?php endif; ?>
 
-                <?php if ($isFieldEnabled('company_details_section')): ?>
                 <!-- Company Details -->
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8">
                     <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
@@ -753,13 +752,14 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Company Name</label>
                             <input name="company_name" value="<?= esc($prefillData['company'] ?? '') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
                         </div>
+                        <?php if ($isFieldEnabled('company_reg_id')): ?>
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Company Registration ID</label>
                             <input name="company_reg_id" value="<?= esc($prefillData['registration_no'] ?? '') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
                         </div>
+                        <?php endif; ?>
                     </div>
                 </section>
-                <?php endif; ?>
 
                 <?php if ($isFieldEnabled('asset_equipment_section')): ?>
                 <!-- Asset/Equipment Details Section -->

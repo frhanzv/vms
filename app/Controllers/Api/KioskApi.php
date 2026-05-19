@@ -522,12 +522,13 @@ class KioskApi extends BaseController
         ]);
 
         // Log the card check-in assignment
-        $logModel = new VisitorCardLogModel();
-        $logModel->insert([
-            'visitor_card_id' => $card['id'],
-            'invitation_id'   => $invitationId,
+        $db = \Config\Database::connect();
+        $db->table('visitor_card_logs')->insert([
+            'visitor_card_id' => (int) $card['id'],
+            'invitation_id'   => (int) $invitationId,
             'action'          => 'checkin',
             'scanned_at'      => date('Y-m-d H:i:s'),
+            'created_at'      => date('Y-m-d H:i:s'),
         ]);
 
         // Insert into invitation_visitors so visitor appears in Visitors List
@@ -583,7 +584,11 @@ class KioskApi extends BaseController
     public function uploadVendorPassPhotoMobile(): \CodeIgniter\HTTP\Response
     {
         // Accept invitationId from POST body param (Android addBodyParameter)
-        $body         = $this->request->getJSON(true) ?? [];
+        try {
+            $body = $this->request->getJSON(true) ?? [];
+        } catch (\Throwable $e) {
+            $body = [];
+        }
         $invitationId = (int) (
             $this->request->getPost('invitationId')
             ?? $this->request->getPost('invitation_id')
@@ -740,17 +745,17 @@ class KioskApi extends BaseController
         // Accept GET param OR POST body (Android sends POST with "username" key)
         $keyword = trim(
             $this->request->getGet('keyword')
-            ?? $this->request->getGet('staffNo')
-            ?? $this->request->getPost('username')
-            ?? ($this->request->getJSON(true)['username'] ?? '')
+                ?? $this->request->getGet('staffNo')
+                ?? $this->request->getPost('username')
+                ?? ($this->request->getJSON(true)['username'] ?? '')
         );
 
         // Flow flag — sent by Android to indicate which flow called this
         // Values: "invitation", "collect_card", "walk_in"
         $flow = trim(
             $this->request->getGet('flow')
-            ?? $this->request->getPost('flow')
-            ?? ($this->request->getJSON(true)['flow'] ?? '')
+                ?? $this->request->getPost('flow')
+                ?? ($this->request->getJSON(true)['flow'] ?? '')
         );
 
         if ($keyword === '') {
@@ -816,6 +821,8 @@ class KioskApi extends BaseController
      * Compatible with the AES-256-CBC encryption used in the VMS QR workflow.
      * The secret key is read from the setting key "qr_encryption_key" or
      * falls back to the CI4 encryption key.
+     *
+     * Also handles plain text card QR codes (no encryption) — returns as-is.
      */
     public function decrypt(): \CodeIgniter\HTTP\Response
     {
@@ -834,27 +841,28 @@ class KioskApi extends BaseController
 
             if ($key) {
                 // AES-256-CBC with base64 payload
-                $decoded = base64_decode($encrypted);
-                $iv      = substr($decoded, 0, 16);
-                $cipher  = substr($decoded, 16);
-                $plain   = openssl_decrypt($cipher, 'AES-256-CBC', $key, OPENSSL_RAW_DATA, $iv);
+                $decoded = base64_decode($encrypted, true);
+                if ($decoded !== false && strlen($decoded) > 16) {
+                    $iv     = substr($decoded, 0, 16);
+                    $cipher = substr($decoded, 16);
+                    $plain  = openssl_decrypt($cipher, 'AES-256-CBC', $key, OPENSSL_RAW_DATA, $iv);
 
-                if ($plain !== false) {
-                    // Return "data" key — Android reads response.optString("data", "")
-                    return $this->respond(['status' => 'success', 'data' => $plain]);
+                    if ($plain !== false && $plain !== '') {
+                        // Return "data" key — Android reads response.optString("data", "")
+                        log_message('debug', 'KioskApi::decrypt encrypted=' . $encrypted . ' result=' . $plain);
+                        return $this->respond(['status' => 'success', 'data' => $plain]);
+                    }
                 }
             }
 
-            // Fallback: treat as plain JSON / token
-            $decoded = base64_decode($encrypted, true);
-            if ($decoded !== false) {
-                return $this->respond(['status' => 'success', 'data' => $decoded]);
-            }
-
+            // No encryption key or decryption failed
+            // Return original value as-is — handles plain text card QR (e.g. "VC-008")
+            log_message('debug', 'KioskApi::decrypt no encryption — returning as-is: ' . $encrypted);
             return $this->respond(['status' => 'success', 'data' => $encrypted]);
         } catch (\Throwable $e) {
             log_message('error', 'KioskApi::decrypt error: ' . $e->getMessage());
-            return $this->failServerError('Decryption failed');
+            // Even on exception — return original value so card scan still works
+            return $this->respond(['status' => 'success', 'data' => $encrypted]);
         }
     }
 
