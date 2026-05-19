@@ -18,6 +18,7 @@ if (!function_exists('_migrate_legacy_access')) {
 if (!function_exists('has_access')) {
     /**
      * Check if the currently logged-in user has access to a specific module and action.
+     * If a role has no permissions configured yet (empty access column), defaults to full access.
      * 
      * @param string $module The module key (e.g., 'dashboard', 'settings', 'visitor_pass_list')
      * @param string $action The action key (e.g., 'view', 'create', 'invitations')
@@ -26,6 +27,7 @@ if (!function_exists('has_access')) {
     function has_access($module, $action = 'view')
     {
         static $loadedData = null;
+        static $grantAll = false;
 
         $roleName = session()->get('role');
         if (!$roleName) {
@@ -33,12 +35,15 @@ if (!function_exists('has_access')) {
         }
 
         if ($loadedData !== null) {
+            if ($grantAll) {
+                return true;
+            }
             return isset($loadedData[$module][$action]) && $loadedData[$module][$action] === true;
         }
 
         $roleKey = strtolower(str_replace([' ', '_', '-'], '', $roleName));
         $cached = session()->get('role_access_cache');
-        $cacheTTL = 60; // seconds — cache expires after this, forces fresh DB read
+        $cacheTTL = 60;
 
         $cacheValid = is_array($cached)
             && isset($cached['_role']) && $cached['_role'] === $roleKey
@@ -46,6 +51,10 @@ if (!function_exists('has_access')) {
 
         if ($cacheValid) {
             $loadedData = $cached['_data'] ?? [];
+            $grantAll = !empty($cached['_grant_all']);
+            if ($grantAll) {
+                return true;
+            }
             _migrate_legacy_access($loadedData);
             return isset($loadedData[$module][$action]) && $loadedData[$module][$action] === true;
         }
@@ -69,17 +78,30 @@ if (!function_exists('has_access')) {
         }
 
         if ($role && !empty($role['access'])) {
-            $loadedData = json_decode($role['access'], true) ?? [];
-            _migrate_legacy_access($loadedData);
+            $decoded = json_decode($role['access'], true);
+            if (!empty($decoded)) {
+                $loadedData = $decoded;
+                $grantAll = false;
+                _migrate_legacy_access($loadedData);
+            } else {
+                $loadedData = [];
+                $grantAll = true;
+            }
         } else {
             $loadedData = [];
+            $grantAll = true;
         }
 
         session()->set('role_access_cache', [
             '_role' => $roleKey,
             '_data' => $loadedData,
+            '_grant_all' => $grantAll,
             '_time' => time(),
         ]);
+
+        if ($grantAll) {
+            return true;
+        }
 
         return isset($loadedData[$module][$action]) && $loadedData[$module][$action] === true;
     }
