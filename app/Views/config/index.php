@@ -5215,10 +5215,10 @@
                         </div>
 
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Select Location <span class="text-red-500">*</span></label>
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Select Sub Location <span class="text-red-500">*</span></label>
                             <select id="daLocation" name="location_id" required
                                 class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none">
-                                <option value="">-- Select Location --</option>
+                                <option value="">-- Select Sub Location --</option>
                             </select>
                         </div>
 
@@ -13833,25 +13833,17 @@
             return fetch('<?= base_url('config/getDeviceAssignmentFormOptions') ?>')
                 .then(res => res.json())
                 .then(data => {
-                    if (!data.success || !data.data || !Array.isArray(data.data.lanes)) {
+                    if (!data.success || !data.data || !Array.isArray(data.data.sub_locations)) {
                         return;
                     }
-                    const lanes = [...data.data.lanes].sort(compareLanesNatural);
+                    const subLocations = data.data.sub_locations;
                     const devices = Array.isArray(data.data.devices) ? data.data.devices : [];
 
-                    const laneTitle = (lane) => (lane.lane || '').trim() || ('Lane #' + lane.id);
-                    const titleCounts = {};
-                    lanes.forEach((lane) => {
-                        const t = laneTitle(lane);
-                        titleCounts[t] = (titleCounts[t] || 0) + 1;
-                    });
-
                     const locSelect = document.getElementById('daLocation');
-                    locSelect.innerHTML = '<option value="">-- Select Location --</option>' +
-                        lanes.map((lane) => {
-                            const t = laneTitle(lane);
-                            const label = titleCounts[t] > 1 ? `${t} (#${lane.id})` : t;
-                            return `<option value="${lane.id}">${escapeHtml(label)}</option>`;
+                    locSelect.innerHTML = '<option value="">-- Select Sub Location --</option>' +
+                        subLocations.map((sl) => {
+                            const label = sl.name + (sl.location_access ? ` (${sl.location_access})` : '');
+                            return `<option value="${sl.id}">${escapeHtml(label)}</option>`;
                         }).join('');
 
                     const devParts = ['<option value="">-- Select Device --</option>'];
