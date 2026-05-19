@@ -2,24 +2,24 @@
 
 namespace App\Controllers;
 
-use App\Models\LaneModel;
+use App\Models\SubLocationModel;
 
 class AccessReport extends BaseController
 {
-    protected $laneModel;
+    protected $subLocationModel;
 
     public function __construct()
     {
-        $this->laneModel = new LaneModel();
+        $this->subLocationModel = new SubLocationModel();
     }
 
     public function index()
     {
-        $lanes = $this->laneModel->where('status', 'active')->orderBy('id', 'ASC')->findAll();
+        $subLocations = $this->subLocationModel->getAllActive();
 
         $data = [
-            'pageTitle' => 'Access Report - SafeG',
-            'lanes' => $lanes,
+            'pageTitle'    => 'Access Report - SafeG',
+            'subLocations' => $subLocations,
         ];
 
         return view('reports/access_report', $data);
@@ -27,41 +27,52 @@ class AccessReport extends BaseController
 
     public function generate()
     {
-        $fromDatetime = $this->request->getPost('from_datetime');
-        $toDatetime   = $this->request->getPost('to_datetime');
-        $laneIds  = $this->request->getPost('lane_ids');  // array from multi-select
+        $fromDatetime   = $this->request->getPost('from_datetime');
+        $toDatetime     = $this->request->getPost('to_datetime');
+        $subLocationIds = $this->request->getPost('sub_location_ids');  // array from multi-select
 
-        // Normalise: accept single location_id for backward compat
-        if (empty($laneIds)) {
-            $single = $this->request->getPost('lane_id');
-            $laneIds = $single ? [$single] : [];
+        // Normalise: accept single sub_location_id for backward compat
+        if (empty($subLocationIds)) {
+            $single         = $this->request->getPost('sub_location_id');
+            $subLocationIds = $single ? [$single] : [];
         }
 
-        if (empty($fromDatetime) || empty($toDatetime) || empty($laneIds)) {
+        if (empty($fromDatetime) || empty($toDatetime) || empty($subLocationIds)) {
             return $this->response->setJSON(['success' => false, 'message' => 'All fields are required.']);
         }
 
         // Sanitise to integers
-        $laneIds = array_values(array_filter(array_map('intval', (array) $laneIds)));
-        if (empty($laneIds)) {
+        $subLocationIds = array_values(array_filter(array_map('intval', (array) $subLocationIds)));
+        if (empty($subLocationIds)) {
             return $this->response->setJSON(['success' => false, 'message' => 'Invalid location selection.']);
         }
 
         $db = \Config\Database::connect();
 
-        // Build location name label
-        $lanes    = $this->laneModel->whereIn('id', $laneIds)->findAll();
-        if (empty($lanes)) {
+        // Fetch selected sub-locations
+        $subLocations = $this->subLocationModel->whereIn('id', $subLocationIds)->findAll();
+        if (empty($subLocations)) {
             return $this->response->setJSON(['success' => false, 'message' => 'Location not found.']);
         }
-        $locationName = count($lanes) === 1
-            ? $lanes[0]['id'] . '. ' . $lanes[0]['lane']
-            : count($lanes) . ' Locations';
+        $locationName = count($subLocations) === 1
+            ? $subLocations[0]['id'] . '. ' . $subLocations[0]['name']
+            : count($subLocations) . ' Locations';
 
-        // Build IN placeholders
-        $placeholders = implode(',', array_fill(0, count($laneIds), '?'));
+        // Resolve the parent location_ids for the selected sub-locations,
+        // then get all lane IDs that share those location_ids.
+        $parentLocationIds  = array_values(array_unique(array_column($subLocations, 'location_id')));
+        $locPlaceholders    = implode(',', array_fill(0, count($parentLocationIds), '?'));
+        $laneRows           = $db->query(
+            "SELECT id FROM lanes WHERE location_id IN ({$locPlaceholders}) AND status = 'active'",
+            $parentLocationIds
+        )->getResultArray();
+        $laneIds = array_column($laneRows, 'id');
 
-        // We want to show visitors who have physical scan logs AND those who only have manual check-ins
+        // Build IN placeholders for lane IDs (may be empty if no lanes found)
+        $lanePlaceholders = !empty($laneIds)
+            ? implode(',', array_fill(0, count($laneIds), '?'))
+            : 'NULL';
+
         $sql = "SELECT 
                     i.id               AS invitation_id,
                     i.full_name        AS visitor_name,
@@ -83,7 +94,7 @@ class AccessReport extends BaseController
                         WHEN COALESCE(iv.check_out_time, iv.check_in_time) IS NULL THEN MAX(vcl.scanned_at)
                         ELSE GREATEST(MAX(vcl.scanned_at), COALESCE(iv.check_out_time, iv.check_in_time))
                     END AS last_access,
-                    COALESCE(NULLIF(i.location, ''), MIN(la.lane), 'N/A') AS location_name,
+                    COALESCE(MIN(sl.name), NULLIF(i.location, ''), 'N/A') AS location_name,
                     CASE 
                         WHEN COUNT(vcl.id) > 0 THEN COUNT(vcl.id)
                         WHEN iv.check_in_time IS NOT NULL THEN 1
@@ -93,8 +104,9 @@ class AccessReport extends BaseController
                 JOIN invitations i ON i.id = iv.invitation_id
                 LEFT JOIN visitor_card_logs vcl ON vcl.invitation_id = i.id
                 LEFT JOIN lanes la ON la.id = vcl.lane_id
+                LEFT JOIN sub_locations sl ON sl.location_id = la.location_id
                 WHERE (
-                    ((la.id IN ({$placeholders}) OR vcl.lane_id IS NULL) AND vcl.scanned_at >= ? AND vcl.scanned_at <= ?)
+                    ((la.id IN ({$lanePlaceholders}) OR vcl.lane_id IS NULL) AND vcl.scanned_at >= ? AND vcl.scanned_at <= ?)
                     OR
                     (vcl.id IS NULL AND iv.check_in_time >= ? AND iv.check_in_time <= ?)
                 )
@@ -113,7 +125,6 @@ class AccessReport extends BaseController
                     iv.check_out_time
                 ORDER BY first_access DESC";
 
-        // Double up parameters for the OR condition
         $params = array_merge($laneIds, [$fromDatetime, $toDatetime], [$fromDatetime, $toDatetime]);
         $rows   = $db->query($sql, $params)->getResultArray();
 
@@ -137,34 +148,34 @@ class AccessReport extends BaseController
         }
 
         return $this->response->setJSON([
-            'success'       => true,
-            'total_visitors'=> count($visitors),
-            'location_name' => $locationName,
-            'from_datetime' => date('M j, Y g:i A', strtotime($fromDatetime)),
-            'to_datetime'   => date('M j, Y g:i A', strtotime($toDatetime)),
-            'visitors'      => $visitors,
+            'success'        => true,
+            'total_visitors' => count($visitors),
+            'location_name'  => $locationName,
+            'from_datetime'  => date('M j, Y g:i A', strtotime($fromDatetime)),
+            'to_datetime'    => date('M j, Y g:i A', strtotime($toDatetime)),
+            'visitors'       => $visitors,
         ]);
     }
 
     /**
-     * Per-invitation access events for the movement history modal (same filters as the report).
+     * Per-invitation access events for the movement history modal.
      */
     public function movementHistory()
     {
-        $fromDatetime = $this->request->getPost('from_datetime');
-        $toDatetime   = $this->request->getPost('to_datetime');
-        $laneIds  = $this->request->getPost('lane_ids');
-        $invitationId = $this->request->getPost('invitation_id');
+        $fromDatetime   = $this->request->getPost('from_datetime');
+        $toDatetime     = $this->request->getPost('to_datetime');
+        $subLocationIds = $this->request->getPost('sub_location_ids');
+        $invitationId   = $this->request->getPost('invitation_id');
 
-        // Backward compat: accept single lane_id
-        if (empty($laneIds)) {
-            $single = $this->request->getPost('lane_id');
-            $laneIds = $single ? [$single] : [];
+        // Backward compat
+        if (empty($subLocationIds)) {
+            $single         = $this->request->getPost('sub_location_id');
+            $subLocationIds = $single ? [$single] : [];
         }
 
-        $laneIds = array_values(array_filter(array_map('intval', (array) $laneIds)));
+        $subLocationIds = array_values(array_filter(array_map('intval', (array) $subLocationIds)));
 
-        if (empty($fromDatetime) || empty($toDatetime) || empty($laneIds) || empty($invitationId)) {
+        if (empty($fromDatetime) || empty($toDatetime) || empty($subLocationIds) || empty($invitationId)) {
             return $this->response->setJSON(['success' => false, 'message' => 'All fields are required.']);
         }
 
@@ -183,29 +194,38 @@ class AccessReport extends BaseController
             $staffRef = (string) ($inv['full_name'] ?? 'Visitor');
         }
 
-        $placeholders = implode(',', array_fill(0, count($laneIds), '?'));
-        
-        // Include both physical scan logs and registration times (check-in/out)
+        // Resolve lane IDs from sub-location parent locations
+        $subLocations      = $this->subLocationModel->whereIn('id', $subLocationIds)->findAll();
+        $parentLocationIds = array_values(array_unique(array_column($subLocations, 'location_id')));
+        $locPlaceholders   = implode(',', array_fill(0, count($parentLocationIds), '?'));
+        $laneRows          = $db->query(
+            "SELECT id FROM lanes WHERE location_id IN ({$locPlaceholders}) AND status = 'active'",
+            $parentLocationIds
+        )->getResultArray();
+        $laneIds          = array_column($laneRows, 'id');
+        $lanePlaceholders = !empty($laneIds)
+            ? implode(',', array_fill(0, count($laneIds), '?'))
+            : 'NULL';
+
         $sql = "SELECT 
                     scanned_at, action, lane_id, lane_name, 
                     location_id, branch, location_access
                 FROM (
-                    -- Physical logs and manual logs in visitor_card_logs
                     SELECT 
                         vcl.scanned_at, vcl.action,
-                        la.id AS lane_id, la.lane AS lane_name,
+                        sl.id AS lane_id, sl.name AS lane_name,
                         loc.id AS location_id, loc.branch, loc.location_access
                     FROM visitor_card_logs vcl
                     LEFT JOIN lanes la ON la.id = vcl.lane_id
+                    LEFT JOIN sub_locations sl ON sl.location_id = la.location_id
                     LEFT JOIN locations loc ON loc.id = la.location_id
                     WHERE vcl.invitation_id = ?
-                      AND (la.id IN ({$placeholders}) OR vcl.lane_id IS NULL)
+                      AND (la.id IN ({$lanePlaceholders}) OR vcl.lane_id IS NULL)
                       AND vcl.scanned_at >= ?
                       AND vcl.scanned_at <= ?
 
                     UNION ALL
 
-                    -- Fallback to registration check-in if not in logs
                     SELECT 
                         iv.check_in_time AS scanned_at, 'checkin' AS action,
                         NULL AS lane_id, i.location AS lane_name,
@@ -224,7 +244,6 @@ class AccessReport extends BaseController
 
                     UNION ALL
 
-                    -- Fallback to registration check-out if not in logs
                     SELECT 
                         iv.check_out_time AS scanned_at, 'checkout' AS action,
                         NULL AS lane_id, i.location AS lane_name,
@@ -244,43 +263,35 @@ class AccessReport extends BaseController
                 ORDER BY scanned_at ASC";
 
         $params = array_merge(
-            [(int) $invitationId], $laneIds, [$fromDatetime, $toDatetime], // part 1
-            [(int) $invitationId], [$fromDatetime, $toDatetime],           // part 2
-            [(int) $invitationId], [$fromDatetime, $toDatetime]            // part 3
+            [(int) $invitationId], $laneIds, [$fromDatetime, $toDatetime],
+            [(int) $invitationId], [$fromDatetime, $toDatetime],
+            [(int) $invitationId], [$fromDatetime, $toDatetime]
         );
-        $rows   = $db->query($sql, $params)->getResultArray();
+        $rows = $db->query($sql, $params)->getResultArray();
 
         $movements = [];
         foreach ($rows as $row) {
-            $laneId = isset($row['lane_id']) ? (int) $row['lane_id'] : 0;
             $laneName = (string) ($row['lane_name'] ?? '');
-            $laneLabel = $laneId > 0 && $laneName !== ''
-                ? $laneId . '. ' . $laneName
-                : ($laneName !== '' ? $laneName : '—');
-            $siteParts = array_filter([(string) ($row['branch'] ?? ''), (string) ($row['location_access'] ?? '')]);
-            $siteLabel = implode(' — ', $siteParts);
-            $locationDisplay = $siteLabel !== ''
-                ? $laneLabel . ' · ' . $siteLabel
-                : $laneLabel;
+            $locationDisplay = $laneName !== '' ? $laneName : '—';
 
-            $action = strtolower((string) ($row['action'] ?? 'checkin'));
+            $action    = strtolower((string) ($row['action'] ?? 'checkin'));
             $typeLabel = $action === 'checkout' ? 'Checkout' : 'Checkin';
-            
-            $currentLocation = $action === 'checkout' ? 'Out' : $laneLabel;
-            $locationAccessed = $laneLabel;
+
+            $currentLocation  = $action === 'checkout' ? 'Out' : $locationDisplay;
+            $locationAccessed = $locationDisplay;
 
             $movements[] = [
-                'date_time' => ! empty($row['scanned_at'])
+                'date_time'         => ! empty($row['scanned_at'])
                     ? date('M j, Y g:i A', strtotime($row['scanned_at']))
                     : '—',
                 'current_location'  => $currentLocation,
                 'location_accessed' => $locationAccessed,
-                'access'          => 'Yes',
-                'access_granted'  => true,
-                'reason'          => '—',
-                'type'            => $typeLabel,
-                'action'          => 'Allowed',
-                'action_allowed'  => true,
+                'access'            => 'Yes',
+                'access_granted'    => true,
+                'reason'            => '—',
+                'type'              => $typeLabel,
+                'action'            => 'Allowed',
+                'action_allowed'    => true,
             ];
         }
 
