@@ -490,8 +490,11 @@ class Config extends BaseController
                 return $error;
             }
 
-            if (session()->get('role') === $role['name'] || strtolower(session()->get('role')) === strtolower($role['name'])) {
+            $sessionRoleNorm = strtolower(str_replace([' ', '_', '-'], '', session()->get('role') ?? ''));
+            $dbRoleNorm      = strtolower(str_replace([' ', '_', '-'], '', $role['name']));
+            if ($sessionRoleNorm === $dbRoleNorm) {
                 session()->remove('role_access_data');
+                session()->remove('role_access_cache');
             }
 
             return $this->response->setJSON([
