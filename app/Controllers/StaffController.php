@@ -104,23 +104,72 @@ class StaffController extends BaseController
         }
 
         $db       = \Config\Database::connect();
-        $inserted = 0;
-        $skipped  = 0;
         $now      = date('Y-m-d H:i:s');
+        $today    = date('d-m-Y');
+        $batchTag = 'IMP-' . date('Ymd');
+
+        $requiredFields = [
+            'full_name'      => 'Full Name',
+            'ic_passport'    => 'IC No. / Passport',
+            'resident'       => 'Resident',
+            'date_of_birth'  => 'Date of Birth',
+            'sex'            => 'Gender',
+            'staff_no'       => 'Staff No.',
+            'contact_number' => 'Contact No.',
+            'email'          => 'Email',
+        ];
+
+        // --- Validation pass: check all rows before inserting anything ---
+        $validationErrors = [];
+        foreach (array_slice($rows, 1) as $i => $row) {
+            $get = fn(string $field) => isset($fieldIndex[$field])
+                ? (trim((string) ($row[$fieldIndex[$field]] ?? '')) ?: null)
+                : null;
+
+            $rowValues = array_filter(array_map(fn($v) => trim((string) $v), $row));
+            if (empty($rowValues)) {
+                continue;
+            }
+
+            $rowNum  = $i + 2; // +1 for header, +1 for 1-based
+            $missing = [];
+            foreach ($requiredFields as $field => $label) {
+                $value = $get($field);
+                // ic_passport also accepts passport fallback
+                if ($field === 'ic_passport' && $value === null && $passportFallbackIndex !== null) {
+                    $value = trim((string) ($row[$passportFallbackIndex] ?? '')) ?: null;
+                }
+                if ($value === null) {
+                    $missing[] = $label;
+                }
+            }
+
+            if (!empty($missing)) {
+                $validationErrors[] = "Row {$rowNum}: missing " . implode(', ', $missing) . '.';
+            }
+        }
+
+        if (!empty($validationErrors)) {
+            $errorMsg = 'Import denied. Please fix the following errors and re-upload:' . "\n" . implode("\n", $validationErrors);
+            return redirect()->back()->with('error', $errorMsg);
+        }
+
+        // --- Insert pass ---
+        $inserted = 0;
+        $counter  = 1;
 
         foreach (array_slice($rows, 1) as $row) {
             $get = fn(string $field) => isset($fieldIndex[$field])
                 ? (trim((string) ($row[$fieldIndex[$field]] ?? '')) ?: null)
                 : null;
 
-            // Skip entirely blank rows
             $rowValues = array_filter(array_map(fn($v) => trim((string) $v), $row));
             if (empty($rowValues)) {
                 continue;
             }
 
             $record = [
-                'app_no'                       => $get('app_no'),
+                'app_no'                       => $get('app_no') ?? ($batchTag . '-' . str_pad($counter, 3, '0', STR_PAD_LEFT)),
                 'full_name'                    => $get('full_name'),
                 'name_on_staff_pass'           => $get('name_on_staff_pass'),
                 'ic_passport'                  => $get('ic_passport') ?? (
@@ -141,7 +190,7 @@ class StaffController extends BaseController
                 'resident'                     => $get('resident'),
                 'sub_type'                     => $get('sub_type'),
                 'type_of_application'          => $get('type_of_application'),
-                'date_of_application'          => $this->parseDate($get('date_of_application')) ?? $get('date_of_application'),
+                'date_of_application'          => $this->parseDate($get('date_of_application')) ?? $get('date_of_application') ?? $today,
                 'location_access'              => $get('location_access'),
                 'status'                       => $get('status'),
                 'suspension_period'            => $get('suspension_period'),
@@ -162,22 +211,12 @@ class StaffController extends BaseController
                 'created_at'                   => $now,
             ];
 
-            // Skip rows that have no name and no ic_passport
-            if (empty($record['full_name']) && empty($record['ic_passport'])) {
-                $skipped++;
-                continue;
-            }
-
             $db->table('staff')->insert($record);
             $inserted++;
+            $counter++;
         }
 
-        $message = "{$inserted} staff record(s) imported successfully.";
-        if ($skipped > 0) {
-            $message .= " {$skipped} row(s) skipped (missing name and IC/Passport).";
-        }
-
-        return redirect()->to(base_url('staffs'))->with('success', $message);
+        return redirect()->to(base_url('staffs'))->with('success', "{$inserted} staff record(s) imported successfully.");
     }
 
     private function parseDate(?string $value): ?string

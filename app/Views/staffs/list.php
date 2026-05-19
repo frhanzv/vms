@@ -83,9 +83,14 @@
                 </div>
             <?php endif; ?>
             <?php if (session()->getFlashdata('error')): ?>
-                <div class="mb-4 flex items-center gap-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-800 dark:text-red-300 text-sm rounded-lg px-4 py-3">
-                    <span class="material-symbols-outlined text-[20px] flex-shrink-0">error</span>
-                    <span><?= esc(session()->getFlashdata('error')) ?></span>
+                <?php $errorLines = explode("\n", session()->getFlashdata('error')); ?>
+                <div class="mb-4 flex items-start gap-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-800 dark:text-red-300 text-sm rounded-lg px-4 py-3">
+                    <span class="material-symbols-outlined text-[20px] flex-shrink-0 mt-0.5">error</span>
+                    <div>
+                        <?php foreach ($errorLines as $line): ?>
+                            <p><?= esc($line) ?></p>
+                        <?php endforeach; ?>
+                    </div>
                 </div>
             <?php endif; ?>
 
@@ -121,14 +126,12 @@
                             <th class="p-4 border-b dark:border-gray-600">Full Name</th>
                             <th class="p-4 border-b dark:border-gray-600">IC / Passport No</th>
                             <th class="p-4 border-b dark:border-gray-600">Staff No</th>
-                            <th class="p-4 border-b dark:border-gray-600">Status</th>
-                            <th class="p-4 border-b dark:border-gray-600">Remark</th>
                         </tr>
                     </thead>
                     <tbody id="staffTableBody" class="text-xs text-gray-600 dark:text-gray-300 font-medium">
                         <?php if (empty($staffList)): ?>
                         <tr>
-                            <td colspan="9" class="p-8 text-center">
+                            <td colspan="7" class="p-8 text-center">
                                 <div class="flex flex-col items-center justify-center gap-3">
                                     <div class="bg-gray-100 dark:bg-gray-800 rounded-full p-4">
                                         <span class="material-symbols-outlined text-4xl text-gray-400 dark:text-gray-500">folder_off</span>
@@ -180,8 +183,6 @@
                                 <td class="p-4 font-semibold text-gray-800 dark:text-white"><?= esc($staff['full_name']) ?></td>
                                 <td class="p-4"><?= esc($staff['ic_passport']) ?></td>
                                 <td class="p-4"><?= esc($staff['staff_no'] ?? 'N/A') ?></td>
-                                <td class="p-4"><?= esc($staff['status'] ?? 'N/A') ?></td>
-                                <td class="p-4"><?= esc($staff['remark'] ?? '-') ?></td>
                             </tr>
                             <?php endforeach; ?>
                         <?php endif; ?>
