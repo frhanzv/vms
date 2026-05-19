@@ -243,7 +243,7 @@
                             </div>
                             <div class="space-y-2">
                                 <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Birthday</label>
-                                <input value="<?= esc($staff['date_of_birth']) ?>" class="w-full h-12 rounded-lg border border-border-color dark:border-gray-700 bg-gray-100 dark:bg-background-dark text-text-main dark:text-white px-4 outline-none font-brand" type="text" readonly/>
+                                <input value="<?= $staff['date_of_birth'] ? esc(date('d-m-Y', strtotime($staff['date_of_birth']))) : '' ?>" class="w-full h-12 rounded-lg border border-border-color dark:border-gray-700 bg-gray-100 dark:bg-background-dark text-text-main dark:text-white px-4 outline-none font-brand" type="text" readonly/>
                             </div>
                         </div>
 
