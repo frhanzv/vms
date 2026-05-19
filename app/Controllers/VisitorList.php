@@ -223,6 +223,7 @@ class VisitorList extends BaseController
             'visitorTypes' => $visitorTypes,
             'showVisitorTypes' => $this->invitationsSupportVisitorType(),
             'searchTerm' => $searchTerm,
+            'cardEnabled' => client_feature_enabled('visitor_card'),
         ];
 
         return view('visitors/list', $data);
