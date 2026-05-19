@@ -57,6 +57,10 @@ class StaffController extends BaseController
             'status'               => ['status'],
             'suspension_period'    => ['suspension period', 'suspension_period'],
             'next_action'          => ['next action', 'next_action'],
+            'name_on_staff_pass'   => ['name on staff pass', 'name_on_staff_pass', 'pass name'],
+            'visa_expiry'          => ['visa expiry', 'visa_expiry', 'visa expiry date'],
+            'license_class'        => ['license class', 'license_class', 'licence class'],
+            'license_expiry'       => ['license expiry', 'license_expiry', 'licence expiry', 'license expiry date'],
             'remark'               => ['remark', 'remarks', 'notes'],
             'csp_number'           => ['csp number', 'csp_number', 'csp no'],
             'csp_expiry_date'      => ['csp expiry', 'csp_expiry_date', 'csp expiry date'],
@@ -118,12 +122,16 @@ class StaffController extends BaseController
             $record = [
                 'app_no'                       => $get('app_no'),
                 'full_name'                    => $get('full_name'),
+                'name_on_staff_pass'           => $get('name_on_staff_pass'),
                 'ic_passport'                  => $get('ic_passport') ?? (
                     $passportFallbackIndex !== null
                         ? (trim((string) ($row[$passportFallbackIndex] ?? '')) ?: null)
                         : null
                 ),
                 'staff_no'                     => $get('staff_no'),
+                'visa_expiry'                  => $this->parseDate($get('visa_expiry')),
+                'license_class'                => $get('license_class'),
+                'license_expiry'               => $this->parseDate($get('license_expiry')),
                 'date_of_birth'                => $this->parseDate($get('date_of_birth')),
                 'sex'                          => $get('sex'),
                 'contact_number'               => $get('contact_number'),
