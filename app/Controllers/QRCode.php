@@ -331,7 +331,7 @@ class QRCode extends ResourceController
                     ]);
                 }
 
-                // Per-door check-in/check-out: find the most recent door action for this visitor
+                // Per-door state: find the visitor's most recent door action
                 $lastDoorLog = $db->query(
                     'SELECT action, sub_location_id, lane_id
                      FROM visitor_card_logs
@@ -342,16 +342,24 @@ class QRCode extends ResourceController
                     [$invitation['invitation_id']]
                 )->getRowArray();
 
-                $currentDoorId = $subLocationId ?? $laneId;
+                $currentDoorId  = $subLocationId ?? $laneId;
+                $hasOpenDoor    = $lastDoorLog && $lastDoorLog['action'] === 'door_checkin';
+                $openDoorId     = $hasOpenDoor ? ($lastDoorLog['sub_location_id'] ?? $lastDoorLog['lane_id']) : null;
+                $openAtThisDoor = $hasOpenDoor && ((string) $openDoorId === (string) $currentDoorId);
 
-                if ($lastDoorLog && $lastDoorLog['action'] === 'door_checkin') {
-                    $openDoorId = $lastDoorLog['sub_location_id'] ?? $lastDoorLog['lane_id'];
-
-                    if ((string) $openDoorId === (string) $currentDoorId) {
-                        // Same door scanned again → check out
-                        $action = 'door_checkout';
-                    } else {
-                        // Different door → must check out from current door first
+                if ($laneType === 'entry') {
+                    // Entry scanner: check-in only
+                    if ($openAtThisDoor) {
+                        $db->transRollback();
+                        return $this->respond([
+                            'success'        => false,
+                            'access_granted' => false,
+                            'action'         => 'denied',
+                            'message'        => 'Already checked in here. Use the exit scanner to check out.',
+                            'qr_code'        => $cardNumber,
+                        ]);
+                    }
+                    if ($hasOpenDoor && !$openAtThisDoor) {
                         $openDoorName = $this->getLaneName($lastDoorLog['lane_id'], $lastDoorLog['sub_location_id']);
                         $db->transRollback();
                         return $this->respond([
@@ -367,9 +375,60 @@ class QRCode extends ResourceController
                             'qr_code'        => $cardNumber,
                         ]);
                     }
-                } else {
-                    // No open door entry → check in to this door
                     $action = 'door_checkin';
+
+                } elseif ($laneType === 'exit') {
+                    // Exit scanner: check-out only
+                    if (!$hasOpenDoor) {
+                        $db->transRollback();
+                        return $this->respond([
+                            'success'        => false,
+                            'access_granted' => false,
+                            'action'         => 'denied',
+                            'message'        => 'Not checked in to any door.',
+                            'qr_code'        => $cardNumber,
+                        ]);
+                    }
+                    if (!$openAtThisDoor) {
+                        $openDoorName = $this->getLaneName($lastDoorLog['lane_id'], $lastDoorLog['sub_location_id']);
+                        $db->transRollback();
+                        return $this->respond([
+                            'success'        => false,
+                            'access_granted' => false,
+                            'action'         => 'denied',
+                            'message'        => 'Not checked in at this door. Currently in ' . ($openDoorName ?? 'another door') . '.',
+                            'visitor'        => [
+                                'name'         => $invitation['visitor_name']      ?? 'Unknown',
+                                'company'      => $invitation['visitor_company']   ?? 'N/A',
+                                'visitor_type' => $invitation['visitor_type_name'] ?? null,
+                            ],
+                            'qr_code'        => $cardNumber,
+                        ]);
+                    }
+                    $action = 'door_checkout';
+
+                } else {
+                    // Auto mode: first scan = check-in, second scan at same door = check-out
+                    if ($openAtThisDoor) {
+                        $action = 'door_checkout';
+                    } elseif ($hasOpenDoor) {
+                        $openDoorName = $this->getLaneName($lastDoorLog['lane_id'], $lastDoorLog['sub_location_id']);
+                        $db->transRollback();
+                        return $this->respond([
+                            'success'        => false,
+                            'access_granted' => false,
+                            'action'         => 'denied',
+                            'message'        => 'Access denied: Please check out from ' . ($openDoorName ?? 'current door') . ' before entering another.',
+                            'visitor'        => [
+                                'name'         => $invitation['visitor_name']      ?? 'Unknown',
+                                'company'      => $invitation['visitor_company']   ?? 'N/A',
+                                'visitor_type' => $invitation['visitor_type_name'] ?? null,
+                            ],
+                            'qr_code'        => $cardNumber,
+                        ]);
+                    } else {
+                        $action = 'door_checkin';
+                    }
                 }
             }
 

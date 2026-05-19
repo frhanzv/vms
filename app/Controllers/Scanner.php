@@ -10,6 +10,10 @@ class Scanner extends BaseController
      */
     public function index()
     {
+        // Prevent browser from serving stale JS
+        $this->response->setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+        $this->response->setHeader('Pragma', 'no-cache');
+
         $db    = \Config\Database::connect();
         $lanes = $db->query(
             'SELECT sl.id, sl.name AS lane, NULL AS scan_type

@@ -63,7 +63,7 @@
         <div class="flex rounded-lg overflow-hidden border border-slate-700 text-sm">
             <button id="btnEntry"
                     onclick="setLaneType('entry')"
-                    class="px-3 py-2 bg-primary text-white font-semibold transition-colors">
+                    class="px-3 py-2 bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors">
                 Entry
             </button>
             <button id="btnExit"
@@ -73,7 +73,7 @@
             </button>
             <button id="btnAuto"
                     onclick="setLaneType('auto')"
-                    class="px-3 py-2 bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors">
+                    class="px-3 py-2 bg-primary text-white font-semibold transition-colors">
                 Auto
             </button>
         </div>
@@ -200,7 +200,7 @@
 <script>
 // ── State ────────────────────────────────────────────────────
 let currentMode     = 'camera';
-let currentLaneType = 'entry';
+let currentLaneType = 'auto';
 let scanLock        = false;
 let qrScanner       = null;
 let hidTimer        = null;
@@ -229,24 +229,10 @@ function setLaneType(type) {
             btn.classList.add('bg-slate-800', 'text-slate-300');
         }
     });
-
-    // Auto-detect from lane assignment
-    if (type === 'auto') {
-        const sel  = document.getElementById('laneSelect');
-        const opt  = sel.options[sel.selectedIndex];
-        const st   = opt ? opt.dataset.scanType : '';
-        currentLaneType = st === 'check_out' ? 'exit' : 'entry';
-    }
 }
 
-// ── Lane change → auto-detect type ──────────────────────────
-document.getElementById('laneSelect').addEventListener('change', function () {
-    if (currentLaneType === 'auto' || document.getElementById('btnAuto').classList.contains('bg-primary')) {
-        const opt = this.options[this.selectedIndex];
-        const st  = opt ? opt.dataset.scanType : '';
-        currentLaneType = st === 'check_out' ? 'exit' : 'entry';
-    }
-});
+// ── Lane change — no auto-override needed ────────────────────
+document.getElementById('laneSelect').addEventListener('change', function () {});
 
 // ── Mode switch ──────────────────────────────────────────────
 function switchMode(mode) {
@@ -361,7 +347,7 @@ async function processQr(raw) {
     scanLock = true;
 
     const laneId   = document.getElementById('laneSelect').value;
-    const laneType = currentLaneType === 'auto' ? 'entry' : currentLaneType;
+    const laneType = currentLaneType;
 
     if (!laneId) {
         showBanner('error', 'No Door Selected', 'Please select a door/lane before scanning a card.');
