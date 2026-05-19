@@ -121,6 +121,8 @@ class StaffController extends BaseController
 
         // --- Validation pass: check all rows before inserting anything ---
         $validationErrors = [];
+        $seenInFile = []; // track IC/Passport values within the file itself
+
         foreach (array_slice($rows, 1) as $i => $row) {
             $get = fn(string $field) => isset($fieldIndex[$field])
                 ? (trim((string) ($row[$fieldIndex[$field]] ?? '')) ?: null)
@@ -146,6 +148,23 @@ class StaffController extends BaseController
 
             if (!empty($missing)) {
                 $validationErrors[] = "Row {$rowNum}: missing " . implode(', ', $missing) . '.';
+            }
+
+            // Duplicate check — IC/Passport against DB and within the file
+            $ic = $get('ic_passport') ?? (
+                $passportFallbackIndex !== null
+                    ? (trim((string) ($row[$passportFallbackIndex] ?? '')) ?: null)
+                    : null
+            );
+            if ($ic !== null) {
+                if (isset($seenInFile[$ic])) {
+                    $validationErrors[] = "Row {$rowNum}: IC/Passport '{$ic}' is duplicated in the file (first seen on row {$seenInFile[$ic]}).";
+                } else {
+                    $seenInFile[$ic] = $rowNum;
+                    if ($db->table('staff')->where('ic_passport', $ic)->countAllResults() > 0) {
+                        $validationErrors[] = "Row {$rowNum}: IC/Passport '{$ic}' already exists in the system.";
+                    }
+                }
             }
         }
 
