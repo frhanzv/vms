@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title><?= esc($pageTitle ?? 'QR Scanner — SafeG') ?></title>
+    <title><?= esc($pageTitle ?? 'Card Scanner — SafeG') ?></title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet"/>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"/>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
@@ -40,7 +40,7 @@
 <header class="bg-slate-900 border-b border-slate-800 px-4 py-3 flex items-center justify-between">
     <div class="flex items-center gap-2">
         <span class="material-symbols-outlined text-primary text-2xl">shield_person</span>
-        <span class="font-bold text-lg tracking-tight">SafeG <span class="text-slate-400 font-normal text-sm">QR Scanner</span></span>
+        <span class="font-bold text-lg tracking-tight">SafeG <span class="text-slate-400 font-normal text-sm">Card Scanner</span></span>
     </div>
 
     <div class="flex items-center gap-3">
@@ -106,19 +106,19 @@
         <!-- Camera panel -->
         <div id="cameraPanel" class="flex flex-col gap-3">
             <div id="qr-reader" class="rounded-xl overflow-hidden bg-slate-900 border border-slate-700 min-h-[260px]"></div>
-            <p class="text-xs text-slate-500 text-center">Point the camera at the visitor's QR code</p>
+            <p class="text-xs text-slate-500 text-center">Point the camera at the visitor's card QR code</p>
         </div>
 
         <!-- USB HID panel -->
         <div id="usbPanel" class="hidden flex flex-col gap-3 items-center justify-center">
             <div class="rounded-xl bg-slate-900 border border-slate-700 w-full p-8 flex flex-col items-center gap-5">
-                <span class="material-symbols-outlined text-6xl text-primary">qr_code_scanner</span>
-                <p class="text-slate-300 font-semibold text-center">USB scanner ready</p>
-                <p class="text-sm text-slate-500 text-center">Scan a visitor's QR code with the USB handheld scanner.<br>The code will be captured automatically.</p>
+                <span class="material-symbols-outlined text-6xl text-primary">credit_card</span>
+                <p class="text-slate-300 font-semibold text-center">Card scanner ready</p>
+                <p class="text-sm text-slate-500 text-center">Scan a visitor's card number with the USB scanner.<br>The card number will be captured automatically.</p>
                 <div class="w-full max-w-xs">
                     <input id="usbInput"
                            type="text"
-                           placeholder="Or type QR code and press Enter"
+                           placeholder="Or type card number and press Enter"
                            class="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-3 text-white text-sm focus:ring-2 focus:ring-primary focus:outline-none text-center"/>
                 </div>
             </div>
@@ -128,7 +128,7 @@
         <div class="flex gap-2">
             <input id="manualInput"
                    type="text"
-                   placeholder="Manual entry: VIS-3 or IC number…"
+                   placeholder="Enter card number…"
                    class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-white text-sm focus:ring-2 focus:ring-primary focus:outline-none"/>
             <button onclick="submitManual()"
                     class="bg-primary hover:bg-primary-hover text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors flex items-center gap-1.5">
@@ -143,8 +143,8 @@
         <!-- Status banner -->
         <div id="statusBanner"
              class="rounded-2xl border-2 border-slate-700 bg-slate-900 p-6 flex flex-col items-center gap-3 min-h-[180px] justify-center">
-            <span class="material-symbols-outlined text-5xl text-slate-600">qr_code_2</span>
-            <p class="text-slate-500 text-sm">Waiting for QR code…</p>
+            <span class="material-symbols-outlined text-5xl text-slate-600">credit_card</span>
+            <p class="text-slate-500 text-sm">Waiting for card scan…</p>
         </div>
 
         <!-- Visitor info card -->
@@ -355,26 +355,29 @@ document.getElementById('manualInput').addEventListener('keydown', function (e) 
     if (e.key === 'Enter') submitManual();
 });
 
-// ── QR processing ─────────────────────────────────────────────
+// ── Card processing ───────────────────────────────────────────
 async function processQr(raw) {
     if (scanLock) return;
     scanLock = true;
 
-    showBanner('loading', 'Scanning…', raw);
-
     const laneId   = document.getElementById('laneSelect').value;
     const laneType = currentLaneType === 'auto' ? 'entry' : currentLaneType;
 
+    if (!laneId) {
+        showBanner('error', 'No Door Selected', 'Please select a door/lane before scanning a card.');
+        playBeep(false);
+        setTimeout(() => { scanLock = false; }, 2500);
+        return;
+    }
+
+    showBanner('loading', 'Scanning card…', raw);
+
     try {
         const params = new URLSearchParams({ qr_code: raw });
-        if (laneId)   params.append('lane_id',   laneId);
+        params.append('lane_id',   laneId);
         if (laneType) params.append('lane_type', laneType);
 
-        const endpoint = laneId
-            ? `${BASE_URL}api/qr/scan-lane`
-            : `${BASE_URL}api/qr/scan`;
-
-        const res  = await fetch(`${endpoint}?${params}`);
+        const res  = await fetch(`${BASE_URL}api/qr/scan-lane?${params}`);
         const data = await res.json();
 
         renderResult(data);
@@ -386,7 +389,6 @@ async function processQr(raw) {
         playBeep(false);
     }
 
-    // Unlock after a short cooldown to avoid double-scans
     setTimeout(() => { scanLock = false; }, 2500);
 }
 
