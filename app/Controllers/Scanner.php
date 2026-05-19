@@ -12,54 +12,35 @@ class Scanner extends BaseController
     {
         $db    = \Config\Database::connect();
         $lanes = $db->query(
-            'SELECT l.id, l.lane, da.type AS scan_type
-             FROM lanes l
-             LEFT JOIN device_assignments da ON da.location_id = l.id
-             ORDER BY l.lane ASC'
+            'SELECT sl.id, sl.name AS lane, NULL AS scan_type
+             FROM sub_locations sl
+             WHERE sl.status = "active"
+             ORDER BY sl.name ASC'
         )->getResultArray();
-
-        // Deduplicate lanes that appear more than once due to multiple device_assignments
-        $seen  = [];
-        $clean = [];
-        foreach ($lanes as $row) {
-            if (!isset($seen[$row['id']])) {
-                $seen[$row['id']] = true;
-                $clean[]          = $row;
-            }
-        }
 
         return view('scanner/index', [
             'pageTitle' => 'Card Scanner — SafeG',
-            'lanes'     => $clean,
+            'lanes'     => $lanes,
         ]);
     }
 
     /**
-     * JSON list of lanes (used by the scanner JS to populate the selector).
+     * JSON list of sub-locations used as scanner doors.
      * GET /scanner/lanes
      */
     public function getLanes()
     {
         $db    = \Config\Database::connect();
         $lanes = $db->query(
-            'SELECT l.id, l.lane, da.type AS scan_type
-             FROM lanes l
-             LEFT JOIN device_assignments da ON da.location_id = l.id
-             ORDER BY l.lane ASC'
+            'SELECT sl.id, sl.name AS lane, NULL AS scan_type
+             FROM sub_locations sl
+             WHERE sl.status = "active"
+             ORDER BY sl.name ASC'
         )->getResultArray();
-
-        $seen  = [];
-        $clean = [];
-        foreach ($lanes as $row) {
-            if (!isset($seen[$row['id']])) {
-                $seen[$row['id']] = true;
-                $clean[]          = $row;
-            }
-        }
 
         return $this->response->setJSON([
             'success' => true,
-            'data'    => $clean,
+            'data'    => $lanes,
         ]);
     }
 }

@@ -75,15 +75,16 @@ class QRCode extends ResourceController
      */
     public function scanLane()
     {
-        $raw      = trim((string) ($this->request->getGet('qr_code') ?? $this->request->getGet('card_number') ?? ''));
-        $laneId   = $this->request->getGet('lane_id');
-        $laneType = $this->request->getGet('lane_type');
+        $raw           = trim((string) ($this->request->getGet('qr_code') ?? $this->request->getGet('card_number') ?? ''));
+        $laneId        = $this->request->getGet('lane_id');
+        $subLocationId = $this->request->getGet('sub_location_id');
+        $laneType      = $this->request->getGet('lane_type');
 
         if ($raw === '') {
             return $this->failValidationError('Card number is required');
         }
 
-        return $this->processCardCheckInOut($raw, $laneId, $laneType);
+        return $this->processCardCheckInOut($raw, $laneId, $laneType, $subLocationId);
     }
 
     /**
@@ -122,7 +123,7 @@ class QRCode extends ResourceController
      *   4. Visitor must have door access (pathway configured for visitor type)
      *   5. Standard checkin / checkout / door_access state machine
      */
-    protected function processCardCheckInOut(string $cardNumber, ?string $laneId, ?string $laneType)
+    protected function processCardCheckInOut(string $cardNumber, ?string $laneId, ?string $laneType, ?string $subLocationId = null)
     {
         $db = \Config\Database::connect();
 
@@ -130,7 +131,7 @@ class QRCode extends ResourceController
         $card = $db->table('visitor_cards')->where('card_id', $cardNumber)->get()->getRowArray();
 
         if (!$card) {
-            $laneName = $this->getLaneName($laneId);
+            $laneName = $this->getLaneName($laneId, $subLocationId);
             $this->insertSecurityAlert(
                 'Unauthorized Access',
                 'high',
@@ -178,7 +179,7 @@ class QRCode extends ResourceController
 
             if (!$invitation) {
                 $db->transRollback();
-                $laneName = $this->getLaneName($laneId);
+                $laneName = $this->getLaneName($laneId, $subLocationId);
                 $this->insertSecurityAlert(
                     'Unauthorized Access',
                     'high',
@@ -195,11 +196,12 @@ class QRCode extends ResourceController
                 ]);
             }
 
-            $laneName = $this->getLaneName($laneId);
+            $laneName = $this->getLaneName($laneId, $subLocationId);
 
-            // 4. Check door access — visitor type must have a pathway that includes this lane
-            if ($laneId) {
-                $accessCheck = $this->checkVisitorTypeAccess($invitation, (int) $laneId);
+            // 4. Check door access — visitor type must have a pathway that includes this door
+            $doorId = $subLocationId ?? $laneId;
+            if ($doorId) {
+                $accessCheck = $this->checkVisitorTypeAccess($invitation, (int) $doorId, $subLocationId !== null);
                 if (!$accessCheck['granted']) {
                     $db->transRollback();
                     $this->insertSecurityAlert(
@@ -229,7 +231,7 @@ class QRCode extends ResourceController
             $duration = null;
             $now      = date('Y-m-d H:i:s');
             $nextVer  = ((int) ($invitation['version'] ?? 1)) + 1;
-            $isTurnstile = ($laneId && stripos($laneName ?? '', 'TURNSTILE') !== false);
+            $isTurnstile = (($doorId ?? $laneId) && stripos($laneName ?? '', 'TURNSTILE') !== false);
 
             if ($invitation['check_out_time']) {
                 $db->transRollback();
@@ -285,7 +287,7 @@ class QRCode extends ResourceController
                 }
             }
 
-            $this->logCardScan($card['id'], $invitation['invitation_id'], $action, $laneId);
+            $this->logCardScan($card['id'], $invitation['invitation_id'], $action, $subLocationId !== null ? null : $laneId);
 
             $db->transComplete();
 
@@ -322,8 +324,10 @@ class QRCode extends ResourceController
                 'qr_code'  => $cardNumber,
             ];
 
-            if ($laneId) {
-                $response['lane'] = ['id' => $laneId, 'type' => $laneType];
+            if ($subLocationId) {
+                $response['lane'] = ['id' => $subLocationId, 'type' => $laneType, 'source' => 'sub_location'];
+            } elseif ($laneId) {
+                $response['lane'] = ['id' => $laneId, 'type' => $laneType, 'source' => 'lane'];
             }
 
             return $this->respond($response);
@@ -365,7 +369,7 @@ class QRCode extends ResourceController
      *   - Pathway is inactive
      *   - Lane is not in the assigned pathway
      */
-    protected function checkVisitorTypeAccess(array $invitation, int $laneId): array
+    protected function checkVisitorTypeAccess(array $invitation, int $doorId, bool $isSubLocation = false): array
     {
         $db = \Config\Database::connect();
 
@@ -399,16 +403,23 @@ class QRCode extends ResourceController
             ];
         }
 
-        $inPathway = $db->table('pathway_lanes')
-            ->where('pathway_id', $pathway['id'])
-            ->where('lane_id', $laneId)
-            ->countAllResults() > 0;
+        if ($isSubLocation) {
+            $inPathway = $db->table('pathway_sub_locations')
+                ->where('pathway_id', $pathway['id'])
+                ->where('sub_location_id', $doorId)
+                ->countAllResults() > 0;
+        } else {
+            $inPathway = $db->table('pathway_lanes')
+                ->where('pathway_id', $pathway['id'])
+                ->where('lane_id', $doorId)
+                ->countAllResults() > 0;
+        }
 
         if (!$inPathway) {
             $typeName = $visitorType['name'] ?? 'Unknown';
             return [
                 'granted' => false,
-                'message' => "Access denied: visitor type \"{$typeName}\" is not authorised for this lane.",
+                'message' => "Access denied: visitor type \"{$typeName}\" is not authorised for this door.",
             ];
         }
 
@@ -416,14 +427,20 @@ class QRCode extends ResourceController
     }
 
     /**
-     * Resolve lane name from lane ID.
+     * Resolve door name from lane ID or sub_location ID.
      */
-    protected function getLaneName(?string $laneId): ?string
+    protected function getLaneName(?string $laneId, ?string $subLocationId = null): ?string
     {
+        $db = \Config\Database::connect();
+
+        if ($subLocationId) {
+            $row = $db->table('sub_locations')->where('id', $subLocationId)->get()->getRowArray();
+            return $row['name'] ?? null;
+        }
+
         if (!$laneId) {
             return null;
         }
-        $db  = \Config\Database::connect();
         $row = $db->table('lanes')->where('id', $laneId)->get()->getRowArray();
         return $row['lane'] ?? null;
     }

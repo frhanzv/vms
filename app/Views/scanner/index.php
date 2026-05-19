@@ -374,7 +374,7 @@ async function processQr(raw) {
 
     try {
         const params = new URLSearchParams({ qr_code: raw });
-        params.append('lane_id',   laneId);
+        params.append('sub_location_id', laneId);
         if (laneType) params.append('lane_type', laneType);
 
         const res  = await fetch(`${BASE_URL}api/qr/scan-lane?${params}`);
