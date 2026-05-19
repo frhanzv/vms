@@ -24,7 +24,6 @@
             android:src="@drawable/ic_launcher"
             android:visibility="gone"/>
 
-
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -33,7 +32,6 @@
             android:gravity="bottom|center_horizontal"
             android:paddingTop="@dimen/_42sdp"
             android:visibility="gone">
-
 
             <TextView
                 android:layout_width="wrap_content"
@@ -44,7 +42,6 @@
                 android:textSize="@dimen/text_size_md" />
 
         </RelativeLayout>
-
 
     </RelativeLayout>
 
@@ -65,26 +62,23 @@
                 android:layout_width="@dimen/_5sdp"
                 android:layout_height="@dimen/_1sdp"
                 android:layout_gravity="center"
-                android:layout_marginTop="@dimen/_5sdp"
-               />
+                android:layout_marginTop="@dimen/_5sdp" />
 
             <ImageView
-
                 android:layout_width="80dp"
                 android:layout_height="90dp"
                 android:layout_gravity="center"
                 android:layout_marginTop="0dp"
                 android:layout_marginBottom="3dp"
                 android:src="@drawable/ksbpic" />
-            <ImageView
 
+            <ImageView
                 android:layout_width="80dp"
                 android:layout_height="90dp"
                 android:layout_gravity="center"
                 android:layout_marginTop="0dp"
                 android:layout_marginBottom="5dp"
                 android:src="@drawable/epic" />
-
 
             <TextView
                 android:layout_width="match_parent"
@@ -98,7 +92,6 @@
 
         </LinearLayout>
 
-
         <LinearLayout
             android:id="@+id/llBegin"
             android:layout_width="match_parent"
@@ -111,11 +104,13 @@
             android:gravity="center"
             android:orientation="vertical">
 
+            <!-- ✅ Invitation button — hidden by default, shown by applyFeatureFlags() -->
             <RelativeLayout
                 android:id="@+id/rlMalaysianPr"
                 android:layout_width="@dimen/_230sdp"
                 android:layout_height="@dimen/_40sdp"
-                android:background="@drawable/rounded_bg_white">
+                android:background="@drawable/rounded_bg_white"
+                android:visibility="gone">
 
                 <ImageView
                     android:layout_width="@dimen/_30sdp"
@@ -148,12 +143,14 @@
 
             </RelativeLayout>
 
+            <!-- ✅ Walk In button — hidden by default, shown by applyFeatureFlags() -->
             <RelativeLayout
                 android:id="@+id/rlForeigner"
                 android:layout_width="@dimen/_230sdp"
                 android:layout_height="@dimen/_40sdp"
                 android:layout_marginTop="@dimen/_7sdp"
-                android:background="@drawable/rounded_bg">
+                android:background="@drawable/rounded_bg"
+                android:visibility="gone">
 
                 <ImageView
                     android:layout_width="@dimen/_30sdp"
@@ -186,12 +183,14 @@
 
             </RelativeLayout>
 
+            <!-- ✅ Collect Card button — hidden by default, shown by applyFeatureFlags() -->
             <RelativeLayout
                 android:id="@+id/rlCollect"
                 android:layout_width="@dimen/_230sdp"
                 android:layout_height="@dimen/_40sdp"
                 android:layout_marginTop="@dimen/_7sdp"
-                android:background="@drawable/rounded_bg_white">
+                android:background="@drawable/rounded_bg_white"
+                android:visibility="gone">
 
                 <ImageView
                     android:layout_width="@dimen/_30sdp"
@@ -223,7 +222,6 @@
                     app:tint="@color/textColorPrimary" />
 
             </RelativeLayout>
-
 
         </LinearLayout>
 
@@ -264,6 +262,5 @@
         </LinearLayout>
 
     </RelativeLayout>
-
 
 </LinearLayout>

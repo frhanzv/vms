@@ -64,4 +64,19 @@ class GetConfigResponseItem {
     @SerializedName("project")
     @Expose
     var project : String  = "";
+    @SerializedName("walk_in")
+    @Expose
+    var walkIn: Boolean = true
+
+    @SerializedName("invitation")
+    @Expose
+    var invitation: Boolean = true
+
+    @SerializedName("collect_card")
+    @Expose
+    var collectCard: Boolean = true
+
+    @SerializedName("vvip")
+    @Expose
+    var vvip: Boolean = true
 }

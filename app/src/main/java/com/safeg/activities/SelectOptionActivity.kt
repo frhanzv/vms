@@ -23,6 +23,9 @@ import com.safeg.models.DoVisitorPassReqMobile
 import com.safeg.models.GetConfigResponseItem
 import com.safeg.utils.Common
 import com.safeg.utils.SslUtils
+import android.content.pm.PackageManager
+import com.androidnetworking.interfaces.JSONObjectRequestListener
+import org.json.JSONObject
 
 class SelectOptionActivity : AppCompatActivity(), View.OnClickListener {
 
@@ -58,18 +61,34 @@ class SelectOptionActivity : AppCompatActivity(), View.OnClickListener {
                     .setTag(Constants.getModuleConfig)
                     .setPriority(Priority.HIGH)
                     .build()
-                    .getAsObject(GetConfigResponseItem::class.java, object : ParsedRequestListener<GetConfigResponseItem> {
-                        override fun onResponse(response: GetConfigResponseItem) {
+                    .getAsJSONObject(object : JSONObjectRequestListener {
+                        override fun onResponse(response: JSONObject) {
                             pDialog.hide()
-                            StaticData.moduleConfig = response
+                            android.util.Log.d("CONFIG", response.toString())
+                            val data = response.optJSONObject("data")
+                            if (data != null) {
+                                StaticData.moduleConfig.walkIn = data.optBoolean("walk_in", true)
+                                StaticData.moduleConfig.invitation = data.optBoolean("invitation", true)
+                                StaticData.moduleConfig.collectCard = data.optBoolean("collect_card", true)
+                                StaticData.moduleConfig.vvip = data.optBoolean("vvip", true)
+                                StaticData.moduleConfig.vpOCR = data.optBoolean("vpOCR", true)
+                                StaticData.moduleConfig.vpFacial = data.optBoolean("vpFacial", true)
+                            }
+                            applyFeatureFlags()
                         }
                         override fun onError(anError: ANError) {
                             pDialog.hide()
-                            Common.showToast(applicationContext, "Config Error: ${anError.errorCode} — ${anError.errorDetail}", Common.ToastType.ERROR)
+                            Common.showToast(applicationContext, "Config Error: ${anError.errorCode}", Common.ToastType.ERROR)
                         }
                     })
             }
         }.start()
+    }
+
+    private fun applyFeatureFlags() {
+        binding.rlMalaysianPr.visibility = if (StaticData.moduleConfig.invitation) View.VISIBLE else View.GONE
+        binding.rlForeigner.visibility = if (StaticData.moduleConfig.walkIn) View.VISIBLE else View.GONE
+        binding.rlCollect.visibility = if (StaticData.moduleConfig.collectCard) View.VISIBLE else View.GONE
     }
 
     private fun setListeners() {
@@ -144,7 +163,7 @@ class SelectOptionActivity : AppCompatActivity(), View.OnClickListener {
     }
 
     private fun requestPermissions(showToast: Boolean) {
-        if (checkSelfPermission("android.permission.CAMERA") == 0) {
+        if (checkSelfPermission("android.permission.CAMERA") == PackageManager.PERMISSION_GRANTED) {
             invokeConfigApi()
             return
         }
@@ -184,5 +203,6 @@ class SelectOptionActivity : AppCompatActivity(), View.OnClickListener {
     override fun onStart() {
         super.onStart()
         StaticData.request = DoVisitorPassReqMobile()
+        applyFeatureFlags()
     }
 }
