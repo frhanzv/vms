@@ -331,10 +331,49 @@ class QRCode extends ResourceController
                     ]);
                 }
 
-                $action = 'door_access';
+                // Per-door check-in/check-out: find the most recent door action for this visitor
+                $lastDoorLog = $db->query(
+                    'SELECT action, sub_location_id, lane_id
+                     FROM visitor_card_logs
+                     WHERE invitation_id = ?
+                     AND action IN (\'door_checkin\', \'door_checkout\')
+                     ORDER BY scanned_at DESC, id DESC
+                     LIMIT 1',
+                    [$invitation['invitation_id']]
+                )->getRowArray();
+
+                $currentDoorId = $subLocationId ?? $laneId;
+
+                if ($lastDoorLog && $lastDoorLog['action'] === 'door_checkin') {
+                    $openDoorId = $lastDoorLog['sub_location_id'] ?? $lastDoorLog['lane_id'];
+
+                    if ((string) $openDoorId === (string) $currentDoorId) {
+                        // Same door scanned again → check out
+                        $action = 'door_checkout';
+                    } else {
+                        // Different door → must check out from current door first
+                        $openDoorName = $this->getLaneName($lastDoorLog['lane_id'], $lastDoorLog['sub_location_id']);
+                        $db->transRollback();
+                        return $this->respond([
+                            'success'        => false,
+                            'access_granted' => false,
+                            'action'         => 'denied',
+                            'message'        => 'Access denied: Please check out from ' . ($openDoorName ?? 'current door') . ' before entering another.',
+                            'visitor'        => [
+                                'name'         => $invitation['visitor_name']      ?? 'Unknown',
+                                'company'      => $invitation['visitor_company']   ?? 'N/A',
+                                'visitor_type' => $invitation['visitor_type_name'] ?? null,
+                            ],
+                            'qr_code'        => $cardNumber,
+                        ]);
+                    }
+                } else {
+                    // No open door entry → check in to this door
+                    $action = 'door_checkin';
+                }
             }
 
-            $this->logCardScan($card['id'], $invitation['invitation_id'], $action, $subLocationId !== null ? null : $laneId);
+            $this->logCardScan($card['id'], $invitation['invitation_id'], $action, $subLocationId !== null ? null : $laneId, $subLocationId);
 
             $db->transComplete();
 
@@ -374,9 +413,9 @@ class QRCode extends ResourceController
             ];
 
             if ($subLocationId) {
-                $response['lane'] = ['id' => $subLocationId, 'type' => $laneType, 'source' => 'sub_location'];
+                $response['lane'] = ['id' => $subLocationId, 'name' => $laneName, 'type' => $laneType, 'source' => 'sub_location'];
             } elseif ($laneId) {
-                $response['lane'] = ['id' => $laneId, 'type' => $laneType, 'source' => 'lane'];
+                $response['lane'] = ['id' => $laneId, 'name' => $laneName, 'type' => $laneType, 'source' => 'lane'];
             }
 
             return $this->respond($response);
@@ -395,7 +434,7 @@ class QRCode extends ResourceController
     /**
      * Log card scan to visitor_card_logs.
      */
-    protected function logCardScan(int $cardId, int $invitationId, string $action, ?string $laneId = null): void
+    protected function logCardScan(int $cardId, int $invitationId, string $action, ?string $laneId = null, ?string $subLocationId = null): void
     {
         $db = \Config\Database::connect();
         $db->table('visitor_card_logs')->insert([
@@ -403,6 +442,7 @@ class QRCode extends ResourceController
             'invitation_id'   => $invitationId,
             'action'          => $action,
             'lane_id'         => $laneId,
+            'sub_location_id' => $subLocationId,
             'scan_source'     => 'qr_code',
             'scanned_at'      => date('Y-m-d H:i:s'),
             'created_at'      => date('Y-m-d H:i:s'),

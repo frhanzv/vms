@@ -414,6 +414,10 @@ function renderResult(data) {
     } else if (data.action === 'checkout') {
         showBanner('checkout', '🔓 CHECKED OUT',
             data.duration ? `Visit duration: ${data.duration}` : `${data.visitor?.name} checked out.`);
+    } else if (data.action === 'door_checkin') {
+        showBanner('checkin', '✅ DOOR ENTRY', `${data.visitor?.name} entered ${data.lane?.name ?? 'door'}.`);
+    } else if (data.action === 'door_checkout') {
+        showBanner('checkout', '🔓 DOOR EXIT', `${data.visitor?.name} exited ${data.lane?.name ?? 'door'}.`);
     } else {
         showBanner('success', '✔ Processed', data.message || '');
     }
@@ -440,6 +444,12 @@ function renderResult(data) {
         actionEl.className    = 'font-semibold capitalize text-green-400';
     } else if (data.action === 'checkout') {
         actionEl.textContent  = 'Check Out';
+        actionEl.className    = 'font-semibold capitalize text-blue-400';
+    } else if (data.action === 'door_checkin') {
+        actionEl.textContent  = 'Door Entry';
+        actionEl.className    = 'font-semibold capitalize text-green-400';
+    } else if (data.action === 'door_checkout') {
+        actionEl.textContent  = 'Door Exit';
         actionEl.className    = 'font-semibold capitalize text-blue-400';
     } else {
         actionEl.textContent  = data.action || '—';
@@ -486,23 +496,32 @@ function addToLog(data, raw) {
     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     const name = data.visitor?.name || raw;
 
-    let dotClass, label;
+    let dotClass, label, labelClass;
     if (data.action === 'denied' || data.access_granted === false) {
-        dotClass = 'bg-red-400';  label = 'Denied';
-    } else if (data.action === 'checkin')  {
-        dotClass = 'bg-green-400'; label = 'In';
+        dotClass = 'bg-red-400';    label = 'Denied';     labelClass = 'text-red-400';
+    } else if (data.action === 'checkin') {
+        dotClass = 'bg-green-400';  label = 'In';         labelClass = 'text-green-400';
     } else if (data.action === 'checkout') {
-        dotClass = 'bg-blue-400';  label = 'Out';
+        dotClass = 'bg-blue-400';   label = 'Out';        labelClass = 'text-blue-400';
+    } else if (data.action === 'door_checkin') {
+        dotClass = 'bg-green-400';  label = 'Door In';    labelClass = 'text-green-400';
+    } else if (data.action === 'door_checkout') {
+        dotClass = 'bg-blue-400';   label = 'Door Out';   labelClass = 'text-blue-400';
     } else {
-        dotClass = 'bg-slate-400'; label = '?';
+        dotClass = 'bg-slate-400';  label = data.action ?? '?'; labelClass = 'text-slate-400';
     }
+
+    const doorName = data.lane?.name ? data.lane.name : '';
 
     const li = document.createElement('li');
     li.className = 'px-4 py-2.5 flex items-center gap-3';
     li.innerHTML = `
         <span class="size-2 rounded-full flex-shrink-0 ${dotClass}"></span>
-        <span class="flex-1 truncate text-slate-300">${name}</span>
-        <span class="text-xs font-semibold ${label === 'Denied' ? 'text-red-400' : label === 'In' ? 'text-green-400' : 'text-blue-400'}">${label}</span>
+        <span class="flex-1 min-w-0">
+            <span class="block truncate text-slate-300">${name}</span>
+            ${doorName ? `<span class="block truncate text-xs text-slate-500">${doorName}</span>` : ''}
+        </span>
+        <span class="text-xs font-semibold ${labelClass}">${label}</span>
         <span class="text-xs text-slate-600 tabular-nums">${time}</span>
     `;
 
