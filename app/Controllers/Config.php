@@ -3553,7 +3553,7 @@ class Config extends BaseController
      */
     public function getDeviceAssignmentFormOptions()
     {
-        $lanes = $this->laneModel->getAllWithLocationLabelsForDeviceAssignment();
+        $subLocations = $this->subLocationModel->getAllActive();
         $devices = $this->deviceAssignmentModel
             ->select('id, device_id, ip_address')
             ->orderBy('id', 'ASC')
@@ -3562,8 +3562,8 @@ class Config extends BaseController
         return $this->response->setJSON([
             'success' => true,
             'data'    => [
-                'lanes'   => $lanes,
-                'devices' => $devices,
+                'sub_locations' => $subLocations,
+                'devices'       => $devices,
             ],
         ]);
     }
