@@ -35,13 +35,13 @@ class StaffController extends BaseController
         }
 
         // Build a normalised header map: lowercase trimmed header => column index
-        $rawHeaders = array_map(fn($h) => strtolower(trim((string) $h)), $rows[0]);
+        $rawHeaders = array_map(fn($h) => trim(str_replace('*', '', strtolower(trim((string) $h)))), $rows[0]);
         $headerMap  = array_flip($rawHeaders);
 
         $columnAliases = [
             'app_no'               => ['app no', 'app_no', 'application no', 'application number'],
             'full_name'            => ['full name', 'full_name', 'name'],
-            'ic_passport'          => ['ic/passport', 'ic / passport', 'ic_passport', 'ic no.', 'ic no', 'ic', 'passport no.', 'passport no', 'passport', 'ic/passport no'],
+            'ic_passport'          => ['ic/passport', 'ic / passport', 'ic no. / passport', 'ic_passport', 'ic no.', 'ic no', 'ic', 'passport no.', 'passport no', 'passport', 'ic/passport no'],
             'staff_no'             => ['staff no.', 'staff no', 'staff_no', 'staff number', 'staff id'],
             'date_of_birth'        => ['date of birth', 'date_of_birth', 'dob'],
             'sex'                  => ['sex', 'gender'],

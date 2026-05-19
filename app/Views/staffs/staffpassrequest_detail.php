@@ -258,7 +258,7 @@
                                 <input value="<?= esc($staff['full_name']) ?>" class="w-full h-12 rounded-lg border border-border-color dark:border-gray-700 bg-gray-100 dark:bg-background-dark text-text-main dark:text-white px-4 outline-none font-brand" type="text" readonly/>
                             </div>
                             <div class="space-y-2">
-                                <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Name On Vendor Pass</label>
+                                <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Name On Staff Pass</label>
                                 <input value="<?= esc($staff['name_on_staff_pass']) ?>" class="w-full h-12 rounded-lg border border-border-color dark:border-gray-700 bg-gray-100 dark:bg-background-dark text-text-main dark:text-white px-4 outline-none font-brand" type="text" readonly/>
                             </div>
                         </div>
