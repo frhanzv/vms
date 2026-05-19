@@ -99,6 +99,12 @@ class StaffPassRequest extends BaseController
             $formData['other_doc'] = json_encode($otherDocPaths);
         }
 
+        $icPassport = $formData['ic_passport'] ?? null;
+        if ($icPassport && $db->table('staff')->where('ic_passport', $icPassport)->countAllResults() > 0) {
+            return redirect()->back()->withInput()
+                ->with('error', "A staff record with IC/Passport '{$icPassport}' already exists.");
+        }
+
         $db->table('staff')->insert($formData);
 
         return redirect()->to(base_url('staffs'))
