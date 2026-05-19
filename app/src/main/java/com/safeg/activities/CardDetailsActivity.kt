@@ -209,6 +209,9 @@ class CardDetailsActivity : AppCompatActivity(),
 
         invokeGetVehicleTypeApi()
         invokeGetActiveCountryApi()
+        android.util.Log.d("APPLY_FIELDS", "read visitorFields: ${StaticData.moduleConfig.visitorFields}")
+        android.util.Log.d("APPLY_FIELDS", "moduleConfig hashCode: ${StaticData.moduleConfig.hashCode()}")
+        applyVisitorFields()
         initResidentDropdown()
         initGenderDropdown()
         initVehicleCategories()
@@ -227,35 +230,49 @@ class CardDetailsActivity : AppCompatActivity(),
         }
 
         binding.rlNext.setOnClickListener {
+            // ✅ Cardholder Name — always required
             if (binding.etCardHolderName.text.toString().isEmpty()) {
                 Common.showToast(this, "Please Enter Card Holder Name", Common.ToastType.WARNING)
                 return@setOnClickListener
             }
-            if (!StaticData.isForeigner && binding.etCardNumber.text.toString().isEmpty()) {
+
+            // ✅ IC/Passport — always required
+            if (binding.etCardNumber.text.toString().isEmpty()) {
                 Common.showToast(this, "Please Enter ${binding.tvIcNumber.text}", Common.ToastType.WARNING)
                 return@setOnClickListener
             }
-            if (!StaticData.isForeigner && binding.etAddress.text.toString().isEmpty()) {
-                Common.showToast(this, "Please Enter Address", Common.ToastType.WARNING)
-                return@setOnClickListener
-            }
-            if (binding.etContactNumber.text.toString().isEmpty()) {
+
+            // ✅ Contact Number — only if visible
+            if ((binding.etContactNumber.parent.parent as? View)?.visibility == View.VISIBLE
+                && binding.etContactNumber.text.toString().isEmpty()) {
                 Common.showToast(this, "Please Enter Contact Number", Common.ToastType.WARNING)
                 return@setOnClickListener
             }
-            if (binding.etCompanyName.text.toString().isEmpty()) {
+
+            // ✅ Company Name — only if visible
+            if ((binding.etCompanyName.parent.parent as? View)?.visibility == View.VISIBLE
+                && binding.etCompanyName.text.toString().isEmpty()) {
                 Common.showToast(this, "Please Enter Company Name", Common.ToastType.WARNING)
                 return@setOnClickListener
             }
-            if (StaticData.isForeigner && binding.etCardNumber.text.toString().isEmpty()) {
-                Common.showToast(this, "Please Enter Passport Number", Common.ToastType.WARNING)
+
+            // ✅ Address — only if visible
+            if (binding.llAddress.visibility == View.VISIBLE
+                && binding.etAddress.text.toString().isEmpty()) {
+                Common.showToast(this, "Please Enter Address", Common.ToastType.WARNING)
                 return@setOnClickListener
             }
-            if (selectedCountry == -1) {
+
+            // ✅ Country — only if visible
+            if (binding.llCountry.visibility == View.VISIBLE && selectedCountry == -1) {
                 Common.showToast(this, "Please Select Country", Common.ToastType.WARNING)
                 return@setOnClickListener
             }
-            if (StaticData.isForeigner && binding.etRegNo.text.toString().isEmpty()) {
+
+            // ✅ Vehicle Reg No — only if visible
+            if (binding.llRegNo.visibility == View.VISIBLE
+                && StaticData.isForeigner
+                && binding.etRegNo.text.toString().isEmpty()) {
                 Common.showToast(this, "Please Enter Vehicle Registration No", Common.ToastType.WARNING)
                 return@setOnClickListener
             }
@@ -371,6 +388,51 @@ class CardDetailsActivity : AppCompatActivity(),
                     binding.spGender.setSelection(1)
                 }
             } catch (th: Throwable) {}
+        }
+    }
+
+    private fun applyVisitorFields() {
+        try {
+            val json = org.json.JSONObject(StaticData.visitorFieldsJson)
+
+            fun fieldConfig(key: String): VisitorFieldConfig {
+                val obj = json.optJSONObject(key)
+                return if (obj != null) VisitorFieldConfig(
+                    show = obj.optBoolean("show", true),
+                    required = obj.optBoolean("required", false)
+                ) else VisitorFieldConfig()
+            }
+
+            val contact       = fieldConfig("contact_number")
+            val company       = fieldConfig("company_name")
+            val email         = fieldConfig("email")
+            val vehicleReg    = fieldConfig("vehicle_reg_no")
+            val address       = fieldConfig("address")
+            val dob           = fieldConfig("date_of_birth")
+            val postal        = fieldConfig("postal_code")
+            val state         = fieldConfig("state")
+            val city          = fieldConfig("city")
+            val cardholderName = fieldConfig("cardholder_name")
+            val icNumber      = fieldConfig("ic_number")
+            val country = fieldConfig("country")
+
+            binding.llContactNumber.visibility  = if (contact.show) View.VISIBLE else View.GONE
+            binding.llCompanyName.visibility    = if (company.show) View.VISIBLE else View.GONE
+            binding.llEmail.visibility          = if (email.show) View.VISIBLE else View.GONE
+            binding.llRegNo.visibility          = if (vehicleReg.show) View.VISIBLE else View.GONE
+            binding.llCardholderName.visibility = if (cardholderName.show) View.VISIBLE else View.GONE
+            binding.llIc.visibility             = if (icNumber.show) View.VISIBLE else View.GONE
+            binding.llAddress.visibility        = if (address.show) View.VISIBLE else View.GONE
+            binding.llDateOfBirth.visibility    = if (dob.show) View.VISIBLE else View.GONE
+            binding.llPostalCode.visibility     = if (postal.show) View.VISIBLE else View.GONE
+            binding.llState.visibility          = if (state.show) View.VISIBLE else View.GONE
+            binding.llCity.visibility           = if (city.show) View.VISIBLE else View.GONE
+            if (StaticData.isForeigner) {
+                binding.llCountry.visibility = if (country.show) View.VISIBLE else View.GONE
+            }
+
+        } catch (e: Exception) {
+            Common.showToast(this, "Error loading field config", Common.ToastType.ERROR)
         }
     }
 

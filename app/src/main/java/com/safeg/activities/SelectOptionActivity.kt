@@ -73,8 +73,14 @@ class SelectOptionActivity : AppCompatActivity(), View.OnClickListener {
                                 StaticData.moduleConfig.vvip = data.optBoolean("vvip", true)
                                 StaticData.moduleConfig.vpOCR = data.optBoolean("vpOCR", true)
                                 StaticData.moduleConfig.vpFacial = data.optBoolean("vpFacial", true)
+                                val visitorFieldsObj = data.optJSONObject("visitor_fields")
+                                StaticData.visitorFieldsJson = visitorFieldsObj?.toString() ?: "{}"
+                                android.util.Log.d("APPLY_FIELDS", "saved visitorFields: ${StaticData.moduleConfig.visitorFields}") // ✅ add
+                                android.util.Log.d("APPLY_FIELDS", "moduleConfig hashCode: ${StaticData.moduleConfig.hashCode()}") // ✅ add
+                                applyFeatureFlags()
+                            } else {
+                                Common.showToast(applicationContext, "Config Error: Invalid response", Common.ToastType.ERROR)
                             }
-                            applyFeatureFlags()
                         }
                         override fun onError(anError: ANError) {
                             pDialog.hide()
@@ -204,5 +210,9 @@ class SelectOptionActivity : AppCompatActivity(), View.OnClickListener {
         super.onStart()
         StaticData.request = DoVisitorPassReqMobile()
         applyFeatureFlags()
+    }
+    override fun onResume() {
+        super.onResume()
+        invokeConfigApi()
     }
 }

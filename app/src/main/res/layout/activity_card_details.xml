@@ -7,7 +7,6 @@
     android:orientation="vertical"
     android:paddingTop="@dimen/_12sdp">
 
-    <!-- ✅ Top bar -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -62,7 +61,6 @@
             android:layout_marginHorizontal="@dimen/_18sdp"
             android:orientation="vertical">
 
-            <!-- ✅ Scan MyKad box -->
             <LinearLayout
                 android:id="@+id/dottedBox"
                 android:layout_width="match_parent"
@@ -126,7 +124,6 @@
 
             </LinearLayout>
 
-            <!-- Upload/Capture buttons hidden -->
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -160,7 +157,6 @@
 
             </LinearLayout>
 
-            <!-- ✅ Details card -->
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -176,126 +172,150 @@
                     android:orientation="vertical"
                     android:padding="@dimen/_12sdp">
 
-                    <!-- Contact Number -->
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="CONTACT NUMBER"
-                        android:textColor="#888888"
-                        android:textSize="@dimen/_8ssp"
-                        android:fontFamily="@font/montserrat_bold"
-                        android:letterSpacing="0.08"
-                        android:layout_marginBottom="@dimen/_4sdp"/>
-
+                    <!-- ✅ Contact Number -->
                     <LinearLayout
+                        android:id="@+id/llContactNumber"
                         android:layout_width="match_parent"
-                        android:layout_height="@dimen/_40sdp"
-                        android:background="@drawable/bg_input_field"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingStart="@dimen/_10sdp"
-                        android:paddingEnd="@dimen/_10sdp"
-                        android:layout_marginBottom="@dimen/_10sdp">
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
 
-                        <ImageView
-                            android:layout_width="@dimen/_14sdp"
-                            android:layout_height="@dimen/_14sdp"
-                            android:src="@drawable/activity_card_details_my_kad_ic_contact_number"
-                            android:layout_marginEnd="@dimen/_8sdp"
-                            app:tint="@color/colorPrimary"/>
-
-                        <EditText
-                            android:id="@+id/etContactNumber"
-                            android:layout_width="match_parent"
+                        <TextView
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:background="@android:color/transparent"
-                            android:inputType="number"
-                            android:textColor="#111827"
-                            android:textSize="@dimen/text_size_xsm"
-                            android:fontFamily="@font/montserrat_medium"/>
+                            android:text="CONTACT NUMBER"
+                            android:textColor="#888888"
+                            android:textSize="@dimen/_8ssp"
+                            android:fontFamily="@font/montserrat_bold"
+                            android:letterSpacing="0.08"
+                            android:layout_marginBottom="@dimen/_4sdp"/>
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="@dimen/_40sdp"
+                            android:background="@drawable/bg_input_field"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:paddingStart="@dimen/_10sdp"
+                            android:paddingEnd="@dimen/_10sdp"
+                            android:layout_marginBottom="@dimen/_10sdp">
+
+                            <ImageView
+                                android:layout_width="@dimen/_14sdp"
+                                android:layout_height="@dimen/_14sdp"
+                                android:src="@drawable/activity_card_details_my_kad_ic_contact_number"
+                                android:layout_marginEnd="@dimen/_8sdp"
+                                app:tint="@color/colorPrimary"/>
+
+                            <EditText
+                                android:id="@+id/etContactNumber"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:background="@android:color/transparent"
+                                android:inputType="number"
+                                android:textColor="#111827"
+                                android:textSize="@dimen/text_size_xsm"
+                                android:fontFamily="@font/montserrat_medium"/>
+                        </LinearLayout>
+
                     </LinearLayout>
 
                     <View android:id="@+id/viewContactNumber" android:layout_width="match_parent" android:layout_height="0dp"/>
 
-                    <!-- Company Name -->
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="COMPANY NAME"
-                        android:textColor="#888888"
-                        android:textSize="@dimen/_8ssp"
-                        android:fontFamily="@font/montserrat_bold"
-                        android:letterSpacing="0.08"
-                        android:layout_marginBottom="@dimen/_4sdp"/>
-
+                    <!-- ✅ Company Name -->
                     <LinearLayout
+                        android:id="@+id/llCompanyName"
                         android:layout_width="match_parent"
-                        android:layout_height="@dimen/_40sdp"
-                        android:background="@drawable/bg_input_field"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingStart="@dimen/_10sdp"
-                        android:paddingEnd="@dimen/_10sdp"
-                        android:layout_marginBottom="@dimen/_10sdp">
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
 
-                        <ImageView
-                            android:layout_width="@dimen/_14sdp"
-                            android:layout_height="@dimen/_14sdp"
-                            android:src="@drawable/activity_card_details_my_kad_ic_company_name"
-                            android:layout_marginEnd="@dimen/_8sdp"
-                            app:tint="@color/colorPrimary"/>
-
-                        <EditText
-                            android:id="@+id/etCompanyName"
-                            android:layout_width="match_parent"
+                        <TextView
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:background="@android:color/transparent"
-                            android:imeOptions="actionNext"
-                            android:inputType="textCapCharacters"
-                            android:textColor="#111827"
-                            android:textSize="@dimen/text_size_xsm"
-                            android:fontFamily="@font/montserrat_medium"/>
+                            android:text="COMPANY NAME"
+                            android:textColor="#888888"
+                            android:textSize="@dimen/_8ssp"
+                            android:fontFamily="@font/montserrat_bold"
+                            android:letterSpacing="0.08"
+                            android:layout_marginBottom="@dimen/_4sdp"/>
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="@dimen/_40sdp"
+                            android:background="@drawable/bg_input_field"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:paddingStart="@dimen/_10sdp"
+                            android:paddingEnd="@dimen/_10sdp"
+                            android:layout_marginBottom="@dimen/_10sdp">
+
+                            <ImageView
+                                android:layout_width="@dimen/_14sdp"
+                                android:layout_height="@dimen/_14sdp"
+                                android:src="@drawable/activity_card_details_my_kad_ic_company_name"
+                                android:layout_marginEnd="@dimen/_8sdp"
+                                app:tint="@color/colorPrimary"/>
+
+                            <EditText
+                                android:id="@+id/etCompanyName"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:background="@android:color/transparent"
+                                android:imeOptions="actionNext"
+                                android:inputType="textCapCharacters"
+                                android:textColor="#111827"
+                                android:textSize="@dimen/text_size_xsm"
+                                android:fontFamily="@font/montserrat_medium"/>
+                        </LinearLayout>
+
                     </LinearLayout>
 
                     <View android:id="@+id/viewCompanyName" android:layout_width="match_parent" android:layout_height="0dp"/>
 
-                    <!-- Email -->
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="EMAIL"
-                        android:textColor="#888888"
-                        android:textSize="@dimen/_8ssp"
-                        android:fontFamily="@font/montserrat_bold"
-                        android:letterSpacing="0.08"
-                        android:layout_marginBottom="@dimen/_4sdp"/>
-
+                    <!-- ✅ Email -->
                     <LinearLayout
+                        android:id="@+id/llEmail"
                         android:layout_width="match_parent"
-                        android:layout_height="@dimen/_40sdp"
-                        android:background="@drawable/bg_input_field"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingStart="@dimen/_10sdp"
-                        android:paddingEnd="@dimen/_10sdp"
-                        android:layout_marginBottom="@dimen/_10sdp">
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
 
-                        <ImageView
-                            android:layout_width="@dimen/_14sdp"
-                            android:layout_height="@dimen/_14sdp"
-                            android:src="@drawable/activity_card_details_my_kad_ic_email"
-                            android:layout_marginEnd="@dimen/_8sdp"
-                            app:tint="@color/colorPrimary"/>
-
-                        <EditText
-                            android:id="@+id/etEmail"
-                            android:layout_width="match_parent"
+                        <TextView
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:background="@android:color/transparent"
-                            android:inputType="textEmailAddress"
-                            android:textColor="#111827"
-                            android:textSize="@dimen/text_size_xsm"
-                            android:fontFamily="@font/montserrat_medium"/>
+                            android:text="EMAIL"
+                            android:textColor="#888888"
+                            android:textSize="@dimen/_8ssp"
+                            android:fontFamily="@font/montserrat_bold"
+                            android:letterSpacing="0.08"
+                            android:layout_marginBottom="@dimen/_4sdp"/>
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="@dimen/_40sdp"
+                            android:background="@drawable/bg_input_field"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:paddingStart="@dimen/_10sdp"
+                            android:paddingEnd="@dimen/_10sdp"
+                            android:layout_marginBottom="@dimen/_10sdp">
+
+                            <ImageView
+                                android:layout_width="@dimen/_14sdp"
+                                android:layout_height="@dimen/_14sdp"
+                                android:src="@drawable/activity_card_details_my_kad_ic_email"
+                                android:layout_marginEnd="@dimen/_8sdp"
+                                app:tint="@color/colorPrimary"/>
+
+                            <EditText
+                                android:id="@+id/etEmail"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:background="@android:color/transparent"
+                                android:inputType="textEmailAddress"
+                                android:textColor="#111827"
+                                android:textSize="@dimen/text_size_xsm"
+                                android:fontFamily="@font/montserrat_medium"/>
+                        </LinearLayout>
+
                     </LinearLayout>
 
                     <View android:id="@+id/viewEmail" android:layout_width="match_parent" android:layout_height="0dp"/>
@@ -351,46 +371,53 @@
                     <View android:id="@+id/viewRegNo" android:layout_width="match_parent" android:layout_height="0dp"/>
 
                     <!-- Cardholder Name -->
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="CARDHOLDER NAME"
-                        android:textColor="#888888"
-                        android:textSize="@dimen/_8ssp"
-                        android:fontFamily="@font/montserrat_bold"
-                        android:letterSpacing="0.08"
-                        android:layout_marginBottom="@dimen/_4sdp"/>
-
                     <LinearLayout
+                        android:id="@+id/llCardholderName"
                         android:layout_width="match_parent"
-                        android:layout_height="@dimen/_40sdp"
-                        android:background="@drawable/bg_input_field"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingStart="@dimen/_10sdp"
-                        android:paddingEnd="@dimen/_10sdp"
-                        android:layout_marginBottom="@dimen/_10sdp">
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
 
-                        <ImageView
-                            android:layout_width="@dimen/_14sdp"
-                            android:layout_height="@dimen/_14sdp"
-                            android:src="@drawable/activity_card_details_my_kad_ic_card_holder_name"
-                            android:layout_marginEnd="@dimen/_8sdp"
-                            app:tint="@color/colorPrimary"/>
-
-                        <EditText
-                            android:id="@+id/etCardHolderName"
-                            android:layout_width="match_parent"
+                        <TextView
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:background="@android:color/transparent"
-                            android:inputType="textPersonName"
-                            android:textColor="#111827"
-                            android:textSize="@dimen/text_size_xsm"
-                            android:fontFamily="@font/montserrat_medium"/>
+                            android:text="CARDHOLDER NAME"
+                            android:textColor="#888888"
+                            android:textSize="@dimen/_8ssp"
+                            android:fontFamily="@font/montserrat_bold"
+                            android:letterSpacing="0.08"
+                            android:layout_marginBottom="@dimen/_4sdp"/>
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="@dimen/_40sdp"
+                            android:background="@drawable/bg_input_field"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:paddingStart="@dimen/_10sdp"
+                            android:paddingEnd="@dimen/_10sdp"
+                            android:layout_marginBottom="@dimen/_10sdp">
+
+                            <ImageView
+                                android:layout_width="@dimen/_14sdp"
+                                android:layout_height="@dimen/_14sdp"
+                                android:src="@drawable/activity_card_details_my_kad_ic_card_holder_name"
+                                android:layout_marginEnd="@dimen/_8sdp"
+                                app:tint="@color/colorPrimary"/>
+
+                            <EditText
+                                android:id="@+id/etCardHolderName"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:background="@android:color/transparent"
+                                android:inputType="textPersonName"
+                                android:textColor="#111827"
+                                android:textSize="@dimen/text_size_xsm"
+                                android:fontFamily="@font/montserrat_medium"/>
+                        </LinearLayout>
+
                     </LinearLayout>
 
                     <View android:id="@+id/viewCardHolderName" android:layout_width="match_parent" android:layout_height="0dp"/>
-
                     <!-- IC Number -->
                     <LinearLayout
                         android:id="@+id/llIc"
@@ -543,7 +570,7 @@
 
                     <View android:id="@+id/viewDateOfBirth" android:layout_width="match_parent" android:layout_height="0dp"/>
 
-                    <!-- PLKS Expiry — hidden -->
+                    <!-- PLKS Expiry -->
                     <LinearLayout
                         android:id="@+id/llPlksExpiry"
                         android:layout_width="match_parent"
@@ -779,7 +806,7 @@
 
                     <View android:id="@+id/viewPostalCode" android:layout_width="match_parent" android:layout_height="0dp"/>
 
-                    <!-- Hidden spinners for code compatibility -->
+                    <!-- Hidden spinners -->
                     <LinearLayout android:id="@+id/llResident" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:visibility="gone">
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Resident" android:textColor="#888888" android:textSize="@dimen/_8ssp" android:fontFamily="@font/montserrat_bold"/>
                         <com.chivorn.smartmaterialspinner.SmartMaterialSpinner android:id="@+id/spResident" android:layout_width="match_parent" android:layout_height="@dimen/_25sdp" android:background="@android:color/transparent" android:fontFamily="@font/montserrat_medium" app:smsp_enableFloatingLabel="false" app:smsp_hint="" app:smsp_itemColor="#111827" app:smsp_itemListColor="@color/colorPrimary" app:smsp_itemSize="@dimen/text_size_xsm" app:smsp_multilineError="false" app:smsp_selectedItemListColor="@color/colorPrimary" app:smsp_underlineColor="@android:color/transparent"/>
@@ -808,7 +835,7 @@
 
             </androidx.cardview.widget.CardView>
 
-            <!-- ✅ Next button -->
+            <!-- Next button -->
             <RelativeLayout
                 android:id="@+id/rlNext"
                 android:layout_width="match_parent"

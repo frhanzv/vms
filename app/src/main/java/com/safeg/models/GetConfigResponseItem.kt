@@ -79,4 +79,8 @@ class GetConfigResponseItem {
     @SerializedName("vvip")
     @Expose
     var vvip: Boolean = true
+
+    @SerializedName("visitor_fields")
+    @Expose
+    var visitorFields: String = "{}" // JSON string — parsed in CardDetailsAc
 }

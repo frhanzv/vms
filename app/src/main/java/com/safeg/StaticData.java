@@ -33,7 +33,7 @@ public class StaticData {
     public static String vvipName = "";
     public static String vvipIc = "";
     public static GetConfigResponseItem moduleConfig = new GetConfigResponseItem();
-
+    public static String visitorFieldsJson = "{}";
     // ✅ invitationId — set after doVisitorPassReqMobile, used by uploadVendorPassPhotoMobile + insertVendorPassCard
     public static int invitationId = -1;
 }
