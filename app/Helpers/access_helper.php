@@ -36,15 +36,11 @@ if (!function_exists('has_access')) {
             return isset($loadedData[$module][$action]) && $loadedData[$module][$action] === true;
         }
 
-        $roleKey = strtolower(str_replace([' ', '_', '-'], '', $roleName));
+        // Check session cache - use a structured cache with role identifier to detect stale data
         $cached = session()->get('role_access_cache');
-        $cacheTTL = 60; // seconds — cache expires after this, forces fresh DB read
+        $roleKey = strtolower(str_replace([' ', '_', '-'], '', $roleName));
 
-        $cacheValid = is_array($cached)
-            && isset($cached['_role']) && $cached['_role'] === $roleKey
-            && isset($cached['_time']) && (time() - $cached['_time']) < $cacheTTL;
-
-        if ($cacheValid) {
+        if (is_array($cached) && isset($cached['_role']) && $cached['_role'] === $roleKey) {
             $loadedData = $cached['_data'] ?? [];
             _migrate_legacy_access($loadedData);
             return isset($loadedData[$module][$action]) && $loadedData[$module][$action] === true;
@@ -75,10 +71,10 @@ if (!function_exists('has_access')) {
             $loadedData = [];
         }
 
+        // Cache with role identifier so we can detect stale data
         session()->set('role_access_cache', [
             '_role' => $roleKey,
             '_data' => $loadedData,
-            '_time' => time(),
         ]);
 
         return isset($loadedData[$module][$action]) && $loadedData[$module][$action] === true;
