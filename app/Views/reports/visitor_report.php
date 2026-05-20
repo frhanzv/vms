@@ -210,7 +210,6 @@
                             <table id="visitorTable" class="w-full whitespace-nowrap" style="width:100%">
                                 <thead>
                                     <tr>
-                                        <!-- Keep track of these exact column headers for Export mapping -->
                                         <th>NO</th>
                                         <th>DATE</th>
                                         <th>FULL NAME</th>
@@ -222,8 +221,8 @@
                                         <th>TIME IN</th>
                                         <th>TIME OUT</th>
                                         <th>PURPOSE OF VISIT</th>
-                                        <th>HOST NAME</th>
                                         <th>DURATION</th>
+                                        <th>HOST NAME</th>
                                         <th>STATUS</th>
                                     </tr>
                                 </thead>
@@ -285,8 +284,8 @@
     
     const tableHeaders = [
         "NO", "DATE", "FULL NAME", "IC / PASSPORT NO", "CONTACT NO", 
-        "COMPANY", "CURRENT LOCATION", "LOCATION ACCESSED", "TIME IN", "TIME OUT", "PURPOSE", "HOST NAME", 
-        "DURATION", "STATUS"
+        "COMPANY", "CURRENT LOCATION", "LOCATION ACCESSED", "TIME IN", "TIME OUT", "PURPOSE", "DURATION", 
+        "HOST NAME", "STATUS"
     ];
 
     function cellTextForCheckboxFilter(raw) {
@@ -379,8 +378,8 @@
                 <td class="text-slate-500 font-medium py-4">${val(v.checkin_time)}</td>
                 <td class="text-slate-500 font-medium py-4">${val(v.checkout_time)}</td>
                 <td class="text-slate-500 py-4">${val(v.visit_reason)}</td>
-                <td class="text-slate-500 uppercase tracking-tight text-xs font-semibold py-4">${val(v.person_visited)}</td>
                 <td class="text-slate-500 py-4">${val(v.duration)}</td>
+                <td class="text-slate-500 uppercase tracking-tight text-xs font-semibold py-4">${val(v.person_visited)}</td>
                 <td class="text-slate-500 py-4">${getStatusBadge(v.visit_status)}</td>
             `;
             tbody.appendChild(tr);
