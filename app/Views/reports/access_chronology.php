@@ -1131,7 +1131,9 @@
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 bg-white border border-slate-100 rounded-lg p-3 shadow-sm">
                 <div class="md:col-span-1">
                     <span class="text-[10px] font-black text-slate-400 block mb-1 uppercase tracking-tighter">From:</span>
-                    <div class="text-[11px] font-bold text-slate-700 border border-slate-100 rounded px-2 py-2 bg-slate-50/50 uppercase">${escHtml(m.from)}</div>
+                    <div class="text-[11px] font-bold text-slate-700 border border-slate-100 rounded px-2 py-2 bg-slate-50/50 uppercase">
+                        ${escHtml(m.from)}${m.from_action ? `<span class="ml-1 text-primary normal-case font-black">(${escHtml(m.from_action)})</span>` : ''}
+                    </div>
                     <div class="flex items-center gap-1 mt-1">
                         <span class="material-symbols-outlined text-[12px] text-slate-400">login</span>
                         <span class="text-[9px] font-bold text-slate-400 italic">Entry: ${m.entry_time}</span>
@@ -1139,7 +1141,9 @@
                 </div>
                 <div class="md:col-span-1">
                     <span class="text-[10px] font-black text-slate-400 block mb-1 uppercase tracking-tighter">To:</span>
-                    <div class="text-[11px] font-bold text-slate-700 border border-slate-100 rounded px-2 py-2 bg-slate-50/50 uppercase">${escHtml(m.to)}</div>
+                    <div class="text-[11px] font-bold text-slate-700 border border-slate-100 rounded px-2 py-2 bg-slate-50/50 uppercase">
+                        ${escHtml(m.to)}${m.to_action ? `<span class="ml-1 text-primary normal-case font-black">(${escHtml(m.to_action)})</span>` : ''}
+                    </div>
                     <div class="flex items-center gap-1 mt-1">
                         <span class="material-symbols-outlined text-[12px] text-slate-400">logout</span>
                         <span class="text-[9px] font-bold text-slate-400 italic">Exit: ${m.exit_time}</span>
