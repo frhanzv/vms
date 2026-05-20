@@ -108,7 +108,22 @@ class VisitorChronology extends BaseController
                         i.updated_at,
                         MIN(vcl.scanned_at) AS visit_from,
                         MAX(vcl.scanned_at) AS visit_to,
-                        COALESCE(MIN(sl.name), NULLIF(i.location, ''), 'N/A') AS i_location,
+                        COALESCE(
+                            (
+                                SELECT COALESCE(sl_via_lane.name, sl_via_direct.name)
+                                FROM visitor_card_logs vcl_last
+                                LEFT JOIN lanes la_last               ON la_last.id               = vcl_last.lane_id
+                                LEFT JOIN sub_locations sl_via_lane   ON sl_via_lane.location_id   = la_last.location_id
+                                LEFT JOIN sub_locations sl_via_direct ON sl_via_direct.id           = vcl_last.sub_location_id
+                                WHERE vcl_last.invitation_id = i.id
+                                  AND vcl_last.action != 'assigned'
+                                  AND COALESCE(sl_via_lane.name, sl_via_direct.name) IS NOT NULL
+                                ORDER BY vcl_last.scanned_at DESC, vcl_last.id DESC
+                                LIMIT 1
+                            ),
+                            NULLIF(i.location, ''),
+                            'N/A'
+                        ) AS i_location,
                         (SELECT MIN(iv.check_in_time) FROM invitation_visitors iv WHERE iv.invitation_id = i.id) AS reg_check_in,
                         (SELECT MAX(iv.check_out_time) FROM invitation_visitors iv WHERE iv.invitation_id = i.id) AS reg_check_out,
                         (SELECT MAX(s.date_to) FROM invitation_schedules s WHERE s.invitation_id = i.id) AS schedule_end
