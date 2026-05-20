@@ -326,8 +326,25 @@ class QRCode extends ResourceController
                     $db->table('visitor_cards')->where('id', $card['id'])->update(['status' => 'active']);
                 }
             } else {
-                // Internal door — visitor must have entered via turnstile first
-                if (!$invitation['check_in_time']) {
+                // Internal door — visitor must have entered via turnstile first.
+                // Primary check: invitation_visitors.check_in_time.
+                // Fallback: visitor_card_logs most recent checkin/checkout for this invitation
+                // (handles multi-visitor invitations, card replacements, and RFID/QR cross-device edge cases).
+                $isCheckedIn = !empty($invitation['check_in_time']);
+
+                if (!$isCheckedIn) {
+                    $lastMainLog = $db->query(
+                        "SELECT action FROM visitor_card_logs
+                         WHERE invitation_id = ?
+                         AND action IN ('checkin', 'checkout')
+                         ORDER BY scanned_at DESC, id DESC
+                         LIMIT 1",
+                        [$invitation['invitation_id']]
+                    )->getRowArray();
+                    $isCheckedIn = ($lastMainLog && $lastMainLog['action'] === 'checkin');
+                }
+
+                if (!$isCheckedIn) {
                     $db->transRollback();
                     return $this->respond([
                         'success'        => false,
