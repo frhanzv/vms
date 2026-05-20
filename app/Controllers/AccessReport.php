@@ -94,7 +94,22 @@ class AccessReport extends BaseController
                         WHEN COALESCE(iv.check_out_time, iv.check_in_time) IS NULL THEN MAX(vcl.scanned_at)
                         ELSE GREATEST(MAX(vcl.scanned_at), COALESCE(iv.check_out_time, iv.check_in_time))
                     END AS last_access,
-                    COALESCE(MIN(sl.name), NULLIF(i.location, ''), 'N/A') AS location_name,
+                    COALESCE(
+                        (
+                            SELECT COALESCE(sl_via_lane.name, sl_via_direct.name)
+                            FROM visitor_card_logs vcl_last
+                            LEFT JOIN lanes la_last       ON la_last.id       = vcl_last.lane_id
+                            LEFT JOIN sub_locations sl_via_lane   ON sl_via_lane.location_id   = la_last.location_id
+                            LEFT JOIN sub_locations sl_via_direct ON sl_via_direct.id = vcl_last.sub_location_id
+                            WHERE vcl_last.invitation_id = i.id
+                              AND vcl_last.action != 'assigned'
+                              AND COALESCE(sl_via_lane.name, sl_via_direct.name) IS NOT NULL
+                            ORDER BY vcl_last.scanned_at DESC, vcl_last.id DESC
+                            LIMIT 1
+                        ),
+                        NULLIF(i.location, ''),
+                        'N/A'
+                    ) AS location_name,
                     CASE 
                         WHEN COUNT(vcl.id) > 0 THEN COUNT(vcl.id)
                         WHEN iv.check_in_time IS NOT NULL THEN 1
@@ -207,19 +222,23 @@ class AccessReport extends BaseController
             ? implode(',', array_fill(0, count($laneIds), '?'))
             : 'NULL';
 
-        $sql = "SELECT 
-                    scanned_at, action, lane_id, lane_name, 
+        $sql = "SELECT
+                    scanned_at, action, lane_id, lane_name,
                     location_id, branch, location_access
                 FROM (
-                    SELECT 
+                    SELECT
                         vcl.scanned_at, vcl.action,
-                        sl.id AS lane_id, sl.name AS lane_name,
-                        loc.id AS location_id, loc.branch, loc.location_access
+                        COALESCE(sl_lane.id, sl_direct.id) AS lane_id,
+                        COALESCE(sl_lane.name, sl_direct.name) AS lane_name,
+                        COALESCE(la.location_id, sl_direct.location_id) AS location_id,
+                        loc.branch, loc.location_access
                     FROM visitor_card_logs vcl
                     LEFT JOIN lanes la ON la.id = vcl.lane_id
-                    LEFT JOIN sub_locations sl ON sl.location_id = la.location_id
-                    LEFT JOIN locations loc ON loc.id = la.location_id
+                    LEFT JOIN sub_locations sl_lane ON sl_lane.location_id = la.location_id
+                    LEFT JOIN sub_locations sl_direct ON sl_direct.id = vcl.sub_location_id
+                    LEFT JOIN locations loc ON loc.id = COALESCE(la.location_id, sl_direct.location_id)
                     WHERE vcl.invitation_id = ?
+                      AND vcl.action != 'assigned'
                       AND (la.id IN ({$lanePlaceholders}) OR vcl.lane_id IS NULL)
                       AND vcl.scanned_at >= ?
                       AND vcl.scanned_at <= ?
