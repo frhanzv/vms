@@ -478,14 +478,26 @@ class VisitorChronology extends BaseController
             $exitTime = $nextLog ? date('g:i A', strtotime($nextLog['scanned_at'])) : '-';
             $durationStr = $this->formatDuration($durationSeconds);
 
+            $actionLabels = [
+                'checkin'       => 'Check In',
+                'checkout'      => 'Check Out',
+                'door_checkin'  => 'In',
+                'door_checkout' => 'Out',
+                'door_access'   => 'Access',
+            ];
+            $fromAction = strtolower((string) ($currentLog['action'] ?? ''));
+            $toAction   = $nextLog ? strtolower((string) ($nextLog['action'] ?? '')) : '';
+
             $dates[$dateStr]['movements'][] = [
                 'movement_index' => count($dates[$dateStr]['movements']) + 1,
-                'from' => ($currentLog['lane_name'] ?? '—'),
-                'to'   => ($nextLog ? ($nextLog['lane_name'] ?? '—') : 'STILL AT SITE'),
-                'entry_time' => date('g:i A', strtotime($currentLog['scanned_at'])),
-                'exit_time'  => $exitTime,
-                'time_spent' => ($nextLog ? $durationStr : '-'),
-                'status'     => 'GRANTED' // Action is always granted in logs unless denied logs exist
+                'from'        => ($currentLog['lane_name'] ?? '—'),
+                'from_action' => $actionLabels[$fromAction] ?? '',
+                'to'          => ($nextLog ? ($nextLog['lane_name'] ?? '—') : 'STILL AT SITE'),
+                'to_action'   => $nextLog ? ($actionLabels[$toAction] ?? '') : '',
+                'entry_time'  => date('g:i A', strtotime($currentLog['scanned_at'])),
+                'exit_time'   => $exitTime,
+                'time_spent'  => ($nextLog ? $durationStr : '-'),
+                'status'      => 'GRANTED'
             ];
         }
 
