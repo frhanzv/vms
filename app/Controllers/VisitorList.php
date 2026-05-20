@@ -136,12 +136,12 @@ class VisitorList extends BaseController
         // Format data for the view
         $visitors = [];
         foreach ($results as $index => $row) {
-            // Show "In Use" only when a card is assigned AND the visitor has not checked out.
-            // visitor_card_id is preserved after checkout as reuse history, so we must
-            // also check check_out_time to avoid showing "In Use" for closed rows.
-            $cardStatusBadge = '-';
             if ($row['visitor_card_id'] && empty($row['check_out_time'])) {
                 $cardStatusBadge = 'In Use';
+            } elseif (! empty($row['check_out_time'])) {
+                $cardStatusBadge = 'Inactive';
+            } else {
+                $cardStatusBadge = '-';
             }
 
             $dateSrc = ! empty($row['sch_date_from'])
@@ -854,9 +854,24 @@ class VisitorList extends BaseController
 
             $cardId = $invitationVisitor['visitor_card_id'];
 
-            $this->invitationVisitorModel->update($invitationVisitorId, [
-                'visitor_card_id' => null,
-            ]);
+            $updateData = ['visitor_card_id' => null];
+
+            // Auto check-out if visitor is still on-site
+            $now = date('Y-m-d H:i:s');
+            if (! empty($invitationVisitor['check_in_time']) && empty($invitationVisitor['check_out_time'])) {
+                $updateData['check_out_time'] = $now;
+
+                // Log the checkout in visitor_card_logs
+                $db->table('visitor_card_logs')->insert([
+                    'invitation_id' => $invitationVisitor['invitation_id'],
+                    'action'        => 'checkout',
+                    'scan_source'   => 'admin',
+                    'scanned_at'    => $now,
+                    'created_at'    => $now,
+                ]);
+            }
+
+            $this->invitationVisitorModel->update($invitationVisitorId, $updateData);
 
             $this->visitorCardModel->update($cardId, [
                 'status' => 'active',
