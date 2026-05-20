@@ -76,10 +76,19 @@ class RFID extends ResourceController
 
             if (!$invitation) {
                 $db->transRollback();
+                $this->insertSecurityAlert(
+                    'Unauthorized Access',
+                    'high',
+                    'Unknown',
+                    'Security',
+                    'Card is not assigned to any visitor. Card number: ' . $cardEpc
+                );
                 return $this->respond([
-                    'success' => false,
-                    'message' => 'No active invitation found for this card today',
-                    'card_epc' => $cardEpc
+                    'success'        => false,
+                    'access_granted' => false,
+                    'action'         => 'denied',
+                    'message'        => 'Access denied: Card is not assigned to any visitor.',
+                    'card_epc'       => $cardEpc
                 ]);
             }
 
@@ -243,10 +252,20 @@ class RFID extends ResourceController
 
             if (!$invitation) {
                 $db->transRollback();
+                $laneName = $laneId ? ($db->table('lanes')->where('id', $laneId)->get()->getRowArray()['lane'] ?? '') : '';
+                $this->insertSecurityAlert(
+                    'Unauthorized Access',
+                    'high',
+                    'Unknown',
+                    $laneName ?: 'Security',
+                    'Card is not assigned to any visitor. Card number: ' . $cardEpc
+                );
                 return $this->respond([
-                    'success' => false,
-                    'message' => 'No active invitation found for this card today',
-                    'card_epc' => $cardEpc
+                    'success'        => false,
+                    'access_granted' => false,
+                    'action'         => 'denied',
+                    'message'        => 'Access denied: Card is not assigned to any visitor.',
+                    'card_epc'       => $cardEpc
                 ]);
             }
 
@@ -482,7 +501,10 @@ class RFID extends ResourceController
     protected function checkVisitorTypeAccess(array $invitation, int $laneId): array
     {
         if (empty($invitation['visitor_type_id'])) {
-            return ['granted' => true, 'message' => null];
+            return [
+                'granted' => false,
+                'message' => 'Access denied: No visitor type assigned — door access cannot be determined.',
+            ];
         }
 
         $db = \Config\Database::connect();
@@ -492,7 +514,10 @@ class RFID extends ResourceController
             ->get()->getRowArray();
 
         if (!$visitorType || empty($visitorType['path'])) {
-            return ['granted' => true, 'message' => null];
+            return [
+                'granted' => false,
+                'message' => 'Access denied: No door access configured for this visitor type (N/A).',
+            ];
         }
 
         $pathway = $db->table('pathways')
@@ -521,5 +546,25 @@ class RFID extends ResourceController
         }
 
         return ['granted' => true, 'message' => null];
+    }
+
+    /**
+     * Insert a row into security_alerts.
+     */
+    protected function insertSecurityAlert(string $type, string $severity, string $visitorName, string $location, string $description): void
+    {
+        $db = \Config\Database::connect();
+        if ($db->tableExists('security_alerts')) {
+            $db->table('security_alerts')->insert([
+                'incident_type'   => $type,
+                'severity'        => $severity,
+                'visitor_name'    => $visitorName,
+                'location'        => $location,
+                'description'     => $description,
+                'is_acknowledged' => 0,
+                'created_at'      => date('Y-m-d H:i:s'),
+                'updated_at'      => date('Y-m-d H:i:s'),
+            ]);
+        }
     }
 }

@@ -2,33 +2,33 @@
 
 namespace App\Controllers;
 
-use App\Models\LaneModel;
+use App\Models\SubLocationModel;
 
 class VisitorChronology extends BaseController
 {
-    protected $laneModel;
+    protected $subLocationModel;
 
     public function __construct()
     {
-        $this->laneModel = new LaneModel();
+        $this->subLocationModel = new SubLocationModel();
     }
 
     public function index()
     {
         return view('reports/access_chronology', [
-            'pageTitle' => 'Visitor Details - SafeG',
-            'lanes'     => $this->laneModel->where('status', 'active')->orderBy('lane', 'ASC')->findAll(),
+            'pageTitle'    => 'Visitor Details - SafeG',
+            'subLocations' => $this->subLocationModel->getAllActive(),
         ]);
     }
 
     public function generate()
     {
-        $fromRaw      = $this->request->getPost('from_datetime');
-        $toRaw        = $this->request->getPost('to_datetime');
-        $laneId       = $this->request->getPost('lane_id');
-        $invitationId = $this->request->getPost('invitation_id');
-        $searchBy     = $this->request->getPost('search_by');
-        $searchTerm   = trim((string) $this->request->getPost('search_term'));
+        $fromRaw       = $this->request->getPost('from_datetime');
+        $toRaw         = $this->request->getPost('to_datetime');
+        $subLocationId = $this->request->getPost('sub_location_id');
+        $invitationId  = $this->request->getPost('invitation_id');
+        $searchBy      = $this->request->getPost('search_by');
+        $searchTerm    = trim((string) $this->request->getPost('search_term'));
 
         $normalizedSearchTerm = $this->normalizeIdentitySearchTerm($searchTerm);
 
@@ -55,23 +55,33 @@ class VisitorChronology extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'Enter a valid IC or visitor name.']);
         }
 
-        if ($laneId !== null && $laneId !== '') {
-            $lane = $this->laneModel->find((int)$laneId);
-            $locationName = $lane ? $lane['lane'] : 'Unknown Lane';
-        } else {
-            $locationName = 'All Lanes';
-        }
-
         $db = db_connect();
 
-        // 1. Grouped Visitor Summary: match invitation by IC/staff (hyphens/spaces ignored). Logs in range are optional.
-        $whereGrouped = ['i.id IS NOT NULL'];
-        $joinGrouped = ['vcl.invitation_id = i.id', 'vcl.scanned_at >= ?', 'vcl.scanned_at <= ?'];
+        // Resolve lane IDs from sub-location's parent location
+        $laneIds      = [];
+        $locationName = 'All Locations';
+        if ($subLocationId !== null && $subLocationId !== '') {
+            $subLoc = $this->subLocationModel->find((int) $subLocationId);
+            if ($subLoc) {
+                $locationName = $subLoc['name'];
+                $laneRows     = $db->query(
+                    "SELECT id FROM lanes WHERE location_id = ? AND status = 'active'",
+                    [(int) $subLoc['location_id']]
+                )->getResultArray();
+                $laneIds = array_column($laneRows, 'id');
+            } else {
+                $locationName = 'Unknown Location';
+            }
+        }
+
+        // 1. Grouped Visitor Summary
+        $whereGrouped  = ['i.id IS NOT NULL'];
+        $joinGrouped   = ['vcl.invitation_id = i.id', 'vcl.scanned_at >= ?', 'vcl.scanned_at <= ?'];
         $paramsGrouped = [$fromDatetime, $toDatetime];
 
-        if ($laneId !== null && $laneId !== '') {
-            $joinGrouped[] = 'vcl.lane_id = ?';
-            $paramsGrouped[] = $laneId;
+        if (!empty($laneIds)) {
+            $laneInList    = implode(',', array_map('intval', $laneIds));
+            $joinGrouped[] = "vcl.lane_id IN ({$laneInList})";
         }
 
         $identitySqlExpr = $searchBy === 'name'
@@ -98,12 +108,14 @@ class VisitorChronology extends BaseController
                         i.updated_at,
                         MIN(vcl.scanned_at) AS visit_from,
                         MAX(vcl.scanned_at) AS visit_to,
-                        i.location AS i_location,
+                        COALESCE(MIN(sl.name), NULLIF(i.location, ''), 'N/A') AS i_location,
                         (SELECT MIN(iv.check_in_time) FROM invitation_visitors iv WHERE iv.invitation_id = i.id) AS reg_check_in,
                         (SELECT MAX(iv.check_out_time) FROM invitation_visitors iv WHERE iv.invitation_id = i.id) AS reg_check_out,
                         (SELECT MAX(s.date_to) FROM invitation_schedules s WHERE s.invitation_id = i.id) AS schedule_end
                        FROM invitations i
                        LEFT JOIN visitor_card_logs vcl ON " . implode(' AND ', $joinGrouped) . "
+                       LEFT JOIN lanes la ON la.id = vcl.lane_id
+                       LEFT JOIN sub_locations sl ON sl.location_id = la.location_id
                        WHERE " . implode(' AND ', $whereGrouped) . "
                        GROUP BY i.id";
         
@@ -197,12 +209,12 @@ class VisitorChronology extends BaseController
         }
 
         // 2. Full Chronology
-        $whereChron = ['vcl.scanned_at >= ?', 'vcl.scanned_at <= ?', 'i.id IS NOT NULL'];
+        $whereChron  = ['vcl.scanned_at >= ?', 'vcl.scanned_at <= ?', 'i.id IS NOT NULL'];
         $paramsChron = [$fromDatetime, $toDatetime];
-        
-        if ($laneId !== null && $laneId !== '') {
-            $whereChron[] = 'vcl.lane_id = ?';
-            $paramsChron[] = $laneId;
+
+        if (!empty($laneIds)) {
+            $laneInList   = implode(',', array_map('intval', $laneIds));
+            $whereChron[] = "vcl.lane_id IN ({$laneInList})";
         }
 
         if ($hasInvitation) {
@@ -216,11 +228,12 @@ class VisitorChronology extends BaseController
         $sqlChron = 'SELECT i.id AS invitation_id,
                        i.full_name AS visitor_name,
                        vcl.scanned_at AS access_time,
-                       la.lane AS lane_name,
+                       sl.name AS lane_name,
                        loc.branch,
                        loc.location_access
                 FROM visitor_card_logs vcl
                 LEFT JOIN lanes la ON la.id = vcl.lane_id
+                LEFT JOIN sub_locations sl ON sl.location_id = la.location_id
                 LEFT JOIN locations loc ON loc.id = la.location_id
                 LEFT JOIN invitations i ON i.id = vcl.invitation_id
                 WHERE ' . implode(' AND ', $whereChron) . '
@@ -233,7 +246,7 @@ class VisitorChronology extends BaseController
             $formattedChron[] = [
                 'visitor_name'    => $row['visitor_name'] ?? 'N/A',
                 'access_time'     => ! empty($row['access_time']) ? date('M j, Y g:i A', strtotime($row['access_time'])) : '-',
-                'location_detail' => ($row['lane_name'] ?? '') . ' · ' . ($row['branch'] ?? '') . ' — ' . ($row['location_access'] ?? ''),
+                'location_detail' => ($row['lane_name'] ?? 'N/A'),
             ];
         }
 
@@ -330,9 +343,10 @@ class VisitorChronology extends BaseController
         }
 
         // 2. Get All Visitor Card Logs for this invitation
-        $sql = "SELECT vcl.*, la.lane AS lane_name, loc.branch, loc.location_access
+        $sql = "SELECT vcl.*, sl.name AS lane_name, loc.branch, loc.location_access
                 FROM visitor_card_logs vcl
                 LEFT JOIN lanes la ON la.id = vcl.lane_id
+                LEFT JOIN sub_locations sl ON sl.location_id = la.location_id
                 LEFT JOIN locations loc ON loc.id = la.location_id
                 WHERE vcl.invitation_id = ?
                 ORDER BY vcl.scanned_at ASC";
@@ -524,9 +538,10 @@ class VisitorChronology extends BaseController
             return "Record not found.";
         }
 
-        $sql = "SELECT vcl.*, la.lane AS lane_name, loc.branch, loc.location_access
+        $sql = "SELECT vcl.*, sl.name AS lane_name, loc.branch, loc.location_access
                 FROM visitor_card_logs vcl
                 LEFT JOIN lanes la ON la.id = vcl.lane_id
+                LEFT JOIN sub_locations sl ON sl.location_id = la.location_id
                 LEFT JOIN locations loc ON loc.id = la.location_id
                 WHERE vcl.invitation_id = ?
                 ORDER BY vcl.scanned_at ASC";

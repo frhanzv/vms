@@ -227,14 +227,14 @@
                                         </label>
                                     </div>
                                     <div class="py-1">
-                                        <?php foreach ($lanes as $lane): ?>
+                                        <?php foreach ($subLocations as $sl): ?>
                                             <label class="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer select-none">
-                                                <input type="checkbox" name="lane_ids[]"
-                                                    value="<?= esc($lane['id']) ?>"
+                                                <input type="checkbox" name="sub_location_ids[]"
+                                                    value="<?= esc($sl['id']) ?>"
                                                     class="location-checkbox rounded border-slate-300 text-primary focus:ring-primary/30 h-4 w-4 cursor-pointer"
                                                     onchange="onLocationCheckboxChange()">
                                                 <span class="text-sm text-slate-700 dark:text-slate-200">
-                                                    <?= esc($lane['lane']) ?>
+                                                    <?= esc(strtoupper($sl['name'])) ?>
                                                 </span>
                                             </label>
                                         <?php endforeach; ?>
@@ -516,7 +516,7 @@
         const formData = new FormData();
         formData.append('from_datetime', fromDatetime);
         formData.append('to_datetime',   toDatetime);
-        laneIds.forEach(id => formData.append('lane_ids[]', id));
+        laneIds.forEach(id => formData.append('sub_location_ids[]', id));
 
         fetch('<?= base_url('report/access/generate') ?>', {
             method: 'POST',
@@ -997,7 +997,7 @@
 
         const formData = new FormData();
         formData.append('invitation_id', invitationId);
-        laneIds.forEach(id => formData.append('lane_ids[]', id));
+        laneIds.forEach(id => formData.append('sub_location_ids[]', id));
         formData.append('from_datetime', fromDatetime);
         formData.append('to_datetime', toDatetime);
 
@@ -1031,6 +1031,7 @@
                 const accessYes = row.access_granted !== false && row.access !== 'No';
                 const actOk = row.action_allowed !== false && row.action !== 'Not Allowed';
                 const rowReason = visitReason ? visitReason : (row.reason || '—');
+                const configUrl = '<?= base_url('config?tab=sublocation') ?>';
                 tr.innerHTML =
                     '<td class="whitespace-nowrap px-3 py-3 font-medium">' + escHtml(row.date_time) + '</td>' +
                     '<td class="px-3 py-3">' + escHtml(row.current_location) + '</td>' +
@@ -1062,7 +1063,7 @@
         const toDatetime = document.getElementById('to_datetime').value;
         if (laneIdsC.length === 0 || !fromDatetime || !toDatetime) return;
         const q = new URLSearchParams();
-        laneIdsC.forEach(id => q.append('lane_ids[]', id));
+        laneIdsC.forEach(id => q.append('sub_location_ids[]', id));
         q.set('from_datetime', fromDatetime);
         q.set('to_datetime', toDatetime);
         q.set('auto_search', '1');

@@ -182,13 +182,38 @@ class KioskApi extends BaseController
             $config[$s['setting_key']] = $s['setting_value'];
         }
 
-        // Expose only non-sensitive keys relevant to the kiosk
+        // Default visitor fields config
+        $defaultVisitorFields = [
+            'contact_number' => ['show' => true,  'required' => true],
+            'company_name'   => ['show' => true,  'required' => true],
+            'email'          => ['show' => true,  'required' => false],
+            'vehicle_reg_no' => ['show' => true,  'required' => false],
+            'address'        => ['show' => true,  'required' => true],
+            'date_of_birth'  => ['show' => false, 'required' => false],
+            'postal_code'    => ['show' => false, 'required' => false],
+            'state'          => ['show' => false, 'required' => false],
+            'city'           => ['show' => false, 'required' => false],
+        ];
+
+        // Override with DB config if exists
+        $visitorFieldsRaw = $config['kiosk_visitor_fields'] ?? null;
+        $visitorFields = $visitorFieldsRaw
+            ? json_decode($visitorFieldsRaw, true) ?? $defaultVisitorFields
+            : $defaultVisitorFields;
+
         $kiosk = [
             'project'            => $config['project_name']          ?? 'VMS',
             'visitorPassPrint'   => $config['visitor_pass_print']    ?? 'enabled',
             'facialVerification' => $config['facial_verification']   ?? 'disabled',
             'securityBriefing'   => $config['security_briefing']     ?? 'disabled',
             'allowWalkIn'        => $config['allow_walk_in']         ?? 'enabled',
+            'vpOCR'              => true,
+            'vpFacial'           => true,
+            'walk_in'            => filter_var($config['kiosk_walk_in']      ?? 'true', FILTER_VALIDATE_BOOLEAN),
+            'invitation'         => filter_var($config['kiosk_invitation']   ?? 'true', FILTER_VALIDATE_BOOLEAN),
+            'collect_card'       => filter_var($config['kiosk_collect_card'] ?? 'true', FILTER_VALIDATE_BOOLEAN),
+            'vvip'               => filter_var($config['kiosk_vvip']         ?? 'true', FILTER_VALIDATE_BOOLEAN),
+            'visitor_fields'     => $visitorFields,
         ];
 
         return $this->respond(['status' => 'success', 'data' => $kiosk]);

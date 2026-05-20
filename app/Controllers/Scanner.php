@@ -29,7 +29,7 @@ class Scanner extends BaseController
         }
 
         return view('scanner/index', [
-            'pageTitle' => 'QR Scanner — SafeG',
+            'pageTitle' => 'Card Scanner — SafeG',
             'lanes'     => $clean,
         ]);
     }
