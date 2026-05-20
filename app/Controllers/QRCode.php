@@ -32,6 +32,17 @@ class QRCode extends ResourceController
             return $this->failValidationError('Card number is required');
         }
 
+        // Reject non-card QR types without triggering security alerts
+        if (stripos($raw, 'VIS-') === 0 || stripos($raw, 'http') === 0) {
+            return $this->respond([
+                'success'        => false,
+                'access_granted' => false,
+                'action'         => 'denied',
+                'message'        => 'Wrong QR type: only physical visitor card EPCs are accepted at this scanner.',
+                'qr_code'        => $raw,
+            ]);
+        }
+
         $db   = \Config\Database::connect();
         $card = $db->table('visitor_cards')->where('card_id', $raw)->get()->getRowArray();
 
@@ -41,13 +52,13 @@ class QRCode extends ResourceController
                 'high',
                 'Unknown',
                 'Security',
-                'Unregistered card scanned. Card number: ' . $raw
+                'Unregistered card scanned. Card EPC: ' . $raw
             );
             return $this->respond([
                 'success'        => false,
                 'access_granted' => false,
                 'action'         => 'denied',
-                'message'        => 'Card not registered in system',
+                'message'        => 'Card not found in inventory. Only physical visitor cards issued by this system are accepted.',
                 'qr_code'        => $raw,
             ]);
         }
@@ -75,15 +86,16 @@ class QRCode extends ResourceController
      */
     public function scanLane()
     {
-        $raw      = trim((string) ($this->request->getGet('qr_code') ?? $this->request->getGet('card_number') ?? ''));
-        $laneId   = $this->request->getGet('lane_id');
-        $laneType = $this->request->getGet('lane_type');
+        $raw           = trim((string) ($this->request->getGet('qr_code') ?? $this->request->getGet('card_number') ?? ''));
+        $laneId        = $this->request->getGet('lane_id');
+        $subLocationId = $this->request->getGet('sub_location_id');
+        $laneType      = $this->request->getGet('lane_type');
 
         if ($raw === '') {
             return $this->failValidationError('Card number is required');
         }
 
-        return $this->processCardCheckInOut($raw, $laneId, $laneType);
+        return $this->processCardCheckInOut($raw, $laneId, $laneType, $subLocationId);
     }
 
     /**
@@ -122,27 +134,50 @@ class QRCode extends ResourceController
      *   4. Visitor must have door access (pathway configured for visitor type)
      *   5. Standard checkin / checkout / door_access state machine
      */
-    protected function processCardCheckInOut(string $cardNumber, ?string $laneId, ?string $laneType)
+    protected function processCardCheckInOut(string $cardNumber, ?string $laneId, ?string $laneType, ?string $subLocationId = null)
     {
         $db = \Config\Database::connect();
 
-        // 1. Look up card by card_id
+        // Reject non-card QR types immediately without triggering security alerts.
+        // Visitor invitation QRs encode "VIS-{id}" or an IC/passport number;
+        // registration QRs encode a URL. None of these are visitor card EPCs.
+        if (stripos($cardNumber, 'VIS-') === 0) {
+            return $this->respond([
+                'success'        => false,
+                'access_granted' => false,
+                'action'         => 'denied',
+                'message'        => 'Wrong QR type: visitor invitation QR cannot be used here. Scan the physical visitor card only.',
+                'qr_code'        => $cardNumber,
+            ]);
+        }
+
+        if (stripos($cardNumber, 'http://') === 0 || stripos($cardNumber, 'https://') === 0) {
+            return $this->respond([
+                'success'        => false,
+                'access_granted' => false,
+                'action'         => 'denied',
+                'message'        => 'Wrong QR type: URL QR codes are not accepted. Scan the physical visitor card only.',
+                'qr_code'        => $cardNumber,
+            ]);
+        }
+
+        // 1. Look up card by card_id (EPC) in visitor card inventory
         $card = $db->table('visitor_cards')->where('card_id', $cardNumber)->get()->getRowArray();
 
         if (!$card) {
-            $laneName = $this->getLaneName($laneId);
+            $laneName = $this->getLaneName($laneId, $subLocationId);
             $this->insertSecurityAlert(
                 'Unauthorized Access',
                 'high',
                 'Unknown',
                 $laneName ?: 'Security',
-                'Unregistered card scanned at door. Card number: ' . $cardNumber
+                'Unregistered card scanned at door. Card EPC: ' . $cardNumber
             );
             return $this->respond([
                 'success'        => false,
                 'access_granted' => false,
                 'action'         => 'denied',
-                'message'        => 'Card not registered in system',
+                'message'        => 'Card not found in inventory. Only physical visitor cards issued by this system are accepted.',
                 'qr_code'        => $cardNumber,
             ]);
         }
@@ -159,26 +194,31 @@ class QRCode extends ResourceController
         $db->transStart();
 
         try {
-            // 3. Card must be assigned to a visitor with an approved invitation today
+            // 3. Card must be explicitly assigned to an approved visitor who hasn't checked out.
+            //    Join on vc.card_id so duplicate card_id rows in visitor_cards don't cause a miss.
+            //    Schedule date range is intentionally NOT checked here: the admin's explicit card
+            //    assignment is the authorization — restricting by schedule date would deny access
+            //    to visitors whose schedule started yesterday or spans multiple days.
             $invitation = $db->query(
                 'SELECT iv.*, iv.id as iv_id,
                         i.full_name as visitor_name, i.company as visitor_company,
                         i.id as invitation_id, i.ic_passport, i.visitor_type_id,
                         u.company_id, vt.name as visitor_type_name
                  FROM invitation_visitors iv
+                 JOIN visitor_cards vc ON vc.id = iv.visitor_card_id
                  JOIN invitations i ON i.id = iv.invitation_id
                  LEFT JOIN users u ON i.staff_id = u.staff_id
                  LEFT JOIN visitor_types vt ON vt.id = i.visitor_type_id
-                 WHERE iv.visitor_card_id = ?
+                 WHERE vc.card_id = ?
                  AND i.status = ?
-                 AND DATE(i.created_at) = ?
+                 AND iv.check_out_time IS NULL
                  FOR UPDATE',
-                [$card['id'], 'Approved', date('Y-m-d')]
+                [$cardNumber, 'Approved']
             )->getRowArray();
 
             if (!$invitation) {
                 $db->transRollback();
-                $laneName = $this->getLaneName($laneId);
+                $laneName = $this->getLaneName($laneId, $subLocationId);
                 $this->insertSecurityAlert(
                     'Unauthorized Access',
                     'high',
@@ -195,11 +235,17 @@ class QRCode extends ResourceController
                 ]);
             }
 
-            $laneName = $this->getLaneName($laneId);
+            // Use the card row that is actually linked to this visitor (resolves duplicate card_id)
+            $card['id'] = $invitation['visitor_card_id'];
 
-            // 4. Check door access — visitor type must have a pathway that includes this lane
-            if ($laneId) {
-                $accessCheck = $this->checkVisitorTypeAccess($invitation, (int) $laneId);
+            $laneName    = $this->getLaneName($laneId, $subLocationId);
+            $doorId      = $subLocationId ?? $laneId;
+            $isTurnstileEarly = ($doorId && stripos($laneName ?? '', 'TURNSTILE') !== false);
+
+            // 4. Pathway/door-access check — only for internal doors.
+            //    Turnstile is the universal entry/exit gate; every approved visitor may use it.
+            if ($doorId && !$isTurnstileEarly) {
+                $accessCheck = $this->checkVisitorTypeAccess($invitation, (int) $doorId, $subLocationId !== null);
                 if (!$accessCheck['granted']) {
                     $db->transRollback();
                     $this->insertSecurityAlert(
@@ -224,12 +270,14 @@ class QRCode extends ResourceController
                 }
             }
 
-            // 5. Checkin / checkout / door_access state machine
-            $action   = 'checkin';
-            $duration = null;
-            $now      = date('Y-m-d H:i:s');
-            $nextVer  = ((int) ($invitation['version'] ?? 1)) + 1;
-            $isTurnstile = ($laneId && stripos($laneName ?? '', 'TURNSTILE') !== false);
+            // 5. Turnstile-first state machine:
+            //    Turnstile = entry/exit gate (must be first in, last out).
+            //    All other doors = internal doors, only reachable after turnstile check-in.
+            $action      = 'checkin';
+            $duration    = null;
+            $now         = date('Y-m-d H:i:s');
+            $nextVer     = ((int) ($invitation['version'] ?? 1)) + 1;
+            $isTurnstile = $isTurnstileEarly;
 
             if ($invitation['check_out_time']) {
                 $db->transRollback();
@@ -240,32 +288,27 @@ class QRCode extends ResourceController
                 ]);
             }
 
-            if (!$invitation['check_in_time']) {
-                $action = 'checkin';
-                $db->table('invitation_visitors')
-                    ->where('id', $invitation['iv_id'])
-                    ->where('check_in_time IS NULL')
-                    ->update(['check_in_time' => $now, 'version' => $nextVer, 'updated_at' => $now]);
+            if ($isTurnstile) {
+                if (!$invitation['check_in_time']) {
+                    // First turnstile scan → entry check-in
+                    $action = 'checkin';
+                    $db->table('invitation_visitors')
+                        ->where('id', $invitation['iv_id'])
+                        ->where('check_in_time IS NULL')
+                        ->update(['check_in_time' => $now, 'version' => $nextVer, 'updated_at' => $now]);
 
-                if ($db->affectedRows() === 0) {
-                    $db->transRollback();
-                    return $this->respond([
-                        'success' => false,
-                        'message' => 'Visitor has already been checked in',
-                        'qr_code' => $cardNumber,
-                    ]);
-                }
+                    if ($db->affectedRows() === 0) {
+                        $db->transRollback();
+                        return $this->respond([
+                            'success' => false,
+                            'message' => 'Visitor has already been checked in',
+                            'qr_code' => $cardNumber,
+                        ]);
+                    }
 
-                $db->table('visitor_cards')->where('id', $card['id'])->update(['status' => 'in_use']);
-            } else {
-                $isCheckout = false;
-                if ($laneType === 'exit' && $isTurnstile) {
-                    $isCheckout = true;
-                } elseif (!$laneType && $isTurnstile) {
-                    $isCheckout = true;
-                }
-
-                if ($isCheckout) {
+                    $db->table('visitor_cards')->where('id', $card['id'])->update(['status' => 'in_use']);
+                } else {
+                    // Subsequent turnstile scan → exit check-out
                     $action   = 'checkout';
                     $duration = $this->formatDuration(time() - strtotime($invitation['check_in_time']));
 
@@ -273,24 +316,137 @@ class QRCode extends ResourceController
                         ->where('id', $invitation['iv_id'])
                         ->where('check_out_time IS NULL')
                         ->update([
-                            'check_out_time'  => $now,
-                            'version'         => $nextVer,
-                            'updated_at'      => $now,
-                            'visitor_card_id'  => null,
+                            'check_out_time' => $now,
+                            'version'        => $nextVer,
+                            'updated_at'     => $now,
+                            // visitor_card_id intentionally kept — used as reuse history
+                            // so the same visitor cannot be re-issued the same card.
                         ]);
 
                     $db->table('visitor_cards')->where('id', $card['id'])->update(['status' => 'active']);
+                }
+            } else {
+                // Internal door — visitor must have entered via turnstile first
+                if (!$invitation['check_in_time']) {
+                    $db->transRollback();
+                    return $this->respond([
+                        'success'        => false,
+                        'access_granted' => false,
+                        'action'         => 'denied',
+                        'message'        => 'Access denied: Please check in at the entry turnstile first.',
+                        'qr_code'        => $cardNumber,
+                    ]);
+                }
+
+                // Per-door state: find the visitor's most recent door action
+                $lastDoorLog = $db->query(
+                    'SELECT action, sub_location_id, lane_id
+                     FROM visitor_card_logs
+                     WHERE invitation_id = ?
+                     AND action IN (\'door_checkin\', \'door_checkout\')
+                     ORDER BY scanned_at DESC, id DESC
+                     LIMIT 1',
+                    [$invitation['invitation_id']]
+                )->getRowArray();
+
+                $currentDoorId  = $subLocationId ?? $laneId;
+                $hasOpenDoor    = $lastDoorLog && $lastDoorLog['action'] === 'door_checkin';
+                $openDoorId     = $hasOpenDoor ? ($lastDoorLog['sub_location_id'] ?? $lastDoorLog['lane_id']) : null;
+                $openAtThisDoor = $hasOpenDoor && ((string) $openDoorId === (string) $currentDoorId);
+
+                if ($laneType === 'entry') {
+                    // Entry scanner: check-in only
+                    if ($openAtThisDoor) {
+                        $db->transRollback();
+                        return $this->respond([
+                            'success'        => false,
+                            'access_granted' => false,
+                            'action'         => 'denied',
+                            'message'        => 'Already checked in here. Use the exit scanner to check out.',
+                            'qr_code'        => $cardNumber,
+                        ]);
+                    }
+                    if ($hasOpenDoor && !$openAtThisDoor) {
+                        $openDoorName = $this->getLaneName($lastDoorLog['lane_id'], $lastDoorLog['sub_location_id']);
+                        $db->transRollback();
+                        return $this->respond([
+                            'success'        => false,
+                            'access_granted' => false,
+                            'action'         => 'denied',
+                            'message'        => 'Access denied: Please check out from ' . ($openDoorName ?? 'current door') . ' before entering another.',
+                            'visitor'        => [
+                                'name'         => $invitation['visitor_name']      ?? 'Unknown',
+                                'company'      => $invitation['visitor_company']   ?? 'N/A',
+                                'visitor_type' => $invitation['visitor_type_name'] ?? null,
+                            ],
+                            'qr_code'        => $cardNumber,
+                        ]);
+                    }
+                    $action = 'door_checkin';
+
+                } elseif ($laneType === 'exit') {
+                    // Exit scanner: check-out only
+                    if (!$hasOpenDoor) {
+                        $db->transRollback();
+                        return $this->respond([
+                            'success'        => false,
+                            'access_granted' => false,
+                            'action'         => 'denied',
+                            'message'        => 'Not checked in to any door.',
+                            'qr_code'        => $cardNumber,
+                        ]);
+                    }
+                    if (!$openAtThisDoor) {
+                        $openDoorName = $this->getLaneName($lastDoorLog['lane_id'], $lastDoorLog['sub_location_id']);
+                        $db->transRollback();
+                        return $this->respond([
+                            'success'        => false,
+                            'access_granted' => false,
+                            'action'         => 'denied',
+                            'message'        => 'Not checked in at this door. Currently in ' . ($openDoorName ?? 'another door') . '.',
+                            'visitor'        => [
+                                'name'         => $invitation['visitor_name']      ?? 'Unknown',
+                                'company'      => $invitation['visitor_company']   ?? 'N/A',
+                                'visitor_type' => $invitation['visitor_type_name'] ?? null,
+                            ],
+                            'qr_code'        => $cardNumber,
+                        ]);
+                    }
+                    $action = 'door_checkout';
+
                 } else {
-                    $action = 'door_access';
+                    // Auto mode: first scan = check-in, second scan at same door = check-out
+                    if ($openAtThisDoor) {
+                        $action = 'door_checkout';
+                    } elseif ($hasOpenDoor) {
+                        $openDoorName = $this->getLaneName($lastDoorLog['lane_id'], $lastDoorLog['sub_location_id']);
+                        $db->transRollback();
+                        return $this->respond([
+                            'success'        => false,
+                            'access_granted' => false,
+                            'action'         => 'denied',
+                            'message'        => 'Access denied: Please check out from ' . ($openDoorName ?? 'current door') . ' before entering another.',
+                            'visitor'        => [
+                                'name'         => $invitation['visitor_name']      ?? 'Unknown',
+                                'company'      => $invitation['visitor_company']   ?? 'N/A',
+                                'visitor_type' => $invitation['visitor_type_name'] ?? null,
+                            ],
+                            'qr_code'        => $cardNumber,
+                        ]);
+                    } else {
+                        $action = 'door_checkin';
+                    }
                 }
             }
 
-            $this->logCardScan($card['id'], $invitation['invitation_id'], $action, $laneId);
+            $this->logCardScan($card['id'], $invitation['invitation_id'], $action, $subLocationId !== null ? null : $laneId, $subLocationId);
 
             $db->transComplete();
 
-            $notifType = $action === 'checkin' ? 'check_in' : 'check_out';
-            (new NotificationService())->dispatch($invitation['invitation_id'], $notifType);
+            if ($action === 'checkin' || $action === 'checkout') {
+                $notifType = $action === 'checkin' ? 'check_in' : 'check_out';
+                (new NotificationService())->dispatch($invitation['invitation_id'], $notifType);
+            }
 
             if ($action === 'checkin' && !empty($invitation['ic_passport'])) {
                 $blacklisted = $db->table('blacklist')
@@ -322,8 +478,10 @@ class QRCode extends ResourceController
                 'qr_code'  => $cardNumber,
             ];
 
-            if ($laneId) {
-                $response['lane'] = ['id' => $laneId, 'type' => $laneType];
+            if ($subLocationId) {
+                $response['lane'] = ['id' => $subLocationId, 'name' => $laneName, 'type' => $laneType, 'source' => 'sub_location'];
+            } elseif ($laneId) {
+                $response['lane'] = ['id' => $laneId, 'name' => $laneName, 'type' => $laneType, 'source' => 'lane'];
             }
 
             return $this->respond($response);
@@ -342,7 +500,7 @@ class QRCode extends ResourceController
     /**
      * Log card scan to visitor_card_logs.
      */
-    protected function logCardScan(int $cardId, int $invitationId, string $action, ?string $laneId = null): void
+    protected function logCardScan(int $cardId, int $invitationId, string $action, ?string $laneId = null, ?string $subLocationId = null): void
     {
         $db = \Config\Database::connect();
         $db->table('visitor_card_logs')->insert([
@@ -350,6 +508,7 @@ class QRCode extends ResourceController
             'invitation_id'   => $invitationId,
             'action'          => $action,
             'lane_id'         => $laneId,
+            'sub_location_id' => $subLocationId,
             'scan_source'     => 'qr_code',
             'scanned_at'      => date('Y-m-d H:i:s'),
             'created_at'      => date('Y-m-d H:i:s'),
@@ -365,7 +524,7 @@ class QRCode extends ResourceController
      *   - Pathway is inactive
      *   - Lane is not in the assigned pathway
      */
-    protected function checkVisitorTypeAccess(array $invitation, int $laneId): array
+    protected function checkVisitorTypeAccess(array $invitation, int $doorId, bool $isSubLocation = false): array
     {
         $db = \Config\Database::connect();
 
@@ -399,16 +558,23 @@ class QRCode extends ResourceController
             ];
         }
 
-        $inPathway = $db->table('pathway_lanes')
-            ->where('pathway_id', $pathway['id'])
-            ->where('lane_id', $laneId)
-            ->countAllResults() > 0;
+        if ($isSubLocation) {
+            $inPathway = $db->table('pathway_sub_locations')
+                ->where('pathway_id', $pathway['id'])
+                ->where('sub_location_id', $doorId)
+                ->countAllResults() > 0;
+        } else {
+            $inPathway = $db->table('pathway_lanes')
+                ->where('pathway_id', $pathway['id'])
+                ->where('lane_id', $doorId)
+                ->countAllResults() > 0;
+        }
 
         if (!$inPathway) {
             $typeName = $visitorType['name'] ?? 'Unknown';
             return [
                 'granted' => false,
-                'message' => "Access denied: visitor type \"{$typeName}\" is not authorised for this lane.",
+                'message' => "Access denied: visitor type \"{$typeName}\" is not authorised for this door.",
             ];
         }
 
@@ -416,14 +582,20 @@ class QRCode extends ResourceController
     }
 
     /**
-     * Resolve lane name from lane ID.
+     * Resolve door name from lane ID or sub_location ID.
      */
-    protected function getLaneName(?string $laneId): ?string
+    protected function getLaneName(?string $laneId, ?string $subLocationId = null): ?string
     {
+        $db = \Config\Database::connect();
+
+        if ($subLocationId) {
+            $row = $db->table('sub_locations')->where('id', $subLocationId)->get()->getRowArray();
+            return $row['name'] ?? null;
+        }
+
         if (!$laneId) {
             return null;
         }
-        $db  = \Config\Database::connect();
         $row = $db->table('lanes')->where('id', $laneId)->get()->getRowArray();
         return $row['lane'] ?? null;
     }

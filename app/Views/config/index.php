@@ -11801,7 +11801,7 @@
                             <button onclick="closeVisitorCardQrModal()" class="px-5 py-2.5 rounded text-white font-medium bg-yellow-500 hover:bg-yellow-600 transition-colors text-sm">
                                 Close
                             </button>
-                            <button onclick="printVisitorCardQr('${qrUrl}')" class="px-5 py-2.5 rounded bg-secondary text-white font-medium hover:bg-blue-600 transition-colors text-sm">
+                            <button onclick="printVisitorCardQr('${qrUrl}')" class="px-5 py-2.5 rounded bg-blue-500 text-white font-medium hover:bg-blue-600 transition-colors text-sm">
                                 Print
                             </button>
                         </div>
@@ -11818,22 +11818,44 @@
         }
 
         function printVisitorCardQr(qrUrl) {
-            const printWindow = window.open('', '_blank');
-            printWindow.document.write(`
-                <html>
-                <head>
-                    <title>Print QR Code</title>
-                    <style>
-                        body { display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-                        img { max-width: 100%; height: auto; }
-                    </style>
-                </head>
-                <body>
-                    <img src="${qrUrl}" onload="window.print(); window.close();">
-                </body>
-                </html>
-            `);
-            printWindow.document.close();
+            function doDownload() {
+                const { jsPDF } = window.jspdf;
+
+                const img = new Image();
+                img.onload = function () {
+                    const canvas = document.createElement('canvas');
+                    canvas.width  = img.width;
+                    canvas.height = img.height;
+                    canvas.getContext('2d').drawImage(img, 0, 0);
+                    const imgData = canvas.toDataURL('image/png');
+
+                    const pdf     = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+                    const pageW   = pdf.internal.pageSize.getWidth();
+                    const qrSize  = 80;
+                    const x       = (pageW - qrSize) / 2;
+
+                    // Extract card ID from URL for the filename and label
+                    const cardLabel = decodeURIComponent(qrUrl.split('/').pop());
+
+                    pdf.setFontSize(14);
+                    pdf.text('Visitor Card QR', pageW / 2, 18, { align: 'center' });
+                    pdf.addImage(imgData, 'PNG', x, 24, qrSize, qrSize);
+                    pdf.setFontSize(10);
+                    pdf.text(cardLabel, pageW / 2, 24 + qrSize + 8, { align: 'center' });
+
+                    pdf.save(`QR-${cardLabel}.pdf`);
+                };
+                img.src = qrUrl;
+            }
+
+            if (window.jspdf) {
+                doDownload();
+            } else {
+                const script  = document.createElement('script');
+                script.src    = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+                script.onload = doDownload;
+                document.head.appendChild(script);
+            }
         }
 
         function closeVisitorCardModal() {
