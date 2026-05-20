@@ -102,8 +102,14 @@ class VvipQrScanActivity : AppCompatActivity() {
                             StaticData.request.ic = visitor.icNo
                             StaticData.request.passport = visitor.passportNo
 
-                            // ✅ VVIP
+                            // ✅ VVIP — block if disabled
                             if (visitor.visitorType.equals("VVIP", ignoreCase = true)) {
+                                if (!StaticData.moduleConfig.vvip) {
+                                    Common.showToast(applicationContext, "VVIP is not enabled for this kiosk", Common.ToastType.ERROR)
+                                    isProcessing = false
+                                    finish()
+                                    return
+                                }
                                 StaticData.isVvip = true
                                 StaticData.vvipName = visitor.name
                                 StaticData.vvipIc = visitor.icNo.takeIf { it.isNotBlank() } ?: visitor.passportNo
@@ -111,8 +117,15 @@ class VvipQrScanActivity : AppCompatActivity() {
                                 return
                             }
 
-                            // ✅ Collect Card
+                            // ✅ Collect Card — block if visitor type is Invitation
                             if (StaticData.collectCard) {
+                                val registrationSource = obj.optString("registrationSource", "")
+                                if (registrationSource.equals("Invitation", ignoreCase = true)) {
+                                    Common.showToast(applicationContext, "This visitor has an Invitation. Please use Invitation.", Common.ToastType.WARNING)
+                                    isProcessing = false
+                                    finish()
+                                    return
+                                }
                                 val passportNo = visitor.passportNo
                                 if (passportNo.isNotBlank() && visitor.icNo.isBlank()) {
                                     StaticData.isForeigner = true

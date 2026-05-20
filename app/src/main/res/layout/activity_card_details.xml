@@ -805,7 +805,6 @@
                     </LinearLayout>
 
                     <View android:id="@+id/viewPostalCode" android:layout_width="match_parent" android:layout_height="0dp"/>
-
                     <!-- Hidden spinners -->
                     <LinearLayout android:id="@+id/llResident" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:visibility="gone">
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Resident" android:textColor="#888888" android:textSize="@dimen/_8ssp" android:fontFamily="@font/montserrat_bold"/>

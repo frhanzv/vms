@@ -3,7 +3,8 @@ package com.safeg
 object Constants {
 
     //var base_url: String = "http://192.168.0.214:8080"
-    var base_url: String = "http://192.168.100.196:8081"
+    // var base_url: String = "http://192.168.100.196:8081"
+    var base_url: String = "https://4302-202-184-32-181.ngrok-free.app/"
     //var base_url: String = "http://192.168.100.243:8080"
 //    var base_url: String = "http://educational-advances-grace-journalism.trycloudflare.com"
     var url = java.net.URL(base_url)

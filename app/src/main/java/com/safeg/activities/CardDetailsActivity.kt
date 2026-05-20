@@ -85,6 +85,7 @@ class CardDetailsActivity : AppCompatActivity(),
     var selectedGender: String = ""
     var selectedVehicleCategory: String = ""
     var selectedVehicleType: String = ""
+    val customFieldValues = mutableMapOf<String, String>()
 
     companion object {
         private const val REQUEST_CAMERA = 10002
