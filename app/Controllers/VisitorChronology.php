@@ -228,15 +228,17 @@ class VisitorChronology extends BaseController
         $sqlChron = 'SELECT i.id AS invitation_id,
                        i.full_name AS visitor_name,
                        vcl.scanned_at AS access_time,
-                       sl.name AS lane_name,
+                       COALESCE(sl_lane.name, sl_direct.name) AS lane_name,
                        loc.branch,
                        loc.location_access
                 FROM visitor_card_logs vcl
-                LEFT JOIN lanes la ON la.id = vcl.lane_id
-                LEFT JOIN sub_locations sl ON sl.location_id = la.location_id
-                LEFT JOIN locations loc ON loc.id = la.location_id
+                LEFT JOIN lanes la                ON la.id              = vcl.lane_id
+                LEFT JOIN sub_locations sl_lane   ON sl_lane.location_id   = la.location_id
+                LEFT JOIN sub_locations sl_direct ON sl_direct.id = vcl.sub_location_id
+                LEFT JOIN locations loc           ON loc.id = COALESCE(la.location_id, sl_direct.location_id)
                 LEFT JOIN invitations i ON i.id = vcl.invitation_id
                 WHERE ' . implode(' AND ', $whereChron) . '
+                  AND vcl.action != \'assigned\'
                 ORDER BY vcl.scanned_at ASC';
 
         $chronologyData = $db->query($sqlChron, $paramsChron)->getResultArray();
@@ -343,12 +345,16 @@ class VisitorChronology extends BaseController
         }
 
         // 2. Get All Visitor Card Logs for this invitation
-        $sql = "SELECT vcl.*, sl.name AS lane_name, loc.branch, loc.location_access
+        $sql = "SELECT vcl.*,
+                    COALESCE(sl_lane.name, sl_direct.name) AS lane_name,
+                    loc.branch, loc.location_access
                 FROM visitor_card_logs vcl
-                LEFT JOIN lanes la ON la.id = vcl.lane_id
-                LEFT JOIN sub_locations sl ON sl.location_id = la.location_id
-                LEFT JOIN locations loc ON loc.id = la.location_id
+                LEFT JOIN lanes la           ON la.id            = vcl.lane_id
+                LEFT JOIN sub_locations sl_lane   ON sl_lane.location_id   = la.location_id
+                LEFT JOIN sub_locations sl_direct ON sl_direct.id = vcl.sub_location_id
+                LEFT JOIN locations loc      ON loc.id = COALESCE(la.location_id, sl_direct.location_id)
                 WHERE vcl.invitation_id = ?
+                  AND vcl.action != 'assigned'
                 ORDER BY vcl.scanned_at ASC";
         
         $logs = $db->query($sql, [(int)$invitationId])->getResultArray();
@@ -459,8 +465,8 @@ class VisitorChronology extends BaseController
 
             $dates[$dateStr]['movements'][] = [
                 'movement_index' => count($dates[$dateStr]['movements']) + 1,
-                'from' => ($currentLog['lane_name'] ?? 'Unknown Road'),
-                'to'   => ($nextLog ? ($nextLog['lane_name'] ?? 'Unknown Road') : 'STILL AT SITE'),
+                'from' => ($currentLog['lane_name'] ?? '—'),
+                'to'   => ($nextLog ? ($nextLog['lane_name'] ?? '—') : 'STILL AT SITE'),
                 'entry_time' => date('g:i A', strtotime($currentLog['scanned_at'])),
                 'exit_time'  => $exitTime,
                 'time_spent' => ($nextLog ? $durationStr : '-'),
@@ -538,14 +544,18 @@ class VisitorChronology extends BaseController
             return "Record not found.";
         }
 
-        $sql = "SELECT vcl.*, sl.name AS lane_name, loc.branch, loc.location_access
+        $sql = "SELECT vcl.*,
+                    COALESCE(sl_lane.name, sl_direct.name) AS lane_name,
+                    loc.branch, loc.location_access
                 FROM visitor_card_logs vcl
-                LEFT JOIN lanes la ON la.id = vcl.lane_id
-                LEFT JOIN sub_locations sl ON sl.location_id = la.location_id
-                LEFT JOIN locations loc ON loc.id = la.location_id
+                LEFT JOIN lanes la           ON la.id            = vcl.lane_id
+                LEFT JOIN sub_locations sl_lane   ON sl_lane.location_id   = la.location_id
+                LEFT JOIN sub_locations sl_direct ON sl_direct.id = vcl.sub_location_id
+                LEFT JOIN locations loc      ON loc.id = COALESCE(la.location_id, sl_direct.location_id)
                 WHERE vcl.invitation_id = ?
+                  AND vcl.action != 'assigned'
                 ORDER BY vcl.scanned_at ASC";
-        
+
         $logs = $db->query($sql, [$invitationId])->getResultArray();
 
         $ivRow = $db->query(
@@ -589,8 +599,8 @@ class VisitorChronology extends BaseController
 
             $dates[$dateStr]['movements'][] = [
                 'movement_index' => count($dates[$dateStr]['movements']) + 1,
-                'from' => ($currentLog['lane_name'] ?? 'Unknown Road'),
-                'to'   => ($nextLog ? ($nextLog['lane_name'] ?? 'Unknown Road') : 'STILL AT SITE'),
+                'from' => ($currentLog['lane_name'] ?? '—'),
+                'to'   => ($nextLog ? ($nextLog['lane_name'] ?? '—') : 'STILL AT SITE'),
                 'entry_time' => date('g:i A', strtotime($currentLog['scanned_at'])),
                 'exit_time'  => $exitTime,
                 'time_spent' => ($nextLog ? $durationStr : '-'),

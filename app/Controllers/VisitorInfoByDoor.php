@@ -51,54 +51,43 @@ class VisitorInfoByDoor extends BaseController
 
         $db = \Config\Database::connect();
 
-        // Resolve all active lane IDs that belong to the same parent location
+        // Resolve lane IDs for the RFID path (lanes sharing the sub_location's parent location)
         $laneRows = $db->query(
             "SELECT id FROM lanes WHERE location_id = ? AND status = 'active'",
             [(int) $subLoc['location_id']]
         )->getResultArray();
         $laneIds = array_column($laneRows, 'id');
 
-        if (empty($laneIds)) {
-            return $this->response->setJSON([
-                'success'         => true,
-                'total_visitors'  => 0,
-                'visitors'        => [],
-                'location_text'   => strtoupper($subLoc['name']),
-                'date_range_text' => date('Y-m-d', strtotime($fromDate)) . ' to ' . date('Y-m-d', strtotime($toDate)),
-                'last_updated'    => date('M j, Y g:i A'),
-            ]);
+        // Build the WHERE clause to match either:
+        //   RFID scans: vcl.lane_id belongs to lanes at this sub_location's parent location
+        //   QR scans:   vcl.sub_location_id is the selected sub_location directly
+        $doorCondition = 'vcl.sub_location_id = ' . (int) $subLocationId;
+        if (!empty($laneIds)) {
+            $lanePlaceholders = implode(',', array_map('intval', $laneIds));
+            $doorCondition = "(vcl.lane_id IN ({$lanePlaceholders}) OR vcl.sub_location_id = " . (int) $subLocationId . ")";
         }
 
-        $lanePlaceholders = implode(',', array_fill(0, count($laneIds), '?'));
+        $sql = "SELECT
+                    i.id              AS invitation_id,
+                    i.full_name       AS visitor_name,
+                    i.contact         AS contact_no,
+                    i.staff_id        AS staff_no,
+                    i.invited_by      AS person_visited,
+                    i.company         AS company,
+                    i.ic_passport     AS ic_passport,
+                    i.reason          AS reason,
+                    i.status          AS visit_status,
+                    DATE(i.created_at) AS invitation_date,
+                    vcl.scanned_at    AS checkin_time
+                FROM visitor_card_logs vcl
+                JOIN invitations i ON i.id = vcl.invitation_id
+                WHERE vcl.action IN ('checkin', 'door_checkin')
+                  AND DATE(vcl.scanned_at) >= ?
+                  AND DATE(vcl.scanned_at) <= ?
+                  AND {$doorCondition}
+                ORDER BY vcl.scanned_at ASC";
 
-        $builder = $db->table('visitor_card_logs vcl');
-        $builder->select('
-            i.id AS invitation_id, 
-            i.full_name AS visitor_name, 
-            i.contact AS contact_no, 
-            i.staff_id as staff_no, 
-            i.invited_by as person_visited,
-            i.company as company,
-            i.ic_passport as ic_passport,
-            i.reason as reason,
-            i.status as visit_status,
-            DATE(i.created_at) as invitation_date,
-            vcl.scanned_at AS checkin_time, 
-            sl.id AS sub_location_id, 
-            sl.name AS location_name
-        ');
-        $builder->join('invitations i', 'i.id = vcl.invitation_id');
-        $builder->join('lanes la', 'la.id = vcl.lane_id');
-        $builder->join('sub_locations sl', 'sl.location_id = la.location_id AND sl.id = ' . (int) $subLocationId);
-
-        $builder->where('vcl.action', 'checkin');
-        $builder->where("DATE(vcl.scanned_at) >=", $fromDate);
-        $builder->where("DATE(vcl.scanned_at) <=", $toDate);
-        $builder->whereIn('la.id', $laneIds);
-
-        $builder->orderBy('vcl.scanned_at', 'ASC');
-
-        $rows    = $builder->get()->getResultArray();
+        $rows = $db->query($sql, [$fromDate, $toDate])->getResultArray();
         $locName = strtoupper($subLoc['name']);
 
         $records = [];
