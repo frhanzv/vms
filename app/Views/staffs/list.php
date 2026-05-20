@@ -151,7 +151,7 @@
                                 data-appno="<?= strtolower(esc($staff['app_no'])) ?>"
                                 data-status="<?= strtolower(esc($staff['status'])) ?>"
                                 data-created="<?= esc($staff['created_at']) ?>"
-                                onclick='openDetailModal(<?= json_encode($staff) ?>)' class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-b border-gray-100 dark:border-gray-700 cursor-pointer">
+                                class="border-b border-gray-100 dark:border-gray-700">
                                 <td class="p-4"><?= $staff['no'] ?></td>
                                 <td class="p-4">
                                     <div class="flex items-center gap-2">
@@ -243,78 +243,6 @@
     <script>
         const _canEdit   = <?= json_encode($canEdit   ?? false) ?>;
         const _canDelete = <?= json_encode($canDelete ?? false) ?>;
-
-        function openDetailModal(staff) {
-            document.getElementById('staffDetailModal')?.remove();
-
-            const statusColors = {
-                'ACTIVE':    'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-                'INACTIVE':  'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
-                'SUSPENDED': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
-                'BLACKLIST': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
-            };
-            const statusBadge = statusColors[(staff.status || '').toUpperCase()] || 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300';
-
-            const field = (label, value) => `
-                <div class="space-y-1">
-                    <p class="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wide">${label}</p>
-                    <p class="text-sm text-gray-800 dark:text-white font-semibold">${value || '—'}</p>
-                </div>`;
-
-            const editBtn = _canEdit ? `
-                <button onclick="event.stopPropagation(); document.getElementById('staffDetailModal').remove(); window.location.href='<?= base_url('staffpassrequest/edit/') ?>${staff.id}'"
-                    class="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium transition-colors flex items-center gap-1">
-                    <span class="material-symbols-outlined text-base">edit</span> Edit
-                </button>` : '';
-
-            const deleteBtn = _canDelete ? `
-                <button onclick="event.stopPropagation(); document.getElementById('staffDetailModal').remove(); confirmDelete(${staff.id})"
-                    class="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition-colors flex items-center gap-1">
-                    <span class="material-symbols-outlined text-base">delete</span> Delete
-                </button>` : '';
-
-            document.body.insertAdjacentHTML('beforeend', `
-            <div id="staffDetailModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" onclick="if(event.target===this)this.remove()">
-                <div class="bg-white dark:bg-slate-800 rounded-xl max-w-lg w-full shadow-2xl" onclick="event.stopPropagation()">
-                    <div class="flex items-start justify-between p-6 border-b border-gray-200 dark:border-slate-700">
-                        <div>
-                            <h3 class="text-base font-bold text-gray-800 dark:text-white">${staff.full_name || '—'}</h3>
-                            <div class="flex items-center gap-2 mt-1.5">
-                                <span class="text-xs font-medium px-2 py-0.5 rounded-full ${statusBadge}">${staff.status || 'N/A'}</span>
-                                <span class="text-xs text-gray-500 dark:text-gray-400">${staff.app_no || ''}</span>
-                            </div>
-                        </div>
-                        <button onclick="document.getElementById('staffDetailModal').remove()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 ml-4 flex-shrink-0">
-                            <span class="material-symbols-outlined">close</span>
-                        </button>
-                    </div>
-                    <div class="p-6 space-y-5">
-                        <div class="grid grid-cols-2 gap-4">
-                            ${field('IC / Passport', staff.ic_passport)}
-                            ${field('Staff No', staff.staff_no)}
-                            ${field('Date', staff.date)}
-                            ${field('Card Status', staff.card_status)}
-                            ${field('Card Expiry', staff.card_expiry)}
-                            ${field('Suspension Period', staff.suspension_period)}
-                            ${field('Next Action', staff.next_action)}
-                            ${field('Remark', staff.remark)}
-                        </div>
-                    </div>
-                    <div class="flex items-center justify-between p-6 border-t border-gray-200 dark:border-slate-700 gap-3">
-                        <div class="flex gap-2">
-                            ${editBtn}
-                            ${deleteBtn}
-                        </div>
-                        <div class="flex gap-2 ml-auto">
-                            <button onclick="document.getElementById('staffDetailModal').remove()" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">Close</button>
-                            <a href="<?= base_url('staffpassrequest/view/') ?>${staff.id}" class="px-4 py-2 rounded-lg bg-primary hover:bg-blue-600 text-white text-sm font-medium transition-colors flex items-center gap-1">
-                                <span class="material-symbols-outlined text-base">open_in_new</span> Full Details
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>`);
-        }
 
         function printStaff(staff) {
             window.print();

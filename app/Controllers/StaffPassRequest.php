@@ -34,7 +34,18 @@ class StaffPassRequest extends BaseController
     {
         $db = \Config\Database::connect();
 
+        $appNo = trim($this->request->getPost('app_no') ?? '');
+        if (empty($appNo)) {
+            $batchTag = 'APP-' . date('Ymd');
+            $counter = 1;
+            while ($db->table('staff')->where('app_no', $batchTag . '-' . str_pad($counter, 3, '0', STR_PAD_LEFT))->countAllResults() > 0) {
+                $counter++;
+            }
+            $appNo = $batchTag . '-' . str_pad($counter, 3, '0', STR_PAD_LEFT);
+        }
+
         $formData = [
+            'app_no'                        => $appNo,
             // Application Info
             'date_of_application'           => $this->request->getPost('date_of_application'),
             'type_of_application'           => $this->request->getPost('type_of_application'),
@@ -154,7 +165,14 @@ class StaffPassRequest extends BaseController
     {
         $db = \Config\Database::connect();
 
+        $appNo = trim($this->request->getPost('app_no') ?? '');
+        if (empty($appNo)) {
+            $existing = $db->table('staff')->where('id', (int) $id)->select('app_no')->get()->getRow();
+            $appNo = $existing?->app_no ?? '';
+        }
+
         $formData = [
+            'app_no'                        => $appNo,
             'date_of_application'           => $this->request->getPost('date_of_application'),
             'type_of_application'           => $this->request->getPost('type_of_application'),
             'designation'                   => $this->request->getPost('designation'),
