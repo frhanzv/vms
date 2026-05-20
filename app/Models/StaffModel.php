@@ -49,6 +49,9 @@ class StaffModel extends Model
         'evetting_result',
         'government_id',
         'other_doc',
+        'visa_expiry',
+        'license_class',
+        'license_expiry',
     ];
 
     // Timestamps
