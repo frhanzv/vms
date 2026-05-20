@@ -294,7 +294,14 @@ class AccessReport extends BaseController
             $locationDisplay = $laneName !== '' ? $laneName : '—';
 
             $action    = strtolower((string) ($row['action'] ?? 'checkin'));
-            $typeLabel = $action === 'checkout' ? 'Checkout' : 'Checkin';
+            $typeLabels = [
+                'checkin'       => 'Checkin',
+                'checkout'      => 'Checkout',
+                'door_access'   => 'Door Access',
+                'door_checkin'  => 'In',
+                'door_checkout' => 'Out',
+            ];
+            $typeLabel = $typeLabels[$action] ?? ucfirst(str_replace('_', ' ', $action));
 
             $currentLocation  = $action === 'checkout' ? 'Out' : $locationDisplay;
             $locationAccessed = $locationDisplay;
