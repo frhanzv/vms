@@ -60,18 +60,22 @@ class RFID extends ResourceController
         $db->transStart();
 
         try {
-            // Lock the invitation_visitors row to prevent concurrent scan race
+            // Lock the invitation_visitors row to prevent concurrent scan race.
+            // Join on vc.card_id so duplicate card_id rows don't cause a miss.
+            // No date filter: admin card assignment is the authorization; date checks
+            // would break multi-day visits or cards assigned for yesterday's schedule.
             $invitation = $db->query(
                 'SELECT iv.*, iv.id as iv_id, i.full_name as visitor_name, i.company as visitor_company,
                         i.id as invitation_id, i.ic_passport, u.company_id, i.visitor_type_id
                  FROM invitation_visitors iv
+                 JOIN visitor_cards vc ON vc.id = iv.visitor_card_id
                  JOIN invitations i ON i.id = iv.invitation_id
                  LEFT JOIN users u ON i.staff_id = u.staff_id
-                 WHERE iv.visitor_card_id = ?
+                 WHERE vc.card_id = ?
                  AND i.status = ?
-                 AND DATE(i.created_at) = ?
+                 AND iv.check_out_time IS NULL
                  FOR UPDATE',
-                [$card['id'], 'Approved', date('Y-m-d')]
+                [$cardEpc, 'Approved']
             )->getRowArray();
 
             if (!$invitation) {
@@ -91,6 +95,9 @@ class RFID extends ResourceController
                     'card_epc'       => $cardEpc
                 ]);
             }
+
+            // Sync to the card row actually assigned to this visitor (handles duplicate card_id)
+            $card['id'] = $invitation['visitor_card_id'];
 
             $action = 'checkin';
             $duration = null;
@@ -236,18 +243,22 @@ class RFID extends ResourceController
         $db->transStart();
 
         try {
-            // Lock the row to prevent concurrent scan race
+            // Lock the row to prevent concurrent scan race.
+            // Join on vc.card_id so duplicate card_id rows don't cause a miss.
+            // No date filter: admin card assignment is the authorization; date checks
+            // would break multi-day visits or cards assigned for yesterday's schedule.
             $invitation = $db->query(
                 'SELECT iv.*, iv.id as iv_id, i.full_name as visitor_name, i.company as visitor_company,
                         i.id as invitation_id, i.ic_passport, u.company_id, i.visitor_type_id
                  FROM invitation_visitors iv
+                 JOIN visitor_cards vc ON vc.id = iv.visitor_card_id
                  JOIN invitations i ON i.id = iv.invitation_id
                  LEFT JOIN users u ON i.staff_id = u.staff_id
-                 WHERE iv.visitor_card_id = ?
+                 WHERE vc.card_id = ?
                  AND i.status = ?
-                 AND DATE(i.created_at) = ?
+                 AND iv.check_out_time IS NULL
                  FOR UPDATE',
-                [$card['id'], 'Approved', date('Y-m-d')]
+                [$cardEpc, 'Approved']
             )->getRowArray();
 
             if (!$invitation) {
@@ -268,6 +279,9 @@ class RFID extends ResourceController
                     'card_epc'       => $cardEpc
                 ]);
             }
+
+            // Sync to the card row actually assigned to this visitor (handles duplicate card_id)
+            $card['id'] = $invitation['visitor_card_id'];
 
             $laneName = null;
             if ($laneId) {

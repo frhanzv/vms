@@ -194,23 +194,26 @@ class QRCode extends ResourceController
         $db->transStart();
 
         try {
-            // 3. Card must be assigned to a visitor with an approved invitation scheduled for today
+            // 3. Card must be explicitly assigned to an approved visitor who hasn't checked out.
+            //    Join on vc.card_id so duplicate card_id rows in visitor_cards don't cause a miss.
+            //    Schedule date range is intentionally NOT checked here: the admin's explicit card
+            //    assignment is the authorization — restricting by schedule date would deny access
+            //    to visitors whose schedule started yesterday or spans multiple days.
             $invitation = $db->query(
                 'SELECT iv.*, iv.id as iv_id,
                         i.full_name as visitor_name, i.company as visitor_company,
                         i.id as invitation_id, i.ic_passport, i.visitor_type_id,
                         u.company_id, vt.name as visitor_type_name
                  FROM invitation_visitors iv
+                 JOIN visitor_cards vc ON vc.id = iv.visitor_card_id
                  JOIN invitations i ON i.id = iv.invitation_id
-                 JOIN invitation_schedules isc ON isc.invitation_id = i.id
                  LEFT JOIN users u ON i.staff_id = u.staff_id
                  LEFT JOIN visitor_types vt ON vt.id = i.visitor_type_id
-                 WHERE iv.visitor_card_id = ?
+                 WHERE vc.card_id = ?
                  AND i.status = ?
-                 AND DATE(isc.date_from) <= ?
-                 AND DATE(isc.date_to) >= ?
+                 AND iv.check_out_time IS NULL
                  FOR UPDATE',
-                [$card['id'], 'Approved', date('Y-m-d'), date('Y-m-d')]
+                [$cardNumber, 'Approved']
             )->getRowArray();
 
             if (!$invitation) {
@@ -231,6 +234,9 @@ class QRCode extends ResourceController
                     'qr_code'        => $cardNumber,
                 ]);
             }
+
+            // Use the card row that is actually linked to this visitor (resolves duplicate card_id)
+            $card['id'] = $invitation['visitor_card_id'];
 
             $laneName    = $this->getLaneName($laneId, $subLocationId);
             $doorId      = $subLocationId ?? $laneId;
@@ -310,10 +316,11 @@ class QRCode extends ResourceController
                         ->where('id', $invitation['iv_id'])
                         ->where('check_out_time IS NULL')
                         ->update([
-                            'check_out_time'  => $now,
-                            'version'         => $nextVer,
-                            'updated_at'      => $now,
-                            'visitor_card_id' => null,
+                            'check_out_time' => $now,
+                            'version'        => $nextVer,
+                            'updated_at'     => $now,
+                            // visitor_card_id intentionally kept — used as reuse history
+                            // so the same visitor cannot be re-issued the same card.
                         ]);
 
                     $db->table('visitor_cards')->where('id', $card['id'])->update(['status' => 'active']);

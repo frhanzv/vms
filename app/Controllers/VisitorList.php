@@ -136,15 +136,12 @@ class VisitorList extends BaseController
         // Format data for the view
         $visitors = [];
         foreach ($results as $index => $row) {
+            // Show "In Use" only when a card is assigned AND the visitor has not checked out.
+            // visitor_card_id is preserved after checkout as reuse history, so we must
+            // also check check_out_time to avoid showing "In Use" for closed rows.
             $cardStatusBadge = '-';
-            if ($row['visitor_card_id']) {
-                if ($row['card_status'] === 'in_use') {
-                    $cardStatusBadge = 'In Use';
-                } elseif ($row['card_status'] === 'active') {
-                    $cardStatusBadge = 'Active';
-                } else {
-                    $cardStatusBadge = ucfirst($row['card_status']);
-                }
+            if ($row['visitor_card_id'] && empty($row['check_out_time'])) {
+                $cardStatusBadge = 'In Use';
             }
 
             $dateSrc = ! empty($row['sch_date_from'])
@@ -475,6 +472,17 @@ class VisitorList extends BaseController
             'check_out_time' => $checkOut,
         ];
 
+        // When check-out time is set, release the card status so it is available for
+        // other visitors. visitor_card_id is intentionally kept on the row as reuse
+        // history — bindCard() uses it to block the same visitor from being issued
+        // the same card again.
+        if ($checkOut && $iv['visitor_card_id']) {
+            $db->table('visitor_cards')
+                ->where('id', $iv['visitor_card_id'])
+                ->where('status !=', 'lost')
+                ->update(['status' => 'active']);
+        }
+
         try {
             $this->invitationVisitorModel->skipValidation(true);
             $this->invitationVisitorModel->updateWithLock($invitationVisitorId, $ivUpdate, $ivVersion, 'visitor');
@@ -707,12 +715,53 @@ class VisitorList extends BaseController
                 ]);
             }
 
-            if ($iv['visitor_card_id'] && (int)$iv['visitor_card_id'] !== (int)$cardId) {
-                $db->transRollback();
-                return $this->response->setJSON([
-                    'success' => false,
-                    'message' => 'A card has already been assigned to this visitor by another user. Please refresh.'
+            // If the visitor already completed a visit (checked out), reset their
+            // check-in/out so a new card can be issued and they can re-enter.
+            if (!empty($iv['check_out_time'])) {
+                $db->table('invitation_visitors')->where('id', $invitationVisitorId)->update([
+                    'check_in_time'  => null,
+                    'check_out_time' => null,
                 ]);
+                $iv['check_in_time']  = null;
+                $iv['check_out_time'] = null;
+            }
+
+            // Release any previously bound card so it goes back to available
+            if ($iv['visitor_card_id'] && (int)$iv['visitor_card_id'] !== (int)$cardId) {
+                $db->table('visitor_cards')
+                    ->where('id', $iv['visitor_card_id'])
+                    ->where('status !=', 'lost')
+                    ->update(['status' => 'active']);
+            }
+
+            // Block reuse: same visitor (by IC passport) cannot be issued a card
+            // they have been assigned before. Uses visitor_card_logs so history is
+            // preserved even after the card is returned/unbound.
+            $visitorPassport = $db->query(
+                'SELECT i.ic_passport FROM invitations i
+                 JOIN invitation_visitors iv2 ON iv2.invitation_id = i.id
+                 WHERE iv2.id = ? LIMIT 1',
+                [$invitationVisitorId]
+            )->getRowArray();
+
+            $icPassport = $visitorPassport['ic_passport'] ?? '';
+            if (!empty($icPassport)) {
+                $prevUse = $db->query(
+                    'SELECT vcl.id FROM visitor_card_logs vcl
+                     JOIN invitations i ON i.id = vcl.invitation_id
+                     WHERE vcl.visitor_card_id = ?
+                     AND i.ic_passport = ?
+                     LIMIT 1',
+                    [$cardId, $icPassport]
+                )->getRowArray();
+
+                if ($prevUse) {
+                    $db->transRollback();
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'This card was previously used by this visitor. Please select a different card.'
+                    ]);
+                }
             }
 
             // Check card isn't assigned to another visitor today
@@ -735,6 +784,22 @@ class VisitorList extends BaseController
 
             $this->invitationVisitorModel->update($invitationVisitorId, [
                 'visitor_card_id' => $cardId
+            ]);
+
+            // Mark the card as in_use now that it is issued to a visitor
+            $db->table('visitor_cards')->where('id', $cardId)->update(['status' => 'in_use']);
+
+            // Log the assignment so the reuse check detects it even if the
+            // visitor never physically scans at a reader.
+            $now = date('Y-m-d H:i:s');
+            $db->table('visitor_card_logs')->insert([
+                'visitor_card_id' => $cardId,
+                'invitation_id'   => $iv['invitation_id'],
+                'action'          => 'assigned',
+                'lane_id'         => null,
+                'scan_source'     => 'admin',
+                'scanned_at'      => $now,
+                'created_at'      => $now,
             ]);
 
             $db->transComplete();
