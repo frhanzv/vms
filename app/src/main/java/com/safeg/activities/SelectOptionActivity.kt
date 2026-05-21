@@ -26,11 +26,19 @@ import com.safeg.utils.SslUtils
 import android.content.pm.PackageManager
 import com.androidnetworking.interfaces.JSONObjectRequestListener
 import org.json.JSONObject
+import android.os.Handler
 
 class SelectOptionActivity : AppCompatActivity(), View.OnClickListener {
 
     private val PERMISSIONS_REQUEST = 1001
     private lateinit var binding: ActivitySelectOptionBinding
+    private val configRefreshHandler = Handler()
+    private val configRefreshRunnable = object : Runnable {
+        override fun run() {
+            invokeConfigApiSilent()
+            configRefreshHandler.postDelayed(this, 30000)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -86,6 +94,34 @@ class SelectOptionActivity : AppCompatActivity(), View.OnClickListener {
                             pDialog.hide()
                             Common.showToast(applicationContext, "Config Error: ${anError.errorCode}", Common.ToastType.ERROR)
                         }
+                    })
+            }
+        }.start()
+    }
+
+    private fun invokeConfigApiSilent() {
+        if (!isNetworkAvailable()) return
+        Thread {
+            AndroidNetworking.initialize(applicationContext, SslUtils.trustAllClient())
+            runOnUiThread {
+                AndroidNetworking.get(Constants.getModuleConfig)
+                    .setTag(Constants.getModuleConfig)
+                    .setPriority(Priority.HIGH)
+                    .build()
+                    .getAsJSONObject(object : JSONObjectRequestListener {
+                        override fun onResponse(response: JSONObject) {
+                            val data = response.optJSONObject("data") ?: return
+                            StaticData.moduleConfig.walkIn = data.optBoolean("walk_in", true)
+                            StaticData.moduleConfig.invitation = data.optBoolean("invitation", true)
+                            StaticData.moduleConfig.collectCard = data.optBoolean("collect_card", true)
+                            StaticData.moduleConfig.vvip = data.optBoolean("vvip", true)
+                            StaticData.moduleConfig.vpOCR = data.optBoolean("vpOCR", true)
+                            StaticData.moduleConfig.vpFacial = data.optBoolean("vpFacial", true)
+                            val visitorFieldsObj = data.optJSONObject("visitor_fields")
+                            StaticData.visitorFieldsJson = visitorFieldsObj?.toString() ?: "{}"
+                            applyFeatureFlags()
+                        }
+                        override fun onError(anError: ANError) {}
                     })
             }
         }.start()
@@ -214,5 +250,10 @@ class SelectOptionActivity : AppCompatActivity(), View.OnClickListener {
     override fun onResume() {
         super.onResume()
         invokeConfigApi()
+        configRefreshHandler.postDelayed(configRefreshRunnable, 30000)
+    }
+    override fun onPause() {
+        super.onPause()
+        configRefreshHandler.removeCallbacks(configRefreshRunnable)
     }
 }
