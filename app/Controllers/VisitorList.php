@@ -734,34 +734,23 @@ class VisitorList extends BaseController
                     ->update(['status' => 'active']);
             }
 
-            // Block reuse: same visitor (by IC passport) cannot be issued a card
-            // they have been assigned before. Uses visitor_card_logs so history is
-            // preserved even after the card is returned/unbound.
-            $visitorPassport = $db->query(
-                'SELECT i.ic_passport FROM invitations i
-                 JOIN invitation_visitors iv2 ON iv2.invitation_id = i.id
-                 WHERE iv2.id = ? LIMIT 1',
-                [$invitationVisitorId]
+            // Block reuse: same card cannot be re-issued within the same invitation.
+            // Cross-invitation reuse is allowed (even for the same visitor).
+            $prevUse = $db->query(
+                'SELECT vcl.id FROM visitor_card_logs vcl
+                 WHERE vcl.visitor_card_id = ?
+                 AND vcl.invitation_id = ?
+                 AND vcl.action = ?
+                 LIMIT 1',
+                [$cardId, $iv['invitation_id'], 'assigned']
             )->getRowArray();
 
-            $icPassport = $visitorPassport['ic_passport'] ?? '';
-            if (!empty($icPassport)) {
-                $prevUse = $db->query(
-                    'SELECT vcl.id FROM visitor_card_logs vcl
-                     JOIN invitations i ON i.id = vcl.invitation_id
-                     WHERE vcl.visitor_card_id = ?
-                     AND i.ic_passport = ?
-                     LIMIT 1',
-                    [$cardId, $icPassport]
-                )->getRowArray();
-
-                if ($prevUse) {
-                    $db->transRollback();
-                    return $this->response->setJSON([
-                        'success' => false,
-                        'message' => 'This card was previously used by this visitor. Please select a different card.'
-                    ]);
-                }
+            if ($prevUse) {
+                $db->transRollback();
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'This card was previously used in this invitation. Please select a different card.'
+                ]);
             }
 
             // Check card isn't assigned to another visitor today

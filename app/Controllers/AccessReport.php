@@ -110,8 +110,9 @@ class AccessReport extends BaseController
                         NULLIF(i.location, ''),
                         'N/A'
                     ) AS location_name,
-                    CASE 
-                        WHEN COUNT(vcl.id) > 0 THEN COUNT(vcl.id)
+                    CASE
+                        WHEN COUNT(CASE WHEN vcl.action IN ('checkin', 'door_checkin', 'door_access') THEN 1 END) > 0
+                            THEN COUNT(CASE WHEN vcl.action IN ('checkin', 'door_checkin', 'door_access') THEN 1 END)
                         WHEN iv.check_in_time IS NOT NULL THEN 1
                         ELSE 0
                     END AS total_access

@@ -41,7 +41,7 @@ class VisitorReport extends BaseController
                     MAX(CASE WHEN vcl.action = 'checkout' THEN vcl.scanned_at ELSE NULL END) AS checkout_time,
                     MIN(iv.check_in_time)  AS reg_checkin_time,
                     MAX(iv.check_out_time) AS reg_checkout_time,
-                    COUNT(vcl.id)       AS total_scans,
+                    COUNT(CASE WHEN vcl.action != 'assigned' THEN vcl.id END) AS total_scans,
                     (SELECT MAX(s.date_to) FROM invitation_schedules s WHERE s.invitation_id = i.id) as schedule_end,
                     (
                         SELECT GROUP_CONCAT(DISTINCT COALESCE(sl_vl.name, sl_vd.name) ORDER BY COALESCE(sl_vl.name, sl_vd.name) SEPARATOR ', ')
