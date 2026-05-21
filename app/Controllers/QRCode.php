@@ -289,6 +289,28 @@ class QRCode extends ResourceController
             }
 
             if ($isTurnstile) {
+                // Respect Entry/Exit/Auto mode for turnstile.
+                if ($laneType === 'entry' && $invitation['check_in_time']) {
+                    $db->transRollback();
+                    return $this->respond([
+                        'success'        => false,
+                        'access_granted' => false,
+                        'action'         => 'denied',
+                        'message'        => 'Already checked in. Use the exit scanner to check out.',
+                        'qr_code'        => $cardNumber,
+                    ]);
+                }
+                if ($laneType === 'exit' && !$invitation['check_in_time']) {
+                    $db->transRollback();
+                    return $this->respond([
+                        'success'        => false,
+                        'access_granted' => false,
+                        'action'         => 'denied',
+                        'message'        => 'Not checked in. Please check in at the entry turnstile first.',
+                        'qr_code'        => $cardNumber,
+                    ]);
+                }
+
                 if (!$invitation['check_in_time']) {
                     // First turnstile scan → entry check-in
                     $action = 'checkin';
