@@ -524,14 +524,14 @@ class Dashboard extends BaseController
             ];
         }
         
-        // Visitor traffic: check-ins today (approved invitations only)
-        $trafficQuery = "SELECT HOUR(iv.check_in_time) AS hour, COUNT(*) AS count
-                         FROM invitation_visitors iv
-                         JOIN invitations i ON i.id = iv.invitation_id
+        // Visitor traffic: every scan event today (excludes admin card-assignment logs)
+        $trafficQuery = "SELECT HOUR(vcl.scanned_at) AS hour, COUNT(*) AS count
+                         FROM visitor_card_logs vcl
+                         JOIN invitations i ON i.id = vcl.invitation_id
                          WHERE i.status = 'Approved'
-                         AND iv.check_in_time IS NOT NULL
-                         AND DATE(iv.check_in_time) = ?
-                         GROUP BY HOUR(iv.check_in_time)
+                         AND vcl.action != 'assigned'
+                         AND DATE(vcl.scanned_at) = ?
+                         GROUP BY HOUR(vcl.scanned_at)
                          ORDER BY hour ASC";
         $trafficData = $db->query($trafficQuery, [$today])->getResultArray();
         
@@ -650,14 +650,14 @@ class Dashboard extends BaseController
         
         $db = \Config\Database::connect();
         
-        $trafficQuery = "SELECT DATE(iv.check_in_time) as date, HOUR(iv.check_in_time) as hour, COUNT(*) as count
-                         FROM invitation_visitors iv
-                         JOIN invitations i ON i.id = iv.invitation_id
+        $trafficQuery = "SELECT DATE(vcl.scanned_at) as date, HOUR(vcl.scanned_at) as hour, COUNT(*) as count
+                         FROM visitor_card_logs vcl
+                         JOIN invitations i ON i.id = vcl.invitation_id
                          WHERE i.status = 'Approved'
-                         AND iv.check_in_time IS NOT NULL
-                         AND DATE(iv.check_in_time) >= ?
-                         AND DATE(iv.check_in_time) <= ?
-                         GROUP BY DATE(iv.check_in_time), HOUR(iv.check_in_time)
+                         AND vcl.action != 'assigned'
+                         AND DATE(vcl.scanned_at) >= ?
+                         AND DATE(vcl.scanned_at) <= ?
+                         GROUP BY DATE(vcl.scanned_at), HOUR(vcl.scanned_at)
                          ORDER BY date ASC, hour ASC";
         $trafficData = $db->query($trafficQuery, [$fromDate, $toDate])->getResultArray();
         
