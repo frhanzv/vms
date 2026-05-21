@@ -4470,6 +4470,17 @@
                                     <span id="turnstile-toggle-label">...</span>
                                 </button>
                             </div>
+                            <div class="border-t border-gray-200 dark:border-slate-700"></div>
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-semibold text-slate-700 dark:text-slate-300">Internal Door Checkout</p>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Require check-out from current door before entering another. Turn off to allow free movement between internal doors.</p>
+                                </div>
+                                <button id="door-checkout-toggle-btn" onclick="toggleDoorCheckout()"
+                                    class="min-w-[64px] px-4 py-2 rounded-full text-sm font-semibold transition-colors focus:outline-none">
+                                    <span id="door-checkout-toggle-label">...</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -5492,26 +5503,29 @@
         // ==================
 
         let scannerSettingsLoaded = false;
-        let turnstileEnabled = true;
+        let turnstileEnabled     = true;
+        let doorCheckoutEnabled  = true;
 
         function loadScannerSettings() {
             fetch(`<?= base_url('config/getScannerSettings') ?>`)
                 .then(r => r.json())
                 .then(data => {
                     if (data.success) {
-                        turnstileEnabled = data.turnstile_required === '1';
+                        turnstileEnabled    = data.turnstile_required     === '1';
+                        doorCheckoutEnabled = data.door_checkout_required === '1';
                         renderTurnstileToggle();
+                        renderDoorCheckoutToggle();
                         scannerSettingsLoaded = true;
                     }
                 })
                 .catch(() => showNotification('Failed to load scanner settings.', 'error'));
         }
 
-        function renderTurnstileToggle() {
-            const btn   = document.getElementById('turnstile-toggle-btn');
-            const label = document.getElementById('turnstile-toggle-label');
+        function renderToggle(btnId, labelId, enabled) {
+            const btn   = document.getElementById(btnId);
+            const label = document.getElementById(labelId);
             if (!btn || !label) return;
-            if (turnstileEnabled) {
+            if (enabled) {
                 label.textContent = 'ON';
                 btn.className = 'min-w-[64px] px-4 py-2 rounded-full text-sm font-semibold transition-colors focus:outline-none bg-green-500 hover:bg-green-600 text-white';
             } else {
@@ -5520,30 +5534,38 @@
             }
         }
 
-        function toggleTurnstile() {
-            turnstileEnabled = !turnstileEnabled;
-            renderTurnstileToggle();
+        function renderTurnstileToggle()    { renderToggle('turnstile-toggle-btn',    'turnstile-toggle-label',    turnstileEnabled); }
+        function renderDoorCheckoutToggle() { renderToggle('door-checkout-toggle-btn', 'door-checkout-toggle-label', doorCheckoutEnabled); }
 
+        function saveScannerSetting(payload, onSuccess, onFailure) {
             fetch(`<?= base_url('config/saveScannerSettings') ?>`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ turnstile_required: turnstileEnabled })
+                body: JSON.stringify(payload)
             })
             .then(r => r.json())
-            .then(data => {
-                if (data.success) {
-                    showNotification('Turnstile setting saved.', 'success');
-                } else {
-                    turnstileEnabled = !turnstileEnabled;
-                    renderTurnstileToggle();
-                    showNotification('Failed to save scanner settings.', 'error');
-                }
-            })
-            .catch(() => {
-                turnstileEnabled = !turnstileEnabled;
-                renderTurnstileToggle();
-                showNotification('Failed to save scanner settings.', 'error');
-            });
+            .then(data => { data.success ? onSuccess() : onFailure(); })
+            .catch(onFailure);
+        }
+
+        function toggleTurnstile() {
+            turnstileEnabled = !turnstileEnabled;
+            renderTurnstileToggle();
+            saveScannerSetting(
+                { turnstile_required: turnstileEnabled },
+                () => showNotification('Turnstile setting saved.', 'success'),
+                () => { turnstileEnabled = !turnstileEnabled; renderTurnstileToggle(); showNotification('Failed to save turnstile setting.', 'error'); }
+            );
+        }
+
+        function toggleDoorCheckout() {
+            doorCheckoutEnabled = !doorCheckoutEnabled;
+            renderDoorCheckoutToggle();
+            saveScannerSetting(
+                { door_checkout_required: doorCheckoutEnabled },
+                () => showNotification('Internal Door Checkout setting saved.', 'success'),
+                () => { doorCheckoutEnabled = !doorCheckoutEnabled; renderDoorCheckoutToggle(); showNotification('Failed to save door checkout setting.', 'error'); }
+            );
         }
 
         // APP CONFIG FUNCTIONS

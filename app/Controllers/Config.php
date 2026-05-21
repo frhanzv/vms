@@ -5392,17 +5392,22 @@ class Config extends BaseController
 
     public function getScannerSettings()
     {
-        $value = $this->settingModel->getSetting('turnstile_required');
         return $this->response->setJSON([
-            'success'            => true,
-            'turnstile_required' => $value === null ? '1' : $value,
+            'success'                => true,
+            'turnstile_required'     => $this->settingModel->getSetting('turnstile_required') ?? '1',
+            'door_checkout_required' => $this->settingModel->getSetting('door_checkout_required') ?? '1',
         ]);
     }
 
     public function saveScannerSettings()
     {
         $input = $this->request->getJSON(true);
-        $this->settingModel->setSetting('turnstile_required', isset($input['turnstile_required']) && $input['turnstile_required'] ? '1' : '0');
+        if (array_key_exists('turnstile_required', $input)) {
+            $this->settingModel->setSetting('turnstile_required', $input['turnstile_required'] ? '1' : '0');
+        }
+        if (array_key_exists('door_checkout_required', $input)) {
+            $this->settingModel->setSetting('door_checkout_required', $input['door_checkout_required'] ? '1' : '0');
+        }
         return $this->response->setJSON(['success' => true, 'message' => 'Scanner settings saved successfully.']);
     }
 }

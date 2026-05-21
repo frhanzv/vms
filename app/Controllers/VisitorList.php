@@ -843,14 +843,20 @@ class VisitorList extends BaseController
 
             $cardId = $invitationVisitor['visitor_card_id'];
 
+            $now        = date('Y-m-d H:i:s');
             $updateData = ['visitor_card_id' => null];
 
-            // Auto check-out if visitor is still on-site
-            $now = date('Y-m-d H:i:s');
-            if (! empty($invitationVisitor['check_in_time']) && empty($invitationVisitor['check_out_time'])) {
+            // Always stamp check_out_time on admin card return so that:
+            //  - The visitor list badge correctly shows "Inactive" (badge is driven by check_out_time).
+            //  - The chronology status shows "Checked Out" instead of "In Building".
+            // If check_in_time is also missing (visitor bypassed the turnstile and came through
+            // internal doors directly), stamp it now so the row remains consistent.
+            if (empty($invitationVisitor['check_out_time'])) {
+                if (empty($invitationVisitor['check_in_time'])) {
+                    $updateData['check_in_time'] = $now;
+                }
                 $updateData['check_out_time'] = $now;
 
-                // Log the checkout in visitor_card_logs
                 $db->table('visitor_card_logs')->insert([
                     'invitation_id' => $invitationVisitor['invitation_id'],
                     'action'        => 'checkout',
