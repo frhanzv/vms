@@ -289,8 +289,20 @@ class QRCode extends ResourceController
             }
 
             if ($isTurnstile) {
+                // A visitor is "effectively inside" if they checked in via the turnstile OR
+                // if they accessed internal doors directly (turnstile was bypassed/broken).
+                // This lets bypassed visitors still check out at the turnstile to go home.
+                $hasDoorActivity = (bool) $db->query(
+                    "SELECT id FROM visitor_card_logs
+                     WHERE invitation_id = ?
+                       AND action IN ('door_checkin', 'door_checkout')
+                     LIMIT 1",
+                    [$invitation['invitation_id']]
+                )->getRowArray();
+                $isEffectivelyInside = !empty($invitation['check_in_time']) || $hasDoorActivity;
+
                 // Respect Entry/Exit/Auto mode for turnstile.
-                if ($laneType === 'entry' && $invitation['check_in_time']) {
+                if ($laneType === 'entry' && $isEffectivelyInside) {
                     $db->transRollback();
                     return $this->respond([
                         'success'        => false,
@@ -300,7 +312,7 @@ class QRCode extends ResourceController
                         'qr_code'        => $cardNumber,
                     ]);
                 }
-                if ($laneType === 'exit' && !$invitation['check_in_time']) {
+                if ($laneType === 'exit' && !$isEffectivelyInside) {
                     $db->transRollback();
                     return $this->respond([
                         'success'        => false,
@@ -311,8 +323,8 @@ class QRCode extends ResourceController
                     ]);
                 }
 
-                if (!$invitation['check_in_time']) {
-                    // First turnstile scan → entry check-in
+                if (!$isEffectivelyInside) {
+                    // Not inside at all → entry check-in
                     $action = 'checkin';
                     $db->table('invitation_visitors')
                         ->where('id', $invitation['iv_id'])
@@ -330,21 +342,51 @@ class QRCode extends ResourceController
 
                     $db->table('visitor_cards')->where('id', $card['id'])->update(['status' => 'in_use']);
                 } else {
-                    // Subsequent turnstile scan → exit check-out
-                    $action   = 'checkout';
-                    $duration = $this->formatDuration(time() - strtotime($invitation['check_in_time']));
+                    // Inside (via turnstile or door bypass) → exit check-out.
+                    // Block if the visitor still has an open internal door session.
+                    $openDoorLog = $db->query(
+                        "SELECT action, lane_id, sub_location_id
+                         FROM visitor_card_logs
+                         WHERE invitation_id = ?
+                           AND action IN ('door_checkin', 'door_checkout')
+                         ORDER BY scanned_at DESC, id DESC
+                         LIMIT 1",
+                        [$invitation['invitation_id']]
+                    )->getRowArray();
+
+                    if ($openDoorLog && $openDoorLog['action'] === 'door_checkin') {
+                        $openDoorName = $this->getLaneName($openDoorLog['lane_id'], $openDoorLog['sub_location_id']);
+                        $db->transRollback();
+                        return $this->respond([
+                            'success'        => false,
+                            'access_granted' => false,
+                            'action'         => 'denied',
+                            'message'        => 'Please check out from ' . ($openDoorName ?? 'the internal door') . ' before leaving.',
+                            'visitor'        => [
+                                'name'    => $invitation['visitor_name']    ?? 'Unknown',
+                                'company' => $invitation['visitor_company'] ?? 'N/A',
+                            ],
+                            'qr_code'        => $cardNumber,
+                        ]);
+                    }
+
+                    $action = 'checkout';
+                    // If check_in_time was never set (turnstile was bypassed), stamp it now
+                    // so the row is consistent and duration can be derived from door logs instead.
+                    $checkoutUpdate = ['check_out_time' => $now, 'version' => $nextVer, 'updated_at' => $now];
+                    if (empty($invitation['check_in_time'])) {
+                        $checkoutUpdate['check_in_time'] = $now;
+                        $duration = '0 minutes';
+                    } else {
+                        $duration = $this->formatDuration(time() - strtotime($invitation['check_in_time']));
+                    }
 
                     $db->table('invitation_visitors')
                         ->where('id', $invitation['iv_id'])
                         ->where('check_out_time IS NULL')
-                        ->update([
-                            'check_out_time' => $now,
-                            'version'        => $nextVer,
-                            'updated_at'     => $now,
-                            // visitor_card_id intentionally kept — used as reuse history
-                            // so the same visitor cannot be re-issued the same card.
-                        ]);
+                        ->update($checkoutUpdate);
 
+                    // visitor_card_id intentionally kept — used as reuse history.
                     $db->table('visitor_cards')->where('id', $card['id'])->update(['status' => 'active']);
                 }
             } else {
@@ -356,10 +398,12 @@ class QRCode extends ResourceController
                 $turnstileRequired = $turnstileRequiredSetting ? ($turnstileRequiredSetting['setting_value'] ?? '1') : '1';
 
                 if ($turnstileRequired !== '0') {
-                    // Verify a turnstile checkin happened today. Join the location tables so we
-                    // can confirm the 'checkin' log was at a TURNSTILE-named door — RFID also writes
-                    // action='checkin' for the first scan at any door, so a plain action check
-                    // would incorrectly pass for RFID check-ins at internal doors.
+                    // Find a turnstile 'checkin' log for today that has NOT been followed by a
+                    // 'checkout' log. This correctly scopes the check to the current session:
+                    // a checkin that was already paired with a checkout (visitor left and came back)
+                    // does NOT count — the visitor must scan the turnstile again for the new session.
+                    // RFID also writes action='checkin' at any door, so we join location tables to
+                    // confirm the log was specifically at a TURNSTILE-named location.
                     $today = date('Y-m-d');
                     $turnstileLog = $db->query(
                         "SELECT vcl.id
@@ -373,8 +417,14 @@ class QRCode extends ResourceController
                                (vcl.sub_location_id IS NOT NULL AND sl.name LIKE '%TURNSTILE%')
                                OR (vcl.sub_location_id IS NULL AND vcl.lane_id IS NOT NULL AND la.lane LIKE '%TURNSTILE%')
                            )
+                           AND NOT EXISTS (
+                               SELECT 1 FROM visitor_card_logs vcl2
+                               WHERE vcl2.invitation_id = ?
+                                 AND vcl2.action = 'checkout'
+                                 AND vcl2.scanned_at > vcl.scanned_at
+                           )
                          LIMIT 1",
-                        [$invitation['invitation_id'], $today]
+                        [$invitation['invitation_id'], $today, $invitation['invitation_id']]
                     )->getRowArray();
 
                     if (!$turnstileLog) {
