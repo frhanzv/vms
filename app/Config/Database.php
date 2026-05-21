@@ -158,7 +158,7 @@ class Database extends Config
     //    ];
 
     /**
-     * Cloud (vms_server) database connection — configure via .env:
+     * Cloud (vms_cloud) database connection — configure via .env:
      *   database.cloud.hostname, database.cloud.database, etc.
      *
      * @var array<string, mixed>
@@ -168,7 +168,7 @@ class Database extends Config
         'hostname'     => 'localhost',
         'username'     => 'root',
         'password'     => '',
-        'database'     => 'vms_server',
+        'database'     => 'vms_cloud',
         'DBDriver'     => 'MySQLi',
         'DBPrefix'     => '',
         'pConnect'     => false,

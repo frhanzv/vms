@@ -10,63 +10,17 @@ class SyncService
     protected BaseConnection $cloud;
     protected array $messages = [];
 
-    /**
-     * Reference/config tables: cloud is authoritative, overwrite local.
-     * Ordered so parent tables are synced before child tables.
-     */
-    protected array $cloudToLocal = [
-        ['table' => 'roles',                     'order' => 10],
-        ['table' => 'countries',                 'order' => 10],
-        ['table' => 'companies',                 'order' => 20],
-        ['table' => 'states',                    'order' => 20],
-        ['table' => 'sub_companies',             'order' => 30],
-        ['table' => 'cities',                    'order' => 30],
-        ['table' => 'departments',               'order' => 30],
-        ['table' => 'designations',              'order' => 30],
-        ['table' => 'visitor_types',             'order' => 30],
-        ['table' => 'visit_reasons',             'order' => 30],
-        ['table' => 'reject_reasons',            'order' => 30],
-        ['table' => 'blacklist_reason',          'order' => 30],
-        ['table' => 'security_alert_priorities', 'order' => 30],
-        ['table' => 'videos',                    'order' => 30],
-        ['table' => 'locations',                 'order' => 40],
-        ['table' => 'lanes',                     'order' => 50],
-        ['table' => 'pathways',                  'order' => 50],
-        ['table' => 'users',                     'order' => 50],
-        ['table' => 'visitor_cards',             'order' => 60],
-        ['table' => 'settings',                  'order' => 60],
-        ['table' => 'device_assignments',        'order' => 60],
-        ['table' => 'location_visited',          'order' => 60],
-        ['table' => 'workflows',                 'order' => 60],
-        ['table' => 'client_features',           'order' => 60],
-        ['table' => 'client_form_fields',        'order' => 60],
-        ['table' => 'email_templates',           'order' => 60],
-        ['table' => 'whatsapp_templates',        'order' => 60],
-        ['table' => 'blacklist_closed',          'order' => 70],
-        ['table' => 'staff_pass_list',           'order' => 70],
-        // invitation_schedules pulled from cloud (admins schedule from cloud)
-        // FK invitation_id is remapped via sync_uid
-        ['table' => 'invitation_schedules', 'order' => 90,
-         'fkMap' => ['invitation_id' => 'invitations']],
+    /** Tables excluded from row sync (schema/audit only). */
+    protected array $excludedTables = [
+        'migrations',
+        'sync_log',
+        'sync_deletions',
     ];
 
-    /**
-     * Bidirectional tables: merged via sync_uid, last-write-wins.
-     */
-    protected array $bidirectional = [
-        ['table' => 'invitations', 'order' => 80],
-    ];
-
-    /**
-     * Jetson-originated events: pushed to cloud only.
-     * FK columns are remapped via the referenced table's sync_uid.
-     */
-    protected array $localToCloud = [
-        ['table' => 'invitation_visitors', 'order' => 95,
-         'fkMap' => ['invitation_id' => 'invitations']],
-        ['table' => 'security_alerts', 'order' => 100,
-         'fkMap' => ['invitation_id' => 'invitations']],
-    ];
+    protected ?array $syncableTables = null;
+    protected ?array $insertOrder     = null;
+    protected ?array $deleteOrder    = null;
+    protected ?array $fkMaps         = null;
 
     public function __construct()
     {
@@ -79,214 +33,402 @@ class SyncService
         $this->messages = [];
         $this->info('=== Sync started at ' . date('Y-m-d H:i:s') . ' ===');
 
-        $this->info('--- Cloud → Jetson ---');
-        foreach ($this->cloudToLocal as $cfg) {
-            if ($this->local->tableExists($cfg['table']) && $this->cloud->tableExists($cfg['table'])) {
-                $this->doCloudToLocal($cfg);
-            }
+        if (!$this->local->tableExists('sync_deletions') || !$this->cloud->tableExists('sync_deletions')) {
+            $this->info('ERROR: sync_deletions table missing — run php spark migrate first.');
+            return $this->messages;
         }
 
-        $this->info('--- Bidirectional ---');
-        foreach ($this->bidirectional as $cfg) {
-            if ($this->local->tableExists($cfg['table']) && $this->cloud->tableExists($cfg['table'])) {
-                $this->doBidirectional($cfg);
-            }
-        }
+        $tables = $this->getSyncableTables();
+        $this->info('Tables in sync: ' . count($tables));
 
-        $this->info('--- Jetson → Cloud ---');
-        foreach ($this->localToCloud as $cfg) {
-            if ($this->local->tableExists($cfg['table']) && $this->cloud->tableExists($cfg['table'])) {
-                $this->doLocalToCloud($cfg);
-            }
+        $this->info('--- Phase 1: Deletions (both directions) ---');
+        $this->syncDeletions();
+
+        $this->info('--- Phase 2: Upserts (bidirectional, all tables) ---');
+        foreach ($this->getInsertOrder() as $table) {
+            $this->syncTableBidirectional($table);
         }
 
         $this->info('=== Sync finished at ' . date('Y-m-d H:i:s') . ' ===');
+
         return $this->messages;
     }
 
     // -------------------------------------------------------------------------
-    // Direction handlers
+    // Deletion propagation
     // -------------------------------------------------------------------------
 
-    protected function doCloudToLocal(array $cfg): void
+    protected function syncDeletions(): void
     {
-        $table   = $cfg['table'];
-        $lastSync = $this->getLastSync($table, 'cloud_to_local');
-        $fkMap   = $cfg['fkMap'] ?? [];
+        $lastSync = $this->getLastSync('_deletions', 'bidirectional');
+        $applied  = 0;
 
         try {
-            $records = $this->fetchChanged($this->cloud, $table, $lastSync);
-            $inserted = $updated = $skipped = 0;
+            $cloudTombstones = $this->fetchTombstones($this->cloud, $lastSync);
+            $localTombstones = $this->fetchTombstones($this->local, $lastSync);
 
-            foreach ($records as $rec) {
-                if ($fkMap) {
-                    $rec = $this->remapFks($rec, $fkMap, $this->cloud, $this->local);
-                    if ($rec === null) { $skipped++; continue; }
-                }
-
-                $existing = $this->local->table($table)->where('id', $rec['id'])->get()->getRowArray();
-
-                if (!$existing) {
-                    $this->local->table($table)->insert($rec);
-                    $inserted++;
-                } else {
-                    // Cloud is authoritative for config tables
-                    $this->local->table($table)->where('id', $rec['id'])->update($rec);
-                    $updated++;
+            foreach ($this->getDeleteOrder() as $table) {
+                foreach ($cloudTombstones as $tombstone) {
+                    if ($tombstone['table_name'] !== $table) {
+                        continue;
+                    }
+                    if ($this->applyRemoteDeletion($this->local, $tombstone)) {
+                        $applied++;
+                    }
                 }
             }
 
-            $this->writeSyncLog($table, 'cloud_to_local', count($records), 0, 'success');
-            $this->info("  [{$table}] ↓ {$inserted} inserted, {$updated} updated, {$skipped} skipped");
+            foreach ($this->getDeleteOrder() as $table) {
+                foreach ($localTombstones as $tombstone) {
+                    if ($tombstone['table_name'] !== $table) {
+                        continue;
+                    }
+                    if ($this->applyRemoteDeletion($this->cloud, $tombstone)) {
+                        $applied++;
+                    }
+                }
+            }
+
+            $this->writeSyncLog('_deletions', 'bidirectional', $applied, $applied, 'success');
+            $this->info("  [deletions] ↕ {$applied} rows deleted across sides");
         } catch (\Throwable $e) {
-            $this->writeSyncLog($table, 'cloud_to_local', 0, 0, 'error: ' . $e->getMessage());
-            $this->info("  [{$table}] ERROR: " . $e->getMessage());
-            log_message('error', "[Sync] {$table} cloud→local: " . $e->getMessage());
+            $this->writeSyncLog('_deletions', 'bidirectional', 0, 0, 'error: ' . $e->getMessage());
+            $this->info('  [deletions] ERROR: ' . $e->getMessage());
+            log_message('error', '[Sync] deletions: ' . $e->getMessage());
         }
     }
 
-    protected function doBidirectional(array $cfg): void
+    protected function fetchTombstones(BaseConnection $db, string $lastSync): array
     {
-        $table    = $cfg['table'];
+        return $db->table('sync_deletions')
+            ->where('deleted_at >', $lastSync)
+            ->orderBy('deleted_at', 'ASC')
+            ->get()
+            ->getResultArray();
+    }
+
+    protected function applyRemoteDeletion(BaseConnection $targetDb, array $tombstone): bool
+    {
+        $table   = $tombstone['table_name'];
+        $syncUid = $tombstone['sync_uid'];
+
+        if (!in_array($table, $this->getSyncableTables(), true) || !$targetDb->tableExists($table)) {
+            return false;
+        }
+
+        if (!$targetDb->fieldExists('sync_uid', $table)) {
+            return false;
+        }
+
+        $existing = $targetDb->table($table)->where('sync_uid', $syncUid)->get()->getRowArray();
+
+        if ($existing) {
+            $rowTs = $existing['updated_at'] ?? $existing['created_at'] ?? '1970-01-01 00:00:00';
+            if ($rowTs > $tombstone['deleted_at']) {
+                return false;
+            }
+
+            $this->deleteWithoutLog($targetDb, $table, $syncUid);
+        }
+
+        $this->ensureTombstone($targetDb, $tombstone);
+
+        return (bool) $existing;
+    }
+
+    protected function deleteWithoutLog(BaseConnection $db, string $table, string $syncUid): void
+    {
+        $db->query('SET @vms_sync_skip_delete_log = 1');
+        $db->table($table)->where('sync_uid', $syncUid)->delete();
+        $db->query('SET @vms_sync_skip_delete_log = 0');
+    }
+
+    protected function ensureTombstone(BaseConnection $db, array $tombstone): void
+    {
+        $exists = $db->table('sync_deletions')
+            ->where('table_name', $tombstone['table_name'])
+            ->where('sync_uid', $tombstone['sync_uid'])
+            ->countAllResults();
+
+        if ($exists) {
+            return;
+        }
+
+        $db->table('sync_deletions')->insert([
+            'sync_uid'   => $tombstone['sync_uid'],
+            'table_name' => $tombstone['table_name'],
+            'deleted_at' => $tombstone['deleted_at'],
+        ]);
+    }
+
+    protected function clearTombstone(BaseConnection $db, string $table, string $syncUid): void
+    {
+        $db->query('SET @vms_sync_skip_delete_log = 1');
+        $db->table('sync_deletions')
+            ->where('table_name', $table)
+            ->where('sync_uid', $syncUid)
+            ->delete();
+        $db->query('SET @vms_sync_skip_delete_log = 0');
+    }
+
+    // -------------------------------------------------------------------------
+    // Bidirectional upserts
+    // -------------------------------------------------------------------------
+
+    protected function syncTableBidirectional(string $table): void
+    {
+        if (!$this->local->tableExists($table) || !$this->cloud->tableExists($table)) {
+            return;
+        }
+
+        if (!$this->local->fieldExists('sync_uid', $table)) {
+            $this->info("  [{$table}] skipped — no sync_uid column");
+            return;
+        }
+
         $lastSync = $this->getLastSync($table, 'bidirectional');
+        $fkMap    = $this->getForeignKeys($table);
 
         try {
             $cloudRecs = $this->fetchChanged($this->cloud, $table, $lastSync);
             $localRecs = $this->fetchChanged($this->local, $table, $lastSync);
 
-            $pulledIn = $pushedOut = $conflicts = 0;
+            $pulledIn = $pushedOut = $skipped = 0;
 
-            // Cloud → Local pass
             foreach ($cloudRecs as $rec) {
-                $syncUid = $rec['sync_uid'] ?? null;
-                if (!$syncUid) continue;
-
-                $existing = $this->local->table($table)->where('sync_uid', $syncUid)->get()->getRowArray();
-
-                if (!$existing) {
-                    $insert = $rec;
-                    unset($insert['id']); // let local auto-assign
-                    $this->local->table($table)->insert($insert);
+                $result = $this->upsertRecord($this->local, $this->cloud, $table, $rec, $fkMap);
+                if ($result === 'inserted' || $result === 'updated') {
                     $pulledIn++;
-                } elseif ($this->isNewer($rec, $existing)) {
-                    $update = $rec;
-                    unset($update['id']);
-                    $this->local->table($table)->where('sync_uid', $syncUid)->update($update);
-                    $conflicts++;
+                } elseif ($result === 'skipped') {
+                    $skipped++;
                 }
             }
 
-            // Local → Cloud pass
             foreach ($localRecs as $rec) {
-                $syncUid = $rec['sync_uid'] ?? null;
-                if (!$syncUid) continue;
-
-                $existing = $this->cloud->table($table)->where('sync_uid', $syncUid)->get()->getRowArray();
-
-                if (!$existing) {
-                    $insert = $rec;
-                    unset($insert['id']);
-                    $this->cloud->table($table)->insert($insert);
+                $result = $this->upsertRecord($this->cloud, $this->local, $table, $rec, $fkMap);
+                if ($result === 'inserted' || $result === 'updated') {
                     $pushedOut++;
-                } elseif ($this->isNewer($rec, $existing)) {
-                    $update = $rec;
-                    unset($update['id']);
-                    $this->cloud->table($table)->where('sync_uid', $syncUid)->update($update);
-                    $pushedOut++;
+                } elseif ($result === 'skipped') {
+                    $skipped++;
                 }
             }
 
             $this->writeSyncLog($table, 'bidirectional', $pulledIn, $pushedOut, 'success');
-            $this->info("  [{$table}] ↕ pulled {$pulledIn}, pushed {$pushedOut}, conflicts resolved {$conflicts}");
+            $this->info("  [{$table}] ↕ pulled {$pulledIn}, pushed {$pushedOut}, skipped {$skipped}");
         } catch (\Throwable $e) {
             $this->writeSyncLog($table, 'bidirectional', 0, 0, 'error: ' . $e->getMessage());
             $this->info("  [{$table}] ERROR: " . $e->getMessage());
-            log_message('error', "[Sync] {$table} bidirectional: " . $e->getMessage());
+            log_message('error', "[Sync] {$table}: " . $e->getMessage());
         }
     }
 
-    protected function doLocalToCloud(array $cfg): void
+    /**
+     * @return 'inserted'|'updated'|'skipped'|'unchanged'
+     */
+    protected function upsertRecord(
+        BaseConnection $targetDb,
+        BaseConnection $sourceDb,
+        string $table,
+        array $rec,
+        array $fkMap
+    ): string {
+        $syncUid = $rec['sync_uid'] ?? null;
+        if (!$syncUid) {
+            return 'skipped';
+        }
+
+        if ($fkMap) {
+            $rec = $this->remapFks($rec, $fkMap, $sourceDb, $targetDb);
+            if ($rec === null) {
+                return 'skipped';
+            }
+        }
+
+        $existing = $targetDb->table($table)->where('sync_uid', $syncUid)->get()->getRowArray();
+
+        if (!$existing) {
+            $insert = $rec;
+            unset($insert['id']);
+            $targetDb->table($table)->insert($insert);
+            $this->clearTombstone($targetDb, $table, $syncUid);
+
+            return 'inserted';
+        }
+
+        if ($this->isNewer($rec, $existing)) {
+            $update = $rec;
+            unset($update['id']);
+            $targetDb->table($table)->where('sync_uid', $syncUid)->update($update);
+            $this->clearTombstone($targetDb, $table, $syncUid);
+
+            return 'updated';
+        }
+
+        return 'unchanged';
+    }
+
+    // -------------------------------------------------------------------------
+    // Schema helpers
+    // -------------------------------------------------------------------------
+
+    protected function getSyncableTables(): array
     {
-        $table    = $cfg['table'];
-        $lastSync = $this->getLastSync($table, 'local_to_cloud');
-        $fkMap    = $cfg['fkMap'] ?? [];
+        if ($this->syncableTables !== null) {
+            return $this->syncableTables;
+        }
 
-        try {
-            $records = $this->fetchChanged($this->local, $table, $lastSync);
-            $inserted = $updated = $skipped = 0;
+        $local  = $this->local->listTables();
+        $cloud  = $this->cloud->listTables();
+        $common = array_intersect($local, $cloud);
+        $tables = array_values(array_diff($common, $this->excludedTables));
+        sort($tables);
 
-            foreach ($records as $rec) {
-                if ($fkMap) {
-                    $rec = $this->remapFks($rec, $fkMap, $this->local, $this->cloud);
-                    if ($rec === null) { $skipped++; continue; }
+        $this->syncableTables = $tables;
+
+        return $tables;
+    }
+
+    protected function getInsertOrder(): array
+    {
+        if ($this->insertOrder !== null) {
+            return $this->insertOrder;
+        }
+
+        $this->insertOrder = $this->topologicalSort($this->getSyncableTables());
+        $this->deleteOrder = array_reverse($this->insertOrder);
+
+        return $this->insertOrder;
+    }
+
+    protected function getDeleteOrder(): array
+    {
+        if ($this->deleteOrder === null) {
+            $this->getInsertOrder();
+        }
+
+        return $this->deleteOrder;
+    }
+
+    protected function topologicalSort(array $tables): array
+    {
+        $tableSet = array_flip($tables);
+        $deps     = [];
+        $inDegree = array_fill_keys($tables, 0);
+
+        foreach ($tables as $table) {
+            $deps[$table] = [];
+            foreach ($this->getForeignKeys($table) as $column => $refTable) {
+                if (!isset($tableSet[$refTable]) || $refTable === $table) {
+                    continue;
                 }
+                $deps[$table][] = $refTable;
+                $inDegree[$table]++;
+            }
+        }
 
-                $syncUid  = $rec['sync_uid'] ?? null;
-                $existing = $syncUid
-                    ? $this->cloud->table($table)->where('sync_uid', $syncUid)->get()->getRowArray()
-                    : $this->cloud->table($table)->where('id', $rec['id'])->get()->getRowArray();
+        $queue = [];
+        foreach ($tables as $table) {
+            if ($inDegree[$table] === 0) {
+                $queue[] = $table;
+            }
+        }
 
-                if (!$existing) {
-                    $insert = $rec;
-                    unset($insert['id']);
-                    $this->cloud->table($table)->insert($insert);
-                    $inserted++;
-                } elseif ($this->isNewer($rec, $existing)) {
-                    $update = $rec;
-                    unset($update['id']);
-                    $key = $syncUid ? ['sync_uid' => $syncUid] : ['id' => $existing['id']];
-                    $this->cloud->table($table)->where($key)->update($update);
-                    $updated++;
+        $sorted = [];
+        while ($queue) {
+            $current = array_shift($queue);
+            $sorted[] = $current;
+
+            foreach ($tables as $child) {
+                if (in_array($current, $deps[$child], true)) {
+                    $inDegree[$child]--;
+                    if ($inDegree[$child] === 0) {
+                        $queue[] = $child;
+                    }
                 }
             }
-
-            $this->writeSyncLog($table, 'local_to_cloud', 0, count($records), 'success');
-            $this->info("  [{$table}] ↑ {$inserted} inserted, {$updated} updated, {$skipped} skipped");
-        } catch (\Throwable $e) {
-            $this->writeSyncLog($table, 'local_to_cloud', 0, 0, 'error: ' . $e->getMessage());
-            $this->info("  [{$table}] ERROR: " . $e->getMessage());
-            log_message('error', "[Sync] {$table} local→cloud: " . $e->getMessage());
         }
+
+        // Append any cyclic / unresolved tables at the end.
+        foreach ($tables as $table) {
+            if (!in_array($table, $sorted, true)) {
+                $sorted[] = $table;
+            }
+        }
+
+        return $sorted;
+    }
+
+    protected function getForeignKeys(string $table): array
+    {
+        if ($this->fkMaps === null) {
+            $this->fkMaps = [];
+        }
+
+        if (isset($this->fkMaps[$table])) {
+            return $this->fkMaps[$table];
+        }
+
+        $dbName     = $this->local->getDatabase();
+        $syncable   = array_flip($this->getSyncableTables());
+        $foreignKeys = [];
+
+        $rows = $this->local->query(
+            'SELECT COLUMN_NAME, REFERENCED_TABLE_NAME
+             FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+             WHERE TABLE_SCHEMA = ?
+               AND TABLE_NAME = ?
+               AND REFERENCED_TABLE_NAME IS NOT NULL',
+            [$dbName, $table]
+        )->getResultArray();
+
+        foreach ($rows as $row) {
+            $ref = $row['REFERENCED_TABLE_NAME'];
+            if (isset($syncable[$ref])) {
+                $foreignKeys[$row['COLUMN_NAME']] = $ref;
+            }
+        }
+
+        $this->fkMaps[$table] = $foreignKeys;
+
+        return $foreignKeys;
     }
 
     // -------------------------------------------------------------------------
-    // Helpers
+    // Shared helpers
     // -------------------------------------------------------------------------
 
-    /** Fetch all records changed since $lastSync (checks both created_at and updated_at). */
     protected function fetchChanged(BaseConnection $db, string $table, string $lastSync): array
     {
-        $fields   = $db->getFieldNames($table);
-        $hasUpdAt = in_array('updated_at', $fields);
+        $fields     = $db->getFieldNames($table);
+        $hasCreated = in_array('created_at', $fields, true);
+        $hasUpdated = in_array('updated_at', $fields, true);
 
         $builder = $db->table($table);
 
-        if ($hasUpdAt) {
-            $builder->groupStart()
-                ->where('updated_at >', $lastSync)
-                ->orWhere('created_at >', $lastSync)
-                ->groupEnd();
-        } else {
-            $builder->where('created_at >', $lastSync);
+        if ($hasUpdated || $hasCreated) {
+            $builder->groupStart();
+            if ($hasUpdated) {
+                $builder->where('updated_at >', $lastSync);
+            }
+            if ($hasCreated) {
+                $hasUpdated ? $builder->orWhere('created_at >', $lastSync) : $builder->where('created_at >', $lastSync);
+            }
+            $builder->groupEnd();
         }
 
         return $builder->get()->getResultArray();
     }
 
-    /**
-     * Remap FK columns so they point to the correct row in the destination DB.
-     * Uses sync_uid as the cross-system join key.
-     * Returns null if a required FK cannot be resolved (skip the record).
-     */
     protected function remapFks(array $rec, array $fkMap, BaseConnection $srcDb, BaseConnection $dstDb): ?array
     {
         foreach ($fkMap as $fkColumn => $fkTable) {
             $srcId = $rec[$fkColumn] ?? null;
-            if ($srcId === null) continue;
+            if ($srcId === null) {
+                continue;
+            }
 
             $srcRow = $srcDb->table($fkTable)->select('sync_uid')->where('id', $srcId)->get()->getRowArray();
             if (!$srcRow || empty($srcRow['sync_uid'])) {
-                // Parent not synced yet — skip this child record
                 return null;
             }
 
@@ -301,15 +443,14 @@ class SyncService
         return $rec;
     }
 
-    /** Returns true if $a's timestamp is newer than $b's. */
     protected function isNewer(array $a, array $b): bool
     {
         $tsA = $a['updated_at'] ?? $a['created_at'] ?? '1970-01-01 00:00:00';
         $tsB = $b['updated_at'] ?? $b['created_at'] ?? '1970-01-01 00:00:00';
+
         return $tsA > $tsB;
     }
 
-    /** Get the timestamp of the last successful sync for a table+direction pair. */
     protected function getLastSync(string $table, string $direction): string
     {
         if (!$this->local->tableExists('sync_log')) {
