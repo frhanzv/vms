@@ -144,15 +144,13 @@ class VisitorChronology extends BaseController
             $regOut   = $v['reg_check_out'] ?? null;
             $sameScan = $scanFrom && $scanTo && strtotime((string) $scanFrom) === strtotime((string) $scanTo);
 
-            // Match dashboard / visitor list: invitation_visitors is authoritative for on-site vs checked out.
-            if ($regIn && ! $regOut) {
-                $status = 'Checked In';
-            } elseif ($regOut) {
+            // invitation_visitors is the authoritative source for check-in/out status.
+            // Never infer "Checked Out" from scan timestamps alone — a visitor scanning
+            // multiple internal doors will have different scanFrom/scanTo but is still inside.
+            if ($regOut) {
                 $status = 'Checked Out';
-            } elseif ($scanFrom && $sameScan) {
+            } elseif ($regIn) {
                 $status = 'Checked In';
-            } elseif ($scanFrom && $scanTo && ! $sameScan) {
-                $status = 'Checked Out';
             } elseif ($scanFrom) {
                 $status = 'Checked In';
             } else {
@@ -181,8 +179,7 @@ class VisitorChronology extends BaseController
             if ($regIn) {
                 $endTs = $regOut ? strtotime((string) $regOut) : $nowTs;
                 $diff  = max(0, $endTs - strtotime((string) $regIn));
-                
-                // Dashboard logic: if currently on-site and past schedule, show overstay relative to schedule end
+
                 if (!$regOut && $schedEnd && $nowTs > $schedEnd) {
                     $isOverstay = true;
                     $overstaySeconds = $nowTs - $schedEnd;
@@ -190,17 +187,16 @@ class VisitorChronology extends BaseController
                 } else {
                     $duration = $this->formatDuration($diff) . ($regOut ? '' : ' (ongoing)');
                 }
-            } elseif ($scanFrom && $scanTo && ! $sameScan) {
-                $diff = max(0, strtotime((string) $scanTo) - strtotime((string) $scanFrom));
-                $duration = $this->formatDuration($diff);
-            } elseif ($scanFrom && $sameScan && $status === 'Checked In') {
+            } elseif ($scanFrom) {
+                // No turnstile check-in — use scan timestamps as approximate duration.
                 if ($schedEnd && $nowTs > $schedEnd) {
                     $isOverstay = true;
                     $overstaySeconds = $nowTs - $schedEnd;
                     $duration = '+' . $this->formatDuration($overstaySeconds);
                 } else {
-                    $diff = max(0, $nowTs - strtotime((string) $scanFrom));
-                    $duration = $this->formatDuration($diff) . ' (ongoing)';
+                    $endTs = $scanTo ? strtotime((string) $scanTo) : $nowTs;
+                    $diff  = max(0, $endTs - strtotime((string) $scanFrom));
+                    $duration = $this->formatDuration($diff) . ($status === 'Checked In' ? ' (ongoing)' : '');
                 }
             }
 

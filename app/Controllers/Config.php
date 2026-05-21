@@ -5389,4 +5389,20 @@ class Config extends BaseController
 
         return $this->response->setJSON(['success' => true, 'message' => 'Email recipient configuration saved successfully']);
     }
+
+    public function getScannerSettings()
+    {
+        $value = $this->settingModel->getSetting('turnstile_required');
+        return $this->response->setJSON([
+            'success'            => true,
+            'turnstile_required' => $value === null ? '1' : $value,
+        ]);
+    }
+
+    public function saveScannerSettings()
+    {
+        $input = $this->request->getJSON(true);
+        $this->settingModel->setSetting('turnstile_required', isset($input['turnstile_required']) && $input['turnstile_required'] ? '1' : '0');
+        return $this->response->setJSON(['success' => true, 'message' => 'Scanner settings saved successfully.']);
+    }
 }
