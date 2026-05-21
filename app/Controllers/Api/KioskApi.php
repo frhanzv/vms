@@ -17,7 +17,7 @@ use App\Models\VisitorCardLogModel;
 use App\Models\VisitorCardModel;
 use App\Models\VisitorTypeModel;
 use CodeIgniter\API\ResponseTrait;
-
+use App\Models\MobileKioskSettingModel;
 /**
  * KioskApi — public API endpoints consumed by the MNR kiosk mobile app.
  *
@@ -174,7 +174,7 @@ class KioskApi extends BaseController
     /** GET /api/admin/moduleConfig/getByProject */
     public function getModuleConfig(): \CodeIgniter\HTTP\Response
     {
-        $model    = new SettingModel();
+        $model = new MobileKioskSettingModel();
         $settings = $model->findAll();
 
         $config = [];
@@ -182,20 +182,21 @@ class KioskApi extends BaseController
             $config[$s['setting_key']] = $s['setting_value'];
         }
 
-        // Default visitor fields config
         $defaultVisitorFields = [
-            'contact_number' => ['show' => true,  'required' => true],
-            'company_name'   => ['show' => true,  'required' => true],
-            'email'          => ['show' => true,  'required' => false],
-            'vehicle_reg_no' => ['show' => true,  'required' => false],
-            'address'        => ['show' => true,  'required' => true],
-            'date_of_birth'  => ['show' => false, 'required' => false],
-            'postal_code'    => ['show' => false, 'required' => false],
-            'state'          => ['show' => false, 'required' => false],
-            'city'           => ['show' => false, 'required' => false],
+            'contact_number'  => ['show' => true,  'required' => true],
+            'company_name'    => ['show' => true,  'required' => true],
+            'email'           => ['show' => true,  'required' => false],
+            'vehicle_reg_no'  => ['show' => true,  'required' => false],
+            'address'         => ['show' => true,  'required' => true],
+            'date_of_birth'   => ['show' => false, 'required' => false],
+            'postal_code'     => ['show' => false, 'required' => false],
+            'state'           => ['show' => false, 'required' => false],
+            'city'            => ['show' => false, 'required' => false],
+            'cardholder_name' => ['show' => true,  'required' => true],
+            'ic_number'       => ['show' => true,  'required' => true],
+            'country'         => ['show' => true,  'required' => true],
         ];
 
-        // Override with DB config if exists
         $visitorFieldsRaw = $config['kiosk_visitor_fields'] ?? null;
         $visitorFields = $visitorFieldsRaw
             ? json_decode($visitorFieldsRaw, true) ?? $defaultVisitorFields
