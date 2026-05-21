@@ -334,24 +334,28 @@ class QRCode extends ResourceController
                 $turnstileRequired = $turnstileRequiredSetting ? ($turnstileRequiredSetting['setting_value'] ?? '1') : '1';
 
                 if ($turnstileRequired !== '0') {
-                    // Primary check: invitation_visitors.check_in_time.
-                    // Fallback: visitor_card_logs most recent checkin/checkout for this invitation
-                    // (handles multi-visitor invitations, card replacements, and RFID/QR cross-device edge cases).
-                    $isCheckedIn = !empty($invitation['check_in_time']);
+                    // Verify a turnstile checkin happened today. Join the location tables so we
+                    // can confirm the 'checkin' log was at a TURNSTILE-named door — RFID also writes
+                    // action='checkin' for the first scan at any door, so a plain action check
+                    // would incorrectly pass for RFID check-ins at internal doors.
+                    $today = date('Y-m-d');
+                    $turnstileLog = $db->query(
+                        "SELECT vcl.id
+                         FROM visitor_card_logs vcl
+                         LEFT JOIN sub_locations sl ON sl.id = vcl.sub_location_id
+                         LEFT JOIN lanes la ON la.id = vcl.lane_id
+                         WHERE vcl.invitation_id = ?
+                           AND vcl.action = 'checkin'
+                           AND DATE(vcl.scanned_at) = ?
+                           AND (
+                               (vcl.sub_location_id IS NOT NULL AND sl.name LIKE '%TURNSTILE%')
+                               OR (vcl.sub_location_id IS NULL AND vcl.lane_id IS NOT NULL AND la.lane LIKE '%TURNSTILE%')
+                           )
+                         LIMIT 1",
+                        [$invitation['invitation_id'], $today]
+                    )->getRowArray();
 
-                    if (!$isCheckedIn) {
-                        $lastMainLog = $db->query(
-                            "SELECT action FROM visitor_card_logs
-                             WHERE invitation_id = ?
-                             AND action IN ('checkin', 'checkout')
-                             ORDER BY scanned_at DESC, id DESC
-                             LIMIT 1",
-                            [$invitation['invitation_id']]
-                        )->getRowArray();
-                        $isCheckedIn = ($lastMainLog && $lastMainLog['action'] === 'checkin');
-                    }
-
-                    if (!$isCheckedIn) {
+                    if (!$turnstileLog) {
                         $db->transRollback();
                         return $this->respond([
                             'success'        => false,
