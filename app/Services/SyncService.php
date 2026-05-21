@@ -33,8 +33,21 @@ class SyncService
         $this->messages = [];
         $this->info('=== Sync started at ' . date('Y-m-d H:i:s') . ' ===');
 
-        if (!$this->local->tableExists('sync_deletions') || !$this->cloud->tableExists('sync_deletions')) {
-            $this->info('ERROR: sync_deletions table missing — run php spark migrate first.');
+        $localHasDeletions = $this->local->tableExists('sync_deletions');
+        $cloudHasDeletions = $this->cloud->tableExists('sync_deletions');
+
+        if (!$localHasDeletions || !$cloudHasDeletions) {
+            if (!$localHasDeletions) {
+                $this->info('ERROR: sync_deletions missing on LOCAL (vms) — run: php spark migrate');
+            }
+            if (!$cloudHasDeletions) {
+                $this->info('ERROR: sync_deletions missing on CLOUD (vms_cloud) — run php spark migrate on the cloud server too.');
+            }
+            if ($this->local->getDatabase() && !$cloudHasDeletions) {
+                $cloudDb = $this->cloud->getDatabase();
+                $cloudHost = config('Database')->cloud['hostname'] ?? '?';
+                $this->info("  Cloud connection: {$cloudHost} / {$cloudDb} — verify database.cloud.* in .env");
+            }
             return $this->messages;
         }
 
