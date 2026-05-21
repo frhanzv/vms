@@ -33,6 +33,12 @@ class SyncService
         $this->messages = [];
         $this->info('=== Sync started at ' . date('Y-m-d H:i:s') . ' ===');
 
+        if (!$this->isCloudConfigured()) {
+            $this->info('ERROR: database.cloud.* is not configured — sync runs on Jetson only.');
+            $this->info('  Laragon/dev PCs: use database.default only; do not run sync:run.');
+            return $this->messages;
+        }
+
         $localHasDeletions = $this->local->tableExists('sync_deletions');
         $cloudHasDeletions = $this->cloud->tableExists('sync_deletions');
 
@@ -65,6 +71,13 @@ class SyncService
         $this->info('=== Sync finished at ' . date('Y-m-d H:i:s') . ' ===');
 
         return $this->messages;
+    }
+
+    protected function isCloudConfigured(): bool
+    {
+        $cfg = config('Database')->cloud;
+
+        return ! empty($cfg['hostname']) && ! empty($cfg['database']);
     }
 
     // -------------------------------------------------------------------------

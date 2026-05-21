@@ -165,10 +165,10 @@ class Database extends Config
      */
     public array $cloud = [
         'DSN'          => '',
-        'hostname'     => 'localhost',
-        'username'     => 'root',
+        'hostname'     => '',       // Set via .env — Jetson only (remote cloud MySQL)
+        'username'     => '',
         'password'     => '',
-        'database'     => 'vms_cloud',
+        'database'     => '',       // e.g. vms_cloud — leave unset on Laragon dev PCs
         'DBDriver'     => 'MySQLi',
         'DBPrefix'     => '',
         'pConnect'     => false,
