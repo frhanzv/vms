@@ -4473,7 +4473,7 @@
                             <div class="border-t border-gray-200 dark:border-slate-700"></div>
                             <div class="flex items-center justify-between">
                                 <div>
-                                    <p class="text-sm font-semibold text-slate-700 dark:text-slate-300">Internal Door Checkout</p>
+                                    <p class="text-sm font-semibold text-slate-700 dark:text-slate-300">Internal Door</p>
                                     <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Require check-out from current door before entering another. Turn off to allow free movement between internal doors.</p>
                                 </div>
                                 <button id="door-checkout-toggle-btn" onclick="toggleDoorCheckout()"

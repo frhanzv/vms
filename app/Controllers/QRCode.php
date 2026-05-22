@@ -403,12 +403,24 @@ class QRCode extends ResourceController
                     }
 
                     $action = 'checkout';
-                    // If check_in_time was never set (turnstile was bypassed), stamp it now
-                    // so the row is consistent and duration can be derived from door logs instead.
                     $checkoutUpdate = ['check_out_time' => $now, 'version' => $nextVer, 'updated_at' => $now];
                     if (empty($invitation['check_in_time'])) {
-                        $checkoutUpdate['check_in_time'] = $now;
-                        $duration = '0 minutes';
+                        // Visitor entered via internal door (turnstile bypassed) — derive entry
+                        // time from the first door_checkin log today instead of stamping $now,
+                        // which would make check_in_time == check_out_time and show 00:00 duration.
+                        $firstEntry = $db->query(
+                            "SELECT MIN(scanned_at) as ts FROM visitor_card_logs
+                             WHERE invitation_id = ? AND action = 'door_checkin'
+                             AND DATE(scanned_at) = ?",
+                            [$invitation['invitation_id'], date('Y-m-d')]
+                        )->getRowArray();
+
+                        if (!empty($firstEntry['ts'])) {
+                            $checkoutUpdate['check_in_time'] = $firstEntry['ts'];
+                            $duration = $this->formatDuration(time() - strtotime($firstEntry['ts']));
+                        } else {
+                            $duration = null;
+                        }
                     } else {
                         $duration = $this->formatDuration(time() - strtotime($invitation['check_in_time']));
                     }
