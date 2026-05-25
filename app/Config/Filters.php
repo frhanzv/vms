@@ -40,6 +40,7 @@ class Filters extends BaseFilters
         'role'           => RoleFilter::class,
         'inbound_api_auth' => \App\Filters\InboundApiAuthFilter::class,
         'client_feature' => \App\Filters\ClientFeatureFilter::class,
+        'syncauto'       => \App\Filters\SyncAutoFilter::class,
     ];
 
     /**
@@ -87,7 +88,8 @@ class Filters extends BaseFilters
                 'security/*',
                 'api/rfid/*',
                 'api/qr/*',
-                'api/receive-worker-count',   // ← ADD THIS LINE
+                'api/receive-worker-count',
+                'api/sync/trigger',
                 'config/generateVisitorQr',
                 'api/admin/*',
                 'api/vendorpass/*',
@@ -98,6 +100,7 @@ class Filters extends BaseFilters
         ],
     ],
     'after' => [
+        'syncauto',
         // 'honeypot',
         // 'secureheaders',
     ],

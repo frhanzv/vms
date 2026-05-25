@@ -38,6 +38,7 @@ use App\Models\ClientFormFieldModel;
 use App\Models\ClientNotificationSettingModel;
 use App\Models\ClientMessagingCredentialModel;
 use App\Models\WhatsappTemplateModel;
+use App\Models\MobileKioskSettingModel;
 
 class Config extends BaseController
 {
@@ -5390,6 +5391,144 @@ class Config extends BaseController
         return $this->response->setJSON(['success' => true, 'message' => 'Email recipient configuration saved successfully']);
     }
 
+    public function getKioskSettings()
+    {
+        $model    = new MobileKioskSettingModel();
+        $settings = $model->findAll();
+        $config   = [];
+
+        foreach ($settings as $s) {
+            $config[$s['setting_key']] = $s['setting_value'];
+        }
+
+        return view('config/kiosk_settings', [
+            'pageTitle' => 'Kiosk Settings - SafeG',
+            'config'    => $config,
+        ]);
+    }
+
+    public function saveKioskSettings()
+    {
+        $model = new MobileKioskSettingModel();
+
+        $visitorFields = [];
+        $fieldKeys = [
+            'cardholder_name', 'ic_number', 'contact_number', 'company_name',
+            'email', 'vehicle_reg_no', 'address', 'country',
+            'date_of_birth', 'postal_code', 'state', 'city',
+        ];
+
+        foreach ($fieldKeys as $fk) {
+            $visitorFields[$fk] = [
+                'show'     => $this->request->getPost("visitor_fields[$fk][show]") === 'true',
+                'required' => $this->request->getPost("visitor_fields[$fk][required]") === 'true',
+            ];
+        }
+
+        $keys = [
+            'kiosk_walk_in',
+            'kiosk_invitation',
+            'kiosk_collect_card',
+            'kiosk_vvip',
+            'kiosk_welcome_text',
+            'kiosk_primary_color',
+            'kiosk_logo_url',
+        ];
+
+        foreach ($keys as $key) {
+            $value    = $this->request->getPost($key) ?? 'false';
+            $existing = $model->where('setting_key', $key)->first();
+
+            if ($existing) {
+                $model->update($existing['id'], [
+                    'setting_value' => $value,
+                    'updated_at'    => date('Y-m-d H:i:s'),
+                ]);
+            } else {
+                $model->insert([
+                    'setting_key'   => $key,
+                    'setting_value' => $value,
+                    'created_at'    => date('Y-m-d H:i:s'),
+                    'updated_at'    => date('Y-m-d H:i:s'),
+                ]);
+            }
+        }
+
+        $visitorFieldsJson = json_encode($visitorFields);
+        $existing = $model->where('setting_key', 'kiosk_visitor_fields')->first();
+
+        if ($existing) {
+            $model->update($existing['id'], [
+                'setting_value' => $visitorFieldsJson,
+                'updated_at'    => date('Y-m-d H:i:s'),
+            ]);
+        } else {
+            $model->insert([
+                'setting_key'   => 'kiosk_visitor_fields',
+                'setting_value' => $visitorFieldsJson,
+                'created_at'    => date('Y-m-d H:i:s'),
+                'updated_at'    => date('Y-m-d H:i:s'),
+            ]);
+        }
+
+        return redirect()->to('config/kioskSettings')
+            ->with('success', 'Kiosk settings saved!');
+    }
+
+    public function getDataSyncStatus()
+    {
+        $cfg             = config('Database')->cloud;
+        $cloudConfigured = ! empty($cfg['hostname']) && ! empty($cfg['database']);
+        $lastSync        = null;
+
+        $db = db_connect('default');
+        if ($db->tableExists('sync_log')) {
+            $row = $db->table('sync_log')
+                ->where('status', 'success')
+                ->orderBy('synced_at', 'DESC')
+                ->limit(1)
+                ->get()
+                ->getRowArray();
+            $lastSync = $row['synced_at'] ?? null;
+        }
+
+        return $this->response->setJSON([
+            'success'          => true,
+            'cloud_configured' => $cloudConfigured,
+            'cloud_host'       => $cloudConfigured ? ($cfg['hostname'] ?? '') : '',
+            'cloud_database'   => $cloudConfigured ? ($cfg['database'] ?? '') : '',
+            'last_sync'        => $lastSync,
+        ]);
+    }
+
+    public function runDataSync()
+    {
+        try {
+            $service = new \App\Services\SyncService();
+            $log     = $service->sync();
+
+            $hasError = false;
+            foreach ($log as $line) {
+                if (str_contains($line, 'ERROR')) {
+                    $hasError = true;
+                    break;
+                }
+            }
+
+            return $this->response->setJSON([
+                'success' => ! $hasError,
+                'log'     => $log,
+                'message' => $hasError ? 'Sync completed with errors.' : 'Sync completed successfully.',
+            ]);
+        } catch (\Throwable $e) {
+            log_message('error', '[Sync] Manual sync failed: ' . $e->getMessage());
+
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Sync failed: ' . $e->getMessage(),
+                'log'     => [],
+            ]);
+        }
     public function getScannerSettings()
     {
         return $this->response->setJSON([
