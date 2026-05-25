@@ -274,6 +274,7 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
                 <input type="hidden" name="token" value="<?= esc($token) ?>">
             <?php endif; ?>
 
+                <?php if ($isFieldEnabled('visit_info_section')): ?>
                 <!-- Visit Information -->
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8">
                     <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
@@ -342,7 +343,9 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
                         </div>
                     </div>
                 </section>
+                <?php endif; ?>
 
+                <?php if ($isFieldEnabled('date_of_visit_section')): ?>
                 <!-- Date of Visit -->
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 overflow-hidden">
                     <div class="flex items-center justify-between px-6 sm:px-8 py-4 border-b border-border-color dark:border-gray-800">
@@ -391,7 +394,9 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
                         </div>
                     </div>
                 </section>
+                <?php endif; ?>
 
+                <?php if ($isFieldEnabled('details_of_visit_section')): ?>
                 <!-- Details of Visit -->
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8">
                     <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
@@ -443,7 +448,9 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
                         <?php endif; ?>
                     </div>
                 </section>
+                <?php endif; ?>
 
+                <?php if ($isFieldEnabled('person_details_section')): ?>
                 <!-- Person Details -->
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8">
                     <div class="flex items-center justify-between mb-6 pb-4 border-b border-border-color dark:border-gray-800">
@@ -613,6 +620,7 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
                         <?php endif; ?>
                     </div>
                 </section>
+                <?php endif; ?>
 
                 <?php if ($isFieldEnabled('driving_license_section')): ?>
                 <!-- Driving License Section -->

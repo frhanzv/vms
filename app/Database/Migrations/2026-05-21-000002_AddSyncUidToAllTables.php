@@ -66,6 +66,10 @@ class AddSyncUidToAllTables extends Migration
 
     protected function backfillMissingSyncUids(string $table): void
     {
+        if (!$this->db->fieldExists('id', $table)) {
+            return;
+        }
+
         $rows = $this->db->table($table)
             ->select('id')
             ->groupStart()
