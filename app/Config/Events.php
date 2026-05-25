@@ -53,3 +53,11 @@ Events::on('pre_system', static function (): void {
         }
     }
 });
+
+Events::on('post_system', static function (): void {
+    if (is_cli()) {
+        return;
+    }
+
+    \App\Services\SyncTrigger::dispatchIfPending();
+});

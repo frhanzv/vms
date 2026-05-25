@@ -50,6 +50,29 @@
 # database.tests.port = 3306
 
 #--------------------------------------------------------------------
+# SYNC — bidirectional direct sync (Jetson ↔ cloud)
+#--------------------------------------------------------------------
+# Auto-sync after local POST/PUT/DELETE (~15 sec debounce). Set on BOTH servers.
+# SYNC.auto = true
+# SYNC.debounceSeconds = 15
+# SYNC.phpBin = /usr/bin/php
+#
+# Jetson .env — peer = cloud DB:
+#   database.cloud.hostname = CLOUD_IP
+#   database.cloud.database = vms_cloud
+#
+# Cloud .env — peer = Jetson DB (direct push to Jetson):
+#   database.cloud.hostname = JETSON_IP
+#   database.cloud.database = vms
+#
+# OR if Jetson MySQL is not exposed — cloud pings Jetson HTTP instead:
+# Cloud only:
+#   SYNC.notifyUrl = http://JETSON_IP/api/sync/trigger
+# Both servers (same secret):
+#   SYNC.webhookToken = your-random-secret-here
+# SYNC.notifyDebounceSeconds = 15
+
+#--------------------------------------------------------------------
 # ENCRYPTION
 #--------------------------------------------------------------------
 

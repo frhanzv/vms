@@ -202,18 +202,38 @@ class KioskApi extends BaseController
             ? json_decode($visitorFieldsRaw, true) ?? $defaultVisitorFields
             : $defaultVisitorFields;
 
+        $walkIn      = filter_var($config['kiosk_walk_in']      ?? 'true', FILTER_VALIDATE_BOOLEAN);
+        $invitation  = filter_var($config['kiosk_invitation']   ?? 'true', FILTER_VALIDATE_BOOLEAN);
+        $collectCard = filter_var($config['kiosk_collect_card'] ?? 'true', FILTER_VALIDATE_BOOLEAN);
+        $vvip        = filter_var($config['kiosk_vvip']         ?? 'true', FILTER_VALIDATE_BOOLEAN);
+
         $kiosk = [
-            'project'            => $config['project_name']          ?? 'VMS',
-            'visitorPassPrint'   => $config['visitor_pass_print']    ?? 'enabled',
-            'facialVerification' => $config['facial_verification']   ?? 'disabled',
-            'securityBriefing'   => $config['security_briefing']     ?? 'disabled',
-            'allowWalkIn'        => $config['allow_walk_in']         ?? 'enabled',
+            // Legacy MNR fields (camelCase + enabled/disabled strings)
+            'project'            => $config['project_name']        ?? 'VMS',
+            'visitorPassPrint'   => $config['visitor_pass_print']  ?? 'enabled',
+            'facialVerification' => $config['facial_verification'] ?? 'disabled',
+            'securityBriefing'   => $config['security_briefing']  ?? 'disabled',
+            'allowWalkIn'        => $walkIn ? 'enabled' : 'disabled',
             'vpOCR'              => true,
             'vpFacial'           => true,
-            'walk_in'            => filter_var($config['kiosk_walk_in']      ?? 'true', FILTER_VALIDATE_BOOLEAN),
-            'invitation'         => filter_var($config['kiosk_invitation']   ?? 'true', FILTER_VALIDATE_BOOLEAN),
-            'collect_card'       => filter_var($config['kiosk_collect_card'] ?? 'true', FILTER_VALIDATE_BOOLEAN),
-            'vvip'               => filter_var($config['kiosk_vvip']         ?? 'true', FILTER_VALIDATE_BOOLEAN),
+
+            // Kiosk feature flags — camelCase (Android/Gson) and snake_case
+            'walkIn'             => $walkIn,
+            'walk_in'            => $walkIn,
+            'invitation'         => $invitation,
+            'collectCard'        => $collectCard,
+            'collect_card'       => $collectCard,
+            'vvip'               => $vvip,
+
+            // Branding
+            'welcomeText'        => $config['kiosk_welcome_text']  ?? 'Welcome',
+            'welcome_text'       => $config['kiosk_welcome_text']  ?? 'Welcome',
+            'primaryColor'       => $config['kiosk_primary_color'] ?? '#1A73E8',
+            'primary_color'      => $config['kiosk_primary_color'] ?? '#1A73E8',
+            'logoUrl'            => $config['kiosk_logo_url']      ?? '',
+            'logo_url'           => $config['kiosk_logo_url']      ?? '',
+
+            'visitorFields'      => $visitorFields,
             'visitor_fields'     => $visitorFields,
         ];
 

@@ -31,6 +31,8 @@ $routes->group('api/rfid', function($routes) {
 
 $routes->post('api/receive-worker-count', 'Api\WorkerCountReceiver::receive');
 
+$routes->post('api/sync/trigger', 'Api\SyncWebhook::trigger');
+
 $routes->group('api/qr', function($routes) {
     $routes->get('scan', 'QRCode::scan');
     $routes->get('scan-lane', 'QRCode::scanLane');
@@ -77,6 +79,10 @@ $routes->post('config/saveClientFormFields/(:num)', 'Config::saveClientFormField
 // Alert Priority Management Routes
 $routes->get('config/getAlertPriorities', 'Config::getAlertPriorities');
 $routes->post('config/updateAlertPriority/(:num)', 'Config::updateAlertPriority/$1');
+
+// Mobile Kiosk Settings
+$routes->get('config/kioskSettings', 'Config::getKioskSettings');
+$routes->post('config/saveKioskSettings', 'Config::saveKioskSettings');
 
 // App Config Routes
 $routes->get('config/getAppConfigs',          'AppConfig::getAll');
@@ -627,6 +633,9 @@ $routes->group('config', ['filter' => 'role:superadmin'], function($routes) {
     // Inbound API token generation (Protected by superadmin)
     $routes->post('generateInboundToken', 'Api\InboundApi::generateToken');
 
+    // Cloud data sync (Jetson ↔ cloud)
+    $routes->get('getDataSyncStatus', 'Config::getDataSyncStatus');
+    $routes->post('runDataSync', 'Config::runDataSync');
     // Scanner Management
     $routes->get('getScannerSettings', 'Config::getScannerSettings');
     $routes->post('saveScannerSettings', 'Config::saveScannerSettings');
