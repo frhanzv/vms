@@ -46,12 +46,12 @@ sudo mysql_secure_installation
 Create the database and user:
 
 ```bash
-sudo mysql -u root -p
+sudo mysql
 ```
 
 ```sql
 CREATE DATABASE vms CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-CREATE USER 'vms_user'@'localhost' IDENTIFIED BY 'YOUR_STRONG_PASSWORD';
+CREATE USER 'vms_user'@'localhost' IDENTIFIED BY 'Vms@2026!';
 GRANT ALL PRIVILEGES ON vms.* TO 'vms_user'@'localhost';
 FLUSH PRIVILEGES;
 EXIT;
@@ -67,10 +67,10 @@ sudo mv composer.phar /usr/local/bin/composer
 ## 6. Deploy the application code
 
 ```bash
-cd /var/www
-sudo git clone <your-repo-url> vms
-sudo chown -R www-data:www-data /var/www/vms
-cd /var/www/vms
+cd /var/www/html
+sudo git clone git@github.com:frhanzv/vms.git vms
+sudo chown -R www-data:www-data /var/www/html/vms
+cd /var/www/html/vms
 ```
 
 Install PHP dependencies:
@@ -91,16 +91,16 @@ Set these values (uncomment and edit):
 ```ini
 CI_ENVIRONMENT = production
 
-app.baseURL = 'https://yourdomain.com/'
+app.baseURL = 'http://34.57.166.51/'
 
 database.default.hostname = localhost
 database.default.database = vms
 database.default.username = vms_user
-database.default.password = YOUR_STRONG_PASSWORD
+database.default.password = Vms@2026!
 database.default.DBDriver = MySQLi
 database.default.port = 3306
 
-encryption.key = hex2bin:GENERATED_KEY_HERE
+encryption.key = hex2bin:bca83600034ebe9e64915e054f7aa904e1f2eb13739f07c1c076fb9ae3f13e90
 ```
 
 Generate the encryption key:
@@ -123,14 +123,14 @@ LLM_MODEL = gpt-4o
 ## 8. Set directory permissions
 
 ```bash
-sudo chown -R www-data:www-data /var/www/vms/writable
-sudo chmod -R 775 /var/www/vms/writable
+sudo chown -R www-data:www-data /var/www/html/vms/writable
+sudo chmod -R 775 /var/www/html/vms/writable
 ```
 
 ## 9. Run database migrations
 
 ```bash
-cd /var/www/vms
+cd /var/www/html/vms
 php spark migrate
 ```
 
@@ -147,9 +147,9 @@ sudo nano /etc/apache2/sites-available/vms.conf
 ```apache
 <VirtualHost *:80>
     ServerName yourdomain.com
-    DocumentRoot /var/www/vms/public
+    DocumentRoot /var/www/html/vms/public
 
-    <Directory /var/www/vms/public>
+    <Directory /var/www/html/vms/public>
         AllowOverride All
         Require all granted
     </Directory>
@@ -162,7 +162,7 @@ sudo nano /etc/apache2/sites-available/vms.conf
 If serving at the domain root, update `public/.htaccess` — change `RewriteBase /vms` to `RewriteBase /`:
 
 ```bash
-nano /var/www/vms/public/.htaccess
+nano /var/www/html/vms/public/.htaccess
 ```
 
 Change:
@@ -185,8 +185,8 @@ Keep `RewriteBase /vms` as-is in `public/.htaccess`.
 <VirtualHost *:80>
     ServerName yourdomain.com
 
-    Alias /vms /var/www/vms/public
-    <Directory /var/www/vms/public>
+    Alias /vms /var/www/html/vms/public
+    <Directory /var/www/html/vms/public>
         AllowOverride All
         Require all granted
     </Directory>
@@ -238,10 +238,10 @@ sudo ufw enable
 |---|---|
 | App loads | Visit `https://yourdomain.com` |
 | `.env` is production | `CI_ENVIRONMENT = production` |
-| Writable directory is writable | `ls -la /var/www/vms/writable/` (owned by `www-data`) |
+| Writable directory is writable | `ls -la /var/www/html/vms/writable/` (owned by `www-data`) |
 | Migrations applied | `php spark migrate:status` |
 | HTTPS working | Browser shows padlock |
-| Logs accessible | `tail -f /var/www/vms/writable/logs/log-*.log` |
+| Logs accessible | `tail -f /var/www/html/vms/writable/logs/log-*.log` |
 | Error pages (not stack traces) | Verify `CI_ENVIRONMENT = production` hides debug info |
 
 ## Troubleshooting
