@@ -751,7 +751,12 @@ class KioskApi extends BaseController
         );
 
         $model = new StaffModel();
-        $staffQuery = $model->where('status', 'active');
+        $staffQuery = $model->groupStart()
+            ->where('status', 'active')
+            ->orWhere('status', 'Active')
+            ->orWhere('status IS NULL', null, false)
+            ->orWhere('status', '')
+            ->groupEnd();
         if ($keyword !== '') {
             $staffQuery->groupStart()
                 ->like('staff_no', $keyword)
@@ -762,30 +767,23 @@ class KioskApi extends BaseController
         }
         $staff = $staffQuery->orderBy('full_name', 'ASC')->findAll(30);
 
-        $data = array_map(fn($s) => [
-            'id'             => (int) $s['id'],
-            'source'         => 'staff',
-            'sourceId'       => (int) $s['id'],
-            'staffNo'        => $s['staff_no'],
-            'username'       => $s['staff_no'],              // Android uses 'username' field
-            'fullName'       => $s['full_name'],
-            'name'           => $s['full_name'],              // Android uses 'name' field
-            'nameOnPass'     => $s['name_on_staff_pass']     ?? $s['full_name'],
-            'icPassport'     => $s['ic_passport']            ?? '',
-            'icNo'           => $s['ic_passport']            ?? '', // Android uses 'icNo' field
-            'passportNo'     => '',                                  // Staff won't have passport
-            'department'     => $s['department']             ?? '',
-            'designation'    => $s['designation']            ?? '',
-            'locationAccess' => $s['location_access']        ?? '',
-            'cardStatus'     => $s['card_status']            ?? '',
-            'cardExpiry'     => $s['card_expiry']            ?? '',
-            'mobileNo'       => $s['contact_number']         ?? '', // Android uses 'mobileNo' field
-            'email'          => $s['email']                  ?? '',
-            'photo'          => $s['photo_path']             ?? '', // Android uses 'photo' field
-            'visitorType'    => '',                                  // Staff don't have visitorType
-            'status'         => $s['status'],
-            'message'        => '',
-        ], $staff);
+        $data = [];
+        foreach ($staff as $s) {
+            $row = $this->formatHostSearchRow(
+                (int) $s['id'],
+                'staff',
+                (string) ($s['full_name'] ?? ''),
+                (string) ($s['staff_no'] ?? ''),
+                (string) ($s['contact_number'] ?? ''),
+                (string) ($s['email'] ?? ''),
+                (string) ($s['designation'] ?? ''),
+                (string) ($s['department'] ?? ''),
+                (string) ($s['profile_photo'] ?? $s['photo_path'] ?? '')
+            );
+            if ($row !== null) {
+                $data[] = $row;
+            }
+        }
 
         $userModel = new UserModel();
         $userQuery = $userModel->select('id, username, email, full_name, staff_id, contact_no, role, is_active, profile_photo')
@@ -815,35 +813,102 @@ class KioskApi extends BaseController
                 continue;
             }
 
-            $data[] = [
-                'id'             => (int) $user['id'],
-                'source'         => 'user',
-                'sourceId'       => (int) $user['id'],
-                'staffNo'        => $staffNo,
-                'username'       => $staffNo,
-                'fullName'       => $user['full_name'],
-                'name'           => $user['full_name'],
-                'nameOnPass'     => $user['full_name'],
-                'icPassport'     => '',
-                'icNo'           => '',
-                'passportNo'     => '',
-                'department'     => '',
-                'designation'    => $user['role'] ?? '',
-                'locationAccess' => '',
-                'cardStatus'     => '',
-                'cardExpiry'     => '',
-                'mobileNo'       => $user['contact_no'] ?? '',
-                'email'          => $user['email'] ?? '',
-                'photo'          => $user['profile_photo'] ?? '',
-                'visitorType'    => '',
-                'status'         => 'active',
-                'message'        => '',
-            ];
+            $row = $this->formatHostSearchRow(
+                (int) $user['id'],
+                'user',
+                (string) ($user['full_name'] ?: $user['username']),
+                $staffNo,
+                (string) ($user['contact_no'] ?? ''),
+                (string) ($user['email'] ?? ''),
+                (string) ($user['role'] ?? ''),
+                '',
+                (string) ($user['profile_photo'] ?? '')
+            );
+            if ($row !== null) {
+                $data[] = $row;
+            }
         }
 
         usort($data, static fn($a, $b) => strcasecmp($a['name'] ?? '', $b['name'] ?? ''));
 
-        return $this->respond(['status' => 'success', 'data' => $data]);
+        return $this->respond([
+            'status'        => 'success',
+            'data'          => $data,
+            'content'       => $data,
+            'totalElements' => count($data),
+        ]);
+    }
+
+    private function formatHostSearchRow(
+        int $id,
+        string $source,
+        string $name,
+        string $staffNo,
+        string $mobileNo,
+        string $email,
+        string $designation = '',
+        string $department = '',
+        string $photo = ''
+    ): ?array {
+        $name = trim($name);
+        $staffNo = trim($staffNo);
+        $mobileNo = trim($mobileNo);
+        $email = trim($email);
+
+        if ($name === '' && $staffNo === '') {
+            return null;
+        }
+        if ($staffNo === '') {
+            $staffNo = $email !== '' ? $email : (string) $id;
+        }
+        if ($name === '') {
+            $name = $staffNo;
+        }
+
+        return [
+            'id'             => $id,
+            'source'         => $source,
+            'sourceId'       => $id,
+            'staffNo'        => $staffNo,
+            'staff_no'       => $staffNo,
+            'staffId'        => $staffNo,
+            'staff_id'       => $staffNo,
+            'username'       => $staffNo,
+            'fullName'       => $name,
+            'full_name'      => $name,
+            'staffName'      => $name,
+            'staff_name'     => $name,
+            'name'           => $name,
+            'nameOnPass'     => $name,
+            'name_on_pass'   => $name,
+            'mobileNo'       => $mobileNo,
+            'mobile_no'      => $mobileNo,
+            'phoneNo'        => $mobileNo,
+            'phone_no'       => $mobileNo,
+            'phone'          => $mobileNo,
+            'contactNo'      => $mobileNo,
+            'contact_no'     => $mobileNo,
+            'contactNumber'  => $mobileNo,
+            'contact_number' => $mobileNo,
+            'telNo'          => $mobileNo,
+            'tel_no'         => $mobileNo,
+            'email'          => $email,
+            'department'     => $department,
+            'designation'    => $designation,
+            'role'           => $designation,
+            'photo'          => $photo,
+            'profilePhoto'   => $photo,
+            'profile_photo'  => $photo,
+            'icPassport'     => '',
+            'icNo'           => '',
+            'passportNo'     => '',
+            'locationAccess' => '',
+            'cardStatus'     => '',
+            'cardExpiry'     => '',
+            'visitorType'    => '',
+            'status'         => 'active',
+            'message'        => '',
+        ];
     }
 
     /**
