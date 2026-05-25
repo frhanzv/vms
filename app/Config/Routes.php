@@ -669,7 +669,9 @@ $routes->group('api/vendorpass', function($routes) {
 
 $routes->group('api/user', function($routes) {
     $routes->get('getStaffPassByStaffNoOrName',   'Api\KioskApi::getStaffPassByStaffNoOrName');
+    $routes->post('getStaffPassByStaffNoOrName',  'Api\KioskApi::getStaffPassByStaffNoOrName');
     $routes->get('getVisitorPassByStaffNoOrName', 'Api\KioskApi::getVisitorPassByStaffNoOrName');
+    $routes->post('getVisitorPassByStaffNoOrName', 'Api\KioskApi::getVisitorPassByStaffNoOrName');
 });
 
 // laravel_url routes (served here at any port VMS is running on)

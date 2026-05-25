@@ -12,6 +12,7 @@ use App\Models\LocationModel;
 use App\Models\SettingModel;
 use App\Models\StaffModel;
 use App\Models\StateModel;
+use App\Models\UserModel;
 use App\Models\VisitReasonModel;
 use App\Models\VisitorCardLogModel;
 use App\Models\VisitorCardModel;
@@ -733,30 +734,38 @@ class KioskApi extends BaseController
      */
     public function getStaffPassByStaffNoOrName(): \CodeIgniter\HTTP\Response
     {
-        // ✅ Accept GET param OR POST body (Android sends POST with "username" key)
+        $json = $this->request->getJSON(true) ?? [];
+
+        // Accept GET param OR POST body (Android sends POST with "username" key)
         $keyword = trim(
             $this->request->getGet('keyword')
                 ?? $this->request->getGet('staffNo')
+                ?? $this->request->getGet('username')
                 ?? $this->request->getPost('username')
-                ?? ($this->request->getJSON(true)['username'] ?? '')
+                ?? $this->request->getPost('keyword')
+                ?? $this->request->getPost('staffNo')
+                ?? $json['username']
+                ?? $json['keyword']
+                ?? $json['staffNo']
+                ?? ''
         );
 
-        if ($keyword === '') {
-            return $this->respond(['status' => 'success', 'data' => []]);
-        }
-
         $model = new StaffModel();
-        $staff = $model->groupStart()
-            ->like('staff_no', $keyword)
-            ->orLike('full_name', $keyword)
-            ->orLike('name_on_staff_pass', $keyword)
-            ->groupEnd()
-            ->where('status', 'active')
-            ->orderBy('full_name', 'ASC')
-            ->findAll(20);
+        $staffQuery = $model->where('status', 'active');
+        if ($keyword !== '') {
+            $staffQuery->groupStart()
+                ->like('staff_no', $keyword)
+                ->orLike('full_name', $keyword)
+                ->orLike('name_on_staff_pass', $keyword)
+                ->orLike('email', $keyword)
+                ->groupEnd();
+        }
+        $staff = $staffQuery->orderBy('full_name', 'ASC')->findAll(30);
 
         $data = array_map(fn($s) => [
             'id'             => (int) $s['id'],
+            'source'         => 'staff',
+            'sourceId'       => (int) $s['id'],
             'staffNo'        => $s['staff_no'],
             'username'       => $s['staff_no'],              // Android uses 'username' field
             'fullName'       => $s['full_name'],
@@ -777,6 +786,62 @@ class KioskApi extends BaseController
             'status'         => $s['status'],
             'message'        => '',
         ], $staff);
+
+        $userModel = new UserModel();
+        $userQuery = $userModel->select('id, username, email, full_name, staff_id, contact_no, role, is_active, profile_photo')
+            ->where('is_active', 1);
+        if ($keyword !== '') {
+            $userQuery->groupStart()
+                ->like('username', $keyword)
+                ->orLike('full_name', $keyword)
+                ->orLike('staff_id', $keyword)
+                ->orLike('email', $keyword)
+                ->groupEnd();
+        }
+        $users = $userQuery->orderBy('full_name', 'ASC')->findAll(30);
+
+        foreach ($users as $user) {
+            $staffNo = (string) ($user['staff_id'] ?: $user['username']);
+            $dedupeKey = strtolower(trim($staffNo !== '' ? $staffNo : ($user['email'] ?? '')));
+            $alreadyIncluded = false;
+            foreach ($data as $row) {
+                $existingKey = strtolower(trim((string) ($row['staffNo'] ?: $row['email'])));
+                if ($dedupeKey !== '' && $existingKey === $dedupeKey) {
+                    $alreadyIncluded = true;
+                    break;
+                }
+            }
+            if ($alreadyIncluded) {
+                continue;
+            }
+
+            $data[] = [
+                'id'             => (int) $user['id'],
+                'source'         => 'user',
+                'sourceId'       => (int) $user['id'],
+                'staffNo'        => $staffNo,
+                'username'       => $staffNo,
+                'fullName'       => $user['full_name'],
+                'name'           => $user['full_name'],
+                'nameOnPass'     => $user['full_name'],
+                'icPassport'     => '',
+                'icNo'           => '',
+                'passportNo'     => '',
+                'department'     => '',
+                'designation'    => $user['role'] ?? '',
+                'locationAccess' => '',
+                'cardStatus'     => '',
+                'cardExpiry'     => '',
+                'mobileNo'       => $user['contact_no'] ?? '',
+                'email'          => $user['email'] ?? '',
+                'photo'          => $user['profile_photo'] ?? '',
+                'visitorType'    => '',
+                'status'         => 'active',
+                'message'        => '',
+            ];
+        }
+
+        usort($data, static fn($a, $b) => strcasecmp($a['name'] ?? '', $b['name'] ?? ''));
 
         return $this->respond(['status' => 'success', 'data' => $data]);
     }
