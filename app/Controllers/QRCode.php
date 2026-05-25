@@ -289,8 +289,65 @@ class QRCode extends ResourceController
             }
 
             if ($isTurnstile) {
-                if (!$invitation['check_in_time']) {
-                    // First turnstile scan → entry check-in
+                // "Effectively inside" means the visitor entered TODAY — either via the turnstile
+                // (check_in_time set today) or via internal doors when the turnstile was bypassed.
+                // All checks are scoped to TODAY so that stale data from previous sessions
+                // (old check_in_time or old door logs) never incorrectly trigger a checkout.
+                $today = date('Y-m-d');
+
+                $checkinToday = !empty($invitation['check_in_time'])
+                    && date('Y-m-d', strtotime((string) $invitation['check_in_time'])) === $today;
+
+                // Determine session-start anchor so old-session door logs don't bleed into
+                // the current session. Prefer the most recent turnstile checkout log (clean
+                // boundary). Fall back to invitation_visitors.updated_at (set when the card is
+                // assigned / check_in_time written) for sessions that were closed by admin before
+                // the checkout-log write was introduced — those have no checkout log at all.
+                $lastCheckoutTs = $db->query(
+                    "SELECT MAX(scanned_at) as ts FROM visitor_card_logs
+                     WHERE invitation_id = ? AND action = 'checkout'",
+                    [$invitation['invitation_id']]
+                )->getRowArray()['ts'] ?? null;
+
+                $sessionStart = $lastCheckoutTs
+                    ?? ($invitation['updated_at'] ?? $invitation['created_at'] ?? '1970-01-01 00:00:00');
+
+                $hasDoorActivityToday = (bool) $db->query(
+                    "SELECT id FROM visitor_card_logs
+                     WHERE invitation_id = ?
+                       AND action IN ('door_checkin', 'door_checkout')
+                       AND DATE(scanned_at) = ?
+                       AND scanned_at > ?
+                     LIMIT 1",
+                    [$invitation['invitation_id'], $today, $sessionStart]
+                )->getRowArray();
+
+                $isEffectivelyInside = $checkinToday || $hasDoorActivityToday;
+
+                // Respect Entry/Exit/Auto mode for turnstile.
+                if ($laneType === 'entry' && $isEffectivelyInside) {
+                    $db->transRollback();
+                    return $this->respond([
+                        'success'        => false,
+                        'access_granted' => false,
+                        'action'         => 'denied',
+                        'message'        => 'Already checked in. Use the exit scanner to check out.',
+                        'qr_code'        => $cardNumber,
+                    ]);
+                }
+                if ($laneType === 'exit' && !$isEffectivelyInside) {
+                    $db->transRollback();
+                    return $this->respond([
+                        'success'        => false,
+                        'access_granted' => false,
+                        'action'         => 'denied',
+                        'message'        => 'Not checked in. Please check in at the entry turnstile first.',
+                        'qr_code'        => $cardNumber,
+                    ]);
+                }
+
+                if (!$isEffectivelyInside) {
+                    // Not inside at all → entry check-in
                     $action = 'checkin';
                     $db->table('invitation_visitors')
                         ->where('id', $invitation['iv_id'])
@@ -308,51 +365,122 @@ class QRCode extends ResourceController
 
                     $db->table('visitor_cards')->where('id', $card['id'])->update(['status' => 'in_use']);
                 } else {
-                    // Subsequent turnstile scan → exit check-out
-                    $action   = 'checkout';
-                    $duration = $this->formatDuration(time() - strtotime($invitation['check_in_time']));
+                    // Inside (via turnstile or door bypass) → exit check-out.
+                    // Block if the visitor still has an open internal door session,
+                    // but only when Internal Door Checkout is ON.
+                    $doorCheckoutSetting = $db->table('settings')
+                        ->where('setting_key', 'door_checkout_required')
+                        ->get()->getRowArray();
+                    $doorCheckoutRequired = $doorCheckoutSetting
+                        ? ($doorCheckoutSetting['setting_value'] ?? '1') : '1';
+
+                    if ($doorCheckoutRequired !== '0') {
+                        $openDoorLog = $db->query(
+                            "SELECT action, lane_id, sub_location_id
+                             FROM visitor_card_logs
+                             WHERE invitation_id = ?
+                               AND action IN ('door_checkin', 'door_checkout')
+                             ORDER BY scanned_at DESC, id DESC
+                             LIMIT 1",
+                            [$invitation['invitation_id']]
+                        )->getRowArray();
+
+                        if ($openDoorLog && $openDoorLog['action'] === 'door_checkin') {
+                            $openDoorName = $this->getLaneName($openDoorLog['lane_id'], $openDoorLog['sub_location_id']);
+                            $db->transRollback();
+                            return $this->respond([
+                                'success'        => false,
+                                'access_granted' => false,
+                                'action'         => 'denied',
+                                'message'        => 'Please check out from ' . ($openDoorName ?? 'the internal door') . ' before leaving.',
+                                'visitor'        => [
+                                    'name'    => $invitation['visitor_name']    ?? 'Unknown',
+                                    'company' => $invitation['visitor_company'] ?? 'N/A',
+                                ],
+                                'qr_code'        => $cardNumber,
+                            ]);
+                        }
+                    }
+
+                    $action = 'checkout';
+                    $checkoutUpdate = ['check_out_time' => $now, 'version' => $nextVer, 'updated_at' => $now];
+                    if (empty($invitation['check_in_time'])) {
+                        // Visitor entered via internal door (turnstile bypassed) — derive entry
+                        // time from the first door_checkin log today instead of stamping $now,
+                        // which would make check_in_time == check_out_time and show 00:00 duration.
+                        $firstEntry = $db->query(
+                            "SELECT MIN(scanned_at) as ts FROM visitor_card_logs
+                             WHERE invitation_id = ? AND action = 'door_checkin'
+                             AND DATE(scanned_at) = ?",
+                            [$invitation['invitation_id'], date('Y-m-d')]
+                        )->getRowArray();
+
+                        if (!empty($firstEntry['ts'])) {
+                            $checkoutUpdate['check_in_time'] = $firstEntry['ts'];
+                            $duration = $this->formatDuration(time() - strtotime($firstEntry['ts']));
+                        } else {
+                            $duration = null;
+                        }
+                    } else {
+                        $duration = $this->formatDuration(time() - strtotime($invitation['check_in_time']));
+                    }
 
                     $db->table('invitation_visitors')
                         ->where('id', $invitation['iv_id'])
                         ->where('check_out_time IS NULL')
-                        ->update([
-                            'check_out_time' => $now,
-                            'version'        => $nextVer,
-                            'updated_at'     => $now,
-                            // visitor_card_id intentionally kept — used as reuse history
-                            // so the same visitor cannot be re-issued the same card.
-                        ]);
+                        ->update($checkoutUpdate);
 
+                    // visitor_card_id intentionally kept — used as reuse history.
                     $db->table('visitor_cards')->where('id', $card['id'])->update(['status' => 'active']);
                 }
             } else {
-                // Internal door — visitor must have entered via turnstile first.
-                // Primary check: invitation_visitors.check_in_time.
-                // Fallback: visitor_card_logs most recent checkin/checkout for this invitation
-                // (handles multi-visitor invitations, card replacements, and RFID/QR cross-device edge cases).
-                $isCheckedIn = !empty($invitation['check_in_time']);
+                // Internal door — check if turnstile-first is required (configurable via Scanner Management).
+                // When disabled (e.g. turnstile broken), visitors can access internal doors directly.
+                $turnstileRequiredSetting = $db->table('settings')
+                    ->where('setting_key', 'turnstile_required')
+                    ->get()->getRowArray();
+                $turnstileRequired = $turnstileRequiredSetting ? ($turnstileRequiredSetting['setting_value'] ?? '1') : '1';
 
-                if (!$isCheckedIn) {
-                    $lastMainLog = $db->query(
-                        "SELECT action FROM visitor_card_logs
-                         WHERE invitation_id = ?
-                         AND action IN ('checkin', 'checkout')
-                         ORDER BY scanned_at DESC, id DESC
+                if ($turnstileRequired !== '0') {
+                    // Find a turnstile 'checkin' log for today that has NOT been followed by a
+                    // 'checkout' log. This correctly scopes the check to the current session:
+                    // a checkin that was already paired with a checkout (visitor left and came back)
+                    // does NOT count — the visitor must scan the turnstile again for the new session.
+                    // RFID also writes action='checkin' at any door, so we join location tables to
+                    // confirm the log was specifically at a TURNSTILE-named location.
+                    $today = date('Y-m-d');
+                    $turnstileLog = $db->query(
+                        "SELECT vcl.id
+                         FROM visitor_card_logs vcl
+                         LEFT JOIN sub_locations sl ON sl.id = vcl.sub_location_id
+                         LEFT JOIN lanes la ON la.id = vcl.lane_id
+                         WHERE vcl.invitation_id = ?
+                           AND vcl.action = 'checkin'
+                           AND DATE(vcl.scanned_at) = ?
+                           AND (
+                               (vcl.sub_location_id IS NOT NULL AND sl.name LIKE '%TURNSTILE%')
+                               OR (vcl.sub_location_id IS NULL AND vcl.lane_id IS NOT NULL AND la.lane LIKE '%TURNSTILE%')
+                           )
+                           AND NOT EXISTS (
+                               SELECT 1 FROM visitor_card_logs vcl2
+                               WHERE vcl2.invitation_id = ?
+                                 AND vcl2.action = 'checkout'
+                                 AND vcl2.scanned_at > vcl.scanned_at
+                           )
                          LIMIT 1",
-                        [$invitation['invitation_id']]
+                        [$invitation['invitation_id'], $today, $invitation['invitation_id']]
                     )->getRowArray();
-                    $isCheckedIn = ($lastMainLog && $lastMainLog['action'] === 'checkin');
-                }
 
-                if (!$isCheckedIn) {
-                    $db->transRollback();
-                    return $this->respond([
-                        'success'        => false,
-                        'access_granted' => false,
-                        'action'         => 'denied',
-                        'message'        => 'Access denied: Please check in at the entry turnstile first.',
-                        'qr_code'        => $cardNumber,
-                    ]);
+                    if (!$turnstileLog) {
+                        $db->transRollback();
+                        return $this->respond([
+                            'success'        => false,
+                            'access_granted' => false,
+                            'action'         => 'denied',
+                            'message'        => 'Access denied: Please check in at the entry turnstile first.',
+                            'qr_code'        => $cardNumber,
+                        ]);
+                    }
                 }
 
                 // Per-door state: find the visitor's most recent door action
@@ -371,6 +499,14 @@ class QRCode extends ResourceController
                 $openDoorId     = $hasOpenDoor ? ($lastDoorLog['sub_location_id'] ?? $lastDoorLog['lane_id']) : null;
                 $openAtThisDoor = $hasOpenDoor && ((string) $openDoorId === (string) $currentDoorId);
 
+                // Read door-checkout enforcement setting.
+                // ON  = visitor must check out from current door before entering another (default).
+                // OFF = visitor may freely check in to any door without checking out first.
+                $doorCheckoutSetting = $db->table('settings')
+                    ->where('setting_key', 'door_checkout_required')
+                    ->get()->getRowArray();
+                $doorCheckoutRequired = $doorCheckoutSetting ? ($doorCheckoutSetting['setting_value'] ?? '1') : '1';
+
                 if ($laneType === 'entry') {
                     // Entry scanner: check-in only
                     if ($openAtThisDoor) {
@@ -383,7 +519,7 @@ class QRCode extends ResourceController
                             'qr_code'        => $cardNumber,
                         ]);
                     }
-                    if ($hasOpenDoor && !$openAtThisDoor) {
+                    if ($hasOpenDoor && !$openAtThisDoor && $doorCheckoutRequired !== '0') {
                         $openDoorName = $this->getLaneName($lastDoorLog['lane_id'], $lastDoorLog['sub_location_id']);
                         $db->transRollback();
                         return $this->respond([
@@ -413,7 +549,7 @@ class QRCode extends ResourceController
                             'qr_code'        => $cardNumber,
                         ]);
                     }
-                    if (!$openAtThisDoor) {
+                    if (!$openAtThisDoor && $doorCheckoutRequired !== '0') {
                         $openDoorName = $this->getLaneName($lastDoorLog['lane_id'], $lastDoorLog['sub_location_id']);
                         $db->transRollback();
                         return $this->respond([
@@ -435,7 +571,7 @@ class QRCode extends ResourceController
                     // Auto mode: first scan = check-in, second scan at same door = check-out
                     if ($openAtThisDoor) {
                         $action = 'door_checkout';
-                    } elseif ($hasOpenDoor) {
+                    } elseif ($hasOpenDoor && $doorCheckoutRequired !== '0') {
                         $openDoorName = $this->getLaneName($lastDoorLog['lane_id'], $lastDoorLog['sub_location_id']);
                         $db->transRollback();
                         return $this->respond([

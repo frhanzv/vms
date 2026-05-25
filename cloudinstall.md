@@ -58,13 +58,13 @@ During install, set a **root password** when prompted.
 Create the database and user:
 
 ```bash
-sudo mysql -u root -p
+sudo mysql
 ```
 
 ```sql
-CREATE DATABASE vms_cloud CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+CREATE DATABASE vms CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 CREATE USER 'vms_user'@'localhost' IDENTIFIED BY 'YOUR_STRONG_PASSWORD';
-GRANT ALL PRIVILEGES ON vms_cloud.* TO 'vms_user'@'localhost';
+GRANT ALL PRIVILEGES ON vms.* TO 'vms_user'@'localhost';
 FLUSH PRIVILEGES;
 EXIT;
 ```
@@ -185,10 +185,10 @@ sudo mv composer.phar /usr/local/bin/composer
 ## 7. Deploy the application code
 
 ```bash
-cd /var/www/html
-sudo git clone <your-repo-url>
-sudo chown -R www-data:www-data /var/www/html/vms
-cd /var/www/html/vms
+cd /var/www
+sudo git clone <your-repo-url> vms
+sudo chown -R www-data:www-data /var/www/vms
+cd /var/www/vms
 ```
 
 Install PHP dependencies:
@@ -209,16 +209,16 @@ Set these values (uncomment and edit):
 ```ini
 CI_ENVIRONMENT = production
 
-app.baseURL = 'https://yourdomain.com/'
+app.baseURL = 'http://34.57.166.51/'
 
 database.default.hostname = localhost
 database.default.database = vms_cloud
 database.default.username = vms_user
-database.default.password = YOUR_STRONG_PASSWORD
+database.default.password = Vms@2026!
 database.default.DBDriver = MySQLi
 database.default.port = 3306
 
-encryption.key = hex2bin:GENERATED_KEY_HERE
+encryption.key = hex2bin:bca83600034ebe9e64915e054f7aa904e1f2eb13739f07c1c076fb9ae3f13e90
 ```
 
 Generate the encryption key:
@@ -265,16 +265,7 @@ sudo nano /etc/apache2/sites-available/vms.conf
 ```apache
 <VirtualHost *:80>
     ServerName yourdomain.com
-
-    Alias /phpmyadmin /usr/share/phpmyadmin
-    <Directory /usr/share/phpmyadmin>
-        Options SymLinksIfOwnerMatch
-        DirectoryIndex index.php
-        AllowOverride All
-        Require all granted
-    </Directory>
-
-    DocumentRoot /var/www/html/vms/public
+    DocumentRoot /var/www/vms/public
 
     <Directory /var/www/html/vms/public>
         AllowOverride All
@@ -315,16 +306,8 @@ Keep `RewriteBase /vms` as-is in `public/.htaccess`.
 <VirtualHost *:80>
     ServerName yourdomain.com
 
-    Alias /phpmyadmin /usr/share/phpmyadmin
-    <Directory /usr/share/phpmyadmin>
-        Options SymLinksIfOwnerMatch
-        DirectoryIndex index.php
-        AllowOverride All
-        Require all granted
-    </Directory>
-
-    Alias /vms /var/www/html/vms/public
-    <Directory /var/www/html/vms/public>
+    Alias /vms /var/www/vms/public
+    <Directory /var/www/vms/public>
         AllowOverride All
         Require all granted
     </Directory>

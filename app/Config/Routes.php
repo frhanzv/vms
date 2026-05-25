@@ -636,6 +636,9 @@ $routes->group('config', ['filter' => 'role:superadmin'], function($routes) {
     // Cloud data sync (Jetson ↔ cloud)
     $routes->get('getDataSyncStatus', 'Config::getDataSyncStatus');
     $routes->post('runDataSync', 'Config::runDataSync');
+    // Scanner Management
+    $routes->get('getScannerSettings', 'Config::getScannerSettings');
+    $routes->post('saveScannerSettings', 'Config::saveScannerSettings');
 });
 
 // ===========================

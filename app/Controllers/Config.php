@@ -5529,5 +5529,24 @@ class Config extends BaseController
                 'log'     => [],
             ]);
         }
+    public function getScannerSettings()
+    {
+        return $this->response->setJSON([
+            'success'                => true,
+            'turnstile_required'     => $this->settingModel->getSetting('turnstile_required') ?? '1',
+            'door_checkout_required' => $this->settingModel->getSetting('door_checkout_required') ?? '1',
+        ]);
+    }
+
+    public function saveScannerSettings()
+    {
+        $input = $this->request->getJSON(true);
+        if (array_key_exists('turnstile_required', $input)) {
+            $this->settingModel->setSetting('turnstile_required', $input['turnstile_required'] ? '1' : '0');
+        }
+        if (array_key_exists('door_checkout_required', $input)) {
+            $this->settingModel->setSetting('door_checkout_required', $input['door_checkout_required'] ? '1' : '0');
+        }
+        return $this->response->setJSON(['success' => true, 'message' => 'Scanner settings saved successfully.']);
     }
 }
