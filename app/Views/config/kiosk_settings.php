@@ -42,7 +42,7 @@
                         Kiosk Settings
                     </h1>
                     <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                        Manage mobile kiosk feature flags, appearance, and visitor form fields
+                        Manage mobile kiosk feature flags and visitor form fields
                     </p>
                 </div>
                 <a href="<?= base_url('config') ?>"
@@ -66,7 +66,7 @@
                 <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden mb-6">
                     <div class="px-6 py-4 border-b border-gray-200 dark:border-slate-700 flex items-center gap-4">
                         <div class="p-2 bg-primary/10 rounded-lg">
-                            <span class="material-symbols-outlined text-primary text-xl">toggles</span>
+                            <span class="material-symbols-outlined text-primary text-xl">toggle_on</span>
                         </div>
                         <div>
                             <h2 class="text-base font-bold text-gray-800 dark:text-white">Feature Flags</h2>
@@ -109,40 +109,6 @@
                                 <?php endforeach; ?>
                             </tbody>
                         </table>
-                    </div>
-                </div>
-
-                <!-- Appearance -->
-                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden mb-6">
-                    <div class="px-6 py-4 border-b border-gray-200 dark:border-slate-700 flex items-center gap-4">
-                        <div class="p-2 bg-primary/10 rounded-lg">
-                            <span class="material-symbols-outlined text-primary text-xl">palette</span>
-                        </div>
-                        <div>
-                            <h2 class="text-base font-bold text-gray-800 dark:text-white">Appearance</h2>
-                            <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Kiosk welcome screen branding</p>
-                        </div>
-                    </div>
-                    <div class="p-6 bg-gray-50 dark:bg-slate-800/50 grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Welcome Text</label>
-                            <input type="text" name="kiosk_welcome_text"
-                                   value="<?= esc($config['kiosk_welcome_text'] ?? 'Welcome') ?>"
-                                   class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Primary Color</label>
-                            <input type="color" name="kiosk_primary_color"
-                                   value="<?= esc($config['kiosk_primary_color'] ?? '#1A73E8') ?>"
-                                   class="w-full h-10 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Logo URL</label>
-                            <input type="text" name="kiosk_logo_url"
-                                   value="<?= esc($config['kiosk_logo_url'] ?? '') ?>"
-                                   placeholder="https://..."
-                                   class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
-                        </div>
                     </div>
                 </div>
 
