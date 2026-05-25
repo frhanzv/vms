@@ -5430,9 +5430,6 @@ class Config extends BaseController
             'kiosk_invitation',
             'kiosk_collect_card',
             'kiosk_vvip',
-            'kiosk_welcome_text',
-            'kiosk_primary_color',
-            'kiosk_logo_url',
         ];
 
         foreach ($keys as $key) {
