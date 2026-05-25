@@ -2127,9 +2127,9 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
                 }
             });
 
-            // Validate company visiting checkboxes
-            const companyCheckboxes = this.querySelectorAll('input[name="company_visiting[]"]:checked');
-            if (companyCheckboxes.length === 0) {
+            // Validate company visiting checkboxes (only if the section is rendered)
+            const allCompanyCheckboxes = this.querySelectorAll('input[name="company_visiting[]"]');
+            if (allCompanyCheckboxes.length > 0 && this.querySelectorAll('input[name="company_visiting[]"]:checked').length === 0) {
                 isValid = false;
                 alert('Please select at least one company to visit');
                 return;
