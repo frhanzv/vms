@@ -43,15 +43,10 @@ class RequestList extends BaseController
             }
         }
 
-        // Get all submitted invitations that meet the workflow requirements
+        // Get all submitted requests that meet the workflow requirements.
+        // Kiosk walk-ins enter the approval queue directly after mobile registration.
         $query = $this->invitationModel->where('status', 'Submitted');
-        
-        if ($requiresBriefing) {
-            $query->where('video_watched', 1);
-        }
-        if ($requiresFacial) {
-            $query->where('facial_verified_at IS NOT NULL');
-        }
+        $this->applyRequestWorkflowFilters($query, $requiresBriefing, $requiresFacial);
 
         $submittedRequests = $query->orderBy('created_at', 'DESC')->findAll();
 
@@ -153,8 +148,7 @@ class RequestList extends BaseController
 
         // Calculate stats
         $flaggedQuery = $this->invitationModel->where('status', 'Submitted');
-        if ($requiresBriefing) $flaggedQuery->where('video_watched', 1);
-        if ($requiresFacial) $flaggedQuery->where('facial_verified_at IS NOT NULL');
+        $this->applyRequestWorkflowFilters($flaggedQuery, $requiresBriefing, $requiresFacial);
 
         $stats = [
             'pending' => $this->invitationModel->where('status', 'Pending')->countAllResults(),
@@ -171,6 +165,27 @@ class RequestList extends BaseController
         ];
 
         return view('requests/list', $data);
+    }
+
+    private function applyRequestWorkflowFilters($query, bool $requiresBriefing, bool $requiresFacial): void
+    {
+        if (! $requiresBriefing && ! $requiresFacial) {
+            return;
+        }
+
+        $query->groupStart()
+            ->where('registration_source', 'kiosk')
+            ->orGroupStart();
+
+        if ($requiresBriefing) {
+            $query->where('video_watched', 1);
+        }
+        if ($requiresFacial) {
+            $query->where('facial_verified_at IS NOT NULL', null, false);
+        }
+
+        $query->groupEnd()
+            ->groupEnd();
     }
 
     public function approve()

@@ -59,20 +59,30 @@ class InvitationList extends BaseController
         $result  = $this->buildInvitationsResult($filters, $page, $perPage);
 
         $stats = [
-            'total'     => $this->invitationModel->countAll(),
-            'pending'   => $this->invitationModel->where('status', 'Pending')->countAllResults(),
-            'submitted' => $this->invitationModel->where('status', 'Submitted')->countAllResults(),
-            'approved'  => $this->invitationModel->where('status', 'Approved')->countAllResults(),
-            'rejected'  => $this->invitationModel->where('status', 'Rejected')->countAllResults(),
+            'total'     => $this->countInvitationsForList(),
+            'pending'   => $this->countInvitationsForList('Pending'),
+            'submitted' => $this->countInvitationsForList('Submitted'),
+            'approved'  => $this->countInvitationsForList('Approved'),
+            'rejected'  => $this->countInvitationsForList('Rejected'),
         ];
 
         $db = \Config\Database::connect();
         $reasonList = array_column(
-            $db->query("SELECT DISTINCT reason FROM invitations WHERE reason IS NOT NULL AND reason != '' ORDER BY reason ASC")->getResultArray(),
+            $this->applyInvitationListScope($db->table('invitations')->select('reason')->distinct())
+                ->where('reason IS NOT NULL', null, false)
+                ->where('reason !=', '')
+                ->orderBy('reason', 'ASC')
+                ->get()
+                ->getResultArray(),
             'reason'
         );
         $locationList = array_column(
-            $db->query("SELECT DISTINCT location FROM invitations WHERE location IS NOT NULL AND location != '' ORDER BY location ASC")->getResultArray(),
+            $this->applyInvitationListScope($db->table('invitations')->select('location')->distinct())
+                ->where('location IS NOT NULL', null, false)
+                ->where('location !=', '')
+                ->orderBy('location', 'ASC')
+                ->get()
+                ->getResultArray(),
             'location'
         );
 
@@ -129,6 +139,7 @@ class InvitationList extends BaseController
         [$sortField, $sortOrder] = $sortMap[$filters['sort']] ?? $sortMap['date_desc'];
 
         $builder = $this->invitationModel->builder();
+        $this->applyInvitationListScope($builder);
         $this->applyInvitationFilters($builder, $filters);
 
         $total  = $builder->countAllResults(false);
@@ -182,6 +193,27 @@ class InvitationList extends BaseController
                 'per_page'     => $perPage,
             ],
         ];
+    }
+
+    private function applyInvitationListScope($builder)
+    {
+        return $builder->groupStart()
+            ->where('registration_source !=', 'kiosk')
+            ->orWhere('registration_source IS NULL', null, false)
+            ->orWhere('registration_source', '')
+            ->groupEnd();
+    }
+
+    private function countInvitationsForList(?string $status = null): int
+    {
+        $builder = $this->invitationModel->builder();
+        $this->applyInvitationListScope($builder);
+
+        if ($status !== null) {
+            $builder->where('status', $status);
+        }
+
+        return (int) $builder->countAllResults();
     }
 
     private function applyInvitationFilters($builder, array $filters): void
@@ -248,6 +280,7 @@ class InvitationList extends BaseController
         [$sortField, $sortOrder] = $sortMap[$filters['sort']] ?? $sortMap['date_desc'];
 
         $builder = $this->invitationModel->builder();
+        $this->applyInvitationListScope($builder);
         $this->applyInvitationFilters($builder, $filters);
 
         $rows = $builder->orderBy($sortField, $sortOrder)->get()->getResultArray();
