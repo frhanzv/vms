@@ -151,6 +151,87 @@
                     </div>
                 </div>
 
+                <!-- Card Scanner (temporary) -->
+                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                    <a href="<?= base_url('scanner') ?>"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                        <div class="flex items-center gap-4">
+                            <div class="p-2 bg-amber-500/10 rounded-lg">
+                                <span class="material-symbols-outlined text-amber-600 text-xl">credit_card</span>
+                            </div>
+                            <div class="text-left">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <h3 class="text-base font-bold text-gray-800 dark:text-white">Card Scanner</h3>
+                                    <span class="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">Temporary</span>
+                                </div>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Open the visitor card scanner kiosk for check-in at security lanes</p>
+                            </div>
+                        </div>
+                        <span class="material-symbols-outlined text-gray-400 dark:text-slate-400">open_in_new</span>
+                    </a>
+                </div>
+
+                <!-- Kiosk Settings -->
+                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                    <a href="<?= base_url('config/kioskSettings') ?>"
+                       class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                        <div class="flex items-center gap-4">
+                            <div class="p-2 bg-emerald-500/10 rounded-lg">
+                                <span class="material-symbols-outlined text-emerald-600 text-xl">tablet_mac</span>
+                            </div>
+                            <div class="text-left">
+                                <h3 class="text-base font-bold text-gray-800 dark:text-white">Kiosk Settings</h3>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Manage mobile kiosk feature flags and visitor form fields</p>
+                            </div>
+                        </div>
+                        <span class="material-symbols-outlined text-gray-400 dark:text-slate-400">chevron_right</span>
+                    </a>
+                </div>
+
+                <?php if (session()->get('role') === 'superadmin'): ?>
+                <!-- Cloud Data Sync -->
+                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                    <button onclick="toggleSection('datasync')"
+                        class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                        <div class="flex items-center gap-4">
+                            <div class="p-2 bg-sky-500/10 rounded-lg">
+                                <span class="material-symbols-outlined text-sky-600 text-xl">cloud_sync</span>
+                            </div>
+                            <div class="text-left">
+                                <h3 class="text-base font-bold text-gray-800 dark:text-white">Cloud Data Sync</h3>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Manual sync between local VMS and cloud database</p>
+                            </div>
+                        </div>
+                        <span id="datasync-icon"
+                            class="material-symbols-outlined text-gray-400 dark:text-slate-400 transition-transform">expand_more</span>
+                    </button>
+                    <div id="datasync-content" class="hidden border-t border-gray-200 dark:border-slate-700">
+                        <div class="p-6 bg-gray-50 dark:bg-slate-800/50">
+                            <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-4">
+                                <div class="space-y-2 text-sm text-gray-600 dark:text-slate-300">
+                                    <p id="dataSyncStatusText">Loading sync status...</p>
+                                    <p class="text-xs text-gray-500 dark:text-slate-400">
+                                        Scheduled sync runs at 00:00 and 12:00 via cron. Use this button to sync immediately.
+                                    </p>
+                                </div>
+                                <button id="dataSyncRunBtn" onclick="runDataSync()"
+                                    class="flex items-center gap-2 px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors text-sm font-medium whitespace-nowrap self-start">
+                                    <span class="material-symbols-outlined text-base">sync</span>
+                                    Sync Now
+                                </button>
+                            </div>
+                            <div id="dataSyncResult" class="hidden">
+                                <p id="dataSyncResultMessage" class="text-sm font-medium mb-2"></p>
+                                <pre id="dataSyncResultLog"
+                                    class="text-xs bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg p-4 overflow-x-auto max-h-80 overflow-y-auto text-gray-700 dark:text-slate-300 whitespace-pre-wrap"></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+
                 <!-- Kiosk API Management -->
                 <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('apimanagement')"
@@ -5363,6 +5444,9 @@
                 // Load app configs when App Config section is opened
                 if (section === 'appconfig') {
                     loadAppConfigs();
+                }
+                if (section === 'datasync') {
+                    loadDataSyncStatus();
                 }
                 // Load roles when Role Management section is opened
                 if (section === 'role') {
@@ -16529,6 +16613,86 @@
                 alert(`API call success for "${name}".\nHTTP ${res.status_code}${savedNote}\n\n${preview.substring(0, 700)}`);
             })
             .catch(() => alert('Network error when calling external API.'));
+        }
+
+        // ----- Cloud Data Sync (Jetson ↔ cloud) -----
+        function loadDataSyncStatus() {
+            const statusEl = document.getElementById('dataSyncStatusText');
+            if (!statusEl) return;
+
+            statusEl.textContent = 'Loading sync status...';
+
+            fetch(`${configBaseUrl}/getDataSyncStatus`)
+                .then(r => r.json())
+                .then(res => {
+                    if (!res.success) {
+                        statusEl.textContent = 'Could not load sync status.';
+                        return;
+                    }
+
+                    if (!res.cloud_configured) {
+                        statusEl.textContent = 'Cloud database is not configured. Set database.cloud.* in .env on the Jetson device.';
+                        document.getElementById('dataSyncRunBtn')?.setAttribute('disabled', 'disabled');
+                        return;
+                    }
+
+                    document.getElementById('dataSyncRunBtn')?.removeAttribute('disabled');
+
+                    const target = [res.cloud_host, res.cloud_database].filter(Boolean).join(' / ');
+                    const lastSync = res.last_sync
+                        ? `Last successful sync: ${res.last_sync}`
+                        : 'No successful sync recorded yet.';
+                    statusEl.textContent = `Cloud target: ${target}. ${lastSync}`;
+                })
+                .catch(() => {
+                    statusEl.textContent = 'Could not load sync status.';
+                });
+        }
+
+        function runDataSync() {
+            const btn = document.getElementById('dataSyncRunBtn');
+            const resultWrap = document.getElementById('dataSyncResult');
+            const resultMsg = document.getElementById('dataSyncResultMessage');
+            const resultLog = document.getElementById('dataSyncResultLog');
+
+            if (!btn || !resultWrap || !resultMsg || !resultLog) return;
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="material-symbols-outlined text-base animate-spin">sync</span> Syncing...';
+            resultWrap.classList.add('hidden');
+
+            fetch(`${configBaseUrl}/runDataSync`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    '<?= csrf_header() ?>': '<?= csrf_hash() ?>'
+                }
+            })
+            .then(r => r.json())
+            .then(res => {
+                resultMsg.textContent = res.message || (res.success ? 'Sync completed.' : 'Sync failed.');
+                resultMsg.className = `text-sm font-medium mb-2 ${
+                    res.success
+                        ? 'text-emerald-700 dark:text-emerald-300'
+                        : 'text-red-700 dark:text-red-300'
+                }`;
+                resultLog.textContent = (res.log && res.log.length)
+                    ? res.log.join('\n')
+                    : (res.message || 'No log output.');
+                resultWrap.classList.remove('hidden');
+                loadDataSyncStatus();
+            })
+            .catch(() => {
+                resultMsg.textContent = 'Network error — could not reach VMS backend.';
+                resultMsg.className = 'text-sm font-medium mb-2 text-red-700 dark:text-red-300';
+                resultLog.textContent = '';
+                resultWrap.classList.remove('hidden');
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = '<span class="material-symbols-outlined text-base">sync</span> Sync Now';
+            });
         }
 
         // ----- Sync from Laravel -----

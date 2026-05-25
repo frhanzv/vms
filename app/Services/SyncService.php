@@ -33,9 +33,9 @@ class SyncService
         $this->messages = [];
         $this->info('=== Sync started at ' . date('Y-m-d H:i:s') . ' ===');
 
-        if (!$this->isCloudConfigured()) {
-            $this->info('ERROR: database.cloud.* is not configured — sync runs on Jetson only.');
-            $this->info('  Laragon/dev PCs: use database.default only; do not run sync:run.');
+        if (! self::isPeerConfigured()) {
+            $this->info('ERROR: database.cloud.* (peer) is not configured — set peer DB host on this server.');
+            $this->info('  Laragon/dev PCs: leave unset; do not run sync:run.');
             return $this->messages;
         }
 
@@ -73,11 +73,18 @@ class SyncService
         return $this->messages;
     }
 
-    protected function isCloudConfigured(): bool
+    /** True when database.cloud.* points at the other server (Jetson↔cloud). */
+    public static function isPeerConfigured(): bool
     {
         $cfg = config('Database')->cloud;
 
         return ! empty($cfg['hostname']) && ! empty($cfg['database']);
+    }
+
+    /** @deprecated Use isPeerConfigured() */
+    public static function isCloudConfigured(): bool
+    {
+        return self::isPeerConfigured();
     }
 
     // -------------------------------------------------------------------------
