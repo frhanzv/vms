@@ -27,10 +27,27 @@ class SyncAutoFilter implements FilterInterface
             return;
         }
 
+        if (self::isSyncControlRequest($request)) {
+            return;
+        }
+
         if ($response->getStatusCode() >= 400) {
             return;
         }
 
         SyncTrigger::markDirty();
+    }
+
+    private static function isSyncControlRequest(RequestInterface $request): bool
+    {
+        $path = trim($request->getUri()->getPath(), '/');
+
+        foreach (['config/runDataSync', 'api/sync/trigger'] as $ignoredPath) {
+            if ($path === $ignoredPath || str_ends_with($path, '/' . $ignoredPath)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

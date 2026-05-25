@@ -16779,7 +16779,23 @@
                     '<?= csrf_header() ?>': '<?= csrf_hash() ?>'
                 }
             })
-            .then(r => r.json())
+            .then(async response => {
+                const raw = await response.text();
+                let res = {};
+
+                try {
+                    res = raw ? JSON.parse(raw) : {};
+                } catch (error) {
+                    const preview = raw ? raw.substring(0, 300) : response.statusText;
+                    throw new Error(`Sync request returned an invalid response (HTTP ${response.status}). ${preview}`);
+                }
+
+                if (!response.ok) {
+                    throw new Error(res.message || `Sync request failed (HTTP ${response.status}).`);
+                }
+
+                return res;
+            })
             .then(res => {
                 resultMsg.textContent = res.message || (res.success ? 'Sync completed.' : 'Sync failed.');
                 resultMsg.className = `text-sm font-medium mb-2 ${
@@ -16793,10 +16809,10 @@
                 resultWrap.classList.remove('hidden');
                 loadDataSyncStatus();
             })
-            .catch(() => {
-                resultMsg.textContent = 'Network error — could not reach VMS backend.';
+            .catch(error => {
+                resultMsg.textContent = error.message || 'Network error — could not reach VMS backend.';
                 resultMsg.className = 'text-sm font-medium mb-2 text-red-700 dark:text-red-300';
-                resultLog.textContent = '';
+                resultLog.textContent = 'Check writable/logs on the Jetson device for the backend error details.';
                 resultWrap.classList.remove('hidden');
             })
             .finally(() => {

@@ -5529,6 +5529,8 @@ class Config extends BaseController
                 'log'     => [],
             ]);
         }
+    }
+
     public function getScannerSettings()
     {
         return $this->response->setJSON([

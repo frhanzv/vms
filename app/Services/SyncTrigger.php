@@ -43,10 +43,12 @@ class SyncTrigger
         }
 
         self::initPaths();
-        self::ensureDir();
+        if (! self::ensureDir()) {
+            return;
+        }
 
         if (SyncService::isPeerConfigured()) {
-            touch(self::$pendingFile);
+            self::writeStateFile(self::$pendingFile, (string) time());
         }
 
         self::notifyPeerWebhook();
@@ -62,13 +64,16 @@ class SyncTrigger
         }
 
         self::initPaths();
+        if (! self::ensureDir()) {
+            return;
+        }
 
         if (! is_file(self::$pendingFile)) {
             return;
         }
 
         $debounce = (int) (env('SYNC.debounceSeconds') ?? 15);
-        $last     = is_file(self::$lastDispatchFile) ? (int) file_get_contents(self::$lastDispatchFile) : 0;
+        $last     = self::readStateTimestamp(self::$lastDispatchFile);
 
         if (time() - $last < $debounce) {
             return;
@@ -78,8 +83,8 @@ class SyncTrigger
             return;
         }
 
-        @unlink(self::$pendingFile);
-        file_put_contents(self::$lastDispatchFile, (string) time());
+        self::deleteStateFile(self::$pendingFile);
+        self::writeStateFile(self::$lastDispatchFile, (string) time());
     }
 
     /**
@@ -95,18 +100,21 @@ class SyncTrigger
             return;
         }
 
-        $debounce = (int) (env('SYNC.notifyDebounceSeconds') ?? 15);
-        $notifyFile = self::$dir . '/last_notify';
-
         self::initPaths();
-        self::ensureDir();
+        if (! self::ensureDir()) {
+            return;
+        }
 
-        $last = is_file($notifyFile) ? (int) file_get_contents($notifyFile) : 0;
+        $debounce   = (int) (env('SYNC.notifyDebounceSeconds') ?? 15);
+        $notifyFile = self::$dir . '/last_notify';
+        $last       = self::readStateTimestamp($notifyFile);
         if (time() - $last < $debounce) {
             return;
         }
 
-        file_put_contents($notifyFile, (string) time());
+        if (! self::writeStateFile($notifyFile, (string) time())) {
+            return;
+        }
 
         $cmd = sprintf(
             'curl -s -m 5 -X POST -H %s %s > /dev/null 2>&1 &',
@@ -124,7 +132,9 @@ class SyncTrigger
         }
 
         self::initPaths();
-        self::ensureDir();
+        if (! self::ensureDir()) {
+            return false;
+        }
 
         $php   = env('SYNC.phpBin') ?: (defined('PHP_BINARY') ? PHP_BINARY : 'php');
         $spark = rtrim(ROOTPATH, '\\/') . DIRECTORY_SEPARATOR . 'spark';
@@ -146,10 +156,46 @@ class SyncTrigger
         return true;
     }
 
-    protected static function ensureDir(): void
+    protected static function ensureDir(): bool
     {
-        if (! is_dir(self::$dir)) {
-            mkdir(self::$dir, 0775, true);
+        if (! is_dir(self::$dir) && ! @mkdir(self::$dir, 0775, true) && ! is_dir(self::$dir)) {
+            log_message('warning', '[SyncTrigger] Unable to create sync state directory: ' . self::$dir);
+            return false;
+        }
+
+        if (! is_writable(self::$dir)) {
+            log_message('warning', '[SyncTrigger] Sync state directory is not writable: ' . self::$dir);
+            return false;
+        }
+
+        return true;
+    }
+
+    protected static function readStateTimestamp(string $path): int
+    {
+        if (! is_file($path)) {
+            return 0;
+        }
+
+        $contents = @file_get_contents($path);
+
+        return $contents === false ? 0 : (int) $contents;
+    }
+
+    protected static function writeStateFile(string $path, string $contents): bool
+    {
+        if (@file_put_contents($path, $contents, LOCK_EX) === false) {
+            log_message('warning', '[SyncTrigger] Unable to write sync state file: ' . $path);
+            return false;
+        }
+
+        return true;
+    }
+
+    protected static function deleteStateFile(string $path): void
+    {
+        if (is_file($path) && ! @unlink($path)) {
+            log_message('warning', '[SyncTrigger] Unable to delete sync state file: ' . $path);
         }
     }
 }
