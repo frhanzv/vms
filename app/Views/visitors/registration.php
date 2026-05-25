@@ -2135,9 +2135,9 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
                 return;
             }
 
-            // Validate date visits
-            const dateVisits = this.querySelectorAll('.date-visit-item');
-            if (dateVisits.length === 0) {
+            // Validate date visits (only if the section is rendered)
+            const dateVisitContainer = document.getElementById('dateVisitContainer');
+            if (dateVisitContainer && dateVisitContainer.querySelectorAll('.date-visit-item').length === 0) {
                 isValid = false;
                 alert('Please add at least one visit date');
                 return;
