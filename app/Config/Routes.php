@@ -626,6 +626,10 @@ $routes->group('config', ['filter' => 'role:superadmin'], function($routes) {
     
     // Inbound API token generation (Protected by superadmin)
     $routes->post('generateInboundToken', 'Api\InboundApi::generateToken');
+
+    // Scanner Management
+    $routes->get('getScannerSettings', 'Config::getScannerSettings');
+    $routes->post('saveScannerSettings', 'Config::saveScannerSettings');
 });
 
 // ===========================
