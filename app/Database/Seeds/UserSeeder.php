@@ -5,18 +5,24 @@ namespace App\Database\Seeds;
 use CodeIgniter\Database\Seeder;
 
 /**
- * Demo accounts for local / QA. Idempotent: safe to run multiple times.
+ * Idempotent: safe to run multiple times.
  *
  * admin    → superadmin (full config + dashboard)
  * host     → host (invitations)
  * officer  → officer (workflow, blacklist view, reports)
  * approver → admin (request approvals; redirects to /requests)
+ * gxoadmin → clientsuperadmin for GXO company
  */
 class UserSeeder extends Seeder
 {
     public function run(): void
     {
         $now = date('Y-m-d H:i:s');
+
+        $gxoId = $this->db->table('companies')
+            ->where('name', 'GXO')
+            ->get()
+            ->getRowArray()['id'] ?? null;
 
         $rows = [
             [
@@ -49,6 +55,15 @@ class UserSeeder extends Seeder
                 'password'   => password_hash('approver123', PASSWORD_DEFAULT),
                 'full_name'  => 'Demo Site Admin',
                 'role'       => 'admin',
+                'is_active'  => 1,
+            ],
+            [
+                'username'   => 'gxoadmin',
+                'email'      => 'gxoadmin@gxo.com',
+                'password'   => password_hash('gxoadmin123', PASSWORD_DEFAULT),
+                'full_name'  => 'GXO Admin',
+                'role'       => 'clientsuperadmin',
+                'company_id' => $gxoId,
                 'is_active'  => 1,
             ],
         ];

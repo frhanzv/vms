@@ -8,8 +8,10 @@ class CountriesSeeder extends Seeder
 {
     public function run()
     {
-        // Delete existing data
+        // Delete existing data (disable FK checks so states/cities FKs don't block truncate)
+        $this->db->query('SET FOREIGN_KEY_CHECKS = 0');
         $this->db->table('countries')->truncate();
+        $this->db->query('SET FOREIGN_KEY_CHECKS = 1');
 
         // All countries with ISO codes
         $countries = [

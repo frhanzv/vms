@@ -245,11 +245,12 @@ sudo chown -R www-data:www-data /var/www/html/vms/writable
 sudo chmod -R 775 /var/www/html/vms/writable
 ```
 
-## 10. Run database migrations
+## 10. Run database migrations and seed initial data
 
 ```bash
 cd /var/www/html/vms
 php spark migrate
+php spark db:seed DatabaseSeeder
 ```
 
 ## 11. Configure Apache virtual host
