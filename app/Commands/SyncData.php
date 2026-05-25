@@ -10,7 +10,7 @@ class SyncData extends BaseCommand
 {
     protected $group       = 'sync';
     protected $name        = 'sync:run';
-    protected $description = 'Sync data between Jetson (local) and Cloud (vms_server). Runs cloud→local for config tables, bidirectional for invitations, and local→cloud for check-in events.';
+    protected $description = 'Full bidirectional sync between Jetson (local vms) and Cloud (vms_cloud) for all tables — inserts, updates, and deletes.';
 
     protected $usage     = 'sync:run [options]';
     protected $arguments = [];

@@ -305,7 +305,6 @@
                                         <th>Visitor Name</th>
                                         <th>Contact No</th>
                                         <th>IC No</th>
-                                        <th>Host Name</th>
                                         <th>Company</th>
                                         <th>Vehicle No</th>
                                         <th>Visit Reason</th>
@@ -313,6 +312,7 @@
                                         <th>Total Access</th>
                                         <th>First Access</th>
                                         <th>Last Access</th>
+                                        <th>Host Name</th>
                                         <th class="text-center">Actions</th>
                                     </tr>
                                 </thead>
@@ -423,9 +423,9 @@
     let reportData = [];
     
     const tableHeaders = [
-        "No", "Visitor Name", "Contact No", "IC No", "Host Name", 
+        "No", "Visitor Name", "Contact No", "IC No", 
         "Company", "Vehicle No", "Visit Reason", "Location", "Total Access", "First Access", 
-        "Last Access", "Actions"
+        "Last Access", "Host Name", "Actions"
     ];
 
     /** Match checkbox values to DataTables cell text (DOM / HTML cells). */
@@ -571,7 +571,6 @@
                 <td class="font-semibold text-slate-800">${escHtml(v.visitor_name)}</td>
                 <td>${escHtml(v.contact_no)}</td>
                 <td>${escHtml(v.ic_no)}</td>
-                <td>${escHtml(v.person_visited)}</td>
                 <td>${escHtml(v.visitor_company)}</td>
                 <td>${escHtml(v.vehicle_no)}</td>
                 <td>${escHtml(v.visit_reason)}</td>
@@ -581,6 +580,7 @@
                 </td>
                 <td class="whitespace-nowrap">${escHtml(v.first_access)}</td>
                 <td class="whitespace-nowrap">${escHtml(v.last_access)}</td>
+                <td>${escHtml(v.person_visited)}</td>
                 <td class="text-center px-2 py-2">
                     <button type="button"
                         class="js-access-view inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm bg-primary/10 text-primary hover:bg-primary/20 transition-colors mx-auto"
@@ -619,7 +619,7 @@
             },
             columnDefs: [
                 { orderable: false, targets: [0, 12] },
-                { className: 'text-center', targets: [0, 9, 12] }
+                { className: 'text-center', targets: [0, 8, 12] }
             ],
             initComplete: function () {
                 var api = this.api();

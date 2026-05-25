@@ -41,10 +41,30 @@ class VisitorReport extends BaseController
                     MAX(CASE WHEN vcl.action = 'checkout' THEN vcl.scanned_at ELSE NULL END) AS checkout_time,
                     MIN(iv.check_in_time)  AS reg_checkin_time,
                     MAX(iv.check_out_time) AS reg_checkout_time,
-                    COUNT(vcl.id)       AS total_scans,
+                    COUNT(CASE WHEN vcl.action != 'assigned' THEN vcl.id END) AS total_scans,
                     (SELECT MAX(s.date_to) FROM invitation_schedules s WHERE s.invitation_id = i.id) as schedule_end,
-                    (SELECT GROUP_CONCAT(DISTINCT sl.name SEPARATOR ', ') FROM visitor_card_logs vcl JOIN lanes l ON l.id = vcl.lane_id JOIN sub_locations sl ON sl.location_id = l.location_id WHERE vcl.invitation_id = i.id) as all_lanes,
-                    (SELECT sl.name FROM visitor_card_logs vcl JOIN lanes l ON l.id = vcl.lane_id JOIN sub_locations sl ON sl.location_id = l.location_id WHERE vcl.invitation_id = i.id ORDER BY vcl.scanned_at DESC LIMIT 1) as last_lane_full
+                    (
+                        SELECT GROUP_CONCAT(DISTINCT COALESCE(sl_vl.name, sl_vd.name) ORDER BY COALESCE(sl_vl.name, sl_vd.name) SEPARATOR ', ')
+                        FROM visitor_card_logs vcl2
+                        LEFT JOIN lanes l2      ON l2.id              = vcl2.lane_id
+                        LEFT JOIN sub_locations sl_vl ON sl_vl.location_id = l2.location_id
+                        LEFT JOIN sub_locations sl_vd ON sl_vd.id          = vcl2.sub_location_id
+                        WHERE vcl2.invitation_id = i.id
+                          AND vcl2.action != 'assigned'
+                          AND COALESCE(sl_vl.name, sl_vd.name) IS NOT NULL
+                    ) AS all_lanes,
+                    (
+                        SELECT COALESCE(sl_ll.name, sl_ld.name)
+                        FROM visitor_card_logs vcl3
+                        LEFT JOIN lanes l3      ON l3.id              = vcl3.lane_id
+                        LEFT JOIN sub_locations sl_ll ON sl_ll.location_id = l3.location_id
+                        LEFT JOIN sub_locations sl_ld ON sl_ld.id          = vcl3.sub_location_id
+                        WHERE vcl3.invitation_id = i.id
+                          AND vcl3.action != 'assigned'
+                          AND COALESCE(sl_ll.name, sl_ld.name) IS NOT NULL
+                        ORDER BY vcl3.scanned_at DESC, vcl3.id DESC
+                        LIMIT 1
+                    ) AS last_lane_full
                 FROM invitations i
                 LEFT JOIN visitor_card_logs vcl ON vcl.invitation_id = i.id
                 LEFT JOIN invitation_visitors iv ON iv.invitation_id = i.id

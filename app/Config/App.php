@@ -20,7 +20,10 @@ class App extends BaseConfig
 
     public function __construct()
     {
-        if (isset($_SERVER['HTTP_HOST'])) {
+        parent::__construct();
+
+        // Honour app.baseURL from .env (Jetson/cloud at /). Auto-detect /vms/ only for local Laragon dev.
+        if (isset($_SERVER['HTTP_HOST']) && ! env('app.baseURL')) {
             $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https://' : 'http://';
             $this->baseURL = $protocol . $_SERVER['HTTP_HOST'] . '/vms/';
         }

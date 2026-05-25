@@ -36,12 +36,24 @@ sudo a2enmod rewrite headers
 sudo systemctl restart apache2
 ```
 
-## 4. Install MariaDB (or MySQL)
+## 4. Install MySQL
+
+VMS uses CodeIgniter’s **MySQLi** driver (`DBDriver = MySQLi` in `.env`). That works with **Oracle MySQL** and **MariaDB** — same SQL, same PHP extension (`php-mysql`).
+
+Use **Oracle MySQL** if you want the official MySQL server (matches Laragon’s “MySQL” on Windows).
+
+### Option A — Oracle MySQL 8 (recommended)
 
 ```bash
-sudo apt install -y mariadb-server
+# Download the MySQL APT repo package (check https://dev.mysql.com/downloads/repo/apt/ for the latest version)
+wget https://dev.mysql.com/get/mysql-apt-config_0.8.29-1_all.deb
+sudo dpkg -i mysql-apt-config_0.8.29-1_all.deb
+sudo apt update
+sudo apt install -y mysql-server
 sudo mysql_secure_installation
 ```
+
+During install, set a **root password** when prompted.
 
 Create the database and user:
 
@@ -51,26 +63,132 @@ sudo mysql
 
 ```sql
 CREATE DATABASE vms CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-CREATE USER 'vms_user'@'localhost' IDENTIFIED BY 'Vms@2026!';
+CREATE USER 'vms_user'@'localhost' IDENTIFIED BY 'YOUR_STRONG_PASSWORD';
 GRANT ALL PRIVILEGES ON vms.* TO 'vms_user'@'localhost';
 FLUSH PRIVILEGES;
 EXIT;
 ```
 
-## 5. Install Composer
+Verify MySQL is running:
+
+```bash
+sudo systemctl status mysql
+mysql --version
+```
+
+### Option B — MariaDB (Debian default, also works)
+
+On Debian, `apt install mariadb-server` is a MySQL-compatible drop-in. Use this only if you prefer the simpler default package:
+
+```bash
+sudo apt install -y mariadb-server
+sudo mysql_secure_installation
+```
+
+Then run the same `CREATE DATABASE` / `CREATE USER` SQL as above (use `sudo mysql -u root -p` or `sudo mysql` if root has no password yet).
+
+## 5. Install phpMyAdmin (optional)
+
+Use phpMyAdmin to manage the `vms_cloud` database through the browser.
+
+```bash
+sudo apt install -y phpmyadmin
+```
+
+During the installer:
+
+1. **Web server** — select **apache2** (Space to select, Enter to confirm)
+2. **Configure database for phpmyadmin** — choose **Yes**
+3. Set a **phpMyAdmin application password** when prompted (this is for phpMyAdmin’s internal DB user, not `vms_user`)
+
+If the installer did not enable Apache integration automatically:
+
+```bash
+sudo a2enconf phpmyadmin
+sudo systemctl reload apache2
+```
+
+### Add phpMyAdmin to the VMS vhost (required)
+
+When VMS is the only site enabled, CodeIgniter catches every URL — including `/phpmyadmin` — and returns a 404. Add an **Alias** in `vms.conf` so Apache serves phpMyAdmin before CI routing:
+
+```bash
+sudo nano /etc/apache2/sites-available/vms.conf
+```
+
+Add this block **above** the VMS `DocumentRoot` or `Alias /vms` line:
+
+```apache
+    # phpMyAdmin — must be in vhost, outside CodeIgniter
+    Alias /phpmyadmin /usr/share/phpmyadmin
+    <Directory /usr/share/phpmyadmin>
+        Options SymLinksIfOwnerMatch
+        DirectoryIndex index.php
+        AllowOverride All
+        Require all granted
+    </Directory>
+```
+
+Reload Apache:
+
+```bash
+sudo systemctl reload apache2
+```
+
+Open in your browser:
+
+```text
+http://your-server-ip/phpmyadmin
+```
+
+Log in with the VMS database user:
+
+- **Username:** `vms_user`
+- **Password:** the password you set in step 4
+
+Or use the MariaDB `root` account if needed for admin tasks.
+
+### Restrict phpMyAdmin access (recommended)
+
+Do not leave phpMyAdmin open to the whole internet on a production server. Restrict by IP in Apache:
+
+```bash
+sudo nano /etc/apache2/conf-available/phpmyadmin.conf
+```
+
+Add inside the `<Directory /usr/share/phpmyadmin>` block (replace with your admin IP):
+
+```apache
+Require ip YOUR_ADMIN_IP
+```
+
+Then reload:
+
+```bash
+sudo systemctl reload apache2
+```
+
+Alternatively, remove phpMyAdmin when you no longer need it:
+
+```bash
+sudo apt remove --purge phpmyadmin
+sudo systemctl reload apache2
+```
+
+## 6. Install Composer
 
 ```bash
 curl -sS https://getcomposer.org/installer | php
 sudo mv composer.phar /usr/local/bin/composer
 ```
 
-## 6. Deploy the application code
+## 7. Deploy the application code
 
 ```bash
-cd /var/www/html
-sudo git clone git@github.com:frhanzv/vms.git vms
-sudo chown -R www-data:www-data /var/www/html/vms
-cd /var/www/html/vms
+cd /var/www
+sudo git clone <your-repo-url> vms
+sudo chown -R www-data:www-data /var/www/vms
+cd /var/www/vms
 ```
 
 Install PHP dependencies:
@@ -79,7 +197,7 @@ Install PHP dependencies:
 composer install --no-dev --optimize-autoloader
 ```
 
-## 7. Configure the `.env` file
+## 8. Configure the `.env` file
 
 ```bash
 cp env .env
@@ -94,7 +212,7 @@ CI_ENVIRONMENT = production
 app.baseURL = 'http://34.57.166.51/'
 
 database.default.hostname = localhost
-database.default.database = vms
+database.default.database = vms_cloud
 database.default.username = vms_user
 database.default.password = Vms@2026!
 database.default.DBDriver = MySQLi
@@ -120,21 +238,21 @@ LLM_API_KEY = sk-...
 LLM_MODEL = gpt-4o
 ```
 
-## 8. Set directory permissions
+## 9. Set directory permissions
 
 ```bash
 sudo chown -R www-data:www-data /var/www/html/vms/writable
 sudo chmod -R 775 /var/www/html/vms/writable
 ```
 
-## 9. Run database migrations
+## 10. Run database migrations
 
 ```bash
 cd /var/www/html/vms
 php spark migrate
 ```
 
-## 10. Configure Apache virtual host
+## 11. Configure Apache virtual host
 
 Create a new site config:
 
@@ -147,7 +265,7 @@ sudo nano /etc/apache2/sites-available/vms.conf
 ```apache
 <VirtualHost *:80>
     ServerName yourdomain.com
-    DocumentRoot /var/www/html/vms/public
+    DocumentRoot /var/www/vms/public
 
     <Directory /var/www/html/vms/public>
         AllowOverride All
@@ -159,7 +277,10 @@ sudo nano /etc/apache2/sites-available/vms.conf
 </VirtualHost>
 ```
 
-If serving at the domain root, update `public/.htaccess` — change `RewriteBase /vms` to `RewriteBase /`:
+If serving at the domain root, update `public/.htaccess` and `app/Config/App.php`:
+
+- In `public/.htaccess`, change `RewriteBase /vms` to `RewriteBase /`
+- In `app/Config/App.php` line 25, change `'/vms/'` to `'/'`
 
 ```bash
 nano /var/www/html/vms/public/.htaccess
@@ -185,8 +306,8 @@ Keep `RewriteBase /vms` as-is in `public/.htaccess`.
 <VirtualHost *:80>
     ServerName yourdomain.com
 
-    Alias /vms /var/www/html/vms/public
-    <Directory /var/www/html/vms/public>
+    Alias /vms /var/www/vms/public
+    <Directory /var/www/vms/public>
         AllowOverride All
         Require all granted
     </Directory>
@@ -204,7 +325,7 @@ sudo a2dissite 000-default.conf
 sudo systemctl reload apache2
 ```
 
-## 11. Set up HTTPS with Let's Encrypt
+## 12. Set up HTTPS with Let's Encrypt
 
 ```bash
 sudo apt install -y certbot python3-certbot-apache
@@ -213,7 +334,7 @@ sudo certbot --apache -d yourdomain.com
 
 Certbot will auto-configure the SSL virtual host and set up auto-renewal.
 
-## 12. (Optional) Install Tesseract OCR
+## 13. (Optional) Install Tesseract OCR
 
 The project depends on `thiagoalessio/tesseract_ocr`, so if you use OCR features:
 
@@ -221,14 +342,19 @@ The project depends on `thiagoalessio/tesseract_ocr`, so if you use OCR features
 sudo apt install -y tesseract-ocr
 ```
 
-## 13. Firewall setup
+## 14. Firewall setup
 
 ```bash
 sudo apt install -y ufw
 sudo ufw allow OpenSSH
-sudo ufw allow 'Apache Full'
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
 sudo ufw enable
+sudo ufw reload
+sudo ufw status
 ```
+
+If `ufw app list` shows `Apache Full`, you can use `sudo ufw allow 'Apache Full'` instead of the individual port rules.
 
 ---
 
@@ -240,6 +366,7 @@ sudo ufw enable
 | `.env` is production | `CI_ENVIRONMENT = production` |
 | Writable directory is writable | `ls -la /var/www/html/vms/writable/` (owned by `www-data`) |
 | Migrations applied | `php spark migrate:status` |
+| phpMyAdmin (if installed) | Visit `http://your-server-ip/phpmyadmin` |
 | HTTPS working | Browser shows padlock |
 | Logs accessible | `tail -f /var/www/html/vms/writable/logs/log-*.log` |
 | Error pages (not stack traces) | Verify `CI_ENVIRONMENT = production` hides debug info |
@@ -250,3 +377,4 @@ sudo ufw enable
 - **Permission denied on writable/** — Re-run `chown -R www-data:www-data writable && chmod -R 775 writable`
 - **mod_rewrite not working** — Ensure `AllowOverride All` is set and `a2enmod rewrite` was run
 - **Session issues** — The default file-based session handler writes to `writable/session/` — make sure it's writable by `www-data`
+- **phpMyAdmin shows CodeIgniter 404** — Add the `Alias /phpmyadmin` block to `vms.conf` (see step 5), then `sudo systemctl reload apache2`

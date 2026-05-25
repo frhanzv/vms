@@ -158,17 +158,17 @@ class Database extends Config
     //    ];
 
     /**
-     * Cloud (vms_server) database connection — configure via .env:
+     * Cloud (vms_cloud) database connection — configure via .env:
      *   database.cloud.hostname, database.cloud.database, etc.
      *
      * @var array<string, mixed>
      */
     public array $cloud = [
         'DSN'          => '',
-        'hostname'     => 'localhost',
-        'username'     => 'root',
+        'hostname'     => '',       // Set via .env — Jetson only (remote cloud MySQL)
+        'username'     => '',
         'password'     => '',
-        'database'     => 'vms_server',
+        'database'     => '',       // e.g. vms_cloud — leave unset on Laragon dev PCs
         'DBDriver'     => 'MySQLi',
         'DBPrefix'     => '',
         'pConnect'     => false,

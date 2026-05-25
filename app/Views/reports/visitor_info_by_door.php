@@ -318,10 +318,10 @@
                                             <th>#</th>
                                             <th>Visitor Name</th>
                                             <th>Contact No</th>
-                                            <th>Staff No</th>
-                                            <th>Host Name</th>
                                             <th>Check-in Time</th>
                                             <th>Location</th>
+                                            <th>Staff No</th>
+                                            <th>Host Name</th>
                                             <th class="text-center">Actions</th>
                                         </tr>
                                     </thead>
@@ -459,7 +459,7 @@
 
         // Table Headers specifically mapped for Export
         const tableHeaders = [
-            "No.", "Visitor Name", "Contact No", "Host Name", "Check-in Time", "Location", "Actions"
+            "No.", "Visitor Name", "Contact No", "Check-in Time", "Location", "Staff No", "Host Name", "Actions"
         ];
 
         function cellTextForCheckboxFilter(raw) {
@@ -863,10 +863,10 @@
                 <td class="py-3 align-middle"><span class="text-slate-500 font-medium">${i + 1}</span></td>
                 <td class="py-3 align-middle"><span class="text-slate-600 font-medium tracking-tight text-[13px] capitalize">${esc(v.visitor_name)}</span></td>
                 <td class="py-3 align-middle"><span class="text-slate-500 uppercase tracking-tight text-[13px]">${esc(v.contact_no)}</span></td>
-                <td class="py-3 align-middle">${staffPill}</td>
-                <td class="py-3 align-middle"><span class="text-slate-500 tracking-tight text-[13px] capitalize">${esc(v.person_visited)}</span></td>
                 <td class="py-3 align-middle"><span class="text-slate-500 tracking-tight text-[13px] font-medium">${esc(v.checkin_time)}</span></td>
                 <td class="py-3 align-middle"><span class="bg-gray-400 text-white rounded-full px-2 py-0.5 text-[11px] font-bold">${esc(v.location_name)}</span></td>
+                <td class="py-3 align-middle">${staffPill}</td>
+                <td class="py-3 align-middle"><span class="text-slate-500 tracking-tight text-[13px] capitalize">${esc(v.person_visited)}</span></td>
                 <td class="py-3 align-middle"><div class="flex justify-center"><span class="material-symbols-outlined text-[18px] text-[#137fec] cursor-pointer hover:text-blue-800 transition-colors" onclick="openModal(${i})">visibility</span></div></td>
             `;
                 tbody.appendChild(tr);

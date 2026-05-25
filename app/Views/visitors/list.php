@@ -260,14 +260,12 @@
                             <td class="p-4"><?= esc($visitor['type']) ?></td>
                             <?php if ($cardEnabled): ?>
                             <td class="p-4">
-                                <?php if ($visitor['card_status'] === 'Active'): ?>
-                                <span class="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Active</span>
-                                <?php elseif ($visitor['card_status'] === 'In Use'): ?>
-                                <span class="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">In Use</span>
-                                <?php elseif (! empty($visitor['card_status']) && $visitor['card_status'] !== '-'): ?>
-                                <span class="bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold"><?= esc($visitor['card_status']) ?></span>
+                                <?php if ($visitor['card_status'] === 'In Use'): ?>
+                                <span class="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">IN USE</span>
+                                <?php elseif ($visitor['card_status'] === 'Inactive'): ?>
+                                <span class="bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Inactive</span>
                                 <?php else: ?>
-                                <span class="text-gray-400 text-[10px]">No card</span>
+                                <span class="text-gray-400 text-[10px]">-</span>
                                 <?php endif; ?>
                             </td>
                             <td class="p-4"><?= esc($visitor['pass_no'] ?? '') ?></td>
@@ -956,10 +954,10 @@
             returnBtn.disabled = false;
 
             const statusBadge = document.getElementById('statusBadge');
-            if (visitor.card_status === 'Active' || visitor.card_status === 'In Use') {
-                statusBadge.innerHTML = '<span class="inline-flex items-center gap-2 px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg text-sm font-semibold border border-green-200 dark:border-green-800"><span class="material-symbols-outlined text-base">check_circle</span>Card ' + (visitor.card_status === 'In Use' ? 'In Use' : 'Active') + '</span>';
-            } else if (visitor.card_id || visitor.visitor_card_table_id) {
-                statusBadge.innerHTML = '<span class="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 rounded-lg text-sm font-semibold border border-amber-200 dark:border-amber-800"><span class="material-symbols-outlined text-base">credit_card</span>' + (visitor.card_status || 'Card') + '</span>';
+            if (visitor.card_status === 'In Use') {
+                statusBadge.innerHTML = '<span class="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-lg text-sm font-semibold border border-blue-200 dark:border-blue-800"><span class="material-symbols-outlined text-base">credit_card</span>IN USE</span>';
+            } else if (visitor.card_status === 'Inactive') {
+                statusBadge.innerHTML = '<span class="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded-lg text-sm font-semibold border border-gray-200 dark:border-gray-700"><span class="material-symbols-outlined text-base">credit_card_off</span>Inactive</span>';
             } else {
                 statusBadge.innerHTML = '<span class="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-lg text-sm font-semibold border border-gray-200 dark:border-gray-700"><span class="material-symbols-outlined text-base">info</span>No Card Issued</span>';
             }

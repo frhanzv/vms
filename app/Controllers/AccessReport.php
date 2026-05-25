@@ -110,8 +110,9 @@ class AccessReport extends BaseController
                         NULLIF(i.location, ''),
                         'N/A'
                     ) AS location_name,
-                    CASE 
-                        WHEN COUNT(vcl.id) > 0 THEN COUNT(vcl.id)
+                    CASE
+                        WHEN COUNT(CASE WHEN vcl.action IN ('checkin', 'door_checkin', 'door_access') THEN 1 END) > 0
+                            THEN COUNT(CASE WHEN vcl.action IN ('checkin', 'door_checkin', 'door_access') THEN 1 END)
                         WHEN iv.check_in_time IS NOT NULL THEN 1
                         ELSE 0
                     END AS total_access
@@ -294,7 +295,14 @@ class AccessReport extends BaseController
             $locationDisplay = $laneName !== '' ? $laneName : '—';
 
             $action    = strtolower((string) ($row['action'] ?? 'checkin'));
-            $typeLabel = $action === 'checkout' ? 'Checkout' : 'Checkin';
+            $typeLabels = [
+                'checkin'       => 'Checkin',
+                'checkout'      => 'Checkout',
+                'door_access'   => 'Door Access',
+                'door_checkin'  => 'In',
+                'door_checkout' => 'Out',
+            ];
+            $typeLabel = $typeLabels[$action] ?? ucfirst(str_replace('_', ' ', $action));
 
             $currentLocation  = $action === 'checkout' ? 'Out' : $locationDisplay;
             $locationAccessed = $locationDisplay;

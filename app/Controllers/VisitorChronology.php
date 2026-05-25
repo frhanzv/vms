@@ -108,7 +108,22 @@ class VisitorChronology extends BaseController
                         i.updated_at,
                         MIN(vcl.scanned_at) AS visit_from,
                         MAX(vcl.scanned_at) AS visit_to,
-                        COALESCE(MIN(sl.name), NULLIF(i.location, ''), 'N/A') AS i_location,
+                        COALESCE(
+                            (
+                                SELECT COALESCE(sl_via_lane.name, sl_via_direct.name)
+                                FROM visitor_card_logs vcl_last
+                                LEFT JOIN lanes la_last               ON la_last.id               = vcl_last.lane_id
+                                LEFT JOIN sub_locations sl_via_lane   ON sl_via_lane.location_id   = la_last.location_id
+                                LEFT JOIN sub_locations sl_via_direct ON sl_via_direct.id           = vcl_last.sub_location_id
+                                WHERE vcl_last.invitation_id = i.id
+                                  AND vcl_last.action != 'assigned'
+                                  AND COALESCE(sl_via_lane.name, sl_via_direct.name) IS NOT NULL
+                                ORDER BY vcl_last.scanned_at DESC, vcl_last.id DESC
+                                LIMIT 1
+                            ),
+                            NULLIF(i.location, ''),
+                            'N/A'
+                        ) AS i_location,
                         (SELECT MIN(iv.check_in_time) FROM invitation_visitors iv WHERE iv.invitation_id = i.id) AS reg_check_in,
                         (SELECT MAX(iv.check_out_time) FROM invitation_visitors iv WHERE iv.invitation_id = i.id) AS reg_check_out,
                         (SELECT MAX(s.date_to) FROM invitation_schedules s WHERE s.invitation_id = i.id) AS schedule_end
@@ -129,15 +144,13 @@ class VisitorChronology extends BaseController
             $regOut   = $v['reg_check_out'] ?? null;
             $sameScan = $scanFrom && $scanTo && strtotime((string) $scanFrom) === strtotime((string) $scanTo);
 
-            // Match dashboard / visitor list: invitation_visitors is authoritative for on-site vs checked out.
-            if ($regIn && ! $regOut) {
-                $status = 'Checked In';
-            } elseif ($regOut) {
+            // invitation_visitors is the authoritative source for check-in/out status.
+            // Never infer "Checked Out" from scan timestamps alone — a visitor scanning
+            // multiple internal doors will have different scanFrom/scanTo but is still inside.
+            if ($regOut) {
                 $status = 'Checked Out';
-            } elseif ($scanFrom && $sameScan) {
+            } elseif ($regIn) {
                 $status = 'Checked In';
-            } elseif ($scanFrom && $scanTo && ! $sameScan) {
-                $status = 'Checked Out';
             } elseif ($scanFrom) {
                 $status = 'Checked In';
             } else {
@@ -166,8 +179,7 @@ class VisitorChronology extends BaseController
             if ($regIn) {
                 $endTs = $regOut ? strtotime((string) $regOut) : $nowTs;
                 $diff  = max(0, $endTs - strtotime((string) $regIn));
-                
-                // Dashboard logic: if currently on-site and past schedule, show overstay relative to schedule end
+
                 if (!$regOut && $schedEnd && $nowTs > $schedEnd) {
                     $isOverstay = true;
                     $overstaySeconds = $nowTs - $schedEnd;
@@ -175,17 +187,16 @@ class VisitorChronology extends BaseController
                 } else {
                     $duration = $this->formatDuration($diff) . ($regOut ? '' : ' (ongoing)');
                 }
-            } elseif ($scanFrom && $scanTo && ! $sameScan) {
-                $diff = max(0, strtotime((string) $scanTo) - strtotime((string) $scanFrom));
-                $duration = $this->formatDuration($diff);
-            } elseif ($scanFrom && $sameScan && $status === 'Checked In') {
+            } elseif ($scanFrom) {
+                // No turnstile check-in — use scan timestamps as approximate duration.
                 if ($schedEnd && $nowTs > $schedEnd) {
                     $isOverstay = true;
                     $overstaySeconds = $nowTs - $schedEnd;
                     $duration = '+' . $this->formatDuration($overstaySeconds);
                 } else {
-                    $diff = max(0, $nowTs - strtotime((string) $scanFrom));
-                    $duration = $this->formatDuration($diff) . ' (ongoing)';
+                    $endTs = $scanTo ? strtotime((string) $scanTo) : $nowTs;
+                    $diff  = max(0, $endTs - strtotime((string) $scanFrom));
+                    $duration = $this->formatDuration($diff) . ($status === 'Checked In' ? ' (ongoing)' : '');
                 }
             }
 
@@ -463,14 +474,26 @@ class VisitorChronology extends BaseController
             $exitTime = $nextLog ? date('g:i A', strtotime($nextLog['scanned_at'])) : '-';
             $durationStr = $this->formatDuration($durationSeconds);
 
+            $actionLabels = [
+                'checkin'       => 'Check In',
+                'checkout'      => 'Check Out',
+                'door_checkin'  => 'In',
+                'door_checkout' => 'Out',
+                'door_access'   => 'Access',
+            ];
+            $fromAction = strtolower((string) ($currentLog['action'] ?? ''));
+            $toAction   = $nextLog ? strtolower((string) ($nextLog['action'] ?? '')) : '';
+
             $dates[$dateStr]['movements'][] = [
                 'movement_index' => count($dates[$dateStr]['movements']) + 1,
-                'from' => ($currentLog['lane_name'] ?? '—'),
-                'to'   => ($nextLog ? ($nextLog['lane_name'] ?? '—') : 'STILL AT SITE'),
-                'entry_time' => date('g:i A', strtotime($currentLog['scanned_at'])),
-                'exit_time'  => $exitTime,
-                'time_spent' => ($nextLog ? $durationStr : '-'),
-                'status'     => 'GRANTED' // Action is always granted in logs unless denied logs exist
+                'from'        => ($currentLog['lane_name'] ?? '—'),
+                'from_action' => $actionLabels[$fromAction] ?? '',
+                'to'          => ($nextLog ? ($nextLog['lane_name'] ?? '—') : 'STILL AT SITE'),
+                'to_action'   => $nextLog ? ($actionLabels[$toAction] ?? '') : '',
+                'entry_time'  => date('g:i A', strtotime($currentLog['scanned_at'])),
+                'exit_time'   => $exitTime,
+                'time_spent'  => ($nextLog ? $durationStr : '-'),
+                'status'      => 'GRANTED'
             ];
         }
 

@@ -136,12 +136,12 @@ class VisitorList extends BaseController
         // Format data for the view
         $visitors = [];
         foreach ($results as $index => $row) {
-            // Show "In Use" only when a card is assigned AND the visitor has not checked out.
-            // visitor_card_id is preserved after checkout as reuse history, so we must
-            // also check check_out_time to avoid showing "In Use" for closed rows.
-            $cardStatusBadge = '-';
             if ($row['visitor_card_id'] && empty($row['check_out_time'])) {
                 $cardStatusBadge = 'In Use';
+            } elseif (! empty($row['check_out_time'])) {
+                $cardStatusBadge = 'Inactive';
+            } else {
+                $cardStatusBadge = '-';
             }
 
             $dateSrc = ! empty($row['sch_date_from'])
@@ -734,34 +734,23 @@ class VisitorList extends BaseController
                     ->update(['status' => 'active']);
             }
 
-            // Block reuse: same visitor (by IC passport) cannot be issued a card
-            // they have been assigned before. Uses visitor_card_logs so history is
-            // preserved even after the card is returned/unbound.
-            $visitorPassport = $db->query(
-                'SELECT i.ic_passport FROM invitations i
-                 JOIN invitation_visitors iv2 ON iv2.invitation_id = i.id
-                 WHERE iv2.id = ? LIMIT 1',
-                [$invitationVisitorId]
+            // Block reuse: same card cannot be re-issued within the same invitation.
+            // Cross-invitation reuse is allowed (even for the same visitor).
+            $prevUse = $db->query(
+                'SELECT vcl.id FROM visitor_card_logs vcl
+                 WHERE vcl.visitor_card_id = ?
+                 AND vcl.invitation_id = ?
+                 AND vcl.action = ?
+                 LIMIT 1',
+                [$cardId, $iv['invitation_id'], 'assigned']
             )->getRowArray();
 
-            $icPassport = $visitorPassport['ic_passport'] ?? '';
-            if (!empty($icPassport)) {
-                $prevUse = $db->query(
-                    'SELECT vcl.id FROM visitor_card_logs vcl
-                     JOIN invitations i ON i.id = vcl.invitation_id
-                     WHERE vcl.visitor_card_id = ?
-                     AND i.ic_passport = ?
-                     LIMIT 1',
-                    [$cardId, $icPassport]
-                )->getRowArray();
-
-                if ($prevUse) {
-                    $db->transRollback();
-                    return $this->response->setJSON([
-                        'success' => false,
-                        'message' => 'This card was previously used by this visitor. Please select a different card.'
-                    ]);
-                }
+            if ($prevUse) {
+                $db->transRollback();
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'This card was previously used in this invitation. Please select a different card.'
+                ]);
             }
 
             // Check card isn't assigned to another visitor today
@@ -854,9 +843,30 @@ class VisitorList extends BaseController
 
             $cardId = $invitationVisitor['visitor_card_id'];
 
-            $this->invitationVisitorModel->update($invitationVisitorId, [
-                'visitor_card_id' => null,
-            ]);
+            $now        = date('Y-m-d H:i:s');
+            $updateData = ['visitor_card_id' => null];
+
+            // Always stamp check_out_time on admin card return so that:
+            //  - The visitor list badge correctly shows "Inactive" (badge is driven by check_out_time).
+            //  - The chronology status shows "Checked Out" instead of "In Building".
+            // If check_in_time is also missing (visitor bypassed the turnstile and came through
+            // internal doors directly), stamp it now so the row remains consistent.
+            if (empty($invitationVisitor['check_out_time'])) {
+                if (empty($invitationVisitor['check_in_time'])) {
+                    $updateData['check_in_time'] = $now;
+                }
+                $updateData['check_out_time'] = $now;
+
+                $db->table('visitor_card_logs')->insert([
+                    'invitation_id' => $invitationVisitor['invitation_id'],
+                    'action'        => 'checkout',
+                    'scan_source'   => 'admin',
+                    'scanned_at'    => $now,
+                    'created_at'    => $now,
+                ]);
+            }
+
+            $this->invitationVisitorModel->update($invitationVisitorId, $updateData);
 
             $this->visitorCardModel->update($cardId, [
                 'status' => 'active',
