@@ -204,10 +204,14 @@ class VisitorRegistration extends BaseController
         $token = $this->request->getPost('token');
         if ($token) {
             $inv = $this->invitationModel->find(base64_decode($token));
-            if ($inv && !empty($inv['company'])) {
-                $co = $this->companyModel->where('name', $inv['company'])->first();
-                if ($co) {
-                    $companyId = (int) $co['id'];
+            if ($inv) {
+                if (!empty($inv['company_id'])) {
+                    $companyId = (int) $inv['company_id'];
+                } elseif (!empty($inv['company'])) {
+                    $co = $this->companyModel->where('name', $inv['company'])->first();
+                    if ($co) {
+                        $companyId = (int) $co['id'];
+                    }
                 }
             }
         }
