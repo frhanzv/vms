@@ -4465,9 +4465,9 @@
                                     <p class="text-sm font-semibold text-slate-700 dark:text-slate-300">Turnstile</p>
                                     <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Require turnstile check-in before accessing internal doors. Turn off if the turnstile is broken.</p>
                                 </div>
-                                <button id="turnstile-toggle-btn" onclick="toggleTurnstile()"
-                                    class="min-w-[64px] px-4 py-2 rounded-full text-sm font-semibold transition-colors focus:outline-none">
-                                    <span id="turnstile-toggle-label">...</span>
+                                <button id="turnstile-toggle-btn" onclick="toggleTurnstile()" type="button" role="switch"
+                                    class="relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none bg-gray-200">
+                                    <span id="turnstile-toggle-label" class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ease-in-out translate-x-1"></span>
                                 </button>
                             </div>
                             <div class="border-t border-gray-200 dark:border-slate-700"></div>
@@ -4476,9 +4476,9 @@
                                     <p class="text-sm font-semibold text-slate-700 dark:text-slate-300">Internal Door</p>
                                     <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Require check-out from current door before entering another. Turn off to allow free movement between internal doors.</p>
                                 </div>
-                                <button id="door-checkout-toggle-btn" onclick="toggleDoorCheckout()"
-                                    class="min-w-[64px] px-4 py-2 rounded-full text-sm font-semibold transition-colors focus:outline-none">
-                                    <span id="door-checkout-toggle-label">...</span>
+                                <button id="door-checkout-toggle-btn" onclick="toggleDoorCheckout()" type="button" role="switch"
+                                    class="relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none bg-gray-200">
+                                    <span id="door-checkout-toggle-label" class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ease-in-out translate-x-1"></span>
                                 </button>
                             </div>
                         </div>
@@ -5523,14 +5523,14 @@
 
         function renderToggle(btnId, labelId, enabled) {
             const btn   = document.getElementById(btnId);
-            const label = document.getElementById(labelId);
-            if (!btn || !label) return;
+            const knob  = document.getElementById(labelId);
+            if (!btn || !knob) return;
             if (enabled) {
-                label.textContent = 'ON';
-                btn.className = 'min-w-[64px] px-4 py-2 rounded-full text-sm font-semibold transition-colors focus:outline-none bg-green-500 hover:bg-green-600 text-white';
+                btn.className  = 'relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none bg-blue-600';
+                knob.className = 'inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ease-in-out translate-x-6';
             } else {
-                label.textContent = 'OFF';
-                btn.className = 'min-w-[64px] px-4 py-2 rounded-full text-sm font-semibold transition-colors focus:outline-none bg-red-400 hover:bg-red-500 text-white';
+                btn.className  = 'relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none bg-gray-200';
+                knob.className = 'inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ease-in-out translate-x-1';
             }
         }
 
