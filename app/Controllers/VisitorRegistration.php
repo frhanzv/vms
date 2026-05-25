@@ -213,35 +213,39 @@ class VisitorRegistration extends BaseController
         }
 
         $formConfig = $this->getEmailTemplateFormConfig($companyId);
-        $validationRules = [
-            'company_visiting' => 'required'
-        ];
+        $validationRules = [];
 
-        if ($this->isFormFieldEnabled('full_name', $formConfig)) {
+        if ($this->isFormFieldEnabled('visit_info_section', $formConfig)) {
+            $validationRules['company_visiting'] = 'required';
+        }
+
+        $personSectionOn = $this->isFormFieldEnabled('person_details_section', $formConfig);
+
+        if ($personSectionOn && $this->isFormFieldEnabled('full_name', $formConfig)) {
             $validationRules['full_name'] = 'required|max_length[255]';
         }
 
-        if ($this->isFormFieldEnabled('ic_number', $formConfig)) {
+        if ($personSectionOn && $this->isFormFieldEnabled('ic_number', $formConfig)) {
             $validationRules['ic_number'] = 'required|max_length[50]';
         }
 
-        if ($this->isFormFieldEnabled('contact_number', $formConfig)) {
+        if ($personSectionOn && $this->isFormFieldEnabled('contact_number', $formConfig)) {
             $validationRules['contact_number'] = 'required|max_length[20]';
         }
 
-        if ($this->isFormFieldEnabled('email', $formConfig)) {
+        if ($personSectionOn && $this->isFormFieldEnabled('email', $formConfig)) {
             $validationRules['email'] = 'required|valid_email';
         }
 
-        if ($this->isFormFieldEnabled('date_of_birth', $formConfig)) {
+        if ($personSectionOn && $this->isFormFieldEnabled('date_of_birth', $formConfig)) {
             $validationRules['date_of_birth'] = 'required';
         }
 
-        if ($this->isFormFieldEnabled('sex', $formConfig)) {
+        if ($personSectionOn && $this->isFormFieldEnabled('sex', $formConfig)) {
             $validationRules['sex'] = 'required|in_list[MALE,FEMALE]';
         }
 
-        if ($this->isFormFieldEnabled('resident', $formConfig)) {
+        if ($personSectionOn && $this->isFormFieldEnabled('resident', $formConfig)) {
             $validationRules['resident'] = 'required|in_list[LOCAL,FOREIGN]';
         }
 
