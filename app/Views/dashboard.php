@@ -663,7 +663,13 @@
     </main>
 </div>
 
-<!-- Widget Customize Drawer Overlay -->
+<!-- Drawer tab: stays at screen right edge; moves left when drawer is open -->
+<button id="widget-drawer-tab" onclick="toggleDrawerCollapse()"
+    class="fixed top-1/2 -translate-y-1/2 z-[98] hidden flex-col items-center justify-center w-9 h-16 bg-primary hover:bg-primary-dark text-white rounded-l-xl shadow-lg"
+    style="right:0; transition: right 0.3s cubic-bezier(.4,0,.2,1);"
+    title="Toggle panel">
+    <span id="widget-drawer-tab-icon" class="material-symbols-outlined text-[22px]">chevron_left</span>
+</button>
 
 <!-- Widget Customize Drawer -->
 <aside id="widget-drawer" class="fixed top-0 right-0 h-full w-80 bg-surface-light dark:bg-surface-dark border-l border-slate-200 dark:border-slate-700 shadow-2xl z-[97] flex flex-col">
@@ -2373,11 +2379,19 @@ function ackFromDetail(id, btn) {
 // ── Widget Customization ──────────────────────────────────────────────────────
 let widgetPrefs = <?= json_encode($widgetPreferences) ?>;
 let sortableInstance = null;
+let drawerCollapsed  = false;
 
 function openWidgetDrawer() {
-    document.getElementById('widget-drawer').classList.add('open');
+    drawerCollapsed = false;
+    const drawer = document.getElementById('widget-drawer');
+    const tab    = document.getElementById('widget-drawer-tab');
+    drawer.style.transform = '';
+    drawer.classList.add('open');
+    // Show the collapse tab beside the drawer
+    tab.style.display = 'flex';
+    tab.style.right   = '320px';
+    document.getElementById('widget-drawer-tab-icon').textContent = 'chevron_right';
     document.getElementById('analytics-assistant-launcher').style.display = 'none';
-    // Auto-enable drag mode
     document.body.classList.add('widget-edit-mode');
     if (!sortableInstance) {
         sortableInstance = new Sortable(document.getElementById('widgets-container'), {
@@ -2391,8 +2405,29 @@ function openWidgetDrawer() {
     renderDrawerList();
 }
 
+function toggleDrawerCollapse() {
+    drawerCollapsed = !drawerCollapsed;
+    const drawer = document.getElementById('widget-drawer');
+    const tab    = document.getElementById('widget-drawer-tab');
+    const icon   = document.getElementById('widget-drawer-tab-icon');
+    if (drawerCollapsed) {
+        drawer.style.transform = 'translateX(100%)';
+        tab.style.right        = '0px';
+        icon.textContent       = 'chevron_left';
+    } else {
+        drawer.style.transform = 'translateX(0)';
+        tab.style.right        = '320px';
+        icon.textContent       = 'chevron_right';
+    }
+}
+
 function closeWidgetDrawer() {
-    document.getElementById('widget-drawer').classList.remove('open');
+    drawerCollapsed = false;
+    const drawer = document.getElementById('widget-drawer');
+    const tab    = document.getElementById('widget-drawer-tab');
+    drawer.style.transform = '';
+    drawer.classList.remove('open');
+    tab.style.display = 'none';
     document.getElementById('analytics-assistant-launcher').style.display = '';
     document.body.classList.remove('widget-edit-mode');
 }
