@@ -9,6 +9,7 @@ class SyncService
     protected BaseConnection $local;
     protected BaseConnection $cloud;
     protected array $messages = [];
+    protected bool $fullSync = false;
 
     /** Tables excluded from row sync (schema/audit only). */
     protected array $excludedTables = [
@@ -17,21 +18,56 @@ class SyncService
         'sync_deletions',
     ];
 
+    /** Match peer rows by stable business keys when sync_uid differs (seeded defaults). */
+    protected array $naturalKeys = [
+        'companies'                   => ['name'],
+        'roles'                       => ['name'],
+        'settings'                    => ['setting_key'],
+        'users'                       => ['username'],
+        'visitor_types'               => ['name'],
+        'email_templates'             => ['code'],
+        'security_alert_priorities'   => ['alert_name'],
+        'email_template_form_fields'  => ['field_key'],
+        'visit_reasons'               => ['reason'],
+        'blacklistreason'             => ['reason'],
+        'businesstype'                => ['name'],
+        'registration_types'          => ['name'],
+        'reject_reasons'              => ['reason'],
+    ];
+
+    /** FK columns not declared in MySQL but required for correct row sync. */
+    protected array $logicalForeignKeys = [
+        'invitations'         => ['company_id' => 'companies', 'parent_invitation_id' => 'invitations'],
+        'users'               => ['company_id' => 'companies'],
+        'staff'               => ['company_id' => 'companies'],
+        'staff_pass'          => ['company_id' => 'companies'],
+        'staff_pass_requests' => ['company_id' => 'companies'],
+        'security_alerts'     => ['company_id' => 'companies', 'invitation_id' => 'invitations'],
+        'client_features'     => ['company_id' => 'companies'],
+        'client_form_fields'  => ['company_id' => 'companies'],
+        'client_notification_settings' => ['company_id' => 'companies'],
+        'client_messaging_credentials' => ['company_id' => 'companies'],
+        'mobile_kiosk_settings' => ['client_id' => 'companies'],
+    ];
+
     protected ?array $syncableTables = null;
     protected ?array $insertOrder     = null;
     protected ?array $deleteOrder    = null;
     protected ?array $fkMaps         = null;
+    protected ?array $targetFieldCache = null;
 
-    public function __construct()
+    public function __construct(bool $fullSync = false)
     {
-        $this->local = db_connect('default');
-        $this->cloud = db_connect('cloud');
+        $this->local    = db_connect('default');
+        $this->cloud    = db_connect('cloud');
+        $this->fullSync = $fullSync;
     }
 
     public function sync(): array
     {
         $this->messages = [];
-        $this->info('=== Sync started at ' . date('Y-m-d H:i:s') . ' ===');
+        $mode = $this->fullSync ? 'FULL' : 'incremental';
+        $this->info('=== Sync started at ' . date('Y-m-d H:i:s') . " ({$mode}) ===");
 
         if (! self::isPeerConfigured()) {
             $this->info('ERROR: database.cloud.* (peer) is not configured — set peer DB host on this server.');
@@ -93,7 +129,7 @@ class SyncService
 
     protected function syncDeletions(): void
     {
-        $lastSync = $this->getLastSync('_deletions', 'bidirectional');
+        $lastSync = $this->fullSync ? '1970-01-01 00:00:00' : $this->getLastSync('_deletions', 'bidirectional');
         $applied  = 0;
 
         try {
@@ -214,40 +250,56 @@ class SyncService
             return;
         }
 
-        if (!$this->local->fieldExists('sync_uid', $table)) {
-            $this->info("  [{$table}] skipped — no sync_uid column");
+        if (!$this->local->fieldExists('sync_uid', $table) || !$this->cloud->fieldExists('sync_uid', $table)) {
+            $this->info("  [{$table}] skipped — no sync_uid column on both sides");
             return;
         }
 
-        $lastSync = $this->getLastSync($table, 'bidirectional');
+        $lastSync = $this->fullSync ? '1970-01-01 00:00:00' : $this->getLastSync($table, 'bidirectional');
         $fkMap    = $this->getForeignKeys($table);
 
-        try {
-            $cloudRecs = $this->fetchChanged($this->cloud, $table, $lastSync);
-            $localRecs = $this->fetchChanged($this->local, $table, $lastSync);
+        $pulledIn = $pushedOut = $skipped = $errors = 0;
 
-            $pulledIn = $pushedOut = $skipped = 0;
+        try {
+            $cloudRecs = $this->fetchRecordsForSync($this->cloud, $this->local, $table, $lastSync);
+            $localRecs = $this->fetchRecordsForSync($this->local, $this->cloud, $table, $lastSync);
 
             foreach ($cloudRecs as $rec) {
-                $result = $this->upsertRecord($this->local, $this->cloud, $table, $rec, $fkMap);
-                if ($result === 'inserted' || $result === 'updated') {
-                    $pulledIn++;
-                } elseif ($result === 'skipped') {
-                    $skipped++;
+                try {
+                    $result = $this->upsertRecord($this->local, $this->cloud, $table, $rec, $fkMap);
+                    if ($result === 'inserted' || $result === 'updated') {
+                        $pulledIn++;
+                    } elseif ($result === 'skipped') {
+                        $skipped++;
+                    }
+                } catch (\Throwable $e) {
+                    $errors++;
+                    $uid = $rec['sync_uid'] ?? '?';
+                    $this->info("  [{$table}] pull {$uid} ERROR: " . $e->getMessage());
+                    log_message('error', "[Sync] {$table} pull {$uid}: " . $e->getMessage());
                 }
             }
 
             foreach ($localRecs as $rec) {
-                $result = $this->upsertRecord($this->cloud, $this->local, $table, $rec, $fkMap);
-                if ($result === 'inserted' || $result === 'updated') {
-                    $pushedOut++;
-                } elseif ($result === 'skipped') {
-                    $skipped++;
+                try {
+                    $result = $this->upsertRecord($this->cloud, $this->local, $table, $rec, $fkMap);
+                    if ($result === 'inserted' || $result === 'updated') {
+                        $pushedOut++;
+                    } elseif ($result === 'skipped') {
+                        $skipped++;
+                    }
+                } catch (\Throwable $e) {
+                    $errors++;
+                    $uid = $rec['sync_uid'] ?? '?';
+                    $this->info("  [{$table}] push {$uid} ERROR: " . $e->getMessage());
+                    log_message('error', "[Sync] {$table} push {$uid}: " . $e->getMessage());
                 }
             }
 
-            $this->writeSyncLog($table, 'bidirectional', $pulledIn, $pushedOut, 'success');
-            $this->info("  [{$table}] ↕ pulled {$pulledIn}, pushed {$pushedOut}, skipped {$skipped}");
+            $status = $errors > 0 ? "partial ({$errors} row errors)" : 'success';
+            $this->writeSyncLog($table, 'bidirectional', $pulledIn, $pushedOut, $status);
+            $suffix = $errors > 0 ? ", {$errors} errors" : '';
+            $this->info("  [{$table}] ↕ pulled {$pulledIn}, pushed {$pushedOut}, skipped {$skipped}{$suffix}");
         } catch (\Throwable $e) {
             $this->writeSyncLog($table, 'bidirectional', 0, 0, 'error: ' . $e->getMessage());
             $this->info("  [{$table}] ERROR: " . $e->getMessage());
@@ -256,6 +308,8 @@ class SyncService
     }
 
     /**
+     * Changed rows plus any source rows whose sync_uid is missing on the peer.
+     *
      * @return 'inserted'|'updated'|'skipped'|'unchanged'
      */
     protected function upsertRecord(
@@ -277,24 +331,59 @@ class SyncService
             }
         }
 
+        $rec = $this->filterRecordColumns($targetDb, $table, $rec);
+
         $existing = $targetDb->table($table)->where('sync_uid', $syncUid)->get()->getRowArray();
+
+        if (!$existing) {
+            $existing = $this->findExistingByNaturalKey($targetDb, $table, $rec);
+        }
 
         if (!$existing) {
             $insert = $rec;
             unset($insert['id']);
-            $targetDb->table($table)->insert($insert);
+
+            try {
+                $targetDb->table($table)->insert($insert);
+            } catch (\Throwable $e) {
+                if (! $this->isDuplicateKeyError($e)) {
+                    throw $e;
+                }
+
+                $existing = $this->findExistingByNaturalKey($targetDb, $table, $rec);
+                if (! $existing) {
+                    throw $e;
+                }
+
+                return $this->updateExistingRow($targetDb, $table, $syncUid, $rec, $existing);
+            }
+
             $this->clearTombstone($targetDb, $table, $syncUid);
 
             return 'inserted';
         }
 
+        return $this->updateExistingRow($targetDb, $table, $syncUid, $rec, $existing);
+    }
+
+    protected function updateExistingRow(
+        BaseConnection $targetDb,
+        string $table,
+        string $syncUid,
+        array $rec,
+        array $existing
+    ): string {
         if ($this->isNewer($rec, $existing)) {
             $update = $rec;
             unset($update['id']);
-            $targetDb->table($table)->where('sync_uid', $syncUid)->update($update);
+            $targetDb->table($table)->where('id', $existing['id'])->update($update);
             $this->clearTombstone($targetDb, $table, $syncUid);
 
             return 'updated';
+        }
+
+        if (($existing['sync_uid'] ?? '') !== $syncUid) {
+            $targetDb->table($table)->where('id', $existing['id'])->update(['sync_uid' => $syncUid]);
         }
 
         return 'unchanged';
@@ -381,7 +470,6 @@ class SyncService
             }
         }
 
-        // Append any cyclic / unresolved tables at the end.
         foreach ($tables as $table) {
             if (!in_array($table, $sorted, true)) {
                 $sorted[] = $table;
@@ -401,9 +489,9 @@ class SyncService
             return $this->fkMaps[$table];
         }
 
-        $dbName     = $this->local->getDatabase();
-        $syncable   = array_flip($this->getSyncableTables());
-        $foreignKeys = [];
+        $dbName      = $this->local->getDatabase();
+        $syncable    = array_flip($this->getSyncableTables());
+        $foreignKeys = $this->logicalForeignKeys[$table] ?? [];
 
         $rows = $this->local->query(
             'SELECT COLUMN_NAME, REFERENCED_TABLE_NAME
@@ -452,28 +540,145 @@ class SyncService
         return $builder->get()->getResultArray();
     }
 
+    /**
+     * Union of changed rows and rows missing on the peer (by sync_uid).
+     */
+    protected function fetchRecordsForSync(
+        BaseConnection $sourceDb,
+        BaseConnection $targetDb,
+        string $table,
+        string $lastSync
+    ): array {
+        $records = $this->fetchChanged($sourceDb, $table, $lastSync);
+
+        if ($this->fullSync) {
+            $records = $sourceDb->table($table)->get()->getResultArray();
+        } else {
+            $targetUids = [];
+            foreach ($targetDb->table($table)->select('sync_uid')->get()->getResultArray() as $row) {
+                if (! empty($row['sync_uid'])) {
+                    $targetUids[$row['sync_uid']] = true;
+                }
+            }
+
+            foreach ($sourceDb->table($table)->select('sync_uid')->get()->getResultArray() as $row) {
+                $uid = $row['sync_uid'] ?? null;
+                if ($uid && ! isset($targetUids[$uid])) {
+                    $full = $sourceDb->table($table)->where('sync_uid', $uid)->get()->getRowArray();
+                    if ($full) {
+                        $records[] = $full;
+                    }
+                }
+            }
+        }
+
+        $byUid = [];
+        foreach ($records as $rec) {
+            if (! empty($rec['sync_uid'])) {
+                $byUid[$rec['sync_uid']] = $rec;
+            }
+        }
+
+        return array_values($byUid);
+    }
+
+    protected function filterRecordColumns(BaseConnection $targetDb, string $table, array $rec): array
+    {
+        $cacheKey = spl_object_hash($targetDb) . ':' . $table;
+        if (! isset($this->targetFieldCache[$cacheKey])) {
+            $this->targetFieldCache[$cacheKey] = array_flip(
+                array_map('strtolower', $targetDb->getFieldNames($table))
+            );
+        }
+
+        $allowed = $this->targetFieldCache[$cacheKey];
+        $filtered = [];
+        foreach ($rec as $key => $value) {
+            if (isset($allowed[strtolower((string) $key)])) {
+                $filtered[$key] = $value;
+            }
+        }
+
+        return $filtered;
+    }
+
     protected function remapFks(array $rec, array $fkMap, BaseConnection $srcDb, BaseConnection $dstDb): ?array
     {
         foreach ($fkMap as $fkColumn => $fkTable) {
             $srcId = $rec[$fkColumn] ?? null;
-            if ($srcId === null) {
+            if ($srcId === null || $srcId === '' || (int) $srcId === 0) {
                 continue;
             }
 
-            $srcRow = $srcDb->table($fkTable)->select('sync_uid')->where('id', $srcId)->get()->getRowArray();
-            if (!$srcRow || empty($srcRow['sync_uid'])) {
+            $srcRow = $srcDb->table($fkTable)->where('id', (int) $srcId)->get()->getRowArray();
+            if (! $srcRow) {
                 return null;
             }
 
-            $dstRow = $dstDb->table($fkTable)->select('id')->where('sync_uid', $srcRow['sync_uid'])->get()->getRowArray();
-            if (!$dstRow) {
+            $dstId = $this->resolvePeerRowId($srcDb, $dstDb, $fkTable, $srcRow);
+            if ($dstId === null) {
                 return null;
             }
 
-            $rec[$fkColumn] = $dstRow['id'];
+            $rec[$fkColumn] = $dstId;
         }
 
         return $rec;
+    }
+
+    protected function resolvePeerRowId(
+        BaseConnection $srcDb,
+        BaseConnection $dstDb,
+        string $table,
+        array $srcRow
+    ): ?int {
+        $syncUid = $srcRow['sync_uid'] ?? null;
+        if ($syncUid) {
+            $dstRow = $dstDb->table($table)->select('id')->where('sync_uid', $syncUid)->get()->getRowArray();
+            if ($dstRow) {
+                return (int) $dstRow['id'];
+            }
+        }
+
+        $match = $this->findExistingByNaturalKey($dstDb, $table, $srcRow);
+        if ($match) {
+            return (int) $match['id'];
+        }
+
+        return null;
+    }
+
+    protected function findExistingByNaturalKey(BaseConnection $db, string $table, array $rec): ?array
+    {
+        $keys = $this->naturalKeys[$table] ?? null;
+        if (! $keys) {
+            return null;
+        }
+
+        $builder = $db->table($table);
+        $hasMatch = false;
+        foreach ($keys as $column) {
+            if (! array_key_exists($column, $rec) || $rec[$column] === null || $rec[$column] === '') {
+                return null;
+            }
+            $builder->where($column, $rec[$column]);
+            $hasMatch = true;
+        }
+
+        if (! $hasMatch) {
+            return null;
+        }
+
+        $row = $builder->get()->getRowArray();
+
+        return $row ?: null;
+    }
+
+    protected function isDuplicateKeyError(\Throwable $e): bool
+    {
+        $msg = $e->getMessage();
+
+        return str_contains($msg, 'Duplicate entry') || str_contains($msg, '1062');
     }
 
     protected function isNewer(array $a, array $b): bool
