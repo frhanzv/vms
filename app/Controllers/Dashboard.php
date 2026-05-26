@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Models\UserModel;
 use App\Models\InvitationModel;
 use App\Models\InvitationVisitorModel;
+use App\Models\DashboardWidgetPreferenceModel;
 
 class Dashboard extends BaseController
 {
@@ -579,6 +580,7 @@ class Dashboard extends BaseController
             'upcomingAppointments' => $upcomingAppointments,
             'todayAppointments' => $todayAppointments,
             'trafficHours' => $trafficHours,
+            'widgetPreferences' => (new DashboardWidgetPreferenceModel())->getPreferences($userId),
         ];
 
         return view('dashboard', $data);
@@ -2222,5 +2224,24 @@ class Dashboard extends BaseController
             $days = floor($diff / 86400);
             return $days . ' day' . ($days > 1 ? 's' : '') . ' ago';
         }
+    }
+
+    public function getWidgetPreferences()
+    {
+        $userId = session()->get('user_id');
+        $prefs  = (new DashboardWidgetPreferenceModel())->getPreferences($userId);
+        return $this->response->setJSON($prefs);
+    }
+
+    public function saveWidgetPreferences()
+    {
+        $userId  = session()->get('user_id');
+        $raw     = $this->request->getPost('widgets');
+        $configs = $raw ? json_decode($raw, true) : null;
+        if (!is_array($configs) || empty($configs)) {
+            return $this->response->setJSON(['success' => false]);
+        }
+        (new DashboardWidgetPreferenceModel())->savePreferences($userId, $configs);
+        return $this->response->setJSON(['success' => true]);
     }
 }
