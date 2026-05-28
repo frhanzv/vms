@@ -267,6 +267,7 @@ $routes->post('dashboard/assistantChatDelete', 'Dashboard::assistantChatDelete')
 $routes->post('dashboard/assistantChatClear', 'Dashboard::assistantChatClear');
 $routes->get('dashboard/widgetPreferences', 'Dashboard::getWidgetPreferences');
 $routes->post('dashboard/saveWidgetPreferences', 'Dashboard::saveWidgetPreferences');
+$routes->post('dashboard/uploadPosterImage', 'Dashboard::uploadPosterImage');
 
 $routes->get('settings', 'Settings::index');
 $routes->post('settings/updateProfile', 'Settings::updateProfile');

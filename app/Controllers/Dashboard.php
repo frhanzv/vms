@@ -2244,4 +2244,26 @@ class Dashboard extends BaseController
         (new DashboardWidgetPreferenceModel())->savePreferences($userId, $configs);
         return $this->response->setJSON(['success' => true]);
     }
+
+    public function uploadPosterImage()
+    {
+        $file = $this->request->getFile('image');
+        if (!$file || !$file->isValid()) {
+            return $this->response->setJSON(['success' => false, 'message' => 'No file uploaded']);
+        }
+        $allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (!in_array($file->getMimeType(), $allowed)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Only JPG, PNG, GIF, WEBP allowed']);
+        }
+        $uploadPath = FCPATH . 'uploads/poster/';
+        if (!is_dir($uploadPath)) {
+            mkdir($uploadPath, 0755, true);
+        }
+        $userId   = session()->get('user_id');
+        $filename = 'poster_' . $userId . '_' . time() . '.' . $file->getExtension();
+        if ($file->move($uploadPath, $filename)) {
+            return $this->response->setJSON(['success' => true, 'url' => base_url('uploads/poster/' . $filename)]);
+        }
+        return $this->response->setJSON(['success' => false, 'message' => 'Upload failed']);
+    }
 }

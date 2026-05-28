@@ -652,6 +652,20 @@
                             </div>
                         </div>
                     </div>
+                <?php elseif ($wid === 'poster-banner'): ?>
+                    <!-- Poster Banner -->
+                    <?php $posterImage = $wp['image'] ?? null; ?>
+                    <div id="poster-banner-content" class="rounded-xl overflow-hidden w-full" style="height:18rem;">
+                        <?php if ($posterImage): ?>
+                        <img src="<?= esc($posterImage) ?>" alt="Poster Banner" class="w-full h-full object-cover block">
+                        <?php else: ?>
+                        <div class="w-full h-full flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/30 text-slate-400">
+                            <span class="material-symbols-outlined text-6xl mb-3 opacity-40">image</span>
+                            <p class="text-sm font-medium">No poster uploaded</p>
+                            <p class="text-xs mt-1 opacity-70">Open Customize → upload an image</p>
+                        </div>
+                        <?php endif; ?>
+                    </div>
                 <?php endif; ?>
                 </div><!-- /widget-card-content -->
             </div><!-- /widget-wrapper -->
@@ -2450,20 +2464,66 @@ function renderDrawerList() {
     const wrappers  = Array.from(container.querySelectorAll('[data-widget-id]'));
     const list      = document.getElementById('drawer-widget-list');
     list.innerHTML  = '';
-    wrappers.forEach(el => {
-        const wid     = el.dataset.widgetId;
-        const pref    = widgetPrefs.find(p => p.id === wid) || { id: wid, label: wid, visible: true };
-        const visible = !el.classList.contains('hidden');
-        const item    = document.createElement('div');
-        item.className = 'flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700';
+    wrappers.forEach((el, idx) => {
+        const wid      = el.dataset.widgetId;
+        const pref     = widgetPrefs.find(p => p.id === wid) || { id: wid, label: wid, visible: true };
+        const visible  = !el.classList.contains('hidden');
+        const isFirst  = idx === 0;
+        const isLast   = idx === wrappers.length - 1;
+        const isPoster = wid === 'poster-banner';
+        const curImg   = isPoster ? (pref.image || '') : '';
+        const item     = document.createElement('div');
+        item.className = 'flex flex-col gap-1.5 p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700';
         item.innerHTML = `
-            <span class="text-sm font-medium text-slate-700 dark:text-slate-300">${pref.label || wid}</span>
-            <button onclick="toggleWidgetVisibility('${wid}')" class="flex items-center gap-1 text-xs px-2 py-1 rounded-md transition-colors ${visible ? 'bg-primary/10 text-primary hover:bg-primary/20' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 hover:bg-slate-300 dark:hover:bg-slate-600'}">
-                <span class="material-symbols-outlined text-[16px]">${visible ? 'visibility' : 'visibility_off'}</span>
-                ${visible ? 'Visible' : 'Hidden'}
-            </button>`;
+            <div class="flex items-center gap-2">
+                <div class="flex flex-col gap-0.5 flex-shrink-0">
+                    <button onclick="moveWidget('${wid}',-1)" ${isFirst ? 'disabled' : ''}
+                        class="flex items-center justify-center size-6 rounded transition-colors ${isFirst ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed' : 'text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-primary'}">
+                        <span class="material-symbols-outlined text-[16px]">keyboard_arrow_up</span>
+                    </button>
+                    <button onclick="moveWidget('${wid}',1)" ${isLast ? 'disabled' : ''}
+                        class="flex items-center justify-center size-6 rounded transition-colors ${isLast ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed' : 'text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-primary'}">
+                        <span class="material-symbols-outlined text-[16px]">keyboard_arrow_down</span>
+                    </button>
+                </div>
+                <span class="text-sm font-medium text-slate-700 dark:text-slate-300 flex-1 truncate">${pref.label || wid}</span>
+                <button onclick="toggleWidgetVisibility('${wid}')" title="${visible ? 'Hide' : 'Show'}"
+                    class="flex items-center justify-center size-7 rounded-md transition-colors flex-shrink-0 ${visible ? 'text-primary hover:bg-primary/10' : 'text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'}">
+                    <span class="material-symbols-outlined text-[18px]">${visible ? 'visibility' : 'visibility_off'}</span>
+                </button>
+            </div>
+            ${isPoster ? `
+            <div class="flex items-center gap-2 pl-8">
+                <input type="file" id="poster-upload-input" accept="image/*" class="hidden" onchange="handlePosterUpload(this)">
+                <button onclick="document.getElementById('poster-upload-input').click()"
+                    class="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-medium rounded-lg transition-colors">
+                    <span class="material-symbols-outlined text-[16px]">upload</span>
+                    ${curImg ? 'Replace Image' : 'Upload Image'}
+                </button>
+                <span id="poster-upload-status" class="text-[11px] text-slate-400"></span>
+            </div>
+            ${curImg ? `<div class="rounded-lg overflow-hidden ml-8 h-16" style="max-width:calc(100% - 2rem);"><img src="${curImg}" class="w-full h-full object-cover block"></div>` : ''}
+            ` : ''}`;
         list.appendChild(item);
     });
+}
+
+function moveWidget(wid, direction) {
+    const container = document.getElementById('widgets-container');
+    const wrappers  = Array.from(container.querySelectorAll('[data-widget-id]'));
+    const idx       = wrappers.findIndex(el => el.dataset.widgetId === wid);
+    if (idx < 0) return;
+    const targetIdx = idx + direction;
+    if (targetIdx < 0 || targetIdx >= wrappers.length) return;
+    const el     = wrappers[idx];
+    const target = wrappers[targetIdx];
+    el.style.opacity    = '0.4';
+    el.style.transition = 'opacity 0.12s';
+    setTimeout(() => {
+        direction === -1 ? container.insertBefore(el, target) : container.insertBefore(target, el);
+        el.style.opacity = '1';
+        renderDrawerList();
+    }, 120);
 }
 
 function toggleWidgetVisibility(wid) {
@@ -2479,12 +2539,41 @@ function hideWidget(wid) {
     renderDrawerList();
 }
 
+function handlePosterUpload(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const status = document.getElementById('poster-upload-status');
+    status.textContent = 'Uploading…';
+    const fd = new FormData();
+    fd.append('image', file);
+    fetch(BASE + '/dashboard/uploadPosterImage', {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        body: fd,
+    }).then(r => r.json()).then(d => {
+        if (d.success) {
+            const pi = widgetPrefs.findIndex(p => p.id === 'poster-banner');
+            if (pi >= 0) widgetPrefs[pi].image = d.url;
+            else widgetPrefs.push({ id: 'poster-banner', label: 'Poster Banner', visible: true, position: 99, image: d.url });
+            // Update the live widget on dashboard
+            const content = document.getElementById('poster-banner-content');
+            if (content) content.innerHTML = `<img src="${d.url}" alt="Poster Banner" class="w-full h-full object-cover block">`;
+            status.textContent = 'Uploaded!';
+            setTimeout(() => { status.textContent = ''; renderDrawerList(); }, 1500);
+        } else {
+            status.textContent = d.message || 'Failed';
+        }
+    }).catch(() => { status.textContent = 'Error'; });
+}
+
 function collectCurrentPrefs() {
     const container = document.getElementById('widgets-container');
     return Array.from(container.querySelectorAll('[data-widget-id]')).map((el, idx) => {
         const wid  = el.dataset.widgetId;
         const pref = widgetPrefs.find(p => p.id === wid) || {};
-        return { id: wid, label: pref.label || wid, visible: !el.classList.contains('hidden'), position: idx };
+        const base = { id: wid, label: pref.label || wid, visible: !el.classList.contains('hidden'), position: idx };
+        if (wid === 'poster-banner') base.image = pref.image || null;
+        return base;
     });
 }
 
