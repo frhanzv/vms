@@ -20,6 +20,7 @@ class SyncService
 
     /** Match peer rows by stable business keys when sync_uid differs (seeded defaults). */
     protected array $naturalKeys = [
+        'countries'                   => ['code'],
         'companies'                   => ['name'],
         'roles'                       => ['name'],
         'settings'                    => ['setting_key'],
