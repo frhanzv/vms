@@ -20,8 +20,15 @@ class SyncService
 
     /** Match peer rows by stable business keys when sync_uid differs (seeded defaults). */
     protected array $naturalKeys = [
+        // Geo / address reference (seeded on both sides)
         'countries'                   => ['code'],
+        'states'                      => ['code', 'country_id'],
+        'cities'                      => ['code', 'state_id'],
+        // Org / HR config (seeded)
+        'departments'                 => ['code'],
+        'designations'                => ['code'],
         'companies'                   => ['name'],
+        'sub_companies'               => ['name', 'company_id'],
         'roles'                       => ['name'],
         'settings'                    => ['setting_key'],
         'users'                       => ['username'],
@@ -30,10 +37,23 @@ class SyncService
         'security_alert_priorities'   => ['alert_name'],
         'email_template_form_fields'  => ['field_key'],
         'visit_reasons'               => ['reason'],
-        'blacklistreason'             => ['reason'],
-        'businesstype'                => ['name'],
-        'registration_types'          => ['name'],
         'reject_reasons'              => ['reason'],
+        'blacklistreason'             => ['reason', 'type'],
+        'businesstype'                => ['business_type'],
+        'reg_type'                    => ['name'],
+        'registration_types'          => ['name'],
+        // Site / pathway config (often seeded per deployment)
+        'locations'                   => ['location_access'],
+        'lanes'                       => ['lane', 'location_id'],
+        'sub_locations'               => ['name', 'location_id'],
+        'pathways'                    => ['name'],
+        'pathway_lanes'               => ['pathway_id', 'lane_id'],
+        'pathway_sub_locations'       => ['pathway_id', 'sub_location_id'],
+        'location_visited'            => ['name'],
+        'workflows'                   => ['step_key', 'client_id'],
+        'videos'                      => ['file_path'],
+        'device_assignments'          => ['ip_address'],
+        'mobile_kiosk_settings'       => ['setting_key', 'client_id'],
     ];
 
     /** FK columns not declared in MySQL but required for correct row sync. */
@@ -73,8 +93,21 @@ class SyncService
         if (! self::isPeerConfigured()) {
             $this->info('ERROR: database.cloud.* (peer) is not configured — set peer DB host on this server.');
             $this->info('  Laragon/dev PCs: leave unset; do not run sync:run.');
+            $this->info('  Cloud-only webhook: set SYNC.notifyUrl on cloud; Jetson still needs database.cloud.* to pull.');
             return $this->messages;
         }
+
+        $peerCheck = self::testPeerConnection();
+        if (! $peerCheck['ok']) {
+            $this->info('ERROR: Cannot connect to peer database — ' . $peerCheck['message']);
+            $this->info('  Peer: ' . ($peerCheck['host'] ?? '?') . ' / ' . ($peerCheck['database'] ?? '?'));
+            $this->info('  Cloud→Jetson: open Jetson MySQL to cloud IP, or use SYNC.notifyUrl on cloud so Jetson pulls.');
+            return $this->messages;
+        }
+
+        $localDb = $this->local->getDatabase();
+        $peerDb  = $this->cloud->getDatabase();
+        $this->info("  Local DB: {$localDb}  |  Peer DB: {$peerDb} @ " . ($peerCheck['host'] ?? '?'));
 
         $localHasDeletions = $this->local->tableExists('sync_deletions');
         $cloudHasDeletions = $this->cloud->tableExists('sync_deletions');
@@ -122,6 +155,34 @@ class SyncService
     public static function isCloudConfigured(): bool
     {
         return self::isPeerConfigured();
+    }
+
+    /**
+     * @return array{ok: bool, host?: string, database?: string, message?: string}
+     */
+    public static function testPeerConnection(): array
+    {
+        if (! self::isPeerConfigured()) {
+            return ['ok' => false, 'message' => 'database.cloud.* is not configured'];
+        }
+
+        $cfg = config('Database')->cloud;
+        $host = $cfg['hostname'] ?? '';
+        $database = $cfg['database'] ?? '';
+
+        try {
+            $peer = db_connect('cloud');
+            $peer->query('SELECT 1');
+
+            return ['ok' => true, 'host' => $host, 'database' => $database];
+        } catch (\Throwable $e) {
+            return [
+                'ok'       => false,
+                'host'     => $host,
+                'database' => $database,
+                'message'  => $e->getMessage(),
+            ];
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -659,10 +720,16 @@ class SyncService
         $builder = $db->table($table);
         $hasMatch = false;
         foreach ($keys as $column) {
-            if (! array_key_exists($column, $rec) || $rec[$column] === null || $rec[$column] === '') {
+            if (! array_key_exists($column, $rec)) {
                 return null;
             }
-            $builder->where($column, $rec[$column]);
+
+            $value = $rec[$column];
+            if ($value === null || $value === '') {
+                $builder->where($column . ' IS NULL', null, false);
+            } else {
+                $builder->where($column, $value);
+            }
             $hasMatch = true;
         }
 

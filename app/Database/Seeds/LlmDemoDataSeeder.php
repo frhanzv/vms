@@ -4,6 +4,13 @@ namespace App\Database\Seeds;
 
 use CodeIgniter\Database\Seeder;
 
+/**
+ * Curated LLM demo rows (12 visitors, 5 hosts, sample alerts).
+ *
+ * For full test dataset run: php spark db:seed LlmTestDataSeeder
+ *
+ * Run alone: php spark db:seed LlmDemoDataSeeder
+ */
 class LlmDemoDataSeeder extends Seeder
 {
     private string $marker = 'LLM_DEMO_DATA';

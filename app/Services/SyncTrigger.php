@@ -51,6 +51,7 @@ class SyncTrigger
             self::writeStateFile(self::$pendingFile, (string) time());
         }
 
+        // Cloud → Jetson when Jetson MySQL is not exposed: wake Jetson to pull.
         self::notifyPeerWebhook();
     }
 
