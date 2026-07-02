@@ -175,7 +175,7 @@
             <?php if (! empty($searchTerm)): ?>
             <div class="mb-4 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded px-3 py-2">
                 <span class="material-icons text-sm text-primary">filter_alt</span>
-                <span>Showing results for <strong class="text-gray-800 dark:text-white"><?= esc($searchTerm) ?></strong> — <?= count($visitors) ?> match<?= count($visitors) === 1 ? '' : 'es' ?></span>
+                <span>Showing results for <strong class="text-gray-800 dark:text-white"><?= esc($searchTerm) ?></strong> — <?= number_format($pagination['total'] ?? count($visitors)) ?> match<?= ($pagination['total'] ?? count($visitors)) === 1 ? '' : 'es' ?></span>
                 <a href="<?= base_url('visitors') ?>" class="ml-auto text-primary hover:underline font-semibold">Clear</a>
             </div>
             <?php endif; ?>
@@ -279,23 +279,85 @@
             </div>
 
             <!-- Pagination -->
+            <?php
+            $curPage  = $pagination['current_page'] ?? 1;
+            $lastPage = $pagination['last_page'] ?? 1;
+            $pgTotal  = $pagination['total'] ?? count($visitors);
+            $pgPer    = $pagination['per_page'] ?? 10;
+
+            $buildUrl = function (int $pg, int $pp = 0) use ($searchTerm, $pgPer): string {
+                $pp = $pp ?: $pgPer;
+                $params = [];
+                if ($searchTerm !== '') {
+                    $params['search'] = $searchTerm;
+                }
+                if ($pp !== 10) {
+                    $params['per_page'] = $pp;
+                }
+                if ($pg > 1) {
+                    $params['page'] = $pg;
+                }
+                $qs = http_build_query($params);
+
+                return base_url('visitors') . ($qs ? '?' . $qs : '');
+            };
+
+            $pgNumbers = [];
+            if ($lastPage <= 7) {
+                for ($i = 1; $i <= $lastPage; $i++) {
+                    $pgNumbers[] = $i;
+                }
+            } else {
+                $pgNumbers[] = 1;
+                if ($curPage > 3) {
+                    $pgNumbers[] = '...';
+                }
+                for ($i = max(2, $curPage - 1); $i <= min($lastPage - 1, $curPage + 1); $i++) {
+                    $pgNumbers[] = $i;
+                }
+                if ($curPage < $lastPage - 2) {
+                    $pgNumbers[] = '...';
+                }
+                $pgNumbers[] = $lastPage;
+            }
+
+            $firstItem = ($pgTotal === 0) ? 0 : ($curPage - 1) * $pgPer + 1;
+            $lastItem  = min($curPage * $pgPer, $pgTotal);
+            ?>
             <div class="flex flex-col md:flex-row justify-between items-center gap-4 text-xs font-medium text-gray-500 dark:text-gray-400">
-                <div class="flex items-center gap-1">
-                    <button class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50">«</button>
-                    <button class="w-8 h-8 flex items-center justify-center bg-primary text-white rounded shadow-sm">1</button>
-                    <button class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">2</button>
-                    <button class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">3</button>
-                    <span class="w-8 h-8 flex items-center justify-center">...</span>
-                    <button class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">1392</button>
-                    <button class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">»</button>
+                <div id="paginationContainer" class="flex items-center gap-1">
+                    <?php if ($curPage > 1): ?>
+                    <a href="<?= $buildUrl($curPage - 1) ?>" class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">«</a>
+                    <?php else: ?>
+                    <span class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded opacity-40 cursor-not-allowed">«</span>
+                    <?php endif; ?>
+
+                    <?php foreach ($pgNumbers as $pn): ?>
+                        <?php if ($pn === '...'): ?>
+                        <span class="w-8 h-8 flex items-center justify-center">...</span>
+                        <?php elseif ($pn === $curPage): ?>
+                        <span class="w-8 h-8 flex items-center justify-center bg-primary text-white rounded shadow-sm"><?= $pn ?></span>
+                        <?php else: ?>
+                        <a href="<?= $buildUrl((int) $pn) ?>" class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"><?= $pn ?></a>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+
+                    <?php if ($curPage < $lastPage): ?>
+                    <a href="<?= $buildUrl($curPage + 1) ?>" class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">»</a>
+                    <?php else: ?>
+                    <span class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded opacity-40 cursor-not-allowed">»</span>
+                    <?php endif; ?>
                 </div>
-                <div class="relative">
-                    <select class="appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 py-1.5 pl-3 pr-8 rounded focus:outline-none focus:ring-1 focus:ring-primary text-xs font-medium cursor-pointer shadow-sm">
-                        <option>10 ITEMS PER PAGE</option>
-                        <option>25 ITEMS PER PAGE</option>
-                        <option>50 ITEMS PER PAGE</option>
-                    </select>
-                    <span class="absolute right-2 top-1.5 pointer-events-none material-icons text-sm text-gray-500">expand_more</span>
+                <div class="flex items-center gap-3">
+                    <span id="paginationSummary" class="text-gray-400">Showing <?= number_format($firstItem) ?>–<?= number_format($lastItem) ?> of <?= number_format($pgTotal) ?></span>
+                    <div class="relative">
+                        <select id="perPageSelect" class="appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 py-1.5 pl-3 pr-8 rounded focus:outline-none focus:ring-1 focus:ring-primary text-xs font-medium cursor-pointer shadow-sm">
+                            <?php foreach ([10, 25, 50] as $pp): ?>
+                            <option value="<?= $pp ?>" <?= $pgPer === $pp ? 'selected' : '' ?>><?= $pp ?> ITEMS PER PAGE</option>
+                            <?php endforeach; ?>
+                        </select>
+                        <span class="absolute right-2 top-1.5 pointer-events-none material-icons text-sm text-gray-500">expand_more</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1599,6 +1661,13 @@
                 }
             });
         })();
+
+        document.getElementById('perPageSelect')?.addEventListener('change', function () {
+            const url = new URL(window.location.href);
+            url.searchParams.set('per_page', this.value);
+            url.searchParams.delete('page');
+            window.location.href = url.toString();
+        });
     </script>
 </body>
 </html>

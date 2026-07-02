@@ -243,6 +243,21 @@ LLM_MODEL = gpt-4o
 ```bash
 sudo chown -R www-data:www-data /var/www/html/vms/writable
 sudo chmod -R 775 /var/www/html/vms/writable
+sudo mkdir -p /var/www/html/vms/public/uploads/visitor_photos
+sudo chown -R www-data:www-data /var/www/html/vms/public/uploads
+sudo chmod -R 775 /var/www/html/vms/public/uploads
+rm -rf /var/www/html/vms/writable/cache/*
+```
+
+After every `git pull` on cloud/Jetson, clear `writable/cache/` and restart Apache so PHP OPcache serves the latest code:
+
+```bash
+cd /var/www/html/vms
+git pull
+composer install --no-dev --optimize-autoloader
+php spark migrate
+rm -rf writable/cache/*
+sudo systemctl restart apache2
 ```
 
 ## 10. Run database migrations and seed initial data
@@ -376,6 +391,7 @@ If `ufw app list` shows `Apache Full`, you can use `sudo ufw allow 'Apache Full'
 
 - **500 errors** — Check `writable/logs/` and `/var/log/apache2/vms-error.log`
 - **Permission denied on writable/** — Re-run `chown -R www-data:www-data writable && chmod -R 775 writable`
+- **Config / kiosk toggles not saving on cloud** — Deploy latest code, then `rm -rf writable/cache/*` and `sudo systemctl restart apache2`. Verify with `grep saveGlobalSetting app/Controllers/Config.php` on the server.
 - **mod_rewrite not working** — Ensure `AllowOverride All` is set and `a2enmod rewrite` was run
 - **Session issues** — The default file-based session handler writes to `writable/session/` — make sure it's writable by `www-data`
 - **phpMyAdmin shows CodeIgniter 404** — Add the `Alias /phpmyadmin` block to `vms.conf` (see step 5), then `sudo systemctl reload apache2`

@@ -249,6 +249,7 @@ $routes->get('/', 'Dashboard::index');
 $routes->get('dashboard', 'Dashboard::index');
 $routes->post('dashboard/acknowledgeAlert', 'Dashboard::acknowledgeAlert');
 $routes->get('dashboard/trafficData', 'Dashboard::trafficData');
+$routes->get('dashboard/hostVisitorsData', 'Dashboard::hostVisitorsData');
 $routes->get('dashboard/accessDeniedData', 'Dashboard::accessDeniedData');
 $routes->get('dashboard/overstayData', 'Dashboard::overstayData');
 $routes->get('dashboard/alertDetailData/(:num)', 'Dashboard::alertDetailData/$1');

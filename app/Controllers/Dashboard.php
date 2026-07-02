@@ -91,155 +91,48 @@ class Dashboard extends BaseController
             ['Approved', $now]
         )->getRow()->c ?? 0);
         
-        // One row per invitation: only schedules overlapping today (aggregated), plus on-site without a "today" slice
-        $visitorsQuery = "SELECT i.*,
-                                 iv.check_in_time,
-                                 iv.check_out_time,
-                                 COALESCE(i.invited_by, 'N/A') as host_name,
-                                 COALESCE(slot.date_from, fs.date_from) AS date_from,
-                                 COALESCE(slot.date_to, fs.date_to) AS date_to
-                          FROM invitations i
-                          LEFT JOIN (
-                              SELECT invitation_id,
-                                     MIN(date_from) AS date_from,
-                                     MAX(date_to) AS date_to
-                              FROM invitation_schedules
-                              WHERE DATE(date_from) <= ? AND DATE(date_to) >= ?
-                              GROUP BY invitation_id
-                          ) slot ON slot.invitation_id = i.id
-                          LEFT JOIN (
-                              SELECT s1.invitation_id, s1.date_from, s1.date_to
-                              FROM invitation_schedules s1
-                              INNER JOIN (
-                                  SELECT invitation_id, MIN(id) AS pick_id
-                                  FROM invitation_schedules
-                                  GROUP BY invitation_id
-                              ) sp ON sp.pick_id = s1.id
-                          ) fs ON fs.invitation_id = i.id
-                          LEFT JOIN invitation_visitors iv ON iv.invitation_id = i.id
-                          WHERE i.status = 'Approved'
-                          AND (
-                              slot.invitation_id IS NOT NULL
-                              OR (iv.check_in_time IS NOT NULL AND iv.check_out_time IS NULL)
-                          )
-                          ORDER BY COALESCE(slot.date_from, iv.check_in_time, fs.date_from) ASC
-                          LIMIT 10";
+        $hostVisitors = $this->buildHostVisitorsList('all', 1, 10, '', '', '');
+        $visitors = $hostVisitors['visitors'];
+        $tabCounts = $hostVisitors['tabCounts'];
         
-        $visitorsData = $db->query($visitorsQuery, [$today, $today])->getResultArray();
-        
-        $visitors = [];
-        $tabCounts = ['all' => 0, 'preArrival' => 0, 'checkedIn' => 0, 'checkedOut' => 0];
-        
-        // Count all visitors for tabs (same inclusion rules as the table above)
-        $allVisitorsQuery = "SELECT iv.check_in_time, iv.check_out_time
-                             FROM invitations i
-                             LEFT JOIN (
-                                 SELECT invitation_id,
-                                        MIN(date_from) AS date_from,
-                                        MAX(date_to) AS date_to
-                                 FROM invitation_schedules
-                                 WHERE DATE(date_from) <= ? AND DATE(date_to) >= ?
-                                 GROUP BY invitation_id
-                             ) slot ON slot.invitation_id = i.id
-                             LEFT JOIN invitation_visitors iv ON iv.invitation_id = i.id
-                             WHERE i.status = 'Approved'
-                             AND (
-                                 slot.invitation_id IS NOT NULL
-                                 OR (iv.check_in_time IS NOT NULL AND iv.check_out_time IS NULL)
-                             )";
-        $allVisitorsData = $db->query($allVisitorsQuery, [$today, $today])->getResultArray();
-        
-        foreach ($allVisitorsData as $v) {
-            $tabCounts['all']++;
-            if (!empty($v['check_in_time'])) {
-                if (!empty($v['check_out_time'])) {
-                    $tabCounts['checkedOut']++;
-                } else {
-                    $tabCounts['checkedIn']++;
-                }
-            } else {
-                $tabCounts['preArrival']++;
-            }
-        }
-        
-        foreach ($visitorsData as $visitor) {
-            $status = 'Pre-Arrival';
-            $statusClass = 'amber';
-            
-            if (!empty($visitor['check_in_time'])) {
-                if (!empty($visitor['check_out_time'])) {
-                    $status = 'Checked Out';
-                    $statusClass = 'slate';
-                } else {
-                    $status = 'On-Site';
-                    $statusClass = 'green';
-                }
-            }
-            
-            if (!empty($visitor['check_out_time'])) {
-                $timeDisplay = date('M j, Y g:i A', strtotime($visitor['check_out_time']));
-                $dateRaw = $visitor['check_out_time'];
-            } elseif (!empty($visitor['check_in_time'])) {
-                $timeDisplay = date('M j, Y g:i A', strtotime($visitor['check_in_time']));
-                $dateRaw = $visitor['check_in_time'];
-            } else {
-                $timeDisplay = date('g:i A', strtotime($visitor['date_from']));
-                $dateRaw = $visitor['date_from'];
+        // On-site headcount at the end of each 2-hour slot today (capped at current time)
+        $occupancySlots = [
+            '12am' => ['hour_end' => 2,  'count' => 0, 'isFuture' => false],
+            '2am'  => ['hour_end' => 4,  'count' => 0, 'isFuture' => false],
+            '4am'  => ['hour_end' => 6,  'count' => 0, 'isFuture' => false],
+            '6am'  => ['hour_end' => 8,  'count' => 0, 'isFuture' => false],
+            '8am'  => ['hour_end' => 10, 'count' => 0, 'isFuture' => false],
+            '10am' => ['hour_end' => 12, 'count' => 0, 'isFuture' => false],
+            '12pm' => ['hour_end' => 14, 'count' => 0, 'isFuture' => false],
+            '2pm'  => ['hour_end' => 16, 'count' => 0, 'isFuture' => false],
+            '4pm'  => ['hour_end' => 18, 'count' => 0, 'isFuture' => false],
+            '6pm'  => ['hour_end' => 20, 'count' => 0, 'isFuture' => false],
+            '8pm'  => ['hour_end' => 22, 'count' => 0, 'isFuture' => false],
+            '10pm' => ['hour_end' => 24, 'count' => 0, 'isFuture' => false],
+        ];
+
+        foreach ($occupancySlots as $label => &$slot) {
+            $slotEnd = $this->occupancySlotEndTime($today, (int) $slot['hour_end']);
+            if ($slotEnd > $now) {
+                $slot['isFuture'] = true;
+                $slot['count'] = 0;
+                continue;
             }
 
-            $visitors[] = [
-                'id' => $visitor['id'] ?? 0,
-                'name' => $visitor['full_name'] ?? 'N/A',
-                'contact' => $visitor['contact'] ?? '',
-                'company' => $visitor['company'] ?? 'N/A',
-                'host' => $visitor['host_name'] ?? 'N/A',
-                'time' => $timeDisplay,
-                'date_raw' => $dateRaw,
-                'status' => $status,
-                'statusClass' => $statusClass,
-                'hasImage' => false,
-                'initials' => strtoupper(substr($visitor['full_name'] ?? 'NA', 0, 2))
-            ];
-        }
-        
-        // Build occupancy chart data from real check-in times today
-        $occupancySlots = [
-            '12am' => ['hour_start' => 0,  'hour_end' => 2,  'count' => 0],
-            '2am'  => ['hour_start' => 2,  'hour_end' => 4,  'count' => 0],
-            '4am'  => ['hour_start' => 4,  'hour_end' => 6,  'count' => 0],
-            '6am'  => ['hour_start' => 6,  'hour_end' => 8,  'count' => 0],
-            '8am'  => ['hour_start' => 8,  'hour_end' => 10, 'count' => 0],
-            '10am' => ['hour_start' => 10, 'hour_end' => 12, 'count' => 0],
-            '12pm' => ['hour_start' => 12, 'hour_end' => 14, 'count' => 0],
-            '2pm'  => ['hour_start' => 14, 'hour_end' => 16, 'count' => 0],
-            '4pm'  => ['hour_start' => 16, 'hour_end' => 18, 'count' => 0],
-            '6pm'  => ['hour_start' => 18, 'hour_end' => 20, 'count' => 0],
-            '8pm'  => ['hour_start' => 20, 'hour_end' => 22, 'count' => 0],
-            '10pm' => ['hour_start' => 22, 'hour_end' => 24, 'count' => 0],
-        ];
-        
-        $checkInsToday = $db->query(
-            "SELECT HOUR(iv.check_in_time) as check_hour
-             FROM invitation_visitors iv
-             JOIN invitations i ON i.id = iv.invitation_id
-             WHERE i.status = 'Approved'
-             AND iv.check_in_time IS NOT NULL
-             AND DATE(iv.check_in_time) = ?",
-            [$today]
-        )->getResultArray();
-        
-        $maxOccupancy = 1;
-        foreach ($checkInsToday as $ci) {
-            $hour = (int)$ci['check_hour'];
-            foreach ($occupancySlots as $label => &$slot) {
-                if ($hour >= $slot['hour_start'] && $hour < $slot['hour_end']) {
-                    $slot['count']++;
-                    break;
-                }
-            }
+            $slot['count'] = (int) ($db->query(
+                "SELECT COUNT(*) AS c
+                 FROM invitation_visitors iv
+                 INNER JOIN invitations i ON i.id = iv.invitation_id
+                 WHERE i.status = 'Approved'
+                 AND iv.check_in_time IS NOT NULL
+                 AND iv.check_in_time <= ?
+                 AND (iv.check_out_time IS NULL OR iv.check_out_time > ?)",
+                [$slotEnd, $slotEnd]
+            )->getRow()->c ?? 0);
         }
         unset($slot);
         
+        $maxOccupancy = 1;
         $occupancyChart = [];
         foreach ($occupancySlots as $label => $slot) {
             if ($slot['count'] > $maxOccupancy) {
@@ -263,6 +156,7 @@ class Dashboard extends BaseController
                 'count' => $slot['count'],
                 'percentage' => $percentage,
                 'isPeak' => ($label === $peakLabel && $peakCount > 0),
+                'isFuture' => !empty($slot['isFuture']),
             ];
         }
         
@@ -525,16 +419,15 @@ class Dashboard extends BaseController
             ];
         }
         
-        // Visitor traffic: every scan event today (excludes admin card-assignment logs)
-        $trafficQuery = "SELECT HOUR(vcl.scanned_at) AS hour, COUNT(*) AS count
-                         FROM visitor_card_logs vcl
-                         JOIN invitations i ON i.id = vcl.invitation_id
-                         WHERE i.status = 'Approved'
-                         AND vcl.action != 'assigned'
-                         AND DATE(vcl.scanned_at) = ?
-                         GROUP BY HOUR(vcl.scanned_at)
-                         ORDER BY hour ASC";
-        $trafficData = $db->query($trafficQuery, [$today])->getResultArray();
+        // Visitor traffic: card scans + check-ins (seed/demo data often has check-ins without card logs)
+        $trafficData = $db->query(
+            "SELECT HOUR(event_at) AS hour, COUNT(*) AS count
+             FROM (" . $this->getTrafficEventsSubquery() . ") traffic_events
+             WHERE DATE(event_at) = ?
+             GROUP BY HOUR(event_at)
+             ORDER BY hour ASC",
+            [$today]
+        )->getResultArray();
         
         // Build hourly data for chart (full 24 hours)
         $trafficHours = [];
@@ -652,30 +545,78 @@ class Dashboard extends BaseController
         
         $db = \Config\Database::connect();
         
-        $trafficQuery = "SELECT DATE(vcl.scanned_at) as date, HOUR(vcl.scanned_at) as hour, COUNT(*) as count
-                         FROM visitor_card_logs vcl
-                         JOIN invitations i ON i.id = vcl.invitation_id
-                         WHERE i.status = 'Approved'
-                         AND vcl.action != 'assigned'
-                         AND DATE(vcl.scanned_at) >= ?
-                         AND DATE(vcl.scanned_at) <= ?
-                         GROUP BY DATE(vcl.scanned_at), HOUR(vcl.scanned_at)
-                         ORDER BY date ASC, hour ASC";
-        $trafficData = $db->query($trafficQuery, [$fromDate, $toDate])->getResultArray();
+        $trafficData = $db->query(
+            "SELECT DATE(event_at) AS date, HOUR(event_at) AS hour, COUNT(*) AS count
+             FROM (" . $this->getTrafficEventsSubquery() . ") traffic_events
+             WHERE DATE(event_at) >= ?
+             AND DATE(event_at) <= ?
+             GROUP BY DATE(event_at), HOUR(event_at)
+             ORDER BY date ASC, hour ASC",
+            [$fromDate, $toDate]
+        )->getResultArray();
         
-        // Build hourly data for chart (full 24 hours)
-        $trafficHours = [];
-        for ($h = 0; $h <= 23; $h++) {
-            $totalCount = 0;
-            foreach ($trafficData as $td) {
-                if ((int)$td['hour'] === $h) {
-                    $totalCount += (int)$td['count'];
+        if ($fromDate === $toDate) {
+            $trafficHours = [];
+            for ($h = 0; $h <= 23; $h++) {
+                $totalCount = 0;
+                foreach ($trafficData as $td) {
+                    if ((int)$td['hour'] === $h) {
+                        $totalCount += (int)$td['count'];
+                    }
                 }
+                $trafficHours[] = [
+                    'label' => date('h A', mktime($h, 0, 0)),
+                    'count' => $totalCount,
+                ];
             }
-            $trafficHours[] = ['hour' => $h, 'label' => date('h A', mktime($h, 0, 0)), 'count' => $totalCount];
+
+            return $this->response->setJSON(['success' => true, 'mode' => 'hourly', 'data' => $trafficHours]);
         }
-        
-        return $this->response->setJSON(['success' => true, 'data' => $trafficHours]);
+
+        $countsByDate = [];
+        foreach ($trafficData as $td) {
+            $d = $td['date'];
+            $countsByDate[$d] = ($countsByDate[$d] ?? 0) + (int)$td['count'];
+        }
+
+        $dailyBuckets = [];
+        $cursor = strtotime($fromDate);
+        $end = strtotime($toDate);
+        while ($cursor <= $end) {
+            $dateKey = date('Y-m-d', $cursor);
+            $dailyBuckets[] = [
+                'label' => date('M j', $cursor),
+                'count' => $countsByDate[$dateKey] ?? 0,
+            ];
+            $cursor = strtotime('+1 day', $cursor);
+        }
+
+        return $this->response->setJSON(['success' => true, 'mode' => 'daily', 'data' => $dailyBuckets]);
+    }
+
+    /**
+     * AJAX: paginated host dashboard visitor list with tab and filter support.
+     */
+    public function hostVisitorsData()
+    {
+        $tab = strtolower((string) ($this->request->getGet('tab') ?? 'all'));
+        if (!in_array($tab, ['all', 'prearrival', 'checkedin', 'checkedout'], true)) {
+            $tab = 'all';
+        }
+
+        $page = max(1, (int) ($this->request->getGet('page') ?? 1));
+        $perPage = (int) ($this->request->getGet('per_page') ?? 10);
+        if (!in_array($perPage, [10, 25, 50], true)) {
+            $perPage = 10;
+        }
+
+        $company = trim((string) ($this->request->getGet('company') ?? ''));
+        $dateFrom = $this->normalizeFilterDatetime((string) ($this->request->getGet('date_from') ?? ''));
+        $dateTo = $this->normalizeFilterDatetime((string) ($this->request->getGet('date_to') ?? ''));
+
+        $result = $this->buildHostVisitorsList($tab, $page, $perPage, $company, $dateFrom, $dateTo);
+
+        return $this->response->setJSON(['success' => true] + $result);
     }
     
     /**
@@ -2265,5 +2206,221 @@ class Dashboard extends BaseController
             return $this->response->setJSON(['success' => true, 'url' => base_url('uploads/poster/' . $filename)]);
         }
         return $this->response->setJSON(['success' => false, 'message' => 'Upload failed']);
+    }
+
+    private function normalizeFilterDatetime(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return '';
+        }
+
+        return str_replace('T', ' ', $value);
+    }
+
+    private function occupancySlotEndTime(string $today, int $hourEnd): string
+    {
+        if ($hourEnd >= 24) {
+            return $today . ' 23:59:59';
+        }
+
+        return $today . ' ' . sprintf('%02d:00:00', $hourEnd);
+    }
+
+    private function getTrafficEventsSubquery(): string
+    {
+        return "SELECT vcl.scanned_at AS event_at
+                FROM visitor_card_logs vcl
+                INNER JOIN invitations i ON i.id = vcl.invitation_id
+                WHERE i.status = 'Approved'
+                AND vcl.action != 'assigned'
+                UNION ALL
+                SELECT iv.check_in_time AS event_at
+                FROM invitation_visitors iv
+                INNER JOIN invitations i ON i.id = iv.invitation_id
+                WHERE i.status = 'Approved'
+                AND iv.check_in_time IS NOT NULL";
+    }
+
+    private function getHostVisitorBaseFromSql(): string
+    {
+        return "FROM invitations i
+                LEFT JOIN (
+                    SELECT invitation_id,
+                           MIN(date_from) AS date_from,
+                           MAX(date_to) AS date_to
+                    FROM invitation_schedules
+                    WHERE DATE(date_from) <= ? AND DATE(date_to) >= ?
+                    GROUP BY invitation_id
+                ) slot ON slot.invitation_id = i.id
+                LEFT JOIN (
+                    SELECT s1.invitation_id, s1.date_from, s1.date_to
+                    FROM invitation_schedules s1
+                    INNER JOIN (
+                        SELECT invitation_id, MIN(id) AS pick_id
+                        FROM invitation_schedules
+                        GROUP BY invitation_id
+                    ) sp ON sp.pick_id = s1.id
+                ) fs ON fs.invitation_id = i.id
+                LEFT JOIN invitation_visitors iv ON iv.invitation_id = i.id
+                WHERE i.status = 'Approved'
+                AND (
+                    slot.invitation_id IS NOT NULL
+                    OR (iv.check_in_time IS NOT NULL AND iv.check_out_time IS NULL)
+                )";
+    }
+
+    private function getHostVisitorTabCounts(): array
+    {
+        $db = \Config\Database::connect();
+        $today = date('Y-m-d');
+
+        $allVisitorsQuery = "SELECT iv.check_in_time, iv.check_out_time
+                             " . $this->getHostVisitorBaseFromSql();
+        $allVisitorsData = $db->query($allVisitorsQuery, [$today, $today])->getResultArray();
+
+        $tabCounts = ['all' => 0, 'preArrival' => 0, 'checkedIn' => 0, 'checkedOut' => 0];
+        foreach ($allVisitorsData as $v) {
+            $tabCounts['all']++;
+            if (!empty($v['check_in_time'])) {
+                if (!empty($v['check_out_time'])) {
+                    $tabCounts['checkedOut']++;
+                } else {
+                    $tabCounts['checkedIn']++;
+                }
+            } else {
+                $tabCounts['preArrival']++;
+            }
+        }
+
+        return $tabCounts;
+    }
+
+    private function formatHostVisitorRow(array $visitor): array
+    {
+        $status = 'Pre-Arrival';
+        $statusClass = 'amber';
+        $statusToken = 'prearrival';
+
+        if (!empty($visitor['check_in_time'])) {
+            if (!empty($visitor['check_out_time'])) {
+                $status = 'Checked Out';
+                $statusClass = 'slate';
+                $statusToken = 'checkedout';
+            } else {
+                $status = 'On-Site';
+                $statusClass = 'green';
+                $statusToken = 'checkedin';
+            }
+        }
+
+        if (!empty($visitor['check_out_time'])) {
+            $timeDisplay = date('M j, Y g:i A', strtotime($visitor['check_out_time']));
+            $dateRaw = $visitor['check_out_time'];
+        } elseif (!empty($visitor['check_in_time'])) {
+            $timeDisplay = date('M j, Y g:i A', strtotime($visitor['check_in_time']));
+            $dateRaw = $visitor['check_in_time'];
+        } else {
+            $timeDisplay = date('M j, Y g:i A', strtotime($visitor['date_from']));
+            $dateRaw = $visitor['date_from'];
+        }
+
+        return [
+            'id' => $visitor['id'] ?? 0,
+            'name' => $visitor['full_name'] ?? 'N/A',
+            'contact' => $visitor['contact'] ?? '',
+            'company' => $visitor['company'] ?? 'N/A',
+            'host' => $visitor['host_name'] ?? 'N/A',
+            'time' => $timeDisplay,
+            'date_raw' => $dateRaw,
+            'status' => $status,
+            'statusClass' => $statusClass,
+            'statusToken' => $statusToken,
+            'hasImage' => false,
+            'initials' => strtoupper(substr($visitor['full_name'] ?? 'NA', 0, 2)),
+        ];
+    }
+
+    private function buildHostVisitorsList(
+        string $tab,
+        int $page,
+        int $perPage,
+        string $company,
+        string $dateFrom,
+        string $dateTo
+    ): array {
+        $db = \Config\Database::connect();
+        $today = date('Y-m-d');
+        $tabCounts = $this->getHostVisitorTabCounts();
+
+        $params = [$today, $today];
+        $extraWhere = '';
+
+        if ($tab === 'prearrival') {
+            $extraWhere .= ' AND iv.check_in_time IS NULL';
+        } elseif ($tab === 'checkedin') {
+            $extraWhere .= ' AND iv.check_in_time IS NOT NULL AND iv.check_out_time IS NULL';
+        } elseif ($tab === 'checkedout') {
+            $extraWhere .= ' AND iv.check_out_time IS NOT NULL';
+        }
+
+        if ($company !== '') {
+            $extraWhere .= ' AND LOWER(i.company) = LOWER(?)';
+            $params[] = $company;
+        }
+
+        if ($dateFrom !== '') {
+            $extraWhere .= ' AND COALESCE(iv.check_out_time, iv.check_in_time, COALESCE(slot.date_from, fs.date_from)) >= ?';
+            $params[] = $dateFrom;
+        }
+
+        if ($dateTo !== '') {
+            $extraWhere .= ' AND COALESCE(iv.check_out_time, iv.check_in_time, COALESCE(slot.date_from, fs.date_from)) <= ?';
+            $params[] = $dateTo;
+        }
+
+        $countQuery = "SELECT COUNT(*) AS c
+                       " . $this->getHostVisitorBaseFromSql() . $extraWhere;
+        $total = (int) ($db->query($countQuery, $params)->getRow()->c ?? 0);
+
+        $totalPages = $total > 0 ? (int) ceil($total / $perPage) : 1;
+        if ($page > $totalPages) {
+            $page = $totalPages;
+        }
+        $offset = ($page - 1) * $perPage;
+
+        $listQuery = "SELECT i.*,
+                             iv.check_in_time,
+                             iv.check_out_time,
+                             COALESCE(i.invited_by, 'N/A') as host_name,
+                             COALESCE(slot.date_from, fs.date_from) AS date_from,
+                             COALESCE(slot.date_to, fs.date_to) AS date_to
+                      " . $this->getHostVisitorBaseFromSql() . $extraWhere . "
+                      ORDER BY COALESCE(slot.date_from, iv.check_in_time, fs.date_from) ASC
+                      LIMIT ? OFFSET ?";
+
+        $listParams = array_merge($params, [$perPage, $offset]);
+        $visitorsData = $db->query($listQuery, $listParams)->getResultArray();
+
+        $visitors = [];
+        foreach ($visitorsData as $visitor) {
+            $visitors[] = $this->formatHostVisitorRow($visitor);
+        }
+
+        $from = $total > 0 ? $offset + 1 : 0;
+        $to = $total > 0 ? min($offset + count($visitors), $total) : 0;
+
+        return [
+            'visitors' => $visitors,
+            'tabCounts' => $tabCounts,
+            'pagination' => [
+                'page' => $page,
+                'per_page' => $perPage,
+                'total' => $total,
+                'total_pages' => $totalPages,
+                'from' => $from,
+                'to' => $to,
+            ],
+        ];
     }
 }

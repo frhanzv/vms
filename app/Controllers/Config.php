@@ -5393,18 +5393,16 @@ class Config extends BaseController
 
     public function getKioskSettings()
     {
-        $model    = new MobileKioskSettingModel();
-        $settings = $model->findAll();
-        $config   = [];
+        $model  = new MobileKioskSettingModel();
+        $config = $model->getGlobalConfigMap();
 
-        foreach ($settings as $s) {
-            $config[$s['setting_key']] = $s['setting_value'];
-        }
-
-        return view('config/kiosk_settings', [
-            'pageTitle' => 'Kiosk Settings - SafeG',
-            'config'    => $config,
-        ]);
+        return $this->response
+            ->setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            ->setHeader('Pragma', 'no-cache')
+            ->setBody(view('config/kiosk_settings', [
+                'pageTitle' => 'Kiosk Settings - SafeG',
+                'config'    => $config,
+            ]));
     }
 
     public function saveKioskSettings()
@@ -5433,40 +5431,11 @@ class Config extends BaseController
         ];
 
         foreach ($keys as $key) {
-            $value    = $this->request->getPost($key) ?? 'false';
-            $existing = $model->where('setting_key', $key)->first();
-
-            if ($existing) {
-                $model->update($existing['id'], [
-                    'setting_value' => $value,
-                    'updated_at'    => date('Y-m-d H:i:s'),
-                ]);
-            } else {
-                $model->insert([
-                    'setting_key'   => $key,
-                    'setting_value' => $value,
-                    'created_at'    => date('Y-m-d H:i:s'),
-                    'updated_at'    => date('Y-m-d H:i:s'),
-                ]);
-            }
+            $value = $this->request->getPost($key) === 'true' ? 'true' : 'false';
+            $model->saveGlobalSetting($key, $value);
         }
 
-        $visitorFieldsJson = json_encode($visitorFields);
-        $existing = $model->where('setting_key', 'kiosk_visitor_fields')->first();
-
-        if ($existing) {
-            $model->update($existing['id'], [
-                'setting_value' => $visitorFieldsJson,
-                'updated_at'    => date('Y-m-d H:i:s'),
-            ]);
-        } else {
-            $model->insert([
-                'setting_key'   => 'kiosk_visitor_fields',
-                'setting_value' => $visitorFieldsJson,
-                'created_at'    => date('Y-m-d H:i:s'),
-                'updated_at'    => date('Y-m-d H:i:s'),
-            ]);
-        }
+        $model->saveGlobalSetting('kiosk_visitor_fields', json_encode($visitorFields));
 
         return redirect()->to('config/kioskSettings')
             ->with('success', 'Kiosk settings saved!');

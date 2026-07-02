@@ -77,13 +77,13 @@
                     <div class="md:col-span-6 flex gap-0">
                         <input type="text" id="searchInput" placeholder="IC NO / PASSPORT NO / NAME / STAFF ID"
                             class="flex-1 h-10 px-4 text-sm bg-white border border-slate-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-slate-900 placeholder-slate-400 uppercase placeholder:normal-case"/>
-                        <button type="button" onclick="filterTable()"
+                        <button type="button" onclick="applyClosedListFilters()"
                             class="flex items-center justify-center h-10 w-10 bg-primary hover:bg-primary-dark text-white rounded-r-lg transition-colors flex-shrink-0">
                             <span class="material-symbols-outlined text-[20px]">search</span>
                         </button>
                     </div>
                     <div class="md:col-span-3">
-                        <select id="typeFilter" onchange="filterTable()"
+                        <select id="typeFilter" onchange="applyClosedListFilters()"
                             class="w-full h-10 pl-3 pr-8 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-600 appearance-none cursor-pointer">
                             <option value="">TYPE OF BLACKLIST</option>
                             <option value="Staff">Staff</option>
@@ -91,7 +91,7 @@
                         </select>
                     </div>
                     <div class="md:col-span-3">
-                        <select id="sortFilter" onchange="filterTable()"
+                        <select id="sortFilter" onchange="applyClosedListFilters()"
                             class="w-full h-10 pl-3 pr-8 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-600 appearance-none cursor-pointer">
                             <option value="">SORT BY</option>
                             <option value="name_asc">Name (A-Z)</option>
@@ -125,7 +125,7 @@
                                     data-staff="<?= strtolower(esc($entry['staff_id'] ?? '')) ?>"
                                     data-type="<?= esc($entry['type']) ?>"
                                     data-date="<?= esc($entry['blacklist_date']) ?>">
-                                    <td class="px-4 py-3.5 text-sm text-slate-500 font-medium"><?= $index + 1 ?></td>
+                                    <td class="px-4 py-3.5 text-sm text-slate-500 font-medium closed-row-no"><?= $index + 1 ?></td>
                                     <td class="px-4 py-3.5 text-sm text-slate-600"><?= esc($entry['created_date'] ?? '—') ?></td>
                                     <td class="px-4 py-3.5 text-sm text-slate-600"><?= esc($entry['blacklist_date'] ?? '—') ?></td>
                                     <td class="px-4 py-3.5 text-sm text-slate-600 font-mono"><?= esc($entry['ic_passport_no']) ?></td>
@@ -153,19 +153,16 @@
                 </div>
 
                 <!-- Pagination -->
-                <div class="flex items-center justify-between pt-2">
-                    <div class="flex items-center gap-1">
-                        <button class="flex items-center justify-center size-8 rounded border border-slate-200 text-slate-400 hover:bg-slate-100" disabled>«</button>
-                        <button class="flex items-center justify-center size-8 rounded border border-primary bg-primary text-white text-xs font-bold">1</button>
-                        <button class="flex items-center justify-center size-8 rounded border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs">2</button>
-                        <button class="flex items-center justify-center size-8 rounded border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs">3</button>
-                        <button class="flex items-center justify-center size-8 rounded border border-slate-200 text-slate-400 hover:bg-slate-100">»</button>
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+                    <span id="closedPaginationInfo" class="text-xs text-slate-500"></span>
+                    <div class="flex items-center gap-3">
+                        <div id="closedPaginationBtns" class="flex items-center gap-1"></div>
+                        <select id="closedPerPageSelect" class="h-9 pl-3 pr-7 text-xs bg-white border border-slate-200 rounded-lg text-slate-600 outline-none appearance-none cursor-pointer">
+                            <option value="10">10 ITEMS PER PAGE</option>
+                            <option value="25">25 ITEMS PER PAGE</option>
+                            <option value="50">50 ITEMS PER PAGE</option>
+                        </select>
                     </div>
-                    <select class="h-9 pl-3 pr-7 text-xs bg-white border border-slate-200 rounded-lg text-slate-600 outline-none appearance-none cursor-pointer">
-                        <option value="10">10 ITEMS PER PAGE</option>
-                        <option value="25">25 ITEMS PER PAGE</option>
-                        <option value="50">50 ITEMS PER PAGE</option>
-                    </select>
                 </div>
 
             </div>
@@ -316,26 +313,140 @@ document.getElementById('detailModal').addEventListener('click', function(e) {
     if (e.target === this) closeModal();
 });
 
-// Client-side filter
-function filterTable() {
-    const search = document.getElementById('searchInput').value.toLowerCase();
-    const type   = document.getElementById('typeFilter').value;
-    const rows   = document.querySelectorAll('#closedTableBody tr[data-name]');
+// Client-side filter + pagination
+(function () {
+    const tbody   = document.getElementById('closedTableBody');
+    const search  = document.getElementById('searchInput');
+    const typeSel = document.getElementById('typeFilter');
+    const sortSel = document.getElementById('sortFilter');
+    const perSel  = document.getElementById('closedPerPageSelect');
+    const info    = document.getElementById('closedPaginationInfo');
+    const btnCon  = document.getElementById('closedPaginationBtns');
 
-    rows.forEach(row => {
-        const matchSearch = !search ||
-            row.dataset.name.includes(search) ||
-            row.dataset.ic.includes(search) ||
-            row.dataset.staff.includes(search);
-        const matchType = !type || row.dataset.type === type;
+    if (!tbody) return;
 
-        row.style.display = (matchSearch && matchType) ? '' : 'none';
+    const allRows = Array.from(tbody.querySelectorAll('tr[data-name]'));
+    let filtered  = [...allRows];
+    let currentPage = 1;
+    let perPage = 10;
+
+    function applyFilter() {
+        const q    = (search?.value || '').toLowerCase().trim();
+        const type = typeSel?.value || '';
+
+        filtered = allRows.filter(row => {
+            const matchSearch = !q ||
+                row.dataset.name.includes(q) ||
+                row.dataset.ic.includes(q) ||
+                row.dataset.staff.includes(q);
+            const matchType = !type || row.dataset.type === type;
+            return matchSearch && matchType;
+        });
+
+        currentPage = 1;
+        applySort();
+    }
+
+    function applySort() {
+        const s = sortSel?.value || '';
+        filtered.sort((a, b) => {
+            switch (s) {
+                case 'name_asc':
+                    return a.dataset.name.localeCompare(b.dataset.name);
+                case 'date_desc':
+                    return (b.dataset.date || '').localeCompare(a.dataset.date || '');
+                default:
+                    return 0;
+            }
+        });
+        render();
+    }
+
+    function render() {
+        const total = filtered.length;
+        const totalPages = Math.max(1, Math.ceil(total / perPage));
+        if (currentPage > totalPages) currentPage = totalPages;
+
+        const start = (currentPage - 1) * perPage;
+        const end   = start + perPage;
+
+        allRows.forEach(r => (r.style.display = 'none'));
+        filtered.forEach((row, i) => {
+            const visible = i >= start && i < end;
+            row.style.display = visible ? '' : 'none';
+            if (visible) {
+                const noCell = row.querySelector('.closed-row-no');
+                if (noCell) noCell.textContent = String(i + 1);
+            }
+        });
+
+        renderPagination(total, totalPages, start, end);
+    }
+
+    function renderPagination(total, totalPages, start, end) {
+        const first = total === 0 ? 0 : start + 1;
+        const last  = Math.min(end, total);
+        if (info) info.textContent = `Showing ${first}–${last} of ${total}`;
+
+        if (!btnCon) return;
+        btnCon.innerHTML = '';
+
+        const makeBtn = (label, disabled, active = false) => {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.textContent = label;
+            b.className = active
+                ? 'flex items-center justify-center size-8 rounded border border-primary bg-primary text-white text-xs font-bold'
+                : 'flex items-center justify-center size-8 rounded border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs' + (disabled ? ' opacity-50 cursor-not-allowed' : '');
+            b.disabled = disabled;
+            return b;
+        };
+
+        const prev = makeBtn('«', currentPage === 1);
+        prev.onclick = () => { currentPage--; render(); };
+        btnCon.appendChild(prev);
+
+        pageNumbers(currentPage, totalPages).forEach(p => {
+            if (p === '…') {
+                const sp = document.createElement('span');
+                sp.textContent = '…';
+                sp.className = 'flex items-center justify-center size-8 text-xs text-slate-400';
+                btnCon.appendChild(sp);
+            } else {
+                const b = makeBtn(String(p), false, p === currentPage);
+                b.onclick = () => { currentPage = p; render(); };
+                btnCon.appendChild(b);
+            }
+        });
+
+        const next = makeBtn('»', currentPage === totalPages);
+        next.onclick = () => { currentPage++; render(); };
+        btnCon.appendChild(next);
+    }
+
+    function pageNumbers(cur, total) {
+        if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+        const p = [1];
+        if (cur > 3) p.push('…');
+        for (let i = Math.max(2, cur - 1); i <= Math.min(total - 1, cur + 1); i++) p.push(i);
+        if (cur < total - 2) p.push('…');
+        p.push(total);
+        return p;
+    }
+
+    window.applyClosedListFilters = applyFilter;
+
+    search?.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') applyFilter();
     });
-}
+    perSel?.addEventListener('change', () => {
+        perPage = parseInt(perSel.value, 10) || 10;
+        currentPage = 1;
+        render();
+    });
 
-document.getElementById('searchInput').addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') filterTable();
-});
+    render();
+})();
 </script>
 </body>
 </html>

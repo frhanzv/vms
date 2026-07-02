@@ -25,109 +25,31 @@ class VisitorList extends BaseController
 
     public function index()
     {
-        // Get all approved invitations with card details
         $db = \Config\Database::connect();
-        $builder = $db->table('invitation_visitors iv');
-        $baseSelect = 'iv.*, 
-                          iv.version as iv_version,
-                          i.full_name as visitor_name, 
-                          i.ic_passport as visitor_ic_passport,
-                          i.contact as visitor_contact,
-                          i.company as visitor_company,
-                          i.invited_by as host_name,
-                          i.reason as visit_purpose,
-                          i.vehicle_registration as vehicle_reg,
-                          i.location,
-                          i.profile_photo_path AS invitation_profile_photo_path,
-                          i.facial_verification_image AS invitation_facial_verification_image,
-                          i.registration_source,
-                          i.created_at as invitation_created_at,
-                          i.version as invitation_version,
-                          sch.id as schedule_id,
-                          sch.date_from as sch_date_from,
-                          sch.date_to as sch_date_to,
-                          vc.id as visitor_card_table_id,
-                          vc.card_id as card_epc,
-                          vc.status as card_status';
-        if ($this->invitationsSupportVisitorType()) {
-            $builder->select($baseSelect . ',
-                          i.visitor_type_id,
-                          vt.name as visitor_type_name');
-            $builder->join('invitations i', 'i.id = iv.invitation_id');
-            $builder->join('visitor_types vt', 'vt.id = i.visitor_type_id', 'left');
-        } else {
-            $builder->select($baseSelect);
-            $builder->join('invitations i', 'i.id = iv.invitation_id');
-        }
-        $builder->join(
-            '(SELECT invitation_id, MIN(id) AS id FROM invitation_schedules GROUP BY invitation_id) sch_pick',
-            'sch_pick.invitation_id = i.id',
-            'left'
-        );
-        $builder->join('invitation_schedules sch', 'sch.id = sch_pick.id', 'left');
-        $builder->join('visitor_cards vc', 'vc.id = iv.visitor_card_id', 'left');
-        $builder->where('i.status', 'Approved');
-
-        // Optional free-text filter (used by the search box and the Read MyKad → IC auto-search).
-        // Matches against full name, IC/passport (also normalized to strip dashes/spaces so a
-        // scanned "020314-03-0050" still matches a stored "020314030050"), vehicle reg, and the
-        // bound visitor card EPC (Visitor Pass No).
         $searchTerm = trim((string) ($this->request->getGet('search') ?? ''));
-        if ($searchTerm !== '') {
-            $like = '%' . str_replace(['%', '_'], ['\\%', '\\_'], $searchTerm) . '%';
-            $normalized = preg_replace('/[\s\-]/', '', $searchTerm);
-            if ($normalized === null) {
-                $normalized = $searchTerm;
-            }
-            $likeNormalized = '%' . str_replace(['%', '_'], ['\\%', '\\_'], $normalized) . '%';
-
-            $builder->groupStart()
-                ->like('i.full_name', $searchTerm, 'both', null, true)
-                ->orLike('i.ic_passport', $searchTerm, 'both', null, true)
-                ->orLike('i.vehicle_registration', $searchTerm, 'both', null, true)
-                ->orLike('vc.card_id', $searchTerm, 'both', null, true);
-            if ($normalized !== '' && $normalized !== $searchTerm) {
-                $builder->orWhere(
-                    "REPLACE(REPLACE(i.ic_passport, '-', ''), ' ', '') LIKE",
-                    $likeNormalized,
-                    false
-                );
-            }
-            $builder->groupEnd();
+        $page = max(1, (int) ($this->request->getGet('page') ?? 1));
+        $perPage = (int) ($this->request->getGet('per_page') ?? 10);
+        if (! in_array($perPage, [10, 25, 50], true)) {
+            $perPage = 10;
         }
 
-        $builder->orderBy('i.created_at', 'DESC');
-
-        // Debug: Log the query
-        $sql = $builder->getCompiledSelect(false);
-        log_message('debug', 'Visitor List Query: ' . $sql);
-
-        $results = $builder->get()->getResultArray();
-        
-        // Debug: Log results count
-        log_message('debug', 'Visitor List Results Count: ' . count($results));
-        
-        // Also check total approved invitations
-        $totalInvitations = $db->table('invitations')->where('status', 'Approved')->countAllResults();
-        log_message('debug', 'Total Approved Invitations: ' . $totalInvitations);
-        
-        // Check invitation_visitors records
-        $totalIV = $db->table('invitation_visitors')->countAllResults();
-        log_message('debug', 'Total invitation_visitors Records: ' . $totalIV);
-
-        // Count statistics
-        $totalApproved = count($results);
-        $checkedIn = 0;
-        $withCard = 0;
-        
-        foreach ($results as $row) {
-            if ($row['check_in_time']) {
-                $checkedIn++;
-            }
-            if ($row['visitor_card_id']) {
-                $withCard++;
-            }
+        $builder = $this->buildVisitorListQuery($db, $searchTerm);
+        $totalApproved = (int) $builder->countAllResults(false);
+        $lastPage = max(1, (int) ceil($totalApproved / $perPage));
+        if ($page > $lastPage) {
+            $page = $lastPage;
         }
+
+        $results = $builder
+            ->limit($perPage, ($page - 1) * $perPage)
+            ->get()
+            ->getResultArray();
+
+        $statsBuilder = $this->buildVisitorListQuery($db, $searchTerm);
+        $checkedIn = (int) $statsBuilder->where('iv.check_in_time IS NOT NULL', null, false)->countAllResults();
+        $withCard = (int) $this->buildVisitorListQuery($db, $searchTerm)
+            ->where('iv.visitor_card_id IS NOT NULL', null, false)
+            ->countAllResults();
 
         $pending = $this->invitationModel
             ->whereIn('status', ['pending', 'submitted'])
@@ -135,6 +57,7 @@ class VisitorList extends BaseController
 
         // Format data for the view
         $visitors = [];
+        $rowOffset = ($page - 1) * $perPage;
         foreach ($results as $index => $row) {
             if ($row['visitor_card_id'] && empty($row['check_out_time'])) {
                 $cardStatusBadge = 'In Use';
@@ -158,7 +81,7 @@ class VisitorList extends BaseController
                 'id' => $row['id'],
                 'invitation_id' => $row['invitation_id'],
                 'schedule_id' => isset($row['schedule_id']) ? (int) $row['schedule_id'] : null,
-                'no' => $index + 1,
+                'no' => $rowOffset + $index + 1,
                 'date' => date('M j, Y', strtotime($dateSrc)),
                 'full_name' => $row['visitor_name'],
                 'ic_passport' => $row['visitor_ic_passport'] ?? '',
@@ -221,9 +144,90 @@ class VisitorList extends BaseController
             'showVisitorTypes' => $this->invitationsSupportVisitorType(),
             'searchTerm' => $searchTerm,
             'cardEnabled' => client_feature_enabled('visitor_card'),
+            'pagination' => [
+                'current_page' => $page,
+                'last_page'    => $lastPage,
+                'total'        => $totalApproved,
+                'per_page'     => $perPage,
+            ],
         ];
 
         return view('visitors/list', $data);
+    }
+
+    /**
+     * Base query for the visitor pass list (approved invitations + visitor rows).
+     *
+     * @return \CodeIgniter\Database\BaseBuilder
+     */
+    private function buildVisitorListQuery($db, string $searchTerm)
+    {
+        $builder = $db->table('invitation_visitors iv');
+        $baseSelect = 'iv.*, 
+                          iv.version as iv_version,
+                          i.full_name as visitor_name, 
+                          i.ic_passport as visitor_ic_passport,
+                          i.contact as visitor_contact,
+                          i.company as visitor_company,
+                          i.invited_by as host_name,
+                          i.reason as visit_purpose,
+                          i.vehicle_registration as vehicle_reg,
+                          i.location,
+                          i.profile_photo_path AS invitation_profile_photo_path,
+                          i.facial_verification_image AS invitation_facial_verification_image,
+                          i.registration_source,
+                          i.created_at as invitation_created_at,
+                          i.version as invitation_version,
+                          sch.id as schedule_id,
+                          sch.date_from as sch_date_from,
+                          sch.date_to as sch_date_to,
+                          vc.id as visitor_card_table_id,
+                          vc.card_id as card_epc,
+                          vc.status as card_status';
+        if ($this->invitationsSupportVisitorType()) {
+            $builder->select($baseSelect . ',
+                          i.visitor_type_id,
+                          vt.name as visitor_type_name');
+            $builder->join('invitations i', 'i.id = iv.invitation_id');
+            $builder->join('visitor_types vt', 'vt.id = i.visitor_type_id', 'left');
+        } else {
+            $builder->select($baseSelect);
+            $builder->join('invitations i', 'i.id = iv.invitation_id');
+        }
+        $builder->join(
+            '(SELECT invitation_id, MIN(id) AS id FROM invitation_schedules GROUP BY invitation_id) sch_pick',
+            'sch_pick.invitation_id = i.id',
+            'left'
+        );
+        $builder->join('invitation_schedules sch', 'sch.id = sch_pick.id', 'left');
+        $builder->join('visitor_cards vc', 'vc.id = iv.visitor_card_id', 'left');
+        $builder->where('i.status', 'Approved');
+
+        if ($searchTerm !== '') {
+            $normalized = preg_replace('/[\s\-]/', '', $searchTerm);
+            if ($normalized === null) {
+                $normalized = $searchTerm;
+            }
+            $likeNormalized = '%' . str_replace(['%', '_'], ['\\%', '\\_'], $normalized) . '%';
+
+            $builder->groupStart()
+                ->like('i.full_name', $searchTerm, 'both', null, true)
+                ->orLike('i.ic_passport', $searchTerm, 'both', null, true)
+                ->orLike('i.vehicle_registration', $searchTerm, 'both', null, true)
+                ->orLike('vc.card_id', $searchTerm, 'both', null, true);
+            if ($normalized !== '' && $normalized !== $searchTerm) {
+                $builder->orWhere(
+                    "REPLACE(REPLACE(i.ic_passport, '-', ''), ' ', '') LIKE",
+                    $likeNormalized,
+                    false
+                );
+            }
+            $builder->groupEnd();
+        }
+
+        $builder->orderBy('i.created_at', 'DESC');
+
+        return $builder;
     }
 
     public function export()

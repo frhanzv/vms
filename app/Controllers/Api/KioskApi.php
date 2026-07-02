@@ -175,13 +175,8 @@ class KioskApi extends BaseController
     /** GET /api/admin/moduleConfig/getByProject */
     public function getModuleConfig(): \CodeIgniter\HTTP\Response
     {
-        $model = new MobileKioskSettingModel();
-        $settings = $model->findAll();
-
-        $config = [];
-        foreach ($settings as $s) {
-            $config[$s['setting_key']] = $s['setting_value'];
-        }
+        $model  = new MobileKioskSettingModel();
+        $config = $model->getGlobalConfigMap();
 
         $defaultVisitorFields = [
             'contact_number'  => ['show' => true,  'required' => true],

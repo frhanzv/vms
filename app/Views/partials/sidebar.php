@@ -1,6 +1,6 @@
 <?php
-helper('access');
-$current     = service('uri')->getPath();
+helper(['access', 'navigation']);
+$current     = app_route_path();
 $isDashboard = ($current === '' || $current === 'dashboard');
 $isStaff     = str_contains($current, 'staffs') || str_contains($current, 'staff-pass-request');
 $isWorkflow  = str_contains($current, 'workflow');

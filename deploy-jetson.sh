@@ -20,8 +20,14 @@ php spark migrate
 echo "==> Fixing writable permissions (Apache + CLI)..."
 sudo chown -R www-data:www-data writable
 sudo chmod -R 775 writable
+sudo chown -R www-data:www-data public/uploads
+sudo chmod -R 775 public/uploads
 
-echo "==> Reloading Apache..."
-sudo systemctl reload apache2
+echo "==> Clearing application cache..."
+rm -rf writable/cache/*
+touch writable/cache/index.html
+
+echo "==> Restarting Apache (reloads PHP OPcache)..."
+sudo systemctl restart apache2
 
 echo "Done. Site: http://localhost/"
