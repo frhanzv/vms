@@ -383,6 +383,29 @@
                                         </label>
                                     </div>
                                 </div>
+                                <div class="md:col-span-2 flex flex-col gap-2">
+                                    <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Company Logo</label>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">Upload a logo image to replace the default sidebar icon.</p>
+                                    <form id="companyLogoForm" class="mt-1" enctype="multipart/form-data">
+                                        <input id="company_logo_image" name="company_logo_image" type="file" accept=".jpg,.jpeg,.png,.webp,.gif,image/*" class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2.5 text-sm text-gray-700 dark:text-slate-200" />
+                                        <div class="mt-2 flex items-center gap-3">
+                                            <div id="companyLogoDefaultPreview" class="size-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary border border-slate-200 dark:border-slate-700">
+                                                <span class="material-symbols-outlined text-3xl">shield_person</span>
+                                            </div>
+                                            <img id="companyLogoPreview" src="" alt="Company logo preview" class="size-10 rounded-lg object-contain border border-slate-200 dark:border-slate-700 bg-white p-0.5 hidden" />
+                                            <p id="companyLogoPathText" class="text-xs text-slate-500 dark:text-slate-400"></p>
+                                        </div>
+                                        <label class="mt-2 inline-flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                                            <input id="remove_company_logo" type="checkbox" class="rounded border-slate-300 text-primary focus:ring-primary/20" />
+                                            Remove current logo (revert to default icon)
+                                        </label>
+                                        <div class="mt-3 flex justify-end">
+                                            <button type="button" onclick="saveCompanyLogoSettings()" class="px-5 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm">
+                                                Save Company Logo
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
                             </div>
                             <div class="mt-8 border-t border-gray-200 dark:border-slate-700 pt-6">
                                 <div class="mb-4">
@@ -13974,6 +13997,106 @@
         });
 
         fetchLoginPageSettings();
+
+        // ============== COMPANY LOGO SETTINGS ==============
+
+        let currentCompanyLogoUrl = '';
+
+        function updateCompanyLogoPreview(url, rawValue = '') {
+            const preview = document.getElementById('companyLogoPreview');
+            const defaultPreview = document.getElementById('companyLogoDefaultPreview');
+            const pathText = document.getElementById('companyLogoPathText');
+            if (!preview || !defaultPreview || !pathText) return;
+
+            if (url) {
+                preview.src = url;
+                preview.classList.remove('hidden');
+                defaultPreview.classList.add('hidden');
+            } else {
+                preview.src = '';
+                preview.classList.add('hidden');
+                defaultPreview.classList.remove('hidden');
+            }
+
+            pathText.textContent = rawValue ? `Current: ${rawValue}` : 'Current: Default sidebar icon';
+        }
+
+        function populateCompanyLogoSettings(settings) {
+            currentCompanyLogoUrl = settings.logo_url || '';
+            updateCompanyLogoPreview(currentCompanyLogoUrl, settings.logo || '');
+
+            const removeCheckbox = document.getElementById('remove_company_logo');
+            if (removeCheckbox) {
+                removeCheckbox.checked = false;
+            }
+        }
+
+        function fetchCompanyLogoSettings() {
+            fetch('<?= base_url('config/getCompanyLogoSettings') ?>')
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success || !data.data) {
+                        showToast(data.message || 'Failed to load company logo settings', 'error');
+                        return;
+                    }
+                    populateCompanyLogoSettings(data.data);
+                })
+                .catch(() => {
+                    showToast('Failed to load company logo settings', 'error');
+                });
+        }
+
+        function saveCompanyLogoSettings() {
+            const form = document.getElementById('companyLogoForm');
+            if (!form) return;
+
+            const payload = new FormData(form);
+            const removeLogo = document.getElementById('remove_company_logo')?.checked;
+            payload.append('remove_logo', removeLogo ? '1' : '0');
+
+            fetch('<?= base_url('config/saveCompanyLogoSettings') ?>', {
+                method: 'POST',
+                body: payload,
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        const details = data.errors ? Object.values(data.errors).join(', ') : '';
+                        showToast(details || data.message || 'Failed to save company logo', 'error');
+                        return;
+                    }
+
+                    showToast(data.message || 'Company logo saved', 'success');
+                    if (data.data) {
+                        populateCompanyLogoSettings(data.data);
+                    } else {
+                        fetchCompanyLogoSettings();
+                    }
+                })
+                .catch(() => {
+                    showToast('Failed to save company logo', 'error');
+                });
+        }
+
+        document.getElementById('company_logo_image')?.addEventListener('change', function (event) {
+            const file = event.target?.files?.[0];
+            if (!file) {
+                updateCompanyLogoPreview(currentCompanyLogoUrl, '');
+                return;
+            }
+            const objectUrl = URL.createObjectURL(file);
+            updateCompanyLogoPreview(objectUrl, file.name);
+        });
+
+        document.getElementById('remove_company_logo')?.addEventListener('change', function (event) {
+            if (event.target?.checked) {
+                updateCompanyLogoPreview('', '');
+            } else {
+                updateCompanyLogoPreview(currentCompanyLogoUrl, '');
+            }
+        });
+
+        fetchCompanyLogoSettings();
 
         // ============== DEVICE ASSIGNMENTS & IP RANGE ==============
 

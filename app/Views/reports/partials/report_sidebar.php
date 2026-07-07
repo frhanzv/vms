@@ -4,7 +4,7 @@
  *
  * @var string $current
  */
-helper(['access', 'navigation']);
+helper(['access', 'navigation', 'branding']);
 $current = app_route_path($current ?? null);
 $isDashboard = ($current === '' || $current === 'dashboard');
 $isStaff = str_contains($current, 'staffs') || str_contains($current, 'staff-pass-request');
@@ -19,10 +19,17 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
 <aside class="w-64 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col p-4 hidden md:flex h-full overflow-hidden">
     <div class="flex flex-col gap-8 flex-1 min-h-0">
         <div class="flex items-center gap-3 px-2">
+            <?php $sidebarLogoUrl = company_logo_url(); ?>
+            <?php if ($sidebarLogoUrl): ?>
+            <div class="rounded-lg size-10 flex-shrink-0 overflow-hidden bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                <img src="<?= esc($sidebarLogoUrl) ?>" alt="<?= esc(company_brand_name()) ?> logo" class="size-10 object-contain" />
+            </div>
+            <?php else: ?>
             <div class="bg-center bg-no-repeat bg-cover rounded-lg size-10 bg-primary/10 flex items-center justify-center text-primary">
                 <span class="material-symbols-outlined text-3xl">shield_person</span>
             </div>
-            <h1 class="text-lg font-bold tracking-tight text-slate-900 dark:text-white">SafeG</h1>
+            <?php endif; ?>
+            <h1 class="text-lg font-bold tracking-tight text-slate-900 dark:text-white"><?= esc(company_brand_name()) ?></h1>
         </div>
         <nav class="flex flex-col gap-2 overflow-y-auto pr-1 custom-scrollbar">
             <?php if (has_access('dashboard', 'main_menu')): ?>

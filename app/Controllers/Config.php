@@ -3734,6 +3734,96 @@ class Config extends BaseController
         ]);
     }
 
+    public function getCompanyLogoSettings()
+    {
+        $rawPath = (string) $this->settingModel->getSetting('company_logo');
+        $logoUrl = $this->resolveCompanyLogoUrl($rawPath);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => [
+                'logo' => $rawPath,
+                'logo_url' => $logoUrl,
+            ],
+        ]);
+    }
+
+    public function saveCompanyLogoSettings()
+    {
+        $rules = [
+            'company_logo_image' => 'permit_empty|is_image[company_logo_image]|mime_in[company_logo_image,image/jpg,image/jpeg,image/png,image/webp,image/gif]|max_size[company_logo_image,2048]',
+        ];
+
+        if (!$this->validate($rules)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $this->validator->getErrors(),
+            ])->setStatusCode(400);
+        }
+
+        $currentLogo = (string) $this->settingModel->getSetting('company_logo');
+        $upload = $this->request->getFile('company_logo_image');
+        $removeLogo = $this->request->getPost('remove_logo') === '1';
+
+        if ($removeLogo && $currentLogo !== '') {
+            $this->deleteCompanyLogoFile($currentLogo);
+            $this->settingModel->setSetting('company_logo', '');
+            $currentLogo = '';
+        }
+
+        if ($upload && $upload->isValid() && !$upload->hasMoved()) {
+            $uploadDir = FCPATH . 'assets/uploads/company_logo/';
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0755, true);
+            }
+
+            if ($currentLogo !== '') {
+                $this->deleteCompanyLogoFile($currentLogo);
+            }
+
+            $newFilename = 'company_logo_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $upload->getExtension();
+            $upload->move($uploadDir, $newFilename);
+            $this->settingModel->setSetting('company_logo', 'assets/uploads/company_logo/' . $newFilename);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Company logo saved successfully',
+            'data' => [
+                'logo' => (string) $this->settingModel->getSetting('company_logo'),
+                'logo_url' => $this->resolveCompanyLogoUrl((string) $this->settingModel->getSetting('company_logo')),
+            ],
+        ]);
+    }
+
+    private function resolveCompanyLogoUrl(?string $rawPath): ?string
+    {
+        $path = trim((string) $rawPath);
+
+        if ($path === '') {
+            return null;
+        }
+
+        if (preg_match('/^https?:\/\//i', $path)) {
+            return $path;
+        }
+
+        return base_url(ltrim($path, '/'));
+    }
+
+    private function deleteCompanyLogoFile(string $path): void
+    {
+        if (!str_starts_with($path, 'assets/uploads/company_logo/')) {
+            return;
+        }
+
+        $absolutePath = FCPATH . str_replace('/', DIRECTORY_SEPARATOR, $path);
+        if (is_file($absolutePath)) {
+            @unlink($absolutePath);
+        }
+    }
+
     public function getIpRangeSettings()
     {
         return $this->response->setJSON([

@@ -223,6 +223,8 @@ $routes->get('config/getIpRangeSettings', 'Config::getIpRangeSettings');
 $routes->post('config/saveIpRangeSettings', 'Config::saveIpRangeSettings');
 $routes->get('config/getLoginPageSettings', 'Config::getLoginPageSettings');
 $routes->post('config/saveLoginPageSettings', 'Config::saveLoginPageSettings');
+$routes->get('config/getCompanyLogoSettings', 'Config::getCompanyLogoSettings');
+$routes->post('config/saveCompanyLogoSettings', 'Config::saveCompanyLogoSettings');
 $routes->get('config/getEmailTemplateFormSettings', 'Config::getEmailTemplateFormSettings');
 $routes->post('config/saveEmailTemplateFormSettings', 'Config::saveEmailTemplateFormSettings');
 $routes->get('config/getInvitationEmailTemplateSettings', 'Config::getInvitationEmailTemplateSettings');
@@ -540,6 +542,8 @@ $routes->group('config', ['filter' => $superadmins], function($routes) {
     // Login Page Settings
     $routes->get('getLoginPageSettings', 'Config::getLoginPageSettings');
     $routes->post('saveLoginPageSettings', 'Config::saveLoginPageSettings');
+    $routes->get('getCompanyLogoSettings', 'Config::getCompanyLogoSettings');
+    $routes->post('saveCompanyLogoSettings', 'Config::saveCompanyLogoSettings');
 
     // Email Templates
     $routes->get('getEmailTemplateFormSettings', 'Config::getEmailTemplateFormSettings');
