@@ -36,55 +36,91 @@ class FinishClientsTenantColumnMigration extends Migration
             return;
         }
 
-        if ($this->db->fieldExists('company_id', $table) && $this->db->fieldExists('client_id', $table)) {
-            $this->db->query("UPDATE {$table} SET client_id = company_id WHERE client_id IS NULL AND company_id IS NOT NULL AND company_id > 0");
+        if ($this->columnExists($table, 'company_id') && $this->columnExists($table, 'client_id')) {
+            $this->db->query("UPDATE `{$table}` SET client_id = company_id WHERE client_id IS NULL AND company_id IS NOT NULL AND company_id > 0");
         }
 
-        $this->dropForeignKeyOnColumn($table, 'company_id');
-        $this->dropIndexesOnColumn($table, 'company_id');
+        $this->dropColumnIfExists($table, 'company_id');
 
-        if ($this->db->fieldExists('company_id', $table)) {
-            $this->forge->dropColumn($table, 'company_id');
+        if (!$this->columnExists($table, 'client_id')) {
+            return;
         }
 
-        if ($this->db->fieldExists('client_id', $table)) {
-            $this->db->query("ALTER TABLE {$table} MODIFY client_id INT UNSIGNED NOT NULL");
-            $this->dropForeignKeyOnColumn($table, 'client_id');
-            if (!$this->indexExists($table, 'fk_' . $table . '_client')) {
-                $this->db->query('ALTER TABLE `' . $table . '` ADD CONSTRAINT `fk_' . $table . '_client` FOREIGN KEY (`client_id`) REFERENCES `clients`(`id`) ON DELETE CASCADE ON UPDATE CASCADE');
-            }
-            $uniqueName = $table . '_client_unique';
-            if (!$this->indexExists($table, $uniqueName)) {
-                $cols = implode('`,`', $uniqueCols);
-                $this->db->query("ALTER TABLE `{$table}` ADD UNIQUE KEY `{$uniqueName}` (`{$cols}`)");
-            }
+        $this->db->query("ALTER TABLE `{$table}` MODIFY client_id INT UNSIGNED NOT NULL");
+        $this->dropForeignKeyOnColumn($table, 'client_id');
+
+        $fkName = 'fk_' . $table . '_client';
+        if (!$this->foreignKeyExists($table, $fkName)) {
+            $this->db->query('ALTER TABLE `' . $table . '` ADD CONSTRAINT `' . $fkName . '` FOREIGN KEY (`client_id`) REFERENCES `clients`(`id`) ON DELETE CASCADE ON UPDATE CASCADE');
+        }
+
+        $uniqueName = $table . '_client_unique';
+        if (!$this->indexExists($table, $uniqueName)) {
+            $cols = implode('`,`', $uniqueCols);
+            $this->db->query("ALTER TABLE `{$table}` ADD UNIQUE KEY `{$uniqueName}` (`{$cols}`)");
         }
     }
 
     private function finishUsers(): void
     {
-        if (!$this->db->tableExists('users') || !$this->db->fieldExists('client_id', 'users')) {
+        if (!$this->db->tableExists('users') || !$this->columnExists('users', 'client_id')) {
             return;
         }
 
-        $this->db->query('UPDATE users SET client_id = company_id WHERE client_id IS NULL AND company_id IS NOT NULL AND company_id > 0');
-        $this->db->query('UPDATE users SET company_id = NULL WHERE client_id IS NOT NULL');
+        if ($this->columnExists('users', 'company_id')) {
+            $this->db->query('UPDATE users SET client_id = company_id WHERE client_id IS NULL AND company_id IS NOT NULL AND company_id > 0');
+            $this->db->query('UPDATE users SET company_id = NULL WHERE client_id IS NOT NULL');
+            $this->dropForeignKeyOnColumn('users', 'company_id');
+        }
 
-        $this->dropForeignKeyOnColumn('users', 'company_id');
         $this->dropForeignKeyOnColumn('users', 'client_id');
-        if (!$this->indexExists('users', 'fk_users_client')) {
+        if (!$this->foreignKeyExists('users', 'fk_users_client')) {
             $this->db->query('ALTER TABLE users ADD CONSTRAINT fk_users_client FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE SET NULL ON UPDATE CASCADE');
         }
     }
 
     private function finishInvitations(): void
     {
-        if (!$this->db->tableExists('invitations') || !$this->db->fieldExists('client_id', 'invitations')) {
+        if (!$this->db->tableExists('invitations') || !$this->columnExists('invitations', 'client_id')) {
             return;
         }
 
-        $this->db->query('UPDATE invitations SET client_id = company_id WHERE client_id IS NULL AND company_id IS NOT NULL AND company_id > 0');
-        $this->db->query('UPDATE invitations SET company_id = NULL WHERE client_id IS NOT NULL');
+        if ($this->columnExists('invitations', 'company_id')) {
+            $this->db->query('UPDATE invitations SET client_id = company_id WHERE client_id IS NULL AND company_id IS NOT NULL AND company_id > 0');
+        }
+    }
+
+    private function columnExists(string $table, string $column): bool
+    {
+        if (!$this->db->tableExists($table)) {
+            return false;
+        }
+
+        return $this->db->fieldExists($column, $table);
+    }
+
+    private function dropColumnIfExists(string $table, string $column): void
+    {
+        if (!$this->columnExists($table, $column)) {
+            return;
+        }
+
+        $this->dropForeignKeyOnColumn($table, $column);
+        $this->dropIndexesOnColumn($table, $column);
+
+        if (!$this->columnExists($table, $column)) {
+            return;
+        }
+
+        try {
+            $this->db->query("ALTER TABLE `{$table}` DROP COLUMN `{$column}`");
+        } catch (\Throwable $e) {
+            if (!$this->columnExists($table, $column)) {
+                return;
+            }
+
+            throw $e;
+        }
     }
 
     private function indexExists(string $table, string $indexName): bool
@@ -99,8 +135,24 @@ class FinishClientsTenantColumnMigration extends Migration
         return $row !== null;
     }
 
+    private function foreignKeyExists(string $table, string $constraintName): bool
+    {
+        $dbName = $this->db->getDatabase();
+        $row = $this->db->query(
+            "SELECT 1 FROM information_schema.TABLE_CONSTRAINTS
+             WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND CONSTRAINT_NAME = ? AND CONSTRAINT_TYPE = 'FOREIGN KEY' LIMIT 1",
+            [$dbName, $table, $constraintName]
+        )->getRowArray();
+
+        return $row !== null;
+    }
+
     private function dropForeignKeyOnColumn(string $table, string $column): void
     {
+        if (!$this->columnExists($table, $column)) {
+            return;
+        }
+
         $dbName = $this->db->getDatabase();
         $rows = $this->db->query(
             "SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE
@@ -109,21 +161,51 @@ class FinishClientsTenantColumnMigration extends Migration
         )->getResultArray();
 
         foreach ($rows as $row) {
-            $this->db->query('ALTER TABLE `' . $table . '` DROP FOREIGN KEY `' . $row['CONSTRAINT_NAME'] . '`');
+            $name = $row['CONSTRAINT_NAME'];
+            if (!$this->foreignKeyExists($table, $name)) {
+                continue;
+            }
+
+            try {
+                $this->db->query('ALTER TABLE `' . $table . '` DROP FOREIGN KEY `' . $name . '`');
+            } catch (\Throwable $e) {
+                if (!$this->foreignKeyExists($table, $name)) {
+                    continue;
+                }
+
+                throw $e;
+            }
         }
     }
 
     private function dropIndexesOnColumn(string $table, string $column): void
     {
+        if (!$this->columnExists($table, $column)) {
+            return;
+        }
+
         $dbName = $this->db->getDatabase();
         $rows = $this->db->query(
-            "SELECT INDEX_NAME FROM information_schema.STATISTICS
+            "SELECT DISTINCT INDEX_NAME FROM information_schema.STATISTICS
              WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ? AND INDEX_NAME != 'PRIMARY'",
             [$dbName, $table, $column]
         )->getResultArray();
 
         foreach ($rows as $row) {
-            $this->db->query('ALTER TABLE `' . $table . '` DROP INDEX `' . $row['INDEX_NAME'] . '`');
+            $indexName = $row['INDEX_NAME'];
+            if (!$this->indexExists($table, $indexName)) {
+                continue;
+            }
+
+            try {
+                $this->db->query('ALTER TABLE `' . $table . '` DROP INDEX `' . $indexName . '`');
+            } catch (\Throwable $e) {
+                if (!$this->indexExists($table, $indexName)) {
+                    continue;
+                }
+
+                throw $e;
+            }
         }
     }
 }

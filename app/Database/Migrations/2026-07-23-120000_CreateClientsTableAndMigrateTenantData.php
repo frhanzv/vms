@@ -177,34 +177,62 @@ class CreateClientsTableAndMigrateTenantData extends Migration
                 ]);
             }
 
-            $this->db->query("UPDATE {$table} SET client_id = company_id WHERE company_id IS NOT NULL AND company_id > 0");
+            $this->db->query("UPDATE `{$table}` SET client_id = company_id WHERE company_id IS NOT NULL AND company_id > 0");
 
-        $this->dropForeignKeyOnColumn($table, 'company_id');
-        $this->dropIndexesOnColumn($table, 'company_id');
+            $this->dropForeignKeyOnColumn($table, 'company_id');
+            $this->dropIndexesOnColumn($table, 'company_id');
 
             if ($this->db->fieldExists('company_id', $table)) {
-                $this->forge->dropColumn($table, 'company_id');
+                try {
+                    $this->db->query("ALTER TABLE `{$table}` DROP COLUMN `company_id`");
+                } catch (\Throwable $e) {
+                    if ($this->db->fieldExists('company_id', $table)) {
+                        throw $e;
+                    }
+                }
             }
 
             if ($this->db->fieldExists('client_id', $table)) {
-                $this->db->query("ALTER TABLE {$table} MODIFY client_id INT UNSIGNED NOT NULL");
+                $this->db->query("ALTER TABLE `{$table}` MODIFY client_id INT UNSIGNED NOT NULL");
                 $this->dropForeignKeyOnColumn($table, 'client_id');
-                $this->db->query('ALTER TABLE `' . $table . '` ADD CONSTRAINT `fk_' . $table . '_client` FOREIGN KEY (`client_id`) REFERENCES `clients`(`id`) ON DELETE CASCADE ON UPDATE CASCADE');
+                if (!$this->foreignKeyExists($table, 'fk_' . $table . '_client')) {
+                    $this->db->query('ALTER TABLE `' . $table . '` ADD CONSTRAINT `fk_' . $table . '_client` FOREIGN KEY (`client_id`) REFERENCES `clients`(`id`) ON DELETE CASCADE ON UPDATE CASCADE');
+                }
             }
         }
     }
 
-    private function dropIndexesOnColumn(string $table, string $column): void
+    private function foreignKeyExists(string $table, string $constraintName): bool
     {
         $dbName = $this->db->getDatabase();
+        $row = $this->db->query(
+            "SELECT 1 FROM information_schema.TABLE_CONSTRAINTS
+             WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND CONSTRAINT_NAME = ? AND CONSTRAINT_TYPE = 'FOREIGN KEY' LIMIT 1",
+            [$dbName, $table, $constraintName]
+        )->getRowArray();
+
+        return $row !== null;
+    }
+
+    private function dropIndexesOnColumn(string $table, string $column): void
+    {
+        if (!$this->db->fieldExists($column, $table)) {
+            return;
+        }
+
+        $dbName = $this->db->getDatabase();
         $rows = $this->db->query(
-            "SELECT INDEX_NAME FROM information_schema.STATISTICS
+            "SELECT DISTINCT INDEX_NAME FROM information_schema.STATISTICS
              WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ? AND INDEX_NAME != 'PRIMARY'",
             [$dbName, $table, $column]
         )->getResultArray();
 
         foreach ($rows as $row) {
-            $this->db->query('ALTER TABLE `' . $table . '` DROP INDEX `' . $row['INDEX_NAME'] . '`');
+            try {
+                $this->db->query('ALTER TABLE `' . $table . '` DROP INDEX `' . $row['INDEX_NAME'] . '`');
+            } catch (\Throwable $e) {
+                // Index may already be removed with its foreign key.
+            }
         }
     }
 
@@ -234,7 +262,7 @@ class CreateClientsTableAndMigrateTenantData extends Migration
         }
 
         $this->dropForeignKeyOnColumn('users', 'company_id');
-        if ($this->db->fieldExists('client_id', 'users')) {
+        if ($this->db->fieldExists('client_id', 'users') && !$this->foreignKeyExists('users', 'fk_users_client')) {
             $this->db->query('ALTER TABLE users ADD CONSTRAINT fk_users_client FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE SET NULL ON UPDATE CASCADE');
         }
     }
