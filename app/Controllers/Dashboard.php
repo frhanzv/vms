@@ -739,7 +739,8 @@ class Dashboard extends BaseController
              WHERE i.status = 'Approved'
              AND iv.check_in_time IS NOT NULL
              AND iv.check_out_time IS NULL
-             ORDER BY iv.check_in_time DESC"
+             ORDER BY iv.check_in_time DESC
+             LIMIT 500"
         )->getResultArray();
 
         return $this->response->setJSON(['success' => true, 'data' => $visitors]);
@@ -821,6 +822,7 @@ class Dashboard extends BaseController
         $builder->join('staff h', 'h.id = i.staff_id', 'left');
         $builder->orderBy('sa.is_acknowledged', 'ASC');
         $builder->orderBy('sa.created_at', 'DESC');
+        $builder->limit(200);
 
         $alerts = $builder->get()->getResultArray();
 
@@ -2275,25 +2277,22 @@ class Dashboard extends BaseController
         $db = \Config\Database::connect();
         $today = date('Y-m-d');
 
-        $allVisitorsQuery = "SELECT iv.check_in_time, iv.check_out_time
-                             " . $this->getHostVisitorBaseFromSql();
-        $allVisitorsData = $db->query($allVisitorsQuery, [$today, $today])->getResultArray();
+        $row = $db->query(
+            "SELECT
+                COUNT(*) AS total_all,
+                SUM(CASE WHEN iv.check_in_time IS NULL THEN 1 ELSE 0 END) AS pre_arrival,
+                SUM(CASE WHEN iv.check_in_time IS NOT NULL AND iv.check_out_time IS NULL THEN 1 ELSE 0 END) AS checked_in,
+                SUM(CASE WHEN iv.check_in_time IS NOT NULL AND iv.check_out_time IS NOT NULL THEN 1 ELSE 0 END) AS checked_out
+             " . $this->getHostVisitorBaseFromSql(),
+            [$today, $today]
+        )->getRowArray();
 
-        $tabCounts = ['all' => 0, 'preArrival' => 0, 'checkedIn' => 0, 'checkedOut' => 0];
-        foreach ($allVisitorsData as $v) {
-            $tabCounts['all']++;
-            if (!empty($v['check_in_time'])) {
-                if (!empty($v['check_out_time'])) {
-                    $tabCounts['checkedOut']++;
-                } else {
-                    $tabCounts['checkedIn']++;
-                }
-            } else {
-                $tabCounts['preArrival']++;
-            }
-        }
-
-        return $tabCounts;
+        return [
+            'all'        => (int) ($row['total_all'] ?? 0),
+            'preArrival' => (int) ($row['pre_arrival'] ?? 0),
+            'checkedIn'  => (int) ($row['checked_in'] ?? 0),
+            'checkedOut' => (int) ($row['checked_out'] ?? 0),
+        ];
     }
 
     private function formatHostVisitorRow(array $visitor): array

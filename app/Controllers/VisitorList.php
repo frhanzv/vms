@@ -120,10 +120,11 @@ class VisitorList extends BaseController
         }
 
         // Get available visitor cards for binding
+        // Bind-card dropdown: cap options to keep page responsive with large card inventories.
         $availableCards = $this->visitorCardModel
             ->where('status', 'active')
             ->orderBy('card_id', 'ASC')
-            ->findAll();
+            ->findAll(200);
 
         $visitorTypes = [];
         if ($this->invitationsSupportVisitorType()) {

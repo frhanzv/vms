@@ -73,32 +73,58 @@
                 </div>
 
                 <!-- Search + Filters -->
-                <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
+                <?php
+                $curPage  = $pagination['current_page'] ?? 1;
+                $lastPage = $pagination['last_page'] ?? 1;
+                $pgTotal  = $pagination['total'] ?? count($closed_blacklist);
+                $pgPer    = $pagination['per_page'] ?? 10;
+                $buildUrl = function (int $pg, int $pp = 0) use ($searchTerm, $typeFilter, $sortBy, $pgPer): string {
+                    $pp = $pp ?: $pgPer;
+                    $params = [];
+                    if (($searchTerm ?? '') !== '') {
+                        $params['search'] = $searchTerm;
+                    }
+                    if (($typeFilter ?? '') !== '') {
+                        $params['type'] = $typeFilter;
+                    }
+                    if (($sortBy ?? 'date_desc') !== 'date_desc') {
+                        $params['sort'] = $sortBy;
+                    }
+                    if ($pp !== 10) {
+                        $params['per_page'] = $pp;
+                    }
+                    if ($pg > 1) {
+                        $params['page'] = $pg;
+                    }
+                    $qs = http_build_query($params);
+                    return base_url('blacklist/closedlist') . ($qs ? '?' . $qs : '');
+                };
+                ?>
+                <form method="get" action="<?= base_url('blacklist/closedlist') ?>" class="grid grid-cols-1 md:grid-cols-12 gap-3">
                     <div class="md:col-span-6 flex gap-0">
-                        <input type="text" id="searchInput" placeholder="IC NO / PASSPORT NO / NAME / STAFF ID"
+                        <input type="text" id="searchInput" name="search" value="<?= esc($searchTerm ?? '') ?>" placeholder="IC NO / PASSPORT NO / NAME / STAFF ID"
                             class="flex-1 h-10 px-4 text-sm bg-white border border-slate-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-slate-900 placeholder-slate-400 uppercase placeholder:normal-case"/>
-                        <button type="button" onclick="applyClosedListFilters()"
+                        <button type="submit"
                             class="flex items-center justify-center h-10 w-10 bg-primary hover:bg-primary-dark text-white rounded-r-lg transition-colors flex-shrink-0">
                             <span class="material-symbols-outlined text-[20px]">search</span>
                         </button>
                     </div>
                     <div class="md:col-span-3">
-                        <select id="typeFilter" onchange="applyClosedListFilters()"
+                        <select id="typeFilter" name="type" onchange="this.form.submit()"
                             class="w-full h-10 pl-3 pr-8 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-600 appearance-none cursor-pointer">
                             <option value="">TYPE OF BLACKLIST</option>
-                            <option value="Staff">Staff</option>
-                            <option value="Visitor">Visitor</option>
+                            <option value="Staff" <?= ($typeFilter ?? '') === 'Staff' ? 'selected' : '' ?>>Staff</option>
+                            <option value="Visitor" <?= ($typeFilter ?? '') === 'Visitor' ? 'selected' : '' ?>>Visitor</option>
                         </select>
                     </div>
                     <div class="md:col-span-3">
-                        <select id="sortFilter" onchange="applyClosedListFilters()"
+                        <select id="sortFilter" name="sort" onchange="this.form.submit()"
                             class="w-full h-10 pl-3 pr-8 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-slate-600 appearance-none cursor-pointer">
-                            <option value="">SORT BY</option>
-                            <option value="name_asc">Name (A-Z)</option>
-                            <option value="date_desc">Blacklist Date (Newest)</option>
+                            <option value="date_desc" <?= ($sortBy ?? 'date_desc') === 'date_desc' ? 'selected' : '' ?>>Blacklist Date (Newest)</option>
+                            <option value="name_asc" <?= ($sortBy ?? '') === 'name_asc' ? 'selected' : '' ?>>Name (A-Z)</option>
                         </select>
                     </div>
-                </div>
+                </form>
 
                 <!-- Table -->
                 <div class="overflow-x-auto w-full rounded-xl border border-slate-200 dark:border-slate-700">
@@ -119,13 +145,8 @@
                             <?php if (!empty($closed_blacklist)): ?>
                                 <?php foreach ($closed_blacklist as $index => $entry): ?>
                                 <tr class="hover:bg-primary/5 cursor-pointer transition-colors"
-                                    onclick="openModal(<?= $entry['id'] ?>)"
-                                    data-name="<?= strtolower(esc($entry['name'])) ?>"
-                                    data-ic="<?= strtolower(esc($entry['ic_passport_no'])) ?>"
-                                    data-staff="<?= strtolower(esc($entry['staff_id'] ?? '')) ?>"
-                                    data-type="<?= esc($entry['type']) ?>"
-                                    data-date="<?= esc($entry['blacklist_date']) ?>">
-                                    <td class="px-4 py-3.5 text-sm text-slate-500 font-medium closed-row-no"><?= $index + 1 ?></td>
+                                    onclick="openModal(<?= $entry['id'] ?>)">
+                                    <td class="px-4 py-3.5 text-sm text-slate-500 font-medium"><?= ($rowOffset ?? 0) + $index + 1 ?></td>
                                     <td class="px-4 py-3.5 text-sm text-slate-600"><?= esc($entry['created_date'] ?? '—') ?></td>
                                     <td class="px-4 py-3.5 text-sm text-slate-600"><?= esc($entry['blacklist_date'] ?? '—') ?></td>
                                     <td class="px-4 py-3.5 text-sm text-slate-600 font-mono"><?= esc($entry['ic_passport_no']) ?></td>
@@ -153,14 +174,58 @@
                 </div>
 
                 <!-- Pagination -->
+                <?php
+                $pgNumbers = [];
+                if ($lastPage <= 7) {
+                    for ($i = 1; $i <= $lastPage; $i++) {
+                        $pgNumbers[] = $i;
+                    }
+                } else {
+                    $pgNumbers[] = 1;
+                    if ($curPage > 3) {
+                        $pgNumbers[] = '...';
+                    }
+                    for ($i = max(2, $curPage - 1); $i <= min($lastPage - 1, $curPage + 1); $i++) {
+                        $pgNumbers[] = $i;
+                    }
+                    if ($curPage < $lastPage - 2) {
+                        $pgNumbers[] = '...';
+                    }
+                    $pgNumbers[] = $lastPage;
+                }
+                $firstItem = ($pgTotal === 0) ? 0 : ($curPage - 1) * $pgPer + 1;
+                $lastItem  = min($curPage * $pgPer, $pgTotal);
+                ?>
                 <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-                    <span id="closedPaginationInfo" class="text-xs text-slate-500"></span>
+                    <span id="closedPaginationInfo" class="text-xs text-slate-500">Showing <?= number_format($firstItem) ?>–<?= number_format($lastItem) ?> of <?= number_format($pgTotal) ?></span>
                     <div class="flex items-center gap-3">
-                        <div id="closedPaginationBtns" class="flex items-center gap-1"></div>
+                        <div id="closedPaginationBtns" class="flex items-center gap-1">
+                            <?php if ($curPage > 1): ?>
+                            <a href="<?= $buildUrl($curPage - 1) ?>" class="w-8 h-8 flex items-center justify-center border border-slate-200 rounded-lg hover:bg-slate-50 text-xs">«</a>
+                            <?php else: ?>
+                            <span class="w-8 h-8 flex items-center justify-center border border-slate-200 rounded-lg opacity-40 text-xs">«</span>
+                            <?php endif; ?>
+
+                            <?php foreach ($pgNumbers as $pn): ?>
+                                <?php if ($pn === '...'): ?>
+                                <span class="w-8 h-8 flex items-center justify-center text-xs">…</span>
+                                <?php elseif ($pn === $curPage): ?>
+                                <span class="w-8 h-8 flex items-center justify-center bg-primary text-white rounded-lg text-xs"><?= $pn ?></span>
+                                <?php else: ?>
+                                <a href="<?= $buildUrl((int) $pn) ?>" class="w-8 h-8 flex items-center justify-center border border-slate-200 rounded-lg hover:bg-slate-50 text-xs"><?= $pn ?></a>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
+
+                            <?php if ($curPage < $lastPage): ?>
+                            <a href="<?= $buildUrl($curPage + 1) ?>" class="w-8 h-8 flex items-center justify-center border border-slate-200 rounded-lg hover:bg-slate-50 text-xs">»</a>
+                            <?php else: ?>
+                            <span class="w-8 h-8 flex items-center justify-center border border-slate-200 rounded-lg opacity-40 text-xs">»</span>
+                            <?php endif; ?>
+                        </div>
                         <select id="closedPerPageSelect" class="h-9 pl-3 pr-7 text-xs bg-white border border-slate-200 rounded-lg text-slate-600 outline-none appearance-none cursor-pointer">
-                            <option value="10">10 ITEMS PER PAGE</option>
-                            <option value="25">25 ITEMS PER PAGE</option>
-                            <option value="50">50 ITEMS PER PAGE</option>
+                            <?php foreach ([10, 25, 50] as $pp): ?>
+                            <option value="<?= $pp ?>" <?= $pgPer === $pp ? 'selected' : '' ?>><?= $pp ?> ITEMS PER PAGE</option>
+                            <?php endforeach; ?>
                         </select>
                     </div>
                 </div>
@@ -313,140 +378,12 @@ document.getElementById('detailModal').addEventListener('click', function(e) {
     if (e.target === this) closeModal();
 });
 
-// Client-side filter + pagination
-(function () {
-    const tbody   = document.getElementById('closedTableBody');
-    const search  = document.getElementById('searchInput');
-    const typeSel = document.getElementById('typeFilter');
-    const sortSel = document.getElementById('sortFilter');
-    const perSel  = document.getElementById('closedPerPageSelect');
-    const info    = document.getElementById('closedPaginationInfo');
-    const btnCon  = document.getElementById('closedPaginationBtns');
-
-    if (!tbody) return;
-
-    const allRows = Array.from(tbody.querySelectorAll('tr[data-name]'));
-    let filtered  = [...allRows];
-    let currentPage = 1;
-    let perPage = 10;
-
-    function applyFilter() {
-        const q    = (search?.value || '').toLowerCase().trim();
-        const type = typeSel?.value || '';
-
-        filtered = allRows.filter(row => {
-            const matchSearch = !q ||
-                row.dataset.name.includes(q) ||
-                row.dataset.ic.includes(q) ||
-                row.dataset.staff.includes(q);
-            const matchType = !type || row.dataset.type === type;
-            return matchSearch && matchType;
-        });
-
-        currentPage = 1;
-        applySort();
-    }
-
-    function applySort() {
-        const s = sortSel?.value || '';
-        filtered.sort((a, b) => {
-            switch (s) {
-                case 'name_asc':
-                    return a.dataset.name.localeCompare(b.dataset.name);
-                case 'date_desc':
-                    return (b.dataset.date || '').localeCompare(a.dataset.date || '');
-                default:
-                    return 0;
-            }
-        });
-        render();
-    }
-
-    function render() {
-        const total = filtered.length;
-        const totalPages = Math.max(1, Math.ceil(total / perPage));
-        if (currentPage > totalPages) currentPage = totalPages;
-
-        const start = (currentPage - 1) * perPage;
-        const end   = start + perPage;
-
-        allRows.forEach(r => (r.style.display = 'none'));
-        filtered.forEach((row, i) => {
-            const visible = i >= start && i < end;
-            row.style.display = visible ? '' : 'none';
-            if (visible) {
-                const noCell = row.querySelector('.closed-row-no');
-                if (noCell) noCell.textContent = String(i + 1);
-            }
-        });
-
-        renderPagination(total, totalPages, start, end);
-    }
-
-    function renderPagination(total, totalPages, start, end) {
-        const first = total === 0 ? 0 : start + 1;
-        const last  = Math.min(end, total);
-        if (info) info.textContent = `Showing ${first}–${last} of ${total}`;
-
-        if (!btnCon) return;
-        btnCon.innerHTML = '';
-
-        const makeBtn = (label, disabled, active = false) => {
-            const b = document.createElement('button');
-            b.type = 'button';
-            b.textContent = label;
-            b.className = active
-                ? 'flex items-center justify-center size-8 rounded border border-primary bg-primary text-white text-xs font-bold'
-                : 'flex items-center justify-center size-8 rounded border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs' + (disabled ? ' opacity-50 cursor-not-allowed' : '');
-            b.disabled = disabled;
-            return b;
-        };
-
-        const prev = makeBtn('«', currentPage === 1);
-        prev.onclick = () => { currentPage--; render(); };
-        btnCon.appendChild(prev);
-
-        pageNumbers(currentPage, totalPages).forEach(p => {
-            if (p === '…') {
-                const sp = document.createElement('span');
-                sp.textContent = '…';
-                sp.className = 'flex items-center justify-center size-8 text-xs text-slate-400';
-                btnCon.appendChild(sp);
-            } else {
-                const b = makeBtn(String(p), false, p === currentPage);
-                b.onclick = () => { currentPage = p; render(); };
-                btnCon.appendChild(b);
-            }
-        });
-
-        const next = makeBtn('»', currentPage === totalPages);
-        next.onclick = () => { currentPage++; render(); };
-        btnCon.appendChild(next);
-    }
-
-    function pageNumbers(cur, total) {
-        if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-        const p = [1];
-        if (cur > 3) p.push('…');
-        for (let i = Math.max(2, cur - 1); i <= Math.min(total - 1, cur + 1); i++) p.push(i);
-        if (cur < total - 2) p.push('…');
-        p.push(total);
-        return p;
-    }
-
-    window.applyClosedListFilters = applyFilter;
-
-    search?.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') applyFilter();
-    });
-    perSel?.addEventListener('change', () => {
-        perPage = parseInt(perSel.value, 10) || 10;
-        currentPage = 1;
-        render();
-    });
-
-    render();
-})();
+document.getElementById('closedPerPageSelect')?.addEventListener('change', function () {
+    const url = new URL(window.location.href);
+    url.searchParams.set('per_page', this.value);
+    url.searchParams.delete('page');
+    window.location.href = url.toString();
+});
 </script>
 </body>
 </html>

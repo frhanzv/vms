@@ -17,13 +17,15 @@ class VisitorReport extends BaseController
     {
         $db = \Config\Database::connect();
 
-        $from = $this->request->getGet('from');
-        $to = $this->request->getGet('to');
+        $from = trim((string) ($this->request->getPost('from') ?? $this->request->getGet('from') ?? ''));
+        $to   = trim((string) ($this->request->getPost('to') ?? $this->request->getGet('to') ?? ''));
 
-        $where = "";
-        if ($from && $to) {
-            $where .= " AND DATE(i.created_at) BETWEEN " . $db->escape($from) . " AND " . $db->escape($to);
+        if ($from === '' || $to === '') {
+            $to   = date('Y-m-d');
+            $from = date('Y-m-d', strtotime('-30 days'));
         }
+
+        $where = " AND DATE(i.created_at) BETWEEN " . $db->escape($from) . " AND " . $db->escape($to);
 
         $sql = "SELECT
                     i.id               AS invitation_id,
@@ -73,9 +75,11 @@ class VisitorReport extends BaseController
                     i.id, i.full_name, i.contact, i.ic_passport,
                     i.company, i.invited_by, i.staff_id, i.reason,
                     i.location, i.status, DATE(i.created_at)
-                ORDER BY DATE(i.created_at) ASC, i.full_name ASC";
+                ORDER BY DATE(i.created_at) ASC, i.full_name ASC
+                LIMIT 2000";
 
         $rows = $db->query($sql)->getResultArray();
+        $truncated = count($rows) >= 2000;
 
         $visitors = [];
         $completedCount = 0;
@@ -152,6 +156,10 @@ class VisitorReport extends BaseController
             'completed'       => $completedCount,
             'active_visitors' => $activeCount,
             'today_visitors'  => $todayVisitors,
+            'date_from'       => $from,
+            'date_to'         => $to,
+            'truncated'       => $truncated,
+            'message'         => $truncated ? 'Results limited to 2000 rows. Narrow the date range for full data.' : null,
         ]);
     }
 }

@@ -16,15 +16,9 @@ class BlacklistRequest extends BaseController
 
     public function index()
     {
-        $filters = [
-            'search' => $this->request->getGet('search'),
-            'status' => $this->request->getGet('status'),
-            'type'   => $this->request->getGet('type'),
-        ];
-
         return view('blacklist/blacklistrequest', [
             'pageTitle' => 'Blacklist Request',
-            'blacklist' => $this->model->getAll($filters),
+            'blacklist' => [],
         ]);
     }
 

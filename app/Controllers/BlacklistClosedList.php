@@ -15,19 +15,91 @@ class BlacklistClosedList extends BaseController
     }
 
     /**
-     * Show all closed blacklist records
+     * Show closed blacklist records (server-paginated).
      */
     public function index()
     {
-        $closed = $this->model
-            ->where('status', 'closed')
-            ->orderBy('blacklist_date', 'DESC')
+        $searchTerm = trim((string) ($this->request->getGet('search') ?? ''));
+        $typeFilter = trim((string) ($this->request->getGet('type') ?? ''));
+        $sortBy     = (string) ($this->request->getGet('sort') ?? 'date_desc');
+        $page       = max(1, (int) ($this->request->getGet('page') ?? 1));
+        $perPage    = (int) ($this->request->getGet('per_page') ?? 10);
+
+        if (! in_array($perPage, [10, 25, 50], true)) {
+            $perPage = 10;
+        }
+
+        $allowedSorts = ['name_asc', 'date_desc'];
+        if (! in_array($sortBy, $allowedSorts, true)) {
+            $sortBy = 'date_desc';
+        }
+
+        if ($typeFilter !== '' && ! in_array($typeFilter, ['Staff', 'Visitor'], true)) {
+            $typeFilter = '';
+        }
+
+        $builder = $this->buildClosedListQuery($searchTerm, $typeFilter);
+        $total   = (int) $builder->countAllResults(false);
+        $lastPage = max(1, (int) ceil($total / $perPage));
+
+        if ($page > $lastPage) {
+            $page = $lastPage;
+        }
+
+        $this->applyClosedListSort($builder, $sortBy);
+
+        $closed = $builder
+            ->limit($perPage, ($page - 1) * $perPage)
             ->findAll();
 
+        $rowOffset = ($page - 1) * $perPage;
+
         return view('blacklist/closedlist', [
-            'pageTitle'       => 'Blacklist Closed List',
+            'pageTitle'        => 'Blacklist Closed List',
             'closed_blacklist' => $closed,
+            'searchTerm'       => $searchTerm,
+            'typeFilter'       => $typeFilter,
+            'sortBy'           => $sortBy,
+            'pagination'       => [
+                'current_page' => $page,
+                'last_page'    => $lastPage,
+                'total'        => $total,
+                'per_page'     => $perPage,
+            ],
+            'rowOffset'        => $rowOffset,
         ]);
+    }
+
+    /**
+     * @return \CodeIgniter\Model
+     */
+    private function buildClosedListQuery(string $searchTerm, string $typeFilter)
+    {
+        $builder = $this->model->where('status', 'closed');
+
+        if ($searchTerm !== '') {
+            $builder->groupStart()
+                ->like('name', $searchTerm)
+                ->orLike('ic_passport_no', $searchTerm)
+                ->orLike('staff_id', $searchTerm)
+                ->groupEnd();
+        }
+
+        if ($typeFilter !== '') {
+            $builder->where('type', $typeFilter);
+        }
+
+        return $builder;
+    }
+
+    private function applyClosedListSort($builder, string $sortBy): void
+    {
+        if ($sortBy === 'name_asc') {
+            $builder->orderBy('name', 'ASC');
+            return;
+        }
+
+        $builder->orderBy('blacklist_date', 'DESC');
     }
 
     /**

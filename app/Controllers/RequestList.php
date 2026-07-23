@@ -43,40 +43,21 @@ class RequestList extends BaseController
             }
         }
 
-        // Get all submitted requests that meet the workflow requirements.
-        // Kiosk walk-ins enter the approval queue directly after mobile registration.
+        // Load submitted requests in batches (avoid loading entire queue into memory).
+        $queueLimit = 50;
         $query = $this->invitationModel->where('status', 'Submitted');
         $this->applyRequestWorkflowFilters($query, $requiresBriefing, $requiresFacial);
 
-        $submittedRequests = $query->orderBy('created_at', 'DESC')->findAll();
+        $submittedRequests = $query->orderBy('created_at', 'DESC')->findAll($queueLimit);
+
+        $invitationIds = array_column($submittedRequests, 'id');
+        $schedulesByInvitation = $this->loadEarliestSchedulesByInvitation($invitationIds);
 
         // Format queue requests
         $queueRequests = [];
         foreach ($submittedRequests as $request) {
-            $schedule = $this->scheduleModel
-                ->where('invitation_id', $request['id'])
-                ->orderBy('date_from', 'ASC')
-                ->first();
-
-            $timeUntilVisit = '';
-            if ($schedule) {
-                $visitTime = strtotime($schedule['date_from']);
-                $now = time();
-                $diff = $visitTime - $now;
-                
-                if ($diff > 0) {
-                    $hours = floor($diff / 3600);
-                    $minutes = floor(($diff % 3600) / 60);
-                    
-                    if ($hours > 0) {
-                        $timeUntilVisit = $hours . 'h ' . $minutes . 'm';
-                    } else {
-                        $timeUntilVisit = $minutes . 'm';
-                    }
-                } else {
-                    $timeUntilVisit = 'Now';
-                }
-            }
+            $schedule = $schedulesByInvitation[$request['id']] ?? null;
+            $timeUntilVisit = $this->formatTimeUntilVisit($schedule);
 
             $queueRequests[] = [
                 'id' => $request['id'],
@@ -95,10 +76,7 @@ class RequestList extends BaseController
         $currentRequest = null;
         if (count($submittedRequests) > 0) {
             $first = $submittedRequests[0];
-            $schedule = $this->scheduleModel
-                ->where('invitation_id', $first['id'])
-                ->orderBy('date_from', 'ASC')
-                ->first();
+            $schedule = $schedulesByInvitation[$first['id']] ?? null;
 
             // Get equipment
             $equipment = $this->equipmentModel
@@ -161,7 +139,9 @@ class RequestList extends BaseController
             'pageTitle' => 'Request List - SafeG',
             'stats' => $stats,
             'currentRequest' => $currentRequest,
-            'queueRequests' => $queueRequests
+            'queueRequests' => $queueRequests,
+            'queueTotal' => $stats['flagged'],
+            'queueLimit' => $queueLimit,
         ];
 
         return view('requests/list', $data);
@@ -186,6 +166,55 @@ class RequestList extends BaseController
 
         $query->groupEnd()
             ->groupEnd();
+    }
+
+    /**
+     * @param int[] $invitationIds
+     * @return array<int, array>
+     */
+    private function loadEarliestSchedulesByInvitation(array $invitationIds): array
+    {
+        if ($invitationIds === []) {
+            return [];
+        }
+
+        $schedules = $this->scheduleModel
+            ->whereIn('invitation_id', $invitationIds)
+            ->orderBy('date_from', 'ASC')
+            ->findAll();
+
+        $map = [];
+        foreach ($schedules as $schedule) {
+            $invitationId = (int) $schedule['invitation_id'];
+            if (! isset($map[$invitationId])) {
+                $map[$invitationId] = $schedule;
+            }
+        }
+
+        return $map;
+    }
+
+    private function formatTimeUntilVisit(?array $schedule): string
+    {
+        if (! $schedule) {
+            return '';
+        }
+
+        $visitTime = strtotime($schedule['date_from']);
+        $diff = $visitTime - time();
+
+        if ($diff <= 0) {
+            return 'Now';
+        }
+
+        $hours = (int) floor($diff / 3600);
+        $minutes = (int) floor(($diff % 3600) / 60);
+
+        if ($hours > 0) {
+            return $hours . 'h ' . $minutes . 'm';
+        }
+
+        return $minutes . 'm';
     }
 
     public function approve()

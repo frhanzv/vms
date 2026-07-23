@@ -95,24 +95,33 @@
             <?php endif; ?>
 
             <!-- Filter -->
-
-            <div class="flex items-center justify-between gap-4 mb-6">
+            <form id="staffSearchForm" method="get" action="<?= base_url('staffs') ?>" class="flex items-center justify-between gap-4 mb-6">
                 <div class="flex shadow-sm w-full max-w-lg">
-                    <input id="staffSearchInput" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-xs focus:ring-primary focus:border-primary outline-none" placeholder="IC / PASSPORT / FULL NAME / STAFF NO" type="text"/>
-                    <button id="staffSearchBtn" class="bg-primary hover:bg-indigo-700 text-white px-4 py-2 rounded-r flex items-center justify-center transition-colors">
+                    <input id="staffSearchInput" name="search" value="<?= esc($searchTerm ?? '') ?>"
+                        class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-xs focus:ring-primary focus:border-primary outline-none"
+                        placeholder="IC / PASSPORT / FULL NAME / STAFF NO" type="text"/>
+                    <button type="submit" class="bg-primary hover:bg-indigo-700 text-white px-4 py-2 rounded-r flex items-center justify-center transition-colors">
                         <span class="material-icons text-white">search</span>
                     </button>
                 </div>
                 <div class="w-48">
-                    <select id="staffSortSelect" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-xs focus:ring-primary focus:border-primary outline-none appearance-none bg-white">
-                        <option value="" disabled selected>SORT BY</option>
-                        <option value="name_asc">Name (A - Z)</option>
-                        <option value="name_desc">Name (Z - A)</option>
-                        <option value="date_asc">Date (Oldest)</option>
-                        <option value="date_desc">Date (Newest)</option>
+                    <select id="staffSortSelect" name="sort" onchange="this.form.submit()"
+                        class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-xs focus:ring-primary focus:border-primary outline-none appearance-none bg-white">
+                        <option value="date_desc" <?= ($sortBy ?? 'date_desc') === 'date_desc' ? 'selected' : '' ?>>Date (Newest)</option>
+                        <option value="date_asc" <?= ($sortBy ?? '') === 'date_asc' ? 'selected' : '' ?>>Date (Oldest)</option>
+                        <option value="name_asc" <?= ($sortBy ?? '') === 'name_asc' ? 'selected' : '' ?>>Name (A - Z)</option>
+                        <option value="name_desc" <?= ($sortBy ?? '') === 'name_desc' ? 'selected' : '' ?>>Name (Z - A)</option>
                     </select>
                 </div>
+            </form>
+
+            <?php if (! empty($searchTerm)): ?>
+            <div class="mb-4 text-xs text-gray-500 dark:text-gray-400">
+                Showing results for <strong class="text-gray-800 dark:text-white"><?= esc($searchTerm) ?></strong>
+                — <?= number_format($pagination['total'] ?? count($staffList)) ?> match<?= ($pagination['total'] ?? count($staffList)) === 1 ? '' : 'es' ?>
+                <a href="<?= base_url('staffs') ?>" class="ml-2 text-primary hover:underline">Clear</a>
             </div>
+            <?php endif; ?>
 
             <!-- Table -->
             <div class="overflow-x-auto rounded border border-gray-200 dark:border-gray-700 mb-6">
@@ -145,13 +154,7 @@
                         </tr>
                         <?php else: ?>
                             <?php foreach ($staffList as $staff): ?>
-                            <tr data-name="<?= strtolower(esc($staff['full_name'])) ?>"
-                                data-ic="<?= strtolower(esc($staff['ic_passport'])) ?>"
-                                data-staffno="<?= strtolower(esc($staff['staff_no'])) ?>"
-                                data-appno="<?= strtolower(esc($staff['app_no'])) ?>"
-                                data-status="<?= strtolower(esc($staff['status'])) ?>"
-                                data-created="<?= esc($staff['created_at']) ?>"
-                                class="border-b border-gray-100 dark:border-gray-700">
+                            <tr class="border-b border-gray-100 dark:border-gray-700">
                                 <td class="p-4"><?= $staff['no'] ?></td>
                                 <td class="p-4">
                                     <div class="flex items-center gap-2">
@@ -162,7 +165,7 @@
                                             <span class="material-symbols-outlined text-[20px]">search</span>
                                         </button>
                                         <?php if ($showPrintButton): ?>
-                                        <button onclick="event.stopPropagation(); printStaff(<?= json_encode($staff) ?>)" class="text-primary hover:text-blue-700 transition-colors" title="Print">
+                                        <button onclick="event.stopPropagation(); printStaff()" class="text-primary hover:text-blue-700 transition-colors" title="Print">
                                             <span class="material-symbols-outlined text-[20px]">print</span>
                                         </button>
                                         <?php endif; ?>
@@ -223,15 +226,85 @@
             </div>
 
             <!-- Pagination -->
+            <?php
+            $curPage  = $pagination['current_page'] ?? 1;
+            $lastPage = $pagination['last_page'] ?? 1;
+            $pgTotal  = $pagination['total'] ?? count($staffList);
+            $pgPer    = $pagination['per_page'] ?? 10;
+
+            $buildUrl = function (int $pg, int $pp = 0) use ($searchTerm, $sortBy, $pgPer): string {
+                $pp = $pp ?: $pgPer;
+                $params = [];
+                if (($searchTerm ?? '') !== '') {
+                    $params['search'] = $searchTerm;
+                }
+                if (($sortBy ?? 'date_desc') !== 'date_desc') {
+                    $params['sort'] = $sortBy;
+                }
+                if ($pp !== 10) {
+                    $params['per_page'] = $pp;
+                }
+                if ($pg > 1) {
+                    $params['page'] = $pg;
+                }
+                $qs = http_build_query($params);
+
+                return base_url('staffs') . ($qs ? '?' . $qs : '');
+            };
+
+            $pgNumbers = [];
+            if ($lastPage <= 7) {
+                for ($i = 1; $i <= $lastPage; $i++) {
+                    $pgNumbers[] = $i;
+                }
+            } else {
+                $pgNumbers[] = 1;
+                if ($curPage > 3) {
+                    $pgNumbers[] = '...';
+                }
+                for ($i = max(2, $curPage - 1); $i <= min($lastPage - 1, $curPage + 1); $i++) {
+                    $pgNumbers[] = $i;
+                }
+                if ($curPage < $lastPage - 2) {
+                    $pgNumbers[] = '...';
+                }
+                $pgNumbers[] = $lastPage;
+            }
+
+            $firstItem = ($pgTotal === 0) ? 0 : ($curPage - 1) * $pgPer + 1;
+            $lastItem  = min($curPage * $pgPer, $pgTotal);
+            ?>
             <div class="flex flex-col md:flex-row justify-between items-center gap-4 text-xs font-medium text-gray-500 dark:text-gray-400">
-                <span id="staffPaginationInfo"></span>
-                <div class="flex items-center gap-2">
-                    <div id="staffPaginationBtns" class="flex items-center gap-1"></div>
+                <div id="staffPaginationBtns" class="flex items-center gap-1">
+                    <?php if ($curPage > 1): ?>
+                    <a href="<?= $buildUrl($curPage - 1) ?>" class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">«</a>
+                    <?php else: ?>
+                    <span class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded opacity-40 cursor-not-allowed">«</span>
+                    <?php endif; ?>
+
+                    <?php foreach ($pgNumbers as $pn): ?>
+                        <?php if ($pn === '...'): ?>
+                        <span class="w-8 h-8 flex items-center justify-center">...</span>
+                        <?php elseif ($pn === $curPage): ?>
+                        <span class="w-8 h-8 flex items-center justify-center bg-primary text-white rounded shadow-sm"><?= $pn ?></span>
+                        <?php else: ?>
+                        <a href="<?= $buildUrl((int) $pn) ?>" class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"><?= $pn ?></a>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+
+                    <?php if ($curPage < $lastPage): ?>
+                    <a href="<?= $buildUrl($curPage + 1) ?>" class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">»</a>
+                    <?php else: ?>
+                    <span class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded opacity-40 cursor-not-allowed">»</span>
+                    <?php endif; ?>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span id="staffPaginationInfo" class="text-gray-400">Showing <?= number_format($firstItem) ?>–<?= number_format($lastItem) ?> of <?= number_format($pgTotal) ?></span>
                     <div class="relative">
                         <select id="staffPerPageSelect" class="appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 py-1.5 pl-3 pr-8 rounded focus:outline-none focus:ring-1 focus:ring-primary text-xs font-medium cursor-pointer shadow-sm">
-                            <option value="10" selected>10 ITEMS PER PAGE</option>
-                            <option value="25">25 ITEMS PER PAGE</option>
-                            <option value="50">50 ITEMS PER PAGE</option>
+                            <?php foreach ([10, 25, 50] as $pp): ?>
+                            <option value="<?= $pp ?>" <?= $pgPer === $pp ? 'selected' : '' ?>><?= $pp ?> ITEMS PER PAGE</option>
+                            <?php endforeach; ?>
                         </select>
                         <span class="absolute right-2 top-1.5 pointer-events-none material-icons text-sm text-gray-500">expand_more</span>
                     </div>
@@ -241,10 +314,7 @@
         </div>
     </main>
     <script>
-        const _canEdit   = <?= json_encode($canEdit   ?? false) ?>;
-        const _canDelete = <?= json_encode($canDelete ?? false) ?>;
-
-        function printStaff(staff) {
+        function printStaff() {
             window.print();
         }
 
@@ -256,123 +326,12 @@
             }).then(r => r.ok ? location.reload() : alert('Delete failed.'));
         }
 
-        (function () {
-            const tbody  = document.getElementById('staffTableBody');
-            const search = document.getElementById('staffSearchInput');
-            const sortSel = document.getElementById('staffSortSelect');
-            const perSel  = document.getElementById('staffPerPageSelect');
-            const info    = document.getElementById('staffPaginationInfo');
-            const btnCon  = document.getElementById('staffPaginationBtns');
-
-            if (!tbody) return;
-
-            const allRows = Array.from(tbody.querySelectorAll('tr[data-name]'));
-            let filtered = [...allRows];
-            let currentPage = 1;
-            let perPage = 10;
-
-            function applyFilter() {
-                const q = (search?.value || '').toLowerCase().trim();
-                filtered = allRows.filter(row =>
-                    !q ||
-                    row.dataset.name.includes(q) ||
-                    row.dataset.ic.includes(q) ||
-                    row.dataset.staffno.includes(q) ||
-                    row.dataset.appno.includes(q)
-                );
-                currentPage = 1;
-                applySort();
-            }
-
-            function applySort() {
-                const s = sortSel?.value || '';
-                filtered.sort((a, b) => {
-                    switch (s) {
-                        case 'name_asc':  return a.dataset.name.localeCompare(b.dataset.name);
-                        case 'name_desc': return b.dataset.name.localeCompare(a.dataset.name);
-                        case 'date_asc':  return a.dataset.created.localeCompare(b.dataset.created);
-                        case 'date_desc': return b.dataset.created.localeCompare(a.dataset.created);
-                        default: return 0;
-                    }
-                });
-                render();
-            }
-
-            function render() {
-                const start = (currentPage - 1) * perPage;
-                const end   = start + perPage;
-                allRows.forEach(r => (r.style.display = 'none'));
-                filtered.forEach((r, i) => {
-                    r.style.display = (i >= start && i < end) ? '' : 'none';
-                });
-                renderPagination();
-            }
-
-            function renderPagination() {
-                const total      = filtered.length;
-                const totalPages = Math.max(1, Math.ceil(total / perPage));
-                if (currentPage > totalPages) currentPage = totalPages;
-
-                const start = total === 0 ? 0 : (currentPage - 1) * perPage + 1;
-                const end   = Math.min(currentPage * perPage, total);
-                if (info) info.textContent = `Showing ${start}–${end} of ${total}`;
-
-                if (!btnCon) return;
-                btnCon.innerHTML = '';
-
-                const makeBtn = (label, disabled, active = false) => {
-                    const b = document.createElement('button');
-                    b.textContent = label;
-                    b.className = active
-                        ? 'w-8 h-8 flex items-center justify-center bg-primary text-white rounded shadow-sm text-xs'
-                        : 'w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-xs' + (disabled ? ' opacity-50 cursor-not-allowed' : '');
-                    b.disabled = disabled;
-                    return b;
-                };
-
-                const prev = makeBtn('«', currentPage === 1);
-                prev.onclick = () => { currentPage--; render(); };
-                btnCon.appendChild(prev);
-
-                pageNumbers(currentPage, totalPages).forEach(p => {
-                    if (p === '…') {
-                        const sp = document.createElement('span');
-                        sp.textContent = '…';
-                        sp.className = 'w-8 h-8 flex items-center justify-center text-xs';
-                        btnCon.appendChild(sp);
-                    } else {
-                        const b = makeBtn(p, false, p === currentPage);
-                        b.onclick = () => { currentPage = p; render(); };
-                        btnCon.appendChild(b);
-                    }
-                });
-
-                const next = makeBtn('»', currentPage === totalPages);
-                next.onclick = () => { currentPage++; render(); };
-                btnCon.appendChild(next);
-            }
-
-            function pageNumbers(cur, total) {
-                if (total <= 7) return Array.from({length: total}, (_, i) => i + 1);
-                const p = [1];
-                if (cur > 3) p.push('…');
-                for (let i = Math.max(2, cur - 1); i <= Math.min(total - 1, cur + 1); i++) p.push(i);
-                if (cur < total - 2) p.push('…');
-                p.push(total);
-                return p;
-            }
-
-            search?.addEventListener('input', applyFilter);
-            document.getElementById('staffSearchBtn')?.addEventListener('click', applyFilter);
-            sortSel?.addEventListener('change', () => { currentPage = 1; applySort(); });
-            perSel?.addEventListener('change', () => {
-                perPage = parseInt(perSel.value);
-                currentPage = 1;
-                render();
-            });
-
-            render();
-        })();
+        document.getElementById('staffPerPageSelect')?.addEventListener('change', function () {
+            const url = new URL(window.location.href);
+            url.searchParams.set('per_page', this.value);
+            url.searchParams.delete('page');
+            window.location.href = url.toString();
+        });
     </script>
 </body>
 </html>

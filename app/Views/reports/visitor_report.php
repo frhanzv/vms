@@ -343,6 +343,9 @@
                 alert(data.message || 'An error occurred.');
                 return showState('empty');
             }
+            if (data.truncated && data.message) {
+                console.warn(data.message);
+            }
             if (data.visitors.length === 0) return showState('nodata');
             
             reportData = data.visitors;
@@ -756,7 +759,7 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-        generateReport();
+        showState('empty');
     });
 </script>
 </body>
