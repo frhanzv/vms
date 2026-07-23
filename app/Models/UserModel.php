@@ -77,7 +77,8 @@ class UserModel extends Model
      */
     public function getUsersWithPagination($search = '', $sortBy = '', $limit = 10, $offset = 0)
     {
-        $builder = $this->select('id, username, email, full_name, staff_id, contact_no, role, is_active, created_at');
+        $builder = $this->select('users.id, users.username, users.email, users.full_name, users.staff_id, users.contact_no, users.role, users.is_active, users.company_id, users.created_at, companies.name AS company_name')
+            ->join('companies', 'companies.id = users.company_id', 'left');
         
         if (!empty($search)) {
             $builder->groupStart()

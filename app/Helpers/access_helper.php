@@ -34,6 +34,11 @@ if (!function_exists('has_access')) {
             return false;
         }
 
+        helper('role');
+        if (is_platform_superadmin($roleName)) {
+            return true;
+        }
+
         if ($loadedData !== null) {
             if ($grantAll) {
                 return true;

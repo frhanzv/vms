@@ -190,7 +190,7 @@
                     </a>
                 </div>
 
-                <?php if (session()->get('role') === 'superadmin'): ?>
+                <?php if (is_platform_superadmin(session()->get('role'))): ?>
                 <!-- Cloud Data Sync -->
                 <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('datasync')"
@@ -1428,13 +1428,14 @@
                                             <th class="px-4 py-3">Email</th>
                                             <th class="px-4 py-3">Contact Number</th>
                                             <th class="px-4 py-3">Role</th>
+                                            <th class="px-4 py-3">Company</th>
                                             <th class="px-4 py-3">Status</th>
                                             <th class="px-4 py-3">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody id="users-table-body" class="text-gray-700 dark:text-slate-300">
                                         <tr>
-                                            <td colspan="8"
+                                            <td colspan="9"
                                                 class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
                                                 <div class="flex flex-col items-center justify-center">
                                                     <div
@@ -4406,7 +4407,7 @@
                 </div>
                 <?php endif; ?>
 
-                <?php if (session()->get('role') === 'superadmin'): ?>
+                <?php if (is_platform_superadmin(session()->get('role'))): ?>
                 <!-- Client Features -->
                 <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('clientfeatures')"
@@ -6452,7 +6453,7 @@
             const tbody = document.getElementById('users-table-body');
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="8" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
+                    <td colspan="9" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
                         <div class="flex flex-col items-center justify-center">
                             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
                             <span>Loading users...</span>
@@ -6477,7 +6478,7 @@
                         const errorMsg = data.message || 'Error loading users';
                         tbody.innerHTML = `
                             <tr>
-                                <td colspan="8" class="px-4 py-8 text-center text-red-500">${errorMsg}</td>
+                                <td colspan="9" class="px-4 py-8 text-center text-red-500">${errorMsg}</td>
                             </tr>
                         `;
                         console.error('Error from server:', data);
@@ -6487,7 +6488,7 @@
                     console.error('Error loading users:', error);
                     tbody.innerHTML = `
                         <tr>
-                            <td colspan="8" class="px-4 py-8 text-center text-red-500">Failed to load users: ${error.message}</td>
+                            <td colspan="9" class="px-4 py-8 text-center text-red-500">Failed to load users: ${error.message}</td>
                         </tr>
                     `;
                 });
@@ -6499,7 +6500,7 @@
             if (users.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="8" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">No users found</td>
+                        <td colspan="9" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">No users found</td>
                     </tr>
                 `;
                 return;
@@ -6519,7 +6520,8 @@
                         <td class="px-4 py-3">${escapeHtml(user.staff_id || '-')}</td>
                         <td class="px-4 py-3">${escapeHtml(user.email)}</td>
                         <td class="px-4 py-3">${escapeHtml(user.contact_no || '-')}</td>
-                        <td class="px-4 py-3">${escapeHtml(user.role || '-')}</td>
+                        <td class="px-4 py-3">${escapeHtml(user.role_label || user.role || '-')}</td>
+                        <td class="px-4 py-3">${escapeHtml(user.company_name || '-')}</td>
                         <td class="px-4 py-3">
                             <span class="px-2 py-1 ${statusClass} rounded text-xs font-semibold">${statusText}</span>
                         </td>
@@ -6600,42 +6602,55 @@
             loadUsers(1, searchInput.value.trim(), sortSelect.value);
         }
 
-        function loadRolesForDropdown() {
-            fetch(`<?= base_url('config/getAllRoles') ?>`)
+        function resetUserCompanyDropdown() {
+            const select = document.getElementById('userCompanyId');
+            select.innerHTML = '<option value="">Select Company</option>';
+        }
+
+        function loadRolesForDropdown(selectedSlug = null) {
+            return fetch(`<?= base_url('config/getAllRoles') ?>`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
                         const select = document.getElementById('userRole');
                         select.innerHTML = '<option value="">Select Role</option>';
                         data.data.forEach(role => {
-                            select.innerHTML += `<option value="${escapeHtml(role.name)}">${escapeHtml(role.name)}</option>`;
+                            const slug = role.slug || role.name;
+                            select.innerHTML += `<option value="${escapeHtml(slug)}">${escapeHtml(role.name)}</option>`;
                         });
+                        if (selectedSlug) {
+                            select.value = selectedSlug;
+                        }
                     }
                 })
                 .catch(error => console.error('Error loading roles:', error));
         }
 
-        function handleUserRoleChange() {
+        function handleUserRoleChange(preselectedCompanyId = null) {
             const role = document.getElementById('userRole').value;
             const companyRow = document.getElementById('userCompanyRow');
             const companySelect = document.getElementById('userCompanyId');
             if (role === 'superadmin' || role === '') {
                 companyRow.classList.add('hidden');
                 companySelect.removeAttribute('required');
+                companySelect.value = '';
             } else {
                 companyRow.classList.remove('hidden');
                 companySelect.setAttribute('required', 'required');
-                loadCompaniesForUserDropdown();
+                loadCompaniesForUserDropdown(preselectedCompanyId, false);
             }
         }
 
-        function loadCompaniesForUserDropdown(selectedId = null) {
+        function loadCompaniesForUserDropdown(selectedId = null, forceReload = false) {
             const select = document.getElementById('userCompanyId');
-            if (select.options.length > 1) {
-                if (selectedId) select.value = selectedId;
-                return;
+            if (!forceReload && select.options.length > 1) {
+                if (selectedId !== null && selectedId !== '') {
+                    select.value = String(selectedId);
+                }
+                return Promise.resolve();
             }
-            fetch('<?= base_url('config/getAllCompanies') ?>')
+
+            return fetch('<?= base_url('config/getAllCompanies') ?>')
                 .then(r => r.json())
                 .then(data => {
                     const companies = data.data || data;
@@ -6646,7 +6661,9 @@
                         opt.textContent = c.name;
                         select.appendChild(opt);
                     });
-                    if (selectedId) select.value = selectedId;
+                    if (selectedId !== null && selectedId !== '') {
+                        select.value = String(selectedId);
+                    }
                 })
                 .catch(() => {});
         }
@@ -6661,8 +6678,10 @@
             document.getElementById('passwordOptional').classList.add('hidden');
             document.getElementById('userCompanyRow').classList.add('hidden');
             document.getElementById('userCompanyId').removeAttribute('required');
+            resetUserCompanyDropdown();
             clearUserErrors();
             loadRolesForDropdown();
+            loadCompaniesForUserDropdown(null, true);
             document.getElementById('userModal').classList.remove('hidden');
             document.getElementById('userModal').classList.add('flex');
         }
@@ -6686,15 +6705,15 @@
                         document.getElementById('userStatus').value = data.data.is_active;
                         document.getElementById('userReceiveEmailNotifications').checked = (data.data.receive_email_notifications == 1);
                         clearUserErrors();
-                        loadRolesForDropdown();
-                        // Set role and company after dropdowns are loaded
-                        setTimeout(() => {
-                            document.getElementById('userRole').value = data.data.role;
-                            handleUserRoleChange();
-                            if (data.data.company_id) {
-                                loadCompaniesForUserDropdown(data.data.company_id);
-                            }
-                        }, 100);
+                        resetUserCompanyDropdown();
+
+                        const role = data.data.role || '';
+                        const companyId = data.data.company_id || null;
+
+                        loadRolesForDropdown(role).then(() => {
+                            handleUserRoleChange(companyId);
+                        });
+
                         document.getElementById('userModal').classList.remove('hidden');
                         document.getElementById('userModal').classList.add('flex');
                     } else {
@@ -6733,6 +6752,18 @@
             const formData = new FormData(event.target);
             const data = Object.fromEntries(formData.entries());
             data.receive_email_notifications = document.getElementById('userReceiveEmailNotifications').checked ? 1 : 0;
+
+            if (data.role === 'superadmin') {
+                delete data.company_id;
+            } else if (!data.company_id) {
+                const companyError = document.getElementById('userCompany_idError');
+                if (companyError) {
+                    companyError.textContent = 'Company is required for this role';
+                    companyError.classList.remove('hidden');
+                }
+                showNotification('Please select a company for this role', 'error');
+                return;
+            }
 
             // Remove password if empty in edit mode
             if (!userId || data.password) {

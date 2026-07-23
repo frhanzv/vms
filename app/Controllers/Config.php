@@ -563,6 +563,12 @@ class Config extends BaseController
             $users = $this->userModel->getUsersWithPagination($search, $sortBy, $perPage, $offset);
             $total = $this->userModel->getTotalUsers($search);
 
+            helper('role');
+            foreach ($users as &$user) {
+                $user['role_label'] = role_display_name($user['role'] ?? '');
+            }
+            unset($user);
+
             return $this->response->setJSON([
                 'success' => true,
                 'data' => $users,
@@ -599,6 +605,16 @@ class Config extends BaseController
             ])->setStatusCode(404);
         }
 
+        if (!empty($user['company_id'])) {
+            $company = $this->companyModel->find($user['company_id']);
+            $user['company_name'] = $company['name'] ?? null;
+        } else {
+            $user['company_name'] = null;
+        }
+
+        helper('role');
+        $user['role_label'] = role_display_name($user['role'] ?? '');
+
         return $this->response->setJSON([
             'success' => true,
             'data' => $user
@@ -633,7 +649,16 @@ class Config extends BaseController
             ])->setStatusCode(400);
         }
 
-        $role = $input['role'];
+        $role = normalize_role_slug($input['role']);
+
+        if ($role !== 'superadmin' && empty($input['company_id'])) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => ['company_id' => 'Company is required for this role'],
+            ])->setStatusCode(400);
+        }
+
         $data = [
             'username'   => $input['username'],
             'email'      => $input['email'],
@@ -713,7 +738,16 @@ class Config extends BaseController
             ])->setStatusCode(400);
         }
 
-        $role = $input['role'];
+        $role = normalize_role_slug($input['role']);
+
+        if ($role !== 'superadmin' && empty($input['company_id'])) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => ['company_id' => 'Company is required for this role'],
+            ])->setStatusCode(400);
+        }
+
         $data = [
             'username'   => $input['username'],
             'email'      => $input['email'],
@@ -782,11 +816,41 @@ class Config extends BaseController
      */
     public function getAllRoles()
     {
+        helper('role');
         $roles = $this->roleModel->where('status', 'active')->findAll();
+        $payload = [];
+
+        foreach ($roles as $role) {
+            $slug = normalize_role_slug($role['name']);
+            $payload[] = [
+                'id'   => $role['id'],
+                'name' => role_display_name($slug),
+                'slug' => $slug,
+            ];
+        }
+
+        $existingSlugs = array_column($payload, 'slug');
+        $systemRoles = [
+            ['slug' => 'clientsuperadmin'],
+            ['slug' => 'admin'],
+        ];
+
+        foreach ($systemRoles as $systemRole) {
+            if (!in_array($systemRole['slug'], $existingSlugs, true)) {
+                $payload[] = [
+                    'name' => role_display_name($systemRole['slug']),
+                    'slug' => $systemRole['slug'],
+                ];
+            }
+        }
+
+        usort($payload, static function (array $a, array $b): int {
+            return strcasecmp($a['name'], $b['name']);
+        });
 
         return $this->response->setJSON([
             'success' => true,
-            'data' => $roles
+            'data' => $payload
         ]);
     }
 

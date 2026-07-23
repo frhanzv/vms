@@ -92,16 +92,19 @@ class Auth extends BaseController
         $user = $userModel->verifyPassword($usernameOrEmail, $password);
 
         if ($user) {
+            helper('role');
+            $role = normalize_role_slug($user['role']);
+
             // Set session data
             $sessionData = [
                 'user_id'    => $user['id'],
-                'company_id' => $user['company_id'],
+                'company_id' => $role === 'superadmin' ? null : $user['company_id'],
                 'staff_id'   => $user['staff_id'],
                 'username'   => $user['username'],
                 'email'      => $user['email'],
                 'contact_no' => $user['contact_no'],
                 'full_name'  => $user['full_name'],
-                'role'       => $user['role'],
+                'role'       => $role,
                 'isLoggedIn' => true,
                 'loginTime'  => time()
             ];
@@ -120,7 +123,7 @@ class Auth extends BaseController
                 'officer'          => '/workflow',
                 'host'             => '/invitations',
             ];
-            $destination = $redirectMap[$user['role']] ?? '/dashboard';
+            $destination = $redirectMap[$role] ?? '/dashboard';
             return redirect()->to($destination)->with('success', 'Login successful!');
         } else {
             return redirect()->back()->with('error', 'Invalid username or password')->withInput();

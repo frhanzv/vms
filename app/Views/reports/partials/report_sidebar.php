@@ -101,7 +101,7 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
                     session()->get('company_id')
                     ?: ((new \App\Models\UserModel())->find((int) session()->get('user_id'))['company_id'] ?? 0)
                 );
-                $_showBlacklist = (session()->get('role') === 'superadmin')
+                $_showBlacklist = is_platform_superadmin(session()->get('role'))
                     || (new \App\Models\ClientFeatureModel())->isEnabled($_companyId, 'blacklist');
             ?>
             <?php if ($hasBlacklistAccess && $_showBlacklist): ?>
@@ -228,7 +228,7 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
             </div>
             <div class="flex-1 min-w-0">
                 <p class="text-sm font-semibold text-slate-900 dark:text-white truncate"><?= esc(session()->get('full_name') ?? 'User') ?></p>
-                <p class="text-xs text-slate-500 dark:text-slate-400 truncate"><?= esc(ucfirst(session()->get('role') ?? 'User')) ?></p>
+                <p class="text-xs text-slate-500 dark:text-slate-400 truncate"><?= esc(role_display_name(session()->get('role'))) ?></p>
             </div>
             <a href="<?= base_url('auth/logout') ?>" class="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                 <span class="material-symbols-outlined text-xl">logout</span>

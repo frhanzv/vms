@@ -3,7 +3,7 @@
 if (!function_exists('client_feature_enabled')) {
     function client_feature_enabled(string $featureKey): bool
     {
-        if (session()->get('role') === 'superadmin') {
+        if (is_platform_superadmin(session()->get('role'))) {
             return true;
         }
 

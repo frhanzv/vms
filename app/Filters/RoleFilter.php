@@ -14,8 +14,14 @@ class RoleFilter implements FilterInterface
             return redirect()->to('/login')->with('error', 'Please login to access this page.');
         }
 
-        if ($arguments && !in_array(session()->get('role'), $arguments)) {
-            return redirect()->to('/dashboard')->with('error', 'You do not have permission to access that page.');
+        if ($arguments) {
+            helper('role');
+            $userRole = normalize_role_slug(session()->get('role'));
+            $allowed  = array_map('normalize_role_slug', $arguments);
+
+            if (!in_array($userRole, $allowed, true)) {
+                return redirect()->to('/dashboard')->with('error', 'You do not have permission to access that page.');
+            }
         }
     }
 

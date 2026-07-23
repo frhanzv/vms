@@ -11,7 +11,7 @@ class ClientFeatureFilter implements FilterInterface
 {
     public function before(RequestInterface $request, $arguments = null)
     {
-        if (session()->get('role') === 'superadmin') {
+        if (is_platform_superadmin(session()->get('role'))) {
             return;
         }
 
