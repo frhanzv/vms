@@ -1428,7 +1428,7 @@
                                             <th class="px-4 py-3">Email</th>
                                             <th class="px-4 py-3">Contact Number</th>
                                             <th class="px-4 py-3">Role</th>
-                                            <th class="px-4 py-3">Company</th>
+                                            <th class="px-4 py-3">Client</th>
                                             <th class="px-4 py-3">Status</th>
                                             <th class="px-4 py-3">Actions</th>
                                         </tr>
@@ -1461,6 +1461,91 @@
                     </div>
                 </div>
 
+                <?php if (is_platform_superadmin(session()->get('role'))): ?>
+                <!-- Client Management (VMS tenants) -->
+                <div
+                    class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                    <button onclick="toggleSection('client')"
+                        class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                        <div class="flex items-center gap-4">
+                            <div class="p-2 bg-primary/10 rounded-lg">
+                                <span class="material-symbols-outlined text-primary text-xl">corporate_fare</span>
+                            </div>
+                            <div class="text-left">
+                                <h3 class="text-base font-bold text-gray-800 dark:text-white">Client Management</h3>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Manage VMS clients (tenants) — features, form fields, and user assignment</p>
+                            </div>
+                        </div>
+                        <span id="client-icon"
+                            class="material-symbols-outlined text-gray-400 dark:text-slate-400 transition-transform">expand_more</span>
+                    </button>
+                    <div id="client-content" class="hidden border-t border-gray-200 dark:border-slate-700">
+                        <div class="p-6 bg-gray-50 dark:bg-slate-800/50">
+                            <div
+                                class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                                <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                                    <div class="flex shadow-sm w-full sm:w-96">
+                                        <input id="clientSearchInput"
+                                            class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none"
+                                            placeholder="Search client name, code, email..." type="text" />
+                                        <button onclick="searchClients()"
+                                            class="bg-primary hover:bg-blue-600 text-white px-6 py-2.5 rounded-r flex items-center justify-center transition-colors">
+                                            <span class="material-symbols-outlined text-white text-[20px]">search</span>
+                                        </button>
+                                    </div>
+                                    <div class="relative w-full sm:w-48">
+                                        <select id="clientSortSelect" onchange="sortClients()"
+                                            class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm appearance-none focus:ring-primary focus:border-primary text-gray-700 dark:text-gray-300">
+                                            <option value="">Sort By</option>
+                                            <option value="name_asc">Name (A-Z)</option>
+                                            <option value="name_desc">Name (Z-A)</option>
+                                            <option value="status">Status</option>
+                                        </select>
+                                        <span
+                                            class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-symbols-outlined text-[20px]">expand_more</span>
+                                    </div>
+                                </div>
+                                <button onclick="openCreateClientModal()"
+                                    class="px-4 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm flex items-center gap-2 w-full sm:w-auto">
+                                    <span class="material-symbols-outlined text-base">add</span>
+                                    Create Client
+                                </button>
+                            </div>
+
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-sm">
+                                    <thead
+                                        class="text-xs text-gray-600 dark:text-slate-400 uppercase border-b border-gray-200 dark:border-slate-700">
+                                        <tr>
+                                            <th class="px-4 py-3">Code</th>
+                                            <th class="px-4 py-3">Client Name</th>
+                                            <th class="px-4 py-3">Contact No</th>
+                                            <th class="px-4 py-3">Email</th>
+                                            <th class="px-4 py-3">Status</th>
+                                            <th class="px-4 py-3">Created At</th>
+                                            <th class="px-4 py-3">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="clientTableBody" class="text-gray-700 dark:text-slate-300">
+                                        <tr>
+                                            <td colspan="7"
+                                                class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
+                                                Expand this section to load clients.
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6">
+                                <p id="client-pagination-info" class="text-sm text-gray-600 dark:text-slate-400">—</p>
+                                <div id="client-pagination-buttons" class="flex items-center gap-2"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+
                 <!-- Company Management -->
                 <div
                     class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
@@ -1472,8 +1557,7 @@
                             </div>
                             <div class="text-left">
                                 <h3 class="text-base font-bold text-gray-800 dark:text-white">Company Management</h3>
-                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Manage registered companies
-                                    and contractors</p>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Manage visitor/contractor companies for invitations</p>
                             </div>
                         </div>
                         <span id="company-icon"
@@ -4471,7 +4555,7 @@
                             </div>
                             <div class="text-left">
                                 <h3 class="text-base font-bold text-gray-800 dark:text-white">Dynamic Form Fields</h3>
-                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Control which form fields are visible per client</p>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Control which form fields are visible per client. Visit-context fields on <strong>Visitor Registration</strong> also apply to <strong>Create Invitation</strong>.</p>
                             </div>
                         </div>
                         <span id="dynformfields-icon"
@@ -4507,7 +4591,7 @@
                                     <button type="button" id="dff-tab-invitation"
                                         onclick="dffSwitchTab('invitation')"
                                         class="px-4 py-2 text-sm font-medium font-brand border-b-2 border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 -mb-px">
-                                        Invitation Form
+                                        Invitation Form (Create Invitation page)
                                     </button>
                                     <button type="button" id="dff-tab-staff_pass_request"
                                         onclick="dffSwitchTab('staff_pass_request')"
@@ -5263,6 +5347,7 @@
                                 class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none">
                                 <option value="">Select Role</option>
                             </select>
+                            <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Same list as Role Management. Edit access under Config → Role Management.</p>
                             <p id="userRoleError" class="text-red-500 text-xs mt-1 hidden"></p>
                         </div>
 
@@ -5278,14 +5363,24 @@
                         </div>
                     </div>
 
-                    <div id="userCompanyRow" class="hidden">
-                        <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Company <span class="text-red-500">*</span></label>
-                        <select id="userCompanyId" name="company_id"
+                    <div id="userClientRow" class="hidden">
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">
+                            Client <span id="userClientRequired" class="text-red-500">*</span>
+                            <span id="userClientOptional" class="hidden text-xs font-normal text-gray-500">(optional for Superadmin — assign to scope client features)</span>
+                        </label>
+                        <select id="userClientId" name="client_id"
                             class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none">
-                            <option value="">Select Company</option>
+                            <option value="">Select Client</option>
                         </select>
-                        <p id="userCompany_idError" class="text-red-500 text-xs mt-1 hidden"></p>
+                        <p id="userClient_idError" class="text-red-500 text-xs mt-1 hidden"></p>
                     </div>
+
+                    <?php if (!empty($isClientScopedUserManager) && !empty($scopedUserClientId)): ?>
+                    <input type="hidden" id="userClientIdScoped" name="client_id" value="<?= (int) $scopedUserClientId ?>">
+                    <p id="userClientScopedHint" class="text-xs text-gray-500 dark:text-slate-400 mt-2">
+                        New users are created under <span class="font-semibold text-gray-700 dark:text-slate-300"><?= esc($scopedUserClientName ?? 'your client') ?></span>.
+                    </p>
+                    <?php endif; ?>
 
                     <div id="userEmailNotificationsRow" class="mt-4">
                         <label class="flex items-center gap-2 cursor-pointer">
@@ -5525,6 +5620,10 @@
                 // Load email templates when Email Template section is opened
                 if (section === 'email-template') {
                     fetchEmailTemplates();
+                }
+                // Load clients when Client Management section is opened
+                if (section === 'client') {
+                    loadClients();
                 }
                 // Load companies when Company Management section is opened
                 if (section === 'company') {
@@ -6439,6 +6538,9 @@
 
         // ============== USER MANAGEMENT FUNCTIONS ==============
 
+        const isClientScopedUserManager = <?= !empty($isClientScopedUserManager) ? 'true' : 'false' ?>;
+        const scopedUserClientId = <?= (int) ($scopedUserClientId ?? 0) ?>;
+
         let currentUserPage = 1;
         let currentUserSearch = '';
         let currentUserSort = '';
@@ -6521,7 +6623,7 @@
                         <td class="px-4 py-3">${escapeHtml(user.email)}</td>
                         <td class="px-4 py-3">${escapeHtml(user.contact_no || '-')}</td>
                         <td class="px-4 py-3">${escapeHtml(user.role_label || user.role || '-')}</td>
-                        <td class="px-4 py-3">${escapeHtml(user.company_name || '-')}</td>
+                        <td class="px-4 py-3">${escapeHtml(user.client_name || '-')}</td>
                         <td class="px-4 py-3">
                             <span class="px-2 py-1 ${statusClass} rounded text-xs font-semibold">${statusText}</span>
                         </td>
@@ -6602,9 +6704,9 @@
             loadUsers(1, searchInput.value.trim(), sortSelect.value);
         }
 
-        function resetUserCompanyDropdown() {
-            const select = document.getElementById('userCompanyId');
-            select.innerHTML = '<option value="">Select Company</option>';
+        function resetUserClientDropdown() {
+            const select = document.getElementById('userClientId');
+            select.innerHTML = '<option value="">Select Client</option>';
         }
 
         function loadRolesForDropdown(selectedSlug = null) {
@@ -6626,23 +6728,45 @@
                 .catch(error => console.error('Error loading roles:', error));
         }
 
-        function handleUserRoleChange(preselectedCompanyId = null) {
+        function handleUserRoleChange(preselectedClientId = null) {
             const role = document.getElementById('userRole').value;
-            const companyRow = document.getElementById('userCompanyRow');
-            const companySelect = document.getElementById('userCompanyId');
-            if (role === 'superadmin' || role === '') {
-                companyRow.classList.add('hidden');
-                companySelect.removeAttribute('required');
-                companySelect.value = '';
+            const clientRow = document.getElementById('userClientRow');
+            const clientSelect = document.getElementById('userClientId');
+            const requiredMark = document.getElementById('userClientRequired');
+            const optionalHint = document.getElementById('userClientOptional');
+
+            if (isClientScopedUserManager) {
+                clientRow.classList.add('hidden');
+                clientSelect.removeAttribute('required');
+                clientSelect.removeAttribute('name');
+                return;
+            }
+
+            clientSelect.setAttribute('name', 'client_id');
+
+            if (role === '') {
+                clientRow.classList.add('hidden');
+                clientSelect.removeAttribute('required');
+                clientSelect.value = '';
+                return;
+            }
+
+            clientRow.classList.remove('hidden');
+            loadClientsForUserDropdown(preselectedClientId, false);
+
+            if (role === 'superadmin') {
+                clientSelect.removeAttribute('required');
+                requiredMark?.classList.add('hidden');
+                optionalHint?.classList.remove('hidden');
             } else {
-                companyRow.classList.remove('hidden');
-                companySelect.setAttribute('required', 'required');
-                loadCompaniesForUserDropdown(preselectedCompanyId, false);
+                clientSelect.setAttribute('required', 'required');
+                requiredMark?.classList.remove('hidden');
+                optionalHint?.classList.add('hidden');
             }
         }
 
-        function loadCompaniesForUserDropdown(selectedId = null, forceReload = false) {
-            const select = document.getElementById('userCompanyId');
+        function loadClientsForUserDropdown(selectedId = null, forceReload = false) {
+            const select = document.getElementById('userClientId');
             if (!forceReload && select.options.length > 1) {
                 if (selectedId !== null && selectedId !== '') {
                     select.value = String(selectedId);
@@ -6650,12 +6774,12 @@
                 return Promise.resolve();
             }
 
-            return fetch('<?= base_url('config/getAllCompanies') ?>')
+            return fetch('<?= base_url('config/getAllClients') ?>')
                 .then(r => r.json())
                 .then(data => {
-                    const companies = data.data || data;
-                    select.innerHTML = '<option value="">Select Company</option>';
-                    companies.forEach(c => {
+                    const clients = data.data || data;
+                    select.innerHTML = '<option value="">Select Client</option>';
+                    clients.forEach(c => {
                         const opt = document.createElement('option');
                         opt.value = c.id;
                         opt.textContent = c.name;
@@ -6676,12 +6800,16 @@
             document.getElementById('userPassword').required = true;
             document.getElementById('passwordRequired').classList.remove('hidden');
             document.getElementById('passwordOptional').classList.add('hidden');
-            document.getElementById('userCompanyRow').classList.add('hidden');
-            document.getElementById('userCompanyId').removeAttribute('required');
-            resetUserCompanyDropdown();
+            document.getElementById('userClientRow').classList.add('hidden');
+            document.getElementById('userClientId').removeAttribute('required');
+            resetUserClientDropdown();
             clearUserErrors();
             loadRolesForDropdown();
-            loadCompaniesForUserDropdown(null, true);
+            if (!isClientScopedUserManager) {
+                loadClientsForUserDropdown(null, true);
+            } else {
+                handleUserRoleChange(scopedUserClientId);
+            }
             document.getElementById('userModal').classList.remove('hidden');
             document.getElementById('userModal').classList.add('flex');
         }
@@ -6705,13 +6833,13 @@
                         document.getElementById('userStatus').value = data.data.is_active;
                         document.getElementById('userReceiveEmailNotifications').checked = (data.data.receive_email_notifications == 1);
                         clearUserErrors();
-                        resetUserCompanyDropdown();
+                        resetUserClientDropdown();
 
                         const role = data.data.role || '';
-                        const companyId = data.data.company_id || null;
+                        const clientId = data.data.client_id || null;
 
                         loadRolesForDropdown(role).then(() => {
-                            handleUserRoleChange(companyId);
+                            handleUserRoleChange(isClientScopedUserManager ? scopedUserClientId : clientId);
                         });
 
                         document.getElementById('userModal').classList.remove('hidden');
@@ -6735,7 +6863,7 @@
 
         function clearUserErrors() {
             ['userUsernameError', 'userFull_nameError', 'userEmailError', 'userPasswordError',
-                'userStaff_idError', 'userContact_noError', 'userRoleError', 'userIs_activeError', 'userCompany_idError'].forEach(id => {
+                'userStaff_idError', 'userContact_noError', 'userRoleError', 'userIs_activeError', 'userClient_idError'].forEach(id => {
                     const el = document.getElementById(id);
                     if (el) {
                         el.classList.add('hidden');
@@ -6753,15 +6881,17 @@
             const data = Object.fromEntries(formData.entries());
             data.receive_email_notifications = document.getElementById('userReceiveEmailNotifications').checked ? 1 : 0;
 
-            if (data.role === 'superadmin') {
-                delete data.company_id;
-            } else if (!data.company_id) {
-                const companyError = document.getElementById('userCompany_idError');
-                if (companyError) {
-                    companyError.textContent = 'Company is required for this role';
-                    companyError.classList.remove('hidden');
+            if (isClientScopedUserManager && scopedUserClientId) {
+                data.client_id = scopedUserClientId;
+            }
+
+            if (!isClientScopedUserManager && data.role !== 'superadmin' && !data.client_id) {
+                const clientError = document.getElementById('userClient_idError');
+                if (clientError) {
+                    clientError.textContent = 'Client is required for this role';
+                    clientError.classList.remove('hidden');
                 }
-                showNotification('Please select a company for this role', 'error');
+                showNotification('Please select a client for this role', 'error');
                 return;
             }
 
@@ -6890,6 +7020,250 @@
             if (buttons[level]) {
                 buttons[level].className = 'px-4 py-2 rounded-lg bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-300 dark:hover:bg-slate-600 transition-colors text-sm';
             }
+        }
+
+        // ============== CLIENT MANAGEMENT FUNCTIONS ==============
+
+        let currentClientPage = 1;
+        let currentClientSearch = '';
+        let currentClientSort = '';
+
+        function loadClients(page = 1, search = '', sort = '') {
+            currentClientPage = page;
+            currentClientSearch = search;
+            currentClientSort = sort;
+
+            const tbody = document.getElementById('clientTableBody');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
+                        <div class="flex flex-col items-center justify-center">
+                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
+                            <span>Loading clients...</span>
+                        </div>
+                    </td>
+                </tr>
+            `;
+
+            fetch(`<?= base_url('config/getClients') ?>?page=${page}&per_page=10&search=${encodeURIComponent(search)}&sort=${encodeURIComponent(sort)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        renderClientTable(data.data, data.pagination);
+                    } else {
+                        tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-8 text-center text-red-500">Failed to load clients</td></tr>`;
+                    }
+                })
+                .catch(() => {
+                    tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-8 text-center text-red-500">Error loading clients</td></tr>`;
+                });
+        }
+
+        function renderClientTable(clients, pagination) {
+            const tbody = document.getElementById('clientTableBody');
+            if (!clients.length) {
+                tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-8 text-center text-gray-500">No clients found</td></tr>`;
+                document.getElementById('client-pagination-info').textContent = 'No results';
+                document.getElementById('client-pagination-buttons').innerHTML = '';
+                return;
+            }
+
+            tbody.innerHTML = clients.map(client => `
+                <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
+                    <td class="px-4 py-3">${escapeHtml(client.code || '-')}</td>
+                    <td class="px-4 py-3 font-medium">${escapeHtml(client.name)}</td>
+                    <td class="px-4 py-3">${escapeHtml(client.contact_no || '-')}</td>
+                    <td class="px-4 py-3">${escapeHtml(client.email || '-')}</td>
+                    <td class="px-4 py-3">
+                        <span class="px-2 py-1 ${client.status === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'} rounded text-xs font-semibold">${escapeHtml(client.status)}</span>
+                    </td>
+                    <td class="px-4 py-3">${escapeHtml(client.created_at || '-')}</td>
+                    <td class="px-4 py-3">
+                        <button onclick="openEditClientModal(${client.id})" class="text-primary hover:text-primary/80 mr-2" title="Edit">
+                            <span class="material-symbols-outlined text-base">edit</span>
+                        </button>
+                        <button onclick="openDeleteClientModal(${client.id}, '${escapeHtml(client.name)}')" class="text-red-500 hover:text-red-400" title="Delete">
+                            <span class="material-symbols-outlined text-base">delete</span>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+
+            document.getElementById('client-pagination-info').textContent =
+                `Showing page ${pagination.current_page} of ${pagination.total_pages} (${pagination.total} total)`;
+
+            let buttonsHTML = `
+                <button onclick="loadClients(${pagination.current_page - 1}, '${currentClientSearch}', '${currentClientSort}')"
+                    class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+                    ${pagination.current_page === 1 ? 'disabled' : ''}>
+                    <span class="material-symbols-outlined text-base">chevron_left</span>
+                </button>`;
+            for (let i = 1; i <= pagination.total_pages; i++) {
+                if (i === 1 || i === pagination.total_pages || Math.abs(i - pagination.current_page) <= 1) {
+                    buttonsHTML += `<button onclick="loadClients(${i}, '${currentClientSearch}', '${currentClientSort}')"
+                        class="px-3 py-2 rounded-lg ${i === pagination.current_page ? 'bg-primary text-white' : 'border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700'} transition-colors">${i}</button>`;
+                } else if (i === pagination.current_page - 2 || i === pagination.current_page + 2) {
+                    buttonsHTML += `<span class="px-2 text-gray-400">...</span>`;
+                }
+            }
+            buttonsHTML += `
+                <button onclick="loadClients(${pagination.current_page + 1}, '${currentClientSearch}', '${currentClientSort}')"
+                    class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+                    ${pagination.current_page === pagination.total_pages ? 'disabled' : ''}>
+                    <span class="material-symbols-outlined text-base">chevron_right</span>
+                </button>`;
+            document.getElementById('client-pagination-buttons').innerHTML = buttonsHTML;
+        }
+
+        function searchClients() {
+            loadClients(1, document.getElementById('clientSearchInput').value.trim(), currentClientSort);
+        }
+
+        function sortClients() {
+            loadClients(1, currentClientSearch, document.getElementById('clientSortSelect').value);
+        }
+
+        function clientModalFields(data = {}) {
+            return `
+                <input type="hidden" id="clientRecordId" value="${data.id || ''}">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Client Name <span class="text-red-500">*</span></label>
+                    <input type="text" id="clientName" required value="${escapeHtml(data.name || '')}"
+                        class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2">
+                    <div id="clientNameError" class="text-red-500 text-sm mt-1 hidden"></div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Code</label>
+                    <input type="text" id="clientCode" value="${escapeHtml(data.code || '')}"
+                        class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Registration Number</label>
+                    <input type="text" id="clientRegistrationNo" value="${escapeHtml(data.registration_no || '')}"
+                        class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Address</label>
+                    <textarea id="clientAddress" rows="2" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2">${escapeHtml(data.address || '')}</textarea>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Contact Number</label>
+                        <input type="text" id="clientContactNo" value="${escapeHtml(data.contact_no || '')}"
+                            class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Email</label>
+                        <input type="email" id="clientEmail" value="${escapeHtml(data.email || '')}"
+                            class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Status <span class="text-red-500">*</span></label>
+                    <select id="clientStatus" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2">
+                        <option value="active" ${(data.status || 'active') === 'active' ? 'selected' : ''}>Active</option>
+                        <option value="inactive" ${data.status === 'inactive' ? 'selected' : ''}>Inactive</option>
+                    </select>
+                </div>`;
+        }
+
+        function openCreateClientModal() {
+            document.getElementById('clientModal')?.remove();
+            document.body.insertAdjacentHTML('beforeend', `
+                <div id="clientModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                    <div class="bg-white dark:bg-slate-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+                        <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-700">
+                            <h3 class="text-xl font-bold text-gray-800 dark:text-white">Create Client</h3>
+                            <button onclick="closeClientModal()" class="text-gray-400 hover:text-gray-600"><span class="material-symbols-outlined">close</span></button>
+                        </div>
+                        <div class="p-6 space-y-4 overflow-y-auto">${clientModalFields()}</div>
+                        <div class="flex justify-end gap-3 p-6 border-t border-gray-200 dark:border-slate-700">
+                            <button onclick="closeClientModal()" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600">Cancel</button>
+                            <button onclick="saveClient()" class="px-4 py-2 rounded-lg bg-primary text-white">Save Client</button>
+                        </div>
+                    </div>
+                </div>`);
+        }
+
+        function openEditClientModal(clientId) {
+            fetch(`<?= base_url('config/getClient') ?>/${clientId}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.success) return showToast('Failed to load client', 'error');
+                    document.getElementById('clientModal')?.remove();
+                    document.body.insertAdjacentHTML('beforeend', `
+                        <div id="clientModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                            <div class="bg-white dark:bg-slate-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+                                <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-700">
+                                    <h3 class="text-xl font-bold text-gray-800 dark:text-white">Edit Client</h3>
+                                    <button onclick="closeClientModal()" class="text-gray-400 hover:text-gray-600"><span class="material-symbols-outlined">close</span></button>
+                                </div>
+                                <div class="p-6 space-y-4 overflow-y-auto">${clientModalFields(data.data)}</div>
+                                <div class="flex justify-end gap-3 p-6 border-t border-gray-200 dark:border-slate-700">
+                                    <button onclick="closeClientModal()" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600">Cancel</button>
+                                    <button onclick="saveClient()" class="px-4 py-2 rounded-lg bg-primary text-white">Update Client</button>
+                                </div>
+                            </div>
+                        </div>`);
+                });
+        }
+
+        function closeClientModal() {
+            document.getElementById('clientModal')?.remove();
+        }
+
+        function saveClient() {
+            const id = document.getElementById('clientRecordId')?.value;
+            const payload = {
+                name: document.getElementById('clientName').value.trim(),
+                code: document.getElementById('clientCode').value.trim(),
+                registration_no: document.getElementById('clientRegistrationNo').value.trim(),
+                address: document.getElementById('clientAddress').value.trim(),
+                contact_no: document.getElementById('clientContactNo').value.trim(),
+                email: document.getElementById('clientEmail').value.trim(),
+                status: document.getElementById('clientStatus').value,
+            };
+            const url = id ? `<?= base_url('config/updateClient') ?>/${id}` : `<?= base_url('config/createClient') ?>`;
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '<?= csrf_hash() ?>'
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(r => r.json())
+            .then(res => {
+                if (res.success) {
+                    closeClientModal();
+                    loadClients(currentClientPage, currentClientSearch, currentClientSort);
+                    showToast(res.message || 'Client saved', 'success');
+                } else {
+                    showToast(res.message || 'Failed to save client', 'error');
+                }
+            })
+            .catch(() => showToast('Error saving client', 'error'));
+        }
+
+        function openDeleteClientModal(clientId, clientName) {
+            if (!confirm(`Delete client "${clientName}"? This may affect users and configuration.`)) return;
+            fetch(`<?= base_url('config/deleteClient') ?>/${clientId}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '<?= csrf_hash() ?>'
+                }
+            })
+            .then(r => r.json())
+            .then(res => {
+                if (res.success) {
+                    loadClients(currentClientPage, currentClientSearch, currentClientSort);
+                    showToast('Client deleted', 'success');
+                } else {
+                    showToast(res.message || 'Failed to delete client', 'error');
+                }
+            });
         }
 
         // ============== COMPANY MANAGEMENT FUNCTIONS ==============
@@ -16576,6 +16950,37 @@
         const apikeyPerPage   = 10;
         let apikeySearchTerm  = '';
         const configBaseUrl   = '<?= rtrim(base_url('config'), '/') ?>';
+        const scopedClientCompanyId = <?= (int)($scopedClientCompanyId ?? 0) ?>;
+        const canManageAllClientCompanies = <?= !empty($canManageAllClientCompanies) ? 'true' : 'false' ?>;
+
+        function populateScopedCompanySelect(selectEl, onReady) {
+            if (!selectEl) {
+                return;
+            }
+
+            fetch(`${configBaseUrl}/getAllClients`)
+                .then(r => r.json())
+                .then(res => {
+                    let companies = res.data || [];
+                    if (!canManageAllClientCompanies && scopedClientCompanyId) {
+                        companies = companies.filter(c => String(c.id) === String(scopedClientCompanyId));
+                    }
+                    companies.forEach(c => {
+                        const opt = document.createElement('option');
+                        opt.value = c.id;
+                        opt.textContent = c.name;
+                        selectEl.appendChild(opt);
+                    });
+                    if (!canManageAllClientCompanies && scopedClientCompanyId) {
+                        selectEl.value = String(scopedClientCompanyId);
+                        selectEl.disabled = true;
+                    }
+                    if (typeof onReady === 'function') {
+                        onReady();
+                    }
+                })
+                .catch(() => {});
+        }
 
         function loadApiKeys(page = 1) {
             apikeyCurrentPage = page;
@@ -17259,18 +17664,11 @@
         let dffLabels    = {};        // { form_type: { field_key: label } }
 
         document.addEventListener('DOMContentLoaded', function () {
-            fetch(`${configBaseUrl}/getAllCompanies`)
-                .then(r => r.json())
-                .then(res => {
-                    const sel = document.getElementById('dff-company-select');
-                    (res.data || []).forEach(c => {
-                        const opt = document.createElement('option');
-                        opt.value = c.id;
-                        opt.textContent = c.name;
-                        sel.appendChild(opt);
-                    });
-                })
-                .catch(() => {});
+            populateScopedCompanySelect(document.getElementById('dff-company-select'), () => {
+                if (!canManageAllClientCompanies && scopedClientCompanyId) {
+                    dffLoadForm();
+                }
+            });
         });
 
         function dffLoadForm() {
@@ -17392,18 +17790,11 @@
         let cfFeatures  = {};
 
         document.addEventListener('DOMContentLoaded', function () {
-            fetch(`${configBaseUrl}/getAllCompanies`)
-                .then(r => r.json())
-                .then(res => {
-                    const sel = document.getElementById('cf-company-select');
-                    (res.data || []).forEach(c => {
-                        const opt = document.createElement('option');
-                        opt.value = c.id;
-                        opt.textContent = c.name;
-                        sel.appendChild(opt);
-                    });
-                })
-                .catch(() => {});
+            populateScopedCompanySelect(document.getElementById('cf-company-select'), () => {
+                if (!canManageAllClientCompanies && scopedClientCompanyId) {
+                    loadClientFeatures();
+                }
+            });
         });
 
         function loadClientFeatures() {
@@ -17495,7 +17886,7 @@
         const nsChannelLabels = { email: 'Email', whatsapp: 'WhatsApp', telegram: 'Telegram' };
 
         document.addEventListener('DOMContentLoaded', function () {
-            fetch(`${configBaseUrl}/getAllCompanies`)
+            fetch(`${configBaseUrl}/getAllClients`)
                 .then(r => r.json())
                 .then(res => {
                     const sel = document.getElementById('ns-company-select');

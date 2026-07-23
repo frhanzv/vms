@@ -15,7 +15,7 @@ class UserModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['company_id', 'username', 'email', 'password', 'full_name', 'staff_id', 'contact_no', 'role', 'is_active', 'receive_email_notifications', 'profile_photo', 'version'];
+    protected $allowedFields    = ['client_id', 'company_id', 'username', 'email', 'password', 'full_name', 'staff_id', 'contact_no', 'role', 'is_active', 'receive_email_notifications', 'profile_photo', 'version'];
 
     // Dates
     protected $useTimestamps = true;
@@ -75,10 +75,16 @@ class UserModel extends Model
     /**
      * Get users with pagination, search and sorting
      */
-    public function getUsersWithPagination($search = '', $sortBy = '', $limit = 10, $offset = 0)
+    public function getUsersWithPagination($search = '', $sortBy = '', $limit = 10, $offset = 0, ?int $clientId = null)
     {
-        $builder = $this->select('users.id, users.username, users.email, users.full_name, users.staff_id, users.contact_no, users.role, users.is_active, users.company_id, users.created_at, companies.name AS company_name')
-            ->join('companies', 'companies.id = users.company_id', 'left');
+        helper('role');
+        $builder = $this->select('users.id, users.username, users.email, users.full_name, users.staff_id, users.contact_no, users.role, users.is_active, users.client_id, users.company_id, users.created_at, clients.name AS client_name')
+            ->join('clients', 'clients.id = users.client_id', 'left');
+
+        if ($clientId !== null && $clientId > 0) {
+            $builder->where('users.client_id', $clientId)
+                ->whereNotIn('users.role', roles_blocked_for_client_user_management());
+        }
         
         if (!empty($search)) {
             $builder->groupStart()
@@ -125,11 +131,11 @@ class UserModel extends Model
     /**
      * Get all active admins (clientsuperadmin + admin) for a given company.
      */
-    public function getCompanyAdmins(int $companyId): array
+    public function getCompanyAdmins(int $clientId): array
     {
         return $this->select('id, full_name, email, contact_no')
             ->whereIn('role', ['clientsuperadmin', 'admin'])
-            ->where('company_id', $companyId)
+            ->where('client_id', $clientId)
             ->where('is_active', 1)
             ->findAll();
     }
@@ -148,8 +154,14 @@ class UserModel extends Model
     /**
      * Get total users count with search
      */
-    public function getTotalUsers($search = '')
+    public function getTotalUsers($search = '', ?int $clientId = null)
     {
+        helper('role');
+        if ($clientId !== null && $clientId > 0) {
+            $this->where('client_id', $clientId)
+                ->whereNotIn('role', roles_blocked_for_client_user_management());
+        }
+
         if (!empty($search)) {
             $this->groupStart()
                  ->like('username', $search)

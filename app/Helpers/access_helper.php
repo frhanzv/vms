@@ -46,7 +46,7 @@ if (!function_exists('has_access')) {
             return isset($loadedData[$module][$action]) && $loadedData[$module][$action] === true;
         }
 
-        $roleKey = strtolower(str_replace([' ', '_', '-'], '', $roleName));
+        $roleKey = normalize_role_slug($roleName);
         $cached = session()->get('role_access_cache');
         $cacheTTL = 60;
 
@@ -64,23 +64,9 @@ if (!function_exists('has_access')) {
             return isset($loadedData[$module][$action]) && $loadedData[$module][$action] === true;
         }
 
-        // Clear any old-format cache
         session()->remove('role_access_data');
 
-        // Load from DB
-        $roleModel = new \App\Models\RoleModel();
-        $role = $roleModel->where('name', $roleName)->first();
-
-        if (!$role) {
-            $allRoles = $roleModel->findAll();
-            foreach ($allRoles as $r) {
-                $normalizedDb = strtolower(str_replace([' ', '_', '-'], '', $r['name']));
-                if ($normalizedDb === $roleKey) {
-                    $role = $r;
-                    break;
-                }
-            }
-        }
+        $role = find_role_by_slug($roleName);
 
         if ($role && !empty($role['access'])) {
             $decoded = json_decode($role['access'], true);
@@ -92,9 +78,14 @@ if (!function_exists('has_access')) {
                 $loadedData = [];
                 $grantAll = true;
             }
-        } else {
+        } elseif ($role) {
+            // Role exists in Role Management but access not configured yet
             $loadedData = [];
             $grantAll = true;
+        } else {
+            // Unknown role — do not grant menu access
+            $loadedData = [];
+            $grantAll = false;
         }
 
         session()->set('role_access_cache', [

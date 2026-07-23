@@ -12,7 +12,7 @@ class WhatsappTemplateModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['company_id', 'notification_type', 'template_name', 'language_code'];
+    protected $allowedFields    = ['client_id', 'notification_type', 'template_name', 'language_code'];
 
     protected $useTimestamps = true;
     protected $dateFormat    = 'datetime';
@@ -25,7 +25,7 @@ class WhatsappTemplateModel extends Model
      */
     public function getForCompany(int $companyId): array
     {
-        $rows = $this->where('company_id', $companyId)->findAll();
+        $rows = $this->where('client_id', $companyId)->findAll();
         $stored = array_column($rows, null, 'notification_type');
 
         $result = [];
@@ -45,7 +45,7 @@ class WhatsappTemplateModel extends Model
      */
     public function getTemplate(int $companyId, string $notificationType): ?array
     {
-        $row = $this->where('company_id', $companyId)
+        $row = $this->where('client_id', $companyId)
                     ->where('notification_type', $notificationType)
                     ->first();
 
@@ -63,12 +63,12 @@ class WhatsappTemplateModel extends Model
     public function saveForCompany(int $companyId, array $templates): void
     {
         foreach ($templates as $type => $data) {
-            $existing = $this->where('company_id', $companyId)
+            $existing = $this->where('client_id', $companyId)
                              ->where('notification_type', $type)
                              ->first();
 
             $payload = [
-                'company_id'        => $companyId,
+                'client_id'        => $companyId,
                 'notification_type' => $type,
                 'template_name'     => $data['template_name'] ?? '',
                 'language_code'     => $data['language_code'] ?? 'en_US',

@@ -98,7 +98,8 @@ class Auth extends BaseController
             // Set session data
             $sessionData = [
                 'user_id'    => $user['id'],
-                'company_id' => $role === 'superadmin' ? null : $user['company_id'],
+                'client_id'    => $user['client_id'],
+                'company_id'   => $user['company_id'],
                 'staff_id'   => $user['staff_id'],
                 'username'   => $user['username'],
                 'email'      => $user['email'],

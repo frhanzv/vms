@@ -19,8 +19,11 @@ class UserSeeder extends Seeder
     {
         $now = date('Y-m-d H:i:s');
 
-        $gxoId = $this->db->table('companies')
-            ->where('name', 'GXO')
+        $gxoId = $this->db->table('clients')
+            ->groupStart()
+                ->where('name', 'GXO Sdn Bhd')
+                ->orLike('name', 'GXO')
+            ->groupEnd()
             ->get()
             ->getRowArray()['id'] ?? null;
 
@@ -63,7 +66,8 @@ class UserSeeder extends Seeder
                 'password'   => password_hash('gxoadmin123', PASSWORD_DEFAULT),
                 'full_name'  => 'GXO Admin',
                 'role'       => 'clientsuperadmin',
-                'company_id' => $gxoId,
+                'client_id' => $gxoId,
+                'company_id' => null,
                 'is_active'  => 1,
             ],
         ];

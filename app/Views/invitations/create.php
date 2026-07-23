@@ -181,10 +181,10 @@ History
 <?php endif; ?>
 
 <!-- Contact No Of Person Visited (defaults from account; editable) -->
-<?php if ($isFieldEnabled('contact_person')): ?>
+<?php if ($isFieldEnabled('host_contact')): ?>
 <div class="flex flex-col gap-2">
 <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Contact No Of Person Visited <span class="text-red-500">*</span></label>
-<input name="contact_person" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white" value="<?= esc(old('contact_person', $contact_no ?? '')) ?>" type="tel" maxlength="20" required/>
+<input name="host_contact" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white" value="<?= esc(old('host_contact', old('contact_person', $contact_no ?? ''))) ?>" type="tel" maxlength="20" required/>
 </div>
 <?php endif; ?>
 
@@ -692,8 +692,8 @@ function applyInvitationHistoryPayload(d) {
     if (staff) staff.value = d.staff_id || '';
     setSelectValue(document.querySelector('select[name="visitor_type_id"]'), d.visitor_type_id != null ? String(d.visitor_type_id) : '');
     setSelectValue(document.querySelector('select[name="company_visited"]'), d.company_visited || '');
-    const contactPerson = document.querySelector('input[name="contact_person"]');
-    if (contactPerson) contactPerson.value = d.contact_person || '';
+    const contactPerson = document.querySelector('input[name="host_contact"]');
+    if (contactPerson) contactPerson.value = d.contact_person || d.host_contact || '';
     // From history: leave blank — host sets fresh expiry, reason, location, and visit dates
     const linkExp = document.querySelector('input[name="link_expiry"]');
     if (linkExp) linkExp.value = '';

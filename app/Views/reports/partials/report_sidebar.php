@@ -96,15 +96,7 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
             </a>
             <?php endif; ?>
 
-            <?php
-                $_companyId = (int) (
-                    session()->get('company_id')
-                    ?: ((new \App\Models\UserModel())->find((int) session()->get('user_id'))['company_id'] ?? 0)
-                );
-                $_showBlacklist = is_platform_superadmin(session()->get('role'))
-                    || (new \App\Models\ClientFeatureModel())->isEnabled($_companyId, 'blacklist');
-            ?>
-            <?php if ($hasBlacklistAccess && $_showBlacklist): ?>
+            <?php if ($hasBlacklistAccess && client_feature_enabled('blacklist')): ?>
             <div x-data="{ openBlacklist: <?= str_contains($current, 'blacklist') ? 'true' : 'false' ?>, openIndividual: <?= str_contains($current, 'blacklist') ? 'true' : 'false' ?> }">
                 <button type="button" @click="openBlacklist = !openBlacklist"
                     class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= str_contains($current, 'blacklist') ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">

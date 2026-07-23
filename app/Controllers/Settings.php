@@ -16,7 +16,7 @@ class Settings extends BaseController
 
     public function index()
     {
-        helper('access');
+        helper(['access', 'role']);
         if (!has_access('settings', 'view')) {
             return redirect()->to('/dashboard')->with('error', 'Unauthorized access. You do not have permission to view Settings.');
         }
@@ -28,9 +28,17 @@ class Settings extends BaseController
             return redirect()->to('/login')->with('error', 'User not found');
         }
 
+        $clientName = null;
+        if (!empty($user['client_id'])) {
+            $client = (new \App\Models\ClientModel())->find($user['client_id']);
+            $clientName = $client['name'] ?? null;
+        }
+
         $data = [
             'pageTitle' => 'Settings - SafeG',
             'user' => $user,
+            'clientName' => $clientName,
+            'roleLabel' => role_management_name($user['role'] ?? ''),
             'validation' => \Config\Services::validation()
         ];
 

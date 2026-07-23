@@ -12,7 +12,7 @@ class ClientMessagingCredentialModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['company_id', 'channel', 'phone_number_id', 'access_token', 'is_active'];
+    protected $allowedFields    = ['client_id', 'channel', 'phone_number_id', 'access_token', 'is_active'];
 
     protected $useTimestamps = true;
     protected $dateFormat    = 'datetime';
@@ -26,18 +26,18 @@ class ClientMessagingCredentialModel extends Model
 
     public function getForCompany(int $companyId, string $channel): ?array
     {
-        return $this->where('company_id', $companyId)
+        return $this->where('client_id', $companyId)
                     ->where('channel', $channel)
                     ->first();
     }
 
     public function saveCredentials(int $companyId, string $channel, array $data): void
     {
-        $existing = $this->where('company_id', $companyId)
+        $existing = $this->where('client_id', $companyId)
                          ->where('channel', $channel)
                          ->first();
 
-        $payload = array_merge(['company_id' => $companyId, 'channel' => $channel], $data);
+        $payload = array_merge(['client_id' => $companyId, 'channel' => $channel], $data);
 
         if ($existing) {
             $this->update($existing['id'], $payload);
@@ -48,7 +48,7 @@ class ClientMessagingCredentialModel extends Model
 
     public function isActive(int $companyId, string $channel): bool
     {
-        $row = $this->where('company_id', $companyId)
+        $row = $this->where('client_id', $companyId)
                     ->where('channel', $channel)
                     ->first();
 

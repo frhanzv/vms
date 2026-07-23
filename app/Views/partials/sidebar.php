@@ -10,7 +10,7 @@ $isSettings  = str_contains($current, 'settings');
 $hasVisitorPassAccess = has_access('visitor_pass_list', 'invitations') || has_access('visitor_pass_list', 'request_list') || has_access('visitor_pass_list', 'visitors_list');
 $hasBlacklistAccess   = has_access('blacklist', 'request_list') || has_access('blacklist', 'closed_list') || has_access('blacklist', 'individual_request_list') || has_access('blacklist', 'individual_closed_list') || has_access('blacklist', 'company_request_list') || has_access('blacklist', 'company_closed_list');
 $hasReportAccess      = has_access('report', 'access_report') || has_access('report', 'visitor_report') || has_access('report', 'visitor_chronology') || has_access('report', 'visitor_info_by_door') || has_access('report', 'gate_in_out') || has_access('report', 'out_window_list') || has_access('report', 'port_pass_monthly') || has_access('report', 'port_pass_summary') || has_access('report', 'company_permit_ageing') || has_access('report', 'company_permit_monthly') || has_access('report', 'vehicle_sticker_summary') || has_access('report', 'blacklist_report') || has_access('report', 'attendance_report') || has_access('report', 'monitoring_report');
-$hasConfigAccess      = has_access('config', 'view') || has_access('config', 'alert_priority') || has_access('config', 'api_management') || has_access('config', 'general_settings') || has_access('config', 'application_settings') || has_access('config', 'role_management') || has_access('config', 'user_management') || has_access('config', 'company');
+$hasConfigAccess      = has_access('config', 'view') || has_access('config', 'alert_priority') || has_access('config', 'api_management') || has_access('config', 'general_settings') || has_access('config', 'application_settings') || has_access('config', 'role_management') || has_access('config', 'user_management') || has_access('config', 'company') || (is_client_superadmin() && current_client_id() > 0);
 ?>
 
 <aside class="w-64 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col p-4 hidden md:flex h-full overflow-hidden">
@@ -99,15 +99,7 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
             <?php endif; ?>
 
             <!-- Blacklist -->
-            <?php
-                $_blCompanyId = (int) (
-                    session()->get('company_id')
-                    ?: ((new \App\Models\UserModel())->find((int) session()->get('user_id'))['company_id'] ?? 0)
-                );
-                $_blEnabled = is_platform_superadmin(session()->get('role'))
-                    || (new \App\Models\ClientFeatureModel())->isEnabled($_blCompanyId, 'blacklist');
-            ?>
-            <?php if ($hasBlacklistAccess && $_blEnabled): ?>
+            <?php if ($hasBlacklistAccess && client_feature_enabled('blacklist')): ?>
             <div x-data="{ openBlacklist: <?= str_contains($current, 'blacklist') ? 'true' : 'false' ?>, openIndividual: <?= str_contains($current, 'blacklist') ? 'true' : 'false' ?> }">
                 <button type="button" @click="openBlacklist = !openBlacklist"
                     class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= str_contains($current, 'blacklist') ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
@@ -237,6 +229,13 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
             <div class="flex-1 min-w-0">
                 <p class="text-sm font-semibold text-slate-900 dark:text-white truncate"><?= esc(session()->get('full_name') ?? 'User') ?></p>
                 <p class="text-xs text-slate-500 dark:text-slate-400 truncate"><?= esc(role_display_name(session()->get('role'))) ?></p>
+                <?php
+                $sidebarClient = current_client_name();
+                if ($sidebarClient): ?>
+                    <p class="text-xs text-slate-400 dark:text-slate-500 truncate" title="<?= esc($sidebarClient) ?>"><?= esc($sidebarClient) ?></p>
+                <?php elseif (is_platform_superadmin() && current_client_id() === 0): ?>
+                    <p class="text-xs text-slate-400 dark:text-slate-500 truncate">Platform</p>
+                <?php endif; ?>
             </div>
             <a href="<?= base_url('auth/logout') ?>" class="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                 <span class="material-symbols-outlined text-xl">logout</span>

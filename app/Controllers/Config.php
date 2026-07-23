@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Models\RoleModel;
 use App\Models\UserModel;
+use App\Models\ClientModel;
 use App\Models\CompanyModel;
 use App\Models\SubCompanyModel;
 use App\Models\CountryModel;
@@ -44,6 +45,7 @@ class Config extends BaseController
 {
     protected $roleModel;
     protected $userModel;
+    protected $clientModel;
     protected $companyModel;
     protected $subCompanyModel;
     protected $countryModel;
@@ -123,6 +125,7 @@ class Config extends BaseController
 
         $this->roleModel = new RoleModel();
         $this->userModel = new UserModel();
+        $this->clientModel = new ClientModel();
         $this->companyModel = new CompanyModel();
         $this->subCompanyModel = new SubCompanyModel();
         $this->countryModel = new CountryModel();
@@ -212,9 +215,16 @@ class Config extends BaseController
         // =========================
         // PASS DATA TO VIEW
         // =========================
+        helper(['role', 'feature']);
+
         return view('config/index', [
             'pageTitle' => 'System Configuration - SafeG',
             'logs' => $this->getSystemLogs(),
+            'scopedClientCompanyId' => scoped_client_company_id(),
+            'canManageAllClientCompanies' => is_platform_superadmin(),
+            'isClientScopedUserManager' => is_client_scoped_user_manager(),
+            'scopedUserClientId' => user_management_client_scope(),
+            'scopedUserClientName' => current_client_name(),
 
             // Reg Type
             'reg_types'        => $regTypes,
@@ -491,8 +501,8 @@ class Config extends BaseController
                 return $error;
             }
 
-            $sessionRoleNorm = strtolower(str_replace([' ', '_', '-'], '', session()->get('role') ?? ''));
-            $dbRoleNorm      = strtolower(str_replace([' ', '_', '-'], '', $role['name']));
+            $sessionRoleNorm = normalize_role_slug(session()->get('role'));
+            $dbRoleNorm      = normalize_role_slug($role['name']);
             if ($sessionRoleNorm === $dbRoleNorm) {
                 session()->remove('role_access_data');
                 session()->remove('role_access_cache');
@@ -549,23 +559,70 @@ class Config extends BaseController
     // ============== USER MANAGEMENT METHODS ==============
 
     /**
+     * Enforce role + client rules for Client Super Admin user management.
+     *
+     * @return array{0: ?\CodeIgniter\HTTP\ResponseInterface, 1: ?int} [error response, forced client_id]
+     */
+    private function enforceScopedUserManagement(string $role, ?array $existingUser = null): array
+    {
+        helper(['role', 'feature']);
+
+        if ($existingUser !== null && ! can_manage_target_user($existingUser)) {
+            return [
+                $this->response->setStatusCode(403)->setJSON([
+                    'success' => false,
+                    'message' => 'You are not allowed to manage this user.',
+                ]),
+                null,
+            ];
+        }
+
+        if (! can_assign_role_in_user_management($role)) {
+            return [
+                $this->response->setStatusCode(403)->setJSON([
+                    'success' => false,
+                    'message' => 'You cannot assign this role.',
+                    'errors'  => ['role' => 'This role is not allowed for your account'],
+                ]),
+                null,
+            ];
+        }
+
+        $scope = user_management_client_scope();
+        if ($scope > 0) {
+            return [null, $scope];
+        }
+
+        return [null, null];
+    }
+
+    /**
      * Get users with pagination, search and sorting
      */
     public function getUsers()
     {
         try {
+            helper(['role', 'feature']);
+            $clientScope = user_management_client_scope();
+            if (is_client_scoped_user_manager() && $clientScope <= 0) {
+                return $this->response->setStatusCode(403)->setJSON([
+                    'success' => false,
+                    'message' => 'Your account is not linked to a client.',
+                ]);
+            }
+
             $page = (int) ($this->request->getGet('page') ?? 1);
             $perPage = (int) ($this->request->getGet('per_page') ?? 10);
             $search = $this->request->getGet('search') ?? '';
             $sortBy = $this->request->getGet('sort_by') ?? '';
 
             $offset = ($page - 1) * $perPage;
-            $users = $this->userModel->getUsersWithPagination($search, $sortBy, $perPage, $offset);
-            $total = $this->userModel->getTotalUsers($search);
+            $users = $this->userModel->getUsersWithPagination($search, $sortBy, $perPage, $offset, $clientScope > 0 ? $clientScope : null);
+            $total = $this->userModel->getTotalUsers($search, $clientScope > 0 ? $clientScope : null);
 
             helper('role');
             foreach ($users as &$user) {
-                $user['role_label'] = role_display_name($user['role'] ?? '');
+                $user['role_label'] = role_management_name($user['role'] ?? '');
             }
             unset($user);
 
@@ -595,7 +652,7 @@ class Config extends BaseController
      */
     public function getUser($id)
     {
-        $user = $this->userModel->select('id, username, email, full_name, staff_id, contact_no, role, is_active, company_id, receive_email_notifications')
+        $user = $this->userModel->select('id, username, email, full_name, staff_id, contact_no, role, is_active, client_id, company_id, receive_email_notifications')
             ->find($id);
 
         if (!$user) {
@@ -605,15 +662,23 @@ class Config extends BaseController
             ])->setStatusCode(404);
         }
 
-        if (!empty($user['company_id'])) {
-            $company = $this->companyModel->find($user['company_id']);
-            $user['company_name'] = $company['name'] ?? null;
+        helper('role');
+        if (! can_manage_target_user($user)) {
+            return $this->response->setStatusCode(403)->setJSON([
+                'success' => false,
+                'message' => 'You are not allowed to view this user.',
+            ]);
+        }
+
+        if (!empty($user['client_id'])) {
+            $client = $this->clientModel->find($user['client_id']);
+            $user['client_name'] = $client['name'] ?? null;
         } else {
-            $user['company_name'] = null;
+            $user['client_name'] = null;
         }
 
         helper('role');
-        $user['role_label'] = role_display_name($user['role'] ?? '');
+        $user['role_label'] = role_management_name($user['role'] ?? '');
 
         return $this->response->setJSON([
             'success' => true,
@@ -626,6 +691,7 @@ class Config extends BaseController
      */
     public function createUser()
     {
+        helper(['role', 'feature']);
         $input = $this->request->getJSON(true);
 
         $rules = [
@@ -637,6 +703,7 @@ class Config extends BaseController
             'contact_no' => 'permit_empty|max_length[20]',
             'role'       => 'required',
             'is_active'  => 'required|in_list[0,1]',
+            'client_id' => 'permit_empty|is_natural_no_zero',
             'company_id' => 'permit_empty|is_natural_no_zero',
             'receive_email_notifications' => 'permit_empty|in_list[0,1]',
         ];
@@ -651,11 +718,28 @@ class Config extends BaseController
 
         $role = normalize_role_slug($input['role']);
 
-        if ($role !== 'superadmin' && empty($input['company_id'])) {
+        if (!find_role_by_slug($role)) {
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => ['company_id' => 'Company is required for this role'],
+                'errors' => ['role' => 'Select an active role from Role Management'],
+            ])->setStatusCode(400);
+        }
+
+        [$scopedError, $forcedClientId] = $this->enforceScopedUserManagement($role);
+        if ($scopedError !== null) {
+            return $scopedError;
+        }
+
+        if ($forcedClientId !== null) {
+            $input['client_id'] = $forcedClientId;
+        }
+
+        if ($role !== 'superadmin' && empty($input['client_id'])) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => ['client_id' => 'Client is required for this role'],
             ])->setStatusCode(400);
         }
 
@@ -668,7 +752,8 @@ class Config extends BaseController
             'contact_no' => $input['contact_no'] ?? null,
             'role'       => $role,
             'is_active'  => $input['is_active'],
-            'company_id' => ($role === 'superadmin') ? null : ($input['company_id'] ?? null),
+            'client_id' => ! empty($input['client_id']) ? (int) $input['client_id'] : null,
+            'company_id' => null,
             'receive_email_notifications' => isset($input['receive_email_notifications']) ? $input['receive_email_notifications'] : 1,
         ];
 
@@ -701,6 +786,7 @@ class Config extends BaseController
      */
     public function updateUser($id)
     {
+        helper(['role', 'feature']);
         $user = $this->userModel->find($id);
 
         if (!$user) {
@@ -721,6 +807,7 @@ class Config extends BaseController
             'contact_no' => 'permit_empty|max_length[20]',
             'role'       => 'required',
             'is_active'  => 'required|in_list[0,1]',
+            'client_id' => 'permit_empty|is_natural_no_zero',
             'company_id' => 'permit_empty|is_natural_no_zero',
             'receive_email_notifications' => 'permit_empty|in_list[0,1]',
         ];
@@ -740,11 +827,28 @@ class Config extends BaseController
 
         $role = normalize_role_slug($input['role']);
 
-        if ($role !== 'superadmin' && empty($input['company_id'])) {
+        if (!find_role_by_slug($role)) {
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => ['company_id' => 'Company is required for this role'],
+                'errors' => ['role' => 'Select an active role from Role Management'],
+            ])->setStatusCode(400);
+        }
+
+        [$scopedError, $forcedClientId] = $this->enforceScopedUserManagement($role, $user);
+        if ($scopedError !== null) {
+            return $scopedError;
+        }
+
+        if ($forcedClientId !== null) {
+            $input['client_id'] = $forcedClientId;
+        }
+
+        if ($role !== 'superadmin' && empty($input['client_id'])) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => ['client_id' => 'Client is required for this role'],
             ])->setStatusCode(400);
         }
 
@@ -756,7 +860,8 @@ class Config extends BaseController
             'contact_no' => $input['contact_no'] ?? null,
             'role'       => $role,
             'is_active'  => $input['is_active'],
-            'company_id' => ($role === 'superadmin') ? null : ($input['company_id'] ?? null),
+            'client_id' => ! empty($input['client_id']) ? (int) $input['client_id'] : null,
+            'company_id' => null,
             'receive_email_notifications' => isset($input['receive_email_notifications']) ? $input['receive_email_notifications'] : 1,
         ];
 
@@ -766,7 +871,9 @@ class Config extends BaseController
         }
 
         try {
+            $this->userModel->skipValidation(true);
             $error = $this->versionedUpdate($this->userModel, $id, $data, $input, 'user');
+            $this->userModel->skipValidation(false);
             if ($error) {
                 return $error;
             }
@@ -789,6 +896,7 @@ class Config extends BaseController
      */
     public function deleteUser($id)
     {
+        helper('role');
         $user = $this->userModel->find($id);
 
         if (!$user) {
@@ -796,6 +904,13 @@ class Config extends BaseController
                 'success' => false,
                 'message' => 'User not found'
             ])->setStatusCode(404);
+        }
+
+        if (! can_manage_target_user($user)) {
+            return $this->response->setStatusCode(403)->setJSON([
+                'success' => false,
+                'message' => 'You are not allowed to delete this user.',
+            ]);
         }
 
         if ($this->userModel->delete($id)) {
@@ -817,41 +932,154 @@ class Config extends BaseController
     public function getAllRoles()
     {
         helper('role');
-        $roles = $this->roleModel->where('status', 'active')->findAll();
+        $roles = $this->roleModel->where('status', 'active')->orderBy('name', 'ASC')->findAll();
         $payload = [];
 
         foreach ($roles as $role) {
             $slug = normalize_role_slug($role['name']);
+            if (! can_assign_role_in_user_management($slug)) {
+                continue;
+            }
             $payload[] = [
                 'id'   => $role['id'],
-                'name' => role_display_name($slug),
+                'name' => $role['name'],
                 'slug' => $slug,
             ];
         }
-
-        $existingSlugs = array_column($payload, 'slug');
-        $systemRoles = [
-            ['slug' => 'clientsuperadmin'],
-            ['slug' => 'admin'],
-        ];
-
-        foreach ($systemRoles as $systemRole) {
-            if (!in_array($systemRole['slug'], $existingSlugs, true)) {
-                $payload[] = [
-                    'name' => role_display_name($systemRole['slug']),
-                    'slug' => $systemRole['slug'],
-                ];
-            }
-        }
-
-        usort($payload, static function (array $a, array $b): int {
-            return strcasecmp($a['name'], $b['name']);
-        });
 
         return $this->response->setJSON([
             'success' => true,
             'data' => $payload
         ]);
+    }
+
+    // ============== CLIENT (TENANT) MANAGEMENT ==============
+
+    /**
+     * Client list CRUD is platform superadmin only.
+     */
+    private function denyUnlessPlatformSuperadminForClientList(): ?\CodeIgniter\HTTP\ResponseInterface
+    {
+        helper('role');
+        if (!is_platform_superadmin()) {
+            return $this->response->setStatusCode(403)->setJSON([
+                'success' => false,
+                'message' => 'Only Superadmin can manage the client list.',
+            ]);
+        }
+
+        return null;
+    }
+
+    public function getClients()
+    {
+        if ($denied = $this->denyUnlessPlatformSuperadminForClientList()) {
+            return $denied;
+        }
+
+        try {
+            $page = (int) ($this->request->getGet('page') ?? 1);
+            $perPage = (int) ($this->request->getGet('per_page') ?? 10);
+            $search = $this->request->getGet('search') ?? '';
+            $sortBy = $this->request->getGet('sort') ?? '';
+            $offset = ($page - 1) * $perPage;
+
+            $clients = $this->clientModel->getClientsWithPagination($search, $sortBy, $perPage, $offset);
+            $total = $this->clientModel->getTotalClients($search);
+
+            return $this->response->setJSON([
+                'success' => true,
+                'data' => $clients,
+                'pagination' => [
+                    'total' => $total,
+                    'per_page' => $perPage,
+                    'current_page' => $page,
+                    'total_pages' => (int) ceil($total / max($perPage, 1)),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to fetch clients: ' . $e->getMessage(),
+            ])->setStatusCode(500);
+        }
+    }
+
+    public function getAllClients()
+    {
+        $clients = $this->clientModel->where('status', 'active')->orderBy('name', 'ASC')->findAll();
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => $clients,
+        ]);
+    }
+
+    public function getClient($id)
+    {
+        if ($denied = $this->denyUnlessPlatformSuperadminForClientList()) {
+            return $denied;
+        }
+
+        $client = $this->clientModel->find($id);
+        if (!$client) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Client not found'])->setStatusCode(404);
+        }
+
+        return $this->response->setJSON(['success' => true, 'data' => $client]);
+    }
+
+    public function createClient()
+    {
+        if ($denied = $this->denyUnlessPlatformSuperadminForClientList()) {
+            return $denied;
+        }
+
+        $input = $this->request->getJSON(true);
+        if (!$this->clientModel->insert($input)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to create client',
+                'errors' => $this->clientModel->errors(),
+            ])->setStatusCode(400);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Client created successfully',
+            'data' => ['id' => $this->clientModel->getInsertID()],
+        ]);
+    }
+
+    public function updateClient($id)
+    {
+        if ($denied = $this->denyUnlessPlatformSuperadminForClientList()) {
+            return $denied;
+        }
+
+        $input = $this->request->getJSON(true);
+        if (!$this->clientModel->update($id, $input)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to update client',
+                'errors' => $this->clientModel->errors(),
+            ])->setStatusCode(400);
+        }
+
+        return $this->response->setJSON(['success' => true, 'message' => 'Client updated successfully']);
+    }
+
+    public function deleteClient($id)
+    {
+        if ($denied = $this->denyUnlessPlatformSuperadminForClientList()) {
+            return $denied;
+        }
+
+        if (!$this->clientModel->delete($id)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Failed to delete client'])->setStatusCode(400);
+        }
+
+        return $this->response->setJSON(['success' => true, 'message' => 'Client deleted successfully']);
     }
 
     // ============== COMPANY MANAGEMENT METHODS ==============
@@ -5296,70 +5524,34 @@ class Config extends BaseController
         ]);
     }
 
-    public function getClientFormFields(int $companyId)
+    public function getClientFeatures(int $clientId)
     {
-        $company = $this->companyModel->find($companyId);
-        if (!$company) {
-            return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Company not found']);
+        helper('role');
+        if (!client_company_config_allowed($clientId)) {
+            return $this->response->setStatusCode(403)->setJSON(['success' => false, 'message' => 'Not authorized for this client']);
         }
 
-        $formType = $this->request->getGet('form') ?? 'visitor_registration';
-        if (!array_key_exists($formType, \App\Models\ClientFormFieldModel::formTypes())) {
-            return $this->response->setStatusCode(400)->setJSON(['success' => false, 'message' => 'Invalid form type']);
-        }
-
-        return $this->response->setJSON([
-            'success' => true,
-            'fields'  => $this->clientFormFieldModel->getForCompanyForm($companyId, $formType),
-        ]);
-    }
-
-    public function saveClientFormFields(int $companyId)
-    {
-        $company = $this->companyModel->find($companyId);
-        if (!$company) {
-            return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Company not found']);
-        }
-
-        $input    = $this->request->getJSON(true);
-        $formType = $input['form_type'] ?? null;
-        $fields   = $input['fields'] ?? null;
-
-        if (!$formType || !is_array($fields) || !array_key_exists($formType, \App\Models\ClientFormFieldModel::formTypes())) {
-            return $this->response->setStatusCode(400)->setJSON(['success' => false, 'message' => 'Invalid payload']);
-        }
-
-        $allowed   = array_column($this->clientFormFieldModel->getForCompanyForm($companyId, $formType), 'field_key');
-        $sanitised = [];
-        foreach ($fields as $key => $val) {
-            if (in_array($key, $allowed, true)) {
-                $sanitised[$key] = (bool) $val;
-            }
-        }
-
-        $this->clientFormFieldModel->saveForCompanyForm($companyId, $formType, $sanitised);
-
-        return $this->response->setJSON(['success' => true, 'message' => 'Form field config saved']);
-    }
-
-    public function getClientFeatures(int $companyId)
-    {
-        $company = $this->companyModel->find($companyId);
-        if (!$company) {
-            return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Company not found']);
+        $client = $this->clientModel->find($clientId);
+        if (!$client) {
+            return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Client not found']);
         }
 
         return $this->response->setJSON([
             'success'  => true,
-            'features' => $this->clientFeatureModel->getForCompany($companyId),
+            'features' => $this->clientFeatureModel->getForClient($clientId),
         ]);
     }
 
-    public function saveClientFeatures(int $companyId)
+    public function saveClientFeatures(int $clientId)
     {
-        $company = $this->companyModel->find($companyId);
-        if (!$company) {
-            return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Company not found']);
+        helper('role');
+        if (!client_company_config_allowed($clientId)) {
+            return $this->response->setStatusCode(403)->setJSON(['success' => false, 'message' => 'Not authorized for this client']);
+        }
+
+        $client = $this->clientModel->find($clientId);
+        if (!$client) {
+            return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Client not found']);
         }
 
         $input = $this->request->getJSON(true);
@@ -5375,31 +5567,87 @@ class Config extends BaseController
             }
         }
 
-        $this->clientFeatureModel->saveForCompany($companyId, $sanitised);
+        $this->clientFeatureModel->saveForClient($clientId, $sanitised);
 
         return $this->response->setJSON(['success' => true, 'message' => 'Feature flags saved']);
     }
 
-    public function getNotificationSettings(int $companyId)
+    public function getClientFormFields(int $clientId)
     {
-        $company = $this->companyModel->find($companyId);
-        if (! $company) {
-            return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Company not found']);
+        helper('role');
+        if (!client_company_config_allowed($clientId)) {
+            return $this->response->setStatusCode(403)->setJSON(['success' => false, 'message' => 'Not authorized for this client']);
+        }
+
+        $client = $this->clientModel->find($clientId);
+        if (!$client) {
+            return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Client not found']);
+        }
+
+        $formType = $this->request->getGet('form') ?? 'visitor_registration';
+        if (!array_key_exists($formType, \App\Models\ClientFormFieldModel::formTypes())) {
+            return $this->response->setStatusCode(400)->setJSON(['success' => false, 'message' => 'Invalid form type']);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'fields'  => $this->clientFormFieldModel->getForCompanyForm($clientId, $formType),
+        ]);
+    }
+
+    public function saveClientFormFields(int $clientId)
+    {
+        helper('role');
+        if (!client_company_config_allowed($clientId)) {
+            return $this->response->setStatusCode(403)->setJSON(['success' => false, 'message' => 'Not authorized for this client']);
+        }
+
+        $client = $this->clientModel->find($clientId);
+        if (!$client) {
+            return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Client not found']);
+        }
+
+        $input    = $this->request->getJSON(true);
+        $formType = $input['form_type'] ?? null;
+        $fields   = $input['fields'] ?? null;
+
+        if (!$formType || !is_array($fields) || !array_key_exists($formType, \App\Models\ClientFormFieldModel::formTypes())) {
+            return $this->response->setStatusCode(400)->setJSON(['success' => false, 'message' => 'Invalid payload']);
+        }
+
+        $allowed   = array_column($this->clientFormFieldModel->getForCompanyForm($clientId, $formType), 'field_key');
+        $sanitised = [];
+        foreach ($fields as $key => $val) {
+            if (in_array($key, $allowed, true)) {
+                $sanitised[$key] = (bool) $val;
+            }
+        }
+
+        $this->clientFormFieldModel->saveForCompanyForm($clientId, $formType, $sanitised);
+
+        return $this->response->setJSON(['success' => true, 'message' => 'Form field config saved']);
+    }
+
+    public function getNotificationSettings(int $clientId)
+    {
+        $client = $this->clientModel->find($clientId);
+        if (! $client) {
+            return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Client not found']);
         }
 
         return $this->response->setJSON([
             'success'  => true,
-            'settings' => $this->clientNotificationSettingModel->getForCompany($companyId),
+            'settings' => $this->clientNotificationSettingModel->getForCompany($clientId),
             'types'    => ClientNotificationSettingModel::allTypes(),
             'channels' => ClientNotificationSettingModel::allChannels(),
         ]);
     }
 
-    public function saveNotificationSettings(int $companyId)
+    public function saveNotificationSettings(int $clientId)
     {
-        $company = $this->companyModel->find($companyId);
-        if (! $company) {
-            return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Company not found']);
+        $client = $this->clientModel->find($clientId);
+        if (! $client) {
+            return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Client not found']);
         }
 
         $input = $this->request->getJSON(true);
@@ -5422,23 +5670,23 @@ class Config extends BaseController
             }
         }
 
-        $this->clientNotificationSettingModel->saveForCompany($companyId, $sanitised);
+        $this->clientNotificationSettingModel->saveForCompany($clientId, $sanitised);
 
         return $this->response->setJSON(['success' => true, 'message' => 'Notification settings saved']);
     }
 
-    public function getMessagingCredentials(int $companyId, string $channel)
+    public function getMessagingCredentials(int $clientId, string $channel)
     {
-        $company = $this->companyModel->find($companyId);
-        if (! $company) {
-            return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Company not found']);
+        $client = $this->clientModel->find($clientId);
+        if (! $client) {
+            return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Client not found']);
         }
 
         if (! in_array($channel, ClientMessagingCredentialModel::allChannels(), true)) {
             return $this->response->setStatusCode(400)->setJSON(['success' => false, 'message' => 'Invalid channel']);
         }
 
-        $cred = $this->clientMessagingCredentialModel->getForCompany($companyId, $channel);
+        $cred = $this->clientMessagingCredentialModel->getForCompany($clientId, $channel);
 
         return $this->response->setJSON([
             'success'    => true,
@@ -5450,11 +5698,11 @@ class Config extends BaseController
         ]);
     }
 
-    public function saveMessagingCredentials(int $companyId, string $channel)
+    public function saveMessagingCredentials(int $clientId, string $channel)
     {
-        $company = $this->companyModel->find($companyId);
-        if (! $company) {
-            return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Company not found']);
+        $client = $this->clientModel->find($clientId);
+        if (! $client) {
+            return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Client not found']);
         }
 
         if (! in_array($channel, ClientMessagingCredentialModel::allChannels(), true)) {
@@ -5474,30 +5722,30 @@ class Config extends BaseController
             $data['is_active'] = (bool) $input['is_active'] ? 1 : 0;
         }
 
-        $this->clientMessagingCredentialModel->saveCredentials($companyId, $channel, $data);
+        $this->clientMessagingCredentialModel->saveCredentials($clientId, $channel, $data);
 
         return $this->response->setJSON(['success' => true, 'message' => 'Credentials saved']);
     }
 
-    public function getWhatsappTemplates(int $companyId)
+    public function getWhatsappTemplates(int $clientId)
     {
-        $company = $this->companyModel->find($companyId);
-        if (! $company) {
-            return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Company not found']);
+        $client = $this->clientModel->find($clientId);
+        if (! $client) {
+            return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Client not found']);
         }
 
         return $this->response->setJSON([
             'success'   => true,
-            'templates' => $this->whatsappTemplateModel->getForCompany($companyId),
+            'templates' => $this->whatsappTemplateModel->getForCompany($clientId),
             'types'     => ClientNotificationSettingModel::allTypes(),
         ]);
     }
 
-    public function saveWhatsappTemplates(int $companyId)
+    public function saveWhatsappTemplates(int $clientId)
     {
-        $company = $this->companyModel->find($companyId);
-        if (! $company) {
-            return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Company not found']);
+        $client = $this->clientModel->find($clientId);
+        if (! $client) {
+            return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Client not found']);
         }
 
         $input = $this->request->getJSON(true);
@@ -5518,7 +5766,7 @@ class Config extends BaseController
             ];
         }
 
-        $this->whatsappTemplateModel->saveForCompany($companyId, $sanitised);
+        $this->whatsappTemplateModel->saveForCompany($clientId, $sanitised);
 
         return $this->response->setJSON(['success' => true, 'message' => 'WhatsApp templates saved']);
     }

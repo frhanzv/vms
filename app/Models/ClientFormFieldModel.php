@@ -12,7 +12,7 @@ class ClientFormFieldModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['company_id', 'form_type', 'field_key', 'is_enabled'];
+    protected $allowedFields    = ['client_id', 'form_type', 'field_key', 'is_enabled'];
 
     protected $useTimestamps = true;
     protected $dateFormat    = 'datetime';
@@ -62,14 +62,14 @@ class ClientFormFieldModel extends Model
     }
 
     // Static field definitions for the Invitation form.
-    // Visitor Registration fields are pulled live from email_template_form_fields (is_system=1).
+    // Shared visit-context fields also respect visitor_registration toggles (see getInvitationFormConfig).
     public static function invitationFields(): array
     {
         return [
-            ['field_key' => 'staff_id',          'label' => 'Staff ID (Person Visited)'],
+            ['field_key' => 'staff_id',          'label' => 'Staff ID Of Person Visited'],
             ['field_key' => 'visitor_type',       'label' => 'Visitor Type'],
-            ['field_key' => 'company_visited',    'label' => 'Company Being Visited'],
-            ['field_key' => 'contact_person',     'label' => 'Contact Person No.'],
+            ['field_key' => 'company_visited',    'label' => 'Name Of Company Visited'],
+            ['field_key' => 'host_contact',      'label' => 'Contact No Of Person Visited'],
             ['field_key' => 'link_expiry',        'label' => 'Invitation Link Expiry'],
             ['field_key' => 'reason',             'label' => 'Reason for Visit'],
             ['field_key' => 'location',           'label' => 'Location / Venue'],
@@ -79,6 +79,59 @@ class ClientFormFieldModel extends Model
             ['field_key' => 'visitor_email',      'label' => 'Visitor Email'],
             ['field_key' => 'schedule',           'label' => 'Visit Schedule (Date & Time)'],
         ];
+    }
+
+    /**
+     * Resolved invitation form toggles for Create Invitation — merges invitation + visitor_registration.
+     *
+     * @return array<string, bool> field_key => is_enabled
+     */
+    public function getInvitationFormConfig(int $clientId): array
+    {
+        $config = [];
+        foreach (self::invitationFields() as $def) {
+            $key = $def['field_key'];
+            $config[$key] = $this->isInvitationFieldEnabled($clientId, $key);
+        }
+
+        // Backward compatibility for legacy invitation rows / views using contact_person.
+        $config['contact_person'] = $config['host_contact'];
+
+        return $config;
+    }
+
+    protected function isInvitationFieldEnabled(int $clientId, string $key): bool
+    {
+        $invitationKeys = [$key];
+        if ($key === 'host_contact') {
+            $invitationKeys[] = 'contact_person';
+        }
+
+        foreach ($invitationKeys as $invKey) {
+            if (! $this->isEnabled($clientId, 'invitation', $invKey)) {
+                return false;
+            }
+        }
+
+        foreach ($this->visitorRegistrationKeysForInvitation($key) as $vrKey) {
+            if (! $this->isEnabled($clientId, 'visitor_registration', $vrKey)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /** @return list<string> */
+    protected function visitorRegistrationKeysForInvitation(string $invitationKey): array
+    {
+        return match ($invitationKey) {
+            'host_contact', 'contact_person' => ['host_contact'],
+            'company_visited'                => ['company_visited'],
+            'staff_id'                       => ['staff_id'],
+            'reason'                         => ['visit_reason'],
+            default                          => [],
+        };
     }
 
     public static function visitorPassRequestFields(): array
@@ -107,7 +160,7 @@ class ClientFormFieldModel extends Model
             return [];
         }
 
-        $rows   = $this->where('company_id', $companyId)->where('form_type', $formType)->findAll();
+        $rows   = $this->where('client_id', $companyId)->where('form_type', $formType)->findAll();
         $stored = array_column($rows, 'is_enabled', 'field_key');
 
         $result = [];
@@ -130,7 +183,7 @@ class ClientFormFieldModel extends Model
     {
         foreach ($fields as $key => $enabled) {
             $enabled  = $enabled ? 1 : 0;
-            $existing = $this->where('company_id', $companyId)
+            $existing = $this->where('client_id', $companyId)
                              ->where('form_type', $formType)
                              ->where('field_key', $key)
                              ->first();
@@ -139,7 +192,7 @@ class ClientFormFieldModel extends Model
                 $this->update($existing['id'], ['is_enabled' => $enabled]);
             } elseif ($enabled === 0) {
                 $this->insert([
-                    'company_id' => $companyId,
+                    'client_id' => $companyId,
                     'form_type'  => $formType,
                     'field_key'  => $key,
                     'is_enabled' => 0,
@@ -154,7 +207,7 @@ class ClientFormFieldModel extends Model
      */
     public function isEnabled(int $companyId, string $formType, string $fieldKey): bool
     {
-        $row = $this->where('company_id', $companyId)
+        $row = $this->where('client_id', $companyId)
                     ->where('form_type', $formType)
                     ->where('field_key', $fieldKey)
                     ->first();

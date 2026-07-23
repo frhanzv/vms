@@ -67,20 +67,34 @@ class RoleModel extends Model
      */
     public function getRolesWithUserCount($search = '', $limit = 10, $offset = 0)
     {
+        helper('role');
+
         $builder = $this->db->table($this->table);
-        $builder->select('roles.*, COUNT(users.id) as user_count');
-        $builder->join('users', 'users.role = roles.name', 'left');
-        $builder->groupBy('roles.id');
-        
+
         if (!empty($search)) {
-            $builder->like('roles.name', $search);
-            $builder->orLike('roles.description', $search);
+            $builder->groupStart()
+                ->like('name', $search)
+                ->orLike('description', $search)
+                ->groupEnd();
         }
-        
-        $builder->orderBy('roles.created_at', 'DESC');
+
+        $builder->orderBy('created_at', 'DESC');
         $builder->limit($limit, $offset);
-        
-        return $builder->get()->getResultArray();
+        $roles = $builder->get()->getResultArray();
+
+        $counts = [];
+        foreach ((new \App\Models\UserModel())->select('role')->findAll() as $user) {
+            $slug = normalize_role_slug($user['role'] ?? '');
+            if ($slug !== '') {
+                $counts[$slug] = ($counts[$slug] ?? 0) + 1;
+            }
+        }
+
+        foreach ($roles as &$role) {
+            $role['user_count'] = $counts[normalize_role_slug($role['name'])] ?? 0;
+        }
+
+        return $roles;
     }
 
     /**
@@ -103,15 +117,20 @@ class RoleModel extends Model
      */
     public function isRoleAssigned($roleId)
     {
+        helper('role');
         $role = $this->find($roleId);
         if (!$role) {
             return false;
         }
 
-        $userModel = new \App\Models\UserModel();
-        $count = $userModel->where('role', $role['name'])->countAllResults();
-        
-        return $count > 0;
+        $slug = normalize_role_slug($role['name']);
+        foreach ((new \App\Models\UserModel())->select('role')->findAll() as $user) {
+            if (normalize_role_slug($user['role'] ?? '') === $slug) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

@@ -11,16 +11,19 @@ class ClientFeatureFilter implements FilterInterface
 {
     public function before(RequestInterface $request, $arguments = null)
     {
-        if (is_platform_superadmin(session()->get('role'))) {
+        helper(['feature', 'role']);
+
+        // Platform superadmin is never blocked by per-company feature flags.
+        if (is_platform_superadmin()) {
             return;
         }
+
+        $companyId = current_company_id();
 
         $featureKey = $arguments[0] ?? null;
         if (!$featureKey) {
             return;
         }
-
-        $companyId = (int) session()->get('company_id');
 
         if (!(new ClientFeatureModel())->isEnabled($companyId, $featureKey)) {
             return redirect()->to(base_url('dashboard'))

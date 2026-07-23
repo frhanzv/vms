@@ -12,7 +12,7 @@ class ClientNotificationSettingModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['company_id', 'channel', 'notification_type', 'enabled'];
+    protected $allowedFields    = ['client_id', 'channel', 'notification_type', 'enabled'];
 
     protected $useTimestamps = true;
     protected $dateFormat    = 'datetime';
@@ -44,7 +44,7 @@ class ClientNotificationSettingModel extends Model
      */
     public function getForCompany(int $companyId): array
     {
-        $rows = $this->where('company_id', $companyId)->findAll();
+        $rows = $this->where('client_id', $companyId)->findAll();
 
         $stored = [];
         foreach ($rows as $row) {
@@ -68,7 +68,7 @@ class ClientNotificationSettingModel extends Model
      */
     public function isEnabled(int $companyId, string $channel, string $notificationType): bool
     {
-        $row = $this->where('company_id', $companyId)
+        $row = $this->where('client_id', $companyId)
                     ->where('channel', $channel)
                     ->where('notification_type', $notificationType)
                     ->first();
@@ -88,13 +88,13 @@ class ClientNotificationSettingModel extends Model
     {
         foreach ($settings as $channel => $types) {
             foreach ($types as $type => $enabled) {
-                $existing = $this->where('company_id', $companyId)
+                $existing = $this->where('client_id', $companyId)
                                  ->where('channel', $channel)
                                  ->where('notification_type', $type)
                                  ->first();
 
                 $payload = [
-                    'company_id'        => $companyId,
+                    'client_id'        => $companyId,
                     'channel'           => $channel,
                     'notification_type' => $type,
                     'enabled'           => $enabled ? 1 : 0,

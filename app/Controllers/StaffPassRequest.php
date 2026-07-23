@@ -6,9 +6,8 @@ class StaffPassRequest extends BaseController
 {
     public function index()
     {
-        $userModel  = new \App\Models\UserModel();
-        $user       = $userModel->find(session()->get('user_id'));
-        $companyId  = (int) ($user['company_id'] ?? 0);
+        helper('feature');
+        $companyId  = current_company_id();
 
         $clientFormFieldModel = new \App\Models\ClientFormFieldModel();
         $rows = $clientFormFieldModel->getForCompanyForm($companyId, 'staff_pass_request');
@@ -136,9 +135,8 @@ class StaffPassRequest extends BaseController
             return redirect()->to(base_url('staffs'))->with('error', 'Staff record not found.');
         }
 
-        $userModel  = new \App\Models\UserModel();
-        $user       = $userModel->find(session()->get('user_id'));
-        $companyId  = (int) ($user['company_id'] ?? 0);
+        helper('feature');
+        $companyId  = current_company_id();
 
         $clientFormFieldModel = new \App\Models\ClientFormFieldModel();
         $rows = $clientFormFieldModel->getForCompanyForm($companyId, 'staff_pass_request');

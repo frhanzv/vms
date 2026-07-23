@@ -8,7 +8,8 @@ class VisitorPassRequest extends BaseController
 {
     public function index()
     {
-        $companyId            = (int) (session()->get('company_id') ?? 0);
+        helper('feature');
+        $companyId            = current_company_id();
         $clientFormFieldModel = new ClientFormFieldModel();
         $rows                 = $clientFormFieldModel->getForCompanyForm($companyId, 'visitor_pass_request');
 
@@ -27,7 +28,8 @@ class VisitorPassRequest extends BaseController
 
     public function store()
     {
-        $companyId            = (int) (session()->get('company_id') ?? 0);
+        helper('feature');
+        $companyId            = current_company_id();
         $clientFormFieldModel = new ClientFormFieldModel();
         $rows                 = $clientFormFieldModel->getForCompanyForm($companyId, 'visitor_pass_request');
 

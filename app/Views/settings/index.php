@@ -195,6 +195,32 @@
                             <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Username cannot be changed</p>
                         </div>
 
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="role" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                    Role
+                                </label>
+                                <input type="text"
+                                       id="role"
+                                       value="<?= esc($roleLabel ?? role_display_name($user['role'] ?? '')) ?>"
+                                       disabled
+                                       class="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white cursor-not-allowed"/>
+                                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Assigned by your administrator</p>
+                            </div>
+
+                            <div>
+                                <label for="client" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                    Client
+                                </label>
+                                <input type="text"
+                                       id="client"
+                                       value="<?= esc($clientName ?: (is_platform_superadmin($user['role'] ?? '') ? 'Platform (all clients)' : 'Not assigned')) ?>"
+                                       disabled
+                                       class="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white cursor-not-allowed"/>
+                                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Modules and form fields follow this client&apos;s configuration</p>
+                            </div>
+                        </div>
+
                         <div>
                             <label for="email" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                                 Email Address <span class="text-red-500">*</span>

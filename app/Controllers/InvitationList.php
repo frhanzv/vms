@@ -36,15 +36,13 @@ class InvitationList extends BaseController
 
     private function getInvitationFormConfig(): array
     {
-        $companyId = (int) session()->get('company_id');
-        if (! $companyId) {
+        helper('feature');
+        $clientId = current_client_id();
+        if ($clientId <= 0) {
             return [];
         }
-        $config = [];
-        foreach ($this->clientFormFieldModel->getForCompanyForm($companyId, 'invitation') as $f) {
-            $config[$f['field_key']] = (bool) $f['is_enabled'];
-        }
-        return $config;
+
+        return $this->clientFormFieldModel->getInvitationFormConfig($clientId);
     }
 
     public function index()
@@ -554,17 +552,18 @@ class InvitationList extends BaseController
         $validation = \Config\Services::validation();
 
         $rules = [
-            'reason'         => 'required',
+            'reason'         => 'permit_empty',
             'schedules'      => 'required',
             'schedules.*.date_from' => 'required',
             'schedules.*.date_to'   => 'required',
-            'staff_id'       => 'required|max_length[50]',
-            'contact_person' => 'required|max_length[20]',
-            'link_expiry'    => 'required',
+            'staff_id'       => 'permit_empty|max_length[50]',
+            'host_contact'   => 'permit_empty|max_length[20]',
+            'link_expiry'    => 'permit_empty',
         ];
         if ($isEnabled('reason'))         { $rules['reason']         = 'required'; }
         if ($isEnabled('staff_id'))       { $rules['staff_id']       = 'required|max_length[50]'; }
-        if ($isEnabled('contact_person')) { $rules['contact_person'] = 'required|max_length[20]'; }
+        if ($isEnabled('host_contact'))  { $rules['host_contact']    = 'required|max_length[20]'; }
+        if ($isEnabled('link_expiry'))    { $rules['link_expiry']    = 'required'; }
 
         $visitorTypeCount = $this->invitationsSupportVisitorType()
             ? $this->visitorTypeModel->countAllResults()
@@ -656,7 +655,7 @@ class InvitationList extends BaseController
             log_message('info', 'Invitation POST data: ' . print_r($this->request->getPost(), true));
 
             $shared = [
-                'company_id'          => (int) session()->get('company_id') ?: null,
+                'client_id'          => current_client_id() ?: null,
                 'ic_passport'         => null,
                 'vehicle_registration' => null,
                 'invited_by'          => $currentUser,
@@ -669,7 +668,7 @@ class InvitationList extends BaseController
                 'other_reason'        => $isEnabled('reason')          ? $this->request->getPost('other_reason')    : null,
                 'link_expiry'         => $isEnabled('link_expiry')     ? $this->request->getPost('link_expiry')     : null,
                 'staff_id'            => $isEnabled('staff_id')        ? trim((string) $this->request->getPost('staff_id'))       : '',
-                'host_contact'        => $isEnabled('contact_person')  ? trim((string) $this->request->getPost('contact_person')) : '',
+                'host_contact'        => $isEnabled('host_contact')  ? trim((string) ($this->request->getPost('host_contact') ?: $this->request->getPost('contact_person'))) : '',
                 'allow_sub_invites'   => ($isEnabled('allow_sub_invites') && $this->request->getPost('allow_sub_invites')) ? 1 : 0,
             ];
             if ($this->invitationsSupportVisitorType()) {

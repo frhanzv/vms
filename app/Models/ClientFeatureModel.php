@@ -12,7 +12,7 @@ class ClientFeatureModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['company_id', 'feature_key', 'is_enabled'];
+    protected $allowedFields    = ['client_id', 'feature_key', 'is_enabled'];
 
     protected $useTimestamps = true;
     protected $dateFormat    = 'datetime';
@@ -39,9 +39,9 @@ class ClientFeatureModel extends Model
      * Returns all features for a company with their enabled state.
      * Features with no DB record default to enabled (1).
      */
-    public function getForCompany(int $companyId): array
+    public function getForClient(int $clientId): array
     {
-        $rows = $this->where('company_id', $companyId)->findAll();
+        $rows = $this->where('client_id', $clientId)->findAll();
         $stored = array_column($rows, 'is_enabled', 'feature_key');
 
         $result = [];
@@ -55,24 +55,25 @@ class ClientFeatureModel extends Model
         return $result;
     }
 
-    /**
-     * Upserts feature flags for a company.
-     * Only writes rows that are disabled (0) or already exist.
-     */
-    public function saveForCompany(int $companyId, array $features): void
+    /** @deprecated Use getForClient() */
+    public function getForCompany(int $companyId): array
+    {
+        return $this->getForClient($companyId);
+    }
+
+    public function saveForClient(int $clientId, array $features): void
     {
         foreach ($features as $key => $enabled) {
             $enabled = $enabled ? 1 : 0;
-            $existing = $this->where('company_id', $companyId)
+            $existing = $this->where('client_id', $clientId)
                              ->where('feature_key', $key)
                              ->first();
 
             if ($existing) {
                 $this->update($existing['id'], ['is_enabled' => $enabled]);
             } elseif ($enabled === 0) {
-                // Only create a record when disabling; absence means enabled
                 $this->insert([
-                    'company_id'  => $companyId,
+                    'client_id'   => $clientId,
                     'feature_key' => $key,
                     'is_enabled'  => 0,
                 ]);
@@ -80,13 +81,15 @@ class ClientFeatureModel extends Model
         }
     }
 
-    /**
-     * Check if a single feature is enabled for a company.
-     * Returns true when no record exists (default on).
-     */
-    public function isEnabled(int $companyId, string $featureKey): bool
+    /** @deprecated Use saveForClient() */
+    public function saveForCompany(int $companyId, array $features): void
     {
-        $row = $this->where('company_id', $companyId)
+        $this->saveForClient($companyId, $features);
+    }
+
+    public function isEnabled(int $clientId, string $featureKey): bool
+    {
+        $row = $this->where('client_id', $clientId)
                     ->where('feature_key', $featureKey)
                     ->first();
 

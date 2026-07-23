@@ -104,7 +104,14 @@ $routes->post('config/updateUser/(:num)', 'Config::updateUser/$1');
 $routes->delete('config/deleteUser/(:num)', 'Config::deleteUser/$1');
 $routes->get('config/getAllRoles', 'Config::getAllRoles');
 
-// Company Management Routes
+$routes->get('config/getAllClients', 'Config::getAllClients');
+$routes->get('config/getClients', 'Config::getClients');
+$routes->get('config/getClient/(:num)', 'Config::getClient/$1');
+$routes->post('config/createClient', 'Config::createClient');
+$routes->post('config/updateClient/(:num)', 'Config::updateClient/$1');
+$routes->delete('config/deleteClient/(:num)', 'Config::deleteClient/$1');
+
+// Company Management Routes (visitor contractor companies — invitations)
 $routes->get('config/getCompanies', 'Config::getCompanies');
 $routes->get('config/getCompany/(:num)', 'Config::getCompany/$1');
 $routes->post('config/createCompany', 'Config::createCompany');

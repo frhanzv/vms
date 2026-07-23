@@ -67,7 +67,8 @@ class StaffList extends BaseController
             ];
         }
 
-        $companyId       = (int) session()->get('company_id');
+        helper('feature');
+        $companyId       = current_company_id();
         $formFieldModel  = new \App\Models\ClientFormFieldModel();
         $showPrintButton = $formFieldModel->isEnabled($companyId, 'staff_pass_request', 'print_button');
 
