@@ -213,6 +213,11 @@ class RFID extends ResourceController
         $cardEpc = $this->request->getGet('card_epc');
         $laneId = $this->request->getGet('lane_id');
         $laneType = $this->request->getGet('lane_type');
+        $deviceId = $this->request->getGet('device_id');
+        $transition = $deviceId ? $this->findEmapTransitionByDevice((string) $deviceId) : null;
+        if (!$laneId && $transition && !empty($transition['asset']['laneId'])) {
+            $laneId = (int) $transition['asset']['laneId'];
+        }
 
         if (empty($cardEpc)) {
             return $this->failValidationError('Card EPC is required');
@@ -373,7 +378,34 @@ class RFID extends ResourceController
                 }
             }
 
-            $this->logCardScan($card['id'], $invitation['invitation_id'], $action, $laneId);
+            $movement = null;
+            if ($transition) {
+                $movement = $this->resolveEmapMovement((int) $invitation['invitation_id'], $transition);
+                if (!$movement['granted']) {
+                    $db->transRollback();
+                    return $this->respond([
+                        'success' => false,
+                        'access_granted' => false,
+                        'action' => 'denied',
+                        'message' => $movement['message'],
+                        'card_epc' => $cardEpc,
+                    ]);
+                }
+                if ($action === 'door_access') {
+                    $action = 'door_checkin';
+                }
+            }
+
+            $this->logCardScan(
+                $card['id'],
+                $invitation['invitation_id'],
+                $action,
+                $laneId,
+                $movement['toSubLocationId'] ?? null,
+                $transition['asset']['id'] ?? null,
+                $movement['fromSubLocationId'] ?? null,
+                $movement['toSubLocationId'] ?? null
+            );
 
             $db->transComplete();
 
@@ -480,7 +512,16 @@ class RFID extends ResourceController
     /**
      * Log card scan to database
      */
-    protected function logCardScan($cardId, $invitationId, $action, $laneId = null)
+    protected function logCardScan(
+        $cardId,
+        $invitationId,
+        $action,
+        $laneId = null,
+        $subLocationId = null,
+        $emapAssetId = null,
+        $fromSubLocationId = null,
+        $toSubLocationId = null
+    )
     {
         $db = \Config\Database::connect();
         $db->table('visitor_card_logs')->insert([
@@ -488,9 +529,68 @@ class RFID extends ResourceController
             'invitation_id' => $invitationId,
             'action' => $action,
             'lane_id' => $laneId,
+            'sub_location_id' => $subLocationId,
+            'emap_asset_id' => $emapAssetId,
+            'from_sub_location_id' => $fromSubLocationId,
+            'to_sub_location_id' => $toSubLocationId,
             'scanned_at' => date('Y-m-d H:i:s'),
             'created_at' => date('Y-m-d H:i:s')
         ]);
+    }
+
+    private function findEmapTransitionByDevice(string $deviceId): ?array
+    {
+        $db = \Config\Database::connect();
+        $device = $db->table('device_assignments')
+            ->groupStart()->where('device_id', $deviceId)->orWhere('ip_address', $deviceId)->groupEnd()
+            ->get()->getRowArray();
+        if (!$device) {
+            return null;
+        }
+
+        $maps = $db->table('emap_maps')->orderBy('status', 'DESC')->orderBy('id', 'ASC')->get()->getResultArray();
+        foreach ($maps as $map) {
+            $layout = json_decode((string) ($map['layout_json'] ?? ''), true);
+            if (!is_array($layout)) continue;
+            foreach ($layout['assets'] ?? [] as $asset) {
+                if ((int) ($asset['deviceAssignmentId'] ?? 0) !== (int) $device['id']) continue;
+                if (empty($asset['fromZoneId']) || empty($asset['toZoneId'])) continue;
+                $zones = array_column($layout['zones'] ?? [], null, 'id');
+                $from = $zones[$asset['fromZoneId']] ?? null;
+                $to = $zones[$asset['toZoneId']] ?? null;
+                if (!$from || !$to || empty($from['subLocationId']) || empty($to['subLocationId'])) continue;
+                return ['asset' => $asset, 'from' => $from, 'to' => $to];
+            }
+        }
+        return null;
+    }
+
+    private function resolveEmapMovement(int $invitationId, array $transition): array
+    {
+        $db = \Config\Database::connect();
+        $last = $db->table('visitor_card_logs')
+            ->select('COALESCE(to_sub_location_id, sub_location_id) AS current_sub_location_id', false)
+            ->where('invitation_id', $invitationId)
+            ->where('action !=', 'assigned')
+            ->orderBy('scanned_at', 'DESC')->orderBy('id', 'DESC')
+            ->get()->getRowArray();
+
+        $current = (int) ($last['current_sub_location_id'] ?? 0);
+        $from = (int) $transition['from']['subLocationId'];
+        $to = (int) $transition['to']['subLocationId'];
+        $bidirectional = ($transition['asset']['transitionMode'] ?? 'bidirectional') === 'bidirectional';
+
+        if ($current === 0 || $current === $from) {
+            return ['granted' => true, 'fromSubLocationId' => $current ?: null, 'toSubLocationId' => $to];
+        }
+        if ($bidirectional && $current === $to) {
+            return ['granted' => true, 'fromSubLocationId' => $to, 'toSubLocationId' => $from];
+        }
+
+        return [
+            'granted' => false,
+            'message' => 'Movement denied: this door does not connect to the visitor’s current E-map zone.',
+        ];
     }
 
     /**

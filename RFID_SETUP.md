@@ -55,6 +55,47 @@ If you have multiple RFID readers at different gates:
 
 ## Usage
 
+### Office E-map Demo (Recommended)
+
+The repository includes a repeatable E-map demo configuration. After cloning the
+project and configuring the database, run:
+
+```bash
+php spark migrate
+php spark db:seed EmapDemoSeeder
+```
+
+Then configure the physical reader in two places:
+
+1. In **Config > Lanes Management**, enable RFID and enter the reader's real IP
+   and TCP port (SA810 default: `49152`).
+2. In **E-Map > Map Designer**, select the reader asset and link its **Device
+   Assignment**, **From Zone**, and **To Zone**.
+
+The IP in the lane's **RFID Reader IP** must match the IP in the selected Device
+Assignment. The listener sends this IP as `device_id`, allowing SafeG to resolve
+the correct E-map transition.
+
+For the included demo visitors, program or use cards with these EPC values:
+
+```text
+DD0000000000000000000001  Aisyah Demo Visitor
+DD0000000000000000000002  John Doe
+```
+
+If the physical cards already have different EPCs, update the cards under
+**Config > Visitor Card Management**, then assign them to the demo visitors.
+
+Start the web application and multi-reader listener in separate terminals:
+
+```bash
+php spark serve --host 0.0.0.0 --port 8080
+php spark rfid:listen-all
+```
+
+Open `/e-map` in a browser and select **Live Movement**. A physical card read is
+then processed automatically; no PowerShell simulation request is required.
+
 ### Single Reader Mode
 
 For a single RFID reader setup:
@@ -104,7 +145,7 @@ GET /api/rfid/scan?card_epc=DD1234567890ABCDEF012345
 
 ### 2. Multi-Reader Scan (with Lane Info)
 ```
-GET /api/rfid/scan-lane?card_epc=DD1234567890ABCDEF012345&lane_id=1&lane_type=entry
+GET /api/rfid/scan-lane?card_epc=DD1234567890ABCDEF012345&lane_id=1&lane_type=entry&device_id=192.168.1.100
 ```
 
 ### 3. Reader Status

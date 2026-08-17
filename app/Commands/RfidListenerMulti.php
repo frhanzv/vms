@@ -337,7 +337,13 @@ class RfidListenerMulti extends BaseCommand
         CLI::write('[' . date('Y-m-d H:i:s') . '] Card: ' . $cardEpc . $visitorInfo . ' @ ' . $laneName, 'green');
 
         if ($result['success']) {
-            $action = $result['action'] === 'checkin' ? 'CHECK IN' : 'CHECK OUT';
+            $actionLabels = [
+                'checkin' => 'CHECK IN',
+                'checkout' => 'CHECK OUT',
+                'door_checkin' => 'ZONE MOVEMENT',
+                'door_access' => 'DOOR ACCESS',
+            ];
+            $action = $actionLabels[$result['action'] ?? ''] ?? strtoupper((string) ($result['action'] ?? 'SCAN'));
             CLI::write("  ✓ {$action}: {$result['visitor']['name']}", 'light_green');
             if (isset($result['duration'])) {
                 CLI::write("  Duration: {$result['duration']}", 'cyan');
@@ -396,10 +402,14 @@ class RfidListenerMulti extends BaseCommand
             $laneType = 'entry';
         }
 
-        // Pass card_epc, lane_id, and lane_type to the API
-        $url = base_url("api/rfid/scan-lane?card_epc=" . urlencode($cardEpc) .
-                       "&lane_id=" . urlencode($lane['id']) .
-                       "&lane_type=" . urlencode($laneType));
+        // The reader IP identifies the E-map asset/device assignment.
+        $query = http_build_query([
+            'card_epc' => $cardEpc,
+            'lane_id' => $lane['id'],
+            'lane_type' => $laneType,
+            'device_id' => $lane['rfid_reader_ip'],
+        ]);
+        $url = base_url('api/rfid/scan-lane?' . $query);
 
         curl_setopt_array($ch, [
             CURLOPT_URL => $url,

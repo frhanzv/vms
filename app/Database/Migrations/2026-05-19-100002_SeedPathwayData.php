@@ -19,19 +19,20 @@ class SeedPathwayData extends Migration
             ->where('location_access', 'TOILET IN')
             ->get()->getRowArray();
 
-        $turnstileLocationId = $toiletLocation ? $toiletLocation['id'] : 1;
-
-        $this->db->table('lanes')->insert([
-            'lane'        => 'TURNSTILE',
-            'location_id' => $turnstileLocationId,
-            'slip_print'  => 'enabled',
-            'in_bound'    => 'yes',
-            'out_bound'   => 'yes',
-            'status'      => 'active',
-            'created_at'  => $now,
-            'updated_at'  => $now,
-        ]);
-        $turnstileLaneId = $this->db->insertID();
+        $turnstileLaneId = null;
+        if ($toiletLocation !== null) {
+            $this->db->table('lanes')->insert([
+                'lane'        => 'TURNSTILE',
+                'location_id' => $toiletLocation['id'],
+                'slip_print'  => 'enabled',
+                'in_bound'    => 'yes',
+                'out_bound'   => 'yes',
+                'status'      => 'active',
+                'created_at'  => $now,
+                'updated_at'  => $now,
+            ]);
+            $turnstileLaneId = $this->db->insertID();
+        }
 
         // 2. Seed the 9 pathways
         $pathways = [
@@ -77,7 +78,7 @@ class SeedPathwayData extends Migration
         ];
 
         // 5. Define pathway -> lanes (yellow badges) with sort order
-        $pathwayLanes = [
+        $pathwayLanes = $turnstileLaneId === null ? [] : [
             7 => [$turnstileLaneId],
             9 => [$turnstileLaneId],
         ];

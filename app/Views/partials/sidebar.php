@@ -2,6 +2,7 @@
 helper(['access', 'navigation', 'branding']);
 $current     = app_route_path();
 $isDashboard = ($current === '' || $current === 'dashboard');
+$isEmap      = str_starts_with($current, 'e-map');
 $isStaff     = str_contains($current, 'staffs') || str_contains($current, 'staff-pass-request');
 $isWorkflow  = str_contains($current, 'workflow');
 $isConfig    = str_contains($current, 'config');
@@ -35,6 +36,19 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
             <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?= $isDashboard ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white' ?> transition-colors group" href="<?= base_url('dashboard') ?>">
                 <span class="material-symbols-outlined text-[22px] <?= $isDashboard ? 'font-medium fill-1' : '' ?> group-hover:scale-110 transition-transform">dashboard</span>
                 <p class="text-sm <?= $isDashboard ? 'font-semibold' : 'font-medium' ?>">Dashboard</p>
+            </a>
+            <?php endif; ?>
+
+            <!-- E-Map -->
+            <?php
+            helper('role');
+            $emapRole = normalize_role_slug((string) session()->get('role'));
+            $hasEmapAccess = in_array($emapRole, ['superadmin', 'clientsuperadmin', 'admin', 'officer'], true);
+            ?>
+            <?php if ($hasEmapAccess): ?>
+            <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?= $isEmap ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white' ?> transition-colors group" href="<?= base_url('e-map') ?>">
+                <span class="material-symbols-outlined text-[22px] <?= $isEmap ? 'font-medium fill-1' : '' ?> group-hover:scale-110 transition-transform">map</span>
+                <p class="text-sm <?= $isEmap ? 'font-semibold' : 'font-medium' ?>">E-Map</p>
             </a>
             <?php endif; ?>
 

@@ -92,11 +92,14 @@ class FinishClientsTenantColumnMigration extends Migration
 
     private function columnExists(string $table, string $column): bool
     {
-        if (!$this->db->tableExists($table)) {
-            return false;
-        }
+        $dbName = $this->db->getDatabase();
+        $row = $this->db->query(
+            'SELECT 1 FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ? LIMIT 1',
+            [$dbName, $table, $column]
+        )->getRowArray();
 
-        return $this->db->fieldExists($column, $table);
+        return $row !== null;
     }
 
     private function dropColumnIfExists(string $table, string $column): void

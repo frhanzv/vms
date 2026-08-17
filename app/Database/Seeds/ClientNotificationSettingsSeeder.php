@@ -23,7 +23,7 @@ class ClientNotificationSettingsSeeder extends Seeder
 {
     public function run(): void
     {
-        $companies = $this->db->table('companies')->select('id')->get()->getResultArray();
+        $companies = $this->db->table('clients')->select('id')->get()->getResultArray();
 
         if (empty($companies)) {
             echo "  No companies found — skipping ClientNotificationSettingsSeeder.\n";
@@ -40,7 +40,7 @@ class ClientNotificationSettingsSeeder extends Seeder
                 $defaultEnabled = $channel === 'email' ? 1 : 0;
                 foreach ($types as $type) {
                     $batch[] = [
-                        'company_id'        => (int) $company['id'],
+                        'client_id'         => (int) $company['id'],
                         'channel'           => $channel,
                         'notification_type' => $type,
                         'enabled'           => $defaultEnabled,

@@ -279,6 +279,18 @@ $routes->get('dashboard/widgetPreferences', 'Dashboard::getWidgetPreferences');
 $routes->post('dashboard/saveWidgetPreferences', 'Dashboard::saveWidgetPreferences');
 $routes->post('dashboard/uploadPosterImage', 'Dashboard::uploadPosterImage');
 
+// ===========================
+// E-Map
+// Live view: superadmin, client superadmin, admin, officer
+// Designer writes are additionally checked inside the controller.
+// ===========================
+$routes->group('', ['filter' => $plusAdminOfficer], function($routes) {
+    $routes->get('e-map', 'Emap::index');
+    $routes->get('api/e-map/bootstrap', 'Emap::bootstrap');
+    $routes->get('api/e-map/live', 'Emap::live');
+    $routes->put('api/e-map/maps/(:num)', 'Emap::update/$1');
+});
+
 $routes->get('settings', 'Settings::index');
 $routes->post('settings/updateProfile', 'Settings::updateProfile');
 $routes->post('settings/updatePassword', 'Settings::updatePassword');
@@ -287,10 +299,10 @@ $routes->post('settings/removePhoto', 'Settings::removePhoto');
 
 // ===========================
 // Invitations + Visitors
-// superadmin, clientsuperadmin, officer, host
+// Access is managed in Config > Role Management.
 // ===========================
 
-$routes->group('', ['filter' => [$plusHost, 'client_feature:invitations']], function($routes) {
+$routes->group('', ['filter' => ['permission:visitor_pass_list,invitations', 'client_feature:invitations']], function($routes) {
     $routes->get('invitations', 'InvitationList::index');
     $routes->get('invitations/data', 'InvitationList::data');
     $routes->get('invitations/export', 'InvitationList::export');
@@ -353,13 +365,21 @@ $routes->group('', ['filter' => [$plusAdminOfficer, 'client_feature:staff_pass']
 });
 
 // ===========================
-// Visitor Workflow + Visitor Pass Request
+// Visitor Pass Request
 // superadmin, clientsuperadmin, officer
 // ===========================
 
 $routes->group('', ['filter' => $plusOfficer], function($routes) {
     $routes->get('visitor-pass-request', 'VisitorPassRequest::index');
     $routes->post('visitor-pass-request/store', 'VisitorPassRequest::store');
+});
+
+// ===========================
+// Visitor Workflow
+// Access is managed in Config > Role Management.
+// ===========================
+
+$routes->group('', ['filter' => 'permission:visitor_workflow,view'], function($routes) {
     $routes->get('workflow', 'VisitorWorkflow::index');
     $routes->get('workflow/create', 'VisitorWorkflow::create');
     $routes->post('workflow/save', 'VisitorWorkflow::save');
