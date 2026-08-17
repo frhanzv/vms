@@ -14598,7 +14598,7 @@
                             return;
                         }
                         const valStr = did + '|' + ip;
-                        const text = did + ' - ' + ip;
+                        const text = (d.label || '').trim() || (did + ' - ' + ip);
                         devParts.push(`<option value="${escapeHtml(valStr)}">${escapeHtml(text)}</option>`);
                     });
                     document.getElementById('daDeviceSelect').innerHTML = devParts.join('');

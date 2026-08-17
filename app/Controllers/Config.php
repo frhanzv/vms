@@ -3842,15 +3842,58 @@ class Config extends BaseController
     }
 
     /**
-     * Device assignment modal: lanes (locations) + all devices from DB for dropdowns.
+     * Device assignment modal options.
+     *
+     * Existing assignments remain selectable when editing. Active RFID-enabled
+     * lanes are also exposed so the first assignment can be created from the UI.
      */
     public function getDeviceAssignmentFormOptions()
     {
         $subLocations = $this->subLocationModel->getAllActive();
-        $devices = $this->deviceAssignmentModel
+        $assignments = $this->deviceAssignmentModel
             ->select('id, device_id, ip_address')
             ->orderBy('id', 'ASC')
             ->findAll();
+
+        $devices = [];
+        $assignedIps = [];
+        foreach ($assignments as $assignment) {
+            $ipAddress = trim((string) ($assignment['ip_address'] ?? ''));
+            if ($ipAddress === '') {
+                continue;
+            }
+
+            $assignedIps[$ipAddress] = true;
+            $assignment['label'] = sprintf(
+                '%s - %s (Assigned)',
+                $assignment['device_id'],
+                $ipAddress
+            );
+            $devices[] = $assignment;
+        }
+
+        $rfidLanes = $this->laneModel
+            ->select('id, lane, rfid_reader_ip')
+            ->where('status', 'active')
+            ->where('rfid_enabled', 1)
+            ->where('rfid_reader_ip IS NOT NULL', null, false)
+            ->where('rfid_reader_ip !=', '')
+            ->orderBy('lane', 'ASC')
+            ->findAll();
+
+        foreach ($rfidLanes as $lane) {
+            $ipAddress = trim((string) $lane['rfid_reader_ip']);
+            if (isset($assignedIps[$ipAddress])) {
+                continue;
+            }
+
+            $devices[] = [
+                'id'         => null,
+                'device_id'  => 'RFID-LANE-' . $lane['id'],
+                'ip_address' => $ipAddress,
+                'label'      => sprintf('%s - %s', $lane['lane'], $ipAddress),
+            ];
+        }
 
         return $this->response->setJSON([
             'success' => true,
