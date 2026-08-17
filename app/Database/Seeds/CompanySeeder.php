@@ -5,7 +5,7 @@ namespace App\Database\Seeds;
 use CodeIgniter\Database\Seeder;
 
 /**
- * Seeds the GXO client company.
+ * Seeds the GXO client.
  * Must run before UserSeeder so gxoadmin can reference the company by ID.
  * Idempotent: safe to run multiple times.
  */
@@ -15,21 +15,20 @@ class CompanySeeder extends Seeder
     {
         $now = date('Y-m-d H:i:s');
 
-        $companies = [
+        $clients = [
             ['name' => 'GXO', 'status' => 'active'],
         ];
 
-        foreach ($companies as $company) {
-            $existing = $this->db->table('companies')
-                ->where('name', $company['name'])
+        foreach ($clients as $client) {
+            $existing = $this->db->table('clients')
+                ->where('name', $client['name'])
                 ->get()
                 ->getRowArray();
 
             if (!$existing) {
-                $this->db->table('companies')->insert(array_merge($company, [
+                $this->db->table('clients')->insert(array_merge($client, [
                     'created_at' => $now,
                     'updated_at' => $now,
-                    'version'    => 1,
                 ]));
             }
         }

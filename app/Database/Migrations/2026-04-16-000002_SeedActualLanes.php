@@ -8,6 +8,18 @@ class SeedActualLanes extends Migration
 {
     public function up()
     {
+        $location = $this->db->table('locations')
+            ->select('id')
+            ->orderBy('id', 'ASC')
+            ->get()
+            ->getFirstRow();
+
+        // Locations are managed through the application. On a fresh database
+        // there is no valid parent row yet, so there are no lanes to seed.
+        if ($location === null) {
+            return;
+        }
+
         // Remove old sample lanes (disable FK checks to allow truncate)
         $this->db->query('SET FOREIGN_KEY_CHECKS = 0');
         $this->db->table('lanes')->truncate();
@@ -37,7 +49,7 @@ class SeedActualLanes extends Migration
         foreach ($doors as $door) {
             $data[] = [
                 'lane'        => $door,
-                'location_id' => 1,
+                'location_id' => $location->id,
                 'slip_print'  => 'enabled',
                 'in_bound'    => 'yes',
                 'out_bound'   => 'no',

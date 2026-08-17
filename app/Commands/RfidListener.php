@@ -278,7 +278,10 @@ class RfidListener extends BaseCommand
     {
         $ch = curl_init();
 
-        $url = base_url("api/rfid/scan?card_epc=" . urlencode($cardEpc));
+        $url = base_url('api/rfid/scan-lane?' . http_build_query([
+            'card_epc' => $cardEpc,
+            'device_id' => $this->config->readerIP,
+        ]));
 
         curl_setopt_array($ch, [
             CURLOPT_URL => $url,

@@ -124,6 +124,7 @@ _modules/*
 
 /results/
 /phpunit*.xml
+/emap-ui/node_modules/
 #-------------------------
 # Google Cloud Credentials
 #-------------------------
@@ -131,3 +132,9 @@ _modules/*
 credentials/
 *-key.json
 vms-mykad-ocr-*.json
+
+# Local database exports may contain visitor and credential data
+*.sql
+
+# Runtime session files must stay outside the public tree
+/public/null/

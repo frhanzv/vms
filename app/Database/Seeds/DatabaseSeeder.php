@@ -19,5 +19,6 @@ class DatabaseSeeder extends Seeder
         $this->call(ClientFeaturesSeeder::class);
         $this->call(ClientFormFieldsSeeder::class);
         $this->call(ClientNotificationSettingsSeeder::class);
+        $this->call(FacilityDataSeeder::class);
     }
 }

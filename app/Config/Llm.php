@@ -36,7 +36,7 @@ class Llm extends BaseConfig
 
         $this->enabled       = filter_var(env('LLM_ENABLED', false), FILTER_VALIDATE_BOOLEAN);
         $this->baseUrl       = rtrim((string) env('LLM_BASE_URL', 'https://api.openai.com/v1'), '/');
-        $this->apiKey        = (string) env('LLM_API_KEY', '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');
+        $this->apiKey        = (string) env('LLM_API_KEY', '');
         $this->model         = (string) env('LLM_MODEL', 'gpt-4o');
         $this->temperature   = (float) env('LLM_TEMPERATURE', '0.2');
         $this->maxTokens     = (int) env('LLM_MAX_TOKENS', '1500');

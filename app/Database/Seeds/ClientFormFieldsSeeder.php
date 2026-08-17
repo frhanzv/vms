@@ -24,7 +24,7 @@ class ClientFormFieldsSeeder extends Seeder
 {
     public function run(): void
     {
-        $companies = $this->db->table('companies')->select('id')->get()->getResultArray();
+        $companies = $this->db->table('clients')->select('id')->get()->getResultArray();
 
         if (empty($companies)) {
             echo "  No companies found — skipping ClientFormFieldsSeeder.\n";
@@ -53,7 +53,7 @@ class ClientFormFieldsSeeder extends Seeder
                 foreach ($fields as $field) {
                     $defaultEnabled = isset($field['default_enabled']) ? (int) $field['default_enabled'] : 1;
                     $batch[] = [
-                        'company_id'  => (int) $company['id'],
+                        'client_id'   => (int) $company['id'],
                         'form_type'   => $formType,
                         'field_key'   => $field['field_key'],
                         'is_enabled'  => $defaultEnabled,

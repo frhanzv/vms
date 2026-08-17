@@ -19,7 +19,7 @@ class ClientFeaturesSeeder extends Seeder
 {
     public function run(): void
     {
-        $companies = $this->db->table('companies')->select('id')->get()->getResultArray();
+        $companies = $this->db->table('clients')->select('id')->get()->getResultArray();
 
         if (empty($companies)) {
             echo "  No companies found — skipping ClientFeaturesSeeder.\n";
@@ -33,7 +33,7 @@ class ClientFeaturesSeeder extends Seeder
         foreach ($companies as $company) {
             foreach ($features as $key => $label) {
                 $batch[] = [
-                    'company_id'  => (int) $company['id'],
+                    'client_id'   => (int) $company['id'],
                     'feature_key' => $key,
                     'is_enabled'  => 1,
                     'created_at'  => $now,

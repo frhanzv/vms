@@ -1,0 +1,75 @@
+.occupancy-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  gap: 12px;
+  padding: 14px;
+}
+
+.occupancy-card {
+  min-width: 0;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid #e5eaf0;
+  border-top: 4px solid;
+  border-radius: 9px;
+  box-shadow: 0 3px 10px #1118270a;
+}
+
+.occupancy-card > div {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.occupancy-card > div b {
+  overflow: hidden;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.occupancy-colour {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 auto;
+  background: var(--zone-colour);
+  border: 1px solid #0001;
+  border-radius: 50%;
+}
+
+.occupancy-card strong {
+  display: block;
+  margin-top: 10px;
+  color: #172033;
+  font-size: 25px;
+  line-height: 1;
+}
+
+.occupancy-card small {
+  color: #8290a2;
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+
+.occupancy-card p {
+  overflow: hidden;
+  margin: 9px 0 0;
+  padding-top: 8px;
+  color: #687588;
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-top: 1px solid #eef1f4;
+}
+
+.dark .occupancy-card {
+  background: #1a2634;
+  border-right-color: #314155;
+  border-bottom-color: #314155;
+  border-left-color: #314155;
+}
+
+.dark .occupancy-card strong { color: #fff; }
+.dark .occupancy-card p { border-color: #2c3949; }
