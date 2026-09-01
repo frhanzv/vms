@@ -145,6 +145,7 @@ class VisitorList extends BaseController
             'showVisitorTypes' => $this->invitationsSupportVisitorType(),
             'searchTerm' => $searchTerm,
             'cardEnabled' => client_feature_enabled('visitor_card'),
+            'mykadOcrEnabled' => client_feature_enabled('mykad_ocr'),
             'pagination' => [
                 'current_page' => $page,
                 'last_page'    => $lastPage,

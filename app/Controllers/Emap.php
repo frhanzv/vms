@@ -238,13 +238,15 @@ class Emap extends BaseController
         }
 
         $builder = $db->table('visitor_card_logs vcl')
-            ->select("vcl.id AS movement_id, vcl.invitation_id, vcl.action, vcl.lane_id,
+            ->select("vcl.id AS movement_id, vcl.invitation_id, vcl.visitor_card_id,
+                      iv.id AS invitation_visitor_id, vcl.action, vcl.lane_id,
                       COALESCE(vcl.to_sub_location_id, vcl.sub_location_id) AS sub_location_id,
-                      vcl.scanned_at, i.full_name, i.company, i.invited_by,
+                      vcl.scanned_at, COALESCE(iv.full_name, i.full_name) AS full_name,
+                      COALESCE(iv.company, i.company) AS company, i.invited_by,
                       iv.check_in_time, iv.check_out_time, l.location_id")
-            ->join('(SELECT invitation_id, MAX(id) AS latest_id FROM visitor_card_logs WHERE invitation_id IS NOT NULL GROUP BY invitation_id) latest', 'latest.latest_id = vcl.id', 'inner', false)
+            ->join('(SELECT invitation_id, visitor_card_id, MAX(id) AS latest_id FROM visitor_card_logs WHERE invitation_id IS NOT NULL GROUP BY invitation_id, visitor_card_id) latest', 'latest.latest_id = vcl.id', 'inner', false)
             ->join('invitations i', 'i.id = vcl.invitation_id', 'inner')
-            ->join('invitation_visitors iv', 'iv.invitation_id = i.id', 'left')
+            ->join('invitation_visitors iv', 'iv.invitation_id = i.id AND iv.visitor_card_id = vcl.visitor_card_id', 'left', false)
             ->join('lanes l', 'l.id = vcl.lane_id', 'left')
             ->where('i.status', 'Approved')
             ->where('iv.check_in_time IS NOT NULL', null, false)
@@ -261,13 +263,18 @@ class Emap extends BaseController
         $result = [];
         foreach ($rows as $row) {
             $invitationId = (int) $row['invitation_id'];
-            if (isset($seen[$invitationId])) {
+            $personKey = !empty($row['visitor_card_id'])
+                ? 'card-' . (int) $row['visitor_card_id']
+                : 'invitation-' . $invitationId;
+            if (isset($seen[$personKey])) {
                 continue;
             }
-            $seen[$invitationId] = true;
+            $seen[$personKey] = true;
             $name = trim((string) ($row['full_name'] ?? 'Visitor'));
             $result[] = [
-                'id' => $invitationId,
+                'id' => !empty($row['invitation_visitor_id'])
+                    ? (int) $row['invitation_visitor_id']
+                    : $invitationId,
                 'name' => $name,
                 'initials' => $this->initials($name),
                 'company' => $row['company'] ?: 'N/A',
@@ -292,8 +299,9 @@ class Emap extends BaseController
         }
 
         $builder = $db->table('visitor_card_logs vcl')
-            ->select('vcl.id, vcl.action, vcl.scanned_at, i.full_name, i.company, l.lane, sl.name AS sub_location_name')
+            ->select('vcl.id, vcl.action, vcl.scanned_at, COALESCE(iv.full_name, i.full_name) AS full_name, COALESCE(iv.company, i.company) AS company, l.lane, sl.name AS sub_location_name', false)
             ->join('invitations i', 'i.id = vcl.invitation_id', 'left')
+            ->join('invitation_visitors iv', 'iv.invitation_id = vcl.invitation_id AND iv.visitor_card_id = vcl.visitor_card_id', 'left', false)
             ->join('lanes l', 'l.id = vcl.lane_id', 'left')
             ->join('sub_locations sl', 'sl.id = COALESCE(vcl.to_sub_location_id, vcl.sub_location_id)', 'left', false)
             ->orderBy('vcl.scanned_at', 'DESC')

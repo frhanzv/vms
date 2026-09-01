@@ -119,10 +119,12 @@
                         </button>
                     </div>
                     <div class="lg:col-span-4 flex gap-2">
+                        <?php if ($mykadOcrEnabled ?? true): ?>
                         <button type="button" id="btnReadMyKad" class="bg-success hover:bg-emerald-600 text-white px-4 py-2.5 rounded text-xs font-semibold uppercase shadow transition-colors flex-1 text-center whitespace-nowrap"
                             title="Scan a MyKad image to auto-search by IC number">
                             Read MyKad
                         </button>
+                        <?php endif; ?>
                         <?php if ($cardEnabled): ?>
                         <button type="button" id="btnToolbarReturnCard" disabled
                             class="bg-success hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2.5 rounded text-xs font-semibold uppercase shadow transition-colors flex-1 text-center whitespace-nowrap"

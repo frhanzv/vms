@@ -175,14 +175,30 @@ class InvitationEmailSender
             return null;
         }
 
-        $company = $this->companyModel->find($invitation['company']);
-        $invitation['company_name'] = $company ? $company['name'] : $invitation['company'];
+        $companyValue = $invitation['company'] ?? '';
+        $company = is_numeric($companyValue)
+            ? $this->companyModel->find((int) $companyValue)
+            : null;
+        $invitation['company_name'] = $company['name']
+            ?? ((string) $companyValue !== '' ? (string) $companyValue : 'Not specified');
 
-        $location = $this->locationModel->find($invitation['location']);
-        $invitation['location_name'] = $location ? $location['name'] : $invitation['location'];
+        $locationValue = $invitation['location'] ?? '';
+        $location = is_numeric($locationValue)
+            ? $this->locationModel->find((int) $locationValue)
+            : null;
+        $resolvedLocation = $location
+            ? trim(($location['branch'] ?? '') . ' - ' . ($location['location_access'] ?? ''), ' -')
+            : '';
+        $invitation['location_name'] = $resolvedLocation !== ''
+            ? $resolvedLocation
+            : ((string) $locationValue !== '' ? (string) $locationValue : 'Not specified');
 
-        $reason = $this->visitReasonModel->find($invitation['reason']);
-        $invitation['reason_name'] = $reason ? $reason['reason'] : $invitation['reason'];
+        $reasonValue = $invitation['reason'] ?? '';
+        $reason = is_numeric($reasonValue)
+            ? $this->visitReasonModel->find((int) $reasonValue)
+            : null;
+        $invitation['reason_name'] = $reason['reason']
+            ?? ((string) $reasonValue !== '' ? (string) $reasonValue : 'Not specified');
 
         $invitation['visitor_type_name'] = '';
         if ($this->invitationsSupportVisitorType() && ! empty($invitation['visitor_type_id'])) {
@@ -443,25 +459,13 @@ class InvitationEmailSender
                 ];
             }
 
-            // QR payload: IC/passport number only (what scanners display). No VIS-* in encoded data.
-            // Kiosk resolves invitation via ic_passport match (see QRCode::parseQrCode).
+            // The QR contains only a random numeric credential. Personal data is
+            // resolved by the authenticated SafeG app after scanning the code.
             $passIdDisplay = 'VIS-' . $invitationId;
-            $icPassport      = trim((string) ($invitation['ic_passport'] ?? ''));
-            $residentUpper   = strtoupper(trim((string) ($invitation['resident'] ?? '')));
-            $visitorTypeUpper = strtoupper(trim((string) ($invitation['visitor_type_name'] ?? '')));
-            
-            $isForeign       = ($residentUpper === 'FOREIGN' || $visitorTypeUpper === 'FOREIGN');
-            if (!$isForeign && empty($residentUpper) && preg_match('/[A-Z]/i', $icPassport)) {
-                $isForeign = true;
-            }
-            
-            $docLabel        = $isForeign ? 'Passport No.' : 'IC No.';
-            $visitorIdLine   = '';
-            if ($icPassport !== '') {
-                $visitorIdLine = $docLabel . ': ' . $icPassport;
-            }
-
-            $qrCodeData = $icPassport !== '' ? $icPassport : $passIdDisplay;
+            $qrCodeData = (new \App\Services\InvitationQrService())->issue(
+                $invitationId,
+                isset($invitation['client_id']) ? (int) $invitation['client_id'] : null
+            );
 
             $options = new \chillerlan\QRCode\QROptions([
                 'outputInterface' => \chillerlan\QRCode\Output\QRGdImagePNG::class,
@@ -472,7 +476,6 @@ class InvitationEmailSender
             $qrcode = new \chillerlan\QRCode\QRCode($options);
             $qrCodeBinary = $qrcode->render($qrCodeData);
             $qrCodeBase64 = 'data:image/png;base64,' . base64_encode($qrCodeBinary);
-            $qrCodeImageUrl = 'https://quickchart.io/qr?size=240&text=' . rawurlencode($qrCodeData);
 
             $qrDir = WRITEPATH . 'uploads/email_qr/';
             if (! is_dir($qrDir)) {
@@ -480,16 +483,27 @@ class InvitationEmailSender
             }
             $qrFilePath = $qrDir . 'approval_qr_' . $invitationId . '_' . time() . '.png';
             file_put_contents($qrFilePath, $qrCodeBinary);
-            $email->attach($qrFilePath, 'inline', basename($qrFilePath), 'image/png');
+            // When attaching a file path, let CodeIgniter read the file and
+            // determine its MIME type. Passing a MIME type here makes the
+            // framework treat the path string itself as buffered image data.
+            $email->attach($qrFilePath, 'inline', basename($qrFilePath));
             $qrCid = $email->setAttachmentCID($qrFilePath);
+
+            $hostUser = is_array($invitation['host_user'] ?? null) ? $invitation['host_user'] : [];
+            $hostName = trim((string) ($hostUser['full_name'] ?? $invitation['invited_by'] ?? ''));
+            $hostContact = trim((string) ($hostUser['contact_no'] ?? $invitation['host_contact'] ?? ''));
 
             $emailData = [
                 'visitor_name' => $invitation['full_name'],
+                'visitor_contact' => $invitation['contact'] ?? '',
+                'visitor_company' => $invitation['company_name'],
                 'company' => $invitation['company_name'],
                 'location' => $invitation['location_name'],
                 'reason' => $invitation['reason_name'],
                 'other_reason' => $invitation['other_reason'],
                 'invited_by' => $invitation['invited_by'],
+                'host_name' => $hostName,
+                'host_contact' => $hostContact,
                 'schedules' => $invitation['schedules'],
                 'template' => $templateConfig,
                 'intro_line' => $this->emailTemplateService->applyPlaceholders($templateConfig['intro_line'], $placeholderContext),
@@ -501,8 +515,8 @@ class InvitationEmailSender
                 'custom_colors' => $customColors,
                 'custom_logo_cid' => $customLogoCid,
                 'qr_code_text' => $passIdDisplay,
-                'visitor_id_document_line' => $visitorIdLine,
-                'qr_code_image_url' => $qrCodeImageUrl,
+                'visitor_id_document_line' => '',
+                'qr_code_image_url' => null,
                 'qr_code_base64' => $qrCodeBase64,
                 'qr_code_cid' => $qrCid,
             ];

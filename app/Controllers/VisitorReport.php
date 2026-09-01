@@ -38,6 +38,7 @@ class VisitorReport extends BaseController
                     i.reason           AS visit_reason,
                     i.location         AS i_location,
                     i.status           AS visit_status,
+                    i.registration_source,
                     DATE(i.created_at) AS visit_date,
                     MIN(CASE WHEN vcl.action = 'checkin' THEN vcl.scanned_at ELSE NULL END) AS checkin_time,
                     MAX(CASE WHEN vcl.action = 'checkout' THEN vcl.scanned_at ELSE NULL END) AS checkout_time,
@@ -74,7 +75,7 @@ class VisitorReport extends BaseController
                 GROUP BY
                     i.id, i.full_name, i.contact, i.ic_passport,
                     i.company, i.invited_by, i.staff_id, i.reason,
-                    i.location, i.status, DATE(i.created_at)
+                    i.location, i.status, i.registration_source, DATE(i.created_at)
                 ORDER BY DATE(i.created_at) ASC, i.full_name ASC
                 LIMIT 2000";
 
@@ -82,14 +83,24 @@ class VisitorReport extends BaseController
         $truncated = count($rows) >= 2000;
 
         $visitors = [];
-        $completedCount = 0;
-        $activeCount = 0;
-        $todayVisitors = 0;
-        $todayStr = date('Y-m-d');
+        $walkInVisitors = 0;
+        $invitationVisitors = 0;
+        $expectedVisitors = 0;
 
         foreach ($rows as $row) {
             $checkInSource = $row['reg_checkin_time'] ?: $row['checkin_time'];
             $checkOutSource = $row['reg_checkout_time'] ?: $row['checkout_time'];
+            $isInvitation = strcasecmp(trim((string) ($row['registration_source'] ?? '')), 'Invitation') === 0;
+
+            if ($checkInSource) {
+                if ($isInvitation) {
+                    $invitationVisitors++;
+                } else {
+                    $walkInVisitors++;
+                }
+            } elseif ($isInvitation && strcasecmp((string) ($row['visit_status'] ?? ''), 'Approved') === 0) {
+                $expectedVisitors++;
+            }
 
             $checkinTimeStr = $checkInSource ? date('g:i A', strtotime((string) $checkInSource)) : '-';
             $checkoutTimeStr = $checkOutSource ? date('g:i A', strtotime((string) $checkOutSource)) : '-';
@@ -116,17 +127,14 @@ class VisitorReport extends BaseController
             }
             
             if ($checkOutSource) {
-                $completedCount++;
                 $visitStatus = 'Completed';
                 $currentLocation = 'Out';
-            } else {
-                $activeCount++;
+            } elseif ($checkInSource) {
                 $visitStatus = 'Active';
                 $currentLocation = $row['last_lane_full'] ?? $row['location'] ?? 'N/A';
-            }
-            
-            if ($row['visit_date'] === $todayStr) {
-                $todayVisitors++;
+            } else {
+                $visitStatus = $isInvitation ? 'Expected' : 'Pending';
+                $currentLocation = 'N/A';
             }
             
             $locationAccessed = $row['all_lanes'] ?? 'N/A';
@@ -152,10 +160,10 @@ class VisitorReport extends BaseController
         return $this->response->setJSON([
             'success'         => true,
             'visitors'        => $visitors,
-            'total_visitors'  => count($visitors),
-            'completed'       => $completedCount,
-            'active_visitors' => $activeCount,
-            'today_visitors'  => $todayVisitors,
+            'total_visitors'       => $walkInVisitors + $invitationVisitors,
+            'walk_in_visitors'     => $walkInVisitors,
+            'invitation_visitors'  => $invitationVisitors,
+            'expected_visitors'    => $expectedVisitors,
             'date_from'       => $from,
             'date_to'         => $to,
             'truncated'       => $truncated,

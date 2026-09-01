@@ -168,44 +168,7 @@
                             <!-- Location Access -->
                             <?php if ($fs['location_access'] ?? true): ?>
                             <?php
-                            $locationGroups = [
-                                'Changing Rooms' => [
-                                    ['label' => 'Changing Room 1',                   'in' => 'CHANGING ROOM 1 IN',                    'out' => 'CHANGING ROOM 1 OUT'],
-                                    ['label' => 'Changing Room 2',                   'in' => 'CHANGING ROOM 2 IN',                    'out' => 'CHANGING ROOM 2 OUT'],
-                                ],
-                                'Production' => [
-                                    ['label' => 'Production 1 - Clean Room 10K',     'in' => 'PRODUCTION 1 - CLEAN ROOM 10K IN',      'out' => 'PRODUCTION 1 - CLEAN ROOM 10K OUT'],
-                                    ['label' => 'Production 2 - Clean Room 1K',      'in' => 'PRODUCTION 2 - CLEAN ROOM 1K IN',       'out' => 'PRODUCTION 2 - CLEAN ROOM 1K OUT'],
-                                    ['label' => 'Production 3',                       'in' => 'PRODUCTION 3 IN',                       'out' => 'PRODUCTION 3 OUT'],
-                                    ['label' => 'Production 4',                       'in' => 'PRODUCTION 4 IN',                       'out' => 'PRODUCTION 4 OUT'],
-                                    ['label' => 'Production 5 - Work In Progress',    'in' => 'PRODUCTION 5 - WORK IN PROGRESS IN',    'out' => 'PRODUCTION 5 - WORN IN PROGRESS OUT'],
-                                    ['label' => 'Production Office',                  'in' => 'PRODUCTION OFFICE IN',                  'out' => 'PRODUCTION OFFICE OUT'],
-                                    ['label' => 'Production WIP',                     'in' => 'PRODUCTION WIP IN',                     'out' => 'PRODUCTION WIP OUT'],
-                                ],
-                                'Rooms' => [
-                                    ['label' => 'CMM Room',                           'in' => 'CMM ROOM IN',                           'out' => 'CMM ROOM OUT'],
-                                    ['label' => 'Jitter Bug Room',                    'in' => 'JITTER BUG ROOM IN',                    'out' => 'JITTER BUG ROOM OUT'],
-                                    ['label' => 'Polishing Room',                     'in' => 'POLISHING ROOM IN',                     'out' => 'POLISHING ROOM OUT'],
-                                    ['label' => 'Polishing/Deburing Room',            'in' => 'POLISHING/DEBURING ROOM IN',            'out' => 'POLISHING/DEBURING ROOM OUT'],
-                                    ['label' => 'QA Room',                            'in' => 'QA ROOM IN',                            'out' => 'QA ROOM OUT'],
-                                    ['label' => 'Robotic Jitter Bug Room',            'in' => 'ROBOTIC JITTER BUG ROOM IN',            'out' => 'ROBOTIC JITTER BUG ROOM OUT'],
-                                    ['label' => 'Robotic Welding Room',               'in' => 'ROBOTIC WELDING ROOM IN',               'out' => 'ROBOTIC WELDING ROOM OUT'],
-                                    ['label' => 'Tools Room',                         'in' => 'TOOLS ROOM IN',                         'out' => 'TOOLS ROOM OUT'],
-                                    ['label' => 'Ultra Sonic Room',                   'in' => 'ULTRA SONIC ROOM IN',                   'out' => 'ULTRA SONIC ROOM OUT'],
-                                ],
-                                'Areas & Others' => [
-                                    ['label' => 'Chemical Waste',                     'in' => 'CHEMICAL WASTE IN',                     'out' => 'CHEMICAL WASTE OUT'],
-                                    ['label' => 'Finished Good Area 1',               'in' => 'FINISHED GOODS AREA 1 IN',              'out' => 'FINISHED GOOD AREA 1 OUT'],
-                                    ['label' => 'Finished Good Area 2',               'in' => 'FINISHED GOOD AREA 2 IN',               'out' => 'FINISHED GOOD AREA 2 OUT'],
-                                    ['label' => 'Maintenance Department',             'in' => 'MAINTENANCE DEPARTMENT IN',             'out' => 'MAINTENANCE DEPARTMENT OUT'],
-                                    ['label' => 'Packaging Area',                     'in' => 'PACKAGING AREA IN',                     'out' => 'PACKAGING AREA OUT'],
-                                    ['label' => 'Raw Material Area',                  'in' => 'RAW MATERIAL AREA IN',                  'out' => 'RAW MATERIAL OUT'],
-                                    ['label' => 'Schedule Waste',                     'in' => 'SCHEDULE WASTE IN',                     'out' => 'SCHEDULE WASTE OUT'],
-                                    ['label' => 'Toilet',                             'in' => 'TOILET IN',                             'out' => 'TOILET OUT'],
-                                    ['label' => 'Utility',                            'in' => 'UTILITY IN',                            'out' => 'UTILITY OUT'],
-                                    ['label' => 'Water Treatment Area',               'in' => 'WATER TREATMENT AREA IN',               'out' => 'WATER TREATMENT AREA OUT'],
-                                ],
-                            ];
+                            $locationGroups = $locationGroups ?? [];
                             ?>
                             <div class="space-y-3" x-data="{
                                 search: '',
@@ -247,7 +210,7 @@
                                     <div>
                                         <!-- Group header -->
                                         <div class="flex items-center justify-between bg-gray-50 dark:bg-gray-800/60 px-4 py-2.5">
-                                            <span class="text-xs font-bold uppercase tracking-wider text-text-sub dark:text-gray-400 font-brand"><?= $groupName ?></span>
+                                            <span class="text-xs font-bold uppercase tracking-wider text-text-sub dark:text-gray-400 font-brand"><?= esc($groupName) ?></span>
                                             <div class="flex gap-1.5">
                                                 <button type="button" @click="selectGroup('<?= $groupId ?>')" class="text-xs px-2 py-1 rounded text-primary bg-primary/10 hover:bg-primary/20 font-brand font-semibold transition-colors">All</button>
                                                 <button type="button" @click="clearGroup('<?= $groupId ?>')" class="text-xs px-2 py-1 rounded text-text-sub dark:text-gray-400 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 font-brand font-semibold transition-colors">None</button>
@@ -257,13 +220,17 @@
                                         <?php foreach ($locations as $loc): ?>
                                         <div x-show="search === '' || '<?= strtolower($loc['label']) ?>'.includes(search.toLowerCase())"
                                              class="flex items-center justify-between px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors border-t border-border-color dark:border-gray-700">
-                                            <span class="text-sm font-medium text-text-main dark:text-gray-100 font-brand flex-1 pr-4"><?= $loc['label'] ?></span>
+                                            <span class="text-sm font-medium text-text-main dark:text-gray-100 font-brand flex-1 pr-4"><?= esc($loc['label']) ?></span>
                                             <div class="flex items-center gap-4 flex-shrink-0">
                                                 <label class="flex items-center justify-center cursor-pointer w-8">
-                                                    <input data-group="<?= $groupId ?>" name="location_access[]" value="<?= $loc['in'] ?>" class="form-checkbox rounded text-primary border-2 border-gray-300 dark:border-gray-600 focus:ring-primary h-5 w-5 cursor-pointer" type="checkbox" <?= $chkd($loc['in']) ?>/>
+                                                    <?php if ($loc['in'] !== null): ?>
+                                                    <input data-group="<?= $groupId ?>" name="location_access[]" value="<?= esc($loc['in']) ?>" class="form-checkbox rounded text-primary border-2 border-gray-300 dark:border-gray-600 focus:ring-primary h-5 w-5 cursor-pointer" type="checkbox" <?= $chkd($loc['in']) ?>/>
+                                                    <?php endif; ?>
                                                 </label>
                                                 <label class="flex items-center justify-center cursor-pointer w-8">
-                                                    <input data-group="<?= $groupId ?>" name="location_access[]" value="<?= $loc['out'] ?>" class="form-checkbox rounded text-primary border-2 border-gray-300 dark:border-gray-600 focus:ring-primary h-5 w-5 cursor-pointer" type="checkbox" <?= $chkd($loc['out']) ?>/>
+                                                    <?php if ($loc['out'] !== null): ?>
+                                                    <input data-group="<?= $groupId ?>" name="location_access[]" value="<?= esc($loc['out']) ?>" class="form-checkbox rounded text-primary border-2 border-gray-300 dark:border-gray-600 focus:ring-primary h-5 w-5 cursor-pointer" type="checkbox" <?= $chkd($loc['out']) ?>/>
+                                                    <?php endif; ?>
                                                 </label>
                                             </div>
                                         </div>
@@ -297,12 +264,14 @@
                         <div class="p-6 space-y-6">
 
                             <!-- Read MyKad Button -->
+                            <?php if ($mykadOcrEnabled ?? true): ?>
                             <div>
                                 <button type="button" id="staff-mykad-btn" class="bg-success hover:bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-semibold uppercase shadow transition-all font-brand flex items-center gap-2">
                                     <span class="material-symbols-outlined text-base">credit_card</span>
                                     Read MyKad
                                 </button>
                             </div>
+                            <?php endif; ?>
 
                             <!-- Row 1: IC Number, Date of Birth -->
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">

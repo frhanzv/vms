@@ -284,9 +284,11 @@ Add Visitor
 </div>
 <?php endif; ?>
 <div class="flex items-center pb-2 lg:pb-0">
+<?php if ($mykadOcrEnabled ?? true): ?>
 <button type="button" class="read-mykad text-emerald-600 hover:text-emerald-700 transition-colors p-2 rounded-full hover:bg-emerald-50 dark:hover:bg-emerald-900/20" title="Read MyKad">
 <span class="material-symbols-outlined">badge</span>
 </button>
+<?php endif; ?>
 <button type="button" class="remove-visitor text-slate-400 hover:text-red-500 transition-colors p-2 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 opacity-50 pointer-events-none" title="Remove visitor" aria-disabled="true">
 <span class="material-symbols-outlined">remove_circle_outline</span>
 </button>
@@ -528,9 +530,11 @@ document.getElementById('add-visitor').addEventListener('click', function() {
             ${visitorFieldTemplate(idx, 'visitor_email')}
         </div>` : ''}
         <div class="flex items-center pb-2 lg:pb-0">
+            <?php if ($mykadOcrEnabled ?? true): ?>
             <button type="button" class="read-mykad text-emerald-600 hover:text-emerald-700 transition-colors p-2 rounded-full hover:bg-emerald-50 dark:hover:bg-emerald-900/20" title="Read MyKad">
                 <span class="material-symbols-outlined">badge</span>
             </button>
+            <?php endif; ?>
             <button type="button" class="remove-visitor text-slate-400 hover:text-red-500 transition-colors p-2 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20" title="Remove visitor">
                 <span class="material-symbols-outlined">remove_circle_outline</span>
             </button>

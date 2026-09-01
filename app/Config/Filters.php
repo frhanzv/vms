@@ -94,6 +94,7 @@ class Filters extends BaseFilters
                 'api/admin/*',
                 'api/vendorpass/*',
                 'api/user/*',
+                'api/guard/*',
                 'decrypt',
                 'vms/api/*',
             ]

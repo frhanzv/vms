@@ -463,12 +463,14 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
                                 <p class="text-sm text-text-sub dark:text-gray-400 font-brand" data-translate="Visitor identification information.">Visitor identification information.</p>
                             </div>
                         </div>
+                        <?php if ($mykadOcrEnabled ?? true): ?>
                         <div>
                             <button type="button" onclick="openMyKadModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-semibold uppercase shadow-lg transition-all flex items-center gap-2 font-brand">
                                 <span class="material-symbols-outlined text-lg">credit_card</span>
                                 Read MyKad
                             </button>
                         </div>
+                        <?php endif; ?>
                     </div>
                     <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                         <?php if ($isFieldEnabled('ic_number')): ?>
@@ -2295,6 +2297,7 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
             try {
                 const formData = new FormData();
                 formData.append('mykad_image', selectedFile);
+                formData.append('token', <?= json_encode($token ?? '') ?>);
 
                 const response = await fetch('<?= base_url('visitor-registration/processMyKad') ?>', {
                     method: 'POST',

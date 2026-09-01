@@ -73,3 +73,79 @@
 
 .dark .occupancy-card strong { color: #fff; }
 .dark .occupancy-card p { border-color: #2c3949; }
+
+/* Keep the exposed E-map floor-plan canvas black in every theme. */
+.emap-canvas,
+.dark .emap-canvas {
+  background: #000;
+}
+
+/* Neon-outline floor plan: the zone interior remains the canvas background. */
+.zone-shape {
+  vector-effect: non-scaling-stroke;
+}
+
+.zone-name {
+  fill: #e5e7eb;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  paint-order: stroke;
+  stroke: #000;
+  stroke-width: 2px;
+  stroke-linejoin: round;
+}
+
+.asset-buttons i .material-symbols-outlined,
+.map-legend i .material-symbols-outlined,
+.mapped-assets i .material-symbols-outlined {
+  font-size: 14px;
+}
+
+.map-asset .asset-symbol {
+  fill: #fff;
+  font-family: "Material Symbols Outlined";
+  font-size: 19px;
+  font-weight: normal;
+  font-variation-settings: "FILL" 1, "wght" 500, "GRAD" 0, "opsz" 24;
+}
+
+.hazard-symbol {
+  fill: #f59e0b;
+  font-family: "Material Symbols Outlined";
+  font-size: 21px;
+  font-variation-settings: "FILL" 1, "wght" 600, "GRAD" 0, "opsz" 24;
+}
+
+.hazard-text {
+  fill: #fbbf24;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+
+.hazard-toggle span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #b45309;
+}
+
+.hazard-toggle input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: #f59e0b;
+}
+
+.hazard-toggle small {
+  display: block;
+  margin-top: 4px;
+  color: #8a96a7;
+  font-size: 7px;
+  font-weight: 500;
+}
+
+.occupancy-card.hazardous {
+  background: #fffbeb;
+}

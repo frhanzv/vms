@@ -12,40 +12,86 @@ class MobileKioskSettingModel extends Model
     protected $useTimestamps = false;
 
     /**
-     * Global kiosk settings (client_id IS NULL), newest row wins per setting_key.
+     * Kiosk settings map. When $clientId is provided, client settings override global defaults.
      */
-    public function getGlobalConfigMap(): array
+    public function getConfigMap(?int $clientId = null): array
     {
-        $rows = $this->db->table($this->table)
+        $globalRows = $this->db->table($this->table)
+            ->where('client_id IS NULL', null, false)
             ->orderBy('updated_at', 'DESC')
             ->orderBy('id', 'DESC')
             ->get()
             ->getResultArray();
 
-        $config = [];
-        foreach ($rows as $row) {
-            $key = $row['setting_key'] ?? '';
-            if ($key !== '' && ! array_key_exists($key, $config)) {
-                $config[$key] = $row['setting_value'];
-            }
+        $config = $this->rowsToMap($globalRows);
+
+        if ($clientId !== null && $clientId > 0) {
+            $clientRows = $this->db->table($this->table)
+                ->where('client_id', $clientId)
+                ->orderBy('updated_at', 'DESC')
+                ->orderBy('id', 'DESC')
+                ->get()
+                ->getResultArray();
+
+            $config = array_merge($config, $this->rowsToMap($clientRows));
         }
 
         return $config;
     }
 
+    /**
+     * Global kiosk settings (client_id IS NULL), newest row wins per setting_key.
+     */
+    public function getGlobalConfigMap(): array
+    {
+        return $this->getConfigMap(null);
+    }
+
+    public function getClientConfigMap(?int $clientId): array
+    {
+        return $this->getConfigMap($clientId);
+    }
+
+    private function rowsToMap(array $rows): array
+    {
+        $map = [];
+        foreach ($rows as $row) {
+            $key = $row['setting_key'] ?? '';
+            if ($key !== '' && ! array_key_exists($key, $map)) {
+                $map[$key] = $row['setting_value'];
+            }
+        }
+
+        return $map;
+    }
+
     public function saveGlobalSetting(string $key, string $value): void
+    {
+        $this->saveScopedSetting(null, $key, $value);
+    }
+
+    public function saveClientSetting(?int $clientId, string $key, string $value): void
+    {
+        $this->saveScopedSetting($clientId, $key, $value);
+    }
+
+    public function saveScopedSetting(?int $clientId, string $key, string $value): void
     {
         $now = date('Y-m-d H:i:s');
 
-        $rows = $this->db->table($this->table)
-            ->where('setting_key', $key)
-            ->orderBy('id', 'ASC')
-            ->get()
-            ->getResultArray();
+        $builder = $this->db->table($this->table)->where('setting_key', $key);
+        if ($clientId !== null && $clientId > 0) {
+            $builder->where('client_id', $clientId);
+        } else {
+            $builder->where('client_id IS NULL', null, false);
+            $clientId = null;
+        }
+
+        $rows = $builder->orderBy('id', 'ASC')->get()->getResultArray();
 
         if ($rows === []) {
             $this->insert([
-                'client_id'     => null,
+                'client_id'     => $clientId,
                 'setting_key'   => $key,
                 'setting_value' => $value,
                 'created_at'    => $now,
@@ -65,10 +111,17 @@ class MobileKioskSettingModel extends Model
             ]);
 
         if (count($rows) > 1) {
-            $this->db->table($this->table)
+            $delete = $this->db->table($this->table)
                 ->where('setting_key', $key)
-                ->where('id !=', $keepId)
-                ->delete();
+                ->where('id !=', $keepId);
+
+            if ($clientId !== null && $clientId > 0) {
+                $delete->where('client_id', $clientId);
+            } else {
+                $delete->where('client_id IS NULL', null, false);
+            }
+
+            $delete->delete();
         }
     }
 }

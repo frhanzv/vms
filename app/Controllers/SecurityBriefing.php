@@ -4,19 +4,23 @@ namespace App\Controllers;
 
 use App\Models\VideoModel;
 use App\Models\InvitationModel;
+use App\Models\ClientFeatureModel;
 use App\Libraries\InvitationProcessFlowService;
+use App\Services\InvitationApprovalService;
 
 class SecurityBriefing extends BaseController
 {
     protected $videoModel;
     protected $invitationModel;
     protected InvitationProcessFlowService $invitationProcessFlowService;
+    protected InvitationApprovalService $invitationApprovalService;
 
     public function __construct()
     {
         $this->videoModel = new VideoModel();
         $this->invitationModel = new InvitationModel();
         $this->invitationProcessFlowService = new InvitationProcessFlowService();
+        $this->invitationApprovalService = new InvitationApprovalService();
     }
 
     public function index()
@@ -87,6 +91,11 @@ class SecurityBriefing extends BaseController
 
                     // Idempotent: if already completed, just redirect
                     if (!empty($invitation['video_watched'])) {
+                        $autoApproval = $this->autoApproveAfterBriefing($invitationId, $invitation, $token);
+                        if ($autoApproval !== null) {
+                            return $this->response->setJSON($autoApproval);
+                        }
+
                         $nextUrl = $this->invitationProcessFlowService->getNextStepUrl($currentBriefingStep, $token)
                             ?? base_url('security/completed?token=' . urlencode((string) $token));
 
@@ -112,6 +121,11 @@ class SecurityBriefing extends BaseController
                             'version' => ($invitation['version'] ?? 1) + 1,
                             'updated_at' => date('Y-m-d H:i:s'),
                         ]);
+
+                    $autoApproval = $this->autoApproveAfterBriefing($invitationId, $invitation, $token);
+                    if ($autoApproval !== null) {
+                        return $this->response->setJSON($autoApproval);
+                    }
                 }
                 
                 $nextUrl = $this->invitationProcessFlowService->getNextStepUrl($currentBriefingStep, $token)
@@ -135,6 +149,38 @@ class SecurityBriefing extends BaseController
                 'message' => 'An error occurred: ' . $e->getMessage()
             ]);
         }
+    }
+
+    /**
+     * Auto-approve only for clients that explicitly enabled the opt-in feature.
+     * Returning null preserves the existing manual workflow.
+     */
+    private function autoApproveAfterBriefing(int $invitationId, array $invitation, string $token): ?array
+    {
+        $clientId = (int) ($invitation['client_id'] ?? 0);
+        if ($clientId <= 0) {
+            $clientId = (int) ($invitation['company_id'] ?? 0);
+        }
+
+        if ($clientId <= 0 || ! (new ClientFeatureModel())->isEnabled($clientId, 'auto_approve_after_workflow')) {
+            return null;
+        }
+
+        $result = $this->invitationApprovalService->approve($invitationId);
+        if (empty($result['success'])) {
+            log_message('warning', 'Video completed but automatic approval failed for invitation ID '
+                . $invitationId . ': ' . ($result['message'] ?? 'Unknown error'));
+
+            return null;
+        }
+
+        return [
+            'success' => true,
+            'message' => ! empty($result['notification_sent'])
+                ? 'Briefing completed. Your QR code has been sent by email.'
+                : 'Briefing completed and your visit was approved.',
+            'redirect_url' => base_url('security/completed?token=' . urlencode($token)),
+        ];
     }
 
     public function facialVerification()
@@ -236,12 +282,31 @@ class SecurityBriefing extends BaseController
 
     public function completed()
     {
-        // Final completion page
         $token = $this->request->getGet('token');
+        $autoMode = false;
+
+        if (is_string($token) && $token !== '') {
+            $decodedId = base64_decode($token, true);
+            if ($decodedId !== false && ctype_digit($decodedId)) {
+                $invitation = $this->invitationModel->find((int) $decodedId);
+                if ($invitation) {
+                    $clientId = (int) ($invitation['client_id'] ?? 0);
+                    if ($clientId <= 0) {
+                        $clientId = (int) ($invitation['company_id'] ?? 0);
+                    }
+
+                    $autoMode = $clientId > 0
+                        && (new ClientFeatureModel())->isEnabled($clientId, 'auto_approve_after_workflow')
+                        && ($invitation['status'] ?? '') === 'Approved'
+                        && ! empty($invitation['video_watched']);
+                }
+            }
+        }
         
         $data = [
             'pageTitle' => 'Registration Complete - SafeG',
-            'token' => $token
+            'token' => $token,
+            'auto_mode' => $autoMode,
         ];
 
         return view('security/completed', $data);

@@ -416,6 +416,19 @@
                                 <form id="loginPageSettingsForm" class="space-y-4" enctype="multipart/form-data">
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div class="md:col-span-2">
+                                            <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Login Template</label>
+                                            <div class="mt-1 flex flex-col gap-2 sm:flex-row">
+                                                <select id="login_template" name="template" class="w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2.5 text-sm focus:border-primary focus:ring-primary text-gray-800 dark:text-white">
+                                                    <option value="default">Default SafeG Layout</option>
+                                                    <option value="gxo">GXO Layout</option>
+                                                </select>
+                                                <button type="button" onclick="applyGxoLoginPreset()" class="whitespace-nowrap px-4 py-2.5 rounded-lg bg-orange-600 text-white font-medium hover:bg-orange-700 transition-colors text-sm">
+                                                    Apply GXO Preset
+                                                </button>
+                                            </div>
+                                            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Choose Default to use the original login page, or GXO for the new orange GXO design.</p>
+                                        </div>
+                                        <div class="md:col-span-2">
                                             <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Page Title</label>
                                             <input id="login_page_title" name="page_title" type="text" class="mt-1 w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2.5 text-sm focus:border-primary focus:ring-primary text-gray-800 dark:text-white" />
                                         </div>
@@ -14286,6 +14299,7 @@
         let currentLoginBackgroundImageUrl = '';
 
         const loginSettingsFieldMap = {
+            template: 'login_template',
             page_title: 'login_page_title',
             brand_name: 'login_brand_name',
             heading: 'login_heading',
@@ -14307,6 +14321,34 @@
             hero_subtitle: 'login_hero_subtitle',
             hero_badge_text: 'login_hero_badge_text',
         };
+
+        function applyGxoLoginPreset() {
+            const values = {
+                template: 'gxo',
+                page_title: 'GXO - Visitor Management System',
+                brand_name: 'GXO',
+                heading: 'Sign In',
+                subheading: 'Welcome back! Please enter your details.',
+                username_label: 'Username',
+                username_placeholder: 'Enter your username',
+                password_label: 'Password',
+                password_placeholder: 'Enter your password',
+                remember_text: 'Remember me',
+                forgot_password_text: 'Forgot Password?',
+                login_button_text: 'Sign In',
+                footer_text: 'SafeG Visitor Management System.',
+                hero_title: 'Visitor Management System',
+                hero_subtitle: 'Secure. Smart. Seamless. Managing visitors and access with efficiency and safety.',
+                hero_badge_text: 'Your security is our priority',
+            };
+
+            Object.entries(values).forEach(([key, value]) => {
+                const element = document.getElementById(loginSettingsFieldMap[key]);
+                if (element) {
+                    element.value = value;
+                }
+            });
+        }
 
         function updateLoginBackgroundPreview(url, rawValue = '') {
             const preview = document.getElementById('loginBackgroundPreview');

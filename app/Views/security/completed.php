@@ -1,3 +1,4 @@
+<?php $autoMode = ! empty($auto_mode); ?>
 <!DOCTYPE html>
 <html class="light" lang="en">
 <head>
@@ -125,10 +126,11 @@
                                         <span class="material-symbols-outlined text-green-600 text-xl">check_circle</span>
                                     </div>
                                     <div>
-                                        <p class="font-semibold text-slate-900">Security Briefing Completed</p>
-                                        <p class="text-sm text-slate-600 mt-1">Safety protocols have been acknowledged</p>
+                                        <p class="font-semibold text-slate-900"><?= $autoMode ? 'Safety Video Watched' : 'Security Briefing Completed' ?></p>
+                                        <p class="text-sm text-slate-600 mt-1"><?= $autoMode ? 'The required safety video has been completed' : 'Safety protocols have been acknowledged' ?></p>
                                     </div>
                                 </div>
+                                <?php if (! $autoMode): ?>
                                 <div class="flex items-start gap-3">
                                     <div class="size-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
                                         <span class="material-symbols-outlined text-green-600 text-xl">check_circle</span>
@@ -138,6 +140,7 @@
                                         <p class="text-sm text-slate-600 mt-1">Identity verification completed successfully</p>
                                     </div>
                                 </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -164,10 +167,11 @@
                                         <span class="text-primary font-bold">2</span>
                                     </div>
                                     <div>
-                                        <p class="font-semibold text-slate-900">Present Identification</p>
-                                        <p class="text-sm text-slate-600 mt-1">Show your IC or passport for verification</p>
+                                        <p class="font-semibold text-slate-900"><?= $autoMode ? 'Present QR Code' : 'Present Identification' ?></p>
+                                        <p class="text-sm text-slate-600 mt-1"><?= $autoMode ? 'Show your QR for verification' : 'Show your IC or passport for verification' ?></p>
                                     </div>
                                 </div>
+                                <?php if (! $autoMode): ?>
                                 <div class="flex items-start gap-3">
                                     <div class="size-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
                                         <span class="text-primary font-bold">3</span>
@@ -177,9 +181,10 @@
                                         <p class="text-sm text-slate-600 mt-1">Receive and wear your visitor badge</p>
                                     </div>
                                 </div>
+                                <?php endif; ?>
                                 <div class="flex items-start gap-3">
                                     <div class="size-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                        <span class="text-primary font-bold">4</span>
+                                        <span class="text-primary font-bold"><?= $autoMode ? '3' : '4' ?></span>
                                     </div>
                                     <div>
                                         <p class="font-semibold text-slate-900">Follow Safety Protocols</p>
@@ -198,18 +203,22 @@
                         <div>
                             <h3 class="font-bold text-slate-900 mb-2" data-translate="Important Reminders">Important Reminders</h3>
                             <ul class="text-sm text-slate-700 space-y-1.5">
+                                <?php if (! $autoMode): ?>
                                 <li class="flex items-start gap-2">
                                     <span class="text-amber-600 mt-0.5">•</span>
                                     <span>Your visitor pass must be worn visibly at all times</span>
                                 </li>
+                                <?php endif; ?>
                                 <li class="flex items-start gap-2">
                                     <span class="text-amber-600 mt-0.5">•</span>
                                     <span>Escort requirements may apply in certain areas</span>
                                 </li>
+                                <?php if (! $autoMode): ?>
                                 <li class="flex items-start gap-2">
                                     <span class="text-amber-600 mt-0.5">•</span>
                                     <span>Return your visitor pass before departing</span>
                                 </li>
+                                <?php endif; ?>
                                 <li class="flex items-start gap-2">
                                     <span class="text-amber-600 mt-0.5">•</span>
                                     <span>Emergency exits are marked throughout the facility</span>
@@ -258,7 +267,7 @@
                         </li>
                         <li class="flex items-start gap-2">
                             <span class="material-symbols-outlined text-lg text-primary mt-0.5">badge</span>
-                            <span>Please proceed to reception to collect your visitor pass</span>
+                            <span><?= $autoMode ? 'Your QR code has been sent by email; present it at reception' : 'Please proceed to reception to collect your visitor pass' ?></span>
                         </li>
                         <li class="flex items-start gap-2">
                             <span class="material-symbols-outlined text-lg text-primary mt-0.5">contact_support</span>

@@ -59,8 +59,32 @@
                 </div>
             <?php endif; ?>
 
+            <form method="GET" action="<?= base_url('config/kioskSettings') ?>" class="mb-6">
+                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Company</label>
+                <div class="flex flex-col md:flex-row gap-3">
+                    <select name="client_id"
+                            class="w-full md:max-w-md rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2.5 text-sm focus:border-primary focus:ring-primary text-gray-800 dark:text-white"
+                            onchange="this.form.submit()">
+                        <option value="">Default / Global Settings</option>
+                        <?php foreach (($clients ?? []) as $client): ?>
+                            <option value="<?= (int) $client['id'] ?>" <?= (int) ($selectedClientId ?? 0) === (int) $client['id'] ? 'selected' : '' ?>>
+                                <?= esc($client['name']) ?><?= !empty($client['code']) ? ' (' . esc($client['code']) . ')' : '' ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <a href="<?= base_url('config/kioskSettings') ?>"
+                       class="inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
+                        Use Global
+                    </a>
+                </div>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                    Settings saved here apply only to the selected company. If no company is selected, settings apply globally.
+                </p>
+            </form>
+
             <form method="POST" action="<?= base_url('config/saveKioskSettings') ?>">
                 <?= csrf_field() ?>
+                <input type="hidden" name="client_id" value="<?= esc((string) ($selectedClientId ?? '')) ?>">
 
                 <!-- Feature Flags -->
                 <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden mb-6">
@@ -90,9 +114,11 @@
                                     ['Invitation', 'Allow invitation-based visitor check-in', 'kiosk_invitation'],
                                     ['Collect Card', 'Allow visitor card collection flow', 'kiosk_collect_card'],
                                     ['VVIP', 'Allow VVIP visitor flow', 'kiosk_vvip'],
+                                    ['Face Recognition', 'Require visitor facial verification on kiosk', 'kiosk_vp_facial'],
                                 ];
                                 foreach ($features as $i => [$label, $desc, $key]):
-                                    $checked = ($config[$key] ?? 'true') === 'true';
+                                    $default = $key === 'kiosk_vp_facial' ? 'false' : 'true';
+                                    $checked = ($config[$key] ?? $default) === 'true';
                                 ?>
                                 <tr class="border-b border-gray-100 dark:border-slate-700/50">
                                     <td class="px-4 py-3"><?= $i + 1 ?></td>

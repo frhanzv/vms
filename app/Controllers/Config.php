@@ -3909,6 +3909,7 @@ class Config extends BaseController
     private function getDefaultLoginPageSettings(): array
     {
         return [
+            'template' => 'default',
             'page_title' => 'SafeG - Visitor Management System Login',
             'brand_name' => 'SafeG',
             'heading' => 'Welcome back',
@@ -3973,6 +3974,7 @@ class Config extends BaseController
     {
         $rules = [
             'page_title' => 'required|max_length[255]',
+            'template' => 'required|in_list[default,gxo]',
             'brand_name' => 'required|max_length[100]',
             'heading' => 'required|max_length[255]',
             'subheading' => 'permit_empty|max_length[500]',
@@ -4004,6 +4006,7 @@ class Config extends BaseController
         }
 
         $textKeys = [
+            'template',
             'page_title',
             'brand_name',
             'heading',
@@ -5838,21 +5841,31 @@ class Config extends BaseController
 
     public function getKioskSettings()
     {
-        $model  = new MobileKioskSettingModel();
-        $config = $model->getGlobalConfigMap();
+        $model = new MobileKioskSettingModel();
+        $selectedClientId = (int) ($this->request->getGet('client_id') ?? 0);
+        $selectedClientId = $selectedClientId > 0 ? $selectedClientId : null;
+        $config = $model->getClientConfigMap($selectedClientId);
+        $clients = $this->clientModel
+            ->select('id, name, code, status')
+            ->orderBy('name', 'ASC')
+            ->findAll();
 
         return $this->response
             ->setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
             ->setHeader('Pragma', 'no-cache')
             ->setBody(view('config/kiosk_settings', [
-                'pageTitle' => 'Kiosk Settings - SafeG',
-                'config'    => $config,
+                'pageTitle'        => 'Kiosk Settings - SafeG',
+                'config'           => $config,
+                'clients'          => $clients,
+                'selectedClientId' => $selectedClientId,
             ]));
     }
 
     public function saveKioskSettings()
     {
         $model = new MobileKioskSettingModel();
+        $selectedClientId = (int) ($this->request->getPost('client_id') ?? 0);
+        $selectedClientId = $selectedClientId > 0 ? $selectedClientId : null;
 
         $visitorFields = [];
         $fieldKeys = [
@@ -5873,16 +5886,22 @@ class Config extends BaseController
             'kiosk_invitation',
             'kiosk_collect_card',
             'kiosk_vvip',
+            'kiosk_vp_facial',
         ];
 
         foreach ($keys as $key) {
             $value = $this->request->getPost($key) === 'true' ? 'true' : 'false';
-            $model->saveGlobalSetting($key, $value);
+            $model->saveClientSetting($selectedClientId, $key, $value);
         }
 
-        $model->saveGlobalSetting('kiosk_visitor_fields', json_encode($visitorFields));
+        $model->saveClientSetting($selectedClientId, 'kiosk_visitor_fields', json_encode($visitorFields));
 
-        return redirect()->to('config/kioskSettings')
+        $redirect = 'config/kioskSettings';
+        if ($selectedClientId !== null) {
+            $redirect .= '?client_id=' . $selectedClientId;
+        }
+
+        return redirect()->to($redirect)
             ->with('success', 'Kiosk settings saved!');
     }
 

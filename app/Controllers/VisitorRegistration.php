@@ -14,6 +14,7 @@ use App\Models\VisitorEquipmentModel;
 use App\Models\EmailTemplateFormFieldModel;
 use App\Models\ClientFormFieldModel;
 use App\Models\VisitorTypeModel;
+use App\Models\ClientFeatureModel;
 use App\Libraries\InvitationEmailSender;
 use App\Libraries\InvitationProcessFlowService;
 
@@ -84,11 +85,14 @@ class VisitorRegistration extends BaseController
         $states = $this->stateModel->where('status', 'active')->orderBy('name', 'ASC')->findAll();
         $cities = $this->cityModel->where('status', 'active')->orderBy('name', 'ASC')->findAll();
         
-        // Resolve client company ID for DFF — prefer the stored company_id on the invitation,
-        // fall back to looking up by visitor's company name for legacy records.
+        // Resolve the tenant/client that owns the Dynamic Form Field configuration.
+        // New invitations store this in client_id; keep company_id and company-name
+        // fallbacks for legacy invitation records.
         $companyRegistrationId = null;
         $companyId = null;
-        if ($invitation && !empty($invitation['company_id'])) {
+        if ($invitation && !empty($invitation['client_id'])) {
+            $companyId = (int) $invitation['client_id'];
+        } elseif ($invitation && !empty($invitation['company_id'])) {
             $companyId = (int) $invitation['company_id'];
             $company = $this->companyModel->find($companyId);
             if ($company) {
@@ -171,6 +175,7 @@ class VisitorRegistration extends BaseController
 
         $visitorTypeModel = new VisitorTypeModel();
         $visitorTypes = $visitorTypeModel->orderBy('name', 'ASC')->findAll();
+        $formConfig = $this->getEmailTemplateFormConfig($companyId);
 
         $data = [
             'pageTitle' => 'Visitor Registration - SafeG',
@@ -184,7 +189,7 @@ class VisitorRegistration extends BaseController
             'states' => $states,
             'cities' => $cities,
             'companyRegistrationId' => $companyRegistrationId,
-            'formConfig' => $this->getEmailTemplateFormConfig($companyId),
+            'formConfig' => $formConfig,
             'customFormFields' => $this->getEnabledCustomFields(),
             'customFormValues' => $customFormValues,
             'prefillData' => $prefillData,
@@ -193,6 +198,9 @@ class VisitorRegistration extends BaseController
             'workflow_step' => $workflowStep,
             'flow_next_url' => $flowNextUrl,
             'visitorTypes' => $visitorTypes,
+            'mykadOcrEnabled' => $companyId === null
+                ? ClientFeatureModel::defaultEnabled('mykad_ocr')
+                : (new ClientFeatureModel())->isEnabled($companyId, 'mykad_ocr'),
         ];
 
         return view('visitors/registration', $data);
@@ -205,7 +213,9 @@ class VisitorRegistration extends BaseController
         if ($token) {
             $inv = $this->invitationModel->find(base64_decode($token));
             if ($inv) {
-                if (!empty($inv['company_id'])) {
+                if (!empty($inv['client_id'])) {
+                    $companyId = (int) $inv['client_id'];
+                } elseif (!empty($inv['company_id'])) {
                     $companyId = (int) $inv['company_id'];
                 } elseif (!empty($inv['company'])) {
                     $co = $this->companyModel->where('name', $inv['company'])->first();
@@ -490,8 +500,15 @@ class VisitorRegistration extends BaseController
             // Generate token for next step
             $token = base64_encode($invitationId);
 
-            $nextUrl = $this->invitationProcessFlowService->getFirstStepAfterRegistrationUrl($token)
-                ?? base_url('security/completed?token=' . urlencode($token));
+            if ($companyId && (new ClientFeatureModel())->isEnabled($companyId, 'auto_approve_after_workflow')) {
+                $nextUrl = base_url('security/briefing') . '?' . http_build_query([
+                    'token' => $token,
+                    'flow_step' => 'security_briefing',
+                ]);
+            } else {
+                $nextUrl = $this->invitationProcessFlowService->getFirstStepAfterRegistrationUrl($token)
+                    ?? base_url('security/completed?token=' . urlencode($token));
+            }
 
             return $this->response->setJSON([
                 'success' => true,
@@ -512,6 +529,36 @@ class VisitorRegistration extends BaseController
 
     public function processMyKad()
     {
+        helper(['feature', 'role']);
+        $clientId = current_client_id();
+
+        // Public visitor registration has no signed-in client session. Resolve
+        // the owning client from the invitation token instead of trusting a
+        // client id supplied by the browser.
+        if ($clientId <= 0) {
+            $token = trim((string) $this->request->getPost('token'));
+            if ($token !== '') {
+                $invitationId = base64_decode($token, true);
+                $invitation = $invitationId !== false
+                    ? $this->invitationModel->find($invitationId)
+                    : null;
+                if ($invitation) {
+                    $clientId = (int) ($invitation['client_id'] ?? $invitation['company_id'] ?? 0);
+                }
+            }
+        }
+
+        if (!is_platform_superadmin()
+            && $clientId > 0
+            && !(new ClientFeatureModel())->isEnabled($clientId, 'mykad_ocr')) {
+            return $this->response
+                ->setStatusCode(403)
+                ->setJSON([
+                    'success' => false,
+                    'message' => 'MyKad OCR is disabled for this client.',
+                ]);
+        }
+
         // Check if file was uploaded
         $file = $this->request->getFile('mykad_image');
         

@@ -11,9 +11,8 @@ use App\Models\ClientFeatureModel;
  * Safe to re-run: uses ON DUPLICATE KEY UPDATE so existing rows are
  * refreshed to their defaults rather than throwing a unique-key error.
  *
- * All features default to enabled (1). The model's "absence = enabled"
- * contract means enabled rows are technically redundant, but seeding them
- * explicitly makes the DB easier to inspect and manage via direct SQL.
+ * Existing features default to enabled. Opt-in workflow features use the
+ * default declared by ClientFeatureModel::defaultEnabled().
  */
 class ClientFeaturesSeeder extends Seeder
 {
@@ -35,7 +34,7 @@ class ClientFeaturesSeeder extends Seeder
                 $batch[] = [
                     'client_id'   => (int) $company['id'],
                     'feature_key' => $key,
-                    'is_enabled'  => 1,
+                    'is_enabled'  => (int) ClientFeatureModel::defaultEnabled($key),
                     'created_at'  => $now,
                     'updated_at'  => $now,
                 ];

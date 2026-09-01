@@ -21,6 +21,7 @@ class VisitorPassRequest extends BaseController
         $data = [
             'pageTitle'     => 'Visitor Pass Request - SafeG',
             'fieldSettings' => $fieldSettings,
+            'mykadOcrEnabled' => client_feature_enabled('mykad_ocr'),
         ];
 
         return view('visitors/request', $data);
