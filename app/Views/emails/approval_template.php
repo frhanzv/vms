@@ -55,14 +55,17 @@
             <?php endif; ?>
             
             <div class="info-box">
-                <h3>Visit Details:</h3>
-                <p><strong>Company:</strong> <?= esc($company) ?></p>
-                <p><strong>Location:</strong> <?= esc($location) ?></p>
-                <p><strong>Purpose:</strong> <?= esc($reason) ?></p>
+                <h3>Visitor Details:</h3>
+                <p><strong>Visitor Name:</strong> <?= esc($visitor_name ?? '') ?></p>
+                <p><strong>Visitor Contact No.:</strong> <?= esc($visitor_contact ?? '') ?></p>
+                <p><strong>Visitor Company Name:</strong> <?= esc($visitor_company ?? $company ?? '') ?></p>
+                <p><strong>Reason for Visit:</strong> <?= esc($reason ?? '') ?></p>
                 <?php if (!empty($other_reason)): ?>
                 <p><strong>Additional Details:</strong> <?= esc($other_reason) ?></p>
                 <?php endif; ?>
-                <p><strong>Invited By:</strong> <?= esc($invited_by) ?></p>
+                <p><strong>Host Name:</strong> <?= esc($host_name ?? $invited_by ?? '') ?></p>
+                <p><strong>Host Contact No.:</strong> <?= esc($host_contact ?? '') ?></p>
+                <p><strong>Location:</strong> <?= esc($location ?? '') ?></p>
                 
                 <?php if (!empty($schedules)): ?>
                 <h4>Visit Schedule(s):</h4>

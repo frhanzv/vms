@@ -228,10 +228,12 @@ $isSettings = str_contains($current, 'settings');
                                 <p class="text-sm text-text-sub dark:text-gray-400 font-brand">Visitor identification information.</p>
                             </div>
                         </div>
+                        <?php if ($mykadOcrEnabled ?? true): ?>
                         <button type="button" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-semibold uppercase shadow-lg transition-all flex items-center gap-2 font-brand">
                             <span class="material-symbols-outlined text-lg">credit_card</span>
                             Read MyKad
                         </button>
+                        <?php endif; ?>
                     </div>
                     <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="space-y-2">

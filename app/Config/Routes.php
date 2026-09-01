@@ -313,14 +313,14 @@ $routes->group('', ['filter' => ['permission:visitor_pass_list,invitations', 'cl
     $routes->get('invitations/history-for-form/(:num)', 'InvitationList::historyForForm/$1');
 });
 
-$routes->group('', ['filter' => $plusHost], function($routes) {
+$routes->group('', ['filter' => 'permission:visitor_pass_list,visitors_list'], function($routes) {
     $routes->get('visitors', 'VisitorList::index');
     $routes->get('visitors/export', 'VisitorList::export');
     $routes->post('visitors/update', 'VisitorList::updateVisitor');
     $routes->post('visitors/updateVisitDate', 'VisitorList::updateVisitDate');
 });
 
-$routes->group('', ['filter' => [$plusHost, 'client_feature:visitor_card']], function($routes) {
+$routes->group('', ['filter' => ['permission:visitor_pass_list,visitors_list', 'client_feature:visitor_card']], function($routes) {
     $routes->post('visitors/bindCard', 'VisitorList::bindCard');
     $routes->post('visitors/unbindCard', 'VisitorList::unbindCard');
     $routes->post('visitors/batchUnbindCards', 'VisitorList::batchUnbindCards');
@@ -702,6 +702,12 @@ $routes->group('api/vendorpass', function($routes) {
     $routes->post('uploadVendorPassPhotoMobile', 'Api\KioskApi::uploadVendorPassPhotoMobile');
 });
 
+$routes->group('api/guard', function($routes) {
+    $routes->post('login',                    'Api\GuardApi::login');
+    $routes->get('visitors/qr/(:any)',        'Api\GuardApi::visitorByQr/$1');
+    $routes->post('visitors/check-in',        'Api\GuardApi::checkIn');
+});
+
 $routes->group('api/user', function($routes) {
     $routes->get('getStaffPassByStaffNoOrName',   'Api\KioskApi::getStaffPassByStaffNoOrName');
     $routes->post('getStaffPassByStaffNoOrName',  'Api\KioskApi::getStaffPassByStaffNoOrName');
@@ -720,5 +726,6 @@ $routes->get('vms/api/visitor-types', 'Api\KioskApi::getVisitorTypes');
 
 $routes->group('api/v1', ['filter' => 'inbound_api_auth'], function($routes) {
     $routes->post('receive', 'Api\InboundApi::receive');
+    $routes->post('visitor-qr/verify', 'Api\VisitorQr::verify');
 
 });

@@ -20,7 +20,6 @@ class ClientFeatureModel extends Model
     protected $updatedField  = 'updated_at';
 
     // Canonical list of all toggleable SafeG features.
-    // Absence in client_features = enabled (default on).
     public static function allFeatures(): array
     {
         return [
@@ -32,12 +31,22 @@ class ClientFeatureModel extends Model
             'security_alerts'     => 'Security Alerts',
             'device_management'   => 'Device Management',
             'company_visited'     => 'Company Visited Field (disable to use Visitor Type)',
+            'mykad_ocr'           => 'Read MyKad / MyKad OCR',
+            'auto_approve_after_workflow' => 'Auto-Approve After Video / Questionnaire',
         ];
     }
 
     /**
-     * Returns all features for a company with their enabled state.
-     * Features with no DB record default to enabled (1).
+     * Existing features remain enabled by default for backward compatibility.
+     * Opt-in workflow behaviour must be explicitly enabled per client.
+     */
+    public static function defaultEnabled(string $featureKey): bool
+    {
+        return $featureKey !== 'auto_approve_after_workflow';
+    }
+
+    /**
+     * Returns all features for a client with their configured or declared default state.
      */
     public function getForClient(int $clientId): array
     {
@@ -49,7 +58,9 @@ class ClientFeatureModel extends Model
             $result[] = [
                 'feature_key' => $key,
                 'label'       => $label,
-                'is_enabled'  => isset($stored[$key]) ? (int) $stored[$key] : 1,
+                'is_enabled'  => isset($stored[$key])
+                    ? (int) $stored[$key]
+                    : (int) self::defaultEnabled($key),
             ];
         }
         return $result;
@@ -71,7 +82,7 @@ class ClientFeatureModel extends Model
 
             if ($existing) {
                 $this->update($existing['id'], ['is_enabled' => $enabled]);
-            } elseif ($enabled === 0) {
+            } elseif ($enabled !== (int) self::defaultEnabled($key)) {
                 $this->insert([
                     'client_id'   => $clientId,
                     'feature_key' => $key,
@@ -93,6 +104,8 @@ class ClientFeatureModel extends Model
                     ->where('feature_key', $featureKey)
                     ->first();
 
-        return $row === null || (bool) $row['is_enabled'];
+        return $row === null
+            ? self::defaultEnabled($featureKey)
+            : (bool) $row['is_enabled'];
     }
 }

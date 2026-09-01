@@ -45,6 +45,9 @@ class EmapDemoSeeder extends Seeder
                 $zone['locationId'] = (int) $subByName[$name]['location_id'];
                 $zone['subLocationId'] = (int) $subByName[$name]['id'];
             }
+            if (($zone['id'] ?? '') === 'production') {
+                $zone['hazardous'] = true;
+            }
             $zoneById[$zone['id']] = $zone;
         }
         unset($zone);
@@ -224,8 +227,7 @@ class EmapDemoSeeder extends Seeder
 
         $this->db->table('visitor_card_logs')->where('invitation_id', $invitationId)->delete();
         $movements = [];
-        // Start at the lobby so reader 01 visibly moves the visitor to Office.
-        $sequence = array_slice($zones, 0, 1);
+        $sequence = $this->zoneSequence($zones, ['lobby', 'office', 'meeting']);
         foreach ($sequence as $index => $zone) {
             if (empty($zone['subLocationId'])) {
                 continue;
@@ -238,10 +240,13 @@ class EmapDemoSeeder extends Seeder
                 }
             }
             $movements[] = [
+                'visitor_card_id' => $cardId,
                 'invitation_id'  => $invitationId,
-                'action'         => $index === 0 ? 'checkin' : 'door_access',
+                'action'         => $index === 0 ? 'checkin' : 'door_checkin',
                 'lane_id'        => $subName && isset($laneByName[$subName]) ? (int) $laneByName[$subName]['id'] : null,
                 'sub_location_id'=> (int) $zone['subLocationId'],
+                'from_sub_location_id' => $index > 0 ? (int) ($sequence[$index - 1]['subLocationId'] ?? 0) ?: null : null,
+                'to_sub_location_id' => (int) $zone['subLocationId'],
                 'scanned_at'     => date('Y-m-d H:i:s', time() - ((count($sequence) - $index) * 90)),
                 'scan_source'    => 'admin',
                 'created_at'     => $now,
@@ -302,7 +307,8 @@ class EmapDemoSeeder extends Seeder
 
         $this->db->table('visitor_card_logs')->where('invitation_id', $invitationId)->delete();
         $movements = [];
-        foreach (array_slice($zones, 0, 1) as $index => $zone) {
+        $sequence = $this->zoneSequence($zones, ['lobby', 'office', 'production']);
+        foreach ($sequence as $index => $zone) {
             if (empty($zone['subLocationId'])) continue;
             $subName = null;
             foreach ($subByName as $name => $sub) {
@@ -312,10 +318,13 @@ class EmapDemoSeeder extends Seeder
                 }
             }
             $movements[] = [
+                'visitor_card_id' => $cardId,
                 'invitation_id' => $invitationId,
-                'action' => $index === 0 ? 'checkin' : 'door_access',
+                'action' => $index === 0 ? 'checkin' : 'door_checkin',
                 'lane_id' => $subName && isset($laneByName[$subName]) ? (int) $laneByName[$subName]['id'] : null,
                 'sub_location_id' => (int) $zone['subLocationId'],
+                'from_sub_location_id' => $index > 0 ? (int) ($sequence[$index - 1]['subLocationId'] ?? 0) ?: null : null,
+                'to_sub_location_id' => (int) $zone['subLocationId'],
                 'scanned_at' => date('Y-m-d H:i:s', time() - ((4 - $index) * 75)),
                 'scan_source' => 'admin',
                 'created_at' => $now,
@@ -324,6 +333,21 @@ class EmapDemoSeeder extends Seeder
         if ($movements) {
             $this->db->table('visitor_card_logs')->insertBatch($movements);
         }
+    }
+
+    private function zoneSequence(array $zones, array $ids): array
+    {
+        $byId = [];
+        foreach ($zones as $zone) {
+            if (isset($zone['id'])) {
+                $byId[$zone['id']] = $zone;
+            }
+        }
+
+        return array_values(array_filter(array_map(
+            static fn(string $id): ?array => $byId[$id] ?? null,
+            $ids
+        )));
     }
 
     private function assignDemoCard(string $cardEpc, string $serialNo): int

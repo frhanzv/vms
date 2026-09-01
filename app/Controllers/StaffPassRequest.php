@@ -19,11 +19,14 @@ class StaffPassRequest extends BaseController
 
         $countryModel = new \App\Models\CountryModel();
         $countries    = $countryModel->where('status', 'Active')->orderBy('name', 'ASC')->findAll();
+        $locationGroups = $this->getLocationGroups();
 
         $data = [
             'pageTitle'     => 'Staff Pass Request - SafeG',
             'fieldSettings' => $fieldSettings,
             'countries'     => $countries,
+            'locationGroups' => $locationGroups,
+            'mykadOcrEnabled' => client_feature_enabled('mykad_ocr'),
         ];
 
         return view('staffs/staffpassrequest', $data);
@@ -123,8 +126,25 @@ class StaffPassRequest extends BaseController
 
     public function view($id) {
         $staffModel = new \App\Models\StaffModel();
-        $data['staff'] = $staffModel->find($id);
-        return view('staffs/staffpassrequest_detail', $data);
+        $staff = $staffModel->find($id);
+        if (!$staff) {
+            return redirect()->to(base_url('staffs'))->with('error', 'Staff record not found.');
+        }
+
+        helper('feature');
+        $clientFormFieldModel = new \App\Models\ClientFormFieldModel();
+        $rows = $clientFormFieldModel->getForCompanyForm(current_company_id(), 'staff_pass_request');
+
+        $fieldSettings = [];
+        foreach ($rows as $field) {
+            $fieldSettings[$field['field_key']] = (bool) $field['is_enabled'];
+        }
+
+        return view('staffs/staffpassrequest_detail', [
+            'staff'          => $staff,
+            'fieldSettings'  => $fieldSettings,
+            'locationGroups' => $this->getLocationGroups(),
+        ]);
     }
 
     public function edit($id)
@@ -153,10 +173,54 @@ class StaffPassRequest extends BaseController
             'pageTitle'     => 'Edit Staff - SafeG',
             'fieldSettings' => $fieldSettings,
             'countries'     => $countries,
+            'locationGroups' => $this->getLocationGroups(),
+            'mykadOcrEnabled' => client_feature_enabled('mykad_ocr'),
             'staff'         => $staff,
             'formAction'    => 'staffpassrequest/update/' . (int) $id,
             'isEdit'        => true,
         ]);
+    }
+
+    /**
+     * Build the IN/OUT selector directly from active Location Access Management rows.
+     */
+    private function getLocationGroups(): array
+    {
+        $locations = (new \App\Models\LocationModel())->getAllActive();
+        $groups = [];
+
+        foreach ($locations as $location) {
+            $access = trim((string) ($location['location_access'] ?? ''));
+            if ($access === '') {
+                continue;
+            }
+
+            $branch = trim((string) ($location['branch'] ?? '')) ?: 'Locations';
+            $direction = null;
+            $label = $access;
+            if (preg_match('/\s+(IN|OUT)$/i', $access, $matches)) {
+                $direction = strtolower($matches[1]);
+                $label = trim(substr($access, 0, -strlen($matches[0])));
+            }
+
+            $key = strtolower($label);
+            if (!isset($groups[$branch][$key])) {
+                $groups[$branch][$key] = ['label' => $label, 'in' => null, 'out' => null];
+            }
+
+            if ($direction !== null) {
+                $groups[$branch][$key][$direction] = $access;
+            } else {
+                // A management row without an IN/OUT suffix remains selectable.
+                $groups[$branch][$key]['in'] = $access;
+            }
+        }
+
+        foreach ($groups as $branch => $entries) {
+            $groups[$branch] = array_values($entries);
+        }
+
+        return $groups;
     }
 
     public function update($id)

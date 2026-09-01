@@ -4,8 +4,24 @@ import "./styles.css";
 import "./occupancy.css";
 
 const COLORS = ["#ddebff", "#fff0c9", "#e8dfff", "#ddf4e5", "#ffe1e1", "#eee7ff"];
+const ASSET_ICONS = { reader: "sensors", door: "door_open", camera: "videocam" };
+const HAZARD_COLOR = "#f59e0b";
 const uid = (prefix) => `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 const formatTime = (value) => value ? new Date(value.replace(" ", "T")).toLocaleTimeString("en-MY", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "—";
+const neonZoneColor = (hex) => {
+  const value = String(hex || "").replace("#", "");
+  if (!/^[0-9a-f]{6}$/i.test(value)) return "#22d3ee";
+  const [r, g, b] = [0, 2, 4].map((offset) => parseInt(value.slice(offset, offset + 2), 16) / 255);
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), delta = max - min;
+  let hue = 0;
+  if (delta) {
+    if (max === r) hue = 60 * (((g - b) / delta) % 6);
+    else if (max === g) hue = 60 * ((b - r) / delta + 2);
+    else hue = 60 * ((r - g) / delta + 4);
+  }
+  if (hue < 0) hue += 360;
+  return `hsl(${Math.round(hue)} 100% 58%)`;
+};
 
 function EmapApp({ root }) {
   const [loading, setLoading] = useState(true);
@@ -242,7 +258,7 @@ function EmapApp({ root }) {
         <button className={tool === "select" ? "active" : ""} onClick={() => setTool("select")}><i>↖</i><span><b>Select</b><small>Move and inspect objects</small></span></button>
         <button onClick={addZone}><i>⬚</i><span><b>Zone</b><small>Create a coloured area</small></span></button>
         <button onClick={addWall}><i>╱</i><span><b>Wall</b><small>Add a structural line</small></span></button>
-        <div className="asset-buttons"><b>Add asset</b><button onClick={() => addAsset("door")}><i className="door">D</i>Access door</button><button onClick={() => addAsset("reader")}><i className="reader">R</i>RFID reader</button><button onClick={() => addAsset("camera")}><i className="camera">C</i>Camera / FR</button></div>
+        <div className="asset-buttons"><b>Add asset</b><button onClick={() => addAsset("door")}><i className="door"><span className="material-symbols-outlined">{ASSET_ICONS.door}</span></i>Access door</button><button onClick={() => addAsset("reader")}><i className="reader"><span className="material-symbols-outlined">{ASSET_ICONS.reader}</span></i>RFID reader</button><button onClick={() => addAsset("camera")}><i className="camera"><span className="material-symbols-outlined">{ASSET_ICONS.camera}</span></i>Camera / FR</button></div>
       </aside>}
 
       <section className="emap-panel map-card">
@@ -252,18 +268,30 @@ function EmapApp({ root }) {
         </div>
         <div className="emap-canvas">
           <svg ref={svgRef} viewBox={`0 0 ${layout.width} ${layout.height}`} style={{ transform: `scale(${zoom})` }} onPointerMove={pointerMove} onPointerUp={() => drag.current = null} onPointerLeave={() => drag.current = null}>
-            <defs><pattern id="emap-grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" fill="none" stroke="#e9edf3" strokeWidth="1"/></pattern></defs>
-            <rect width={layout.width} height={layout.height} fill="url(#emap-grid)"/>
-            {layout.zones.map((zone) => <g key={zone.id} className={mode === "designer" ? "movable" : ""} onClick={() => mode === "designer" && setSelected(zone.id)} onPointerDown={(event) => {
+            {layout.zones.map((zone) => { const zoneLineColor = zone.hazardous ? HAZARD_COLOR : neonZoneColor(zone.color); return <g key={zone.id} className={mode === "designer" ? "movable" : ""} onClick={() => mode === "designer" && setSelected(zone.id)} onPointerDown={(event) => {
               if (mode !== "designer") return;
               const p = point(event.clientX, event.clientY);
               drag.current = { id: zone.id, kind: "zone-move", dx: p.x - zone.x, dy: p.y - zone.y };
               setSelected(zone.id);
             }}>
-              <rect x={zone.x} y={zone.y} width={zone.w} height={zone.h} rx="4" fill={zone.color} fillOpacity=".78" stroke={selected === zone.id && mode === "designer" ? "#137fec" : "#87909d"} strokeWidth={selected === zone.id && mode === "designer" ? 3 : 2}/>
-              <text x={zone.x + zone.w / 2} y={zone.y + 28} textAnchor="middle" className="zone-name">{zone.name}</text>
+              <rect
+                className="zone-shape"
+                x={zone.x}
+                y={zone.y}
+                width={zone.w}
+                height={zone.h}
+                rx="4"
+                fill={zone.hazardous ? HAZARD_COLOR : "transparent"}
+                fillOpacity={zone.hazardous ? .04 : 0}
+                stroke={zoneLineColor}
+                strokeDasharray={zone.hazardous ? "9 6" : undefined}
+                strokeWidth={selected === zone.id && mode === "designer" ? 4 : 2.5}
+                style={{ filter: `drop-shadow(0 0 2px ${zoneLineColor}) drop-shadow(0 0 ${selected === zone.id && mode === "designer" ? 7 : 4}px ${zoneLineColor})` }}
+              />
+              <text x={zone.x + 12} y={zone.y + 24} textAnchor="start" className="zone-name">{zone.name}</text>
+              {zone.hazardous && <g className="hazard-label" transform={`translate(${zone.x + zone.w - 18} ${zone.y + 19})`}><text textAnchor="middle" className="hazard-symbol">warning</text><text x="-21" y="3" textAnchor="end" className="hazard-text">HAZARDOUS</text></g>}
               {mode === "designer" && selected === zone.id && <g transform={`translate(${zone.x + zone.w} ${zone.y + zone.h})`} className="handle" onPointerDown={(event) => { event.stopPropagation(); drag.current = { id: zone.id, kind: "zone-resize" }; }}><circle r="10"/><path d="M-4 4L4-4M0 4L4 0"/></g>}
-            </g>)}
+            </g>; })}
             {layout.walls.map((wall) => <g key={wall.id} onClick={() => mode === "designer" && setSelected(wall.id)}>
               <line x1={wall.x1} y1={wall.y1} x2={wall.x2} y2={wall.y2} stroke="#515b68" strokeWidth="9"/>
               <line x1={wall.x1} y1={wall.y1} x2={wall.x2} y2={wall.y2} stroke="#f8fafc" strokeWidth="3"/>
@@ -275,7 +303,7 @@ function EmapApp({ root }) {
               drag.current = { id: asset.id, kind: "asset-move", dx: p.x - asset.x, dy: p.y - asset.y };
               setSelected(asset.id);
             }}>
-              <rect x="-16" y="-16" width="32" height="32" rx="8" className={asset.type}/><text y="5" textAnchor="middle">{asset.type === "reader" ? "R" : asset.type === "door" ? "D" : "C"}</text>
+              <rect x="-17" y="-17" width="34" height="34" rx="8" className={asset.type}/><text y="7" textAnchor="middle" className="asset-symbol">{ASSET_ICONS[asset.type] || "device_unknown"}</text>
             </g>)}
             {mode === "live" && Object.entries(visitorAssignments).flatMap(([zoneId, people]) => {
               const zone = layout.zones.find((item) => item.id === zoneId);
@@ -301,22 +329,22 @@ function EmapApp({ root }) {
           </svg>
           {mode === "live" && visitors.length === 0 && <div className="canvas-empty"><span className="material-symbols-outlined">sensors_off</span><b>No active visitor positions yet</b><small>Visitors appear after a mapped RFID or QR movement event.</small></div>}
         </div>
-        <div className="map-legend"><span><i className="reader">R</i>RFID reader</span><span><i className="door">D</i>Access door</span><span><i className="camera">C</i>Camera / FR</span><em>Visitor positions show the latest detected zone.</em></div>
+        <div className="map-legend"><span><i className="reader"><span className="material-symbols-outlined">{ASSET_ICONS.reader}</span></i>RFID reader</span><span><i className="door"><span className="material-symbols-outlined">{ASSET_ICONS.door}</span></i>Access door</span><span><i className="camera"><span className="material-symbols-outlined">{ASSET_ICONS.camera}</span></i>Camera / FR</span><em>Visitor positions show the latest detected zone.</em></div>
       </section>
 
       {mode === "designer" ? <aside className="emap-panel inspector">
         <div className="panel-heading"><h2>Inspector</h2><span>PROPERTIES</span></div>
         {!selectedZone && !selectedWall && !selectedAsset && <div className="empty-inspector"><span className="material-symbols-outlined">touch_app</span>Select an object on the map</div>}
-        {selectedZone && <><label>Zone name<input value={selectedZone.name} onChange={(event) => updateZone({ name: event.target.value.toUpperCase() })}/></label><label>Zone colour<input type="color" value={selectedZone.color} onChange={(event) => updateZone({ color: event.target.value })}/></label><label>Location<select value={selectedZone.locationId || ""} onChange={(event) => updateZone({ locationId: event.target.value ? Number(event.target.value) : null, subLocationId: null })}><option value="">Not linked</option>{references.locations.map((item) => <option key={item.id} value={item.id}>{item.location_access}</option>)}</select></label><label>Sub-location / zone<select value={selectedZone.subLocationId || ""} onChange={(event) => updateZone({ subLocationId: event.target.value ? Number(event.target.value) : null })}><option value="">Not linked</option>{references.subLocations.filter((item) => !selectedZone.locationId || Number(item.location_id) === Number(selectedZone.locationId)).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><div className="field-grid"><label>Width<input type="number" value={Math.round(selectedZone.w)} onChange={(event) => updateZone({ w: Number(event.target.value) })}/></label><label>Height<input type="number" value={Math.round(selectedZone.h)} onChange={(event) => updateZone({ h: Number(event.target.value) })}/></label></div><button className="delete-button" onClick={removeSelected}>Delete zone</button></>}
+        {selectedZone && <><label>Zone name<input value={selectedZone.name} onChange={(event) => updateZone({ name: event.target.value.toUpperCase() })}/></label><label>Zone colour<input type="color" value={selectedZone.color} onChange={(event) => updateZone({ color: event.target.value })}/></label><label className="hazard-toggle"><span><input type="checkbox" checked={Boolean(selectedZone.hazardous)} onChange={(event) => updateZone({ hazardous: event.target.checked })}/>Hazardous zone</span><small>Shows an amber warning area in Live mode</small></label><label>Location<select value={selectedZone.locationId || ""} onChange={(event) => updateZone({ locationId: event.target.value ? Number(event.target.value) : null, subLocationId: null })}><option value="">Not linked</option>{references.locations.map((item) => <option key={item.id} value={item.id}>{item.location_access}</option>)}</select></label><label>Sub-location / zone<select value={selectedZone.subLocationId || ""} onChange={(event) => updateZone({ subLocationId: event.target.value ? Number(event.target.value) : null })}><option value="">Not linked</option>{references.subLocations.filter((item) => !selectedZone.locationId || Number(item.location_id) === Number(selectedZone.locationId)).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><div className="field-grid"><label>Width<input type="number" value={Math.round(selectedZone.w)} onChange={(event) => updateZone({ w: Number(event.target.value) })}/></label><label>Height<input type="number" value={Math.round(selectedZone.h)} onChange={(event) => updateZone({ h: Number(event.target.value) })}/></label></div><button className="delete-button" onClick={removeSelected}>Delete zone</button></>}
         {selectedWall && <><div className="object-summary"><i>╱</i><span><b>Structural wall</b><small>Drag either blue endpoint</small></span></div><div className="field-grid"><label>Start X<input type="number" value={Math.round(selectedWall.x1)} onChange={(event) => updateWall({ x1: Number(event.target.value) })}/></label><label>Start Y<input type="number" value={Math.round(selectedWall.y1)} onChange={(event) => updateWall({ y1: Number(event.target.value) })}/></label><label>End X<input type="number" value={Math.round(selectedWall.x2)} onChange={(event) => updateWall({ x2: Number(event.target.value) })}/></label><label>End Y<input type="number" value={Math.round(selectedWall.y2)} onChange={(event) => updateWall({ y2: Number(event.target.value) })}/></label></div><button className="delete-button" onClick={removeSelected}>Delete wall</button></>}
         {selectedAsset && <><label>Asset label<input value={selectedAsset.label} onChange={(event) => updateAsset({ label: event.target.value })}/></label><label>Asset type<select value={selectedAsset.type} onChange={(event) => updateAsset({ type: event.target.value })}><option value="reader">RFID reader</option><option value="door">Access door</option><option value="camera">Camera / FR</option></select></label><label>Lane / door<select value={selectedAsset.laneId || ""} onChange={(event) => updateAssetLane(event.target.value)}><option value="">Not linked</option>{references.lanes.map((item) => <option key={item.id} value={item.id}>{item.lane}</option>)}</select></label><label>Device assignment<select value={selectedAsset.deviceAssignmentId || ""} onChange={(event) => updateAsset({ deviceAssignmentId: event.target.value ? Number(event.target.value) : null })}><option value="">Not linked</option>{devicesForLane(selectedAsset.laneId).length === 0 && selectedAsset.laneId && <option disabled>No devices found in this lane area</option>}{devicesForLane(selectedAsset.laneId).map((item) => <option key={item.id} value={item.id}>{item.device_id || item.ip_address} · {item.type}</option>)}</select></label>{selectedAsset.type !== "camera" && <><label>From zone<select value={selectedAsset.fromZoneId || ""} onChange={(event) => updateAsset({ fromZoneId: event.target.value || null })}><option value="">Not linked</option>{layout.zones.map((zone) => <option key={zone.id} value={zone.id}>{zone.name}</option>)}</select></label><label>To zone<select value={selectedAsset.toZoneId || ""} onChange={(event) => updateAsset({ toZoneId: event.target.value || null })}><option value="">Not linked</option>{layout.zones.map((zone) => <option key={zone.id} value={zone.id}>{zone.name}</option>)}</select></label><label>Movement mode<select value={selectedAsset.transitionMode || "bidirectional"} onChange={(event) => updateAsset({ transitionMode: event.target.value })}><option value="bidirectional">Bidirectional (A ↔ B)</option><option value="one_way">One way (A → B)</option></select></label></>}<button className="delete-button" onClick={removeSelected}>Delete asset</button></>}
       </aside> : <aside className="live-sidebar">
-        <section className="emap-panel"><div className="panel-heading"><h2>Zone occupancy</h2><span>LIVE</span></div><div className="occupancy-list">{layout.zones.map((zone) => <div key={zone.id}><i style={{ background: zone.color }}/><span>{zone.name}</span><b>{visitorAssignments[zone.id]?.length || 0}</b></div>)}</div></section>
-        <section className="emap-panel"><div className="panel-heading"><h2>Mapped assets</h2><span>{layout.assets.length}</span></div><div className="mapped-assets">{layout.assets.slice(0, 6).map((asset) => <div key={asset.id}><i className={asset.type}>{asset.type === "reader" ? "R" : asset.type === "door" ? "D" : "C"}</i><span><b>{asset.label}</b><small>{asset.deviceAssignmentId ? "Linked device" : "Not linked"}</small></span></div>)}{layout.assets.length === 0 && <p>No assets placed on this map.</p>}</div></section>
+        <section className="emap-panel"><div className="panel-heading"><h2>Zone occupancy</h2><span>LIVE</span></div><div className="occupancy-list">{layout.zones.map((zone) => <div key={zone.id}><i style={{ background: zone.hazardous ? HAZARD_COLOR : neonZoneColor(zone.color) }}/><span>{zone.name}{zone.hazardous ? " · HAZARD" : ""}</span><b>{visitorAssignments[zone.id]?.length || 0}</b></div>)}</div></section>
+        <section className="emap-panel"><div className="panel-heading"><h2>Mapped assets</h2><span>{layout.assets.length}</span></div><div className="mapped-assets">{layout.assets.slice(0, 6).map((asset) => <div key={asset.id}><i className={asset.type}><span className="material-symbols-outlined">{ASSET_ICONS[asset.type] || "device_unknown"}</span></i><span><b>{asset.label}</b><small>{asset.deviceAssignmentId ? "Linked device" : "Not linked"}</small></span></div>)}{layout.assets.length === 0 && <p>No assets placed on this map.</p>}</div></section>
       </aside>}
     </div>
 
-    {mode === "live" && <section className="emap-panel movement-log zone-occupancy"><div className="panel-heading"><h2>Zone occupancy</h2><span>{visitors.length} PEOPLE ON MAP</span></div><div className="occupancy-cards">{layout.zones.map((zone) => { const count = visitorAssignments[zone.id]?.length || 0; const subLocation = references.subLocations.find((item) => Number(item.id) === Number(zone.subLocationId)); return <article className="occupancy-card" key={zone.id} style={{borderTopColor:zone.color}}><div><span className="occupancy-colour" style={{background:zone.color}}/><b>{zone.name}</b></div><strong>{count}</strong><small>{count === 1 ? "PERSON" : "PEOPLE"}</small><p>{subLocation?.name || "Not linked"}</p></article>; })}</div></section>}
+    {mode === "live" && <section className="emap-panel movement-log zone-occupancy"><div className="panel-heading"><h2>Zone occupancy</h2><span>{visitors.length} PEOPLE ON MAP</span></div><div className="occupancy-cards">{layout.zones.map((zone) => { const count = visitorAssignments[zone.id]?.length || 0; const subLocation = references.subLocations.find((item) => Number(item.id) === Number(zone.subLocationId)); const zoneLineColor = zone.hazardous ? HAZARD_COLOR : neonZoneColor(zone.color); return <article className={`occupancy-card${zone.hazardous ? " hazardous" : ""}`} key={zone.id} style={{borderTopColor:zoneLineColor}}><div><span className="occupancy-colour" style={{background:zoneLineColor}}/><b>{zone.name}</b></div><strong>{count}</strong><small>{zone.hazardous ? "HAZARDOUS ZONE" : count === 1 ? "PERSON" : "PEOPLE"}</small><p>{subLocation?.name || "Not linked"}</p></article>; })}</div></section>}
 
     {mode === "live" && <section className="emap-panel movement-log"><div className="panel-heading"><h2>Live movement log</h2><span>LATEST {logs.length}</span></div><div className="log-head"><span>VISITOR</span><span>ZONE / DOOR</span><span>ACTION</span><span>TIME</span></div>{logs.slice(0, 6).map((item) => <div className="log-row" key={item.id}><span><i>{item.name.split(/\s+/).slice(0,2).map((part) => part[0]).join("")}</i><b>{item.name}</b></span><span>{item.zone}</span><span className={`action ${item.action}`}>{item.action.replaceAll("_", " ")}</span><span>{formatTime(item.time)}</span></div>)}{logs.length === 0 && <div className="empty-log">No RFID or QR movement has been recorded yet.</div>}</section>}
   </div>;

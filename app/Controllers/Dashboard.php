@@ -11,6 +11,7 @@ class Dashboard extends BaseController
 {
     public function index()
     {
+        helper(['role', 'feature']);
         // Get current user data
         $userId = session()->get('user_id');
         $userModel = new UserModel();
@@ -473,7 +474,8 @@ class Dashboard extends BaseController
             'upcomingAppointments' => $upcomingAppointments,
             'todayAppointments' => $todayAppointments,
             'trafficHours' => $trafficHours,
-            'widgetPreferences' => (new DashboardWidgetPreferenceModel())->getPreferences($userId),
+            'widgetPreferences' => (new DashboardWidgetPreferenceModel())->getPreferences($this->dashboardPreferenceOwnerId()),
+            'canCustomizeDashboard' => $this->canCustomizeDashboard(),
         ];
 
         return view('dashboard', $data);
@@ -2171,25 +2173,37 @@ class Dashboard extends BaseController
 
     public function getWidgetPreferences()
     {
-        $userId = session()->get('user_id');
-        $prefs  = (new DashboardWidgetPreferenceModel())->getPreferences($userId);
+        $prefs = (new DashboardWidgetPreferenceModel())->getPreferences($this->dashboardPreferenceOwnerId());
         return $this->response->setJSON($prefs);
     }
 
     public function saveWidgetPreferences()
     {
-        $userId  = session()->get('user_id');
+        if (!$this->canCustomizeDashboard()) {
+            return $this->response->setStatusCode(403)->setJSON([
+                'success' => false,
+                'message' => 'Only administrators can customize the organization dashboard.',
+            ]);
+        }
+
         $raw     = $this->request->getPost('widgets');
         $configs = $raw ? json_decode($raw, true) : null;
-        if (!is_array($configs) || empty($configs)) {
+        if (!is_array($configs)) {
             return $this->response->setJSON(['success' => false]);
         }
-        (new DashboardWidgetPreferenceModel())->savePreferences($userId, $configs);
+        (new DashboardWidgetPreferenceModel())->savePreferences($this->dashboardPreferenceOwnerId(), $configs);
         return $this->response->setJSON(['success' => true]);
     }
 
     public function uploadPosterImage()
     {
+        if (!$this->canCustomizeDashboard()) {
+            return $this->response->setStatusCode(403)->setJSON([
+                'success' => false,
+                'message' => 'Only administrators can customize the organization dashboard.',
+            ]);
+        }
+
         $file = $this->request->getFile('image');
         if (!$file || !$file->isValid()) {
             return $this->response->setJSON(['success' => false, 'message' => 'No file uploaded']);
@@ -2202,12 +2216,45 @@ class Dashboard extends BaseController
         if (!is_dir($uploadPath)) {
             mkdir($uploadPath, 0755, true);
         }
-        $userId   = session()->get('user_id');
-        $filename = 'poster_' . $userId . '_' . time() . '.' . $file->getExtension();
+        $ownerId  = $this->dashboardPreferenceOwnerId();
+        $filename = 'poster_' . $ownerId . '_' . time() . '.' . $file->getExtension();
         if ($file->move($uploadPath, $filename)) {
             return $this->response->setJSON(['success' => true, 'url' => base_url('uploads/poster/' . $filename)]);
         }
         return $this->response->setJSON(['success' => false, 'message' => 'Upload failed']);
+    }
+
+    private function canCustomizeDashboard(): bool
+    {
+        helper('role');
+        return in_array(normalize_role_slug(session()->get('role')), [
+            'superadmin',
+            'clientsuperadmin',
+            'admin',
+        ], true);
+    }
+
+    /**
+     * All users in a client organization share the same admin-owned layout.
+     * Existing user_id storage is retained, avoiding a schema migration.
+     */
+    private function dashboardPreferenceOwnerId(): int
+    {
+        helper('feature');
+        $currentUserId = (int) session()->get('user_id');
+        $clientId = current_client_id();
+
+        if ($clientId <= 0) {
+            return $currentUserId;
+        }
+
+        $admins = (new UserModel())->getCompanyAdmins($clientId);
+        if (empty($admins)) {
+            return $currentUserId;
+        }
+
+        usort($admins, static fn(array $a, array $b): int => (int) $a['id'] <=> (int) $b['id']);
+        return (int) $admins[0]['id'];
     }
 
     private function normalizeFilterDatetime(string $value): string

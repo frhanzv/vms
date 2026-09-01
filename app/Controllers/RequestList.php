@@ -7,6 +7,7 @@ use App\Models\InvitationScheduleModel;
 use App\Models\VisitorLicenseModel;
 use App\Models\VisitorEquipmentModel;
 use App\Libraries\InvitationProcessFlowService;
+use App\Services\InvitationApprovalService;
 
 class RequestList extends BaseController
 {
@@ -15,6 +16,7 @@ class RequestList extends BaseController
     protected $licenseModel;
     protected $equipmentModel;
     protected $flowService;
+    protected InvitationApprovalService $approvalService;
 
     public function __construct()
     {
@@ -23,6 +25,7 @@ class RequestList extends BaseController
         $this->licenseModel = new VisitorLicenseModel();
         $this->equipmentModel = new VisitorEquipmentModel();
         $this->flowService = new InvitationProcessFlowService();
+        $this->approvalService = new InvitationApprovalService();
     }
 
     public function index()
@@ -294,95 +297,7 @@ class RequestList extends BaseController
      */
     private function approveInvitationById(int $id): array
     {
-        try {
-            $invitation = $this->invitationModel->find($id);
-
-            if (! $invitation) {
-                return [
-                    'success' => false,
-                    'message' => 'Invitation not found',
-                ];
-            }
-
-            if ($invitation['status'] === 'Approved') {
-                return [
-                    'success' => false,
-                    'message' => 'This request has already been approved',
-                ];
-            }
-
-            if ($invitation['status'] === 'Rejected') {
-                return [
-                    'success' => false,
-                    'message' => 'This request has already been rejected and cannot be approved',
-                ];
-            }
-
-            if ($invitation['status'] !== 'Submitted') {
-                return [
-                    'success' => false,
-                    'message' => 'Only submitted requests can be approved (current status: ' . $invitation['status'] . ')',
-                ];
-            }
-
-            $db = \Config\Database::connect();
-            $db->transStart();
-
-            $db->table('invitations')
-                ->where('id', $id)
-                ->where('status', 'Submitted')
-                ->update([
-                    'status' => 'Approved',
-                    'checked_in_at' => date('Y-m-d H:i:s'),
-                    'version' => ($invitation['version'] ?? 1) + 1,
-                    'updated_at' => date('Y-m-d H:i:s'),
-                ]);
-
-            if ($db->affectedRows() === 0) {
-                $db->transRollback();
-
-                return [
-                    'success' => false,
-                    'message' => 'This request has already been processed by another user. Please refresh the page.',
-                ];
-            }
-
-            $invitationVisitorModel = new \App\Models\InvitationVisitorModel();
-            $existing = $invitationVisitorModel->where('invitation_id', $id)->first();
-
-            if (! $existing) {
-                $invitationVisitorModel->insert([
-                    'invitation_id' => $id,
-                    'full_name' => $invitation['full_name'] ?? 'Visitor',
-                    'ic_passport' => ! empty($invitation['ic_passport']) ? $invitation['ic_passport'] : 'PENDING',
-                    'contact' => $invitation['contact'] ?? 'N/A',
-                    'visitor_card_id' => null,
-                    'check_in_time' => null,
-                    'check_out_time' => null,
-                ]);
-            }
-
-            $db->transComplete();
-
-            if ($db->transStatus() === false) {
-                return [
-                    'success' => false,
-                    'message' => 'Failed to approve request due to a database error',
-                ];
-            }
-
-            (new \App\Services\NotificationService())->dispatch($id, 'request_approved');
-
-            return [
-                'success' => true,
-                'message' => 'Request approved successfully',
-            ];
-        } catch (\Exception $e) {
-            return [
-                'success' => false,
-                'message' => 'An error occurred: ' . $e->getMessage(),
-            ];
-        }
+        return $this->approvalService->approve($id);
     }
 
     public function reject()

@@ -222,10 +222,12 @@
                     <span class="material-symbols-outlined">notifications</span>
                     <span class="absolute top-2 right-2 size-2 bg-red-500 rounded-full border border-white dark:border-slate-900"></span>
                 </button>
+                <?php if ($canCustomizeDashboard ?? false): ?>
                 <button id="widget-customize-btn" onclick="openWidgetDrawer()" class="flex items-center gap-1.5 h-10 px-4 bg-surface-light dark:bg-surface-dark border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm font-medium rounded-lg shadow-sm transition-colors">
                     <span class="material-symbols-outlined text-[20px]">dashboard_customize</span>
                     <span class="hidden sm:inline">Customize</span>
                 </button>
+                <?php endif; ?>
                 <div class="flex flex-col gap-2 items-end">
                     <a href="<?= base_url('invitations/create') ?>" class="flex items-center justify-center h-10 px-4 bg-primary hover:bg-primary-dark text-white text-sm font-bold rounded-lg shadow-sm transition-colors gap-2 w-full sm:w-48">
                         <span class="material-symbols-outlined text-[20px]">add</span>
@@ -682,6 +684,7 @@
     </main>
 </div>
 
+<?php if ($canCustomizeDashboard ?? false): ?>
 <!-- Drawer tab: stays at screen right edge; moves left when drawer is open -->
 <button id="widget-drawer-tab" onclick="toggleDrawerCollapse()"
     class="fixed top-1/2 -translate-y-1/2 z-[98] hidden flex-col items-center justify-center w-9 h-16 bg-primary hover:bg-primary-dark text-white rounded-l-xl shadow-lg"
@@ -719,6 +722,7 @@
         <p id="drawer-save-feedback" class="text-center text-xs text-green-600 hidden">Layout saved!</p>
     </div>
 </aside>
+<?php endif; ?>
 
 <!-- Analytics Assistant -->
 <button id="analytics-assistant-launcher" type="button" onclick="openAnalyticsAssistant()" class="fixed bottom-6 right-6 z-[90] inline-flex items-center gap-3 rounded-full bg-primary hover:bg-primary-dark text-white px-5 py-3 shadow-2xl transition-all">

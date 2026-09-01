@@ -390,6 +390,7 @@ class InvitationList extends BaseController
             'staff_id'     => $currentUser['staff_id'] ?? $currentUser['user_id'] ?? 'STAFF001',
             'contact_no'   => $currentUser['contact'] ?? $currentUser['phone'] ?? '+60123456789',
             'formConfig'   => $this->getInvitationFormConfig(),
+            'mykadOcrEnabled' => client_feature_enabled('mykad_ocr'),
         ];
 
         return view('invitations/create', $data);

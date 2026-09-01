@@ -174,16 +174,16 @@
                         <p id="totalCount" class="text-4xl text-white font-black">0</p>
                     </div>
                     <div class="bg-[#20c997] rounded-xl border border-[#20c997] p-5 shadow flex flex-col justify-between">
-                        <p class="text-[0.85rem] text-emerald-50 font-medium mb-1">Completed</p>
-                        <p id="completedCount" class="text-4xl text-white font-black">0</p>
+                        <p class="text-[0.85rem] text-emerald-50 font-medium mb-1">Total Walk-In Visitors</p>
+                        <p id="walkInCount" class="text-4xl text-white font-black">0</p>
                     </div>
                     <div class="bg-[#fd7e14] rounded-xl border border-[#fd7e14] p-5 shadow flex flex-col justify-between">
-                        <p class="text-[0.85rem] text-orange-50 font-medium mb-1">Active</p>
-                        <p id="activeCount" class="text-4xl text-white font-black">0</p>
+                        <p class="text-[0.85rem] text-orange-50 font-medium mb-1">Total Invitation Visitors</p>
+                        <p id="invitationCount" class="text-4xl text-white font-black">0</p>
                     </div>
                     <div class="bg-[#425cc7] rounded-xl border border-[#425cc7] p-5 shadow flex flex-col justify-between">
-                        <p class="text-[0.85rem] text-blue-100 font-medium mb-1">Today's Visitors</p>
-                        <p id="todayCount" class="text-4xl text-white font-black">0</p>
+                        <p class="text-[0.85rem] text-blue-100 font-medium mb-1">Total Expected Visitors</p>
+                        <p id="expectedCount" class="text-4xl text-white font-black">0</p>
                     </div>
                 </div>                <!-- Results Section -->
                 <div id="resultsSection" class="hidden flex-col gap-4">
@@ -352,9 +352,9 @@
             
             // Update Metric Cards
             document.getElementById('totalCount').textContent = data.total_visitors;
-            document.getElementById('completedCount').textContent = data.completed;
-            document.getElementById('activeCount').textContent = data.active_visitors;
-            document.getElementById('todayCount').textContent = data.today_visitors;
+            document.getElementById('walkInCount').textContent = data.walk_in_visitors;
+            document.getElementById('invitationCount').textContent = data.invitation_visitors;
+            document.getElementById('expectedCount').textContent = data.expected_visitors;
             
             renderTable(data);
         })
@@ -759,7 +759,7 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-        showState('empty');
+        generateReport();
     });
 </script>
 </body>

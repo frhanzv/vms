@@ -175,8 +175,15 @@ class KioskApi extends BaseController
     /** GET /api/admin/moduleConfig/getByProject */
     public function getModuleConfig(): \CodeIgniter\HTTP\Response
     {
-        $model  = new MobileKioskSettingModel();
-        $config = $model->getGlobalConfigMap();
+        $model = new MobileKioskSettingModel();
+        $clientId = (int) (
+            $this->request->getGet('client_id')
+            ?? $this->request->getGet('clientId')
+            ?? $this->request->getGet('company_id')
+            ?? $this->request->getGet('companyId')
+            ?? 0
+        );
+        $config = $model->getClientConfigMap($clientId > 0 ? $clientId : null);
 
         $defaultVisitorFields = [
             'contact_number'  => ['show' => true,  'required' => true],
@@ -202,16 +209,19 @@ class KioskApi extends BaseController
         $invitation  = filter_var($config['kiosk_invitation']   ?? 'true', FILTER_VALIDATE_BOOLEAN);
         $collectCard = filter_var($config['kiosk_collect_card'] ?? 'true', FILTER_VALIDATE_BOOLEAN);
         $vvip        = filter_var($config['kiosk_vvip']         ?? 'true', FILTER_VALIDATE_BOOLEAN);
+        $vpFacial    = filter_var($config['kiosk_vp_facial']    ?? 'false', FILTER_VALIDATE_BOOLEAN);
 
         $kiosk = [
             // Legacy MNR fields (camelCase + enabled/disabled strings)
             'project'            => $config['project_name']        ?? 'VMS',
+            'clientId'           => $clientId > 0 ? $clientId : null,
+            'client_id'          => $clientId > 0 ? $clientId : null,
             'visitorPassPrint'   => $config['visitor_pass_print']  ?? 'enabled',
             'facialVerification' => $config['facial_verification'] ?? 'disabled',
             'securityBriefing'   => $config['security_briefing']  ?? 'disabled',
             'allowWalkIn'        => $walkIn ? 'enabled' : 'disabled',
             'vpOCR'              => true,
-            'vpFacial'           => true,
+            'vpFacial'           => $vpFacial,
 
             // Kiosk feature flags — camelCase (Android/Gson) and snake_case
             'walkIn'             => $walkIn,

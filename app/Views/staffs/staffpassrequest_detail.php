@@ -125,45 +125,9 @@
                         </div>
 
                         <!-- Location Access -->
+                        <?php if ($fieldSettings['location_access'] ?? true): ?>
                         <?php
-                        $locationGroups = [
-                            'Changing Rooms' => [
-                                ['label' => 'Changing Room 1',                   'in' => 'CHANGING ROOM 1 IN',                    'out' => 'CHANGING ROOM 1 OUT'],
-                                ['label' => 'Changing Room 2',                   'in' => 'CHANGING ROOM 2 IN',                    'out' => 'CHANGING ROOM 2 OUT'],
-                            ],
-                            'Production' => [
-                                ['label' => 'Production 1 - Clean Room 10K',     'in' => 'PRODUCTION 1 - CLEAN ROOM 10K IN',      'out' => 'PRODUCTION 1 - CLEAN ROOM 10K OUT'],
-                                ['label' => 'Production 2 - Clean Room 1K',      'in' => 'PRODUCTION 2 - CLEAN ROOM 1K IN',       'out' => 'PRODUCTION 2 - CLEAN ROOM 1K OUT'],
-                                ['label' => 'Production 3',                       'in' => 'PRODUCTION 3 IN',                       'out' => 'PRODUCTION 3 OUT'],
-                                ['label' => 'Production 4',                       'in' => 'PRODUCTION 4 IN',                       'out' => 'PRODUCTION 4 OUT'],
-                                ['label' => 'Production 5 - Work In Progress',    'in' => 'PRODUCTION 5 - WORK IN PROGRESS IN',    'out' => 'PRODUCTION 5 - WORN IN PROGRESS OUT'],
-                                ['label' => 'Production Office',                  'in' => 'PRODUCTION OFFICE IN',                  'out' => 'PRODUCTION OFFICE OUT'],
-                                ['label' => 'Production WIP',                     'in' => 'PRODUCTION WIP IN',                     'out' => 'PRODUCTION WIP OUT'],
-                            ],
-                            'Rooms' => [
-                                ['label' => 'CMM Room',                           'in' => 'CMM ROOM IN',                           'out' => 'CMM ROOM OUT'],
-                                ['label' => 'Jitter Bug Room',                    'in' => 'JITTER BUG ROOM IN',                    'out' => 'JITTER BUG ROOM OUT'],
-                                ['label' => 'Polishing Room',                     'in' => 'POLISHING ROOM IN',                     'out' => 'POLISHING ROOM OUT'],
-                                ['label' => 'Polishing/Deburing Room',            'in' => 'POLISHING/DEBURING ROOM IN',            'out' => 'POLISHING/DEBURING ROOM OUT'],
-                                ['label' => 'QA Room',                            'in' => 'QA ROOM IN',                            'out' => 'QA ROOM OUT'],
-                                ['label' => 'Robotic Jitter Bug Room',            'in' => 'ROBOTIC JITTER BUG ROOM IN',            'out' => 'ROBOTIC JITTER BUG ROOM OUT'],
-                                ['label' => 'Robotic Welding Room',               'in' => 'ROBOTIC WELDING ROOM IN',               'out' => 'ROBOTIC WELDING ROOM OUT'],
-                                ['label' => 'Tools Room',                         'in' => 'TOOLS ROOM IN',                         'out' => 'TOOLS ROOM OUT'],
-                                ['label' => 'Ultra Sonic Room',                   'in' => 'ULTRA SONIC ROOM IN',                   'out' => 'ULTRA SONIC ROOM OUT'],
-                            ],
-                            'Areas & Others' => [
-                                ['label' => 'Chemical Waste',                     'in' => 'CHEMICAL WASTE IN',                     'out' => 'CHEMICAL WASTE OUT'],
-                                ['label' => 'Finished Good Area 1',               'in' => 'FINISHED GOODS AREA 1 IN',              'out' => 'FINISHED GOOD AREA 1 OUT'],
-                                ['label' => 'Finished Good Area 2',               'in' => 'FINISHED GOOD AREA 2 IN',               'out' => 'FINISHED GOOD AREA 2 OUT'],
-                                ['label' => 'Maintenance Department',             'in' => 'MAINTENANCE DEPARTMENT IN',             'out' => 'MAINTENANCE DEPARTMENT OUT'],
-                                ['label' => 'Packaging Area',                     'in' => 'PACKAGING AREA IN',                     'out' => 'PACKAGING AREA OUT'],
-                                ['label' => 'Raw Material Area',                  'in' => 'RAW MATERIAL AREA IN',                  'out' => 'RAW MATERIAL OUT'],
-                                ['label' => 'Schedule Waste',                     'in' => 'SCHEDULE WASTE IN',                     'out' => 'SCHEDULE WASTE OUT'],
-                                ['label' => 'Toilet',                             'in' => 'TOILET IN',                             'out' => 'TOILET OUT'],
-                                ['label' => 'Utility',                            'in' => 'UTILITY IN',                            'out' => 'UTILITY OUT'],
-                                ['label' => 'Water Treatment Area',               'in' => 'WATER TREATMENT AREA IN',               'out' => 'WATER TREATMENT AREA OUT'],
-                            ],
-                        ];
+                        $locationGroups = $locationGroups ?? [];
 
                         $savedLocations = [];
                         if (!empty($staff['location_access'])) {
@@ -194,23 +158,27 @@
                                 <div>
                                     <!-- Group header -->
                                     <div class="bg-gray-50 dark:bg-gray-800/60 px-4 py-2.5">
-                                        <span class="text-xs font-bold uppercase tracking-wider text-text-sub dark:text-gray-400 font-brand"><?= $groupName ?></span>
+                                        <span class="text-xs font-bold uppercase tracking-wider text-text-sub dark:text-gray-400 font-brand"><?= esc($groupName) ?></span>
                                     </div>
                                     <!-- Location rows -->
                                     <?php foreach ($locations as $loc):
-                                        $inChecked  = in_array($loc['in'],  $savedLocations);
-                                        $outChecked = in_array($loc['out'], $savedLocations);
+                                        $inChecked  = $loc['in'] !== null && in_array($loc['in'], $savedLocations, true);
+                                        $outChecked = $loc['out'] !== null && in_array($loc['out'], $savedLocations, true);
                                     ?>
                                     <div x-show="search === '' || '<?= strtolower($loc['label']) ?>'.includes(search.toLowerCase())"
                                          class="flex items-center justify-between px-4 py-3 transition-colors border-t border-border-color dark:border-gray-700
                                          <?= ($inChecked || $outChecked) ? 'bg-blue-50/50 dark:bg-blue-900/10' : 'hover:bg-gray-50 dark:hover:bg-gray-800/40' ?>">
-                                        <span class="text-sm font-medium font-brand flex-1 pr-4 <?= ($inChecked || $outChecked) ? 'text-primary dark:text-blue-400' : 'text-text-main dark:text-gray-100' ?>"><?= $loc['label'] ?></span>
+                                        <span class="text-sm font-medium font-brand flex-1 pr-4 <?= ($inChecked || $outChecked) ? 'text-primary dark:text-blue-400' : 'text-text-main dark:text-gray-100' ?>"><?= esc($loc['label']) ?></span>
                                         <div class="flex items-center gap-4 flex-shrink-0">
                                             <div class="flex items-center justify-center w-8">
-                                                <input value="<?= $loc['in'] ?>" class="form-checkbox rounded text-primary border-2 border-gray-300 dark:border-gray-600 h-5 w-5 cursor-not-allowed opacity-80" type="checkbox" <?= $inChecked ? 'checked' : '' ?> disabled/>
+                                                <?php if ($loc['in'] !== null): ?>
+                                                <input value="<?= esc($loc['in']) ?>" class="form-checkbox rounded text-primary border-2 border-gray-300 dark:border-gray-600 h-5 w-5 cursor-not-allowed opacity-80" type="checkbox" <?= $inChecked ? 'checked' : '' ?> disabled/>
+                                                <?php endif; ?>
                                             </div>
                                             <div class="flex items-center justify-center w-8">
-                                                <input value="<?= $loc['out'] ?>" class="form-checkbox rounded text-primary border-2 border-gray-300 dark:border-gray-600 h-5 w-5 cursor-not-allowed opacity-80" type="checkbox" <?= $outChecked ? 'checked' : '' ?> disabled/>
+                                                <?php if ($loc['out'] !== null): ?>
+                                                <input value="<?= esc($loc['out']) ?>" class="form-checkbox rounded text-primary border-2 border-gray-300 dark:border-gray-600 h-5 w-5 cursor-not-allowed opacity-80" type="checkbox" <?= $outChecked ? 'checked' : '' ?> disabled/>
+                                                <?php endif; ?>
                                             </div>
                                         </div>
                                     </div>
@@ -219,6 +187,7 @@
                                 <?php endforeach; ?>
                             </div>
                         </div>
+                        <?php endif; ?>
 
                     </div>
                 </section>
