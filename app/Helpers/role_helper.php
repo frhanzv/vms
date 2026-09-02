@@ -173,11 +173,16 @@ if (!function_exists('can_manage_client_company_config')) {
 
 if (!function_exists('scoped_client_company_id')) {
     /**
-     * Platform superadmin manages all clients. Other roles are not scoped here.
+     * Platform superadmin manages all clients; client users stay in their tenant.
      */
     function scoped_client_company_id(): int
     {
-        return 0;
+        if (is_platform_superadmin()) {
+            return 0;
+        }
+
+        helper('feature');
+        return current_client_id();
     }
 }
 
