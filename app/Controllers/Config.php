@@ -2890,12 +2890,35 @@ class Config extends BaseController
 
     public function getVideos()
     {
+        helper(['role', 'feature']);
         $page = $this->request->getGet('page') ?? 1;
         $search = $this->request->getGet('search') ?? '';
         $sort = $this->request->getGet('sort') ?? 'name_asc';
 
-        $videos = $this->videoModel->getVideosWithPagination($page, $search, $sort);
-        $total = $this->videoModel->getTotalVideos($search);
+        if (is_platform_superadmin()) {
+            $requestedClient = (string) ($this->request->getGet('client_id') ?? '');
+            $clientScope = $requestedClient === 'global'
+                ? 0
+                : ((int) $requestedClient > 0 ? (int) $requestedClient : -1);
+        } else {
+            $clientScope = current_client_id();
+        }
+        $videos = $this->videoModel->getVideosWithPagination($page, $search, $sort, $clientScope);
+        $total = $this->videoModel->getTotalVideos($search, $clientScope);
+        $clientNames = [];
+        foreach ($videos as &$video) {
+            $clientId = (int) ($video['client_id'] ?? 0);
+            if ($clientId <= 0) {
+                $video['client_name'] = 'Global Default';
+                continue;
+            }
+            if (! isset($clientNames[$clientId])) {
+                $client = $this->clientModel->find($clientId);
+                $clientNames[$clientId] = $client['name'] ?? ('Client #' . $clientId);
+            }
+            $video['client_name'] = $clientNames[$clientId];
+        }
+        unset($video);
 
         return $this->response->setJSON([
             'success' => true,
@@ -2917,6 +2940,13 @@ class Config extends BaseController
             return $this->response->setStatusCode(404)->setJSON([
                 'success' => false,
                 'message' => 'Video not found'
+            ]);
+        }
+
+        if (! $this->canManageVideoForClient($video)) {
+            return $this->response->setStatusCode(403)->setJSON([
+                'success' => false,
+                'message' => 'You are not allowed to manage this client video',
             ]);
         }
 
@@ -2961,6 +2991,7 @@ class Config extends BaseController
             $videoFile->move(FCPATH . 'assets/videos', $newName);
 
             $data = [
+                'client_id' => $this->resolveVideoClientId($this->request->getPost('client_id')),
                 'name' => $this->request->getPost('name'),
                 'file_path' => 'assets/videos/' . $newName,
                 'status' => $this->request->getPost('status')
@@ -3000,6 +3031,13 @@ class Config extends BaseController
             ]);
         }
 
+        if (! $this->canManageVideoForClient($video)) {
+            return $this->response->setStatusCode(403)->setJSON([
+                'success' => false,
+                'message' => 'You are not allowed to manage this client video',
+            ]);
+        }
+
         $jsonInput = $this->request->getJSON(true);
         $input = is_array($jsonInput) ? $jsonInput : [];
         $input = array_merge($input, $this->request->getPost() ?? []);
@@ -3035,6 +3073,7 @@ class Config extends BaseController
         }
 
         $data = [
+            'client_id' => $this->resolveVideoClientId($input['client_id'] ?? null),
             'name' => $input['name'],
             'status' => $input['status']
         ];
@@ -3103,6 +3142,13 @@ class Config extends BaseController
             ]);
         }
 
+        if (! $this->canManageVideoForClient($video)) {
+            return $this->response->setStatusCode(403)->setJSON([
+                'success' => false,
+                'message' => 'You are not allowed to manage this client video',
+            ]);
+        }
+
         if (!$this->videoModel->deleteWithFile($id)) {
             return $this->response->setStatusCode(500)->setJSON([
                 'success' => false,
@@ -3114,6 +3160,28 @@ class Config extends BaseController
             'success' => true,
             'message' => 'Video deleted successfully'
         ]);
+    }
+
+    private function resolveVideoClientId($requestedClientId): ?int
+    {
+        helper(['role', 'feature']);
+        if (! is_platform_superadmin()) {
+            $clientId = current_client_id();
+            return $clientId > 0 ? $clientId : null;
+        }
+
+        $clientId = (int) $requestedClientId;
+        return $clientId > 0 ? $clientId : null;
+    }
+
+    private function canManageVideoForClient(array $video): bool
+    {
+        helper(['role', 'feature']);
+        if (is_platform_superadmin()) {
+            return true;
+        }
+
+        return (int) ($video['client_id'] ?? 0) === current_client_id();
     }
 
     // Visit Reason Management
@@ -4209,12 +4277,16 @@ class Config extends BaseController
     public function getInvitationEmailTemplateSettings()
     {
         $emailTemplateService = new EmailTemplateService();
+        $clientId = $this->resolveEmailTemplateClientId($this->request->getGet('client_id'));
         $process = (string) ($this->request->getGet('process') ?? EmailTemplateService::PROCESS_INVITATION);
         if (!$emailTemplateService->isSupportedProcess($process)) {
             $process = EmailTemplateService::PROCESS_INVITATION;
         }
 
-        $raw = $this->settingModel->getSetting($emailTemplateService->getStorageKey($process));
+        $raw = $this->settingModel->getSetting($emailTemplateService->getClientStorageKey($process, $clientId));
+        if (! $raw && $clientId !== null) {
+            $raw = $this->settingModel->getSetting($emailTemplateService->getStorageKey($process));
+        }
         $decoded = $raw ? json_decode((string) $raw, true) : [];
 
         return $this->response->setJSON([
@@ -4222,6 +4294,7 @@ class Config extends BaseController
             'data' => $emailTemplateService->normalizeTemplate($process, $decoded),
             'meta' => [
                 'process' => $process,
+                'client_id' => $clientId,
                 'process_options' => $emailTemplateService->getProcessOptions(),
                 'placeholders' => [
                     '{{visitor_name}}',
@@ -4246,6 +4319,7 @@ class Config extends BaseController
         }
 
         $emailTemplateService = new EmailTemplateService();
+        $clientId = $this->resolveEmailTemplateClientId($input['client_id'] ?? null);
         $process = (string) ($input['process'] ?? EmailTemplateService::PROCESS_INVITATION);
         if (!$emailTemplateService->isSupportedProcess($process)) {
             return $this->response->setJSON([
@@ -4253,12 +4327,12 @@ class Config extends BaseController
                 'message' => 'Unsupported email process',
             ])->setStatusCode(400);
         }
-        unset($input['process']);
+        unset($input['process'], $input['client_id']);
 
         $normalized = $emailTemplateService->normalizeTemplate($process, $input);
 
         $this->settingModel->setSetting(
-            $emailTemplateService->getStorageKey($process),
+            $emailTemplateService->getClientStorageKey($process, $clientId),
             json_encode($normalized)
         );
 
@@ -4266,13 +4340,16 @@ class Config extends BaseController
             'success' => true,
             'message' => 'Email template saved successfully',
             'data' => $normalized,
-            'meta' => ['process' => $process],
+            'meta' => ['process' => $process, 'client_id' => $clientId],
         ]);
     }
 
     public function getEmailTemplates()
     {
-        $rows = $this->emailTemplateModel
+        $clientId = $this->resolveEmailTemplateClientId($this->request->getGet('client_id'));
+        $builder = $this->emailTemplateModel;
+        $builder = $clientId === null ? $builder->where('client_id', null) : $builder->where('client_id', $clientId);
+        $rows = $builder
             ->orderBy('code', 'ASC')
             ->findAll();
 
@@ -4291,6 +4368,9 @@ class Config extends BaseController
                 'message' => 'Email template not found',
             ])->setStatusCode(404);
         }
+        if (! $this->canManageEmailTemplateForClient($row)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'You are not allowed to manage this client template'])->setStatusCode(403);
+        }
 
         return $this->response->setJSON([
             'success' => true,
@@ -4307,10 +4387,17 @@ class Config extends BaseController
                 'message' => 'Email template not found',
             ])->setStatusCode(404);
         }
+        if (! $this->canManageEmailTemplateForClient($row)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'You are not allowed to preview this client template'])->setStatusCode(403);
+        }
 
         $emailTemplateService = new EmailTemplateService();
         [$process, $viewName] = $this->resolveEmailPreviewProcessAndView((string) ($row['code'] ?? ''));
-        $templateRaw = $this->settingModel->getSetting($emailTemplateService->getStorageKey($process));
+        $clientId = isset($row['client_id']) && (int) $row['client_id'] > 0 ? (int) $row['client_id'] : null;
+        $templateRaw = $this->settingModel->getSetting($emailTemplateService->getClientStorageKey($process, $clientId));
+        if (! $templateRaw && $clientId !== null) {
+            $templateRaw = $this->settingModel->getSetting($emailTemplateService->getStorageKey($process));
+        }
         $templateConfig = $emailTemplateService->normalizeTemplate(
             $process,
             $templateRaw ? json_decode((string) $templateRaw, true) : []
@@ -4494,7 +4581,10 @@ class Config extends BaseController
             ])->setStatusCode(400);
         }
 
-        if ($this->emailTemplateModel->where('code', $code)->first()) {
+        $clientId = $this->resolveEmailTemplateClientId($input['client_id'] ?? null);
+        $duplicateQuery = $this->emailTemplateModel->where('code', $code);
+        $duplicateQuery = $clientId === null ? $duplicateQuery->where('client_id', null) : $duplicateQuery->where('client_id', $clientId);
+        if ($duplicateQuery->first()) {
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Code already exists',
@@ -4518,6 +4608,7 @@ class Config extends BaseController
         }
 
         $data = [
+            'client_id' => $clientId,
             'code' => $code,
             'subject' => $subject,
             'body' => $body,
@@ -4554,6 +4645,9 @@ class Config extends BaseController
                 'success' => false,
                 'message' => 'Email template not found',
             ])->setStatusCode(404);
+        }
+        if (! $this->canManageEmailTemplateForClient($row)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'You are not allowed to manage this client template'])->setStatusCode(403);
         }
 
         $contentType = $this->request->getHeaderLine('Content-Type');
@@ -4625,6 +4719,28 @@ class Config extends BaseController
             return strtoupper($color);
         }
         return null;
+    }
+
+    private function resolveEmailTemplateClientId($requestedClientId): ?int
+    {
+        helper(['role', 'feature']);
+        if (! is_platform_superadmin()) {
+            $clientId = current_client_id();
+            return $clientId > 0 ? $clientId : null;
+        }
+
+        if ((string) $requestedClientId === 'global') {
+            return null;
+        }
+        $clientId = (int) $requestedClientId;
+        return $clientId > 0 ? $clientId : null;
+    }
+
+    private function canManageEmailTemplateForClient(array $template): bool
+    {
+        helper(['role', 'feature']);
+        return is_platform_superadmin()
+            || (int) ($template['client_id'] ?? 0) === current_client_id();
     }
 
     public function saveEmailTemplateFormSettings()

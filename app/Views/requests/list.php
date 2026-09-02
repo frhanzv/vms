@@ -288,7 +288,7 @@
                                 </div>
                                 <div class="flex justify-between text-xs text-gray-400">
                                     <span>Type: <?= !empty($currentRequest['ic_passport']) ? 'MyKad/Passport' : 'N/A' ?></span>
-                                    <span>IC: <?= esc($currentRequest['ic_passport']) ?></span>
+                                    <span>IC: <?= esc(mask_ic_passport($currentRequest['ic_passport'])) ?></span>
                                 </div>
                             </div>
                             <div class="flex-1 space-y-2">
@@ -676,7 +676,7 @@ document.querySelectorAll('button').forEach(btn => {
     const text = btn.textContent.trim();
     if (text === 'More Info') {
         btn.addEventListener('click', function() {
-            const info = 'IC/Passport: <?= esc($currentRequest['ic_passport']) ?>\nContact: <?= esc($currentRequest['contact']) ?>\nEmail: <?= esc($currentRequest['email']) ?>\nVehicle: <?= esc($currentRequest['vehicle']) ?>\nStaff ID: <?= esc($currentRequest['staff_id']) ?>\nCompany Visited: <?= esc($currentRequest['company_visited']) ?>';
+            const info = 'IC/Passport: <?= esc(mask_ic_passport($currentRequest['ic_passport'])) ?>\nContact: <?= esc($currentRequest['contact']) ?>\nEmail: <?= esc($currentRequest['email']) ?>\nVehicle: <?= esc($currentRequest['vehicle']) ?>\nStaff ID: <?= esc($currentRequest['staff_id']) ?>\nCompany Visited: <?= esc($currentRequest['company_visited']) ?>';
             showAlert('Detailed Information', info, 'info');
         });
     }

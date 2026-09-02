@@ -25,9 +25,13 @@ class ClientFeatureFilter implements FilterInterface
             return;
         }
 
-        if (!(new ClientFeatureModel())->isEnabled($companyId, $featureKey)) {
+        $mustBeDisabled = ($arguments[1] ?? '') === 'disabled';
+        $isEnabled = (new ClientFeatureModel())->isEnabled($companyId, $featureKey);
+        $accessDenied = $mustBeDisabled ? $isEnabled : !$isEnabled;
+
+        if ($accessDenied) {
             return redirect()->to(base_url('dashboard'))
-                ->with('error', 'Your company does not have access to this feature.');
+                ->with('error', 'This page is not available for your company configuration.');
         }
     }
 

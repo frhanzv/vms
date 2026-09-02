@@ -69,6 +69,7 @@ class BlacklistEntry extends BaseController
                 'id'          => $row['id'],
                 'full_name'   => $row['full_name'],
                 'ic_passport' => $row['ic_passport'] ?? '',
+                'ic_passport_masked' => mask_ic_passport($row['ic_passport'] ?? '', '—'),
                 'contact'     => $row['contact'] ?? '',
                 'company'     => $row['company'] ?? '',
                 'date_of_birth' => $row['date_of_birth'] ?? '',

@@ -149,6 +149,11 @@ class StaffPassRequest extends BaseController
 
     public function edit($id)
     {
+        helper('access');
+        if (! has_access('staff_pass_list', 'edit')) {
+            return redirect()->to(base_url('staffs'))->with('error', 'You are not allowed to edit staff records.');
+        }
+
         $staffModel = new \App\Models\StaffModel();
         $staff = $staffModel->find($id);
         if (!$staff) {
@@ -225,6 +230,11 @@ class StaffPassRequest extends BaseController
 
     public function update($id)
     {
+        helper('access');
+        if (! has_access('staff_pass_list', 'edit')) {
+            return $this->response->setStatusCode(403, 'You are not allowed to edit staff records.');
+        }
+
         $db = \Config\Database::connect();
 
         $appNo = trim($this->request->getPost('app_no') ?? '');

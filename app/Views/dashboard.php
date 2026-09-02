@@ -617,7 +617,7 @@
                                     <?php foreach ($onSiteVisitors as $ov): ?>
                                     <tr class="group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                         <td class="px-6 py-3 whitespace-nowrap"><div class="flex items-center gap-2"><div class="size-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px] font-bold"><?= strtoupper(substr($ov['name'], 0, 2)) ?></div><span class="text-sm font-medium text-slate-900 dark:text-white"><?= esc($ov['name']) ?></span></div></td>
-                                        <td class="px-6 py-3 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300"><?= esc($ov['ic_number']) ?></td>
+                                        <td class="px-6 py-3 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300"><?= esc(mask_ic_passport($ov['ic_number'])) ?></td>
                                         <td class="px-6 py-3 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300"><?= esc($ov['check_in_time']) ?></td>
                                         <td class="px-6 py-3 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300"><?= esc($ov['last_door_entry']) ?></td>
                                         <td class="px-6 py-3 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300 uppercase"><?= esc($ov['host']) ?></td>
@@ -2258,7 +2258,7 @@ const modalConfigs = {
                     const nowLabel = new Date().toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit', hour12: true});
                     return [
                         '<div class="flex items-center gap-2"><div class="size-7 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 text-[10px] font-bold">' + initials(v.visitor_name) + '</div><div><p class="font-medium text-slate-900 dark:text-white">' + esc(v.visitor_name) + '</p></div></div>',
-                        esc(v.contact_no || 'N/A'), esc(v.ic_no || 'N/A'), esc(v.location), fmtDateTime(v.check_in_time), fmtDateTime(v.schedule_end), nowLabel,
+                        esc(v.contact_no || 'N/A'), esc(v.ic_no ? 'XXXX' + String(v.ic_no).slice(-4) : 'N/A'), esc(v.location), fmtDateTime(v.check_in_time), fmtDateTime(v.schedule_end), nowLabel,
                         '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700"><span class="material-symbols-outlined text-[12px]">schedule</span>+' + overLabel + '</span>',
                         esc(v.host_name)
                     ];
@@ -2304,7 +2304,7 @@ const modalConfigs = {
                     '<div class="flex items-center gap-2"><div class="size-7 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-[10px] font-bold">' + initials(v.full_name) + '</div><div><p class="font-medium text-slate-900 dark:text-white">' + esc(v.full_name || 'N/A') + '</p></div></div>',
                     fmtTime(v.date_from),
                     esc(v.contact_no || 'N/A'),
-                    esc(v.ic_no || 'N/A'),
+                    esc(v.ic_no ? 'XXXX' + String(v.ic_no).slice(-4) : 'N/A'),
                     esc(v.host_name || 'N/A')
                 ];
             });
@@ -2346,7 +2346,7 @@ const modalConfigs = {
                     '<span class="text-slate-500 font-medium">' + (i + 1) + '</span>',
                     '<div class="flex items-center gap-2"><div class="size-7 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 text-[10px] font-bold">' + initials(v.visitor_name) + '</div><div><p class="font-medium text-slate-900 dark:text-white">' + esc(v.visitor_name || 'N/A') + '</p></div></div>',
                     esc(v.contact_no || 'N/A'),
-                    esc(v.ic_no || 'N/A'),
+                    esc(v.ic_no ? 'XXXX' + String(v.ic_no).slice(-4) : 'N/A'),
                     fmtDateTime(v.check_out_time),
                     esc(v.host_name || 'N/A')
                 ];
@@ -2430,7 +2430,7 @@ const modalConfigs = {
                     + '<td>' + sevBadge(a.severity) + '</td>'
                     + '<td><div class="flex items-center gap-2"><div class="size-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 text-[10px] font-bold">' + initials(a.visitor_name || 'Unknown') + '</div><div><p class="font-medium text-slate-900 dark:text-white">' + esc(a.visitor_name || 'Unknown') + '</p></div></div></td>'
                     + '<td>' + esc(a.contact_no || 'N/A') + '</td>'
-                    + '<td>' + esc(a.ic_no || 'N/A') + '</td>'
+                    + '<td>' + esc(a.ic_no ? 'XXXX' + String(a.ic_no).slice(-4) : 'N/A') + '</td>'
                     + '<td>' + esc(a.location || 'N/A') + '</td>'
                     + '<td>' + fmtDateTime(a.created_at) + '</td>'
                     + '<td>' + esc(a.host_name || 'N/A') + '</td>'

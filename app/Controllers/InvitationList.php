@@ -9,6 +9,7 @@ use App\Models\LocationModel;
 use App\Models\CompanyModel;
 use App\Models\VisitorTypeModel;
 use App\Models\ClientFormFieldModel;
+use App\Models\MobileKioskSettingModel;
 use App\Libraries\InvitationEmailSender;
 
 class InvitationList extends BaseController
@@ -92,7 +93,51 @@ class InvitationList extends BaseController
             'reasonList'   => $reasonList,
             'locationList' => $locationList,
             'pagination'   => $result['pagination'],
+            'invitationListColumns' => $this->invitationListColumnConfig(),
         ]);
+    }
+
+    private function invitationListColumnConfig(): array
+    {
+        $defaults = array_fill_keys([
+            'no', 'date', 'full_name', 'ic_passport', 'contact', 'company',
+            'vehicle_reg', 'location', 'invited_by', 'status', 'reason',
+        ], true);
+
+        $clientId = current_client_id();
+        $config = (new MobileKioskSettingModel())->getClientConfigMap($clientId > 0 ? $clientId : null);
+        $saved = ! empty($config['invitation_list_columns'])
+            ? json_decode((string) $config['invitation_list_columns'], true)
+            : null;
+        if (is_array($saved)) {
+            foreach ($defaults as $key => $value) {
+                if (array_key_exists($key, $saved)) {
+                    $defaults[$key] = (bool) $saved[$key];
+                }
+            }
+        }
+
+        return $defaults;
+    }
+
+    public function saveColumnSettings()
+    {
+        $keys = ['no', 'date', 'full_name', 'ic_passport', 'contact', 'company', 'vehicle_reg', 'location', 'invited_by', 'status', 'reason'];
+        $posted = $this->request->getPost('invitation_list_columns');
+        $posted = is_array($posted) ? $posted : [];
+        $columns = [];
+        foreach ($keys as $key) {
+            $columns[$key] = array_key_exists($key, $posted);
+        }
+
+        $clientId = current_client_id();
+        (new MobileKioskSettingModel())->saveClientSetting(
+            $clientId > 0 ? $clientId : null,
+            'invitation_list_columns',
+            json_encode($columns)
+        );
+
+        return redirect()->to(base_url('invitations'))->with('success', 'Invitation list columns updated!');
     }
 
     public function data()
@@ -157,9 +202,42 @@ class InvitationList extends BaseController
         }
 
         $invitations = [];
+        $modalConfigByClient = [];
         foreach ($rows as $index => $row) {
             $schedule   = $firstScheduleByInvitation[(int) $row['id']] ?? null;
             $linkExpiry = $row['link_expiry'] ?? null;
+            $clientId   = (int) ($row['client_id'] ?? $row['company_id'] ?? 0);
+            if ($clientId <= 0) {
+                helper('feature');
+                $clientId = current_client_id();
+            }
+
+            if (! isset($modalConfigByClient[$clientId])) {
+                $invitationConfig = $clientId > 0
+                    ? $this->clientFormFieldModel->getInvitationFormConfig($clientId)
+                    : [];
+                $registrationRows = $clientId > 0
+                    ? $this->clientFormFieldModel->getForCompanyForm($clientId, 'visitor_registration')
+                    : [];
+                $registrationConfig = array_map(
+                    static fn (array $field): bool => (bool) $field['is_enabled'],
+                    array_column($registrationRows, null, 'field_key')
+                );
+
+                $enabled = static fn (array $config, string $key): bool => $config[$key] ?? true;
+                $modalConfigByClient[$clientId] = [
+                    'link_expiry'       => $enabled($invitationConfig, 'link_expiry'),
+                    'full_name'         => $enabled($invitationConfig, 'visitor_full_name'),
+                    'ic_passport'       => $enabled($registrationConfig, 'ic_number'),
+                    'contact'           => $enabled($invitationConfig, 'visitor_contact'),
+                    'company'           => $enabled($registrationConfig, 'company_name'),
+                    'email'             => $enabled($invitationConfig, 'visitor_email'),
+                    'schedule'          => $enabled($invitationConfig, 'schedule'),
+                    'location'          => $enabled($invitationConfig, 'location'),
+                    'reason'            => $enabled($invitationConfig, 'reason'),
+                    'vehicle'           => $enabled($registrationConfig, 'vehicle_registration'),
+                ];
+            }
             $invitations[] = [
                 'id'                => $row['id'],
                 'no'                => ($page - 1) * $perPage + $index + 1,
@@ -168,6 +246,7 @@ class InvitationList extends BaseController
                 'visit_to'          => $schedule ? date('d/m/Y H:i', strtotime((string) $schedule['date_to'])) : '-',
                 'full_name'         => $row['full_name'],
                 'ic_passport'       => $row['ic_passport'],
+                'ic_passport_masked'=> mask_ic_passport($row['ic_passport'] ?? '', 'NULL'),
                 'contact'           => $row['contact'],
                 'visitor_email'     => $row['visitor_email'] ?? '',
                 'vehicle_reg'       => $row['vehicle_registration'] ?: '',
@@ -179,6 +258,7 @@ class InvitationList extends BaseController
                 'link_expiry'       => $linkExpiry ? date('d/m/Y', strtotime((string) $linkExpiry)) : '-',
                 'visitor_count'     => 1,
                 'registration_link' => base_url('visitor-registration?token=' . base64_encode((string) $row['id'])),
+                'modal_config'      => $modalConfigByClient[$clientId],
             ];
         }
 
@@ -335,7 +415,7 @@ class InvitationList extends BaseController
                 $dateFrom ? date('d/m/Y H:i', strtotime((string) $dateFrom)) : '-',
                 $dateTo ? date('d/m/Y H:i', strtotime((string) $dateTo)) : '-',
                 $row['full_name'] ?? '',
-                !empty($row['ic_passport']) ? '="' . $row['ic_passport'] . '"' : '',
+                !empty($row['ic_passport']) ? mask_ic_passport($row['ic_passport']) : '',
                 !empty($row['contact'])     ? '="' . $row['contact']     . '"' : '',
                 $row['visitor_email'] ?? '',
                 $row['company'] ?? '',
@@ -554,13 +634,15 @@ class InvitationList extends BaseController
 
         $rules = [
             'reason'         => 'permit_empty',
-            'schedules'      => 'required',
-            'schedules.*.date_from' => 'required',
-            'schedules.*.date_to'   => 'required',
             'staff_id'       => 'permit_empty|max_length[50]',
             'host_contact'   => 'permit_empty|max_length[20]',
             'link_expiry'    => 'permit_empty',
         ];
+        if ($isEnabled('schedule')) {
+            $rules['schedules'] = 'required';
+            $rules['schedules.*.date_from'] = 'required';
+            $rules['schedules.*.date_to'] = 'required';
+        }
         if ($isEnabled('reason'))         { $rules['reason']         = 'required'; }
         if ($isEnabled('staff_id'))       { $rules['staff_id']       = 'required|max_length[50]'; }
         if ($isEnabled('host_contact'))  { $rules['host_contact']    = 'required|max_length[20]'; }
@@ -628,8 +710,8 @@ class InvitationList extends BaseController
             }
         }
 
-        $schedules = $this->request->getPost('schedules');
-        if (! is_array($schedules) || $schedules === []) {
+        $schedules = $isEnabled('schedule') ? $this->request->getPost('schedules') : [];
+        if ($isEnabled('schedule') && (! is_array($schedules) || $schedules === [])) {
             return redirect()->back()
                            ->withInput()
                            ->with('errors', ['schedules' => 'At least one visit schedule is required.']);

@@ -142,7 +142,8 @@ class VisitorReport extends BaseController
             $visitors[] = [
                 'visitor_name'      => $row['visitor_name']    ?? 'N/A',
                 'contact_no'        => $row['contact_no']      ?? 'N/A',
-                'ic_no'             => $row['ic_no']           ?? 'N/A',
+                'ic_no'             => $row['ic_no'] ?? 'N/A',
+                'ic_no_masked'      => mask_ic_passport($row['ic_no'] ?? '', 'N/A'),
                 'visitor_company'   => $row['visitor_company'] ?? 'N/A',
                 'person_visited'    => $row['person_visited']  ?? 'N/A',
                 'staff_id'          => $row['staff_id']        ?? 'N/A',

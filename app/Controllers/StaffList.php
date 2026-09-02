@@ -6,6 +6,7 @@ class StaffList extends BaseController
 {
     public function index()
     {
+        helper('access');
         $db = \Config\Database::connect();
 
         $searchTerm = trim((string) ($this->request->getGet('search') ?? ''));
@@ -80,9 +81,9 @@ class StaffList extends BaseController
                 'withCard'  => $withCard,
             ],
             'staffList'       => $staffList,
-            'showPrintButton' => $showPrintButton,
-            'canEdit'         => $this->userCan('edit'),
-            'canDelete'       => $this->userCan('delete'),
+            'showPrintButton' => $showPrintButton && has_access('staff_pass_list', 'print'),
+            'canEdit'         => has_access('staff_pass_list', 'edit'),
+            'canDelete'       => has_access('staff_pass_list', 'delete'),
             'searchTerm'      => $searchTerm,
             'sortBy'          => $sortBy,
             'pagination'      => [
@@ -135,6 +136,13 @@ class StaffList extends BaseController
 
     public function delete($id)
     {
+        helper('access');
+        if (! has_access('staff_pass_list', 'delete')) {
+            return $this->response
+                ->setStatusCode(403)
+                ->setJSON(['success' => false, 'message' => 'You are not allowed to delete staff records.']);
+        }
+
         $db = \Config\Database::connect();
         $db->table('staff')->where('id', (int) $id)->delete();
 

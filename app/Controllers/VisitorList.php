@@ -5,6 +5,8 @@ namespace App\Controllers;
 use App\Models\InvitationModel;
 use App\Models\InvitationScheduleModel;
 use App\Models\InvitationVisitorModel;
+use App\Models\ClientFormFieldModel;
+use App\Models\MobileKioskSettingModel;
 use App\Models\VisitorCardModel;
 use App\Models\VisitorTypeModel;
 
@@ -57,8 +59,43 @@ class VisitorList extends BaseController
 
         // Format data for the view
         $visitors = [];
+        $formConfigModel = new ClientFormFieldModel();
+        $formConfigCache = [];
         $rowOffset = ($page - 1) * $perPage;
         foreach ($results as $index => $row) {
+            $visitorClientId = (int) ($row['invitation_client_id'] ?? 0);
+            if ($visitorClientId <= 0) {
+                $visitorClientId = current_client_id();
+            }
+            if (! isset($formConfigCache[$visitorClientId])) {
+                $resolvedConfig = [];
+                if ($visitorClientId > 0) {
+                    foreach ($formConfigModel->getForCompanyForm($visitorClientId, 'visitor_registration') as $field) {
+                        $resolvedConfig[$field['field_key']] = (bool) $field['is_enabled'];
+                    }
+                    $invitationConfig = $formConfigModel->getInvitationFormConfig($visitorClientId);
+                } else {
+                    $invitationConfig = [];
+                }
+
+                $enabled = static fn (string $key): bool => $resolvedConfig[$key] ?? true;
+                $invitationEnabled = static fn (string $key): bool => $invitationConfig[$key] ?? true;
+                $formConfigCache[$visitorClientId] = [
+                    'visitor_information' => $enabled('person_details_section'),
+                    'profile_photo'       => $enabled('profile_photo_section'),
+                    'full_name'           => $enabled('full_name'),
+                    'ic_passport'          => $enabled('ic_number'),
+                    'contact'              => $enabled('contact_number'),
+                    'company'              => $enabled('company_reg_id'),
+                    'reason'               => $enabled('visit_reason') && $invitationEnabled('reason'),
+                    'host'                 => $enabled('staff_id') && $invitationEnabled('staff_id'),
+                    'vehicle_registration' => $enabled('vehicle_registration'),
+                    'location'             => $enabled('visit_info_section') && $invitationEnabled('location'),
+                    'date_of_visit'         => $enabled('date_of_visit_section') && $invitationEnabled('schedule'),
+                    'visit_details'         => $enabled('details_of_visit_section'),
+                ];
+            }
+
             if ($row['visitor_card_id'] && empty($row['check_out_time'])) {
                 $cardStatusBadge = 'In Use';
             } elseif (! empty($row['check_out_time'])) {
@@ -80,6 +117,8 @@ class VisitorList extends BaseController
             $visitors[] = [
                 'id' => $row['id'],
                 'invitation_id' => $row['invitation_id'],
+                'client_id' => $visitorClientId,
+                'detail_config' => $formConfigCache[$visitorClientId],
                 'schedule_id' => isset($row['schedule_id']) ? (int) $row['schedule_id'] : null,
                 'no' => $rowOffset + $index + 1,
                 'date' => date('M j, Y', strtotime($dateSrc)),
@@ -104,7 +143,9 @@ class VisitorList extends BaseController
                 'card_status_raw' => $row['card_status'] ?? null,
                 'checked_in' => $row['check_in_time'] ? true : false,
                 'check_in_time' => $row['check_in_time'],
+                'check_in_display' => ! empty($row['check_in_time']) ? date('M j, Y g:i A', strtotime((string) $row['check_in_time'])) : '',
                 'check_out_time' => $row['check_out_time'],
+                'check_out_display' => ! empty($row['check_out_time']) ? date('M j, Y g:i A', strtotime((string) $row['check_out_time'])) : '',
                 'visit_date_iso' => $visitDateIso,
                 'date_from' => $row['sch_date_from'] ?? '',
                 'date_to' => $row['sch_date_to'] ?? '',
@@ -146,6 +187,7 @@ class VisitorList extends BaseController
             'searchTerm' => $searchTerm,
             'cardEnabled' => client_feature_enabled('visitor_card'),
             'mykadOcrEnabled' => client_feature_enabled('mykad_ocr'),
+            'visitorListColumns' => $this->visitorListColumnConfig(),
             'pagination' => [
                 'current_page' => $page,
                 'last_page'    => $lastPage,
@@ -155,6 +197,91 @@ class VisitorList extends BaseController
         ];
 
         return view('visitors/list', $data);
+    }
+
+    private function visitorListColumnConfig(): array
+    {
+        $defaults = [
+            'return_selection' => true,
+            'no'               => true,
+            'date'             => true,
+            'full_name'        => true,
+            'ic_passport'      => true,
+            'contact'          => true,
+            'company'          => false,
+            'host'             => false,
+            'vehicle_reg'      => true,
+            'location'         => true,
+            'visitor_type'     => true,
+            'type'             => true,
+            'check_in'         => false,
+            'check_out'        => false,
+            'card_issue_badge'  => true,
+            'card_detail_button' => true,
+            'card_status'      => true,
+            'visitor_pass_no'  => true,
+            'reason'           => true,
+        ];
+
+        $clientId = current_client_id();
+        $config = (new MobileKioskSettingModel())->getClientConfigMap($clientId > 0 ? $clientId : null);
+        $raw = $config['visitor_list_columns'] ?? '';
+        $saved = is_string($raw) && $raw !== '' ? json_decode($raw, true) : null;
+
+        if (! is_array($saved)) {
+            return $defaults;
+        }
+
+        foreach ($defaults as $key => $default) {
+            if (array_key_exists($key, $saved)) {
+                $defaults[$key] = (bool) $saved[$key];
+            }
+        }
+
+        return $defaults;
+    }
+
+    public function saveColumnSettings()
+    {
+        $columnKeys = [
+            'return_selection',
+            'no',
+            'date',
+            'full_name',
+            'ic_passport',
+            'contact',
+            'company',
+            'host',
+            'vehicle_reg',
+            'location',
+            'visitor_type',
+            'type',
+            'check_in',
+            'check_out',
+            'card_issue_badge',
+            'card_detail_button',
+            'card_status',
+            'visitor_pass_no',
+            'reason',
+        ];
+
+        $postedColumns = $this->request->getPost('visitor_list_columns');
+        $postedColumns = is_array($postedColumns) ? $postedColumns : [];
+
+        $visitorListColumns = [];
+        foreach ($columnKeys as $key) {
+            $visitorListColumns[$key] = array_key_exists($key, $postedColumns);
+        }
+
+        $clientId = current_client_id();
+        (new MobileKioskSettingModel())->saveClientSetting(
+            $clientId > 0 ? $clientId : null,
+            'visitor_list_columns',
+            json_encode($visitorListColumns)
+        );
+
+        return redirect()->to(base_url('visitors'))
+            ->with('success', 'Visitor list columns updated!');
     }
 
     /**
@@ -175,6 +302,7 @@ class VisitorList extends BaseController
                           i.reason as visit_purpose,
                           i.vehicle_registration as vehicle_reg,
                           i.location,
+                          i.client_id AS invitation_client_id,
                           i.profile_photo_path AS invitation_profile_photo_path,
                           i.facial_verification_image AS invitation_facial_verification_image,
                           i.registration_source,
@@ -314,7 +442,7 @@ class VisitorList extends BaseController
                 $index + 1,
                 $dateSrc ? date('M j, Y', strtotime((string) $dateSrc)) : '',
                 $row['visitor_name'] ?? '',
-                !empty($row['visitor_ic_passport']) ? '="' . $row['visitor_ic_passport'] . '"' : '',
+                !empty($row['visitor_ic_passport']) ? mask_ic_passport($row['visitor_ic_passport']) : '',
                 !empty($row['visitor_contact'])     ? '="' . $row['visitor_contact']     . '"' : '',
                 $row['visitor_company'] ?? '',
                 $row['vehicle_reg'] ?? '',

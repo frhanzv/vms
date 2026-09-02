@@ -52,7 +52,7 @@
         </div>
         <div>
             <span class="label">IC Number:</span>
-            <div class="value uppercase"><?= esc($data['summary']['ic_no']) ?></div>
+            <div class="value uppercase"><?= esc(mask_ic_passport($data['summary']['ic_no'], 'N/A')) ?></div>
         </div>
     </div>
 

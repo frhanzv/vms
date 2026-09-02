@@ -60,6 +60,10 @@
                     Invitation List
                 </h1>
                 <div class="flex gap-2">
+                    <button type="button" onclick="openInvitationColumnsModal()" class="bg-[#535dec] hover:bg-[#4853e0] text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
+                        <span class="material-symbols-outlined text-[18px] mr-1">visibility</span>
+                        Show/Hide Columns
+                    </button>
                     <?php
                     $exportParams = array_filter([
                         'search'    => $filters['search'],
@@ -218,22 +222,21 @@
                 </div>
             </form>
 
+            <?php if (session()->getFlashdata('success')): ?>
+            <div class="mb-4 flex items-center gap-2 rounded border border-green-200 bg-green-50 px-3 py-2 text-xs font-semibold text-green-800 dark:border-green-800 dark:bg-green-900/20 dark:text-green-200">
+                <span class="material-symbols-outlined text-base">check_circle</span>
+                <span><?= esc(session()->getFlashdata('success')) ?></span>
+            </div>
+            <?php endif; ?>
+
             <!-- Table -->
             <div class="overflow-x-auto rounded border border-gray-200 dark:border-gray-700 mb-6">
                 <table id="invitationTable" class="w-full min-w-max text-left border-collapse">
                     <thead>
                         <tr class="bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs font-bold uppercase tracking-wide">
-                            <th class="p-4 border-b dark:border-gray-600">No</th>
-                            <th class="p-4 border-b dark:border-gray-600">Date</th>
-                            <th class="p-4 border-b dark:border-gray-600">Full Name</th>
-                            <th class="p-4 border-b dark:border-gray-600">IC / Passport No</th>
-                            <th class="p-4 border-b dark:border-gray-600">Contact No</th>
-                            <th class="p-4 border-b dark:border-gray-600">Company</th>
-                            <th class="p-4 border-b dark:border-gray-600">Vehicle Registration</th>
-                            <th class="p-4 border-b dark:border-gray-600">Location</th>
-                            <th class="p-4 border-b dark:border-gray-600">Invited By</th>
-                            <th class="p-4 border-b dark:border-gray-600">Status</th>
-                            <th class="p-4 border-b dark:border-gray-600">Reason</th>
+                            <?php foreach (['no'=>'No','date'=>'Date','full_name'=>'Full Name','ic_passport'=>'IC / Passport No','contact'=>'Contact No','company'=>'Company','vehicle_reg'=>'Vehicle Registration','location'=>'Location','invited_by'=>'Invited By','status'=>'Status','reason'=>'Reason'] as $key => $label): ?>
+                            <th data-invitation-column="<?= esc($key) ?>" class="p-4 border-b dark:border-gray-600<?= empty($invitationListColumns[$key]) ? ' hidden' : '' ?>"><?= esc($label) ?></th>
+                            <?php endforeach; ?>
                         </tr>
                     </thead>
                     <tbody id="invitationsTableBody" class="text-xs text-gray-600 dark:text-gray-300 font-medium">
@@ -252,20 +255,20 @@
                         <?php else: ?>
                         <?php foreach ($invitations as $invitation): ?>
                         <tr onclick='openDetailModal(<?= json_encode($invitation) ?>)' class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-b border-gray-100 dark:border-gray-700 cursor-pointer">
-                            <td class="p-4"><?= $invitation['no'] ?></td>
-                            <td class="p-4"><?= esc($invitation['date']) ?></td>
-                            <td class="p-4 font-semibold text-gray-800 dark:text-white"><?= esc($invitation['full_name']) ?></td>
-                            <td class="p-4 <?= empty($invitation['ic_passport']) ? 'text-gray-400' : '' ?>">
-                                <?= empty($invitation['ic_passport']) ? 'NULL' : esc($invitation['ic_passport']) ?>
+                            <td data-invitation-column="no" class="p-4<?= empty($invitationListColumns['no']) ? ' hidden' : '' ?>"><?= $invitation['no'] ?></td>
+                            <td data-invitation-column="date" class="p-4<?= empty($invitationListColumns['date']) ? ' hidden' : '' ?>"><?= esc($invitation['date']) ?></td>
+                            <td data-invitation-column="full_name" class="p-4 font-semibold text-gray-800 dark:text-white<?= empty($invitationListColumns['full_name']) ? ' hidden' : '' ?>"><?= esc($invitation['full_name']) ?></td>
+                            <td data-invitation-column="ic_passport" class="p-4 <?= empty($invitation['ic_passport']) ? 'text-gray-400' : '' ?><?= empty($invitationListColumns['ic_passport']) ? ' hidden' : '' ?>">
+                                <?= empty($invitation['ic_passport']) ? 'NULL' : esc(mask_ic_passport($invitation['ic_passport'])) ?>
                             </td>
-                            <td class="p-4"><?= esc($invitation['contact']) ?></td>
-                            <td class="p-4"><?= esc($invitation['company']) ?></td>
-                            <td class="p-4 <?= empty($invitation['vehicle_reg']) ? 'text-gray-400' : '' ?>">
+                            <td data-invitation-column="contact" class="p-4<?= empty($invitationListColumns['contact']) ? ' hidden' : '' ?>"><?= esc($invitation['contact']) ?></td>
+                            <td data-invitation-column="company" class="p-4<?= empty($invitationListColumns['company']) ? ' hidden' : '' ?>"><?= esc($invitation['company']) ?></td>
+                            <td data-invitation-column="vehicle_reg" class="p-4 <?= empty($invitation['vehicle_reg']) ? 'text-gray-400' : '' ?><?= empty($invitationListColumns['vehicle_reg']) ? ' hidden' : '' ?>">
                                 <?= empty($invitation['vehicle_reg']) ? 'NULL' : esc($invitation['vehicle_reg']) ?>
                             </td>
-                            <td class="p-4"><?= esc($invitation['location']) ?></td>
-                            <td class="p-4"><?= esc($invitation['invited_by']) ?></td>
-                            <td class="p-4">
+                            <td data-invitation-column="location" class="p-4<?= empty($invitationListColumns['location']) ? ' hidden' : '' ?>"><?= esc($invitation['location']) ?></td>
+                            <td data-invitation-column="invited_by" class="p-4<?= empty($invitationListColumns['invited_by']) ? ' hidden' : '' ?>"><?= esc($invitation['invited_by']) ?></td>
+                            <td data-invitation-column="status" class="p-4<?= empty($invitationListColumns['status']) ? ' hidden' : '' ?>">
                                 <?php if ($invitation['status'] === 'Approved'): ?>
                                 <span class="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Approved</span>
                                 <?php elseif ($invitation['status'] === 'Pending'): ?>
@@ -276,7 +279,7 @@
                                 <span class="bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Rejected</span>
                                 <?php endif; ?>
                             </td>
-                            <td class="p-4"><?= esc($invitation['reason']) ?></td>
+                            <td data-invitation-column="reason" class="p-4<?= empty($invitationListColumns['reason']) ? ' hidden' : '' ?>"><?= esc($invitation['reason']) ?></td>
                         </tr>
                         <?php endforeach; ?>
                         <?php endif; ?>
@@ -361,6 +364,36 @@
         </div>
     </main>
 
+    <!-- Invitation Columns Modal -->
+    <div id="invitationColumnsModal" class="hidden fixed inset-0 z-[120] flex items-center justify-center p-4">
+        <div onclick="closeInvitationColumnsModal()" class="absolute inset-0 bg-slate-900/55 dark:bg-black/65 cursor-pointer"></div>
+        <form method="POST" action="<?= base_url('invitations/saveColumnSettings') ?>" class="relative flex w-full max-w-[600px] flex-col rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+            <?= csrf_field() ?>
+            <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4 dark:border-slate-700">
+                <h2 class="text-lg font-bold tracking-tight text-[#3b5998] dark:text-white">Show/Hide Columns</h2>
+                <button type="button" onclick="closeInvitationColumnsModal()" class="text-slate-300 hover:text-slate-500"><span class="material-symbols-outlined text-[20px]">close</span></button>
+            </div>
+            <div class="px-6 py-5 overflow-y-auto max-h-[60vh]">
+                <div class="mb-5 flex items-center gap-2">
+                    <input type="checkbox" id="selectAllInvitationColumns" onchange="toggleAllInvitationColumns(this)" class="rounded border-slate-300 text-[#535dec] focus:ring-[#535dec] h-4 w-4 cursor-pointer">
+                    <label for="selectAllInvitationColumns" class="text-sm font-bold text-slate-700 dark:text-slate-300 cursor-pointer">Select All Columns</label>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-4">
+                    <?php foreach (['no'=>'No','date'=>'Date','full_name'=>'Full Name','ic_passport'=>'IC / Passport No','contact'=>'Contact No','company'=>'Company','vehicle_reg'=>'Vehicle Registration','location'=>'Location','invited_by'=>'Invited By','status'=>'Status','reason'=>'Reason'] as $key => $label): ?>
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" id="invitation_col_<?= esc($key) ?>" name="invitation_list_columns[<?= esc($key) ?>]" value="true" class="invitation-column-toggle rounded border-slate-300 text-[#535dec] focus:ring-[#535dec] h-4 w-4 cursor-pointer" <?= ! empty($invitationListColumns[$key]) ? 'checked' : '' ?>>
+                        <label for="invitation_col_<?= esc($key) ?>" class="text-sm text-slate-600 dark:text-slate-300 uppercase cursor-pointer"><?= esc($label) ?></label>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 border-t-2 border-slate-100 bg-white px-6 py-4 dark:border-slate-700 dark:bg-slate-900 rounded-b-xl">
+                <button type="button" onclick="closeInvitationColumnsModal()" class="rounded-md border border-slate-400 bg-slate-500 hover:bg-slate-600 px-5 py-2 text-sm font-semibold text-white">Close</button>
+                <button type="submit" class="rounded-md bg-[#535dec] hover:bg-[#4853e0] px-5 py-2 text-sm font-semibold text-white shadow-md">Apply Changes</button>
+            </div>
+        </form>
+    </div>
+
     <!-- Detail Modal -->
     <div id="detailModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto transform transition-all">
@@ -384,7 +417,7 @@
 
                 <!-- Link expiry + visitor count (preview summary) -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 border border-gray-100 dark:border-gray-700">
-                    <div>
+                    <div id="modalLinkExpiryField">
                         <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium mb-1">Link expiry</p>
                         <p id="modalLinkExpiry" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
                     </div>
@@ -401,23 +434,23 @@
                         Visitor Information
                     </h4>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4">
-                        <div>
+                        <div id="modalFullNameField">
                             <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium mb-1">Full Name</p>
                             <p id="modalFullName" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
                         </div>
-                        <div>
+                        <div id="modalIcPassportField">
                             <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium mb-1">IC / Passport No</p>
                             <p id="modalIcPassport" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
                         </div>
-                        <div>
+                        <div id="modalContactField">
                             <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium mb-1">Contact No</p>
                             <p id="modalContact" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
                         </div>
-                        <div>
+                        <div id="modalCompanyField">
                             <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium mb-1">Company</p>
                             <p id="modalCompany" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
                         </div>
-                        <div class="md:col-span-2">
+                        <div id="modalEmailField" class="md:col-span-2">
                             <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium mb-1">Email</p>
                             <p id="modalVisitorEmail" class="text-sm font-semibold text-gray-900 dark:text-white break-all"></p>
                         </div>
@@ -429,29 +462,29 @@
                 </div>
 
                 <!-- Visit Details -->
-                <div>
+                <div id="modalVisitDetailsSection">
                     <h4 class="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase mb-3 flex items-center gap-2">
                         <span class="material-symbols-outlined text-primary">event</span>
                         Visit Details
                     </h4>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4">
-                        <div>
+                        <div id="modalVisitFromField">
                             <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium mb-1">Visit date (from)</p>
                             <p id="modalVisitFrom" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
                         </div>
-                        <div>
+                        <div id="modalVisitToField">
                             <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium mb-1">Visit date (to)</p>
                             <p id="modalVisitTo" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
                         </div>
-                        <div>
+                        <div id="modalLocationField">
                             <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium mb-1">Location</p>
                             <p id="modalLocation" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
                         </div>
-                        <div>
+                        <div id="modalReasonField">
                             <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium mb-1">Reason for Visit</p>
                             <p id="modalReason" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
                         </div>
-                        <div>
+                        <div id="modalVehicleField">
                             <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium mb-1">Vehicle Registration</p>
                             <p id="modalVehicle" class="text-sm font-semibold text-gray-900 dark:text-white"></p>
                         </div>
@@ -486,6 +519,38 @@
 
     <script>
         let currentInvitationId = null;
+        const invitationColumnVisibility = <?= json_encode($invitationListColumns ?? []) ?>;
+
+        function getInvitationColumnCheckboxes() {
+            return Array.from(document.querySelectorAll('.invitation-column-toggle'));
+        }
+
+        function syncInvitationColumnSelectAll() {
+            const selectAll = document.getElementById('selectAllInvitationColumns');
+            const boxes = getInvitationColumnCheckboxes();
+            if (!selectAll) return;
+            const checked = boxes.filter(box => box.checked).length;
+            selectAll.checked = boxes.length > 0 && checked === boxes.length;
+            selectAll.indeterminate = checked > 0 && checked < boxes.length;
+        }
+
+        function openInvitationColumnsModal() {
+            syncInvitationColumnSelectAll();
+            document.getElementById('invitationColumnsModal')?.classList.remove('hidden');
+        }
+
+        function closeInvitationColumnsModal() {
+            document.getElementById('invitationColumnsModal')?.classList.add('hidden');
+        }
+
+        function toggleAllInvitationColumns(element) {
+            getInvitationColumnCheckboxes().forEach(box => box.checked = element.checked);
+            syncInvitationColumnSelectAll();
+        }
+
+        function invitationColumnClass(key) {
+            return invitationColumnVisibility[key] === false ? ' hidden' : '';
+        }
         const invitationDataUrl = "<?= base_url('invitations/data') ?>";
         const invitationListUrl = "<?= base_url('invitations') ?>";
         const invitationExportUrl = "<?= base_url('invitations/export') ?>";
@@ -501,6 +566,11 @@
         const columnFilterState = {};
         let activeFilterDropdown = null;
         let searchDebounceTimer = null;
+
+        document.addEventListener('DOMContentLoaded', function () {
+            getInvitationColumnCheckboxes().forEach(box => box.addEventListener('change', syncInvitationColumnSelectAll));
+            syncInvitationColumnSelectAll();
+        });
 
         // Toast notification functions
         function showToast(message, type = 'info') {
@@ -855,17 +925,17 @@
                 const vehicleEmpty = !invitation.vehicle_reg;
                 return `
                     <tr onclick='openDetailModal(${invitationJson})' class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-b border-gray-100 dark:border-gray-700 cursor-pointer">
-                        <td class="p-4">${escapeHtml(invitation.no)}</td>
-                        <td class="p-4">${escapeHtml(invitation.date)}</td>
-                        <td class="p-4 font-semibold text-gray-800 dark:text-white">${escapeHtml(invitation.full_name)}</td>
-                        <td class="p-4 ${icPassportEmpty ? 'text-gray-400' : ''}">${icPassportEmpty ? 'NULL' : escapeHtml(invitation.ic_passport)}</td>
-                        <td class="p-4">${escapeHtml(invitation.contact)}</td>
-                        <td class="p-4">${escapeHtml(invitation.company)}</td>
-                        <td class="p-4 ${vehicleEmpty ? 'text-gray-400' : ''}">${vehicleEmpty ? 'NULL' : escapeHtml(invitation.vehicle_reg)}</td>
-                        <td class="p-4">${escapeHtml(invitation.location)}</td>
-                        <td class="p-4">${escapeHtml(invitation.invited_by)}</td>
-                        <td class="p-4">${buildStatusBadge(invitation.status)}</td>
-                        <td class="p-4">${escapeHtml(invitation.reason)}</td>
+                        <td data-invitation-column="no" class="p-4${invitationColumnClass('no')}">${escapeHtml(invitation.no)}</td>
+                        <td data-invitation-column="date" class="p-4${invitationColumnClass('date')}">${escapeHtml(invitation.date)}</td>
+                        <td data-invitation-column="full_name" class="p-4 font-semibold text-gray-800 dark:text-white${invitationColumnClass('full_name')}">${escapeHtml(invitation.full_name)}</td>
+                        <td data-invitation-column="ic_passport" class="p-4 ${icPassportEmpty ? 'text-gray-400' : ''}${invitationColumnClass('ic_passport')}">${escapeHtml(invitation.ic_passport_masked || (icPassportEmpty ? 'NULL' : 'XXXX' + String(invitation.ic_passport).slice(-4)))}</td>
+                        <td data-invitation-column="contact" class="p-4${invitationColumnClass('contact')}">${escapeHtml(invitation.contact)}</td>
+                        <td data-invitation-column="company" class="p-4${invitationColumnClass('company')}">${escapeHtml(invitation.company)}</td>
+                        <td data-invitation-column="vehicle_reg" class="p-4 ${vehicleEmpty ? 'text-gray-400' : ''}${invitationColumnClass('vehicle_reg')}">${vehicleEmpty ? 'NULL' : escapeHtml(invitation.vehicle_reg)}</td>
+                        <td data-invitation-column="location" class="p-4${invitationColumnClass('location')}">${escapeHtml(invitation.location)}</td>
+                        <td data-invitation-column="invited_by" class="p-4${invitationColumnClass('invited_by')}">${escapeHtml(invitation.invited_by)}</td>
+                        <td data-invitation-column="status" class="p-4${invitationColumnClass('status')}">${buildStatusBadge(invitation.status)}</td>
+                        <td data-invitation-column="reason" class="p-4${invitationColumnClass('reason')}">${escapeHtml(invitation.reason)}</td>
                     </tr>
                 `;
             }).join('');
@@ -1080,13 +1150,33 @@
                 statusEl.textContent = 'Rejected';
             }
 
-            // Fill in the details
+            const config = invitation.modal_config || {};
+            const isEnabled = (key) => config[key] !== false;
+            const toggleField = (id, visible) => {
+                const element = document.getElementById(id);
+                if (element) element.classList.toggle('hidden', !visible);
+            };
+
+            toggleField('modalLinkExpiryField', isEnabled('link_expiry'));
+            toggleField('modalFullNameField', isEnabled('full_name'));
+            toggleField('modalIcPassportField', isEnabled('ic_passport'));
+            toggleField('modalContactField', isEnabled('contact'));
+            toggleField('modalCompanyField', isEnabled('company'));
+            toggleField('modalEmailField', isEnabled('email'));
+            toggleField('modalVisitFromField', isEnabled('schedule'));
+            toggleField('modalVisitToField', isEnabled('schedule'));
+            toggleField('modalLocationField', isEnabled('location'));
+            toggleField('modalReasonField', isEnabled('reason'));
+            toggleField('modalVehicleField', isEnabled('vehicle'));
+            toggleField('modalVisitDetailsSection', ['schedule', 'location', 'reason', 'vehicle'].some(isEnabled));
+
+            // Fill in the enabled details
             document.getElementById('modalLinkExpiry').textContent = invitation.link_expiry || '—';
             document.getElementById('modalVisitorCount').textContent = String(invitation.visitor_count != null ? invitation.visitor_count : 1);
             document.getElementById('modalFullName').textContent = invitation.full_name;
-            document.getElementById('modalIcPassport').textContent = invitation.ic_passport || 'NULL';
-            document.getElementById('modalContact').textContent = invitation.contact;
-            document.getElementById('modalCompany').textContent = invitation.company;
+            document.getElementById('modalIcPassport').textContent = invitation.ic_passport_masked || (invitation.ic_passport ? 'XXXX' + String(invitation.ic_passport).slice(-4) : 'Not provided');
+            document.getElementById('modalContact').textContent = invitation.contact || 'Not provided';
+            document.getElementById('modalCompany').textContent = invitation.company || 'Not provided';
             document.getElementById('modalVisitorEmail').textContent = invitation.visitor_email || '—';
             const regLink = document.getElementById('modalRegistrationLink');
             if (regLink && invitation.registration_link) {

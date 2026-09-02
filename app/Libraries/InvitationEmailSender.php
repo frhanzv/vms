@@ -11,6 +11,8 @@ use App\Models\VisitorTypeModel;
 use App\Models\SettingModel;
 use App\Models\EmailTemplateModel;
 use App\Models\UserModel;
+use App\Models\ClientFormFieldModel;
+use App\Models\ClientModel;
 
 /**
  * Sends invitation registration emails (shared by InvitationList and VisitorRegistration).
@@ -28,6 +30,7 @@ class InvitationEmailSender
     protected EmailTemplateModel $emailTemplateModel;
     protected UserModel $userModel;
     protected \Config\Email $emailConfig;
+    protected ClientFormFieldModel $clientFormFieldModel;
 
     public function __construct()
     {
@@ -42,6 +45,74 @@ class InvitationEmailSender
         $this->emailTemplateModel = new EmailTemplateModel();
         $this->userModel = new UserModel();
         $this->emailConfig = config('Email');
+        $this->clientFormFieldModel = new ClientFormFieldModel();
+    }
+
+    protected function getInvitationEmailDetailFields(array $invitation): array
+    {
+        $fields = [
+            'company' => true,
+            'location' => true,
+            'reason' => true,
+            'invited_by' => true,
+            'schedule' => true,
+            'host_contact' => false,
+            'visitor_type' => false,
+            'link_expiry' => true,
+        ];
+        $clientId = (int) ($invitation['client_id'] ?? $invitation['company_id'] ?? 0);
+        if ($clientId <= 0) {
+            return $fields;
+        }
+
+        $stored = $this->clientFormFieldModel
+            ->where('client_id', $clientId)
+            ->where('form_type', 'invitation')
+            ->findAll();
+        $stored = array_column($stored, 'is_enabled', 'field_key');
+
+        foreach (['company_visited' => 'company', 'location' => 'location', 'reason' => 'reason', 'schedule' => 'schedule', 'host_contact' => 'host_contact', 'visitor_type' => 'visitor_type', 'link_expiry' => 'link_expiry'] as $configKey => $emailKey) {
+            if (array_key_exists($configKey, $stored)) {
+                $fields[$emailKey] = (bool) $stored[$configKey];
+            }
+        }
+
+        return $fields;
+    }
+
+    protected function getConfiguredTemplateRaw(string $process, array $invitation): ?string
+    {
+        $clientId = (int) ($invitation['client_id'] ?? $invitation['company_id'] ?? 0);
+        if ($clientId > 0) {
+            $value = $this->settingModel->getSetting(
+                $this->emailTemplateService->getClientStorageKey($process, $clientId)
+            );
+            if ($value) {
+                return (string) $value;
+            }
+        }
+
+        $value = $this->settingModel->getSetting($this->emailTemplateService->getStorageKey($process));
+        return $value ? (string) $value : null;
+    }
+
+    protected function findConfiguredCrudTemplate(array $codes, array $invitation): ?array
+    {
+        $clientId = (int) ($invitation['client_id'] ?? $invitation['company_id'] ?? 0);
+        foreach ($codes as $code) {
+            if ($clientId > 0) {
+                $row = $this->emailTemplateModel->where('client_id', $clientId)->where('code', $code)->first();
+                if ($row) {
+                    return $row;
+                }
+            }
+            $row = $this->emailTemplateModel->where('client_id', null)->where('code', $code)->first();
+            if ($row) {
+                return $row;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -182,6 +253,15 @@ class InvitationEmailSender
         $invitation['company_name'] = $company['name']
             ?? ((string) $companyValue !== '' ? (string) $companyValue : 'Not specified');
 
+        // The invitation company is the visitor's employer. The client is the
+        // organisation/site being visited (for example, GXO).
+        $clientId = (int) ($invitation['client_id'] ?? 0);
+        $client = $clientId > 0 ? (new ClientModel())->find($clientId) : null;
+        $invitation['client_name'] = trim((string) ($client['name'] ?? ''));
+        if ($invitation['client_name'] === '') {
+            $invitation['client_name'] = 'Not specified';
+        }
+
         $locationValue = $invitation['location'] ?? '';
         $location = is_numeric($locationValue)
             ? $this->locationModel->find((int) $locationValue)
@@ -265,13 +345,19 @@ class InvitationEmailSender
 
             $registrationLink = base_url('visitor-registration?token=' . base64_encode((string) $invitationId));
 
-            $templateRaw = $this->settingModel->getSetting(
-                $this->emailTemplateService->getStorageKey(EmailTemplateService::PROCESS_INVITATION)
-            );
+            $templateRaw = $this->getConfiguredTemplateRaw(EmailTemplateService::PROCESS_INVITATION, $invitation);
             $templateConfig = $this->emailTemplateService->normalizeTemplate(
                 EmailTemplateService::PROCESS_INVITATION,
                 $templateRaw ? json_decode((string) $templateRaw, true) : []
             );
+            $detailFields = $this->getInvitationEmailDetailFields($invitation);
+            if (! $detailFields['link_expiry']) {
+                $templateConfig['notes_items'] = array_values(array_filter(
+                    (array) ($templateConfig['notes_items'] ?? []),
+                    static fn ($note): bool => ! str_contains(strtolower((string) $note), 'expir')
+                        && ! str_contains((string) $note, '{{link_expiry_date}}')
+                ));
+            }
 
             $placeholderContext = [
                 'visitor_name' => $invitation['full_name'],
@@ -279,18 +365,13 @@ class InvitationEmailSender
                 'location' => $invitation['location_name'],
                 'reason' => $invitation['reason_name'],
                 'invited_by' => $invitation['invited_by'],
-                'link_expiry_date' => date('d/m/Y', strtotime($invitation['link_expiry'])),
+                'link_expiry_date' => ! empty($invitation['link_expiry'])
+                    ? date('d/m/Y', strtotime((string) $invitation['link_expiry']))
+                    : '',
                 'registration_link' => $registrationLink,
             ];
 
-            $crudTemplate = $this->emailTemplateModel
-                ->where('code', 'INVITATION')
-                ->first();
-            if (! $crudTemplate) {
-                $crudTemplate = $this->emailTemplateModel
-                    ->where('code', 'VISITOR_INVITE')
-                    ->first();
-            }
+            $crudTemplate = $this->findConfiguredCrudTemplate(['INVITATION', 'VISITOR_INVITE'], $invitation);
 
             $customSubject = null;
             $customBodyHtml = null;
@@ -328,7 +409,10 @@ class InvitationEmailSender
                 'reason' => $invitation['reason_name'],
                 'other_reason' => $invitation['other_reason'],
                 'invited_by' => $invitation['invited_by'],
+                'host_contact' => trim((string) (($invitation['host_user']['contact_no'] ?? '') ?: ($invitation['host_contact'] ?? ''))),
+                'visitor_type' => $invitation['visitor_type_name'] ?? '',
                 'schedules' => $invitation['schedules'],
+                'detail_fields' => $detailFields,
                 'registration_link' => $registrationLink,
                 'link_expiry' => $invitation['link_expiry'],
                 'template' => $templateConfig,
@@ -404,31 +488,23 @@ class InvitationEmailSender
             ]);
             $email->setMailType('html');
 
-            $templateRaw = $this->settingModel->getSetting(
-                $this->emailTemplateService->getStorageKey(EmailTemplateService::PROCESS_APPROVAL)
-            );
+            $templateRaw = $this->getConfiguredTemplateRaw(EmailTemplateService::PROCESS_APPROVAL, $invitation);
             $templateConfig = $this->emailTemplateService->normalizeTemplate(
                 EmailTemplateService::PROCESS_APPROVAL,
                 $templateRaw ? json_decode((string) $templateRaw, true) : []
             );
+            $detailFields = $this->getInvitationEmailDetailFields($invitation);
 
             $placeholderContext = [
                 'visitor_name' => $invitation['full_name'],
-                'company' => $invitation['company_name'],
+                'company' => $invitation['client_name'],
                 'location' => $invitation['location_name'],
                 'reason' => $invitation['reason_name'],
                 'invited_by' => $invitation['invited_by'],
                 'link_expiry_date' => date('d/m/Y', strtotime($invitation['link_expiry'])),
             ];
 
-            $crudTemplate = $this->emailTemplateModel
-                ->where('code', 'APPROVAL')
-                ->first();
-            if (! $crudTemplate) {
-                $crudTemplate = $this->emailTemplateModel
-                    ->where('code', 'VISITOR_REQ_APPROVAL')
-                    ->first();
-            }
+            $crudTemplate = $this->findConfiguredCrudTemplate(['APPROVAL', 'VISITOR_REQ_APPROVAL'], $invitation);
 
             $customSubject = null;
             $customBodyHtml = null;
@@ -497,14 +573,14 @@ class InvitationEmailSender
                 'visitor_name' => $invitation['full_name'],
                 'visitor_contact' => $invitation['contact'] ?? '',
                 'visitor_company' => $invitation['company_name'],
-                'company' => $invitation['company_name'],
+                'company' => $invitation['client_name'],
                 'location' => $invitation['location_name'],
                 'reason' => $invitation['reason_name'],
                 'other_reason' => $invitation['other_reason'],
                 'invited_by' => $invitation['invited_by'],
                 'host_name' => $hostName,
                 'host_contact' => $hostContact,
-                'schedules' => $invitation['schedules'],
+                'schedules' => ! empty($detailFields['schedule']) ? $invitation['schedules'] : [],
                 'template' => $templateConfig,
                 'intro_line' => $this->emailTemplateService->applyPlaceholders($templateConfig['intro_line'], $placeholderContext),
                 'notes_items' => array_map(
@@ -581,9 +657,7 @@ class InvitationEmailSender
             ]);
             $email->setMailType('html');
 
-            $templateRaw = $this->settingModel->getSetting(
-                $this->emailTemplateService->getStorageKey(EmailTemplateService::PROCESS_REJECTION)
-            );
+            $templateRaw = $this->getConfiguredTemplateRaw(EmailTemplateService::PROCESS_REJECTION, $invitation);
             $templateConfig = $this->emailTemplateService->normalizeTemplate(
                 EmailTemplateService::PROCESS_REJECTION,
                 $templateRaw ? json_decode((string) $templateRaw, true) : []
@@ -598,14 +672,7 @@ class InvitationEmailSender
                 'link_expiry_date' => date('d/m/Y', strtotime($invitation['link_expiry'])),
             ];
 
-            $crudTemplate = $this->emailTemplateModel
-                ->where('code', 'REJECTION')
-                ->first();
-            if (! $crudTemplate) {
-                $crudTemplate = $this->emailTemplateModel
-                    ->where('code', 'VISITOR_REQ_REJECT')
-                    ->first();
-            }
+            $crudTemplate = $this->findConfiguredCrudTemplate(['REJECTION', 'VISITOR_REQ_REJECT'], $invitation);
 
             $customSubject = null;
             $customBodyHtml = null;
@@ -768,7 +835,7 @@ class InvitationEmailSender
             $body    = '<p>A blacklisted individual attempted entry.</p>'
                      . '<ul>'
                      . '<li><strong>Name:</strong> ' . esc($name) . '</li>'
-                     . '<li><strong>IC / Passport:</strong> ' . esc($icPassport) . '</li>'
+                     . '<li><strong>IC / Passport:</strong> ' . esc(mask_ic_passport($icPassport)) . '</li>'
                      . '<li><strong>Reason:</strong> ' . esc($reason ?: 'N/A') . '</li>'
                      . '<li><strong>Time:</strong> ' . date('d/m/Y H:i:s') . '</li>'
                      . '</ul>';

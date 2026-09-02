@@ -570,7 +570,7 @@
                 <td class="text-center font-semibold text-slate-400">${idx + 1}</td>
                 <td class="font-semibold text-slate-800">${escHtml(v.visitor_name)}</td>
                 <td>${escHtml(v.contact_no)}</td>
-                <td>${escHtml(v.ic_no)}</td>
+                <td>${escHtml(v.ic_no_masked || (v.ic_no ? 'XXXX' + String(v.ic_no).slice(-4) : 'N/A'))}</td>
                 <td>${escHtml(v.visitor_company)}</td>
                 <td>${escHtml(v.vehicle_no)}</td>
                 <td>${escHtml(v.visit_reason)}</td>

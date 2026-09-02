@@ -30,6 +30,7 @@ class ClientFeatureModel extends Model
             'visitor_card'        => 'Visitor Card Issuance',
             'security_alerts'     => 'Security Alerts',
             'device_management'   => 'Device Management',
+            'emap'                => 'E-Map',
             'company_visited'     => 'Company Visited Field (disable to use Visitor Type)',
             'mykad_ocr'           => 'Read MyKad / MyKad OCR',
             'auto_approve_after_workflow' => 'Auto-Approve After Video / Questionnaire',

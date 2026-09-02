@@ -43,6 +43,50 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body class="bg-background-light dark:bg-background-dark font-sans text-gray-800 dark:text-gray-200 antialiased h-screen flex overflow-hidden transition-colors duration-200">
+    <?php
+        $visitorListColumns = $visitorListColumns ?? [
+            'return_selection' => true,
+            'no'               => true,
+            'date'             => true,
+            'full_name'        => true,
+            'ic_passport'      => true,
+            'contact'          => true,
+            'company'          => false,
+            'host'             => false,
+            'vehicle_reg'      => true,
+            'location'         => true,
+            'visitor_type'     => true,
+            'type'             => true,
+            'check_in'         => false,
+            'check_out'        => false,
+            'card_issue_badge'  => true,
+            'card_detail_button' => true,
+            'card_status'      => true,
+            'visitor_pass_no'  => true,
+            'reason'           => true,
+        ];
+        $visitorListColumnLabels = [
+            'return_selection'   => 'Return Selection',
+            'no'                 => 'No',
+            'date'               => 'Date',
+            'full_name'          => 'Full Name',
+            'ic_passport'        => 'IC / Passport No',
+            'contact'            => 'Contact No',
+            'company'            => 'Company',
+            'host'               => 'Host Name',
+            'vehicle_reg'        => 'Vehicle Registration',
+            'location'           => 'Location',
+            'visitor_type'       => 'Visitor Type',
+            'type'               => 'Type',
+            'check_in'           => 'Check In',
+            'check_out'          => 'Check Out',
+            'card_issue_badge'   => 'Card Issue Badge',
+            'card_detail_button' => 'i Card Details Button',
+            'card_status'        => 'Card Status',
+            'visitor_pass_no'    => 'Visitor Pass No',
+            'reason'             => 'Reason',
+        ];
+    ?>
     <!-- Sidebar -->
     <?= view("partials/sidebar") ?>
 
@@ -55,7 +99,11 @@
                 <h1 class="text-xl md:text-2xl font-bold tracking-tight text-gray-800 dark:text-white uppercase">
                     Visitor Pass List
                 </h1>
-                <div class="flex gap-2">
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" onclick="openVisitorColumnsModal()" class="bg-[#535dec] hover:bg-[#4853e0] text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
+                        <span class="material-symbols-outlined text-[18px] mr-1">visibility</span>
+                        Show/Hide Columns
+                    </button>
                     <a href="<?= base_url('visitors/export') ?>" class="bg-secondary hover:bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
                         <span class="material-icons text-sm mr-1">file_download</span>
                         Export
@@ -182,36 +230,105 @@
             </div>
             <?php endif; ?>
 
+            <?php if (session()->getFlashdata('success')): ?>
+            <div class="mb-4 flex items-center gap-2 rounded border border-green-200 bg-green-50 px-3 py-2 text-xs font-semibold text-green-800 dark:border-green-800 dark:bg-green-900/20 dark:text-green-200">
+                <span class="material-symbols-outlined text-base">check_circle</span>
+                <span><?= esc(session()->getFlashdata('success')) ?></span>
+            </div>
+            <?php endif; ?>
+
             <!-- Table -->
+            <?php
+                $showColumn = static fn(string $key): bool => ! empty($visitorListColumns[$key]);
+                $showCardColumn = static fn(string $key): bool => ! empty($cardEnabled) && ! empty($visitorListColumns[$key]);
+                $visibleColumnKeys = [
+                    'no',
+                    'date',
+                    'full_name',
+                    'ic_passport',
+                    'contact',
+                    'company',
+                    'host',
+                    'vehicle_reg',
+                    'location',
+                    'visitor_type',
+                    'type',
+                    'check_in',
+                    'check_out',
+                    'reason',
+                ];
+                $visibleColumnCount = 0;
+                $visibleColumnCount += $showCardColumn('return_selection') ? 1 : 0;
+                foreach ($visibleColumnKeys as $columnKey) {
+                    $visibleColumnCount += $showColumn($columnKey) ? 1 : 0;
+                }
+                $visibleColumnCount += $showCardColumn('card_status') ? 1 : 0;
+                $visibleColumnCount += $showCardColumn('visitor_pass_no') ? 1 : 0;
+                $visibleColumnCount = max(1, $visibleColumnCount);
+            ?>
             <div class="overflow-x-auto rounded border border-gray-200 dark:border-gray-700 mb-6">
                 <table class="w-full min-w-max text-left border-collapse">
                     <thead>
                         <tr class="bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs font-bold uppercase tracking-wide">
-                            <?php if ($cardEnabled): ?>
+                            <?php if ($showCardColumn('return_selection')): ?>
                             <th class="p-2 w-10 border-b dark:border-gray-600 text-center" title="Select rows for batch return">
                                 <input type="checkbox" id="selectAllVisitorRows" class="rounded border-gray-300 text-primary focus:ring-primary" aria-label="Select all returnable rows"/>
                             </th>
                             <?php endif; ?>
+                            <?php if ($showColumn('no')): ?>
                             <th class="p-4 border-b dark:border-gray-600">No</th>
+                            <?php endif; ?>
+                            <?php if ($showColumn('date')): ?>
                             <th class="p-4 border-b dark:border-gray-600">Date</th>
+                            <?php endif; ?>
+                            <?php if ($showColumn('full_name')): ?>
                             <th class="p-4 border-b dark:border-gray-600">Full Name</th>
+                            <?php endif; ?>
+                            <?php if ($showColumn('ic_passport')): ?>
                             <th class="p-4 border-b dark:border-gray-600">IC / Passport No</th>
+                            <?php endif; ?>
+                            <?php if ($showColumn('contact')): ?>
                             <th class="p-4 border-b dark:border-gray-600">Contact No</th>
+                            <?php endif; ?>
+                            <?php if ($showColumn('company')): ?>
+                            <th class="p-4 border-b dark:border-gray-600">Company</th>
+                            <?php endif; ?>
+                            <?php if ($showColumn('host')): ?>
+                            <th class="p-4 border-b dark:border-gray-600">Host Name</th>
+                            <?php endif; ?>
+                            <?php if ($showColumn('vehicle_reg')): ?>
                             <th class="p-4 border-b dark:border-gray-600">Vehicle Registration Number</th>
+                            <?php endif; ?>
+                            <?php if ($showColumn('location')): ?>
                             <th class="p-4 border-b dark:border-gray-600">Location</th>
+                            <?php endif; ?>
+                            <?php if ($showColumn('visitor_type')): ?>
                             <th class="p-4 border-b dark:border-gray-600">Visitor Type</th>
+                            <?php endif; ?>
+                            <?php if ($showColumn('type')): ?>
                             <th class="p-4 border-b dark:border-gray-600">Type</th>
-                            <?php if ($cardEnabled): ?>
+                            <?php endif; ?>
+                            <?php if ($showColumn('check_in')): ?>
+                            <th class="p-4 border-b dark:border-gray-600">Check In</th>
+                            <?php endif; ?>
+                            <?php if ($showColumn('check_out')): ?>
+                            <th class="p-4 border-b dark:border-gray-600">Check Out</th>
+                            <?php endif; ?>
+                            <?php if ($showCardColumn('card_status')): ?>
                             <th class="p-4 border-b dark:border-gray-600">Card Status</th>
+                            <?php endif; ?>
+                            <?php if ($showCardColumn('visitor_pass_no')): ?>
                             <th class="p-4 border-b dark:border-gray-600">Visitor Pass No</th>
                             <?php endif; ?>
+                            <?php if ($showColumn('reason')): ?>
                             <th class="p-4 border-b dark:border-gray-600">Reason</th>
+                            <?php endif; ?>
                         </tr>
                     </thead>
                     <tbody class="text-xs text-gray-600 dark:text-gray-300 font-medium">
                         <?php if (empty($visitors)): ?>
                         <tr>
-                            <td colspan="<?= $cardEnabled ? '13' : '10' ?>" class="p-8 text-center">
+                            <td colspan="<?= (int) $visibleColumnCount ?>" class="p-8 text-center">
                                 <div class="flex flex-col items-center justify-center gap-3">
                                     <div class="bg-gray-100 dark:bg-gray-800 rounded-full p-4">
                                         <span class="material-symbols-outlined text-4xl text-gray-400 dark:text-gray-500">folder_off</span>
@@ -236,9 +353,9 @@
                             class="visitor-data-row hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-b border-gray-100 dark:border-gray-700 cursor-pointer"
                             data-invitation-visitor-id="<?= (int) $visitor['id'] ?>"
                             data-returnable="<?= $canReturnCard ? '1' : '0' ?>"
-                            data-visitor-json="<?= esc(json_encode($visitor), 'attr') ?>"
+                            data-visitor-json="<?= esc(base64_encode(json_encode($visitor, JSON_INVALID_UTF8_SUBSTITUTE)), 'attr') ?>"
                             onclick="openDetailModalFromRow(this, event)">
-                            <?php if ($cardEnabled): ?>
+                            <?php if ($showCardColumn('return_selection')): ?>
                             <td class="visitor-check-cell p-2 w-10 text-center align-middle" onclick="event.stopPropagation();">
                                 <input type="checkbox"
                                     class="visitor-row-check rounded border-gray-300 text-primary focus:ring-primary <?= $canReturnCard ? '' : 'opacity-40 cursor-not-allowed' ?>"
@@ -249,18 +366,56 @@
                                     aria-label="Select visitor row"/>
                             </td>
                             <?php endif; ?>
+                            <?php if ($showColumn('no')): ?>
                             <td class="p-4"><?= $visitor['no'] ?></td>
+                            <?php endif; ?>
+                            <?php if ($showColumn('date')): ?>
                             <td class="p-4"><?= esc($visitor['date']) ?></td>
+                            <?php endif; ?>
+                            <?php if ($showColumn('full_name')): ?>
                             <td class="p-4 font-semibold text-gray-800 dark:text-white"><?= esc($visitor['full_name']) ?></td>
-                            <td class="p-4"><?= esc($visitor['ic_passport']) ?></td>
+                            <?php endif; ?>
+                            <?php if ($showColumn('ic_passport')): ?>
+                            <td class="p-4"><?= esc(mask_ic_passport($visitor['ic_passport'])) ?></td>
+                            <?php endif; ?>
+                            <?php if ($showColumn('contact')): ?>
                             <td class="p-4"><?= esc($visitor['contact']) ?></td>
+                            <?php endif; ?>
+                            <?php if ($showColumn('company')): ?>
+                            <td class="p-4"><?= esc($visitor['company'] ?: '-') ?></td>
+                            <?php endif; ?>
+                            <?php if ($showColumn('host')): ?>
+                            <td class="p-4"><?= esc($visitor['host'] ?: '-') ?></td>
+                            <?php endif; ?>
+                            <?php if ($showColumn('vehicle_reg')): ?>
                             <td class="p-4 <?= empty($visitor['vehicle_reg']) ? 'text-gray-400' : '' ?>">
                                 <?= empty($visitor['vehicle_reg']) ? 'NULL' : esc($visitor['vehicle_reg']) ?>
                             </td>
+                            <?php endif; ?>
+                            <?php if ($showColumn('location')): ?>
                             <td class="p-4"><?= esc($visitor['location']) ?></td>
+                            <?php endif; ?>
+                            <?php if ($showColumn('visitor_type')): ?>
                             <td class="p-4"><?= esc($visitor['visitor_type'] ?? '-') ?></td>
+                            <?php endif; ?>
+                            <?php if ($showColumn('type')): ?>
                             <td class="p-4"><?= esc($visitor['type']) ?></td>
-                            <?php if ($cardEnabled): ?>
+                            <?php endif; ?>
+                            <?php if ($showColumn('check_in')): ?>
+                            <td class="p-4">
+                                <?php if (! empty($visitor['check_in_display'])): ?>
+                                <span class="text-green-700 dark:text-green-300 font-semibold"><?= esc($visitor['check_in_display']) ?></span>
+                                <?php else: ?>
+                                <span class="text-gray-400">-</span>
+                                <?php endif; ?>
+                            </td>
+                            <?php endif; ?>
+                            <?php if ($showColumn('check_out')): ?>
+                            <td class="p-4">
+                                <?= ! empty($visitor['check_out_display']) ? esc($visitor['check_out_display']) : '<span class="text-gray-400">-</span>' ?>
+                            </td>
+                            <?php endif; ?>
+                            <?php if ($showCardColumn('card_status')): ?>
                             <td class="p-4">
                                 <?php if ($visitor['card_status'] === 'In Use'): ?>
                                 <span class="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">IN USE</span>
@@ -270,9 +425,13 @@
                                 <span class="text-gray-400 text-[10px]">-</span>
                                 <?php endif; ?>
                             </td>
+                            <?php endif; ?>
+                            <?php if ($showCardColumn('visitor_pass_no')): ?>
                             <td class="p-4"><?= esc($visitor['pass_no'] ?? '') ?></td>
                             <?php endif; ?>
+                            <?php if ($showColumn('reason')): ?>
                             <td class="p-4"><?= esc($visitor['reason']) ?></td>
+                            <?php endif; ?>
                         </tr>
                         <?php endforeach; ?>
                         <?php endif; ?>
@@ -365,6 +524,45 @@
         </div>
     </main>
 
+    <!-- Columns Modal Overlay -->
+    <div id="visitorColumnsModal" class="hidden fixed inset-0 z-[120] flex items-center justify-center p-4">
+        <div id="visitorColumnsBackdrop" onclick="closeVisitorColumnsModal()" class="absolute inset-0 bg-slate-900/55 dark:bg-black/65 cursor-pointer"></div>
+        <form method="POST" action="<?= base_url('visitors/saveColumnSettings') ?>" class="relative flex w-full max-w-[600px] flex-col rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+            <?= csrf_field() ?>
+            <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4 dark:border-slate-700">
+                <h2 class="text-lg font-bold tracking-tight text-[#3b5998] dark:text-white">Show/Hide Columns</h2>
+                <button type="button" onclick="closeVisitorColumnsModal()" class="text-slate-300 hover:text-slate-500">
+                    <span class="material-symbols-outlined text-[20px]">close</span>
+                </button>
+            </div>
+            <div class="px-6 py-5 overflow-y-auto max-h-[60vh] custom-scrollbar">
+                <div class="mb-5 flex items-center gap-2">
+                    <input type="checkbox" id="selectAllVisitorColumns" onchange="toggleAllVisitorColumns(this)" class="rounded border-slate-300 text-[#535dec] focus:ring-[#535dec] h-4 w-4 cursor-pointer">
+                    <label for="selectAllVisitorColumns" class="text-sm font-bold text-slate-700 dark:text-slate-300 cursor-pointer">Select All Columns</label>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-4">
+                    <?php foreach ($visitorListColumnLabels as $key => $label): ?>
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox"
+                               id="visitor_col_<?= esc($key) ?>"
+                               name="visitor_list_columns[<?= esc($key) ?>]"
+                               value="true"
+                               class="visitor-column-toggle rounded border-slate-300 text-[#535dec] focus:ring-[#535dec] h-4 w-4 cursor-pointer"
+                               <?= ! empty($visitorListColumns[$key]) ? 'checked' : '' ?>>
+                        <label for="visitor_col_<?= esc($key) ?>" class="text-sm text-slate-600 dark:text-slate-300 uppercase cursor-pointer">
+                            <?= esc($label) ?>
+                        </label>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 border-t border-slate-100 bg-white px-6 py-4 dark:border-slate-700 dark:bg-slate-900 rounded-b-xl border-t-2">
+                <button type="button" onclick="closeVisitorColumnsModal()" class="rounded-md border border-slate-400 bg-slate-500 hover:bg-slate-600 px-5 py-2 text-sm font-semibold text-white transition-colors">Close</button>
+                <button type="submit" class="rounded-md bg-[#535dec] hover:bg-[#4853e0] px-5 py-2 text-sm font-semibold text-white shadow-md transition-colors">Apply Changes</button>
+            </div>
+        </form>
+    </div>
+
     <!-- MyKad OCR Modal -->
     <div id="visitorMyKadModal" class="hidden fixed inset-0 z-[110] overflow-y-auto" aria-hidden="true">
         <div class="flex min-h-screen items-center justify-center p-4">
@@ -429,7 +627,7 @@
                 <div id="statusBadge" class="mb-6"></div>
 
                 <!-- Visitor Information (editable) -->
-                <div class="mb-6">
+                <div id="detailVisitorInformationSection" class="mb-6">
                     <h3 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-2">
                         <span class="material-symbols-outlined text-lg">badge</span>
                         Visitor Information
@@ -437,7 +635,7 @@
                     <div class="bg-gray-50 dark:bg-slate-800 rounded-lg p-5 border border-gray-200 dark:border-gray-700">
                         <div class="flex flex-col md:flex-row gap-6">
                             <!-- Photo Section -->
-                            <div class="flex flex-col items-center gap-3">
+                            <div id="detailProfilePhotoWrap" class="flex flex-col items-center gap-3">
                                 <div class="w-32 h-40 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden shadow-sm flex items-center justify-center relative">
                                     <img id="detailProfilePhoto" src="" class="absolute inset-0 w-full h-full object-cover hidden" alt="Visitor">
                                     <div id="detailPhotoPlaceholder" class="flex flex-col items-center text-slate-300 dark:text-slate-600">
@@ -456,35 +654,36 @@
 
                             <!-- Fields Grid -->
                             <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
+                                <div id="detailFullNameWrap">
                                     <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Full Name</label>
                                     <input type="text" id="editFullName" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
                                 </div>
-                                <div>
+                                <div id="detailIcPassportWrap">
                                     <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">IC / Passport No</label>
-                                    <input type="text" id="editIcPassport" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
+                                    <input type="text" id="editIcPassport" readonly class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-gray-100 dark:bg-slate-700 text-gray-900 dark:text-white cursor-not-allowed"/>
+                                    <input type="hidden" id="editIcPassportRaw"/>
                                 </div>
-                                <div>
+                                <div id="detailContactWrap">
                                     <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Contact Number</label>
                                     <input type="text" id="editContact" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
                                 </div>
-                                <div>
+                                <div id="detailCompanyWrap">
                                     <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Company</label>
                                     <input type="text" id="editCompany" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
                                 </div>
-                                <div class="md:col-span-2">
+                                <div id="detailReasonWrap" class="md:col-span-2">
                                     <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Reason</label>
                                     <textarea id="editReason" rows="2" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"></textarea>
                                 </div>
-                                <div>
+                                <div id="detailHostWrap">
                                     <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Host / Invited By</label>
                                     <input type="text" id="editInvitedBy" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
                                 </div>
-                                <div>
+                                <div id="detailVehicleWrap">
                                     <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Vehicle Registration</label>
                                     <input type="text" id="editVehicle" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
                                 </div>
-                                <div class="md:col-span-2">
+                                <div id="detailLocationWrap" class="md:col-span-2">
                                     <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Location</label>
                                     <input type="text" id="editLocation" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
                                 </div>
@@ -494,7 +693,7 @@
                 </div>
 
                 <!-- Date of Visit -->
-                <div class="mb-6">
+                <div id="detailDateOfVisitSection" class="mb-6">
                     <h3 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-2">
                         <span class="material-symbols-outlined text-lg">event_available</span>
                         Date of Visit
@@ -524,17 +723,17 @@
                 </div>
 
                 <!-- Visit Details -->
-                <div class="mb-6">
+                <div id="detailVisitDetailsSection" class="mb-6">
                     <h3 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-2">
                         <span class="material-symbols-outlined text-lg">event</span>
                         Visit Details
                     </h3>
                     <div class="bg-gray-50 dark:bg-slate-800 rounded-lg p-4 grid grid-cols-1 md:grid-cols-2 gap-4 border border-gray-200 dark:border-gray-700">
-                        <div>
+                        <div class="<?= empty($visitorListColumns['type']) ? 'hidden' : '' ?>">
                             <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Visit Type (from check-in)</p>
                             <p id="detailType" class="text-sm font-semibold text-gray-900 dark:text-white py-2"></p>
                         </div>
-                        <div id="visitorTypeFieldWrap" class="min-w-0 transition-shadow duration-300">
+                        <div id="visitorTypeFieldWrap" class="min-w-0 transition-shadow duration-300 <?= empty($visitorListColumns['visitor_type']) ? 'hidden' : '' ?>">
                         <?php if (! empty($showVisitorTypes)): ?>
                             <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Visitor Type</label>
                             <select id="editVisitorTypeId" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary">
@@ -549,11 +748,11 @@
                         <?php endif; ?>
                         </div>
 
-                        <div>
+                        <div class="<?= empty($visitorListColumns['check_in']) ? 'hidden' : '' ?>">
                             <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Check-in</label>
                             <input type="datetime-local" id="editCheckIn" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
                         </div>
-                        <div>
+                        <div class="<?= empty($visitorListColumns['check_out']) ? 'hidden' : '' ?>">
                             <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Check-out</label>
                             <input type="datetime-local" id="editCheckOut" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
                         </div>
@@ -562,18 +761,18 @@
 
                 <?php if ($cardEnabled): ?>
                 <!-- Pass Information -->
-                <div>
+                <div class="<?= empty($visitorListColumns['visitor_pass_no']) && empty($visitorListColumns['card_status']) ? 'hidden' : '' ?>">
                     <h3 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-2">
                         <span class="material-symbols-outlined text-lg">credit_card</span>
                         Pass Information
                     </h3>
                     <div class="bg-gray-50 dark:bg-slate-800 rounded-lg p-4 grid grid-cols-1 md:grid-cols-2 gap-4 border border-gray-200 dark:border-gray-700">
-                        <div>
+                        <div class="<?= empty($visitorListColumns['visitor_pass_no']) ? 'hidden' : '' ?>">
                             <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Visitor Pass No (EPC)</label>
                             <input type="text" id="editPassNo" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
                             <p id="editPassNoHint" class="text-[10px] text-gray-500 mt-1 hidden">Bind a card first to edit EPC, or use Bind Card below.</p>
                         </div>
-                        <div>
+                        <div class="<?= empty($visitorListColumns['card_status']) ? 'hidden' : '' ?>">
                             <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Card Status (raw)</label>
                             <select id="editCardStatusRaw" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary">
                                 <option value="active">active</option>
@@ -621,10 +820,12 @@
                         <span class="material-symbols-outlined text-lg">assignment_return</span>
                         Return Card
                     </button>
+                    <?php if (! empty($visitorListColumns['card_detail_button'])): ?>
                     <button onclick="openCardBindingModal()" class="px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
                         <span class="material-symbols-outlined text-lg">badge</span>
                         i Card Details
                     </button>
+                    <?php endif; ?>
                     <button type="button" onclick="openQrCodeModal()" class="px-4 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
                         <span class="material-symbols-outlined text-lg">qr_code</span>
                         QR Code
@@ -777,6 +978,46 @@
         let currentVisitorId = null;
         let currentInvitationVisitorId = null;
         let selectedProfilePhotoPreviewUrl = null;
+
+        function getVisitorColumnCheckboxes() {
+            return Array.from(document.querySelectorAll('.visitor-column-toggle'));
+        }
+
+        function syncVisitorColumnSelectAll() {
+            const selectAll = document.getElementById('selectAllVisitorColumns');
+            if (!selectAll) return;
+            const boxes = getVisitorColumnCheckboxes();
+            const checkedCount = boxes.filter((box) => box.checked).length;
+            selectAll.checked = boxes.length > 0 && checkedCount === boxes.length;
+            selectAll.indeterminate = checkedCount > 0 && checkedCount < boxes.length;
+        }
+
+        function openVisitorColumnsModal() {
+            const modal = document.getElementById('visitorColumnsModal');
+            if (!modal) return;
+            syncVisitorColumnSelectAll();
+            modal.classList.remove('hidden');
+        }
+
+        function closeVisitorColumnsModal() {
+            const modal = document.getElementById('visitorColumnsModal');
+            if (!modal) return;
+            modal.classList.add('hidden');
+        }
+
+        function toggleAllVisitorColumns(elem) {
+            getVisitorColumnCheckboxes().forEach((box) => {
+                box.checked = elem.checked;
+            });
+            syncVisitorColumnSelectAll();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            getVisitorColumnCheckboxes().forEach((box) => {
+                box.addEventListener('change', syncVisitorColumnSelectAll);
+            });
+            syncVisitorColumnSelectAll();
+        });
 
         function mysqlToDatetimeLocal(v) {
             if (!v) return '';
@@ -948,15 +1189,44 @@
 
             try {
                 const raw = row.getAttribute('data-visitor-json') || '{}';
-                openDetailModal(JSON.parse(raw));
+                const bytes = Uint8Array.from(atob(raw), character => character.charCodeAt(0));
+                const json = new TextDecoder('utf-8').decode(bytes);
+                openDetailModal(JSON.parse(json));
             } catch (err) {
                 console.error('Failed to parse visitor payload:', err);
                 alert('Unable to open visitor details for this row. Please refresh and try again.');
             }
         }
 
+        function applyVisitorDetailConfig(config) {
+            const resolved = config && typeof config === 'object' ? config : {};
+            const visibility = {
+                detailVisitorInformationSection: resolved.visitor_information !== false,
+                detailProfilePhotoWrap: resolved.profile_photo !== false,
+                detailFullNameWrap: resolved.full_name !== false,
+                detailIcPassportWrap: resolved.ic_passport !== false,
+                detailContactWrap: resolved.contact !== false,
+                detailCompanyWrap: resolved.company !== false,
+                detailReasonWrap: resolved.reason !== false,
+                detailHostWrap: resolved.host !== false,
+                detailVehicleWrap: resolved.vehicle_registration !== false,
+                detailLocationWrap: resolved.location !== false,
+                detailDateOfVisitSection: resolved.date_of_visit !== false,
+                detailVisitDetailsSection: resolved.visit_details !== false
+            };
+
+            Object.entries(visibility).forEach(function ([id, visible]) {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.classList.toggle('hidden', !visible);
+                }
+            });
+        }
+
         function openDetailModal(visitor) {
             const modal = document.getElementById('detailModal');
+
+            applyVisitorDetailConfig(visitor.detail_config);
             
             currentVisitorId = visitor.id;
             currentInvitationVisitorId = visitor.id;
@@ -973,7 +1243,9 @@
             }
 
             document.getElementById('editFullName').value = visitor.full_name || '';
-            document.getElementById('editIcPassport').value = (visitor.ic_passport && visitor.ic_passport !== 'N/A') ? visitor.ic_passport : '';
+            const rawIcPassport = (visitor.ic_passport && visitor.ic_passport !== 'N/A') ? String(visitor.ic_passport) : '';
+            document.getElementById('editIcPassportRaw').value = rawIcPassport;
+            document.getElementById('editIcPassport').value = rawIcPassport ? 'XXXX' + rawIcPassport.slice(-4) : '';
             document.getElementById('editContact').value = (visitor.contact && visitor.contact !== 'N/A') ? visitor.contact : '';
             document.getElementById('editCompany').value = visitor.company || '';
             document.getElementById('editVehicle').value = visitor.vehicle_reg || '';
@@ -1003,26 +1275,40 @@
             syncVisitorDetailPhoto(visitor);
 
             const hasCard = !!(visitor.card_id || visitor.visitor_card_table_id);
-            document.getElementById('editPassNo').disabled = !hasCard;
-            document.getElementById('editCardStatusRaw').disabled = !hasCard;
-            document.getElementById('editPassNoHint').classList.toggle('hidden', hasCard);
-            document.getElementById('editPassNo').value = visitor.pass_no || visitor.card_epc || '';
+            const passNoInput = document.getElementById('editPassNo');
+            const cardStatusInput = document.getElementById('editCardStatusRaw');
+            const passNoHint = document.getElementById('editPassNoHint');
             const raw = visitor.card_status_raw;
-            const allowed = ['active', 'in_use', 'lost', 'inactive'];
-            document.getElementById('editCardStatusRaw').value = raw && allowed.includes(raw) ? raw : 'active';
+            if (passNoInput && cardStatusInput && passNoHint) {
+                passNoInput.disabled = !hasCard;
+                cardStatusInput.disabled = !hasCard;
+                passNoHint.classList.toggle('hidden', hasCard);
+                passNoInput.value = visitor.pass_no || visitor.card_epc || '';
+                const allowed = ['active', 'in_use', 'lost', 'inactive'];
+                cardStatusInput.value = raw && allowed.includes(raw) ? raw : 'active';
+            }
 
             const returnBtn = document.getElementById('btnReturnCardFromDetail');
             const normalizedCardStatus = String(visitor.card_status || '').toLowerCase().trim();
             const showReturnButton = raw === 'in_use' || normalizedCardStatus === 'in use' || normalizedCardStatus === 'in_use';
-            returnBtn.classList.toggle('hidden', !showReturnButton);
-            returnBtn.disabled = false;
+            if (returnBtn) {
+                returnBtn.classList.toggle('hidden', !showReturnButton);
+                returnBtn.disabled = false;
+            }
 
             const statusBadge = document.getElementById('statusBadge');
-            if (visitor.card_status === 'In Use') {
+            const showCardIssueBadge = <?= ! empty($visitorListColumns['card_issue_badge']) ? 'true' : 'false' ?>;
+            if (!showCardIssueBadge) {
+                statusBadge.innerHTML = '';
+                statusBadge.classList.add('hidden');
+            } else if (visitor.card_status === 'In Use') {
+                statusBadge.classList.remove('hidden');
                 statusBadge.innerHTML = '<span class="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-lg text-sm font-semibold border border-blue-200 dark:border-blue-800"><span class="material-symbols-outlined text-base">credit_card</span>IN USE</span>';
             } else if (visitor.card_status === 'Inactive') {
+                statusBadge.classList.remove('hidden');
                 statusBadge.innerHTML = '<span class="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded-lg text-sm font-semibold border border-gray-200 dark:border-gray-700"><span class="material-symbols-outlined text-base">credit_card_off</span>Inactive</span>';
             } else {
+                statusBadge.classList.remove('hidden');
                 statusBadge.innerHTML = '<span class="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-lg text-sm font-semibold border border-gray-200 dark:border-gray-700"><span class="material-symbols-outlined text-base">info</span>No Card Issued</span>';
             }
 
@@ -1098,12 +1384,14 @@
             errEl.classList.add('hidden');
 
             const ivId = parseInt(document.getElementById('editInvitationVisitorId').value, 10);
+            const passNoInput = document.getElementById('editPassNo');
+            const cardStatusInput = document.getElementById('editCardStatusRaw');
             const payload = {
                 invitation_visitor_id: ivId,
                 iv_version: parseInt(document.getElementById('editIvVersion').value, 10) || 1,
                 invitation_version: parseInt(document.getElementById('editInvitationVersion').value, 10) || 1,
                 full_name: document.getElementById('editFullName').value.trim(),
-                ic_passport: document.getElementById('editIcPassport').value.trim(),
+                ic_passport: document.getElementById('editIcPassportRaw').value.trim(),
                 contact: document.getElementById('editContact').value.trim(),
                 company: document.getElementById('editCompany').value.trim(),
                 vehicle_reg: document.getElementById('editVehicle').value.trim(),
@@ -1112,8 +1400,8 @@
                 reason: document.getElementById('editReason').value.trim(),
                 check_in_time: document.getElementById('editCheckIn').value || null,
                 check_out_time: document.getElementById('editCheckOut').value || null,
-                pass_no: document.getElementById('editPassNo').disabled ? '' : document.getElementById('editPassNo').value.trim(),
-                card_status_raw: document.getElementById('editCardStatusRaw').disabled ? '' : document.getElementById('editCardStatusRaw').value,
+                pass_no: !passNoInput || passNoInput.disabled ? '' : passNoInput.value.trim(),
+                card_status_raw: !cardStatusInput || cardStatusInput.disabled ? '' : cardStatusInput.value,
             };
 
             const sid = document.getElementById('editScheduleId').value;

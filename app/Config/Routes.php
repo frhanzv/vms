@@ -284,7 +284,7 @@ $routes->post('dashboard/uploadPosterImage', 'Dashboard::uploadPosterImage');
 // Live view: superadmin, client superadmin, admin, officer
 // Designer writes are additionally checked inside the controller.
 // ===========================
-$routes->group('', ['filter' => $plusAdminOfficer], function($routes) {
+$routes->group('', ['filter' => [$plusAdminOfficer, 'client_feature:emap']], function($routes) {
     $routes->get('e-map', 'Emap::index');
     $routes->get('api/e-map/bootstrap', 'Emap::bootstrap');
     $routes->get('api/e-map/live', 'Emap::live');
@@ -306,6 +306,7 @@ $routes->group('', ['filter' => ['permission:visitor_pass_list,invitations', 'cl
     $routes->get('invitations', 'InvitationList::index');
     $routes->get('invitations/data', 'InvitationList::data');
     $routes->get('invitations/export', 'InvitationList::export');
+    $routes->post('invitations/saveColumnSettings', 'InvitationList::saveColumnSettings');
     $routes->get('invitations/create', 'InvitationList::create');
     $routes->post('invitations/store', 'InvitationList::store');
     $routes->post('invitations/resend/(:num)', 'InvitationList::resend/$1');
@@ -332,7 +333,7 @@ $routes->group('', ['filter' => ['permission:visitor_pass_list,visitors_list', '
 // superadmin, clientsuperadmin, admin, host
 // ===========================
 
-$routes->group('', ['filter' => $plusAdminHost], function($routes) {
+$routes->group('', ['filter' => [$plusAdminHost, 'client_feature:auto_approve_after_workflow,disabled']], function($routes) {
     $routes->get('requests', 'RequestList::index');
     $routes->post('requests/pastVisits', 'RequestList::pastVisits');
 });
@@ -342,7 +343,7 @@ $routes->group('', ['filter' => $plusAdminHost], function($routes) {
 // superadmin, clientsuperadmin, admin (not host)
 // ===========================
 
-$routes->group('', ['filter' => $plusAdmin], function($routes) {
+$routes->group('', ['filter' => [$plusAdmin, 'client_feature:auto_approve_after_workflow,disabled']], function($routes) {
     $routes->post('requests/approve', 'RequestList::approve');
     $routes->post('requests/batchApprove', 'RequestList::batchApprove');
     $routes->post('requests/reject', 'RequestList::reject');
