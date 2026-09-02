@@ -103,7 +103,7 @@ class VisitorInfoByDoor extends BaseController
 
                 // Fields for Details Modal
                 'full_name'      => $row['visitor_name'] ?? 'Unknown',
-                'ic_passport'    => $row['ic_passport'] ?: 'NULL',
+                'ic_passport'    => mask_ic_passport($row['ic_passport'] ?? '', 'NULL'),
                 'company'        => $row['company'] ?: 'N/A',
                 'reason'         => $row['reason'] ?: 'N/A',
                 'date'           => $row['invitation_date'] ? date('M j, Y', strtotime($row['invitation_date'])) : '-',

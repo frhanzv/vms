@@ -149,7 +149,7 @@
                                     <td class="px-4 py-3.5 text-sm text-slate-500 font-medium"><?= ($rowOffset ?? 0) + $index + 1 ?></td>
                                     <td class="px-4 py-3.5 text-sm text-slate-600"><?= esc($entry['created_date'] ?? '—') ?></td>
                                     <td class="px-4 py-3.5 text-sm text-slate-600"><?= esc($entry['blacklist_date'] ?? '—') ?></td>
-                                    <td class="px-4 py-3.5 text-sm text-slate-600 font-mono"><?= esc($entry['ic_passport_no']) ?></td>
+                                    <td class="px-4 py-3.5 text-sm text-slate-600 font-mono"><?= esc(mask_ic_passport($entry['ic_passport_no'])) ?></td>
                                     <td class="px-4 py-3.5 text-sm text-slate-600"><?= esc($entry['staff_id'] ?? '—') ?></td>
                                     <td class="px-4 py-3.5 text-sm font-semibold text-slate-900 uppercase"><?= esc($entry['name']) ?></td>
                                     <td class="px-4 py-3.5 text-sm text-slate-600"><?= esc($entry['type']) ?></td>
@@ -353,7 +353,7 @@ function openModal(id) {
             const d = data.data;
             document.getElementById('m_blacklist_date').textContent = d.blacklist_date || '—';
             document.getElementById('m_reason').textContent         = d.reason || '—';
-            document.getElementById('m_ic').textContent             = d.ic_passport_no || '—';
+            document.getElementById('m_ic').textContent             = d.ic_passport_masked || (d.ic_passport_no ? 'XXXX' + String(d.ic_passport_no).slice(-4) : '—');
             document.getElementById('m_name').textContent           = d.name || '—';
             document.getElementById('m_type').textContent           = d.type || '—';
             document.getElementById('m_staff_id').textContent       = d.staff_id || '—';

@@ -208,7 +208,7 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div class="space-y-2">
                                 <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">IC Number</label>
-                                <input value="<?= esc($staff['ic_passport']) ?>" class="w-full h-12 rounded-lg border border-border-color dark:border-gray-700 bg-gray-100 dark:bg-background-dark text-text-main dark:text-white px-4 outline-none font-brand" type="text" readonly/>
+                                <input value="<?= esc(mask_ic_passport($staff['ic_passport'])) ?>" class="w-full h-12 rounded-lg border border-border-color dark:border-gray-700 bg-gray-100 dark:bg-background-dark text-text-main dark:text-white px-4 outline-none font-brand" type="text" readonly/>
                             </div>
                             <div class="space-y-2">
                                 <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Birthday</label>

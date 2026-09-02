@@ -763,7 +763,7 @@
                 tr.innerHTML = `
             <td class="text-center text-slate-400 font-semibold">${idx + 1}</td>
             <td class="font-bold text-slate-800 uppercase px-4">${escHtml(v.visitor_name)}</td>
-            <td class="px-4">${escHtml(v.ic_no)}</td>
+            <td class="px-4">${escHtml(v.ic_no_masked || (v.ic_no ? 'XXXX' + String(v.ic_no).slice(-4) : 'N/A'))}</td>
             <td class="px-4 uppercase">${escHtml(v.visitor_company)}</td>
             <td class="px-4">${escHtml(v.contact_no)}</td>
             <td class="px-4 text-xs font-medium text-slate-500">${escHtml(v.visit_from)}</td>
@@ -1059,7 +1059,7 @@
 
             const s = data.summary;
             document.getElementById('tmFullname').textContent = s.full_name;
-            document.getElementById('tmIcno').textContent = s.ic_no;
+            document.getElementById('tmIcno').textContent = s.ic_no_masked || (s.ic_no ? 'XXXX' + String(s.ic_no).slice(-4) : 'N/A');
             
             // Prefer API summary so the modal matches registration/card logic even if the grid was stale.
             const displayStatus = (s.status ? String(s.status).replace(/_/g, ' ') : '') || (tableStatus || '—');
@@ -1180,7 +1180,7 @@ function downloadChronologyExcel(data) {
     const rows = [];
     rows.push(["Movement Summary"]);
     rows.push(["Full Name", data.summary.full_name]);
-    rows.push(["IC No", data.summary.ic_no]);
+    rows.push(["IC No", data.summary.ic_no ? 'XXXX' + String(data.summary.ic_no).slice(-4) : 'N/A']);
     rows.push(["Total Time", data.summary.total_time]);
     rows.push(["Total Visits", data.summary.total_visits]);
     rows.push(["Total Scans", data.summary.total_scans]);
@@ -1219,7 +1219,7 @@ function openDetailsModal(invId) {
     };
 
     setText('mdFullname', v.visitor_name);
-    setText('mdIcno', v.ic_no);
+    setText('mdIcno', v.ic_no_masked || (v.ic_no ? 'XXXX' + String(v.ic_no).slice(-4) : 'N/A'));
     setText('mdPersonVisited', v.person_visited);
     setText('mdVisitFrom', v.visit_from);
     setText('mdReason', v.visit_reason);

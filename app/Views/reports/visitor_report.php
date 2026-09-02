@@ -373,7 +373,7 @@
                 <td class="text-slate-500 font-medium py-4">${i + 1}</td>
                 <td class="text-slate-500 py-4">${val(v.visit_date)}</td>
                 <td class="font-bold text-slate-800 uppercase tracking-tight text-xs py-4">${val(v.visitor_name)}</td>
-                <td class="text-slate-500 py-4">${val(v.ic_no)}</td>
+                <td class="text-slate-500 py-4">${val(v.ic_no_masked || (v.ic_no ? 'XXXX' + String(v.ic_no).slice(-4) : 'N/A'))}</td>
                 <td class="text-slate-500 py-4">${val(v.contact_no)}</td>
                 <td class="text-slate-500 py-4">${val(v.visitor_company)}</td>
                 <td class="text-slate-500 py-4">${val(v.current_location)}</td>

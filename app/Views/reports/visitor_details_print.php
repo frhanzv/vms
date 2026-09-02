@@ -62,7 +62,7 @@
         </div>
         <div>
             <span class="label">IC No:</span>
-            <div class="info-box"><?= esc($visitor['ic_passport']) ?></div>
+            <div class="info-box"><?= esc(mask_ic_passport($visitor['ic_passport'])) ?></div>
         </div>
 
         <!-- Row 2: Contact No & Company Name -->

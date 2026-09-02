@@ -15,7 +15,7 @@ class VideoModel extends Model
     protected $returnType = 'array';
     protected $useSoftDeletes = false;
     protected $protectFields = true;
-    protected $allowedFields = ['name', 'file_path', 'status', 'version'];
+    protected $allowedFields = ['client_id', 'name', 'file_path', 'status', 'version'];
 
     // Dates
     protected $useTimestamps = true;
@@ -47,12 +47,16 @@ class VideoModel extends Model
     /**
      * Get videos with pagination, search, and sorting
      */
-    public function getVideosWithPagination($page = 1, $search = '', $sortBy = '')
+    public function getVideosWithPagination($page = 1, $search = '', $sortBy = '', ?int $clientId = null)
     {
         $limit = 10;
         $offset = ($page - 1) * $limit;
         
         $builder = $this->builder();
+
+        if ($clientId !== null) {
+            $clientId === 0 ? $builder->where('client_id', null) : $builder->where('client_id', $clientId);
+        }
 
         // Apply search
         if (!empty($search)) {
@@ -81,9 +85,13 @@ class VideoModel extends Model
     /**
      * Get total videos count with search
      */
-    public function getTotalVideos($search = '')
+    public function getTotalVideos($search = '', ?int $clientId = null)
     {
         $builder = $this->builder();
+
+        if ($clientId !== null) {
+            $clientId === 0 ? $builder->where('client_id', null) : $builder->where('client_id', $clientId);
+        }
 
         if (!empty($search)) {
             $builder->like('name', $search);
@@ -108,6 +116,27 @@ class VideoModel extends Model
     public function getActiveVideo()
     {
         return $this->where('status', 'active')
+            ->orderBy('id', 'DESC')
+            ->first();
+    }
+
+    /**
+     * Prefer the client's newest active video, then fall back to a global video.
+     */
+    public function getActiveVideoForClient(int $clientId): ?array
+    {
+        if ($clientId > 0) {
+            $video = $this->where('client_id', $clientId)
+                ->where('status', 'active')
+                ->orderBy('id', 'DESC')
+                ->first();
+            if ($video) {
+                return $video;
+            }
+        }
+
+        return $this->where('client_id', null)
+            ->where('status', 'active')
             ->orderBy('id', 'DESC')
             ->first();
     }

@@ -2696,8 +2696,20 @@
                     </button>
                     <div id="video-content" class="hidden border-t border-gray-200 dark:border-slate-700">
                         <div class="p-6 bg-gray-50 dark:bg-slate-800/50">
+                            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
+                                <label class="text-sm font-semibold text-gray-700 dark:text-slate-300 whitespace-nowrap font-brand">Select Client:</label>
+                                <div class="relative w-full sm:w-80">
+                                    <select id="video-client-filter" onchange="handleVideoClientChange()"
+                                        class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm font-brand">
+                                        <option value="">-- Select a client --</option>
+                                    </select>
+                                    <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                                        <span class="material-symbols-outlined text-gray-400 text-lg">expand_more</span>
+                                    </span>
+                                </div>
+                            </div>
                             <!-- Search, Sort and Create -->
-                            <div
+                            <div id="video-management-controls"
                                 class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                                 <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                                     <div class="flex shadow-sm w-full sm:w-96">
@@ -2735,13 +2747,14 @@
                                         class="text-xs text-gray-600 dark:text-slate-400 uppercase border-b border-gray-200 dark:border-slate-700">
                                         <tr>
                                             <th class="px-4 py-3">Name</th>
+                                            <th class="px-4 py-3">Client</th>
                                             <th class="px-4 py-3">Status</th>
                                             <th class="px-4 py-3 w-32">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody id="videoTableBody" class="text-gray-700 dark:text-slate-300">
                                         <tr>
-                                            <td colspan="3" class="px-4 py-12 text-center">
+                                            <td colspan="4" class="px-4 py-12 text-center">
                                                 <div class="flex flex-col items-center justify-center">
                                                     <div
                                                         class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4">
@@ -3330,72 +3343,6 @@
                     </div>
                 </div>
 
-                <!-- Visitor Settings -->
-                <div
-                    class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
-                    <button onclick="toggleSection('visitor')"
-                        class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
-                        <div class="flex items-center gap-4">
-                            <div class="p-2 bg-primary/10 rounded-lg">
-                                <span class="material-symbols-outlined text-primary text-xl">badge</span>
-                            </div>
-                            <div class="text-left">
-                                <h3 class="text-base font-bold text-gray-800 dark:text-white">Visitor Settings</h3>
-                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Configure visitor
-                                    registration and check-in preferences</p>
-                            </div>
-                        </div>
-                        <span id="visitor-icon"
-                            class="material-symbols-outlined text-gray-400 dark:text-slate-400 transition-transform">expand_more</span>
-                    </button>
-                    <div id="visitor-content" class="hidden border-t border-gray-200 dark:border-slate-700">
-                        <div class="p-6 bg-gray-50 dark:bg-slate-800/50 space-y-5">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <p class="text-sm font-semibold text-slate-700 dark:text-slate-300">Auto-approve
-                                        Invitations</p>
-                                    <p class="text-xs text-slate-500 mt-1">Automatically approve visitor invitations
-                                        without manual review</p>
-                                </div>
-                                <label class="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" class="sr-only peer">
-                                    <div
-                                        class="w-11 h-6 bg-gray-300 dark:bg-slate-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary">
-                                    </div>
-                                </label>
-                            </div>
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <p class="text-sm font-semibold text-slate-700 dark:text-slate-300">Require Photo
-                                        Upload</p>
-                                    <p class="text-xs text-slate-500 mt-1">Mandatory photo upload for all visitor
-                                        registrations</p>
-                                </div>
-                                <label class="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" checked class="sr-only peer">
-                                    <div
-                                        class="w-11 h-6 bg-gray-300 dark:bg-slate-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary">
-                                    </div>
-                                </label>
-                            </div>
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <p class="text-sm font-semibold text-slate-700 dark:text-slate-300">Enable QR Code
-                                        Check-in</p>
-                                    <p class="text-xs text-slate-500 mt-1">Allow visitors to check-in using QR code
-                                        scanning</p>
-                                </div>
-                                <label class="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" checked class="sr-only peer">
-                                    <div
-                                        class="w-11 h-6 bg-gray-300 dark:bg-slate-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary">
-                                    </div>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Visitor QR Code -->
                 <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('visitorqrcode')" class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
@@ -3439,6 +3386,14 @@
                     <div id="email-template-content" class="hidden border-t border-gray-200 dark:border-slate-700">
                         <!-- List View (Table) -->
                         <div id="emailTemplateListView" class="p-6 bg-gray-50 dark:bg-slate-800/50 space-y-6">
+                            <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
+                                <label for="email-template-client-filter" class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-2">Client</label>
+                                <select id="email-template-client-filter" onchange="handleEmailTemplateClientChange()" class="w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white px-3 py-2.5 text-sm focus:ring-primary focus:border-primary">
+                                    <option value="">Select client...</option>
+                                </select>
+                                <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">Templates saved here apply only to the selected client. Client templates fall back to the global default when not configured.</p>
+                            </div>
+                            <div id="email-template-management-controls" class="space-y-6 opacity-50 pointer-events-none">
                             <div class="flex items-center justify-between">
                                 <div>
                                         <p class="text-sm font-semibold text-slate-700 dark:text-slate-300">Email templates</p>
@@ -3486,6 +3441,7 @@
                                         <tbody id="emailTemplateProcessTableBody" class="divide-y divide-slate-100 dark:divide-slate-700 text-slate-700 dark:text-slate-200"></tbody>
                                     </table>
                                 </div>
+                            </div>
                             </div>
                         </div>
 
@@ -5070,6 +5026,15 @@
                                 <div class="ml-4 space-y-2">
                                     <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                                         <input type="checkbox" name="access[staff_pass_list][view]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> View
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[staff_pass_list][edit]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Edit
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[staff_pass_list][delete]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Delete
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[staff_pass_list][print]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Print
                                     </label>
                                 </div>
                             </div>
@@ -12624,11 +12589,51 @@
         let currentVideoSearch = '';
         let currentVideoSort = '';
         let currentVideoId = null;
+        let videoSelectedClientId = '';
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const select = document.getElementById('video-client-filter');
+            if (!select) return;
+            if (canManageAllClientCompanies) {
+                const globalOption = document.createElement('option');
+                globalOption.value = 'global';
+                globalOption.textContent = 'Global Default';
+                select.appendChild(globalOption);
+            }
+            populateScopedCompanySelect(select, () => {
+                if (!canManageAllClientCompanies && scopedClientCompanyId) {
+                    videoSelectedClientId = String(scopedClientCompanyId);
+                    loadVideos(1);
+                }
+            });
+            updateVideoManagementAvailability();
+        });
+
+        function handleVideoClientChange() {
+            videoSelectedClientId = document.getElementById('video-client-filter')?.value || '';
+            currentVideoSearch = '';
+            const search = document.getElementById('videoSearchInput');
+            if (search) search.value = '';
+            updateVideoManagementAvailability();
+            loadVideos(1);
+        }
+
+        function updateVideoManagementAvailability() {
+            const controls = document.getElementById('video-management-controls');
+            if (!controls) return;
+            controls.classList.toggle('opacity-50', !videoSelectedClientId);
+            controls.classList.toggle('pointer-events-none', !videoSelectedClientId);
+        }
 
         function loadVideos(page = 1) {
             currentVideoPage = page;
 
-            fetch(`<?= base_url('config/getVideos') ?>?page=${page}&search=${encodeURIComponent(currentVideoSearch)}&sort=${currentVideoSort}`)
+            if (!videoSelectedClientId) {
+                document.getElementById('videoTableBody').innerHTML = '<tr><td colspan="4" class="px-4 py-12 text-center text-gray-500 dark:text-slate-400">Select a client to manage its videos.</td></tr>';
+                return;
+            }
+
+            fetch(`<?= base_url('config/getVideos') ?>?page=${page}&search=${encodeURIComponent(currentVideoSearch)}&sort=${currentVideoSort}&client_id=${encodeURIComponent(videoSelectedClientId)}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
@@ -12636,7 +12641,7 @@
                     } else {
                         document.getElementById('videoTableBody').innerHTML = `
                             <tr>
-                                <td colspan="3" class="px-4 py-12 text-center">
+                                <td colspan="4" class="px-4 py-12 text-center">
                                     <div class="flex flex-col items-center justify-center">
                                         <span class="material-symbols-outlined text-red-500 text-5xl mb-2">error</span>
                                         <p class="text-gray-500 dark:text-slate-400">${data.message || 'Error loading videos'}</p>
@@ -12650,7 +12655,7 @@
                     console.error('Error loading videos:', error);
                     document.getElementById('videoTableBody').innerHTML = `
                         <tr>
-                            <td colspan="3" class="px-4 py-12 text-center">
+                            <td colspan="4" class="px-4 py-12 text-center">
                                 <div class="flex flex-col items-center justify-center">
                                     <span class="material-symbols-outlined text-red-500 text-5xl mb-2">error</span>
                                     <p class="text-gray-500 dark:text-slate-400">An error occurred while loading videos</p>
@@ -12691,6 +12696,7 @@
                                 ${escapeHtml(video.name)}
                             </div>
                         </td>
+                        <td class="px-4 py-3">${escapeHtml(video.client_name || 'Global Default')}</td>
                         <td class="px-4 py-3">${statusBadge}</td>
                         <td class="px-4 py-3 w-32">
                             <div class="flex gap-2">
@@ -13131,6 +13137,7 @@
             clearVideoErrors();
 
             const formData = new FormData();
+            formData.append('client_id', videoSelectedClientId === 'global' ? '' : videoSelectedClientId);
             formData.append('name', document.getElementById('videoName').value.trim());
             formData.append('status', document.getElementById('videoStatus').value);
 
@@ -15124,6 +15131,7 @@
         }
 
         let emailTemplates = [];
+        let emailTemplateSelectedClientId = '';
         let currentEmailTemplateSearch = '';
         let currentEmailTemplateSort = 'default';
         // Legacy visual editor state (kept for backward compatibility in this page JS).
@@ -15147,8 +15155,48 @@
         let placeholderDragIndex = null;
         let emailTemplateFocusTrackingBound = false;
 
+        document.addEventListener('DOMContentLoaded', function () {
+            const select = document.getElementById('email-template-client-filter');
+            if (!select) return;
+            if (canManageAllClientCompanies) {
+                const globalOption = document.createElement('option');
+                globalOption.value = 'global';
+                globalOption.textContent = 'Global Default';
+                select.appendChild(globalOption);
+            }
+            populateScopedCompanySelect(select, () => {
+                if (!canManageAllClientCompanies && scopedClientCompanyId) {
+                    emailTemplateSelectedClientId = String(scopedClientCompanyId);
+                    updateEmailTemplateManagementAvailability();
+                    fetchEmailTemplates();
+                    fetchInvitationEmailTemplateSettings();
+                }
+            });
+            updateEmailTemplateManagementAvailability();
+        });
+
+        function handleEmailTemplateClientChange() {
+            emailTemplateSelectedClientId = document.getElementById('email-template-client-filter')?.value || '';
+            updateEmailTemplateManagementAvailability();
+            fetchEmailTemplates();
+            fetchInvitationEmailTemplateSettings();
+        }
+
+        function updateEmailTemplateManagementAvailability() {
+            const controls = document.getElementById('email-template-management-controls');
+            if (!controls) return;
+            controls.classList.toggle('opacity-50', !emailTemplateSelectedClientId);
+            controls.classList.toggle('pointer-events-none', !emailTemplateSelectedClientId);
+        }
+
         function fetchEmailTemplates() {
-            fetch('<?= base_url('config/getEmailTemplates') ?>')
+            if (!emailTemplateSelectedClientId) {
+                emailTemplates = [];
+                const tbody = document.getElementById('emailTemplateProcessTableBody');
+                if (tbody) tbody.innerHTML = '<tr><td colspan="3" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">Select a client to manage its email templates.</td></tr>';
+                return;
+            }
+            fetch(`<?= base_url('config/getEmailTemplates') ?>?client_id=${encodeURIComponent(emailTemplateSelectedClientId)}`)
                 .then(res => res.json())
                 .then(data => {
                     emailTemplates = Array.isArray(data.data) ? data.data : [];
@@ -15281,6 +15329,10 @@
         }
 
         function openEmailTemplateModalForCreate() {
+            if (!emailTemplateSelectedClientId) {
+                showToast('Select a client first', 'warning');
+                return;
+            }
             const modal = document.getElementById('emailTemplateCrudModal');
             if (!modal) return;
 
@@ -15383,6 +15435,7 @@
             formData.append('primary_color', primary_color);
             formData.append('content_bg_color', content_bg_color);
             formData.append('text_color', text_color);
+            formData.append('client_id', emailTemplateSelectedClientId);
             
             const logoFile = document.getElementById('emailTemplateCrudLogo').files[0];
             if (logoFile) {
@@ -15637,8 +15690,9 @@
         }
 
         function fetchInvitationEmailTemplateSettings() {
+            if (!emailTemplateSelectedClientId) return;
             const process = currentEmailTemplateProcess || 'invitation';
-            fetch(`<?= base_url('config/getInvitationEmailTemplateSettings') ?>?process=${encodeURIComponent(process)}`)
+            fetch(`<?= base_url('config/getInvitationEmailTemplateSettings') ?>?process=${encodeURIComponent(process)}&client_id=${encodeURIComponent(emailTemplateSelectedClientId)}`)
                 .then(response => response.json())
                 .then(data => {
                     if (!data.success || !data.data) return;
@@ -15651,9 +15705,14 @@
         }
 
         function saveInvitationEmailTemplateSettings() {
+            if (!emailTemplateSelectedClientId) {
+                showToast('Select a client first', 'warning');
+                return;
+            }
             const process = currentEmailTemplateProcess || 'invitation';
             const payload = {
                 process,
+                client_id: emailTemplateSelectedClientId,
                 subject: document.getElementById('invitationEmailSubject').value,
                 button_text: document.getElementById('invitationEmailButtonText').value,
                 brand_name: document.getElementById('invitationEmailBrandName').value,

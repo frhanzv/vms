@@ -124,7 +124,7 @@ class Auth extends BaseController
             $redirectMap = [
                 'superadmin'       => '/dashboard',
                 'clientsuperadmin' => '/dashboard',
-                'admin'            => '/requests',
+                'admin'            => '/visitors',
                 'officer'          => '/workflow',
                 'host'             => '/invitations',
             ];

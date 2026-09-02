@@ -203,7 +203,7 @@ class VisitorChronology extends BaseController
             $formattedVisitors[] = [
                 'invitation_id'   => $v['invitation_id'],
                 'visitor_name'    => $v['visitor_name'] ?? 'N/A',
-                'ic_no'           => $v['ic_no'] ?? 'N/A',
+                'ic_no'           => mask_ic_passport($v['ic_no'] ?? '', 'N/A'),
                 'visitor_company' => $v['visitor_company'] ?? 'N/A',
                 'contact_no'      => $v['contact_no'] ?? 'N/A',
                 'visit_reason'    => $v['visit_reason'] ?? 'N/A',
@@ -404,7 +404,7 @@ class VisitorChronology extends BaseController
                 'success' => true,
                 'summary' => [
                     'full_name'    => $invitation['full_name'] ?? 'N/A',
-                    'ic_no'        => $invitation['ic_passport'] ?? 'N/A',
+                    'ic_no'        => mask_ic_passport($invitation['ic_passport'] ?? '', 'N/A'),
                     'status'       => $status,
                     'total_time'   => $displayTotalTime,
                     'total_visits' => (!empty($ivRow['check_in_time']) ? 1 : 0),
@@ -540,7 +540,7 @@ class VisitorChronology extends BaseController
             'success' => true,
             'summary' => [
                 'full_name'    => $invitation['full_name'] ?? 'N/A',
-                'ic_no'        => $invitation['ic_passport'] ?? 'N/A',
+                'ic_no'        => mask_ic_passport($invitation['ic_passport'] ?? '', 'N/A'),
                 'status'       => $status,
                 'total_time'   => $displayTotalTime,
                 'total_visits' => count($dates),
@@ -668,7 +668,7 @@ class VisitorChronology extends BaseController
         $data = [
             'summary' => [
                 'full_name' => $invitation['full_name'],
-                'ic_no' => $invitation['ic_passport'],
+                'ic_no' => mask_ic_passport($invitation['ic_passport'] ?? '', 'N/A'),
                 'status' => $realStatus,
                 'total_time' => $this->formatDuration($totalSeconds),
                 'total_visits' => count($uniqueDays),

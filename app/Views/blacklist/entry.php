@@ -146,7 +146,7 @@ function doSearch() {
                 tr.innerHTML = `
                     <td class="px-4 py-3.5 text-sm text-slate-500 font-medium">${index + 1}</td>
                     <td class="px-4 py-3.5 text-sm font-semibold text-slate-900">${row.full_name}</td>
-                    <td class="px-4 py-3.5 text-sm text-slate-600 font-mono">${row.ic_passport || '—'}</td>
+                    <td class="px-4 py-3.5 text-sm text-slate-600 font-mono">${row.ic_passport_masked || (row.ic_passport ? 'XXXX' + String(row.ic_passport).slice(-4) : '—')}</td>
                     <td class="px-4 py-3.5 text-sm text-slate-600">${row.contact || '—'}</td>
                     <td class="px-4 py-3.5 text-sm text-slate-600">${row.company || '—'}</td>
                     <td class="px-4 py-3.5">

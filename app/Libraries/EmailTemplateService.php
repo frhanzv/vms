@@ -43,6 +43,12 @@ class EmailTemplateService
         return 'email_template_' . $process;
     }
 
+    public function getClientStorageKey(string $process, ?int $clientId): string
+    {
+        $key = $this->getStorageKey($process);
+        return $clientId && $clientId > 0 ? $key . '_client_' . $clientId : $key;
+    }
+
     public function getDefaultTemplate(string $process): array
     {
         $defaults = [

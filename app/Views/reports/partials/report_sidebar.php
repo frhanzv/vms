@@ -4,14 +4,15 @@
  *
  * @var string $current
  */
-helper(['access', 'navigation', 'branding']);
+helper(['access', 'navigation', 'branding', 'feature']);
 $current = app_route_path($current ?? null);
 $isDashboard = ($current === '' || $current === 'dashboard');
 $isStaff = str_contains($current, 'staffs') || str_contains($current, 'staff-pass-request');
 $isWorkflow = str_contains($current, 'workflow');
 $isSettings = str_contains($current, 'settings');
 
-$hasVisitorPassAccess = has_access('visitor_pass_list', 'invitations') || has_access('visitor_pass_list', 'request_list') || has_access('visitor_pass_list', 'visitors_list');
+$requestListAvailable = is_platform_superadmin() || ! client_feature_enabled('auto_approve_after_workflow');
+$hasVisitorPassAccess = has_access('visitor_pass_list', 'invitations') || ($requestListAvailable && has_access('visitor_pass_list', 'request_list')) || has_access('visitor_pass_list', 'visitors_list');
 $hasBlacklistAccess   = has_access('blacklist', 'request_list') || has_access('blacklist', 'closed_list') || has_access('blacklist', 'individual_request_list') || has_access('blacklist', 'individual_closed_list') || has_access('blacklist', 'company_request_list') || has_access('blacklist', 'company_closed_list');
 $hasReportAccess      = has_access('report', 'access_report') || has_access('report', 'visitor_report') || has_access('report', 'visitor_chronology') || has_access('report', 'visitor_info_by_door') || has_access('report', 'gate_in_out') || has_access('report', 'out_window_list') || has_access('report', 'port_pass_monthly') || has_access('report', 'port_pass_summary') || has_access('report', 'company_permit_ageing') || has_access('report', 'company_permit_monthly') || has_access('report', 'vehicle_sticker_summary') || has_access('report', 'blacklist_report') || has_access('report', 'attendance_report') || has_access('report', 'monitoring_report');
 $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'alert_priority') || has_access('config', 'api_management') || has_access('config', 'general_settings') || has_access('config', 'application_settings') || has_access('config', 'role_management') || has_access('config', 'user_management') || has_access('config', 'company');
@@ -64,7 +65,7 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
                     Invitations
                 </a>
                 <?php endif; ?>
-                <?php if (has_access('visitor_pass_list', 'request_list')): ?>
+                <?php if ($requestListAvailable && has_access('visitor_pass_list', 'request_list')): ?>
                 <a href="<?= base_url('requests') ?>"
                     class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= str_contains($current, 'requests') ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
                     <span class="w-1.5 h-1.5 rounded-full <?= str_contains($current, 'requests') ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>

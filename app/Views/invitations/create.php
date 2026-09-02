@@ -299,6 +299,7 @@ Add Visitor
 </section>
 
 <!-- Visit Schedule Section -->
+<?php if ($isFieldEnabled('schedule')): ?>
 <section class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden mt-8">
 <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
 <h3 class="text-lg font-bold text-slate-900 dark:text-white">Visit Schedule</h3>
@@ -325,6 +326,7 @@ Add Date Slot
 </div>
 </div>
 </section>
+<?php endif; ?>
 
 <!-- Form Actions -->
 <div class="flex items-center justify-end gap-4 py-6 border-t border-slate-200 dark:border-slate-800 mt-8">
@@ -598,7 +600,7 @@ function reindexScheduleRows() {
     });
 }
 
-document.getElementById('add-schedule').addEventListener('click', function() {
+document.getElementById('add-schedule')?.addEventListener('click', function() {
     const container = document.getElementById('schedule-container');
     const idx = container.querySelectorAll('.schedule-item').length;
     container.insertAdjacentHTML('beforeend', scheduleRowTemplate(idx));
@@ -677,6 +679,7 @@ function setSelectValue(selectEl, value) {
 
 function rebuildSchedulesFromData(schedules) {
     const container = document.getElementById('schedule-container');
+    if (!container) return;
     const list = Array.isArray(schedules) && schedules.length ? schedules : [{ date_from: '', date_to: '' }];
     container.innerHTML = '';
     list.forEach((row, index) => {

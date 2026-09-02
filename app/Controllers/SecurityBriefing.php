@@ -32,18 +32,21 @@ class SecurityBriefing extends BaseController
             $this->request->getGet('flow_step')
         );
 
-        // Get active video from database
-        $activeVideo = $this->videoModel->getActiveVideo();
-        
-        // TODO: Validate token and fetch invitation details from database
-        // For now, using sample data
+        $invitation = null;
+        $invitationId = base64_decode((string) $token, true);
+        if ($invitationId !== false && ctype_digit((string) $invitationId)) {
+            $invitation = $this->invitationModel->find((int) $invitationId);
+        }
+
+        $clientId = (int) ($invitation['client_id'] ?? $invitation['company_id'] ?? 0);
+        $activeVideo = $this->videoModel->getActiveVideoForClient($clientId);
         
         $data = [
             'pageTitle' => 'Security & Safety Briefing - SafeG',
             'token' => $token,
             'flow_step' => $flowStep,
-            'visitor_name' => 'John Doe', // This would come from database
-            'company' => 'ABC Construction Sdn Bhd',
+            'visitor_name' => $invitation['full_name'] ?? 'Visitor',
+            'company' => $invitation['company'] ?? '',
             'visit_date' => date('d/m/Y'),
             'briefing_video_url' => $activeVideo ? base_url($activeVideo['file_path']) : null,
             'video_duration' => 300, // Duration in seconds (5 minutes)

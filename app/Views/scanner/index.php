@@ -417,7 +417,8 @@ function renderResult(data) {
 
     document.getElementById('vName').textContent    = data.visitor.name    || '—';
     document.getElementById('vCompany').textContent = data.visitor.company || '—';
-    document.getElementById('vId').textContent      = data.visitor.id_document || data.visitor.ic_passport || '—';
+    const visitorIdDocument = data.visitor.id_document || data.visitor.ic_passport || '';
+    document.getElementById('vId').textContent      = visitorIdDocument ? 'XXXX' + String(visitorIdDocument).slice(-4) : '—';
     document.getElementById('vTime').textContent    = data.time ? new Date(data.time).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '—';
     document.getElementById('vDuration').textContent = data.duration || '—';
 

@@ -293,7 +293,7 @@
                 <div class="flex gap-3">
                     <span class="material-symbols-outlined text-amber-600 dark:text-amber-400 flex-shrink-0">info</span>
                     <p class="text-sm text-amber-800 dark:text-amber-200 font-medium">
-                        By clicking confirm, you agree to abide by all SafeG site regulations. Failure to comply may result in denied access.
+                        By clicking confirm, you agree to abide by all site regulations. Failure to comply may result in denied access.
                     </p>
                 </div>
             </div>

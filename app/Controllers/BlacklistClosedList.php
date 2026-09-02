@@ -148,7 +148,7 @@ class BlacklistClosedList extends BaseController
                 $index + 1,
                 $row['created_date'] ?? '',
                 $row['blacklist_date'] ?? '',
-                "\t" . ($row['ic_passport_no'] ?? ''),
+                mask_ic_passport($row['ic_passport_no'] ?? ''),
                 $row['staff_id'] ?? '',
                 $row['name'] ?? '',
                 $row['type'] ?? '',

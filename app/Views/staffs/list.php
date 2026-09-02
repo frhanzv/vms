@@ -184,7 +184,7 @@
                                 <td class="p-4"><?= esc($staff['date']) ?></td>
                                 <td class="p-4"><?= esc($staff['app_no'] ?? 'N/A') ?></td>
                                 <td class="p-4 font-semibold text-gray-800 dark:text-white"><?= esc($staff['full_name']) ?></td>
-                                <td class="p-4"><?= esc($staff['ic_passport']) ?></td>
+                                <td class="p-4"><?= esc(mask_ic_passport($staff['ic_passport'])) ?></td>
                                 <td class="p-4"><?= esc($staff['staff_no'] ?? 'N/A') ?></td>
                             </tr>
                             <?php endforeach; ?>

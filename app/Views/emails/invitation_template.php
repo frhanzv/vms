@@ -18,6 +18,15 @@
     $primaryColor = $crudColors['primary_color'] ?? ($template['primary_color'] ?? '#137fec');
     $contentBgColor = $crudColors['content_bg_color'] ?? ($template['content_bg_color'] ?? '#f8f9fa');
     $textColor = $crudColors['text_color'] ?? ($template['text_color'] ?? '#333333');
+    $detailFields = array_merge([
+        'company' => true,
+        'location' => true,
+        'reason' => true,
+        'invited_by' => true,
+        'schedule' => true,
+        'host_contact' => false,
+        'visitor_type' => false,
+    ], $detail_fields ?? []);
     ?>
     <style>
         body { font-family: 'Montserrat', Arial, sans-serif; line-height: 1.6; color: <?= esc($textColor) ?>; }
@@ -57,15 +66,17 @@
             
             <div class="info-box">
                 <h3>Visit Details:</h3>
-                <p><strong>Company:</strong> <?= esc($company) ?></p>
-                <p><strong>Location:</strong> <?= esc($location) ?></p>
-                <p><strong>Purpose:</strong> <?= esc($reason) ?></p>
+                <?php if ($detailFields['company']): ?><p><strong>Company:</strong> <?= esc($company) ?></p><?php endif; ?>
+                <?php if ($detailFields['location']): ?><p><strong>Location:</strong> <?= esc($location) ?></p><?php endif; ?>
+                <?php if ($detailFields['reason']): ?><p><strong>Purpose:</strong> <?= esc($reason) ?></p><?php endif; ?>
                 <?php if (!empty($other_reason)): ?>
                 <p><strong>Additional Details:</strong> <?= esc($other_reason) ?></p>
                 <?php endif; ?>
-                <p><strong>Invited By:</strong> <?= esc($invited_by) ?></p>
+                <?php if ($detailFields['invited_by']): ?><p><strong>Invited By:</strong> <?= esc($invited_by) ?></p><?php endif; ?>
+                <?php if ($detailFields['host_contact']): ?><p><strong>Contact No. of Host:</strong> <?= esc($host_contact ?: 'Not specified') ?></p><?php endif; ?>
+                <?php if ($detailFields['visitor_type']): ?><p><strong>Visitor Type:</strong> <?= esc($visitor_type ?: 'Not specified') ?></p><?php endif; ?>
                 
-                <?php if (!empty($schedules)): ?>
+                <?php if ($detailFields['schedule'] && !empty($schedules)): ?>
                 <h4>Visit Schedule(s):</h4>
                 <?php foreach ($schedules as $schedule): ?>
                 <?php
