@@ -317,6 +317,7 @@ $routes->group('', ['filter' => ['permission:visitor_pass_list,invitations', 'cl
 $routes->group('', ['filter' => 'permission:visitor_pass_list,visitors_list'], function($routes) {
     $routes->get('visitors', 'VisitorList::index');
     $routes->get('visitors/export', 'VisitorList::export');
+    $routes->post('visitors/saveColumnSettings', 'VisitorList::saveColumnSettings');
     $routes->post('visitors/update', 'VisitorList::updateVisitor');
     $routes->post('visitors/updateVisitDate', 'VisitorList::updateVisitDate');
 });

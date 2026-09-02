@@ -66,15 +66,15 @@
             
             <div class="info-box">
                 <h3>Visit Details:</h3>
+                <p><strong>Invited By:</strong> <?= esc($invited_by ?: 'Not specified') ?></p>
+                <p><strong>Contact No. of Host:</strong> <?= esc($host_contact ?: 'Not specified') ?></p>
+                <p><strong>Visitor Type:</strong> <?= esc($visitor_type ?: 'Not specified') ?></p>
+                <p><strong>Purpose:</strong> <?= esc($reason ?: 'Not specified') ?></p>
                 <?php if ($detailFields['company']): ?><p><strong>Company:</strong> <?= esc($company) ?></p><?php endif; ?>
                 <?php if ($detailFields['location']): ?><p><strong>Location:</strong> <?= esc($location) ?></p><?php endif; ?>
-                <?php if ($detailFields['reason']): ?><p><strong>Purpose:</strong> <?= esc($reason) ?></p><?php endif; ?>
                 <?php if (!empty($other_reason)): ?>
                 <p><strong>Additional Details:</strong> <?= esc($other_reason) ?></p>
                 <?php endif; ?>
-                <?php if ($detailFields['invited_by']): ?><p><strong>Invited By:</strong> <?= esc($invited_by) ?></p><?php endif; ?>
-                <?php if ($detailFields['host_contact']): ?><p><strong>Contact No. of Host:</strong> <?= esc($host_contact ?: 'Not specified') ?></p><?php endif; ?>
-                <?php if ($detailFields['visitor_type']): ?><p><strong>Visitor Type:</strong> <?= esc($visitor_type ?: 'Not specified') ?></p><?php endif; ?>
                 
                 <?php if ($detailFields['schedule'] && !empty($schedules)): ?>
                 <h4>Visit Schedule(s):</h4>

@@ -2990,8 +2990,9 @@ class Config extends BaseController
             // Move file to public/assets/videos
             $videoFile->move(FCPATH . 'assets/videos', $newName);
 
+            $clientId = $this->resolveVideoClientId($this->request->getPost('client_id'));
             $data = [
-                'client_id' => $this->resolveVideoClientId($this->request->getPost('client_id')),
+                'client_id' => $clientId,
                 'name' => $this->request->getPost('name'),
                 'file_path' => 'assets/videos/' . $newName,
                 'status' => $this->request->getPost('status')
@@ -3006,6 +3007,10 @@ class Config extends BaseController
                     'message' => 'Failed to create video',
                     'errors' => $this->videoModel->errors()
                 ]);
+            }
+
+            if ($data['status'] === 'active') {
+                $this->deactivateOtherVideosForClient($clientId, (int) $this->videoModel->getInsertID());
             }
 
             return $this->response->setJSON([
@@ -3038,9 +3043,13 @@ class Config extends BaseController
             ]);
         }
 
-        $jsonInput = $this->request->getJSON(true);
-        $input = is_array($jsonInput) ? $jsonInput : [];
-        $input = array_merge($input, $this->request->getPost() ?? []);
+        // Video edits are normally multipart/form-data, even when no replacement
+        // file is selected. Only parse JSON when the request actually contains it.
+        $input = $this->request->getPost() ?? [];
+        if (str_contains(strtolower($this->request->getHeaderLine('Content-Type')), 'application/json')) {
+            $jsonInput = $this->request->getJSON(true);
+            $input = is_array($jsonInput) ? $jsonInput : [];
+        }
 
         // Validate video data manually with ID exclusion
         $validation = \Config\Services::validation();
@@ -3125,6 +3134,10 @@ class Config extends BaseController
             return $error;
         }
 
+        if ($data['status'] === 'active') {
+            $this->deactivateOtherVideosForClient($data['client_id'], (int) $id);
+        }
+
         return $this->response->setJSON([
             'success' => true,
             'message' => 'Video updated successfully'
@@ -3182,6 +3195,25 @@ class Config extends BaseController
         }
 
         return (int) ($video['client_id'] ?? 0) === current_client_id();
+    }
+
+    /** Keep at most one active safety video in each client/global scope. */
+    private function deactivateOtherVideosForClient(?int $clientId, int $exceptId): void
+    {
+        $builder = $this->videoModel->builder()
+            ->where('id !=', $exceptId)
+            ->where('status', 'active');
+
+        if ($clientId === null) {
+            $builder->where('client_id', null);
+        } else {
+            $builder->where('client_id', $clientId);
+        }
+
+        $builder->update([
+            'status' => 'inactive',
+            'updated_at' => date('Y-m-d H:i:s'),
+        ]);
     }
 
     // Visit Reason Management

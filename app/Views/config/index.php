@@ -2676,6 +2676,7 @@
                         </div>
                     </div>
                 </div>
+                <?php endif; ?>
 
                 <!-- Video Management -->
                 <div
@@ -2696,7 +2697,7 @@
                     </button>
                     <div id="video-content" class="hidden border-t border-gray-200 dark:border-slate-700">
                         <div class="p-6 bg-gray-50 dark:bg-slate-800/50">
-                            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
+                            <div class="<?= !empty($canManageAllClientCompanies) ? 'flex' : 'hidden' ?> flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
                                 <label class="text-sm font-semibold text-gray-700 dark:text-slate-300 whitespace-nowrap font-brand">Select Client:</label>
                                 <div class="relative w-full sm:w-80">
                                     <select id="video-client-filter" onchange="handleVideoClientChange()"
@@ -3841,8 +3842,6 @@
                         </div>
                     </div>
                 </div>
-                <?php endif; ?>
-
                 <!-- Notification Settings -->
                 <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('notification')"
