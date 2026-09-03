@@ -18,6 +18,15 @@
     $primaryColor = $crudColors['primary_color'] ?? ($template['primary_color'] ?? '#137fec');
     $contentBgColor = $crudColors['content_bg_color'] ?? ($template['content_bg_color'] ?? '#f8f9fa');
     $textColor = $crudColors['text_color'] ?? ($template['text_color'] ?? '#333333');
+    $detailFields = array_merge([
+        'company' => true,
+        'location' => true,
+        'reason' => true,
+        'invited_by' => true,
+        'schedule' => true,
+        'host_contact' => false,
+        'visitor_type' => false,
+    ], $detail_fields ?? []);
     ?>
     <style>
         body { font-family: 'Montserrat', Arial, sans-serif; line-height: 1.6; color: <?= esc($textColor) ?>; }
@@ -58,16 +67,17 @@
                 <h3>Visitor Details:</h3>
                 <p><strong>Visitor Name:</strong> <?= esc($visitor_name ?? '') ?></p>
                 <p><strong>Visitor Contact No.:</strong> <?= esc($visitor_contact ?? '') ?></p>
-                <p><strong>Visitor Company Name:</strong> <?= esc($visitor_company ?? $company ?? '') ?></p>
-                <p><strong>Reason for Visit:</strong> <?= esc($reason ?? '') ?></p>
-                <?php if (!empty($other_reason)): ?>
+                <?php if ($detailFields['company']): ?><p><strong>Visitor Company Name:</strong> <?= esc($visitor_company ?? $company ?? '') ?></p><?php endif; ?>
+                <?php if ($detailFields['reason']): ?><p><strong>Reason for Visit:</strong> <?= esc($reason ?? '') ?></p><?php endif; ?>
+                <?php if ($detailFields['reason'] && !empty($other_reason)): ?>
                 <p><strong>Additional Details:</strong> <?= esc($other_reason) ?></p>
                 <?php endif; ?>
-                <p><strong>Host Name:</strong> <?= esc($host_name ?? $invited_by ?? '') ?></p>
-                <p><strong>Host Contact No.:</strong> <?= esc($host_contact ?? '') ?></p>
-                <p><strong>Location:</strong> <?= esc($location ?? '') ?></p>
+                <?php if ($detailFields['invited_by']): ?><p><strong>Host Name:</strong> <?= esc($host_name ?? $invited_by ?? '') ?></p><?php endif; ?>
+                <?php if ($detailFields['host_contact']): ?><p><strong>Host Contact No.:</strong> <?= esc($host_contact ?? '') ?></p><?php endif; ?>
+                <?php if ($detailFields['visitor_type']): ?><p><strong>Visitor Type:</strong> <?= esc($visitor_type ?? '') ?></p><?php endif; ?>
+                <?php if ($detailFields['location']): ?><p><strong>Location:</strong> <?= esc($location ?? '') ?></p><?php endif; ?>
                 
-                <?php if (!empty($schedules)): ?>
+                <?php if ($detailFields['schedule'] && !empty($schedules)): ?>
                 <h4>Visit Schedule(s):</h4>
                 <?php foreach ($schedules as $schedule): ?>
                 <?php

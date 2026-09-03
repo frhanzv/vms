@@ -57,6 +57,7 @@
             'location'         => true,
             'visitor_type'     => true,
             'type'             => true,
+            'status'           => true,
             'check_in'         => false,
             'check_out'        => false,
             'card_issue_badge'  => true,
@@ -78,6 +79,7 @@
             'location'           => 'Location',
             'visitor_type'       => 'Visitor Type',
             'type'               => 'Type',
+            'status'             => 'Status',
             'check_in'           => 'Check In',
             'check_out'          => 'Check Out',
             'card_issue_badge'   => 'Card Issue Badge',
@@ -253,6 +255,7 @@
                     'location',
                     'visitor_type',
                     'type',
+                    'status',
                     'check_in',
                     'check_out',
                     'reason',
@@ -297,7 +300,7 @@
                             <th class="p-4 border-b dark:border-gray-600">Host Name</th>
                             <?php endif; ?>
                             <?php if ($showColumn('vehicle_reg')): ?>
-                            <th class="p-4 border-b dark:border-gray-600">Vehicle Registration Number</th>
+                            <th class="p-4 border-b dark:border-gray-600">Vehicle Registration</th>
                             <?php endif; ?>
                             <?php if ($showColumn('location')): ?>
                             <th class="p-4 border-b dark:border-gray-600">Location</th>
@@ -307,6 +310,9 @@
                             <?php endif; ?>
                             <?php if ($showColumn('type')): ?>
                             <th class="p-4 border-b dark:border-gray-600">Type</th>
+                            <?php endif; ?>
+                            <?php if ($showColumn('status')): ?>
+                            <th class="p-4 border-b dark:border-gray-600">Status</th>
                             <?php endif; ?>
                             <?php if ($showColumn('check_in')): ?>
                             <th class="p-4 border-b dark:border-gray-600">Check In</th>
@@ -400,6 +406,21 @@
                             <?php endif; ?>
                             <?php if ($showColumn('type')): ?>
                             <td class="p-4"><?= esc($visitor['type']) ?></td>
+                            <?php endif; ?>
+                            <?php if ($showColumn('status')): ?>
+                            <td class="p-4">
+                                <?php if ($visitor['status'] === 'Checked In'): ?>
+                                <span class="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Checked In</span>
+                                <?php elseif ($visitor['status'] === 'Approved'): ?>
+                                <span class="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Approved</span>
+                                <?php elseif ($visitor['status'] === 'Rejected'): ?>
+                                <span class="bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Rejected</span>
+                                <?php elseif ($visitor['status'] === 'Checked Out'): ?>
+                                <span class="bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Checked Out</span>
+                                <?php else: ?>
+                                <span class="bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Expected</span>
+                                <?php endif; ?>
+                            </td>
                             <?php endif; ?>
                             <?php if ($showColumn('check_in')): ?>
                             <td class="p-4">

@@ -26,6 +26,7 @@ class InvitationModel extends Model
         'vehicle_category', 'vehicle_type',
         'video_watched', 'video_watched_at', 'video_completion_percentage',
         'facial_verification_image', 'facial_verified_at', 'checked_in_at',
+        'guard_entry_status', 'guard_decided_at', 'guard_decided_by', 'guard_rejection_reason',
         'custom_form_data', 'registration_source',
         'allow_sub_invites', 'parent_invitation_id',
     ];

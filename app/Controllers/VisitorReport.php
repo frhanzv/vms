@@ -2,15 +2,68 @@
 
 namespace App\Controllers;
 
+use App\Models\MobileKioskSettingModel;
+
 class VisitorReport extends BaseController
 {
     public function index()
     {
         $data = [
             'pageTitle' => 'Visitor Report - SafeG',
+            'visitorReportColumns' => $this->visitorReportColumnConfig(),
         ];
 
         return view('reports/visitor_report', $data);
+    }
+
+    private function visitorReportColumnConfig(): array
+    {
+        $defaults = array_fill_keys([
+            'no', 'date', 'full_name', 'ic_passport', 'contact', 'company',
+            'current_location', 'location_accessed', 'check_in', 'check_out',
+            'purpose', 'duration', 'host', 'status',
+        ], true);
+
+        $clientId = current_client_id();
+        $config = (new MobileKioskSettingModel())->getClientConfigMap($clientId > 0 ? $clientId : null);
+        $saved = ! empty($config['visitor_report_columns'])
+            ? json_decode((string) $config['visitor_report_columns'], true)
+            : null;
+
+        if (is_array($saved)) {
+            foreach ($defaults as $key => $value) {
+                if (array_key_exists($key, $saved)) {
+                    $defaults[$key] = (bool) $saved[$key];
+                }
+            }
+        }
+
+        return $defaults;
+    }
+
+    public function saveColumnSettings()
+    {
+        $keys = [
+            'no', 'date', 'full_name', 'ic_passport', 'contact', 'company',
+            'current_location', 'location_accessed', 'check_in', 'check_out',
+            'purpose', 'duration', 'host', 'status',
+        ];
+        $posted = $this->request->getPost('visitor_report_columns');
+        $posted = is_array($posted) ? $posted : [];
+        $columns = [];
+        foreach ($keys as $key) {
+            $columns[$key] = array_key_exists($key, $posted);
+        }
+
+        $clientId = current_client_id();
+        (new MobileKioskSettingModel())->saveClientSetting(
+            $clientId > 0 ? $clientId : null,
+            'visitor_report_columns',
+            json_encode($columns)
+        );
+
+        return redirect()->to(base_url('report/visitor'))
+            ->with('success', 'Visitor report columns updated!');
     }
 
     public function generate()
@@ -76,7 +129,7 @@ class VisitorReport extends BaseController
                     i.id, i.full_name, i.contact, i.ic_passport,
                     i.company, i.invited_by, i.staff_id, i.reason,
                     i.location, i.status, i.registration_source, DATE(i.created_at)
-                ORDER BY DATE(i.created_at) ASC, i.full_name ASC
+                ORDER BY DATE(i.created_at) DESC, i.id DESC
                 LIMIT 2000";
 
         $rows = $db->query($sql)->getResultArray();
