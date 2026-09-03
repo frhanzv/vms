@@ -598,7 +598,9 @@ class InvitationEmailSender
                 'invited_by' => $invitation['invited_by'],
                 'host_name' => $hostName,
                 'host_contact' => $hostContact,
+                'visitor_type' => $invitation['visitor_type_name'] ?? '',
                 'schedules' => ! empty($detailFields['schedule']) ? $invitation['schedules'] : [],
+                'detail_fields' => $detailFields,
                 'template' => $templateConfig,
                 'intro_line' => $this->emailTemplateService->applyPlaceholders($templateConfig['intro_line'], $placeholderContext),
                 'notes_items' => array_map(

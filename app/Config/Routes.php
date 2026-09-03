@@ -426,6 +426,7 @@ $routes->group('', ['filter' => $plusAdminOfficer], function($routes) {
     $routes->post('report/access/movementHistory', 'AccessReport::movementHistory');
     $routes->get('report/visitor', 'VisitorReport::index');
     $routes->post('report/visitor/generate', 'VisitorReport::generate');
+    $routes->post('report/visitor/saveColumnSettings', 'VisitorReport::saveColumnSettings');
     $routes->get('report/chronology', 'VisitorChronology::index');
     $routes->post('report/chronology/generate', 'VisitorChronology::generate');
     $routes->get('report/bydoor', 'VisitorInfoByDoor::index');
@@ -709,6 +710,7 @@ $routes->group('api/guard', function($routes) {
     $routes->post('login',                    'Api\GuardApi::login');
     $routes->get('visitors/qr/(:any)',        'Api\GuardApi::visitorByQr/$1');
     $routes->post('visitors/check-in',        'Api\GuardApi::checkIn');
+    $routes->post('visitors/reject',          'Api\GuardApi::reject');
 });
 
 $routes->group('api/user', function($routes) {

@@ -5,6 +5,7 @@ namespace App\Controllers\Api;
 use App\Controllers\BaseController;
 use App\Models\InvitationModel;
 use App\Models\InvitationVisitorModel;
+use App\Models\ClientFeatureModel;
 use App\Models\UserModel;
 use App\Models\VisitorTypeModel;
 use App\Services\InvitationQrService;
@@ -101,16 +102,27 @@ class GuardApi extends BaseController
         if (! empty($visitor['checked_in_at'])) {
             return $this->failResourceExists('This QR code has already been used for entry.');
         }
+        if (strcasecmp((string) ($visitor['guard_entry_status'] ?? ''), 'Rejected') === 0) {
+            return $this->failResourceExists('Entry for this visitor has already been rejected.');
+        }
 
         $now = date('Y-m-d H:i:s');
         $db = \Config\Database::connect();
         $db->table('invitations')
             ->where('id', (int) $visitor['id'])
             ->where('checked_in_at IS NULL', null, false)
+            ->groupStart()
+                ->where('guard_entry_status', 'Expected')
+                ->orWhere('guard_entry_status IS NULL', null, false)
+            ->groupEnd()
             ->update([
-                'checked_in_at' => $now,
-                'status'        => 'Approved',
-                'updated_at'    => $now,
+                'checked_in_at'          => $now,
+                'status'                 => 'Approved',
+                'guard_entry_status'     => 'Approved',
+                'guard_decided_at'       => $now,
+                'guard_decided_by'       => (int) $guard['id'],
+                'guard_rejection_reason' => null,
+                'updated_at'             => $now,
             ]);
 
         // Atomic one-time use: if another guard confirmed this QR first, the
@@ -129,6 +141,66 @@ class GuardApi extends BaseController
         return $this->respond([
             'status'  => 'success',
             'message' => 'Entry recorded',
+            'data'    => $this->formatVisitor($updated, $qrToken),
+        ]);
+    }
+
+    public function reject(): \CodeIgniter\HTTP\Response
+    {
+        $guard = $this->requireGuard();
+        if ($guard instanceof \CodeIgniter\HTTP\ResponseInterface) {
+            return $guard;
+        }
+
+        $body = $this->request->getJSON(true) ?? $this->request->getPost();
+        $visitorId = (int) ($body['visitor_id'] ?? $body['id'] ?? 0);
+        $qrToken = trim((string) ($body['qr_token'] ?? $body['qrToken'] ?? $body['token'] ?? ''));
+        $reason = trim((string) ($body['reason'] ?? $body['rejection_reason'] ?? ''));
+
+        if ($visitorId <= 0 && $qrToken === '') {
+            return $this->failValidationErrors('visitor_id or qr_token is required');
+        }
+
+        $model = new InvitationModel();
+        $visitor = $visitorId > 0 ? $model->find($visitorId) : $this->findVisitorByQrToken($qrToken);
+        if (! $visitor) {
+            return $this->failNotFound('Visitor not found');
+        }
+
+        if (! empty($visitor['checked_in_at'])
+            || strcasecmp((string) ($visitor['guard_entry_status'] ?? ''), 'Approved') === 0) {
+            return $this->failResourceExists('Entry for this visitor has already been approved.');
+        }
+        if (strcasecmp((string) ($visitor['guard_entry_status'] ?? ''), 'Rejected') === 0) {
+            return $this->failResourceExists('Entry for this visitor has already been rejected.');
+        }
+
+        $now = date('Y-m-d H:i:s');
+        $db = \Config\Database::connect();
+        $db->table('invitations')
+            ->where('id', (int) $visitor['id'])
+            ->where('checked_in_at IS NULL', null, false)
+            ->groupStart()
+                ->where('guard_entry_status', 'Expected')
+                ->orWhere('guard_entry_status IS NULL', null, false)
+            ->groupEnd()
+            ->update([
+                'guard_entry_status'     => 'Rejected',
+                'guard_decided_at'       => $now,
+                'guard_decided_by'       => (int) $guard['id'],
+                'guard_rejection_reason' => $reason !== '' ? $reason : null,
+                'updated_at'             => $now,
+            ]);
+
+        if ($db->affectedRows() === 0) {
+            return $this->failResourceExists('An entry decision has already been recorded for this visitor.');
+        }
+
+        $updated = $model->find((int) $visitor['id']);
+
+        return $this->respond([
+            'status'  => 'success',
+            'message' => 'Entry rejected',
             'data'    => $this->formatVisitor($updated, $qrToken),
         ]);
     }
@@ -270,6 +342,12 @@ class GuardApi extends BaseController
 
     private function formatVisitor(array $visitor, string $qrToken): array
     {
+        $invitationStatus = (string) ($visitor['status'] ?? '');
+        $storedEntryStatus = trim((string) ($visitor['guard_entry_status'] ?? ''));
+        $entryStatus = $this->usesGuardEntryDecision($visitor)
+            ? ($storedEntryStatus !== '' ? $storedEntryStatus : 'Expected')
+            : $invitationStatus;
+
         return [
             'id'            => (string) $visitor['id'],
             'qr_token'      => $qrToken !== '' ? $qrToken : ($visitor['ic_passport'] ?? (string) $visitor['id']),
@@ -290,12 +368,24 @@ class GuardApi extends BaseController
             'purpose'       => $visitor['reason'] ?? '',
             'visit_purpose' => $visitor['reason'] ?? '',
             'visit_date'    => $visitor['created_at'] ?? '',
-            'status'        => $visitor['status'] ?? '',
+            'status'        => $entryStatus,
+            'entry_status'  => $entryStatus,
+            'invitation_status' => $invitationStatus,
+            'rejection_reason' => $visitor['guard_rejection_reason'] ?? null,
+            'entry_decided_at' => $visitor['guard_decided_at'] ?? null,
             'visitor_type'  => $this->resolveVisitorType((int) ($visitor['visitor_type_id'] ?? 0)),
             'check_in_at'   => $visitor['checked_in_at'] ?? null,
             'checked_in_at' => $visitor['checked_in_at'] ?? null,
             'entry_time'    => $visitor['checked_in_at'] ?? null,
         ];
+    }
+
+    private function usesGuardEntryDecision(array $visitor): bool
+    {
+        $clientId = (int) ($visitor['client_id'] ?? 0);
+
+        return $clientId > 0
+            && (new ClientFeatureModel())->isEnabled($clientId, 'auto_approve_after_workflow');
     }
 
     private function resolveVisitorType(int $id): string

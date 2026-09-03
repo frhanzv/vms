@@ -6,6 +6,7 @@ use App\Models\InvitationModel;
 use App\Models\InvitationScheduleModel;
 use App\Models\InvitationVisitorModel;
 use App\Models\ClientFormFieldModel;
+use App\Models\ClientFeatureModel;
 use App\Models\MobileKioskSettingModel;
 use App\Models\VisitorCardModel;
 use App\Models\VisitorTypeModel;
@@ -61,6 +62,7 @@ class VisitorList extends BaseController
         $visitors = [];
         $formConfigModel = new ClientFormFieldModel();
         $formConfigCache = [];
+        $entryDecisionCache = [];
         $rowOffset = ($page - 1) * $perPage;
         foreach ($results as $index => $row) {
             $visitorClientId = (int) ($row['invitation_client_id'] ?? 0);
@@ -94,6 +96,10 @@ class VisitorList extends BaseController
                     'date_of_visit'         => $enabled('date_of_visit_section') && $invitationEnabled('schedule'),
                     'visit_details'         => $enabled('details_of_visit_section'),
                 ];
+            }
+            if (! isset($entryDecisionCache[$visitorClientId])) {
+                $entryDecisionCache[$visitorClientId] = $visitorClientId > 0
+                    && (new ClientFeatureModel())->isEnabled($visitorClientId, 'auto_approve_after_workflow');
             }
 
             if ($row['visitor_card_id'] && empty($row['check_out_time'])) {
@@ -133,6 +139,11 @@ class VisitorList extends BaseController
                 'vehicle_reg' => $row['vehicle_reg'] ?? '',
                 'location' => $row['location'] ?? '',
                 'type' => $row['registration_source'] ?? 'Walk-In',
+                'status' => $entryDecisionCache[$visitorClientId]
+                    ? ($row['guard_entry_status'] ?? 'Expected')
+                    : (! empty($row['check_out_time'])
+                        ? 'Checked Out'
+                        : (! empty($row['check_in_time']) ? 'Checked In' : 'Expected')),
                 'visitor_type' => ! empty($row['visitor_type_name'] ?? '') ? $row['visitor_type_name'] : '-',
                 'visitor_type_id' => isset($row['visitor_type_id']) ? $row['visitor_type_id'] : null,
                 'pass_no' => $row['card_epc'] ?? '',
@@ -214,6 +225,7 @@ class VisitorList extends BaseController
             'location'         => true,
             'visitor_type'     => true,
             'type'             => true,
+            'status'           => true,
             'check_in'         => false,
             'check_out'        => false,
             'card_issue_badge'  => true,
@@ -256,6 +268,7 @@ class VisitorList extends BaseController
             'location',
             'visitor_type',
             'type',
+            'status',
             'check_in',
             'check_out',
             'card_issue_badge',
@@ -303,6 +316,7 @@ class VisitorList extends BaseController
                           i.vehicle_registration as vehicle_reg,
                           i.location,
                           i.client_id AS invitation_client_id,
+                          i.guard_entry_status,
                           i.profile_photo_path AS invitation_profile_photo_path,
                           i.facial_verification_image AS invitation_facial_verification_image,
                           i.registration_source,
@@ -373,6 +387,8 @@ class VisitorList extends BaseController
                           i.reason as visit_purpose,
                           i.vehicle_registration as vehicle_reg,
                           i.location,
+                          i.client_id AS invitation_client_id,
+                          i.guard_entry_status,
                           i.registration_source,
                           i.created_at as invitation_created_at,
                           sch.date_from as sch_date_from,
@@ -415,6 +431,7 @@ class VisitorList extends BaseController
             'Location',
             'Visitor Type',
             'Type',
+            'Status',
             'Card Status',
             'Visitor Pass No',
             'Reason',
@@ -422,6 +439,8 @@ class VisitorList extends BaseController
             'Check Out Time',
         ]);
 
+        $entryDecisionCache = [];
+        $featureModel = new ClientFeatureModel();
         foreach ($rows as $index => $row) {
             $dateSrc = ! empty($row['sch_date_from'])
                 ? $row['sch_date_from']
@@ -438,6 +457,17 @@ class VisitorList extends BaseController
                 }
             }
 
+            $visitorClientId = (int) ($row['invitation_client_id'] ?? 0);
+            if (! isset($entryDecisionCache[$visitorClientId])) {
+                $entryDecisionCache[$visitorClientId] = $visitorClientId > 0
+                    && $featureModel->isEnabled($visitorClientId, 'auto_approve_after_workflow');
+            }
+            $displayStatus = $entryDecisionCache[$visitorClientId]
+                ? ($row['guard_entry_status'] ?? 'Expected')
+                : (! empty($row['check_out_time'])
+                    ? 'Checked Out'
+                    : (! empty($row['check_in_time']) ? 'Checked In' : 'Expected'));
+
             fputcsv($handle, [
                 $index + 1,
                 $dateSrc ? date('M j, Y', strtotime((string) $dateSrc)) : '',
@@ -449,6 +479,7 @@ class VisitorList extends BaseController
                 $row['location'] ?? '',
                 $row['visitor_type_name'] ?? '-',
                 $row['registration_source'] ?? 'Walk-In',
+                $displayStatus,
                 $cardStatus,
                 $row['card_epc'] ?? '',
                 $row['visit_purpose'] ?? '',

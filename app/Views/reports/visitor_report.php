@@ -255,7 +255,8 @@
 <!-- Columns Modal Overlay -->
 <div id="columnsModal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4">
     <div id="columnsModalBackdrop" onclick="closeColumnsModal()" class="absolute inset-0 bg-slate-900/55 dark:bg-black/65 cursor-pointer"></div>
-    <div class="relative flex w-full max-w-[600px] flex-col rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+    <form method="POST" action="<?= base_url('report/visitor/saveColumnSettings') ?>" class="relative flex w-full max-w-[600px] flex-col rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+        <?= csrf_field() ?>
         <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4 dark:border-slate-700">
             <h2 class="text-lg font-bold tracking-tight text-[#3b5998] dark:text-white">Show/Hide Columns</h2>
             <button type="button" onclick="closeColumnsModal()" class="text-slate-300 hover:text-slate-500">
@@ -273,9 +274,9 @@
         </div>
         <div class="flex justify-end gap-3 border-t border-slate-100 bg-white px-6 py-4 dark:border-slate-700 dark:bg-slate-900 rounded-b-xl border-t-2">
             <button type="button" onclick="closeColumnsModal()" class="rounded-md border border-slate-400 bg-slate-500 hover:bg-slate-600 px-5 py-2 text-sm font-semibold text-white transition-colors">Close</button>
-            <button type="button" onclick="applyColumnsVisibility()" class="rounded-md bg-[#535dec] hover:bg-[#4853e0] px-5 py-2 text-sm font-semibold text-white shadow-md transition-colors">Apply Changes</button>
+            <button type="submit" class="rounded-md bg-[#535dec] hover:bg-[#4853e0] px-5 py-2 text-sm font-semibold text-white shadow-md transition-colors">Apply Changes</button>
         </div>
-    </div>
+    </form>
 </div>
 
 <script>
@@ -287,6 +288,12 @@
         "COMPANY", "CURRENT LOCATION", "LOCATION ACCESSED", "TIME IN", "TIME OUT", "PURPOSE", "DURATION", 
         "HOST NAME", "STATUS"
     ];
+    const tableColumnKeys = [
+        'no', 'date', 'full_name', 'ic_passport', 'contact', 'company',
+        'current_location', 'location_accessed', 'check_in', 'check_out',
+        'purpose', 'duration', 'host', 'status'
+    ];
+    const visitorReportColumnVisibility = <?= json_encode($visitorReportColumns ?? []) ?>;
 
     function cellTextForCheckboxFilter(raw) {
         if (raw === null || raw === undefined) return '-';
@@ -395,6 +402,10 @@
                 ['10 ITEMS PER PAGE', '25 ITEMS PER PAGE', '50 ITEMS PER PAGE']
             ],
             ordering: true,
+            columnDefs: tableColumnKeys.map((key, index) => ({
+                targets: index,
+                visible: visitorReportColumnVisibility[key] !== false
+            })),
             responsive: false, // Disabling so horizontal scroll works
             _checkboxColumnFilter: true,
             dom: '<"flex justify-end items-center mb-5 mt-2"f><"overflow-x-auto min-h-[380px] lg:min-h-[520px]"t><"flex flex-col md:flex-row justify-between items-center gap-4 mt-6"p<"ml-auto"l>>',
@@ -665,7 +676,7 @@
             const div = document.createElement('div');
             div.className = 'flex items-center gap-2';
             div.innerHTML = `
-                <input type="checkbox" id="col_${idx}" data-col-idx="${idx}" class="col-toggle-cb rounded border-slate-300 text-[#535dec] focus:ring-[#535dec] h-4 w-4 cursor-pointer" ${isVisible ? 'checked' : ''}>
+                <input type="checkbox" id="col_${idx}" name="visitor_report_columns[${tableColumnKeys[idx]}]" value="true" data-col-idx="${idx}" class="col-toggle-cb rounded border-slate-300 text-[#535dec] focus:ring-[#535dec] h-4 w-4 cursor-pointer" ${isVisible ? 'checked' : ''}>
                 <label for="col_${idx}" class="text-sm text-slate-600 dark:text-slate-300 uppercase cursor-pointer">${colName}</label>
             `;
             container.appendChild(div);
