@@ -310,7 +310,7 @@ class InvitationEmailSender
         return $invitation;
     }
 
-    public function send(int $invitationId): bool
+    public function send(int $invitationId, ?string $registrationLinkOverride = null): bool
     {
         try {
             $invitation = $this->getInvitationDetails($invitationId);
@@ -343,7 +343,8 @@ class InvitationEmailSender
             ]);
             $email->setMailType('html');
 
-            $registrationLink = base_url('visitor-registration?token=' . base64_encode((string) $invitationId));
+            $registrationLink = $registrationLinkOverride
+                ?: base_url('visitor-registration?token=' . base64_encode((string) $invitationId));
 
             $templateRaw = $this->getConfiguredTemplateRaw(EmailTemplateService::PROCESS_INVITATION, $invitation);
             $templateConfig = $this->emailTemplateService->normalizeTemplate(
@@ -453,6 +454,23 @@ class InvitationEmailSender
 
             return false;
         }
+    }
+
+    /**
+     * Walk-in visitors have already supplied their details at the kiosk, so the
+     * invitation email button takes them straight to the safety briefing.
+     */
+    public function sendWalkInBriefing(int $invitationId): bool
+    {
+        $token = base64_encode((string) $invitationId);
+        $briefingLink = (new InvitationProcessFlowService())
+            ->buildStepUrl('security_briefing', $token)
+            ?? base_url('security/briefing?' . http_build_query([
+                'token' => $token,
+                'flow_step' => 'security_briefing',
+            ]));
+
+        return $this->send($invitationId, $briefingLink);
     }
 
     public function sendApproval(int $invitationId): bool

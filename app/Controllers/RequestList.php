@@ -6,6 +6,7 @@ use App\Models\InvitationModel;
 use App\Models\InvitationScheduleModel;
 use App\Models\VisitorLicenseModel;
 use App\Models\VisitorEquipmentModel;
+use App\Models\ClientFeatureModel;
 use App\Libraries\InvitationProcessFlowService;
 use App\Services\InvitationApprovalService;
 
@@ -49,6 +50,7 @@ class RequestList extends BaseController
         // Load submitted requests in batches (avoid loading entire queue into memory).
         $queueLimit = 50;
         $query = $this->invitationModel->where('status', 'Submitted');
+        $this->excludeKioskWalkIns($query);
         $this->applyRequestWorkflowFilters($query, $requiresBriefing, $requiresFacial);
 
         $submittedRequests = $query->orderBy('created_at', 'DESC')->findAll($queueLimit);
@@ -129,13 +131,21 @@ class RequestList extends BaseController
 
         // Calculate stats
         $flaggedQuery = $this->invitationModel->where('status', 'Submitted');
+        $this->excludeKioskWalkIns($flaggedQuery);
         $this->applyRequestWorkflowFilters($flaggedQuery, $requiresBriefing, $requiresFacial);
 
+        $pendingQuery = (new InvitationModel())->where('status', 'Pending');
+        $this->excludeKioskWalkIns($pendingQuery);
+        $expectedQuery = (new InvitationModel())->where('status', 'Approved');
+        $this->excludeKioskWalkIns($expectedQuery);
+        $rejectedQuery = (new InvitationModel())->where('status', 'Rejected');
+        $this->excludeKioskWalkIns($rejectedQuery);
+
         $stats = [
-            'pending' => $this->invitationModel->where('status', 'Pending')->countAllResults(),
+            'pending' => $pendingQuery->countAllResults(),
             'flagged' => $flaggedQuery->countAllResults(),
-            'expected' => $this->invitationModel->where('status', 'Approved')->countAllResults(),
-            'rejected' => $this->invitationModel->where('status', 'Rejected')->countAllResults()
+            'expected' => $expectedQuery->countAllResults(),
+            'rejected' => $rejectedQuery->countAllResults(),
         ];
 
         $data = [
@@ -168,6 +178,25 @@ class RequestList extends BaseController
         }
 
         $query->groupEnd()
+            ->groupEnd();
+    }
+
+    private function excludeKioskWalkIns($query): void
+    {
+        $autoApprovalClientIds = (new ClientFeatureModel())
+            ->where('feature_key', 'auto_approve_after_workflow')
+            ->where('is_enabled', 1)
+            ->findColumn('client_id');
+
+        if (empty($autoApprovalClientIds)) {
+            return;
+        }
+
+        $query->groupStart()
+            ->where('registration_source !=', 'kiosk')
+            ->orWhere('registration_source IS NULL', null, false)
+            ->orWhere('client_id IS NULL', null, false)
+            ->orWhereNotIn('client_id', array_map('intval', $autoApprovalClientIds))
             ->groupEnd();
     }
 

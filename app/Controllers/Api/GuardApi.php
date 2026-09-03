@@ -99,19 +99,25 @@ class GuardApi extends BaseController
         }
 
         if (! empty($visitor['checked_in_at'])) {
-            return $this->respond([
-                'status'  => 'success',
-                'message' => 'Visitor already checked in',
-                'data'    => $this->formatVisitor($visitor, $qrToken),
-            ]);
+            return $this->failResourceExists('This QR code has already been used for entry.');
         }
 
         $now = date('Y-m-d H:i:s');
-        $model->skipValidation(true)->update((int) $visitor['id'], [
-            'checked_in_at' => $now,
-            'status'        => 'Approved',
-            'updated_at'    => $now,
-        ]);
+        $db = \Config\Database::connect();
+        $db->table('invitations')
+            ->where('id', (int) $visitor['id'])
+            ->where('checked_in_at IS NULL', null, false)
+            ->update([
+                'checked_in_at' => $now,
+                'status'        => 'Approved',
+                'updated_at'    => $now,
+            ]);
+
+        // Atomic one-time use: if another guard confirmed this QR first, the
+        // conditional update affects no rows and this request is rejected.
+        if ($db->affectedRows() === 0) {
+            return $this->failResourceExists('This QR code has already been used for entry.');
+        }
 
         $visitorModel = new InvitationVisitorModel();
         $visitorModel->where('invitation_id', (int) $visitor['id'])

@@ -54,6 +54,10 @@ class InvitationQrService
         return $db->table('invitation_qr_credentials')
             ->where('token_hash', hash('sha256', $token))
             ->where('revoked_at IS NULL', null, false)
+            ->groupStart()
+                ->where('expires_at IS NULL', null, false)
+                ->orWhere('expires_at >=', date('Y-m-d H:i:s'))
+            ->groupEnd()
             ->get()->getRowArray() ?: null;
     }
 
@@ -90,6 +94,17 @@ class InvitationQrService
         $invitation = $db->table('invitations')->select('link_expiry')->where('id', $invitationId)->get()->getRowArray();
         $linkExpiry = trim((string) ($invitation['link_expiry'] ?? ''));
 
-        return $linkExpiry !== '' ? date('Y-m-d 23:59:59', strtotime($linkExpiry)) : null;
+        if ($linkExpiry === '') {
+            return null;
+        }
+
+        $timestamp = strtotime($linkExpiry);
+        if ($timestamp === false) {
+            return null;
+        }
+
+        return preg_match('/\d{2}:\d{2}/', $linkExpiry)
+            ? date('Y-m-d H:i:s', $timestamp)
+            : date('Y-m-d 23:59:59', $timestamp);
     }
 }
