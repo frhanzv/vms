@@ -165,7 +165,12 @@ class SecurityBriefing extends BaseController
             $clientId = (int) ($invitation['company_id'] ?? 0);
         }
 
-        if ($clientId <= 0 || ! (new ClientFeatureModel())->isEnabled($clientId, 'auto_approve_after_workflow')) {
+        $clientAutoApproval = $clientId > 0
+            && (new ClientFeatureModel())->isEnabled($clientId, 'auto_approve_after_workflow');
+
+        // Automatic approval is client-specific (currently enabled for GXO).
+        // A kiosk registration alone must not bypass another client's flow.
+        if (! $clientAutoApproval) {
             return null;
         }
 
