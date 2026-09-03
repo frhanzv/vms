@@ -50,7 +50,6 @@ class InvitationApprovalService
                 ->where('status', 'Submitted')
                 ->update([
                     'status' => 'Approved',
-                    'checked_in_at' => $now,
                     'version' => ($invitation['version'] ?? 1) + 1,
                     'updated_at' => $now,
                 ]);
