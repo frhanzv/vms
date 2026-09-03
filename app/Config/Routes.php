@@ -693,6 +693,7 @@ $routes->group('api/admin', function($routes) {
     $routes->get('licenseClass/active',          'Api\KioskApi::getActiveLicenseClasses');
     $routes->get('vaccineType/active',           'Api\KioskApi::getActiveVaccineTypes');
     $routes->get('moduleConfig/getByProject',   'Api\KioskApi::getModuleConfig');
+    $routes->get('clients/all',                  'Api\KioskApi::getAllClients');
     $routes->get('campanies/all',                'Api\KioskApi::getAllCompanies');
 });
 

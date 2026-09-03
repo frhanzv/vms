@@ -4,6 +4,7 @@ namespace App\Controllers\Api;
 
 use App\Controllers\BaseController;
 use App\Models\CityModel;
+use App\Models\ClientModel;
 use App\Models\CompanyModel;
 use App\Models\CountryModel;
 use App\Models\InvitationModel;
@@ -19,6 +20,8 @@ use App\Models\VisitorCardModel;
 use App\Models\VisitorTypeModel;
 use CodeIgniter\API\ResponseTrait;
 use App\Models\MobileKioskSettingModel;
+use App\Models\ClientFeatureModel;
+use App\Libraries\InvitationEmailSender;
 /**
  * KioskApi — public API endpoints consumed by the MNR kiosk mobile app.
  *
@@ -267,6 +270,28 @@ class KioskApi extends BaseController
         return $this->respond(['status' => 'success', 'data' => $data]);
     }
 
+    /** GET /api/admin/clients/all */
+    public function getAllClients(): \CodeIgniter\HTTP\Response
+    {
+        $model   = new ClientModel();
+        $clients = $model->where('status', 'active')
+            ->orderBy('name', 'ASC')
+            ->findAll();
+
+        $data = array_map(fn($c) => [
+            'id'             => (int) $c['id'],
+            'name'           => $c['name'],
+            'code'           => $c['code']            ?? '',
+            'registrationNo' => $c['registration_no'] ?? '',
+            'address'        => $c['address']         ?? '',
+            'contactNo'      => $c['contact_no']      ?? '',
+            'email'          => $c['email']           ?? '',
+            'status'         => $c['status'],
+        ], $clients);
+
+        return $this->respond(['status' => 'success', 'data' => $data]);
+    }
+
     // -------------------------------------------------------------------------
     // Vendor pass — visit reasons
     // -------------------------------------------------------------------------
@@ -366,13 +391,16 @@ class KioskApi extends BaseController
         $location  = trim($body['locationAccess'] ?? $body['location']             ?? '');
         $rawReason = trim($body['visitReason']    ?? $body['reason']               ?? '');
         $invitedBy = trim($body['invitedBy']      ?? $body['invited_by']           ?? '');
+        $clientId   = (int) ($body['clientId']     ?? $body['client_id']            ?? 0);
 
-        if ($fullName === '' || $contact === '' || $rawReason === '') {
-            return $this->failValidationErrors('visitorName, phoneNo, and visitReason are required');
+        if ($fullName === '' || $contact === '') {
+            return $this->failValidationErrors('visitorName and phoneNo are required');
         }
 
         // Resolve numeric reason ID to the actual reason text
-        if (ctype_digit($rawReason)) {
+        if ($rawReason === '') {
+            $reason = 'Walk-In';
+        } elseif (ctype_digit($rawReason)) {
             $reasonRow = (new VisitReasonModel())->find((int) $rawReason);
             $reason    = $reasonRow ? $reasonRow['reason'] : $rawReason;
         } else {
@@ -467,7 +495,9 @@ class KioskApi extends BaseController
             'state'                => $stateName,
             'country'              => $countryName,
             'registration_source'  => 'kiosk',
+            'client_id'            => $clientId > 0 ? $clientId : null,
             'status'               => 'Submitted',
+            'link_expiry'          => date('Y-m-d 23:59:59'),
         ];
 
         // Remove null fields so model validation stays clean
@@ -515,10 +545,24 @@ class KioskApi extends BaseController
 
         log_message('info', "KioskApi::doVisitorPassReqMobile created invitation_id={$id} name={$fullName} resident={$residentNormalized} country={$countryName} state={$stateName} city={$cityName}");
 
+        // GXO walk-in details are already complete, so send the visitor
+        // directly to the safety briefing. Other clients retain their normal
+        // request-and-approval flow.
+        $briefingEmailSent = false;
+        $isGxoWalkInFlow = $clientId > 0
+            && (new ClientFeatureModel())->isEnabled($clientId, 'auto_approve_after_workflow');
+        if ($email !== '' && $isGxoWalkInFlow) {
+            $briefingEmailSent = (new InvitationEmailSender())->sendWalkInBriefing((int) $id);
+            if (! $briefingEmailSent) {
+                log_message('warning', "Walk-in briefing email failed for invitation_id={$id}");
+            }
+        }
+
         return $this->respondCreated([
             'status'  => 'success',
             'message' => 'Visitor pass created successfully',
             'data'    => $this->formatInvitation($invitation),
+            'briefing_email_sent' => $briefingEmailSent,
         ]);
     }
     // -------------------------------------------------------------------------
