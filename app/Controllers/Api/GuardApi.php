@@ -99,48 +99,90 @@ class GuardApi extends BaseController
             return $this->failNotFound('Visitor not found');
         }
 
-        if (! empty($visitor['checked_in_at'])) {
-            return $this->failResourceExists('This QR code has already been used for entry.');
-        }
         if (strcasecmp((string) ($visitor['guard_entry_status'] ?? ''), 'Rejected') === 0) {
             return $this->failResourceExists('Entry for this visitor has already been rejected.');
         }
 
         $now = date('Y-m-d H:i:s');
         $db = \Config\Database::connect();
-        $db->table('invitations')
-            ->where('id', (int) $visitor['id'])
-            ->where('checked_in_at IS NULL', null, false)
-            ->groupStart()
-                ->where('guard_entry_status', 'Expected')
-                ->orWhere('guard_entry_status IS NULL', null, false)
-            ->groupEnd()
-            ->update([
-                'checked_in_at'          => $now,
-                'status'                 => 'Approved',
-                'guard_entry_status'     => 'Approved',
-                'guard_decided_at'       => $now,
-                'guard_decided_by'       => (int) $guard['id'],
-                'guard_rejection_reason' => null,
-                'updated_at'             => $now,
-            ]);
+        $visitorModel = new InvitationVisitorModel();
+        $visitorRow = $this->findInvitationVisitorRow((int) $visitor['id']);
 
-        // Atomic one-time use: if another guard confirmed this QR first, the
-        // conditional update affects no rows and this request is rejected.
-        if ($db->affectedRows() === 0) {
-            return $this->failResourceExists('This QR code has already been used for entry.');
+        if (! $visitorRow) {
+            return $this->failNotFound('Visitor pass record not found');
         }
 
-        $visitorModel = new InvitationVisitorModel();
-        $visitorModel->where('invitation_id', (int) $visitor['id'])
-            ->set(['check_in_time' => $now, 'updated_at' => $now])
-            ->update();
+        $blockedReason = $this->passClosedReason(array_merge($visitor, [
+            'checked_in_at' => $visitorRow['check_in_time'] ?? ($visitor['checked_in_at'] ?? null),
+            'check_out_time' => $visitorRow['check_out_time'] ?? null,
+        ]));
+        if ($blockedReason !== null) {
+            return $this->failResourceExists($blockedReason);
+        }
+
+        $today = date('Y-m-d');
+        $checkInTime = $visitorRow['check_in_time'] ?? null;
+        $checkedInToday = ! empty($checkInTime) && date('Y-m-d', strtotime((string) $checkInTime)) === $today;
+        $action = 'checkin';
+        $message = 'Time In recorded';
+
+        if (! $checkedInToday) {
+            $db->table('invitations')
+                ->where('id', (int) $visitor['id'])
+                ->groupStart()
+                    ->where('guard_entry_status', 'Expected')
+                    ->orWhere('guard_entry_status IS NULL', null, false)
+                    ->orWhere('guard_entry_status', 'Approved')
+                ->groupEnd()
+                ->update([
+                    'checked_in_at'          => $now,
+                    'status'                 => 'Approved',
+                    'guard_entry_status'     => 'Approved',
+                    'guard_decided_at'       => $now,
+                    'guard_decided_by'       => (int) $guard['id'],
+                    'guard_rejection_reason' => null,
+                    'updated_at'             => $now,
+                ]);
+
+            $visitorModel->where('id', (int) $visitorRow['id'])
+                ->set(['check_in_time' => $now, 'check_out_time' => null, 'updated_at' => $now])
+                ->update();
+        } else {
+            $elapsedSeconds = time() - strtotime((string) $checkInTime);
+            if ($elapsedSeconds < 600) {
+                $updatedVisitor = $model->find((int) $visitor['id']);
+                $updatedVisitor['visitor_row_id'] = $visitorRow['id'] ?? null;
+                $updatedVisitor['checked_in_at'] = $visitorRow['check_in_time'] ?? null;
+                $updatedVisitor['check_out_time'] = $visitorRow['check_out_time'] ?? null;
+
+                return $this->respond([
+                    'status'  => 'success',
+                    'message' => 'Visitor already timed in. Time Out is available after 10 minutes.',
+                    'data'    => $this->formatVisitor($updatedVisitor, $qrToken),
+                ]);
+            }
+
+            $action = 'checkout';
+            $message = 'Time Out recorded';
+            $visitorModel->where('id', (int) $visitorRow['id'])
+                ->where('check_out_time IS NULL', null, false)
+                ->set(['check_out_time' => $now, 'updated_at' => $now])
+                ->update();
+            if ($db->affectedRows() === 0) {
+                return $this->failResourceExists('This visitor has already timed out. This QR can no longer be used for Time In or Time Out.');
+            }
+        }
 
         $updated = $model->find((int) $visitor['id']);
+        $updatedVisitorRow = $this->findInvitationVisitorRow((int) $visitor['id']) ?? $visitorRow;
+        $updated['visitor_row_id'] = $updatedVisitorRow['id'] ?? null;
+        $updated['checked_in_at'] = $updatedVisitorRow['check_in_time'] ?? ($updated['checked_in_at'] ?? null);
+        $updated['check_out_time'] = $updatedVisitorRow['check_out_time'] ?? null;
+        $updated['guard_action'] = $action;
 
         return $this->respond([
             'status'  => 'success',
-            'message' => 'Entry recorded',
+            'message' => $message,
             'data'    => $this->formatVisitor($updated, $qrToken),
         ]);
     }
@@ -280,14 +322,14 @@ class GuardApi extends BaseController
         if ($credential) {
             $found = $model->find((int) ($credential['invitation_id'] ?? 0));
             if ($found) {
-                return $found;
+                return $this->withVisitorPassState($found);
             }
         }
 
         if (preg_match('/^VIS-(\d+)$/i', $qrToken, $matches)) {
             $found = $model->find((int) $matches[1]);
             if ($found) {
-                return $found;
+                return $this->withVisitorPassState($found);
             }
         }
 
@@ -300,7 +342,7 @@ class GuardApi extends BaseController
             ->first();
 
         if ($invitation) {
-            return $invitation;
+            return $this->withVisitorPassState($invitation);
         }
 
         $visitorRow = (new InvitationVisitorModel())
@@ -326,6 +368,33 @@ class GuardApi extends BaseController
             'contact'         => $visitorRow['contact'] ?? ($parent['contact'] ?? ''),
             'company'         => $visitorRow['company'] ?? ($parent['company'] ?? ''),
             'checked_in_at'   => $visitorRow['check_in_time'] ?? ($parent['checked_in_at'] ?? null),
+            'check_out_time'   => $visitorRow['check_out_time'] ?? null,
+        ]);
+    }
+
+    private function findInvitationVisitorRow(int $invitationId): ?array
+    {
+        if ($invitationId <= 0) {
+            return null;
+        }
+
+        return (new InvitationVisitorModel())
+            ->where('invitation_id', $invitationId)
+            ->orderBy('id', 'DESC')
+            ->first();
+    }
+
+    private function withVisitorPassState(array $invitation): array
+    {
+        $visitorRow = $this->findInvitationVisitorRow((int) ($invitation['id'] ?? 0));
+        if (! $visitorRow) {
+            return $invitation;
+        }
+
+        return array_merge($invitation, [
+            'visitor_row_id' => $visitorRow['id'] ?? null,
+            'checked_in_at'  => $visitorRow['check_in_time'] ?? ($invitation['checked_in_at'] ?? null),
+            'check_out_time' => $visitorRow['check_out_time'] ?? null,
         ]);
     }
 
@@ -347,6 +416,46 @@ class GuardApi extends BaseController
         $entryStatus = $this->usesGuardEntryDecision($visitor)
             ? ($storedEntryStatus !== '' ? $storedEntryStatus : 'Expected')
             : $invitationStatus;
+
+        $now = time();
+        $today = date('Y-m-d');
+        $checkInAt = $visitor['checked_in_at'] ?? null;
+        $checkOutAt = $visitor['check_out_time'] ?? null;
+        $checkedInToday = ! empty($checkInAt) && date('Y-m-d', strtotime((string) $checkInAt)) === $today;
+        $canConfirm = true;
+        $nextAction = 'checkin';
+        $actionLabel = 'Confirm Time In';
+        $note = 'After confirmation, Time In will be recorded in History.';
+
+        if ($checkedInToday) {
+            $elapsedSeconds = $now - strtotime((string) $checkInAt);
+            if ($elapsedSeconds >= 600) {
+                $nextAction = 'checkout';
+                $actionLabel = 'Confirm Time Out';
+                $note = 'This visitor is already timed in. Confirm Time Out to end this visit.';
+            } else {
+                $remainingMinutes = (int) ceil((600 - $elapsedSeconds) / 60);
+                $canConfirm = false;
+                $nextAction = 'details';
+                $actionLabel = 'Back';
+                $note = 'Visitor already timed in. Time Out is available after ' . max(1, $remainingMinutes) . ' minute(s).';
+            }
+        }
+
+        if (strcasecmp($entryStatus, 'Rejected') === 0) {
+            $canConfirm = false;
+            $nextAction = 'details';
+            $actionLabel = 'Back';
+            $note = 'Entry for this visitor has been rejected.';
+        }
+
+        $blockedReason = $this->passClosedReason($visitor);
+        if ($blockedReason !== null) {
+            $canConfirm = false;
+            $nextAction = 'details';
+            $actionLabel = 'Back';
+            $note = $blockedReason;
+        }
 
         return [
             'id'            => (string) $visitor['id'],
@@ -374,10 +483,31 @@ class GuardApi extends BaseController
             'rejection_reason' => $visitor['guard_rejection_reason'] ?? null,
             'entry_decided_at' => $visitor['guard_decided_at'] ?? null,
             'visitor_type'  => $this->resolveVisitorType((int) ($visitor['visitor_type_id'] ?? 0)),
-            'check_in_at'   => $visitor['checked_in_at'] ?? null,
-            'checked_in_at' => $visitor['checked_in_at'] ?? null,
-            'entry_time'    => $visitor['checked_in_at'] ?? null,
+            'check_in_at'   => $checkInAt,
+            'checked_in_at' => $checkInAt,
+            'entry_time'    => $checkInAt,
+            'check_out_at'  => $checkOutAt,
+            'check_out_time' => $checkOutAt,
+            'time_out'      => $checkOutAt,
+            'next_action'   => $nextAction,
+            'performed_action' => $visitor['guard_action'] ?? '',
+            'action_label'  => $actionLabel,
+            'can_confirm'   => $canConfirm,
+            'note'          => $note,
+            'valid_until'   => ! empty($checkInAt) ? date('Y-m-d 23:59:59', strtotime((string) $checkInAt)) : null,
         ];
+    }
+
+    private function passClosedReason(array $visitor): ?string
+    {
+        if (! empty($visitor['check_out_time'])) {
+            return 'This visitor has already timed out. This QR can no longer be used for Time In or Time Out.';
+        }
+        $timeIn = $visitor['checked_in_at'] ?? null;
+        if (! empty($timeIn) && date('Y-m-d', strtotime((string) $timeIn)) !== date('Y-m-d')) {
+            return 'This QR expired at 11:59 PM on the Time In date. Please register a new visit.';
+        }
+        return null;
     }
 
     private function usesGuardEntryDecision(array $visitor): bool
