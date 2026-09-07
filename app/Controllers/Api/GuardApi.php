@@ -99,7 +99,7 @@ class GuardApi extends BaseController
             return $this->failNotFound('Visitor not found');
         }
 
-        if (strcasecmp((string) ($visitor['guard_entry_status'] ?? ''), 'Rejected') === 0) {
+        if (in_array(strtolower((string) ($visitor['guard_entry_status'] ?? '')), ['rejected', 'rejected entry'], true)) {
             return $this->failResourceExists('Entry for this visitor has already been rejected.');
         }
 
@@ -133,11 +133,12 @@ class GuardApi extends BaseController
                     ->where('guard_entry_status', 'Expected')
                     ->orWhere('guard_entry_status IS NULL', null, false)
                     ->orWhere('guard_entry_status', 'Approved')
+                    ->orWhere('guard_entry_status', 'Checked In')
                 ->groupEnd()
                 ->update([
                     'checked_in_at'          => $now,
                     'status'                 => 'Approved',
-                    'guard_entry_status'     => 'Approved',
+                    'guard_entry_status'     => 'Checked In',
                     'guard_decided_at'       => $now,
                     'guard_decided_by'       => (int) $guard['id'],
                     'guard_rejection_reason' => null,
@@ -167,6 +168,14 @@ class GuardApi extends BaseController
             $visitorModel->where('id', (int) $visitorRow['id'])
                 ->set(['check_out_time' => $now, 'updated_at' => $now])
                 ->update();
+            $db->table('invitations')
+                ->where('id', (int) $visitor['id'])
+                ->update([
+                    'guard_entry_status' => 'Checked Out',
+                    'guard_decided_at'   => $now,
+                    'guard_decided_by'   => (int) $guard['id'],
+                    'updated_at'         => $now,
+                ]);
         }
 
         $updated = $model->find((int) $visitor['id']);
@@ -206,10 +215,10 @@ class GuardApi extends BaseController
         }
 
         if (! empty($visitor['checked_in_at'])
-            || strcasecmp((string) ($visitor['guard_entry_status'] ?? ''), 'Approved') === 0) {
+            || in_array(strtolower((string) ($visitor['guard_entry_status'] ?? '')), ['approved', 'checked in', 'checked out'], true)) {
             return $this->failResourceExists('Entry for this visitor has already been approved.');
         }
-        if (strcasecmp((string) ($visitor['guard_entry_status'] ?? ''), 'Rejected') === 0) {
+        if (in_array(strtolower((string) ($visitor['guard_entry_status'] ?? '')), ['rejected', 'rejected entry'], true)) {
             return $this->failResourceExists('Entry for this visitor has already been rejected.');
         }
 
@@ -223,7 +232,7 @@ class GuardApi extends BaseController
                 ->orWhere('guard_entry_status IS NULL', null, false)
             ->groupEnd()
             ->update([
-                'guard_entry_status'     => 'Rejected',
+                'guard_entry_status'     => 'Rejected Entry',
                 'guard_decided_at'       => $now,
                 'guard_decided_by'       => (int) $guard['id'],
                 'guard_rejection_reason' => $reason !== '' ? $reason : null,
@@ -408,15 +417,24 @@ class GuardApi extends BaseController
     private function formatVisitor(array $visitor, string $qrToken): array
     {
         $invitationStatus = (string) ($visitor['status'] ?? '');
-        $storedEntryStatus = trim((string) ($visitor['guard_entry_status'] ?? ''));
-        $entryStatus = $this->usesGuardEntryDecision($visitor)
-            ? ($storedEntryStatus !== '' ? $storedEntryStatus : 'Expected')
-            : $invitationStatus;
-
         $now = time();
         $today = date('Y-m-d');
         $checkInAt = $visitor['checked_in_at'] ?? null;
         $checkOutAt = $visitor['check_out_time'] ?? null;
+        $storedEntryStatus = strtolower(trim((string) ($visitor['guard_entry_status'] ?? '')));
+        if ($this->usesGuardEntryDecision($visitor)) {
+            if (in_array($storedEntryStatus, ['rejected', 'rejected entry'], true)) {
+                $entryStatus = 'Rejected Entry';
+            } elseif (! empty($checkOutAt)) {
+                $entryStatus = 'Checked Out';
+            } elseif (! empty($checkInAt)) {
+                $entryStatus = 'Checked In';
+            } else {
+                $entryStatus = 'Expected';
+            }
+        } else {
+            $entryStatus = $invitationStatus;
+        }
         $checkedInToday = ! empty($checkInAt) && date('Y-m-d', strtotime((string) $checkInAt)) === $today;
         $canConfirm = true;
         $nextAction = 'checkin';
@@ -438,7 +456,7 @@ class GuardApi extends BaseController
             }
         }
 
-        if (strcasecmp($entryStatus, 'Rejected') === 0) {
+        if ($entryStatus === 'Rejected Entry') {
             $canConfirm = false;
             $nextAction = 'details';
             $actionLabel = 'Back';

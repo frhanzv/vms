@@ -411,10 +411,8 @@
                             <td class="p-4">
                                 <?php if ($visitor['status'] === 'Checked In'): ?>
                                 <span class="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Checked In</span>
-                                <?php elseif ($visitor['status'] === 'Approved'): ?>
-                                <span class="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Approved</span>
-                                <?php elseif ($visitor['status'] === 'Rejected'): ?>
-                                <span class="bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Rejected</span>
+                                <?php elseif ($visitor['status'] === 'Rejected Entry'): ?>
+                                <span class="bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Rejected Entry</span>
                                 <?php elseif ($visitor['status'] === 'Checked Out'): ?>
                                 <span class="bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Checked Out</span>
                                 <?php else: ?>
