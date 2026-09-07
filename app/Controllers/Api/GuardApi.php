@@ -165,12 +165,8 @@ class GuardApi extends BaseController
             $action = 'checkout';
             $message = 'Time Out recorded';
             $visitorModel->where('id', (int) $visitorRow['id'])
-                ->where('check_out_time IS NULL', null, false)
                 ->set(['check_out_time' => $now, 'updated_at' => $now])
                 ->update();
-            if ($db->affectedRows() === 0) {
-                return $this->failResourceExists('This visitor has already timed out. This QR can no longer be used for Time In or Time Out.');
-            }
         }
 
         $updated = $model->find((int) $visitor['id']);
@@ -432,7 +428,7 @@ class GuardApi extends BaseController
             if ($elapsedSeconds >= 600) {
                 $nextAction = 'checkout';
                 $actionLabel = 'Confirm Time Out';
-                $note = 'This visitor is already timed in. Confirm Time Out to end this visit.';
+                $note = 'Confirm to record the latest Time Out. This QR remains valid until 11:59 PM on the Time In date.';
             } else {
                 $remainingMinutes = (int) ceil((600 - $elapsedSeconds) / 60);
                 $canConfirm = false;
@@ -500,9 +496,6 @@ class GuardApi extends BaseController
 
     private function passClosedReason(array $visitor): ?string
     {
-        if (! empty($visitor['check_out_time'])) {
-            return 'This visitor has already timed out. This QR can no longer be used for Time In or Time Out.';
-        }
         $timeIn = $visitor['checked_in_at'] ?? null;
         if (! empty($timeIn) && date('Y-m-d', strtotime((string) $timeIn)) !== date('Y-m-d')) {
             return 'This QR expired at 11:59 PM on the Time In date. Please register a new visit.';
