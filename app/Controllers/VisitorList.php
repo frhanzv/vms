@@ -140,7 +140,7 @@ class VisitorList extends BaseController
                 'location' => $row['location'] ?? '',
                 'type' => $row['registration_source'] ?? 'Walk-In',
                 'status' => $entryDecisionCache[$visitorClientId]
-                    ? ($row['guard_entry_status'] ?? 'Expected')
+                    ? $this->gxoEntryStatus($row)
                     : (! empty($row['check_out_time'])
                         ? 'Checked Out'
                         : (! empty($row['check_in_time']) ? 'Checked In' : 'Expected')),
@@ -463,7 +463,7 @@ class VisitorList extends BaseController
                     && $featureModel->isEnabled($visitorClientId, 'auto_approve_after_workflow');
             }
             $displayStatus = $entryDecisionCache[$visitorClientId]
-                ? ($row['guard_entry_status'] ?? 'Expected')
+                ? $this->gxoEntryStatus($row)
                 : (! empty($row['check_out_time'])
                     ? 'Checked Out'
                     : (! empty($row['check_in_time']) ? 'Checked In' : 'Expected'));
@@ -496,6 +496,22 @@ class VisitorList extends BaseController
             ->setHeader('Content-Type', 'text/csv; charset=UTF-8')
             ->setHeader('Content-Disposition', 'attachment; filename="visitors-' . date('Y-m-d-His') . '.csv"')
             ->setBody((string) $csvContent);
+    }
+
+    private function gxoEntryStatus(array $row): string
+    {
+        $storedStatus = strtolower(trim((string) ($row['guard_entry_status'] ?? '')));
+        if (in_array($storedStatus, ['rejected', 'rejected entry'], true)) {
+            return 'Rejected Entry';
+        }
+        if (! empty($row['check_out_time'])) {
+            return 'Checked Out';
+        }
+        if (! empty($row['check_in_time'])) {
+            return 'Checked In';
+        }
+
+        return 'Expected';
     }
 
     /**
