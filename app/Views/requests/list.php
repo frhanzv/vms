@@ -110,9 +110,10 @@
         </div>
     </aside>
         <main class="flex-1 flex flex-col h-full overflow-hidden relative">
-            <div class="bg-background-light dark:bg-background-dark p-6 pb-2 shrink-0">
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div class="flex flex-col gap-1 rounded-lg p-4 bg-white dark:bg-slate-900 border border-gray-200 dark:border-gray-800 shadow-sm">
+            <?= view('requests/view_editor') ?>
+            <div data-request-section="summary" class="bg-background-light dark:bg-background-dark p-6 pb-2 shrink-0">
+            <div class="grid gap-4" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+                <div data-request-section="card_pending" class="flex flex-col gap-1 rounded-lg p-4 bg-white dark:bg-slate-900 border border-gray-200 dark:border-gray-800 shadow-sm">
                     <div class="flex justify-between items-start">
                         <p class="text-gray-400 text-xs font-semibold uppercase tracking-wider">Pending Requests</p>
                         <span class="material-symbols-outlined text-orange-500 text-lg">pending</span>
@@ -122,7 +123,7 @@
                         <span class="text-green-600 bg-green-100 dark:bg-green-900/30 text-[10px] font-bold px-1.5 py-0.5 rounded">+2%</span>
                     </div>
                 </div>
-                <div class="flex flex-col gap-1 rounded-lg p-4 bg-white dark:bg-slate-900 border border-gray-200 dark:border-gray-800 shadow-sm relative overflow-hidden">
+                <div data-request-section="card_flagged" class="flex flex-col gap-1 rounded-lg p-4 bg-white dark:bg-slate-900 border border-gray-200 dark:border-gray-800 shadow-sm relative overflow-hidden">
                     <div class="absolute right-0 top-0 p-1">
                         <span class="flex size-2">
                             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -138,7 +139,7 @@
                         <span class="text-red-600 dark:text-red-400 text-xs font-medium">Action Required</span>
                     </div>
                 </div>
-                <div class="flex flex-col gap-1 rounded-lg p-4 bg-white dark:bg-slate-900 border border-gray-200 dark:border-gray-800 shadow-sm">
+                <div data-request-section="card_expected" class="flex flex-col gap-1 rounded-lg p-4 bg-white dark:bg-slate-900 border border-gray-200 dark:border-gray-800 shadow-sm">
                     <div class="flex justify-between items-start">
                         <p class="text-gray-400 text-xs font-semibold uppercase tracking-wider">Expected Today</p>
                         <span class="material-symbols-outlined text-primary text-lg">calendar_today</span>
@@ -148,7 +149,7 @@
                         <span class="text-gray-400 text-xs font-medium">On Track</span>
                     </div>
                 </div>
-                <div class="flex flex-col gap-1 rounded-lg p-4 bg-white dark:bg-slate-900 border border-gray-200 dark:border-gray-800 shadow-sm">
+                <div data-request-section="card_rejected" class="flex flex-col gap-1 rounded-lg p-4 bg-white dark:bg-slate-900 border border-gray-200 dark:border-gray-800 shadow-sm">
                     <div class="flex justify-between items-start">
                         <p class="text-gray-400 text-xs font-semibold uppercase tracking-wider">Rejected</p>
                         <span class="material-symbols-outlined text-gray-400 text-lg">block</span>
@@ -165,7 +166,7 @@
                 <?php if ($currentRequest): ?>
                 <div class="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-800">
                     <div class="flex flex-col md:flex-row gap-6 items-start">
-                        <div class="relative group">
+                        <div data-request-section="photo" class="relative group">
                             <?php if (!empty($currentRequest['photo'])): ?>
                             <div class="w-32 h-32 rounded-lg bg-cover bg-center shadow-inner" style='background-image: url("<?= esc($currentRequest['photo']) ?>");'></div>
                             <?php else: ?>
@@ -199,13 +200,13 @@
                                             Contact Host
                                         </button>
                                     </div>
-                                    <div class="hidden sm:flex flex-col items-center bg-white p-2 rounded-lg border border-gray-200 shadow-sm shrink-0">
+                                    <div data-request-section="qr" class="hidden sm:flex flex-col items-center bg-white p-2 rounded-lg border border-gray-200 shadow-sm shrink-0">
                                         <span class="material-symbols-outlined text-4xl text-black">qr_code_2</span>
                                         <span class="text-[10px] font-mono font-bold text-black mt-0.5"><?= esc($currentRequest['id']) ?></span>
                                     </div>
                                 </div>
                             </div>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                            <div data-request-section="visit_details" class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
                                 <div class="bg-background-light dark:bg-slate-800 p-3 rounded-lg flex items-center gap-3">
                                     <div class="bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 p-2 rounded-md">
                                         <span class="material-symbols-outlined">person</span>
@@ -237,8 +238,8 @@
                         </div>
                     </div>
                 </div>
-                <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                    <div class="xl:col-span-1 bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-800 flex flex-col h-full">
+                <div data-request-review-grid class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                    <div data-request-section="watchlist" class="xl:col-span-1 bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-800 flex flex-col h-full">
                         <div class="flex items-center justify-between mb-6">
                             <h3 class="text-base font-bold text-gray-900 dark:text-white">Watchlist Screening</h3>
                             <button class="text-primary text-xs font-semibold hover:underline">Re-run Check</button>
@@ -255,7 +256,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="xl:col-span-2 bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-800">
+                    <div data-request-section="identity" class="xl:col-span-2 bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-800">
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
                                 ID Verification 
@@ -325,7 +326,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-800 mb-20">
+                <div data-request-section="assets" class="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-800 mb-20">
                     <h3 class="text-base font-bold text-gray-900 dark:text-white mb-4">Access Control &amp; Assets</h3>
                     <div class="flex flex-col md:flex-row gap-6">
                         <div class="flex-1">

@@ -187,7 +187,7 @@
                         <input class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs focus:ring-primary focus:border-primary uppercase placeholder-gray-500 dark:placeholder-gray-400" placeholder="DATE OF VISIT TO" type="text"/>
                     </div>
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                     <div class="relative">
                         <select class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs appearance-none focus:ring-primary focus:border-primary text-gray-500 dark:text-gray-300">
                             <option>VISIT TYPE</option>
@@ -211,13 +211,6 @@
                     <div class="relative">
                         <select class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs appearance-none focus:ring-primary focus:border-primary text-gray-500 dark:text-gray-300">
                             <option>DATE TIME DESC</option>
-                        </select>
-                        <span class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-icons text-sm">expand_more</span>
-                    </div>
-                    <div class="relative">
-                        <select class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs appearance-none focus:ring-primary focus:border-primary text-gray-500 dark:text-gray-300">
-                            <option>KSB</option>
-                            <option>Other Locations</option>
                         </select>
                         <span class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-icons text-sm">expand_more</span>
                     </div>

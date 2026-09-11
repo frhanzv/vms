@@ -14,7 +14,7 @@ class EmailChannel
             case 'invitation_sent':
                 return $sender->send($invitationId);
             case 'request_approved':
-                return $sender->sendApproval($invitationId);
+                return $sender->sendApprovedBriefing($invitationId);
             case 'request_rejected':
                 return $sender->sendRejection($invitationId);
             case 'check_in':

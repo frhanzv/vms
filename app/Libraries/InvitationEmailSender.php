@@ -310,7 +310,7 @@ class InvitationEmailSender
         return $invitation;
     }
 
-    public function send(int $invitationId, ?string $registrationLinkOverride = null): bool
+    public function send(int $invitationId, ?string $registrationLinkOverride = null, bool $safetyBriefing = false): bool
     {
         try {
             $invitation = $this->getInvitationDetails($invitationId);
@@ -427,6 +427,14 @@ class InvitationEmailSender
                 'custom_logo_cid' => $customLogoCid,
             ];
 
+            if ($safetyBriefing) {
+                $customSubject = 'Complete your safety briefing';
+                $templateConfig['subject'] = $customSubject;
+                $emailData['template']['button_text'] = 'Watch Safety Video';
+                $emailData['intro_line'] = 'Please complete the safety video and acknowledgement using the link below. Your entry QR will be emailed after completion.';
+                $emailData['custom_body_html'] = null;
+                $emailData['notes_items'] = ['Complete the safety briefing before arriving. Your QR pass is issued only after approval and briefing completion.'];
+            }
             $message = view('emails/invitation_template', $emailData);
 
             $email->setFrom($this->emailConfig->fromEmail, $this->emailConfig->fromName);
@@ -470,9 +478,17 @@ class InvitationEmailSender
                 'flow_step' => 'security_briefing',
             ]));
 
-        return $this->send($invitationId, $briefingLink);
+        return $this->send($invitationId, $briefingLink, true);
     }
 
+    public function sendApprovedBriefing(int $invitationId): bool
+    {
+        $invitation = (new \App\Models\InvitationModel())->find($invitationId);
+        if (! $invitation || $invitation['status'] !== 'Approved') {
+            return false;
+        }
+        return $this->sendWalkInBriefing($invitationId);
+    }
     public function sendApproval(int $invitationId): bool
     {
         try {
@@ -484,6 +500,10 @@ class InvitationEmailSender
                 return false;
             }
 
+            if ($invitation['status'] !== 'Approved' || empty($invitation['video_watched'])) {
+                log_message('warning', 'QR email blocked until approval and briefing completion: ' . $invitationId);
+                return false;
+            }
             if (empty($invitation['visitor_email'])) {
                 log_message('warning', 'No visitor email found for invitation ID: ' . $invitationId);
 

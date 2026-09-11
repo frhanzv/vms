@@ -689,10 +689,42 @@ class Config extends BaseController
     /**
      * Create new user
      */
+    /** Exact lookup from the same staff directory used by Staff List. */
+    public function lookupUserStaff()
+    {
+        helper('role');
+        if (! is_platform_superadmin() && ! is_client_superadmin()) {
+            return $this->response->setStatusCode(403)->setJSON(['success' => false, 'message' => 'You are not allowed to create users.']);
+        }
+        if (is_client_scoped_user_manager() && user_management_client_scope() <= 0) {
+            return $this->response->setStatusCode(403)->setJSON(['success' => false, 'message' => 'Your account is not linked to a client.']);
+        }
+        return $this->response->setJSON((new \App\Services\StaffUserLookupService())->find(
+            (string) $this->request->getGet('staff_id')
+        ));
+    }
     public function createUser()
     {
         helper(['role', 'feature']);
-        $input = $this->request->getJSON(true);
+        $input = $this->request->getJSON(true) ?? [];
+        if (! is_platform_superadmin() && ! is_client_superadmin()) {
+            return $this->response->setStatusCode(403)->setJSON(['success' => false, 'message' => 'You are not allowed to create users.']);
+        }
+        if (! empty($input['staff_id'])) {
+            $lookup = (new \App\Services\StaffUserLookupService())->find((string) $input['staff_id']);
+            if (! $lookup['success']) {
+                return $this->response->setStatusCode(400)->setJSON([
+                    'success' => false, 'message' => 'Validation failed',
+                    'errors' => ['staff_id' => $lookup['message']],
+                ]);
+            }
+            // Re-read on save so browser edits cannot replace existing staff details.
+            foreach ($lookup['data'] as $key => $value) {
+                if ($value !== '') {
+                    $input[$key] = $value;
+                }
+            }
+        }
 
         $rules = [
             'username'   => 'required|min_length[3]|max_length[100]|is_unique[users.username]',
@@ -708,7 +740,7 @@ class Config extends BaseController
             'receive_email_notifications' => 'permit_empty|in_list[0,1]',
         ];
 
-        if (!$this->validate($rules)) {
+        if (!$this->validateData($input, $rules)) {
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Validation failed',

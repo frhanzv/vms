@@ -346,6 +346,28 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
                 <?php endif; ?>
 
                 <?php if ($isFieldEnabled('date_of_visit_section')): ?>
+                <?php if (! empty($invitationId)): ?>
+                <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 overflow-hidden">
+                    <div class="px-6 sm:px-8 py-4 border-b border-border-color dark:border-gray-800">
+                        <h2 class="text-lg font-bold font-brand text-text-main dark:text-white">Date of Visit</h2>
+                        <p class="text-sm text-text-sub dark:text-gray-400">Set by your host. Contact your host if these dates need changing.</p>
+                    </div>
+                    <div class="p-6 sm:p-8 flex flex-col gap-6">
+                        <?php foreach (($schedules ?? []) as $index => $schedule): ?>
+                        <div class="rounded-lg p-4 border border-border-color dark:border-gray-700">
+                            <h4 class="font-semibold mb-4">Date Visit <?= $index + 1 ?></h4>
+                            <dl class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div><dt class="text-sm text-text-sub">Date From</dt><dd class="mt-2 font-medium"><?= esc(date('d/m/Y H:i', strtotime($schedule['date_from']))) ?></dd></div>
+                                <div><dt class="text-sm text-text-sub">Date To</dt><dd class="mt-2 font-medium"><?= esc(date('d/m/Y H:i', strtotime($schedule['date_to']))) ?></dd></div>
+                            </dl>
+                        </div>
+                        <?php endforeach; ?>
+                        <?php if (empty($schedules)): ?>
+                        <p class="text-sm text-text-sub">No visit dates have been set. Please contact your host.</p>
+                        <?php endif; ?>
+                    </div>
+                </section>
+                <?php else: ?>
                 <!-- Date of Visit -->
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 overflow-hidden">
                     <div class="flex items-center justify-between px-6 sm:px-8 py-4 border-b border-border-color dark:border-gray-800">
@@ -394,6 +416,7 @@ $isFieldEnabled = static function (string $field) use ($formConfig): bool {
                         </div>
                     </div>
                 </section>
+                <?php endif; ?>
                 <?php endif; ?>
 
                 <?php if ($isFieldEnabled('details_of_visit_section')): ?>

@@ -602,6 +602,7 @@ function reindexScheduleRows() {
 
 document.getElementById('add-schedule')?.addEventListener('click', function() {
     const container = document.getElementById('schedule-container');
+    if (!container) return;
     const idx = container.querySelectorAll('.schedule-item').length;
     container.insertAdjacentHTML('beforeend', scheduleRowTemplate(idx));
 });

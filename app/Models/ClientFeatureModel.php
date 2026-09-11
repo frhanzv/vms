@@ -87,7 +87,7 @@ class ClientFeatureModel extends Model
                 $this->insert([
                     'client_id'   => $clientId,
                     'feature_key' => $key,
-                    'is_enabled'  => 0,
+                    'is_enabled'  => $enabled,
                 ]);
             }
         }

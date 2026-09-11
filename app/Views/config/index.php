@@ -5255,6 +5255,14 @@
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Staff
+                                ID</label>
+                            <input type="text" id="userStaffId" name="staff_id"
+                                class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none"
+                                placeholder="Enter Staff No from Staff List">
+                            <p id="userStaff_idError" class="text-red-500 text-xs mt-1 hidden"></p>
+                        <p id="userStaffLookupStatus" role="status" aria-live="polite" class="text-xs text-gray-500 mt-1">Enter Staff ID to fill details from the Staff List.</p></div>
+                        <div>
                             <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Username
                                 <span class="text-red-500">*</span></label>
                             <input type="text" id="userUsername" name="username" required
@@ -5297,14 +5305,7 @@
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Staff
-                                ID</label>
-                            <input type="text" id="userStaffId" name="staff_id"
-                                class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none"
-                                placeholder="Enter staff ID">
-                            <p id="userStaff_idError" class="text-red-500 text-xs mt-1 hidden"></p>
-                        </div>
+
 
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Contact
@@ -6769,7 +6770,64 @@
                 .catch(() => {});
         }
 
+        let userStaffLookupVersion = 0;
+        let userStaffLookupTimer;
+        let userStaffResolvedId = '';
+        let userStaffAutoValues = {};
+        function resetUserStaffLookup(clearValues = false) {
+            userStaffLookupVersion++;
+            clearTimeout(userStaffLookupTimer);
+            userStaffResolvedId = '';
+            for (const [id, value] of Object.entries(userStaffAutoValues)) {
+                const input = document.getElementById(id);
+                if (clearValues && input.value === value) input.value = '';
+            }
+            userStaffAutoValues = {};
+            ['userFullName', 'userEmail', 'userContactNo'].forEach(id => {
+                document.getElementById(id).readOnly = false;
+            });
+            document.getElementById('userStaffLookupStatus').textContent = 'Enter Staff ID to fill details from the Staff List.';
+        }
+        async function lookupUserStaff() {
+            if (document.getElementById('userId').value) return;
+            const staffId = document.getElementById('userStaffId').value.trim();
+            const version = ++userStaffLookupVersion;
+            const status = document.getElementById('userStaffLookupStatus');
+            if (!staffId) return;
+            status.textContent = 'Looking up staff...';
+            try {
+                const response = await fetch('<?= base_url('config/lookupUserStaff') ?>?staff_id=' + encodeURIComponent(staffId));
+                const result = await response.json();
+                if (version !== userStaffLookupVersion) return;
+                if (!result.success) {
+                    status.textContent = result.message || 'Unable to look up staff.';
+                    return;
+                }
+                const fields = {userFullName: 'full_name', userEmail: 'email', userContactNo: 'contact_no'};
+                let missing = false;
+                for (const [id, key] of Object.entries(fields)) {
+                    const input = document.getElementById(id);
+                    const value = result.data[key] || '';
+                    input.value = value;
+                    input.readOnly = value !== '';
+                    userStaffAutoValues[id] = value;
+                    if (!value) missing = true;
+                }
+                userStaffResolvedId = staffId;
+                status.textContent = missing
+                    ? 'Staff found. Enter username, password and role, and fill any missing staff details.'
+                    : 'Staff details filled. Enter username, password and role.';
+            } catch (error) {
+                if (version === userStaffLookupVersion) status.textContent = 'Unable to look up staff. Please try again.';
+            }
+        }
+        document.getElementById('userStaffId').addEventListener('input', () => {
+            if (document.getElementById('userId').value) return;
+            resetUserStaffLookup(true);
+            userStaffLookupTimer = setTimeout(lookupUserStaff, 350);
+        });
         function openCreateUserModal() {
+            resetUserStaffLookup();
             document.getElementById('userModalTitle').textContent = 'Create New User';
             document.getElementById('userId').value = '';
             document.getElementById('userForm').reset();
@@ -6792,6 +6850,7 @@
         }
 
         function openEditUserModal(userId) {
+            resetUserStaffLookup();
             fetch(`<?= base_url('config/getUser') ?>/${userId}`)
                 .then(response => response.json())
                 .then(data => {
@@ -6832,6 +6891,7 @@
         }
 
         function closeUserModal() {
+            resetUserStaffLookup();
             document.getElementById('userModal').classList.add('hidden');
             document.getElementById('userModal').classList.remove('flex');
             document.getElementById('userForm').reset();
@@ -6854,6 +6914,12 @@
             clearUserErrors();
 
             const userId = document.getElementById('userId').value;
+            const staffId = document.getElementById('userStaffId').value.trim();
+            if (!userId && staffId && userStaffResolvedId !== staffId) {
+                document.getElementById('userStaffLookupStatus').textContent = 'Please wait for a matching staff record before saving.';
+                lookupUserStaff();
+                return;
+            }
             const formData = new FormData(event.target);
             const data = Object.fromEntries(formData.entries());
             data.receive_email_notifications = document.getElementById('userReceiveEmailNotifications').checked ? 1 : 0;

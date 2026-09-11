@@ -640,8 +640,13 @@ class InvitationList extends BaseController
         ];
         if ($isEnabled('schedule')) {
             $rules['schedules'] = 'required';
-            $rules['schedules.*.date_from'] = 'required';
-            $rules['schedules.*.date_to'] = 'required';
+            $rules['schedules.*.date_from'] = 'required|valid_date';
+            $rules['schedules.*.date_to'] = 'required|valid_date';
+        }
+        // Keep model validation consistent with this client's field configuration.
+        foreach (['full_name' => 'visitor_full_name', 'contact' => 'visitor_contact', 'reason' => 'reason'] as $column => $field) {
+            $max = $column === 'contact' ? 20 : 255;
+            $this->invitationModel->setValidationRule($column, ($isEnabled($field) ? 'required' : 'permit_empty') . '|max_length[' . $max . ']');
         }
         if ($isEnabled('reason'))         { $rules['reason']         = 'required'; }
         if ($isEnabled('staff_id'))       { $rules['staff_id']       = 'required|max_length[50]'; }
@@ -662,6 +667,10 @@ class InvitationList extends BaseController
         }
 
         $rawVisitors = $this->request->getPost('visitors');
+        $hasVisitorFields = $isEnabled('visitor_full_name') || $isEnabled('visitor_contact') || $isEnabled('visitor_email');
+        if (! $hasVisitorFields) {
+            $rawVisitors = [[]];
+        }
         if (! is_array($rawVisitors)) {
             return redirect()->back()
                            ->withInput()
@@ -673,26 +682,22 @@ class InvitationList extends BaseController
             if (! is_array($row)) {
                 continue;
             }
-            $fullName = trim((string) ($row['full_name'] ?? $row['name'] ?? ''));
-            $email    = trim((string) ($row['visitor_email'] ?? $row['email'] ?? ''));
-            // Use full_name as row identifier when enabled, email otherwise
-            if ($isEnabled('visitor_full_name') ? ($fullName === '') : ($email === '')) {
+            $fullName = $isEnabled('visitor_full_name') ? trim((string) ($row['full_name'] ?? $row['name'] ?? '')) : '';
+            $email = $isEnabled('visitor_email') ? trim((string) ($row['visitor_email'] ?? $row['email'] ?? '')) : '';
+            $contact = $isEnabled('visitor_contact') ? trim((string) ($row['contact'] ?? '')) : '';
+            if ($hasVisitorFields && $fullName === '' && $email === '' && $contact === '') {
                 continue;
             }
-            $visitors[] = [
-                'full_name'     => $fullName,
-                'contact'       => trim((string) ($row['contact'] ?? '')),
-                'visitor_email' => $email,
-            ];
+            $visitors[] = ['full_name' => $fullName, 'contact' => $contact, 'visitor_email' => $email];
         }
-
         if ($visitors === []) {
             return redirect()->back()
                            ->withInput()
-                           ->with('errors', ['visitors' => 'Add at least one visitor with a full name, contact, and email.']);
+                           ->with('errors', ['visitors' => 'Add at least one visitor and complete the enabled visitor fields.']);
         }
 
         $perVisitorRules = [];
+        if ($isEnabled('visitor_full_name')) { $perVisitorRules['full_name'] = 'required|max_length[255]'; }
         if ($isEnabled('visitor_contact')) { $perVisitorRules['contact']       = 'required|max_length[20]'; }
         if ($isEnabled('visitor_email'))   { $perVisitorRules['visitor_email'] = 'required|valid_email|max_length[255]'; }
 
@@ -703,7 +708,7 @@ class InvitationList extends BaseController
                     return redirect()->back()
                                    ->withInput()
                                    ->with('errors', array_merge(
-                                       ['visitors' => 'Visitor #' . ($i + 1) . ' has invalid contact or email.'],
+                                       ['visitors' => 'Visitor #' . ($i + 1) . ' has missing or invalid visitor details.'],
                                        $visitorValidation->getErrors()
                                    ));
                 }
@@ -717,9 +722,9 @@ class InvitationList extends BaseController
                            ->with('errors', ['schedules' => 'At least one visit schedule is required.']);
         }
 
-        $vtPost = $this->request->getPost('visitor_type_id');
+        $vtPost = $isEnabled('visitor_type') ? $this->request->getPost('visitor_type_id') : null;
         $visitorTypeId = ($vtPost !== null && $vtPost !== '') ? (int) $vtPost : null;
-        if ($visitorTypeCount > 0) {
+        if ($visitorTypeCount > 0 && $isEnabled('visitor_type')) {
             if ($visitorTypeId === null || ! $this->visitorTypeModel->find($visitorTypeId)) {
                 return redirect()->back()
                                ->withInput()
@@ -747,7 +752,7 @@ class InvitationList extends BaseController
                 'company'             => $isEnabled('company_visited') ? $this->request->getPost('company_visited') : null,
                 'company_visited'     => $isEnabled('company_visited') ? $this->request->getPost('company_visited') : null,
                 'location'            => $isEnabled('location')        ? $this->request->getPost('location')        : null,
-                'reason'              => $isEnabled('reason')          ? $this->request->getPost('reason')          : null,
+                'reason'              => $isEnabled('reason')          ? $this->request->getPost('reason')          : '',
                 'other_reason'        => $isEnabled('reason')          ? $this->request->getPost('other_reason')    : null,
                 'link_expiry'         => $isEnabled('link_expiry')     ? $this->request->getPost('link_expiry')     : null,
                 'staff_id'            => $isEnabled('staff_id')        ? trim((string) $this->request->getPost('staff_id'))       : '',
