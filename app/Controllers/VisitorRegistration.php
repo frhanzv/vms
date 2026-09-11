@@ -398,6 +398,7 @@ class VisitorRegistration extends BaseController
                 'custom_form_data' => !empty($customFormData) ? json_encode($customFormData) : null,
             ];
 
+            $preserveInvitationSchedules = false;
             // Insert or update invitation record
             if ($invitationId && ($existingInvitation = $this->invitationModel->find($invitationId))) {
                 // Prevent double-submission: only allow if status is Pending or Submitted
@@ -416,8 +417,8 @@ class VisitorRegistration extends BaseController
                     throw new \Exception('This registration has been modified by someone else. Please refresh and try again.');
                 }
                 
-                // Delete old schedules before inserting new ones
-                $this->scheduleModel->where('invitation_id', $invitationId)->delete();
+                // Invitation dates belong to the host. Ignore visitor-supplied changes.
+                $preserveInvitationSchedules = true;
             } else {
                 // Insert new invitation
                 $invitationId = $this->invitationModel->insert($visitorData);
@@ -429,7 +430,7 @@ class VisitorRegistration extends BaseController
 
             // Save visit schedules
             $dates = $this->request->getPost('dates');
-            if (is_array($dates) && count($dates) > 0) {
+            if (! $preserveInvitationSchedules && is_array($dates) && count($dates) > 0) {
                 foreach ($dates as $dateEntry) {
                     if (isset($dateEntry['date_from']) && isset($dateEntry['date_to'])) {
                         $scheduleData = [
@@ -506,8 +507,7 @@ class VisitorRegistration extends BaseController
                     'flow_step' => 'security_briefing',
                 ]);
             } else {
-                $nextUrl = $this->invitationProcessFlowService->getFirstStepAfterRegistrationUrl($token)
-                    ?? base_url('security/completed?token=' . urlencode($token));
+                $nextUrl = base_url('security/checkin?token=' . urlencode($token));
             }
 
             return $this->response->setJSON([

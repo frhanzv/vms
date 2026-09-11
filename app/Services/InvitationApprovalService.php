@@ -17,7 +17,7 @@ class InvitationApprovalService
     /**
      * @return array{success:bool,message:string,notification_sent?:bool}
      */
-    public function approve(int $invitationId): array
+    public function approve(int $invitationId, bool $sendBriefing = true): array
     {
         try {
             $invitation = $this->invitationModel->find($invitationId);
@@ -86,7 +86,8 @@ class InvitationApprovalService
                 return ['success' => false, 'message' => 'Failed to approve request due to a database error'];
             }
 
-            $notificationSent = (new NotificationService())->dispatch($invitationId, 'request_approved');
+            // Auto-approval callers suppress the link email because the visitor just completed it.
+            $notificationSent = ! $sendBriefing || (new NotificationService())->dispatch($invitationId, 'request_approved');
             if (! $notificationSent) {
                 log_message('warning', 'Invitation approved but approval/QR notification failed for invitation ID: ' . $invitationId);
             }

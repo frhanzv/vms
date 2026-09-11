@@ -37,18 +37,18 @@
             <div class="mx-auto size-16 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                 <span class="material-symbols-outlined text-4xl">how_to_vote</span>
             </div>
-            <h1 class="text-xl font-bold text-slate-900 dark:text-white">Approval &amp; check-in</h1>
+            <h1 class="text-xl font-bold text-slate-900 dark:text-white">Awaiting approval</h1>
             <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                Please wait for reception or your host to approve this visit. When you are cleared, continue to receive your entry QR or pass.
+                Your registration has been received. After your visit is approved, we will email you a safety-video link. Complete the briefing to receive your QR pass.
             </p>
             <?php if (! empty($next_after_approval_url)): ?>
                 <a href="<?= esc($next_after_approval_url) ?>"
                    class="inline-flex items-center justify-center gap-2 w-full mt-4 px-4 py-3 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover transition-colors">
                     <span class="material-symbols-outlined text-xl">qr_code_2</span>
-                    Continue
+                    Open Safety Briefing
                 </a>
             <?php else: ?>
-                <p class="text-xs text-slate-500 dark:text-slate-500 mt-2">Invitation link incomplete — open this step from your invitation email.</p>
+                <p class="text-xs text-slate-500 dark:text-slate-500 mt-2">You can close this page and wait for the approval email.</p>
             <?php endif; ?>
         </div>
     </main>

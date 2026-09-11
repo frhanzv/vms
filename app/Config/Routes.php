@@ -345,6 +345,7 @@ $routes->group('', ['filter' => [$plusAdminHost, 'client_feature:auto_approve_af
 // ===========================
 
 $routes->group('', ['filter' => [$plusAdmin, 'client_feature:auto_approve_after_workflow,disabled']], function($routes) {
+    $routes->post('requests/view-settings', 'RequestList::saveViewSettings');
     $routes->post('requests/approve', 'RequestList::approve');
     $routes->post('requests/batchApprove', 'RequestList::batchApprove');
     $routes->post('requests/reject', 'RequestList::reject');
@@ -443,6 +444,7 @@ $routes->group('', ['filter' => $plusAdminOfficer], function($routes) {
 // ===========================
 
 $routes->group('config', ['filter' => $plusAdmin], function($routes) {
+    $routes->get('lookupUserStaff', 'Config::lookupUserStaff');
     $routes->get('getUsers', 'Config::getUsers');
     $routes->get('getUser/(:num)', 'Config::getUser/$1');
     $routes->post('createUser', 'Config::createUser');

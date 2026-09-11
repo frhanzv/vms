@@ -39,6 +39,11 @@ class SecurityBriefing extends BaseController
         }
 
         $clientId = (int) ($invitation['client_id'] ?? $invitation['company_id'] ?? 0);
+        $auto = $clientId > 0 && (new ClientFeatureModel())->isEnabled($clientId, 'auto_approve_after_workflow');
+        if (! $invitation || ! in_array($invitation['status'], ['Submitted', 'Approved'], true)
+            || (! $auto && $invitation['status'] !== 'Approved')) {
+            return redirect()->to(base_url('security/checkin?token=' . urlencode((string) $token)));
+        }
         $activeVideo = $this->videoModel->getActiveVideoForClient($clientId);
         
         $data = [
@@ -59,138 +64,50 @@ class SecurityBriefing extends BaseController
     public function validateCompletion()
     {
         try {
-            $json = $this->request->getJSON();
-            
-            if (!$json) {
-                return $this->response->setJSON([
-                    'success' => false,
-                    'message' => 'Invalid request data'
-                ]);
+            $json = $this->request->getJSON(true);
+            $token = is_array($json) ? (string) ($json['token'] ?? '') : '';
+            $id = base64_decode($token, true);
+            if ($id === false || ! ctype_digit($id) || ! ($invitation = $this->invitationModel->find((int) $id))) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Invalid invitation']);
             }
-            
-            $token = $json->token ?? '';
-            $flowStepRaw = $json->flow_step ?? '';
-            $watchedDuration = $json->watched_duration ?? 0;
-            $videoDuration = $json->video_duration ?? 1;
-
-            $currentBriefingStep = $this->invitationProcessFlowService->resolveFlowStepForRoute(
-                'security/briefing',
-                is_string($flowStepRaw) ? $flowStepRaw : null
-            );
-            
-            $completionPercentage = ($watchedDuration / $videoDuration) * 100;
-            
-            if ($completionPercentage >= 90) {
-                if ($token) {
-                    $invitationId = base64_decode($token);
-                    $invitation = $this->invitationModel->find($invitationId);
-
-                    if (!$invitation) {
-                        return $this->response->setJSON([
-                            'success' => false,
-                            'message' => 'Invalid invitation'
-                        ]);
-                    }
-
-                    // Idempotent: if already completed, just redirect
-                    if (!empty($invitation['video_watched'])) {
-                        $autoApproval = $this->autoApproveAfterBriefing($invitationId, $invitation, $token);
-                        if ($autoApproval !== null) {
-                            return $this->response->setJSON($autoApproval);
-                        }
-
-                        $nextUrl = $this->invitationProcessFlowService->getNextStepUrl($currentBriefingStep, $token)
-                            ?? base_url('security/completed?token=' . urlencode((string) $token));
-
-                        return $this->response->setJSON([
-                            'success' => true,
-                            'message' => 'Video briefing was already completed',
-                            'redirect_url' => $nextUrl
-                        ]);
-                    }
-
-                    // Atomic: only update if video_watched is still falsy
-                    $db = \Config\Database::connect();
-                    $db->table('invitations')
-                        ->where('id', $invitationId)
-                        ->groupStart()
-                            ->where('video_watched', 0)
-                            ->orWhere('video_watched IS NULL')
-                        ->groupEnd()
-                        ->update([
-                            'video_watched' => true,
-                            'video_watched_at' => date('Y-m-d H:i:s'),
-                            'video_completion_percentage' => round($completionPercentage, 2),
-                            'version' => ($invitation['version'] ?? 1) + 1,
-                            'updated_at' => date('Y-m-d H:i:s'),
-                        ]);
-
-                    $autoApproval = $this->autoApproveAfterBriefing($invitationId, $invitation, $token);
-                    if ($autoApproval !== null) {
-                        return $this->response->setJSON($autoApproval);
-                    }
+            $clientId = (int) (($invitation['client_id'] ?? 0) ?: ($invitation['company_id'] ?? 0));
+            $auto = $clientId > 0 && (new ClientFeatureModel())->isEnabled($clientId, 'auto_approve_after_workflow');
+            if (! in_array($invitation['status'], ['Submitted', 'Approved'], true)
+                || (! $auto && $invitation['status'] !== 'Approved')) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Please wait for your visit to be approved before completing the safety briefing.']);
+            }
+            $watched = $json['watched_duration'] ?? null;
+            $duration = $json['video_duration'] ?? null;
+            if (($json['acknowledged'] ?? false) !== true || ! is_numeric($watched) || ! is_numeric($duration) || ! is_finite((float) $watched)
+                || ! is_finite((float) $duration) || $duration <= 0 || $watched < 0 || $watched / $duration < 0.9) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Please watch the entire video to proceed']);
+            }
+            $db = \Config\Database::connect();
+            if (empty($invitation['video_watched'])) {
+                $db->table('invitations')->where('id', (int) $id)->where('status', $invitation['status'])
+                    ->update(['video_watched' => 1, 'video_watched_at' => date('Y-m-d H:i:s'),
+                        'video_completion_percentage' => min(100, round($watched / $duration * 100, 2)),
+                        'updated_at' => date('Y-m-d H:i:s')]);
+            }
+            if ($auto && $invitation['status'] === 'Submitted') {
+                $result = $this->invitationApprovalService->approve((int) $id, false);
+                if (empty($result['success'])) {
+                    return $this->response->setJSON($result);
                 }
-                
-                $nextUrl = $this->invitationProcessFlowService->getNextStepUrl($currentBriefingStep, $token)
-                    ?? base_url('security/completed?token=' . urlencode((string) $token));
-
-                return $this->response->setJSON([
-                    'success' => true,
-                    'message' => 'Briefing completed successfully',
-                    'redirect_url' => $nextUrl
-                ]);
-            } else {
-                return $this->response->setJSON([
-                    'success' => false,
-                    'message' => 'Please watch the entire video to proceed',
-                    'completion' => round($completionPercentage, 2)
-                ]);
             }
-        } catch (\Exception $e) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'An error occurred: ' . $e->getMessage()
-            ]);
+            $result = (new \App\Services\InvitationQrDeliveryService())->deliver((int) $id);
+            if (! empty($result['notification_sent'])) {
+                $result['redirect_url'] = base_url('security/completed?token=' . urlencode($token));
+            } elseif (! empty($result['success'])) {
+                // Keep the visitor here so a failed email can be retried.
+                $result['success'] = false;
+            }
+            return $this->response->setJSON($result);
+        } catch (\Throwable $e) {
+            log_message('error', 'Briefing completion failed: ' . $e->getMessage());
+            return $this->response->setJSON(['success' => false, 'message' => 'Unable to complete the briefing. Please retry or contact reception.']);
         }
     }
-
-    /**
-     * Auto-approve only for clients that explicitly enabled the opt-in feature.
-     * Returning null preserves the existing manual workflow.
-     */
-    private function autoApproveAfterBriefing(int $invitationId, array $invitation, string $token): ?array
-    {
-        $clientId = (int) ($invitation['client_id'] ?? 0);
-        if ($clientId <= 0) {
-            $clientId = (int) ($invitation['company_id'] ?? 0);
-        }
-
-        $clientAutoApproval = $clientId > 0
-            && (new ClientFeatureModel())->isEnabled($clientId, 'auto_approve_after_workflow');
-
-        // Automatic approval is client-specific (currently enabled for GXO).
-        // A kiosk registration alone must not bypass another client's flow.
-        if (! $clientAutoApproval) {
-            return null;
-        }
-
-        $result = $this->invitationApprovalService->approve($invitationId);
-        if (empty($result['success'])) {
-            log_message('warning', 'Video completed but automatic approval failed for invitation ID '
-                . $invitationId . ': ' . ($result['message'] ?? 'Unknown error'));
-
-            return null;
-        }
-
-        return [
-            'success' => true,
-            'message' => ! empty($result['notification_sent'])
-                ? 'Briefing completed. Your QR code has been sent by email.'
-                : 'Briefing completed and your visit was approved.',
-            'redirect_url' => base_url('security/completed?token=' . urlencode($token)),
-        ];
-    }
-
     public function facialVerification()
     {
         $token = $this->request->getGet('token');
@@ -303,10 +220,9 @@ class SecurityBriefing extends BaseController
                         $clientId = (int) ($invitation['company_id'] ?? 0);
                     }
 
-                    $autoMode = $clientId > 0
-                        && (new ClientFeatureModel())->isEnabled($clientId, 'auto_approve_after_workflow')
-                        && ($invitation['status'] ?? '') === 'Approved'
-                        && ! empty($invitation['video_watched']);
+                    $autoMode = ($invitation['status'] ?? '') === 'Approved'
+                        && ! empty($invitation['video_watched'])
+                        && \Config\Database::connect()->table('invitation_qr_deliveries')->where('invitation_id', (int) $decodedId)->where('status', 'sent')->countAllResults() > 0;
                 }
             }
         }
@@ -328,10 +244,11 @@ class SecurityBriefing extends BaseController
             $this->request->getGet('flow_step')
         );
 
-        $nextAfterApproval = ($token !== null && $token !== '')
-            ? $this->invitationProcessFlowService->getNextStepUrl($approvalStep, $token)
+        $id = base64_decode((string) $token, true);
+        $invitation = $id !== false && ctype_digit($id) ? $this->invitationModel->find((int) $id) : null;
+        $nextAfterApproval = ($invitation['status'] ?? '') === 'Approved'
+            ? base_url('security/briefing?token=' . urlencode((string) $token))
             : null;
-
         $data = [
             'pageTitle' => 'Approval & Check-in - SafeG',
             'token' => $token,

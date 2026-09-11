@@ -31,6 +31,18 @@ class RequestList extends BaseController
 
     public function index()
     {
+        helper(['role', 'feature']);
+        $viewService = new \App\Services\RequestViewService();
+        $viewClientId = current_client_id();
+        $viewClients = [];
+        if (is_platform_superadmin()) {
+            $viewClients = (new \App\Models\ClientModel())->select('id,name')->orderBy('name')->findAll();
+            $viewClientId = (int)($this->request->getGet('view_client_id') ?: $viewClientId ?: ($viewClients[0]['id'] ?? 0));
+            if (! in_array($viewClientId, array_map('intval', array_column($viewClients, 'id')), true)) {
+                return $this->response->setStatusCode(400)->setBody('Invalid client');
+            }
+        }
+        $viewClient = $viewClientId > 0 ? (new \App\Models\ClientModel())->find($viewClientId) : null;
         $activeSteps = $this->flowService->getOrderedSteps(true);
         $requiresBriefing = false;
         $requiresFacial = false;
@@ -150,6 +162,11 @@ class RequestList extends BaseController
 
         $data = [
             'pageTitle' => 'Request List - SafeG',
+            'canEditRequestView' => $viewClientId > 0 && \App\Services\RequestViewService::canEdit((string)session()->get('role')),
+            'requestViewClientId' => $viewClientId,
+            'requestViewClientName' => $viewClient['name'] ?? 'this client',
+            'requestViewClients' => $viewClients,
+            'requestViewSettings' => $viewService->get($viewClientId),
             'stats' => $stats,
             'currentRequest' => $currentRequest,
             'queueRequests' => $queueRequests,
@@ -160,6 +177,29 @@ class RequestList extends BaseController
         return view('requests/list', $data);
     }
 
+    public function saveViewSettings()
+    {
+        helper(['role', 'feature']);
+        if (! \App\Services\RequestViewService::canEdit((string)session()->get('role'))) {
+            return $this->response->setStatusCode(403)->setJSON(['success'=>false,'message'=>'Only admins can edit this view.']);
+        }
+        $input = $this->request->getJSON(true) ?? [];
+        $clientId = (int)($input['client_id'] ?? 0);
+        if ($clientId <= 0 || (! is_platform_superadmin() && $clientId !== current_client_id())) {
+            return $this->response->setStatusCode(403)->setJSON(['success'=>false,'message'=>'You can only edit your own client view.']);
+        }
+        if (! (new \App\Models\ClientModel())->find($clientId)) {
+            return $this->response->setStatusCode(404)->setJSON(['success'=>false,'message'=>'Client not found.']);
+        }
+        $sections = $input['sections'] ?? null;
+        if (! is_array($sections) || array_diff(array_keys($sections), array_keys(\App\Services\RequestViewService::SECTIONS))
+            || count($sections) !== count(\App\Services\RequestViewService::SECTIONS)
+            || count(array_filter($sections, 'is_bool')) !== count($sections)) {
+            return $this->response->setStatusCode(400)->setJSON(['success'=>false,'message'=>'Invalid view settings.']);
+        }
+        $saved = (new \App\Services\RequestViewService())->save($clientId, $sections);
+        return $this->response->setStatusCode($saved ? 200 : 500)->setJSON(['success'=>$saved,'message'=>$saved?'View saved.':'Unable to save view.']);
+    }
     private function applyRequestWorkflowFilters($query, bool $requiresBriefing, bool $requiresFacial): void
     {
         if (! $requiresBriefing && ! $requiresFacial) {

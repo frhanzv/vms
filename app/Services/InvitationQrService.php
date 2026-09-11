@@ -7,6 +7,10 @@ class InvitationQrService
     public function issue(int $invitationId, ?int $clientId = null): string
     {
         $db = \Config\Database::connect();
+        $invitation = $db->table('invitations')->where('id', $invitationId)->get()->getRowArray();
+        if (! $invitation || $invitation['status'] !== 'Approved' || empty($invitation['video_watched'])) {
+            throw new \RuntimeException('Approval and safety briefing completion are required before issuing a QR.');
+        }
         if (! $db->tableExists('invitation_qr_credentials')) {
             throw new \RuntimeException('Invitation QR migration has not been run.');
         }
