@@ -62,7 +62,6 @@ class RequestList extends BaseController
         // Load submitted requests in batches (avoid loading entire queue into memory).
         $queueLimit = 50;
         $query = $this->invitationModel->where('status', 'Submitted');
-        $this->excludeKioskWalkIns($query);
         $this->applyRequestWorkflowFilters($query, $requiresBriefing, $requiresFacial);
 
         $submittedRequests = $query->orderBy('created_at', 'DESC')->findAll($queueLimit);
@@ -89,10 +88,20 @@ class RequestList extends BaseController
             ];
         }
 
-        // Get the first request as current
+        $selectedRequestId = (int)($this->request->getGet('request_id') ?? 0);
+
+        // Get selected request as current. Fallback to first request in queue.
         $currentRequest = null;
         if (count($submittedRequests) > 0) {
             $first = $submittedRequests[0];
+            if ($selectedRequestId > 0) {
+                foreach ($submittedRequests as $submittedRequest) {
+                    if ((int)$submittedRequest['id'] === $selectedRequestId) {
+                        $first = $submittedRequest;
+                        break;
+                    }
+                }
+            }
             $schedule = $schedulesByInvitation[$first['id']] ?? null;
 
             // Get equipment
@@ -110,6 +119,7 @@ class RequestList extends BaseController
             }
 
             $currentRequest = [
+                'raw_id' => (int)$first['id'],
                 'id' => 'VIS-' . $first['id'],
                 'name' => $first['full_name'],
                 'company' => $first['company'] ?? 'N/A',
@@ -143,15 +153,11 @@ class RequestList extends BaseController
 
         // Calculate stats
         $flaggedQuery = $this->invitationModel->where('status', 'Submitted');
-        $this->excludeKioskWalkIns($flaggedQuery);
         $this->applyRequestWorkflowFilters($flaggedQuery, $requiresBriefing, $requiresFacial);
 
         $pendingQuery = (new InvitationModel())->where('status', 'Pending');
-        $this->excludeKioskWalkIns($pendingQuery);
         $expectedQuery = (new InvitationModel())->where('status', 'Approved');
-        $this->excludeKioskWalkIns($expectedQuery);
         $rejectedQuery = (new InvitationModel())->where('status', 'Rejected');
-        $this->excludeKioskWalkIns($rejectedQuery);
 
         $stats = [
             'pending' => $pendingQuery->countAllResults(),

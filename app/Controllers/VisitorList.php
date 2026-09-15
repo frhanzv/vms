@@ -369,7 +369,8 @@ class VisitorList extends BaseController
             $builder->groupEnd();
         }
 
-        $builder->orderBy('i.created_at', 'DESC');
+        $builder->orderBy('COALESCE(iv.check_in_time, i.created_at)', 'DESC', false);
+        $builder->orderBy('iv.id', 'DESC');
 
         return $builder;
     }
@@ -414,7 +415,8 @@ class VisitorList extends BaseController
         $builder->join('invitation_schedules sch', 'sch.id = sch_pick.id', 'left');
         $builder->join('visitor_cards vc', 'vc.id = iv.visitor_card_id', 'left');
         $builder->where('i.status', 'Approved');
-        $builder->orderBy('i.created_at', 'DESC');
+        $builder->orderBy('COALESCE(iv.check_in_time, i.created_at)', 'DESC', false);
+        $builder->orderBy('iv.id', 'DESC');
 
         $rows = $builder->get()->getResultArray();
 

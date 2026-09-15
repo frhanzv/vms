@@ -74,8 +74,16 @@
         </div>
         <div class="flex-1 overflow-y-auto scrollbar-hide p-2 space-y-2">
             <?php foreach ($queueRequests as $index => $request): ?>
-            <div class="group flex items-start gap-3 p-3 rounded-lg <?= $index === 0 ? 'bg-primary/5 border border-primary/20' : 'hover:bg-gray-50 dark:hover:bg-slate-800 border border-transparent' ?> cursor-pointer relative overflow-hidden transition-colors">
-                <?php if ($index === 0): ?>
+            <?php
+                $isActiveRequest = $currentRequest && (int)($currentRequest['raw_id'] ?? 0) === (int)$request['id'];
+                $requestUrlParams = ['request_id' => (int)$request['id']];
+                if (! empty($requestViewClientId)) {
+                    $requestUrlParams['view_client_id'] = (int)$requestViewClientId;
+                }
+                $requestUrl = base_url('requests') . '?' . http_build_query($requestUrlParams);
+            ?>
+            <div onclick="window.location.href='<?= esc($requestUrl) ?>'" class="group flex items-start gap-3 p-3 rounded-lg <?= $isActiveRequest ? 'bg-primary/5 border border-primary/20' : 'hover:bg-gray-50 dark:hover:bg-slate-800 border border-transparent' ?> cursor-pointer relative overflow-hidden transition-colors">
+                <?php if ($isActiveRequest): ?>
                 <div class="absolute left-0 top-0 bottom-0 w-1 bg-primary"></div>
                 <?php endif; ?>
                 <input type="checkbox" name="request_batch[]" value="<?= (int) $request['id'] ?>" class="request-select-cb mt-2.5 shrink-0 rounded border-gray-300 dark:border-gray-600 text-primary focus:ring-primary" title="Select for batch approve" onclick="event.stopPropagation()"/>
@@ -91,7 +99,7 @@
                 </div>
                 <div class="flex-1 min-w-0">
                     <div class="flex justify-between items-start">
-                        <h4 class="text-sm <?= $index === 0 ? 'font-bold' : 'font-semibold' ?> truncate text-gray-900 dark:text-white"><?= esc($request['name']) ?></h4>
+                        <h4 class="text-sm <?= $isActiveRequest ? 'font-bold' : 'font-semibold' ?> truncate text-gray-900 dark:text-white"><?= esc($request['name']) ?></h4>
                         <span class="text-xs font-medium <?= $request['time'] === '15m' ? 'text-orange-600 bg-orange-100 dark:bg-orange-900/30 dark:text-orange-400 px-1.5 rounded' : 'text-gray-400' ?>"><?= esc($request['time']) ?></span>
                     </div>
                     <p class="text-xs text-gray-400 truncate"><?= esc($request['company']) ?></p>

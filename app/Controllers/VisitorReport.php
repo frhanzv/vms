@@ -78,7 +78,7 @@ class VisitorReport extends BaseController
             $from = date('Y-m-d', strtotime('-30 days'));
         }
 
-        $where = " AND DATE(i.created_at) BETWEEN " . $db->escape($from) . " AND " . $db->escape($to);
+        $where = " AND DATE(COALESCE(iv.check_in_time, i.created_at)) BETWEEN " . $db->escape($from) . " AND " . $db->escape($to);
 
         $sql = "SELECT
                     i.id               AS invitation_id,
@@ -92,11 +92,12 @@ class VisitorReport extends BaseController
                     i.location         AS i_location,
                     i.status           AS visit_status,
                     i.registration_source,
-                    DATE(i.created_at) AS visit_date,
+                    DATE(COALESCE(iv.check_in_time, i.created_at)) AS visit_date,
                     MIN(CASE WHEN vcl.action = 'checkin' THEN vcl.scanned_at ELSE NULL END) AS checkin_time,
                     MAX(CASE WHEN vcl.action = 'checkout' THEN vcl.scanned_at ELSE NULL END) AS checkout_time,
-                    MIN(iv.check_in_time)  AS reg_checkin_time,
-                    MAX(iv.check_out_time) AS reg_checkout_time,
+                    iv.id AS visitor_row_id,
+                    iv.check_in_time  AS reg_checkin_time,
+                    iv.check_out_time AS reg_checkout_time,
                     COUNT(CASE WHEN vcl.action != 'assigned' THEN vcl.id END) AS total_scans,
                     (SELECT MAX(s.date_to) FROM invitation_schedules s WHERE s.invitation_id = i.id) as schedule_end,
                     (
@@ -126,10 +127,11 @@ class VisitorReport extends BaseController
                 LEFT JOIN invitation_visitors iv ON iv.invitation_id = i.id
                 WHERE 1=1" . $where . "
                 GROUP BY
-                    i.id, i.full_name, i.contact, i.ic_passport,
+                    i.id, iv.id, iv.check_in_time, iv.check_out_time,
+                    i.full_name, i.contact, i.ic_passport,
                     i.company, i.invited_by, i.staff_id, i.reason,
                     i.location, i.status, i.registration_source, DATE(i.created_at)
-                ORDER BY DATE(i.created_at) DESC, i.id DESC
+                ORDER BY COALESCE(iv.check_in_time, i.created_at) DESC, i.id DESC, iv.id DESC
                 LIMIT 2000";
 
         $rows = $db->query($sql)->getResultArray();
