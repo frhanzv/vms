@@ -8,8 +8,11 @@ use App\Models\InvitationVisitorModel;
 use App\Models\ClientFeatureModel;
 use App\Models\UserModel;
 use App\Models\VisitorTypeModel;
+use App\Services\InvitationApprovalService;
 use App\Services\InvitationQrService;
 use CodeIgniter\API\ResponseTrait;
+
+
 
 class GuardApi extends BaseController
 {
@@ -78,6 +81,151 @@ class GuardApi extends BaseController
         ]);
     }
 
+    public function config(): \CodeIgniter\HTTP\Response
+    {
+        $guard = $this->requireGuard();
+        if ($guard instanceof \CodeIgniter\HTTP\ResponseInterface) {
+            return $guard;
+        }
+
+        $clientId = (int) ($guard['client_id'] ?? 0);
+        $autoApprove = $clientId > 0
+            && (new ClientFeatureModel())->isEnabled($clientId, 'auto_approve_after_workflow');
+
+        return $this->respond([
+            'status' => 'success',
+            'data'   => [
+                'client_id' => $clientId > 0 ? $clientId : null,
+                'auto_approve_after_workflow' => $autoApprove,
+                'approval_required' => $clientId > 0 && ! $autoApprove,
+                'approval_enabled' => $clientId > 0 && ! $autoApprove,
+            ],
+        ]);
+    }
+
+    public function approvals(): \CodeIgniter\HTTP\Response
+    {
+        $guard = $this->requireGuard();
+        if ($guard instanceof \CodeIgniter\HTTP\ResponseInterface) {
+            return $guard;
+        }
+
+        if (! $this->approvalRequiredForGuard($guard)) {
+            return $this->respond([
+                'status' => 'success',
+                'data'   => [
+                    'approval_required' => false,
+                    'items' => [],
+                ],
+            ]);
+        }
+
+        $clientId = (int) ($guard['client_id'] ?? 0);
+        $query = (new InvitationModel())
+            ->where('status', 'Submitted')
+            ->orderBy('created_at', 'DESC')
+            ->limit(50);
+
+        if ($clientId > 0) {
+            $query->where('client_id', $clientId);
+        }
+
+        $items = array_map(fn ($row) => $this->formatApprovalRequest($row), $query->findAll());
+
+        return $this->respond([
+            'status' => 'success',
+            'data'   => [
+                'approval_required' => true,
+                'items' => $items,
+            ],
+        ]);
+    }
+
+    public function approveRequest(): \CodeIgniter\HTTP\Response
+    {
+        $guard = $this->requireGuard();
+        if ($guard instanceof \CodeIgniter\HTTP\ResponseInterface) {
+            return $guard;
+        }
+
+        if (! $this->approvalRequiredForGuard($guard)) {
+            return $this->failForbidden('Approval is disabled for this client.');
+        }
+
+        $body = $this->request->getJSON(true) ?? $this->request->getPost();
+        $id = (int) ($body['id'] ?? $body['request_id'] ?? 0);
+        if ($id <= 0) {
+            return $this->failValidationErrors('id is required');
+        }
+
+        $ownershipError = $this->guardRequestOwnershipError($guard, $id);
+        if ($ownershipError !== null) {
+            return $ownershipError;
+        }
+
+        $result = (new InvitationApprovalService())->approve($id);
+        return $this->respond([
+            'status'  => ! empty($result['success']) ? 'success' : 'error',
+            'message' => $result['message'] ?? '',
+            'data'    => $result,
+        ], ! empty($result['success']) ? 200 : 409);
+    }
+
+    public function rejectRequest(): \CodeIgniter\HTTP\Response
+    {
+        $guard = $this->requireGuard();
+        if ($guard instanceof \CodeIgniter\HTTP\ResponseInterface) {
+            return $guard;
+        }
+
+        if (! $this->approvalRequiredForGuard($guard)) {
+            return $this->failForbidden('Approval is disabled for this client.');
+        }
+
+        $body = $this->request->getJSON(true) ?? $this->request->getPost();
+        $id = (int) ($body['id'] ?? $body['request_id'] ?? 0);
+        $reason = trim((string) ($body['reason'] ?? ''));
+        if ($id <= 0) {
+            return $this->failValidationErrors('id is required');
+        }
+
+        $ownershipError = $this->guardRequestOwnershipError($guard, $id);
+        if ($ownershipError !== null) {
+            return $ownershipError;
+        }
+
+        $invitation = (new InvitationModel())->find($id);
+        if (! $invitation) {
+            return $this->failNotFound('Invitation not found');
+        }
+        if (($invitation['status'] ?? '') !== 'Submitted') {
+            return $this->failResourceExists('Only submitted requests can be rejected.');
+        }
+
+        $now = date('Y-m-d H:i:s');
+        $db = \Config\Database::connect();
+        $db->table('invitations')
+            ->where('id', $id)
+            ->where('status', 'Submitted')
+            ->update([
+                'status' => 'Rejected',
+                'other_reason' => $reason !== '' ? $reason : null,
+                'version' => ($invitation['version'] ?? 1) + 1,
+                'updated_at' => $now,
+            ]);
+
+        if ($db->affectedRows() === 0) {
+            return $this->failResourceExists('This request has already been processed.');
+        }
+
+        (new \App\Services\NotificationService())->dispatch($id, 'request_rejected');
+
+        return $this->respond([
+            'status' => 'success',
+            'message' => 'Request rejected successfully',
+        ]);
+    }
+
     public function checkIn(): \CodeIgniter\HTTP\Response
     {
         $guard = $this->requireGuard();
@@ -122,32 +270,52 @@ class GuardApi extends BaseController
 
         $today = date('Y-m-d');
         $checkInTime = $visitorRow['check_in_time'] ?? null;
+        $checkOutTime = $visitorRow['check_out_time'] ?? null;
         $checkedInToday = ! empty($checkInTime) && date('Y-m-d', strtotime((string) $checkInTime)) === $today;
+        $activeToday = $checkedInToday && empty($checkOutTime);
         $action = 'checkin';
         $message = 'Time In recorded';
 
-        if (! $checkedInToday) {
-            $db->table('invitations')
-                ->where('id', (int) $visitor['id'])
-                ->groupStart()
-                    ->where('guard_entry_status', 'Expected')
-                    ->orWhere('guard_entry_status IS NULL', null, false)
-                    ->orWhere('guard_entry_status', 'Approved')
-                    ->orWhere('guard_entry_status', 'Checked In')
-                ->groupEnd()
-                ->update([
-                    'checked_in_at'          => $now,
-                    'status'                 => 'Approved',
-                    'guard_entry_status'     => 'Checked In',
-                    'guard_decided_at'       => $now,
-                    'guard_decided_by'       => (int) $guard['id'],
-                    'guard_rejection_reason' => null,
-                    'updated_at'             => $now,
-                ]);
+        $db->table('invitations')
+            ->where('id', (int) $visitor['id'])
+            ->groupStart()
+                ->where('guard_entry_status', 'Expected')
+                ->orWhere('guard_entry_status IS NULL', null, false)
+                ->orWhere('guard_entry_status', 'Approved')
+                ->orWhere('guard_entry_status', 'Checked In')
+                ->orWhere('guard_entry_status', 'Checked Out')
+            ->groupEnd()
+            ->update([
+                'checked_in_at'          => $now,
+                'status'                 => 'Approved',
+                'guard_entry_status'     => 'Checked In',
+                'guard_decided_at'       => $now,
+                'guard_decided_by'       => (int) $guard['id'],
+                'guard_rejection_reason' => null,
+                'updated_at'             => $now,
+            ]);
 
-            $visitorModel->where('id', (int) $visitorRow['id'])
-                ->set(['check_in_time' => $now, 'check_out_time' => null, 'updated_at' => $now])
-                ->update();
+        if (! $activeToday) {
+            if (! empty($visitorRow['check_in_time'])) {
+                $visitorModel->insert([
+                    'invitation_id'         => (int) $visitor['id'],
+                    'full_name'             => $visitorRow['full_name'] ?: ($visitor['full_name'] ?? ''),
+                    'ic_passport'           => $visitorRow['ic_passport'] ?: ($visitor['ic_passport'] ?? ''),
+                    'contact'               => $visitorRow['contact'] ?: ($visitor['contact'] ?? ''),
+                    'company'               => $visitorRow['company'] ?: ($visitor['company'] ?? ''),
+                    'vehicle_registration'  => $visitorRow['vehicle_registration'] ?: ($visitor['vehicle_registration'] ?? ''),
+                    'visitor_card_id'       => $visitorRow['visitor_card_id'] ?? null,
+                    'check_in_time'         => $now,
+                    'check_out_time'        => null,
+                    'version'               => 1,
+                    'created_at'            => $now,
+                    'updated_at'            => $now,
+                ]);
+            } else {
+                $visitorModel->where('id', (int) $visitorRow['id'])
+                    ->set(['check_in_time' => $now, 'check_out_time' => null, 'updated_at' => $now])
+                    ->update();
+            }
         } else {
             $elapsedSeconds = time() - strtotime((string) $checkInTime);
             if ($elapsedSeconds < 600) {
@@ -403,14 +571,74 @@ class GuardApi extends BaseController
         ]);
     }
 
+    private function approvalRequiredForGuard(array $guard): bool
+    {
+        $clientId = (int) ($guard['client_id'] ?? 0);
+        if ($clientId <= 0) {
+            return false;
+        }
+
+        return ! (new ClientFeatureModel())->isEnabled($clientId, 'auto_approve_after_workflow');
+    }
+
+    private function guardRequestOwnershipError(array $guard, int $invitationId): ?\CodeIgniter\HTTP\ResponseInterface
+    {
+        $clientId = (int) ($guard['client_id'] ?? 0);
+        if ($clientId <= 0) {
+            return null;
+        }
+
+        $invitation = (new InvitationModel())->find($invitationId);
+        if (! $invitation) {
+            return $this->failNotFound('Invitation not found');
+        }
+
+        if ((int) ($invitation['client_id'] ?? 0) !== $clientId) {
+            return $this->failForbidden('This request belongs to another client.');
+        }
+
+        return null;
+    }
+
+    private function formatApprovalRequest(array $row): array
+    {
+        return [
+            'id' => (string) ($row['id'] ?? ''),
+            'name' => $row['full_name'] ?? '',
+            'full_name' => $row['full_name'] ?? '',
+            'ic' => mask_ic_passport($row['ic_passport'] ?? '', ''),
+            'ic_no' => mask_ic_passport($row['ic_passport'] ?? '', ''),
+            'phone' => $row['contact'] ?? '',
+            'phone_no' => $row['contact'] ?? '',
+            'email' => $row['visitor_email'] ?? '',
+            'company' => $row['company'] ?? '',
+            'company_name' => $row['company'] ?? '',
+            'host_name' => $row['invited_by'] ?? '',
+            'host_contact_no' => $row['host_contact'] ?? '',
+            'purpose' => $row['reason'] ?? '',
+            'reason' => $row['reason'] ?? '',
+            'visit_date' => $row['created_at'] ?? '',
+            'status' => $row['status'] ?? '',
+            'submitted_at' => $row['updated_at'] ?? ($row['created_at'] ?? ''),
+        ];
+    }
+
     private function formatGuard(array $user): array
     {
+        $clientId = (int) ($user['client_id'] ?? 0);
+        $autoApprove = $clientId > 0
+            && (new ClientFeatureModel())->isEnabled($clientId, 'auto_approve_after_workflow');
+
         return [
             'id'       => (int) $user['id'],
             'name'     => $user['full_name'] ?? $user['username'] ?? 'Guard',
             'username' => $user['username'] ?? '',
             'email'    => $user['email'] ?? '',
             'role'     => $user['role'] ?? '',
+            'client_id' => $clientId > 0 ? $clientId : null,
+            'auto_approve_after_workflow' => $autoApprove,
+            'approval_required' => $clientId > 0 && ! $autoApprove,
+            'approval_enabled' => $clientId > 0 && ! $autoApprove,
         ];
     }
 
@@ -441,7 +669,7 @@ class GuardApi extends BaseController
         $actionLabel = 'Confirm Time In';
         $note = 'After confirmation, Time In will be recorded in History.';
 
-        if ($checkedInToday) {
+        if ($checkedInToday && empty($checkOutAt)) {
             $elapsedSeconds = $now - strtotime((string) $checkInAt);
             if ($elapsedSeconds >= 600) {
                 $nextAction = 'checkout';
@@ -454,6 +682,10 @@ class GuardApi extends BaseController
                 $actionLabel = 'Back';
                 $note = 'Visitor already timed in. Time Out is available after ' . max(1, $remainingMinutes) . ' minute(s).';
             }
+        } elseif ($checkedInToday && ! empty($checkOutAt)) {
+            $nextAction = 'checkin';
+            $actionLabel = 'Confirm Time In';
+            $note = 'Visitor already timed out. Confirm Time In to start a new entry cycle.';
         }
 
         if ($entryStatus === 'Rejected Entry') {

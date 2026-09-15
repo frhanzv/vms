@@ -713,6 +713,10 @@ $routes->group('api/guard', function($routes) {
     $routes->get('visitors/qr/(:any)',        'Api\GuardApi::visitorByQr/$1');
     $routes->post('visitors/check-in',        'Api\GuardApi::checkIn');
     $routes->post('visitors/reject',          'Api\GuardApi::reject');
+    $routes->get('config',                    'Api\GuardApi::config');
+    $routes->get('approvals',                 'Api\GuardApi::approvals');
+    $routes->post('approvals/approve',        'Api\GuardApi::approveRequest');
+    $routes->post('approvals/reject',         'Api\GuardApi::rejectRequest');
 });
 
 $routes->group('api/user', function($routes) {
