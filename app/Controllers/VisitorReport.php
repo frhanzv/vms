@@ -79,6 +79,7 @@ class VisitorReport extends BaseController
         }
 
         $where = " AND DATE(COALESCE(iv.check_in_time, i.created_at)) BETWEEN " . $db->escape($from) . " AND " . $db->escape($to);
+        $where .= $this->hostReportWhereSql($db);
 
         $sql = "SELECT
                     i.id               AS invitation_id,
@@ -225,5 +226,33 @@ class VisitorReport extends BaseController
             'truncated'       => $truncated,
             'message'         => $truncated ? 'Results limited to 2000 rows. Narrow the date range for full data.' : null,
         ]);
+    }
+
+    private function hostReportWhereSql($db): string
+    {
+        helper('role');
+        if (! role_matches(session()->get('role'), 'host')) {
+            return '';
+        }
+
+        $refs = array_values(array_unique(array_filter([
+            trim((string) session()->get('staff_id')),
+            trim((string) session()->get('username')),
+            trim((string) session()->get('full_name')),
+            trim((string) session()->get('email')),
+        ], static fn($v) => $v !== '')));
+
+        if ($refs === []) {
+            return ' AND 1 = 0';
+        }
+
+        $parts = [];
+        foreach ($refs as $ref) {
+            $escaped = $db->escape($ref);
+            $parts[] = "i.staff_id = {$escaped}";
+            $parts[] = "i.invited_by = {$escaped}";
+        }
+
+        return ' AND (' . implode(' OR ', $parts) . ')';
     }
 }

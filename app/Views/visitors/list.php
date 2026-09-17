@@ -645,7 +645,7 @@
                         Visitor Information
                     </h3>
                     <div class="bg-gray-50 dark:bg-slate-800 rounded-lg p-5 border border-gray-200 dark:border-gray-700">
-                        <div class="flex flex-col md:flex-row gap-6">
+                        <div class="flex flex-col lg:flex-row gap-6">
                             <!-- Photo Section -->
                             <div id="detailProfilePhotoWrap" class="flex flex-col items-center gap-3">
                                 <div class="w-32 h-40 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden shadow-sm flex items-center justify-center relative">
@@ -698,6 +698,17 @@
                                 <div id="detailLocationWrap" class="md:col-span-2">
                                     <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Location</label>
                                     <input type="text" id="editLocation" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
+                                </div>
+                            </div>
+
+                            <!-- QR Preview -->
+                            <div id="detailQrPreviewWrap" class="w-full lg:w-40 flex flex-col items-center">
+                                <div class="w-36 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 shadow-sm">
+                                    <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 text-center mb-2">Visitor QR</p>
+                                    <div class="h-28 flex items-center justify-center">
+                                        <img id="detailQrCodeImage" src="" alt="Visitor QR Code" class="hidden w-28 h-28 object-contain">
+                                        <div id="detailQrCodeEmpty" class="text-center text-[11px] leading-snug text-slate-400 dark:text-slate-500">QR not available</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1285,6 +1296,7 @@
 
             // Photo: profile_photo_path → facial_verification_image → NO PHOTO placeholder (see syncVisitorDetailPhoto)
             syncVisitorDetailPhoto(visitor);
+            syncVisitorDetailQr(visitor);
 
             const hasCard = !!(visitor.card_id || visitor.visitor_card_table_id);
             const passNoInput = document.getElementById('editPassNo');
@@ -1329,6 +1341,27 @@
             modal.classList.remove('hidden');
             modal.classList.add('flex');
             document.body.style.overflow = 'hidden';
+        }
+
+        function syncVisitorDetailQr(visitor) {
+            const qrImg = document.getElementById('detailQrCodeImage');
+            const qrEmpty = document.getElementById('detailQrCodeEmpty');
+            if (!qrImg || !qrEmpty) {
+                return;
+            }
+
+            const invitationId = visitor && visitor.invitation_id ? String(visitor.invitation_id).trim() : '';
+            if (!invitationId) {
+                qrImg.src = '';
+                qrImg.classList.add('hidden');
+                qrEmpty.classList.remove('hidden');
+                qrEmpty.textContent = 'QR not available';
+                return;
+            }
+
+            qrEmpty.classList.add('hidden');
+            qrImg.classList.remove('hidden');
+            qrImg.src = '<?= base_url('visitors/generateQr') ?>/' + encodeURIComponent(invitationId);
         }
 
         function openEditVisitDateModal() {

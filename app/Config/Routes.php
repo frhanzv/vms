@@ -341,11 +341,14 @@ $routes->group('', ['filter' => [$plusAdminHost, 'client_feature:auto_approve_af
 
 // ===========================
 // Request List — Approve/Reject Actions
-// superadmin, clientsuperadmin, admin (not host)
+// superadmin, clientsuperadmin, admin, host
 // ===========================
 
 $routes->group('', ['filter' => [$plusAdmin, 'client_feature:auto_approve_after_workflow,disabled']], function($routes) {
     $routes->post('requests/view-settings', 'RequestList::saveViewSettings');
+});
+
+$routes->group('', ['filter' => [$plusAdminHost, 'client_feature:auto_approve_after_workflow,disabled']], function($routes) {
     $routes->post('requests/approve', 'RequestList::approve');
     $routes->post('requests/batchApprove', 'RequestList::batchApprove');
     $routes->post('requests/reject', 'RequestList::reject');
@@ -712,6 +715,9 @@ $routes->group('api/guard', function($routes) {
     $routes->post('login',                    'Api\GuardApi::login');
     $routes->get('visitors/qr/(:any)',        'Api\GuardApi::visitorByQr/$1');
     $routes->post('visitors/check-in',        'Api\GuardApi::checkIn');
+    $routes->post('visitors/checkIn',         'Api\GuardApi::checkIn');
+    $routes->post('visitor/check-in',         'Api\GuardApi::checkIn');
+    $routes->post('check-in',                 'Api\GuardApi::checkIn');
     $routes->post('visitors/reject',          'Api\GuardApi::reject');
     $routes->get('config',                    'Api\GuardApi::config');
     $routes->get('approvals',                 'Api\GuardApi::approvals');

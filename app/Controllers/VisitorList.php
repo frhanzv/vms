@@ -54,9 +54,9 @@ class VisitorList extends BaseController
             ->where('iv.visitor_card_id IS NOT NULL', null, false)
             ->countAllResults();
 
-        $pending = $this->invitationModel
-            ->whereIn('status', ['pending', 'submitted'])
-            ->countAllResults();
+        $pendingQuery = $db->table('invitations i')->whereIn('i.status', ['pending', 'submitted']);
+        $this->applyHostVisitorScope($pendingQuery);
+        $pending = $pendingQuery->countAllResults();
 
         // Format data for the view
         $visitors = [];
@@ -346,6 +346,7 @@ class VisitorList extends BaseController
         $builder->join('invitation_schedules sch', 'sch.id = sch_pick.id', 'left');
         $builder->join('visitor_cards vc', 'vc.id = iv.visitor_card_id', 'left');
         $builder->where('i.status', 'Approved');
+        $this->applyHostVisitorScope($builder);
 
         if ($searchTerm !== '') {
             $normalized = preg_replace('/[\s\-]/', '', $searchTerm);
@@ -373,6 +374,36 @@ class VisitorList extends BaseController
         $builder->orderBy('iv.id', 'DESC');
 
         return $builder;
+    }
+
+    private function applyHostVisitorScope($builder): void
+    {
+        helper('role');
+        if (! role_matches(session()->get('role'), 'host')) {
+            return;
+        }
+
+        $refs = array_values(array_unique(array_filter([
+            trim((string) session()->get('staff_id')),
+            trim((string) session()->get('username')),
+            trim((string) session()->get('full_name')),
+            trim((string) session()->get('email')),
+        ], static fn($v) => $v !== '')));
+
+        if ($refs === []) {
+            $builder->where('1 = 0', null, false);
+            return;
+        }
+
+        $builder->groupStart();
+        foreach ($refs as $idx => $ref) {
+            if ($idx === 0) {
+                $builder->where('i.staff_id', $ref)->orWhere('i.invited_by', $ref);
+            } else {
+                $builder->orWhere('i.staff_id', $ref)->orWhere('i.invited_by', $ref);
+            }
+        }
+        $builder->groupEnd();
     }
 
     public function export()
@@ -415,6 +446,7 @@ class VisitorList extends BaseController
         $builder->join('invitation_schedules sch', 'sch.id = sch_pick.id', 'left');
         $builder->join('visitor_cards vc', 'vc.id = iv.visitor_card_id', 'left');
         $builder->where('i.status', 'Approved');
+        $this->applyHostVisitorScope($builder);
         $builder->orderBy('COALESCE(iv.check_in_time, i.created_at)', 'DESC', false);
         $builder->orderBy('iv.id', 'DESC');
 
