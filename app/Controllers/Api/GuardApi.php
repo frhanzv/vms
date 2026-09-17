@@ -36,7 +36,7 @@ class GuardApi extends BaseController
         }
 
         $role = strtolower((string) ($user['role'] ?? ''));
-        $allowedRoles = ['guard', 'security', 'officer', 'admin', 'clientsuperadmin', 'superadmin'];
+        $allowedRoles = ['host', 'guard', 'security', 'officer', 'admin', 'clientsuperadmin', 'superadmin'];
         if (! in_array($role, $allowedRoles, true)) {
             return $this->failForbidden('This user is not allowed to use the guard app');
         }
@@ -129,6 +129,7 @@ class GuardApi extends BaseController
         if ($clientId > 0) {
             $query->where('client_id', $clientId);
         }
+        $this->applyHostApprovalScope($query, $guard);
 
         $items = array_map(fn ($row) => $this->formatApprovalRequest($row), $query->findAll());
 
@@ -235,15 +236,38 @@ class GuardApi extends BaseController
 
         $body = $this->request->getJSON(true) ?? $this->request->getPost();
         $visitorId = (int) ($body['visitor_id'] ?? $body['id'] ?? 0);
-        $qrToken = trim((string) ($body['qr_token'] ?? $body['qrToken'] ?? $body['token'] ?? ''));
+        $qrToken = trim((string) (
+            $body['qr_token']
+            ?? $body['qrToken']
+            ?? $body['token']
+            ?? $this->request->getGet('qr_token')
+            ?? $this->request->getGet('qrToken')
+            ?? $this->request->getGet('token')
+            ?? ''
+        ));
 
         if ($visitorId <= 0 && $qrToken === '') {
             return $this->failValidationErrors('visitor_id or qr_token is required');
         }
 
+        log_message('warning', 'Guard check-in endpoint hit. path={path}, visitor_id={visitor_id}, token_last4={token_last4}, token_length={token_length}', [
+            'path' => trim((string) $this->request->getUri()->getPath(), '/'),
+            'visitor_id' => $visitorId,
+            'token_last4' => $qrToken !== '' ? substr($qrToken, -4) : '',
+            'token_length' => strlen($qrToken),
+        ]);
+
         $model = new InvitationModel();
-        $visitor = $visitorId > 0 ? $model->find($visitorId) : $this->findVisitorByQrToken($qrToken);
+        $visitor = $qrToken !== '' ? $this->findVisitorByQrToken($qrToken) : null;
+        if (! $visitor && $visitorId > 0) {
+            $visitor = $model->find($visitorId);
+        }
         if (! $visitor) {
+            log_message('warning', 'Guard check-in visitor not found. visitor_id={visitor_id}, token_last4={token_last4}, token_length={token_length}', [
+                'visitor_id' => $visitorId,
+                'token_last4' => $qrToken !== '' ? substr($qrToken, -4) : '',
+                'token_length' => strlen($qrToken),
+            ]);
             return $this->failNotFound('Visitor not found');
         }
 
@@ -257,7 +281,35 @@ class GuardApi extends BaseController
         $visitorRow = $this->findInvitationVisitorRow((int) $visitor['id']);
 
         if (! $visitorRow) {
-            return $this->failNotFound('Visitor pass record not found');
+            $createdVisitorRowId = $visitorModel->insert([
+                'invitation_id'         => (int) $visitor['id'],
+                'full_name'             => trim((string) ($visitor['full_name'] ?? '')) ?: 'Visitor',
+                'ic_passport'           => ! empty($visitor['ic_passport']) ? $visitor['ic_passport'] : 'PENDING',
+                'contact'               => trim((string) ($visitor['contact'] ?? '')) ?: 'N/A',
+                'company'               => $visitor['company'] ?? '',
+                'vehicle_registration'  => $visitor['vehicle_registration'] ?? '',
+                'visitor_card_id'       => null,
+                'check_in_time'         => null,
+                'check_out_time'        => null,
+                'version'               => 1,
+                'created_at'            => $now,
+                'updated_at'            => $now,
+            ]);
+
+            if (! $createdVisitorRowId) {
+                log_message('error', 'Guard check-in auto-create visitor pass failed. invitation_id={invitation_id}, errors={errors}', [
+                    'invitation_id' => (int) ($visitor['id'] ?? 0),
+                    'errors' => json_encode($visitorModel->errors()),
+                ]);
+            }
+
+            $visitorRow = $this->findInvitationVisitorRow((int) $visitor['id']);
+            if (! $visitorRow) {
+                log_message('warning', 'Guard check-in visitor pass row missing after auto-create. invitation_id={invitation_id}', [
+                    'invitation_id' => (int) ($visitor['id'] ?? 0),
+                ]);
+                return $this->failNotFound('Visitor pass record not found');
+            }
         }
 
         $blockedReason = $this->passClosedReason(array_merge($visitor, [
@@ -597,7 +649,59 @@ class GuardApi extends BaseController
             return $this->failForbidden('This request belongs to another client.');
         }
 
+        if (! $this->guardCanAccessInvitation($guard, $invitation)) {
+            return $this->failForbidden('You can only manage your own approval requests.');
+        }
+
         return null;
+    }
+
+    private function applyHostApprovalScope($query, array $guard): void
+    {
+        if (strtolower((string) ($guard['role'] ?? '')) !== 'host') {
+            return;
+        }
+
+        $refs = $this->guardHostRefs($guard);
+        if ($refs === []) {
+            $query->where('1 = 0', null, false);
+            return;
+        }
+
+        $query->groupStart();
+        foreach ($refs as $idx => $ref) {
+            if ($idx === 0) {
+                $query->where('staff_id', $ref)->orWhere('invited_by', $ref);
+            } else {
+                $query->orWhere('staff_id', $ref)->orWhere('invited_by', $ref);
+            }
+        }
+        $query->groupEnd();
+    }
+
+    private function guardCanAccessInvitation(array $guard, array $invitation): bool
+    {
+        if (strtolower((string) ($guard['role'] ?? '')) !== 'host') {
+            return true;
+        }
+
+        $refs = $this->guardHostRefs($guard);
+        if ($refs === []) {
+            return false;
+        }
+
+        return in_array((string) ($invitation['staff_id'] ?? ''), $refs, true)
+            || in_array((string) ($invitation['invited_by'] ?? ''), $refs, true);
+    }
+
+    private function guardHostRefs(array $guard): array
+    {
+        return array_values(array_unique(array_filter([
+            trim((string) ($guard['staff_id'] ?? '')),
+            trim((string) ($guard['username'] ?? '')),
+            trim((string) ($guard['full_name'] ?? '')),
+            trim((string) ($guard['email'] ?? '')),
+        ], static fn($v) => $v !== '')));
     }
 
     private function formatApprovalRequest(array $row): array

@@ -29,17 +29,26 @@
     ], $detail_fields ?? []);
     ?>
     <style>
-        body { font-family: 'Montserrat', Arial, sans-serif; line-height: 1.6; color: <?= esc($textColor) ?>; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: <?= esc($primaryColor) ?>; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-        .content { background: <?= esc($contentBgColor) ?>; padding: 30px; border-radius: 0 0 8px 8px; }
-        .btn { background: <?= esc($primaryColor) ?>; color: white !important; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 20px 0; }
-        .info-box { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .footer { text-align: center; color: #666; margin-top: 30px; font-size: 12px; }
+        body { margin: 0; padding: 0; background: #ffffff; font-family: 'Montserrat', Arial, sans-serif; line-height: 1.6; color: <?= esc($textColor) ?>; }
+        .container { max-width: 600px; margin: 0 auto; padding: 18px 12px; }
+        .email-shell { background: <?= esc($contentBgColor) ?>; border-radius: 4px; overflow: hidden; }
+        .header { background: <?= esc($primaryColor) ?>; color: white; padding: 26px 24px 28px; text-align: center; }
+        .content { padding: 32px 30px 18px; font-size: 13px; }
+        .btn { background: <?= esc($primaryColor) ?>; color: white !important; padding: 14px 28px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 0; font-weight: 700; }
+        .info-box { background: white; padding: 24px 22px; border-radius: 8px; margin: 22px 0 28px; box-shadow: none; }
+        .footer { text-align: center; color: #777; margin-top: 28px; font-size: 11px; }
+        .raw-link { color: <?= esc($primaryColor) ?>; word-break: break-all; }
+        .header-logo { max-height: 42px; max-width: 160px; display: block; margin: 0 auto 10px; border: 0; }
+        .brand-fallback { font-size: 18px; font-weight: 700; line-height: 1.2; margin-bottom: 10px; }
+        .header-title { margin: 0; font-size: 17px; font-weight: 700; line-height: 1.3; }
+        .details-title { margin: 0 0 18px; font-size: 16px; line-height: 1.3; }
+        .detail-line { margin: 0 0 10px; }
+        .notes-list { margin: 0 0 0 22px; padding: 0; font-size: 12px; line-height: 1.7; }
     </style>
 </head>
 <body>
     <div class="container">
+        <div class="email-shell">
         <div class="header">
             <?php 
             $logoSrc = '';
@@ -50,34 +59,38 @@
             }
             if ($logoSrc !== ''):
             ?>
-                <img src="<?= esc($logoSrc) ?>" alt="<?= esc($brandName) ?> Logo" style="max-height: 80px; display: block; margin: 0 auto; margin-bottom: 10px;">
+                <img src="<?= esc($logoSrc) ?>" alt="<?= esc($brandName) ?> Logo" class="header-logo">
             <?php endif; ?>
-            <h1 style="margin-top: 0; font-size: 24px;">🛡️ <?= esc($brandName) ?></h1>
-            <h2><?= esc($headerTitle) ?></h2>
+            <?php if ($logoSrc === ''): ?>
+                <div class="brand-fallback">🛡️ <?= esc($brandName) ?></div>
+            <?php endif; ?>
+            <h2 class="header-title"><?= esc($headerTitle) ?></h2>
         </div>
         
         <div class="content">
             <?php if (!empty($custom_body_html)): ?>
                 <div><?= $custom_body_html ?></div>
             <?php else: ?>
-                <p>Dear <strong><?= esc($visitor_name) ?></strong>,</p>
-                <p><?= esc($introLine) ?></p>
+                <p style="margin: 0 0 18px;">Dear <?= esc($visitor_name) ?>,</p>
+                <p style="margin: 0 0 18px;"><?= esc($introLine) ?></p>
+                <p style="margin: 0 0 20px;"><a href="<?= esc($registration_link) ?>" class="raw-link"><?= esc($registration_link) ?></a></p>
+                <p style="margin: 0 0 20px;">Thank you.</p>
             <?php endif; ?>
             
             <div class="info-box">
-                <h3>Visit Details:</h3>
-                <p><strong>Invited By:</strong> <?= esc($invited_by ?: 'Not specified') ?></p>
-                <p><strong>Contact No. of Host:</strong> <?= esc($host_contact ?: 'Not specified') ?></p>
-                <p><strong>Visitor Type:</strong> <?= esc($visitor_type ?: 'Not specified') ?></p>
-                <p><strong>Purpose:</strong> <?= esc($reason ?: 'Not specified') ?></p>
-                <?php if ($detailFields['company']): ?><p><strong>Company:</strong> <?= esc($company) ?></p><?php endif; ?>
-                <?php if ($detailFields['location']): ?><p><strong>Location:</strong> <?= esc($location) ?></p><?php endif; ?>
+                <h3 class="details-title">Visit Details:</h3>
+                <?php if ($detailFields['invited_by']): ?><p class="detail-line"><strong>Invited By:</strong> <?= esc($invited_by ?: 'Not specified') ?></p><?php endif; ?>
+                <?php if ($detailFields['host_contact'] || !empty($host_contact)): ?><p class="detail-line"><strong>Contact No. of Host:</strong> <?= esc($host_contact ?: 'Not specified') ?></p><?php endif; ?>
+                <?php if ($detailFields['visitor_type'] || !empty($visitor_type)): ?><p class="detail-line"><strong>Visitor Type:</strong> <?= esc($visitor_type ?: 'Not specified') ?></p><?php endif; ?>
+                <?php if ($detailFields['reason']): ?><p class="detail-line"><strong>Purpose:</strong> <?= esc($reason ?: 'Not specified') ?></p><?php endif; ?>
+                <?php if ($detailFields['company']): ?><p class="detail-line"><strong>Company:</strong> <?= esc($company ?: 'Not specified') ?></p><?php endif; ?>
+                <?php if ($detailFields['location']): ?><p class="detail-line"><strong>Location:</strong> <?= esc($location ?: 'Not specified') ?></p><?php endif; ?>
                 <?php if (!empty($other_reason)): ?>
-                <p><strong>Additional Details:</strong> <?= esc($other_reason) ?></p>
+                <p class="detail-line"><strong>Additional Details:</strong> <?= esc($other_reason) ?></p>
                 <?php endif; ?>
                 
                 <?php if ($detailFields['schedule'] && !empty($schedules)): ?>
-                <h4>Visit Schedule(s):</h4>
+                <p class="detail-line" style="margin-top: 16px;"><strong>Visit Schedule(s):</strong></p>
                 <?php foreach ($schedules as $schedule): ?>
                 <?php
                     $fromRaw = (string) ($schedule['date_from'] ?? '');
@@ -87,22 +100,23 @@
                     $fromDisp = $fromTs ? date('d/m/Y H:i', $fromTs) : $fromRaw;
                     $toDisp   = $toTs ? date('d/m/Y H:i', $toTs) : $toRaw;
                 ?>
-                <p>📅 <strong>From:</strong> <?= esc($fromDisp) ?>
+                <p class="detail-line">📅 <strong>From:</strong> <?= esc($fromDisp) ?>
                    <strong>To:</strong> <?= esc($toDisp) ?></p>
                 <?php endforeach; ?>
                 <?php endif; ?>
             </div>
             
-            <div style="text-align: center;">
+            <div style="text-align: center; margin-bottom: 30px;">
                 <a href="<?= esc($registration_link) ?>" class="btn"><?= esc($buttonText) ?></a>
             </div>
             
-            <p><strong><?= esc($notesTitle) ?>:</strong></p>
-            <ul>
+            <p style="margin: 0 0 8px;"><strong><?= esc($notesTitle) ?>:</strong></p>
+            <ul class="notes-list">
                 <?php foreach ($notesItems as $note): ?>
                 <li><?= esc($note) ?></li>
                 <?php endforeach; ?>
             </ul>
+        </div>
         </div>
         
         <div class="footer">

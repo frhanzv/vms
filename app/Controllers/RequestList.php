@@ -62,6 +62,7 @@ class RequestList extends BaseController
         // Load submitted requests in batches (avoid loading entire queue into memory).
         $queueLimit = 50;
         $query = $this->invitationModel->where('status', 'Submitted');
+        $this->applyHostRequestScope($query);
         $this->applyRequestWorkflowFilters($query, $requiresBriefing, $requiresFacial);
 
         $submittedRequests = $query->orderBy('created_at', 'DESC')->findAll($queueLimit);
@@ -153,11 +154,15 @@ class RequestList extends BaseController
 
         // Calculate stats
         $flaggedQuery = $this->invitationModel->where('status', 'Submitted');
+        $this->applyHostRequestScope($flaggedQuery);
         $this->applyRequestWorkflowFilters($flaggedQuery, $requiresBriefing, $requiresFacial);
 
         $pendingQuery = (new InvitationModel())->where('status', 'Pending');
         $expectedQuery = (new InvitationModel())->where('status', 'Approved');
         $rejectedQuery = (new InvitationModel())->where('status', 'Rejected');
+        $this->applyHostRequestScope($pendingQuery);
+        $this->applyHostRequestScope($expectedQuery);
+        $this->applyHostRequestScope($rejectedQuery);
 
         $stats = [
             'pending' => $pendingQuery->countAllResults(),
@@ -244,6 +249,56 @@ class RequestList extends BaseController
             ->orWhere('client_id IS NULL', null, false)
             ->orWhereNotIn('client_id', array_map('intval', $autoApprovalClientIds))
             ->groupEnd();
+    }
+
+    private function applyHostRequestScope($query): void
+    {
+        helper('role');
+        if (! role_matches(session()->get('role'), 'host')) {
+            return;
+        }
+
+        $refs = $this->currentHostRefs();
+        if ($refs === []) {
+            $query->where('1 = 0', null, false);
+            return;
+        }
+
+        $query->groupStart();
+        foreach ($refs as $idx => $ref) {
+            if ($idx === 0) {
+                $query->where('staff_id', $ref)->orWhere('invited_by', $ref);
+            } else {
+                $query->orWhere('staff_id', $ref)->orWhere('invited_by', $ref);
+            }
+        }
+        $query->groupEnd();
+    }
+
+    private function currentHostRefs(): array
+    {
+        helper('role');
+        if (! role_matches(session()->get('role'), 'host')) {
+            return [];
+        }
+
+        return array_values(array_unique(array_filter([
+            trim((string) session()->get('staff_id')),
+            trim((string) session()->get('username')),
+            trim((string) session()->get('full_name')),
+            trim((string) session()->get('email')),
+        ], static fn($v) => $v !== '')));
+    }
+
+    private function hostCanAccessInvitation(array $invitation): bool
+    {
+        $refs = $this->currentHostRefs();
+        if ($refs === []) {
+            return true;
+        }
+
+        return in_array((string) ($invitation['staff_id'] ?? ''), $refs, true)
+            || in_array((string) ($invitation['invited_by'] ?? ''), $refs, true);
     }
 
     /**
@@ -372,6 +427,14 @@ class RequestList extends BaseController
      */
     private function approveInvitationById(int $id): array
     {
+        $invitation = $this->invitationModel->find($id);
+        if (! $invitation) {
+            return ['success' => false, 'message' => 'Invitation not found'];
+        }
+        if (! $this->hostCanAccessInvitation($invitation)) {
+            return ['success' => false, 'message' => 'You can only approve your own requests'];
+        }
+
         return $this->approvalService->approve($id);
     }
 
@@ -395,6 +458,13 @@ class RequestList extends BaseController
                 return $this->response->setJSON([
                     'success' => false,
                     'message' => 'Invitation not found'
+                ]);
+            }
+
+            if (! $this->hostCanAccessInvitation($invitation)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'You can only reject your own requests'
                 ]);
             }
 
@@ -470,8 +540,9 @@ class RequestList extends BaseController
                 ->where('ic_passport', $icPassport)
                 ->whereIn('status', ['Approved', 'Rejected'])
                 ->orderBy('created_at', 'DESC')
-                ->limit(10)
-                ->findAll();
+                ->limit(10);
+            $this->applyHostRequestScope($visits);
+            $visits = $visits->findAll();
 
             $formattedVisits = [];
             foreach ($visits as $visit) {

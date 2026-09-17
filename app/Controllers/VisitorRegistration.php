@@ -507,6 +507,7 @@ class VisitorRegistration extends BaseController
                     'flow_step' => 'security_briefing',
                 ]);
             } else {
+                $this->invitationEmailSender->sendApprovalRequestSubmitted((int) $invitationId);
                 $nextUrl = base_url('security/checkin?token=' . urlencode($token));
             }
 

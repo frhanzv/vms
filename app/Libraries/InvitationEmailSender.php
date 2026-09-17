@@ -213,6 +213,87 @@ class InvitationEmailSender
         }
     }
 
+    public function sendApprovalRequestSubmitted(int $invitationId): bool
+    {
+        try {
+            $invitation = $this->getInvitationDetails($invitationId);
+            if (! $invitation) {
+                log_message('error', 'Approval request email failed: invitation not found for ID ' . $invitationId);
+                return false;
+            }
+
+            $host = $invitation['host_user'] ?? null;
+            if (! is_array($host) || empty($host['email'])) {
+                log_message('warning', 'Approval request email skipped: host email not found for invitation ID ' . $invitationId);
+                return false;
+            }
+            if (isset($host['receive_email_notifications']) && (int) $host['receive_email_notifications'] !== 1) {
+                log_message('warning', 'Approval request email skipped: host email notifications disabled for invitation ID ' . $invitationId);
+                return false;
+            }
+
+            $visitorName = trim((string) ($invitation['full_name'] ?? 'Visitor'));
+            $company = trim((string) (($invitation['company_visited'] ?? '') ?: ($invitation['company_name'] ?? '') ?: ($invitation['company'] ?? '')));
+            $hostName = trim((string) ($host['full_name'] ?? $invitation['invited_by'] ?? 'Host'));
+            $approvalUrl = base_url('requests?request_id=' . (int) $invitationId);
+
+            $scheduleText = 'Not specified';
+            if (! empty($invitation['schedules']) && is_array($invitation['schedules'])) {
+                $schedule = $invitation['schedules'][0] ?? null;
+                if (is_array($schedule) && ! empty($schedule['date_from'])) {
+                    $scheduleText = date('d M Y, g:i A', strtotime((string) $schedule['date_from']));
+                }
+            }
+
+            $reason = (string) ($invitation['reason_name'] ?? $invitation['reason'] ?? '-');
+            $message = '<!DOCTYPE html><html><body style="margin:0;background:#f6f7f8;font-family:Arial,sans-serif;color:#172033;">'
+                . '<div style="max-width:640px;margin:0 auto;padding:28px 16px;">'
+                . '<div style="background:#ffffff;border-radius:16px;padding:28px;border:1px solid #e5e7eb;">'
+                . '<h2 style="margin:0 0 12px;font-size:22px;">Visitor Request Pending Approval</h2>'
+                . '<p style="margin:0 0 18px;line-height:1.6;">Hi ' . esc($hostName) . ', a visitor has submitted their registration and is waiting for your approval.</p>'
+                . '<table style="width:100%;border-collapse:collapse;margin:18px 0;">'
+                . '<tr><td style="padding:8px 0;color:#667085;">Visitor</td><td style="padding:8px 0;font-weight:700;">' . esc($visitorName) . '</td></tr>'
+                . '<tr><td style="padding:8px 0;color:#667085;">Company</td><td style="padding:8px 0;font-weight:700;">' . esc($company ?: '-') . '</td></tr>'
+                . '<tr><td style="padding:8px 0;color:#667085;">Visit Date</td><td style="padding:8px 0;font-weight:700;">' . esc($scheduleText) . '</td></tr>'
+                . '<tr><td style="padding:8px 0;color:#667085;">Reason</td><td style="padding:8px 0;font-weight:700;">' . esc($reason) . '</td></tr>'
+                . '</table>'
+                . '<a href="' . esc($approvalUrl) . '" style="display:inline-block;background:#137fec;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700;">Review Request</a>'
+                . '<p style="font-size:12px;color:#667085;margin-top:18px;">If the button does not work, open: ' . esc($approvalUrl) . '</p>'
+                . '</div></div></body></html>';
+
+            $email = \Config\Services::email();
+            $email->initialize([
+                'protocol'    => $this->emailConfig->protocol,
+                'SMTPHost'    => $this->emailConfig->SMTPHost,
+                'SMTPUser'    => $this->emailConfig->SMTPUser,
+                'SMTPPass'    => $this->emailConfig->SMTPPass,
+                'SMTPPort'    => $this->emailConfig->SMTPPort,
+                'SMTPCrypto'  => $this->emailConfig->SMTPCrypto,
+                'SMTPTimeout' => $this->emailConfig->SMTPTimeout,
+                'mailType'    => $this->emailConfig->mailType,
+                'charset'     => $this->emailConfig->charset,
+                'newline'     => $this->emailConfig->newline,
+                'CRLF'        => $this->emailConfig->CRLF,
+            ]);
+            $email->setMailType('html');
+            $email->setFrom($this->emailConfig->fromEmail, $this->emailConfig->fromName);
+            $email->setTo($host['email'], $hostName);
+            $email->setSubject('Visitor request pending approval: ' . $visitorName);
+            $email->setMessage($message);
+
+            $sent = $email->send();
+            if (! $sent) {
+                log_message('error', 'Approval request email failed to host: ' . $host['email']);
+                log_message('error', 'Email error: ' . $email->printDebugger(['headers', 'subject']));
+            }
+
+            return $sent;
+        } catch (\Exception $e) {
+            log_message('error', 'Approval request email failed: ' . $e->getMessage());
+            return false;
+        }
+    }
+
     public function invitationsSupportVisitorType(): bool
     {
         static $cached = null;

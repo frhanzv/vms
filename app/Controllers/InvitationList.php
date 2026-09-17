@@ -275,11 +275,42 @@ class InvitationList extends BaseController
 
     private function applyInvitationListScope($builder)
     {
-        return $builder->groupStart()
+        $builder->groupStart()
             ->where('registration_source !=', 'kiosk')
             ->orWhere('registration_source IS NULL', null, false)
             ->orWhere('registration_source', '')
             ->groupEnd();
+
+        return $this->applyHostInvitationScope($builder);
+    }
+
+    private function applyHostInvitationScope($builder)
+    {
+        helper('role');
+        if (! role_matches(session()->get('role'), 'host')) {
+            return $builder;
+        }
+
+        $staffId = trim((string) session()->get('staff_id'));
+        $username = trim((string) session()->get('username'));
+        $fullName = trim((string) session()->get('full_name'));
+        $email = trim((string) session()->get('email'));
+        $hostRefs = array_values(array_unique(array_filter([$staffId, $username, $fullName, $email], static fn($v) => $v !== '')));
+
+        if ($hostRefs === []) {
+            return $builder->where('1 = 0', null, false);
+        }
+
+        $builder->groupStart();
+        foreach ($hostRefs as $idx => $ref) {
+            if ($idx === 0) {
+                $builder->where('staff_id', $ref)->orWhere('invited_by', $ref);
+            } else {
+                $builder->orWhere('staff_id', $ref)->orWhere('invited_by', $ref);
+            }
+        }
+
+        return $builder->groupEnd();
     }
 
     private function countInvitationsForList(?string $status = null): int
@@ -467,8 +498,8 @@ class InvitationList extends BaseController
             'visitorTypes' => $visitorTypes,
             'locations'    => $locations,
             'companies'    => $companies,
-            'staff_id'     => $currentUser['staff_id'] ?? $currentUser['user_id'] ?? 'STAFF001',
-            'contact_no'   => $currentUser['contact'] ?? $currentUser['phone'] ?? '+60123456789',
+            'staff_id'     => $currentUser['staff_id'] ?? $currentUser['username'] ?? '',
+            'contact_no'   => $currentUser['contact_no'] ?? $currentUser['contact'] ?? $currentUser['phone'] ?? '',
             'formConfig'   => $this->getInvitationFormConfig(),
             'mykadOcrEnabled' => client_feature_enabled('mykad_ocr'),
         ];
@@ -497,6 +528,7 @@ class InvitationList extends BaseController
         }
 
         $builder = $this->invitationModel->builder();
+        $this->applyInvitationListScope($builder);
 
         if ($search !== '') {
             $builder->groupStart()
@@ -571,6 +603,9 @@ class InvitationList extends BaseController
         if (! $row) {
             return $this->response->setJSON(['success' => false, 'message' => 'Invitation not found']);
         }
+        if (! $this->hostCanAccessInvitation($row)) {
+            return $this->response->setStatusCode(403)->setJSON(['success' => false, 'message' => 'You can only view your own invitation history']);
+        }
 
         $schedules = $this->scheduleModel->where('invitation_id', $id)->orderBy('date_from', 'ASC')->findAll();
         $schedOut = [];
@@ -623,6 +658,52 @@ class InvitationList extends BaseController
         $ts = strtotime((string) $value);
 
         return $ts ? date('Y-m-d', $ts) : '';
+    }
+
+    private function currentHostRefs(): array
+    {
+        helper('role');
+        if (! role_matches(session()->get('role'), 'host')) {
+            return [];
+        }
+
+        return array_values(array_unique(array_filter([
+            trim((string) session()->get('staff_id')),
+            trim((string) session()->get('username')),
+            trim((string) session()->get('full_name')),
+            trim((string) session()->get('email')),
+        ], static fn($v) => $v !== '')));
+    }
+
+    private function hostCanAccessInvitation(array $invitation): bool
+    {
+        $refs = $this->currentHostRefs();
+        if ($refs === []) {
+            return true;
+        }
+
+        return in_array((string) ($invitation['staff_id'] ?? ''), $refs, true)
+            || in_array((string) ($invitation['invited_by'] ?? ''), $refs, true);
+    }
+
+    private function resolveSubmittedHostStaffId(): string
+    {
+        helper('role');
+        if (role_matches(session()->get('role'), 'host')) {
+            return trim((string) (session()->get('staff_id') ?: session()->get('username')));
+        }
+
+        return trim((string) $this->request->getPost('staff_id'));
+    }
+
+    private function resolveSubmittedHostContact(): string
+    {
+        helper('role');
+        if (role_matches(session()->get('role'), 'host')) {
+            return trim((string) (session()->get('contact_no') ?: session()->get('contact') ?: session()->get('phone')));
+        }
+
+        return trim((string) ($this->request->getPost('host_contact') ?: $this->request->getPost('contact_person')));
     }
 
     public function store()
@@ -755,8 +836,8 @@ class InvitationList extends BaseController
                 'reason'              => $isEnabled('reason')          ? $this->request->getPost('reason')          : '',
                 'other_reason'        => $isEnabled('reason')          ? $this->request->getPost('other_reason')    : null,
                 'link_expiry'         => $isEnabled('link_expiry')     ? $this->request->getPost('link_expiry')     : null,
-                'staff_id'            => $isEnabled('staff_id')        ? trim((string) $this->request->getPost('staff_id'))       : '',
-                'host_contact'        => $isEnabled('host_contact')  ? trim((string) ($this->request->getPost('host_contact') ?: $this->request->getPost('contact_person'))) : '',
+                'staff_id'            => $isEnabled('staff_id')        ? $this->resolveSubmittedHostStaffId()       : '',
+                'host_contact'        => $isEnabled('host_contact')  ? $this->resolveSubmittedHostContact() : '',
                 'allow_sub_invites'   => ($isEnabled('allow_sub_invites') && $this->request->getPost('allow_sub_invites')) ? 1 : 0,
             ];
             if ($this->invitationsSupportVisitorType()) {

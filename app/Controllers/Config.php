@@ -728,7 +728,7 @@ class Config extends BaseController
 
         $rules = [
             'username'   => 'required|min_length[3]|max_length[100]|is_unique[users.username]',
-            'email'      => 'required|valid_email|is_unique[users.email]',
+            'email'      => 'required|valid_email',
             'password'   => 'required|min_length[6]',
             'full_name'  => 'required|min_length[3]|max_length[255]',
             'staff_id'   => 'permit_empty|max_length[50]',
@@ -833,7 +833,7 @@ class Config extends BaseController
 
         $rules = [
             'username'   => "required|min_length[3]|max_length[100]|is_unique[users.username,id,{$id}]",
-            'email'      => "required|valid_email|is_unique[users.email,id,{$id}]",
+            'email'      => 'required|valid_email',
             'full_name'  => 'required|min_length[3]|max_length[255]',
             'staff_id'   => 'permit_empty|max_length[50]',
             'contact_no' => 'permit_empty|max_length[20]',
