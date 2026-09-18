@@ -372,12 +372,24 @@ class InvitationEmailSender
 
         $invitation['visitor_email'] = $invitation['visitor_email'] ?? $invitation['contact'] . '@example.com';
 
-        // Resolve host user via staff_id
+        // Resolve host user via staff ID, username, or invited-by display name.
         $invitation['host_user'] = null;
         if (!empty($invitation['staff_id'])) {
             $invitation['host_user'] = $this->userModel
                 ->select('id, full_name, email, contact_no, receive_email_notifications')
                 ->where('staff_id', $invitation['staff_id'])
+                ->where('is_active', 1)
+                ->first();
+        }
+        if (! $invitation['host_user'] && ! empty($invitation['invited_by'])) {
+            $invitedBy = trim((string) $invitation['invited_by']);
+            $invitation['host_user'] = $this->userModel
+                ->select('id, full_name, email, contact_no, receive_email_notifications')
+                ->groupStart()
+                    ->where('staff_id', $invitedBy)
+                    ->orWhere('username', $invitedBy)
+                    ->orWhere('full_name', $invitedBy)
+                ->groupEnd()
                 ->where('is_active', 1)
                 ->first();
         }
