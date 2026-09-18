@@ -471,6 +471,22 @@ class KioskApi extends BaseController
             $cityName = trim($cityRaw);
         }
 
+        // Kiosk users may identify the host by username, staff ID or name.
+        // Resolve the host's phone so the visitor details/approval screens show it.
+        $hostContact = trim((string) ($body['hostContact'] ?? $body['host_contact'] ?? ''));
+        if ($hostContact === '' && $invitedBy !== '') {
+            $hostUser = (new UserModel())
+                ->select('contact_no')
+                ->groupStart()
+                    ->where('staff_id', $invitedBy)
+                    ->orWhere('username', $invitedBy)
+                    ->orWhere('full_name', $invitedBy)
+                ->groupEnd()
+                ->where('is_active', 1)
+                ->first();
+            $hostContact = trim((string) ($hostUser['contact_no'] ?? ''));
+        }
+
         $data = [
             'full_name'            => $fullName,
             'ic_passport'          => $icNo,
@@ -482,7 +498,7 @@ class KioskApi extends BaseController
             'reason'               => $reason,
             'invited_by'           => $invitedBy,
             'visitor_type_id'      => (int) ($body['visitorTypeId'] ?? $body['visitor_type_id'] ?? 0) ?: null,
-            'host_contact'         => trim($body['hostContact']     ?? $body['host_contact']     ?? ''),
+            'host_contact'         => $hostContact,
             'company_visited'      => trim($body['companyVisited']  ?? $body['company_visited']  ?? ''),
             'date_of_birth'        => $body['dateOfBirth'] ?? $body['date_of_birth'] ?? null,
             'sex'                  => $body['sex']         ?? null,
@@ -558,11 +574,22 @@ class KioskApi extends BaseController
             }
         }
 
+        // Non-auto-approval kiosk registrations must notify the host immediately.
+        // The email contains a link back to the request approval page.
+        $approvalEmailSent = false;
+        if (! $isGxoWalkInFlow) {
+            $approvalEmailSent = (new InvitationEmailSender())->sendApprovalRequestSubmitted((int) $id);
+            if (! $approvalEmailSent) {
+                log_message('warning', "Kiosk approval email failed for invitation_id={$id}");
+            }
+        }
+
         return $this->respondCreated([
             'status'  => 'success',
             'message' => 'Visitor pass created successfully',
             'data'    => $this->formatInvitation($invitation),
             'briefing_email_sent' => $briefingEmailSent,
+            'approval_email_sent' => $approvalEmailSent,
         ]);
     }
     // -------------------------------------------------------------------------

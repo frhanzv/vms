@@ -854,6 +854,30 @@ class GuardApi extends BaseController
         if (! empty($timeIn) && date('Y-m-d', strtotime((string) $timeIn)) !== date('Y-m-d')) {
             return 'This QR expired at 11:59 PM on the Time In date. Please register a new visit.';
         }
+
+        // A QR is only valid during one of the invitation's scheduled periods.
+        // Return the wording used by the mobile app for scans outside that period.
+        $invitationId = (int) ($visitor['id'] ?? $visitor['invitation_id'] ?? 0);
+        if ($invitationId > 0) {
+            $schedules = (new \App\Models\InvitationScheduleModel())
+                ->where('invitation_id', $invitationId)
+                ->findAll();
+            if ($schedules !== []) {
+                $now = time();
+                $inPeriod = false;
+                foreach ($schedules as $schedule) {
+                    $from = strtotime((string) ($schedule['date_from'] ?? ''));
+                    $to = strtotime((string) ($schedule['date_to'] ?? ''));
+                    if ($from !== false && $to !== false && $now >= $from && $now <= $to) {
+                        $inPeriod = true;
+                        break;
+                    }
+                }
+                if (! $inPeriod) {
+                    return 'Out of Visitation Period';
+                }
+            }
+        }
         return null;
     }
 
