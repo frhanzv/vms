@@ -138,3 +138,8 @@ vms-mykad-ocr-*.json
 
 # Runtime session files must stay outside the public tree
 /public/null/
+
+# Podman/compose local env (secrets)
+docker/compose.env
+docker/.env
+

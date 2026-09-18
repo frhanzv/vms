@@ -1,0 +1,83 @@
+# SafeG VMS stack — Podman Compose / Docker Compose
+#
+# App config  = docker/.env  (real CI4 .env — NEVER regenerate in entrypoint)
+# Compose cfg = docker/compose.env (ports / image tag / MySQL bootstrap password)
+#
+# CRITICAL (learned from server deploy):
+# 1) database.default.hostname = db   (NOT localhost) when in_pod: false
+# 2) database.default.password MUST equal DB_PASSWORD in compose.env
+#    (MySQL only applies MYSQL_* on FIRST volume create)
+# 3) mysql:8.0 (OL9) needs x86-64-v2 CPU — pin OL8 on old KVM
+# 4) phpMyAdmin is :8082 (or Tailscale path /phpmyadmin) — NOT /phpmyadmin on app :80
+# 5) Switch app version: change VMS_IMAGE then recreate app only (see docker/upgrade-app.sh)
+#
+# Local Windows:  powershell -File docker/build.ps1 && docker/start.ps1
+# Server:         SKIP_BUILD=1 VMS_IMAGE=bytespace.jfrog.io/vms/vms:v1.0.1 ./docker/deploy.sh
+
+# Separate containers + DNS so hostname "db" works (podman-compose 1.2+)
+x-podman:
+  in_pod: false
+
+services:
+  app:
+    image: ${VMS_IMAGE:-localhost/vms:v1.0.1}
+    container_name: vms-app
+    ports:
+      - "${APP_PORT:-80}:80"
+    environment:
+      RUN_MIGRATIONS: "${RUN_MIGRATIONS:-true}"
+      RUN_SEEDERS: "${RUN_SEEDERS:-true}"
+      TESSERACT_PATH: /usr/bin/tesseract
+    volumes:
+      - ./docker/.env:/var/www/html/.env:ro
+      - vms-writable:/var/www/html/writable
+      - vms-uploads:/var/www/html/public/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    # Pin OL8: official mysql:8.0 (OL9) → "Fatal glibc error: CPU does not support x86-64-v2"
+    image: ${MYSQL_IMAGE:-docker.io/library/mysql:8.0.37-oraclelinux8}
+    container_name: vms-db
+    environment:
+      MYSQL_DATABASE: "${DB_DATABASE:-vms}"
+      MYSQL_USER: "${DB_USERNAME:-vms}"
+      MYSQL_PASSWORD: "${DB_PASSWORD:-vms}"
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:-vmsroot}"
+    ports:
+      - "${DB_PORT:-3307}:3306"
+    volumes:
+      - vms-mysqldata:/var/lib/mysql
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_general_ci
+      - --default-authentication-plugin=mysql_native_password
+      - --log-bin-trust-function-creators=1
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 25s
+    restart: unless-stopped
+
+  phpmyadmin:
+    image: ${PHPMYADMIN_IMAGE:-docker.io/library/phpmyadmin:5.2-apache}
+    container_name: vms-phpmyadmin
+    ports:
+      - "${PHPMYADMIN_PORT:-8082}:80"
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      UPLOAD_LIMIT: 256M
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  vms-writable: {}
+  vms-uploads: {}
+  vms-mysqldata: {}
