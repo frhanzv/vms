@@ -320,13 +320,13 @@ $routes->group('', ['filter' => 'permission:visitor_pass_list,visitors_list'], f
     $routes->post('visitors/saveColumnSettings', 'VisitorList::saveColumnSettings');
     $routes->post('visitors/update', 'VisitorList::updateVisitor');
     $routes->post('visitors/updateVisitDate', 'VisitorList::updateVisitDate');
+    $routes->get('visitors/generateQr/(:num)', 'VisitorList::generateQr/$1');
 });
 
 $routes->group('', ['filter' => ['permission:visitor_pass_list,visitors_list', 'client_feature:visitor_card']], function($routes) {
     $routes->post('visitors/bindCard', 'VisitorList::bindCard');
     $routes->post('visitors/unbindCard', 'VisitorList::unbindCard');
     $routes->post('visitors/batchUnbindCards', 'VisitorList::batchUnbindCards');
-    $routes->get('visitors/generateQr/(:num)', 'VisitorList::generateQr/$1');
 });
 
 // ===========================

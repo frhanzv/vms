@@ -144,8 +144,7 @@ class VisitorReport extends BaseController
         $expectedVisitors = 0;
 
         foreach ($rows as $row) {
-            $checkInSource = $row['reg_checkin_time'] ?: $row['checkin_time'];
-            $checkOutSource = $row['reg_checkout_time'] ?: $row['checkout_time'];
+            [$checkInSource, $checkOutSource] = $this->resolveVisitCycleTimes($row);
             $isInvitation = strcasecmp(trim((string) ($row['registration_source'] ?? '')), 'Invitation') === 0;
 
             if ($checkInSource) {
@@ -226,6 +225,37 @@ class VisitorReport extends BaseController
             'truncated'       => $truncated,
             'message'         => $truncated ? 'Results limited to 2000 rows. Narrow the date range for full data.' : null,
         ]);
+    }
+
+    /**
+     * Resolve one paired entry cycle without borrowing a timestamp from another cycle.
+     *
+     * Current records store each cycle in invitation_visitors. Event-log aggregates are
+     * retained only as a fallback for legacy invitations that have no cycle row.
+     *
+     * @return array{0:?string,1:?string}
+     */
+    private function resolveVisitCycleTimes(array $row): array
+    {
+        $hasCycleRow = ! empty($row['visitor_row_id']);
+        $checkIn = $hasCycleRow
+            ? ($row['reg_checkin_time'] ?: null)
+            : ($row['checkin_time'] ?: null);
+        $checkOut = $hasCycleRow
+            ? ($row['reg_checkout_time'] ?: null)
+            : ($row['checkout_time'] ?: null);
+
+        if ($checkIn && $checkOut) {
+            $checkInTimestamp = strtotime((string) $checkIn);
+            $checkOutTimestamp = strtotime((string) $checkOut);
+            if ($checkInTimestamp !== false
+                && $checkOutTimestamp !== false
+                && $checkOutTimestamp < $checkInTimestamp) {
+                $checkOut = null;
+            }
+        }
+
+        return [$checkIn, $checkOut];
     }
 
     private function hostReportWhereSql($db): string
