@@ -298,7 +298,7 @@ class VisitorList extends BaseController
     }
 
     /**
-     * Base query for the visitor pass list (approved invitations + visitor rows).
+     * Base query for the visitor pass list (eligible approved visitors).
      *
      * @return \CodeIgniter\Database\BaseBuilder
      */
@@ -345,7 +345,7 @@ class VisitorList extends BaseController
         );
         $builder->join('invitation_schedules sch', 'sch.id = sch_pick.id', 'left');
         $builder->join('visitor_cards vc', 'vc.id = iv.visitor_card_id', 'left');
-        $builder->where('i.status', 'Approved');
+        $this->applyVisitorListEligibility($builder, $db);
         $this->applyHostVisitorScope($builder);
 
         if ($searchTerm !== '') {
@@ -374,6 +374,34 @@ class VisitorList extends BaseController
         $builder->orderBy('iv.id', 'DESC');
 
         return $builder;
+    }
+
+    /**
+     * Show invitation visitors only after their QR email was sent successfully.
+     *
+     * Non-invitation registrations do not use the invitation QR delivery flow.
+     * The check-in fallback keeps legacy visitors visible once they are on site.
+     */
+    private function applyVisitorListEligibility($builder, $db): void
+    {
+        $builder->where('i.status', 'Approved');
+
+        if (! $db->tableExists('invitation_qr_deliveries')) {
+            return;
+        }
+
+        $builder->where(
+            "(COALESCE(i.registration_source, '') <> 'Invitation'
+                OR iv.check_in_time IS NOT NULL
+                OR EXISTS (
+                    SELECT 1
+                    FROM invitation_qr_deliveries iqd
+                    WHERE iqd.invitation_id = i.id
+                      AND iqd.status = 'sent'
+                ))",
+            null,
+            false
+        );
     }
 
     private function applyHostVisitorScope($builder): void
@@ -445,7 +473,7 @@ class VisitorList extends BaseController
         );
         $builder->join('invitation_schedules sch', 'sch.id = sch_pick.id', 'left');
         $builder->join('visitor_cards vc', 'vc.id = iv.visitor_card_id', 'left');
-        $builder->where('i.status', 'Approved');
+        $this->applyVisitorListEligibility($builder, $db);
         $this->applyHostVisitorScope($builder);
         $builder->orderBy('COALESCE(iv.check_in_time, i.created_at)', 'DESC', false);
         $builder->orderBy('iv.id', 'DESC');
@@ -543,6 +571,14 @@ class VisitorList extends BaseController
         }
         if (! empty($row['check_in_time'])) {
             return 'Checked In';
+        }
+
+        $visitEndsAt = trim((string) ($row['sch_date_to'] ?? ''));
+        if ($visitEndsAt !== '') {
+            $visitEndsTimestamp = strtotime($visitEndsAt);
+            if ($visitEndsTimestamp !== false && $visitEndsTimestamp < time()) {
+                return 'Expired';
+            }
         }
 
         return 'Expected';

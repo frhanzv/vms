@@ -408,6 +408,8 @@
                                 <span class="bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Rejected Entry</span>
                                 <?php elseif ($visitor['status'] === 'Checked Out'): ?>
                                 <span class="bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Checked Out</span>
+                                <?php elseif ($visitor['status'] === 'Expired'): ?>
+                                <span class="bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Expired</span>
                                 <?php else: ?>
                                 <span class="bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Expected</span>
                                 <?php endif; ?>
