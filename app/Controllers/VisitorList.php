@@ -313,7 +313,7 @@ class VisitorList extends BaseController
                           i.ic_passport as visitor_ic_passport,
                           i.contact as visitor_contact,
                           i.company as visitor_company,
-                          i.invited_by as host_name,
+                          COALESCE(h.full_name, i.invited_by) as host_name,
                           i.reason as visit_purpose,
                           i.vehicle_registration as vehicle_reg,
                           i.location,
@@ -335,10 +335,12 @@ class VisitorList extends BaseController
                           i.visitor_type_id,
                           vt.name as visitor_type_name');
             $builder->join('invitations i', 'i.id = iv.invitation_id');
+            $builder->join('users h', 'h.staff_id = i.staff_id AND h.is_active = 1', 'left');
             $builder->join('visitor_types vt', 'vt.id = i.visitor_type_id', 'left');
         } else {
             $builder->select($baseSelect);
             $builder->join('invitations i', 'i.id = iv.invitation_id');
+            $builder->join('users h', 'h.staff_id = i.staff_id AND h.is_active = 1', 'left');
         }
         $builder->join(
             '(SELECT invitation_id, MIN(id) AS id FROM invitation_schedules GROUP BY invitation_id) sch_pick',
@@ -445,7 +447,7 @@ class VisitorList extends BaseController
                           i.ic_passport as visitor_ic_passport,
                           i.contact as visitor_contact,
                           i.company as visitor_company,
-                          i.invited_by as host_name,
+                          COALESCE(h.full_name, i.invited_by) as host_name,
                           i.reason as visit_purpose,
                           i.vehicle_registration as vehicle_reg,
                           i.location,
@@ -467,6 +469,8 @@ class VisitorList extends BaseController
             $builder->select($baseSelect);
             $builder->join('invitations i', 'i.id = iv.invitation_id');
         }
+
+        $builder->join('users h', 'h.staff_id = i.staff_id AND h.is_active = 1', 'left');
 
         $builder->join(
             '(SELECT invitation_id, MIN(id) AS id FROM invitation_schedules GROUP BY invitation_id) sch_pick',
