@@ -27,6 +27,7 @@ class ClientFeatureModel extends Model
             'invitations'         => 'Invitations / Pre-registration',
             'workflows'           => 'Approval Workflows',
             'staff_pass'          => 'Staff Pass',
+            'vendor_pass'         => 'Vendor Pass',
             'visitor_card'        => 'Visitor Card Issuance',
             'security_alerts'     => 'Security Alerts',
             'device_management'   => 'Device Management',

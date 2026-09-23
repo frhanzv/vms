@@ -4,6 +4,7 @@ $current     = app_route_path();
 $isDashboard = ($current === '' || $current === 'dashboard');
 $isEmap      = str_starts_with($current, 'e-map');
 $isStaff     = str_contains($current, 'staffs') || str_contains($current, 'staff-pass-request');
+$isVendor    = str_contains($current, 'vendors') || str_contains($current, 'vendorpassrequest');
 $isWorkflow  = str_contains($current, 'workflow');
 $isConfig    = str_contains($current, 'config');
 $isSettings  = str_contains($current, 'settings');
@@ -103,6 +104,14 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
                 <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">badge</span>
                 <p class="text-sm <?= $isStaff ? 'font-semibold' : 'font-medium' ?>">Staff Pass List</p>
             </a>
+            <?php endif; ?>
+
+            <!-- Vendor Pass List -->
+            <?php if (client_feature_enabled('vendor_pass') && has_access('vendor_pass_list', 'view')): ?>
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?= $isVendor ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white' ?> transition-colors group" href="<?= base_url('vendors') ?>">
+                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">local_shipping</span>
+                    <p class="text-sm <?= $isVendor ? 'font-semibold' : 'font-medium' ?>">Vendor Pass List</p>
+                </a>
             <?php endif; ?>
 
             <!-- Visitor Workflow -->

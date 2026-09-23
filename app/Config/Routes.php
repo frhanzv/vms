@@ -371,6 +371,21 @@ $routes->group('', ['filter' => [$plusAdminOfficer, 'client_feature:staff_pass']
 });
 
 // ===========================
+// Vendor Management
+// superadmin, clientsuperadmin, admin, officer
+// ===========================
+
+ $routes->group('', ['filter' => [$plusAdminOfficer, 'client_feature:vendor_pass']], function($routes) { 
+    $routes->get('vendors', 'VendorList::index'); 
+    $routes->get('vendors/vendorpassrequest', 'VendorPassRequest::index'); 
+    $routes->post('vendors/vendorpassrequest/store', 'VendorPassRequest::store'); 
+    $routes->get('vendorpassrequest/view/(:any)', 'VendorPassRequest::view/$1'); 
+    $routes->get('vendorpassrequest/edit/(:num)', 'VendorPassRequest::edit/$1'); 
+    $routes->post('vendorpassrequest/update/(:num)', 'VendorPassRequest::update/$1'); 
+    $routes->post('vendors/delete/(:num)', 'VendorList::delete/$1');
+}); 
+
+// ===========================
 // Visitor Pass Request
 // superadmin, clientsuperadmin, officer
 // ===========================
