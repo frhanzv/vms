@@ -271,6 +271,14 @@ class GuardApi extends BaseController
             return $this->failNotFound('Visitor not found');
         }
 
+        // Kiosk registrations must complete the safety briefing before Guard
+        // can record Time In. Keep this server-side so the rule cannot be
+        // bypassed by an older/mobile client.
+        if (strtolower((string) ($visitor['registration_source'] ?? '')) === 'kiosk'
+            && empty($visitor['video_watched'])) {
+            return $this->failForbidden('Safety briefing must be completed before Time In.');
+        }
+
         if (in_array(strtolower((string) ($visitor['guard_entry_status'] ?? '')), ['rejected', 'rejected entry'], true)) {
             return $this->failResourceExists('Entry for this visitor has already been rejected.');
         }
