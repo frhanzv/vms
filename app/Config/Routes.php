@@ -461,8 +461,15 @@ $routes->group('config', ['filter' => $plusAdmin], function($routes) {
 // superadmin, clientsuperadmin
 // ===========================
 
-$routes->group('config', ['filter' => $superadmins], function($routes) {
+// Recipient configuration is also available to client admins. Controller
+// authorization keeps non-platform users within their own client.
+$routes->group('config', ['filter' => $plusAdmin], function($routes) {
     $routes->get('/', 'Config::index');
+    $routes->get('getEmailRecipientRolesConfig', 'Config::getEmailRecipientRolesConfig');
+    $routes->post('saveEmailRecipientRolesConfig', 'Config::saveEmailRecipientRolesConfig');
+});
+
+$routes->group('config', ['filter' => $superadmins], function($routes) {
     $routes->get('getLogs', 'Config::getLogs');
     $routes->get('exportLogs', 'Config::exportLogs');
 
@@ -594,8 +601,6 @@ $routes->group('config', ['filter' => $superadmins], function($routes) {
     $routes->post('updateEmailTemplateFormField/(:num)', 'Config::updateEmailTemplateFormField/$1');
     $routes->post('deleteEmailTemplateFormField/(:num)', 'Config::deleteEmailTemplateFormField/$1');
     $routes->post('reorderEmailTemplateFormFields', 'Config::reorderEmailTemplateFormFields');
-    $routes->get('getEmailRecipientRolesConfig', 'Config::getEmailRecipientRolesConfig');
-    $routes->post('saveEmailRecipientRolesConfig', 'Config::saveEmailRecipientRolesConfig');
 
     // Pathways
     $routes->get('getPathways', 'Config::getPathways');

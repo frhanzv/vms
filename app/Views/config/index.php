@@ -670,6 +670,7 @@
                 */ ?>
                 
                 <!-- Email Notification Recipients -->
+                <?php if (in_array(normalize_role_slug((string) session()->get('role')), ['superadmin', 'clientsuperadmin', 'admin'], true)): ?>
                 <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('emailrecipients'); if(emailRoles.length === 0) loadEmailRecipients();" class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                         <div class="flex items-center gap-4">
@@ -686,6 +687,17 @@
                     <div id="emailrecipients-content" class="hidden border-t border-gray-200 dark:border-slate-700">
                         <div class="p-6 bg-gray-50 dark:bg-slate-800/50">
                             <form id="emailRecipientsForm" class="space-y-6">
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Client</label>
+                                    <select id="email-recipient-client-select" onchange="emailRoles=[]; loadEmailRecipients();"
+                                        class="w-full md:w-96 rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm">
+                                        <?php if (! $canManageAllClientCompanies): ?>
+                                            <option value="<?= (int) current_client_id() ?>"><?= esc(current_client_name()) ?></option>
+                                        <?php else: ?>
+                                            <option value="">-- Select a client --</option>
+                                        <?php endif; ?>
+                                    </select>
+                                </div>
                                 <div id="emailRecipientsContainer" class="space-y-4">
                                     <div class="text-center py-4 text-slate-500">Loading configuration...</div>
                                 </div>
@@ -699,6 +711,7 @@
                         </div>
                     </div>
                 </div>
+                <?php endif; ?>
 
                 <?php if (false): ?>
                 <!-- Registration Type -->
@@ -5598,6 +5611,7 @@
                 // Load email templates when Email Template section is opened
                 if (section === 'email-template') {
                     fetchEmailTemplates();
+                    fetchInvitationEmailTemplateSettings();
                 }
                 // Load clients when Client Management section is opened
                 if (section === 'client') {
@@ -5956,8 +5970,6 @@
                 if (e.target === this) closeAppConfigModal();
             });
 
-            // Load data on page load
-            loadAppConfigs();
         });
 
         // ============== REGISTRATION TYPE FUNCTIONS ==============
@@ -15203,17 +15215,21 @@
         let emailTemplateProcessOptions = [
             { key: 'invitation', label: 'Invitation Email' },
             { key: 'registration_submitted', label: 'Registration Submitted Email' },
+            { key: 'pending_approval', label: 'Pending Approval Email' },
             { key: 'approval', label: 'Approval Email' },
             { key: 'rejection', label: 'Rejection Email' },
             { key: 'reminder', label: 'Reminder Email' },
         ];
         let emailTemplatePlaceholderTokens = [
             '{{visitor_name}}',
+            '{{host_name}}',
             '{{company}}',
             '{{location}}',
             '{{reason}}',
             '{{invited_by}}',
             '{{link_expiry_date}}',
+            '{{visit_date}}',
+            '{{review_url}}',
         ];
         let currentEmailTemplateProcess = 'invitation';
         let emailTemplateFocusedInputId = null;
@@ -15233,8 +15249,6 @@
                 if (!canManageAllClientCompanies && scopedClientCompanyId) {
                     emailTemplateSelectedClientId = String(scopedClientCompanyId);
                     updateEmailTemplateManagementAvailability();
-                    fetchEmailTemplates();
-                    fetchInvitationEmailTemplateSettings();
                 }
             });
             updateEmailTemplateManagementAvailability();
@@ -16019,10 +16033,6 @@
                     showToast('Failed to delete field', 'error');
                 });
         }
-
-        document.addEventListener('DOMContentLoaded', function () {
-            fetchInvitationEmailTemplateSettings();
-        });
 
         // Blacklist Reason Modal 
 
@@ -17117,6 +17127,7 @@
         let apikeySearchTerm  = '';
         const configBaseUrl   = '<?= rtrim(base_url('config'), '/') ?>';
         const scopedClientCompanyId = <?= (int)($scopedClientCompanyId ?? 0) ?>;
+        const scopedClientCompanyName = <?= json_encode((string)($scopedUserClientName ?? 'Current client')) ?>;
         const canManageAllClientCompanies = <?= !empty($canManageAllClientCompanies) ? 'true' : 'false' ?>;
 
         function populateScopedCompanySelect(selectEl, onReady) {
@@ -17124,23 +17135,32 @@
                 return;
             }
 
+            // Tenant-scoped users already have a fixed client. Avoid downloading the
+            // complete client list for every configuration widget just to filter it
+            // back down to this single option in the browser.
+            if (!canManageAllClientCompanies && scopedClientCompanyId) {
+                const opt = document.createElement('option');
+                opt.value = String(scopedClientCompanyId);
+                opt.textContent = scopedClientCompanyName || 'Current client';
+                selectEl.appendChild(opt);
+                selectEl.value = String(scopedClientCompanyId);
+                selectEl.disabled = true;
+                if (typeof onReady === 'function') {
+                    onReady();
+                }
+                return;
+            }
+
             fetch(`${configBaseUrl}/getAllClients`)
                 .then(r => r.json())
                 .then(res => {
-                    let companies = res.data || [];
-                    if (!canManageAllClientCompanies && scopedClientCompanyId) {
-                        companies = companies.filter(c => String(c.id) === String(scopedClientCompanyId));
-                    }
+                    const companies = res.data || [];
                     companies.forEach(c => {
                         const opt = document.createElement('option');
                         opt.value = c.id;
                         opt.textContent = c.name;
                         selectEl.appendChild(opt);
                     });
-                    if (!canManageAllClientCompanies && scopedClientCompanyId) {
-                        selectEl.value = String(scopedClientCompanyId);
-                        selectEl.disabled = true;
-                    }
                     if (typeof onReady === 'function') {
                         onReady();
                     }
@@ -18385,25 +18405,50 @@
         let emailRoles = [];
         let emailConfig = {};
         const emailEvents = [
-            { key: 'PROCESS_INVITATION', label: 'Visitor Invitation Created' },
-            { key: 'PROCESS_APPROVAL', label: 'Visitor Approved' },
-            { key: 'PROCESS_REJECTION', label: 'Visitor Rejected' },
+            { key: 'invitation', label: 'Visitor Invitation Created' },
+            { key: 'approval', label: 'Visitor Approved' },
+            { key: 'rejection', label: 'Visitor Rejected' },
             { key: 'CHECK_IN', label: 'Visitor Check-In' },
             { key: 'CHECK_OUT', label: 'Visitor Check-Out' }
         ];
 
+        const canSelectEmailRecipientClient = <?= $canManageAllClientCompanies ? 'true' : 'false' ?>;
+
+        document.addEventListener('DOMContentLoaded', function () {
+            if (!canSelectEmailRecipientClient) return;
+            const select = document.getElementById('email-recipient-client-select');
+            if (!select) return;
+            fetch(`${configBaseUrl}/getAllClients`)
+                .then(r => r.json())
+                .then(res => {
+                    (res.data || []).forEach(client => {
+                        const option = document.createElement('option');
+                        option.value = client.id;
+                        option.textContent = client.name;
+                        select.appendChild(option);
+                    });
+                });
+        });
+
         function loadEmailRecipients() {
+            const clientId = document.getElementById('email-recipient-client-select')?.value || '';
+            if (!clientId) {
+                document.getElementById('emailRecipientsContainer').innerHTML = '<div class="text-center py-4 text-slate-500">Select a client to configure recipients.</div>';
+                return;
+            }
             document.getElementById('emailRecipientsContainer').innerHTML = '<div class="text-center py-4 text-slate-500">Loading configuration...</div>';
             
             Promise.all([
                 fetch(`${configBaseUrl}/getAllRoles`).then(r => r.json()),
-                fetch(`${configBaseUrl}/getEmailRecipientRolesConfig`).then(r => r.json())
+                fetch(`${configBaseUrl}/getEmailRecipientRolesConfig?client_id=${encodeURIComponent(clientId)}`).then(r => r.json())
             ]).then(([rolesRes, configRes]) => {
                 emailRoles = [{id: 'host', name: 'host', description: 'Host / Employee'}]; // Insert dynamic host role
                 if (rolesRes.success && Array.isArray(rolesRes.data)) {
                     // Extract roles and merge
                     rolesRes.data.forEach(r => {
-                        emailRoles.push({ id: r.name, name: r.name, description: r.description || r.name });
+                        const slug = String(r.name || '').toLowerCase().replace(/[\s_-]+/g, '');
+                        if (!slug || slug === 'host' || emailRoles.some(role => role.name === slug)) return;
+                        emailRoles.push({ id: slug, name: slug, description: r.description || r.name });
                     });
                 }
                 
@@ -18448,6 +18493,11 @@
         }
 
         function saveEmailRecipients() {
+            const clientId = document.getElementById('email-recipient-client-select')?.value || '';
+            if (!clientId) {
+                alert('Please select a client.');
+                return;
+            }
             const payload = {};
             emailEvents.forEach(evt => {
                 payload[evt.key] = [];
@@ -18460,7 +18510,7 @@
                 }
             });
             
-            fetch(`${configBaseUrl}/saveEmailRecipientRolesConfig`, {
+            fetch(`${configBaseUrl}/saveEmailRecipientRolesConfig?client_id=${encodeURIComponent(clientId)}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -17,6 +17,7 @@ use App\Models\VisitorTypeModel;
 use App\Models\ClientFeatureModel;
 use App\Libraries\InvitationEmailSender;
 use App\Libraries\InvitationProcessFlowService;
+use App\Services\InvitationLinkExpiryService;
 
 class VisitorRegistration extends BaseController
 {
@@ -69,6 +70,19 @@ class VisitorRegistration extends BaseController
             // Load invitation schedules
             if ($invitation) {
                 $schedules = $this->scheduleModel->where('invitation_id', $invitationId)->findAll();
+                $expiryService = new InvitationLinkExpiryService();
+                $effectiveExpiry = $expiryService->resolve($invitation['link_expiry'] ?? null, $schedules);
+                $unavailableReason = $expiryService->registrationUnavailableReason(
+                    $invitation['status'] ?? null,
+                    $effectiveExpiry
+                );
+                if ($unavailableReason !== null) {
+                    return $this->response
+                        ->setStatusCode(410)
+                        ->setBody(view('visitors/registration_unavailable', [
+                            'message' => $unavailableReason,
+                        ]));
+                }
             }
             
             // Parse selected locations from invitation (comma-separated string)
@@ -211,8 +225,27 @@ class VisitorRegistration extends BaseController
         $companyId = null;
         $token = $this->request->getPost('token');
         if ($token) {
-            $inv = $this->invitationModel->find(base64_decode($token));
+            $decodedInvitationId = base64_decode($token, true);
+            $inv = $decodedInvitationId !== false
+                ? $this->invitationModel->find($decodedInvitationId)
+                : null;
             if ($inv) {
+                $invitationSchedules = $this->scheduleModel
+                    ->where('invitation_id', $decodedInvitationId)
+                    ->findAll();
+                $expiryService = new InvitationLinkExpiryService();
+                $effectiveExpiry = $expiryService->resolve($inv['link_expiry'] ?? null, $invitationSchedules);
+                $unavailableReason = $expiryService->registrationUnavailableReason(
+                    $inv['status'] ?? null,
+                    $effectiveExpiry
+                );
+                if ($unavailableReason !== null) {
+                    return $this->response->setStatusCode(410)->setJSON([
+                        'success' => false,
+                        'message' => $unavailableReason,
+                    ]);
+                }
+
                 if (!empty($inv['client_id'])) {
                     $companyId = (int) $inv['client_id'];
                 } elseif (!empty($inv['company_id'])) {
@@ -401,8 +434,8 @@ class VisitorRegistration extends BaseController
             $preserveInvitationSchedules = false;
             // Insert or update invitation record
             if ($invitationId && ($existingInvitation = $this->invitationModel->find($invitationId))) {
-                // Prevent double-submission: only allow if status is Pending or Submitted
-                if (!in_array($existingInvitation['status'], ['Pending', 'Submitted'], true)) {
+                // A registration link is single-use: only Pending may become Submitted.
+                if (($existingInvitation['status'] ?? '') !== 'Pending') {
                     throw new \Exception('This registration has already been processed (status: ' . $existingInvitation['status'] . '). It cannot be modified.');
                 }
 
@@ -410,7 +443,7 @@ class VisitorRegistration extends BaseController
                 $visitorData['version'] = ($existingInvitation['version'] ?? 1) + 1;
                 $db->table('invitations')
                     ->where('id', $invitationId)
-                    ->whereIn('status', ['Pending', 'Submitted'])
+                    ->where('status', 'Pending')
                     ->update($visitorData);
 
                 if ($db->affectedRows() === 0) {

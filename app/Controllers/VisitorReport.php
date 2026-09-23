@@ -165,20 +165,12 @@ class VisitorReport extends BaseController
                 $start = strtotime((string) $checkInSource);
                 $end = $checkOutSource ? strtotime((string) $checkOutSource) : time();
                 $diff = max(0, $end - $start);
-                
-                // Dashboard logic: if overstaying, show '+' duration relative to schedule end
-                $schedEnd = !empty($row['schedule_end']) ? strtotime((string) $row['schedule_end']) : null;
-                $now = time();
-                if (!$checkOutSource && $schedEnd && $now > $schedEnd) {
-                    $overDiff = $now - $schedEnd;
-                    $overHours = floor($overDiff / 3600);
-                    $overMins = floor(($overDiff % 3600) / 60);
-                    $durationStr = sprintf("+%02d:%02d h", $overHours, $overMins);
-                } else {
-                    $hours = floor($diff / 3600);
-                    $mins = floor(($diff % 3600) / 60);
-                    $durationStr = sprintf("%02d:%02d h", $hours, $mins) . ($checkOutSource ? '' : ' (ongoing)');
-                }
+
+                // Duration always means total elapsed visit time. Whether the
+                // visit is still active is already represented by Status.
+                $hours = floor($diff / 3600);
+                $mins = floor(($diff % 3600) / 60);
+                $durationStr = sprintf("%02d:%02d h", $hours, $mins);
             }
             
             if ($checkOutSource) {

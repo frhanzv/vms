@@ -43,8 +43,8 @@ class BackfillEmailTemplateDefaults extends Migration
                 'body' => "Dear {{visitor_name}},\n\nYour port pass request has been updated. Please refer to the QR code / pass details provided.\n\nThank you.",
             ],
             'VISITOR_INVITATION_APPROVAL_PENDING' => [
-                'subject' => 'Visitor Invitation Pending Approval',
-                'body' => "Dear {{visitor_name}},\n\nYour invitation is pending approval.\n\nThank you.",
+                'subject' => 'Visitor request pending approval: {{visitor_name}}',
+                'body' => "Dear {{host_name}},\n\n{{visitor_name}} has submitted their visitor registration for {{visit_date}} and is waiting for your approval.\n\nReview request: {{review_url}}\n\nThank you.",
             ],
         ];
 

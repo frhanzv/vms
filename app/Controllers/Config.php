@@ -4362,11 +4362,14 @@ class Config extends BaseController
                 'process_options' => $emailTemplateService->getProcessOptions(),
                 'placeholders' => [
                     '{{visitor_name}}',
+                    '{{host_name}}',
                     '{{company}}',
                     '{{location}}',
                     '{{reason}}',
                     '{{invited_by}}',
                     '{{link_expiry_date}}',
+                    '{{visit_date}}',
+                    '{{review_url}}',
                 ],
             ],
         ]);
@@ -4411,6 +4414,7 @@ class Config extends BaseController
     public function getEmailTemplates()
     {
         $clientId = $this->resolveEmailTemplateClientId($this->request->getGet('client_id'));
+        $this->ensurePendingApprovalEmailTemplate($clientId);
         $builder = $this->emailTemplateModel;
         $builder = $clientId === null ? $builder->where('client_id', null) : $builder->where('client_id', $clientId);
         $rows = $builder
@@ -4420,6 +4424,30 @@ class Config extends BaseController
         return $this->response->setJSON([
             'success' => true,
             'data' => $rows,
+        ]);
+    }
+
+    private function ensurePendingApprovalEmailTemplate(?int $clientId): void
+    {
+        $existing = $this->emailTemplateModel->where('code', 'PENDING_APPROVAL');
+        $existing = $clientId === null
+            ? $existing->where('client_id', null)
+            : $existing->where('client_id', $clientId);
+        if ($existing->first()) {
+            return;
+        }
+
+        $defaults = (new EmailTemplateService())->getDefaultTemplate(
+            EmailTemplateService::PROCESS_PENDING_APPROVAL
+        );
+        $this->emailTemplateModel->insert([
+            'client_id' => $clientId,
+            'code' => 'PENDING_APPROVAL',
+            'subject' => $defaults['subject'],
+            'body' => "Dear {{host_name}},\n\n{{visitor_name}} has submitted their visitor registration for {{visit_date}} and is waiting for your approval.\n\nReview request: {{review_url}}\n\nThank you.",
+            'primary_color' => $defaults['primary_color'],
+            'content_bg_color' => $defaults['content_bg_color'],
+            'text_color' => $defaults['text_color'],
         ]);
     }
 
@@ -4506,12 +4534,17 @@ class Config extends BaseController
         // Keep generic values so preview matches edit content and isn't too specific.
         return [
             'visitor_name' => 'Visitor Name',
+            'visitor_contact' => '+6012-3456789',
+            'visitor_company' => 'Visitor Company Name',
+            'host_name' => 'Host Name',
             'company' => 'Company Name',
             'location' => 'Location Name',
             'reason' => 'Visit Reason',
             'invited_by' => 'Host Name',
             // Match production email placeholder format (see InvitationEmailSender).
             'link_expiry_date' => date('d/m/Y', strtotime('+2 days')),
+            'visit_date' => date('d M Y, g:i A', strtotime('+2 days')),
+            'review_url' => base_url('requests?request_id=PREVIEW'),
             // Intentionally do NOT provide registration_link here.
             // In preview mode we want templates to show the literal token "{{registration_link}}"
             // (admins can verify placeholder usage), not a live URL.
@@ -4527,7 +4560,9 @@ class Config extends BaseController
             return $svc->applyPlaceholders($rawSubject, $ctx);
         }
 
-        return $templateConfig['subject'] ?? null;
+        return isset($templateConfig['subject'])
+            ? $svc->applyPlaceholders((string) $templateConfig['subject'], $ctx)
+            : null;
     }
 
     private function buildEmailTemplatePreviewHtml(array $row, string $process, string $viewName, array $templateConfig): string
@@ -4544,11 +4579,36 @@ class Config extends BaseController
 
         $emailData = [
             'visitor_name' => $ctx['visitor_name'],
+            'recipient_name' => $process === EmailTemplateService::PROCESS_PENDING_APPROVAL
+                ? $ctx['host_name']
+                : $ctx['visitor_name'],
+            'request_visitor_name' => $process === EmailTemplateService::PROCESS_PENDING_APPROVAL
+                ? $ctx['visitor_name']
+                : null,
+            'request_visitor_contact' => $process === EmailTemplateService::PROCESS_PENDING_APPROVAL
+                ? $ctx['visitor_contact']
+                : null,
+            'request_visitor_company' => $process === EmailTemplateService::PROCESS_PENDING_APPROVAL
+                ? $ctx['visitor_company']
+                : null,
             'company' => $ctx['company'],
             'location' => $ctx['location'],
             'reason' => $ctx['reason'],
             'other_reason' => '',
             'invited_by' => $ctx['invited_by'],
+            'host_contact' => '',
+            'visitor_type' => '',
+            'detail_fields' => $process === EmailTemplateService::PROCESS_PENDING_APPROVAL
+                ? [
+                    'company' => false,
+                    'location' => false,
+                    'reason' => true,
+                    'invited_by' => false,
+                    'schedule' => true,
+                    'host_contact' => false,
+                    'visitor_type' => false,
+                ]
+                : [],
             'schedules' => [
                 [
                     // Preview should be generic, not real timestamps.
@@ -4556,7 +4616,9 @@ class Config extends BaseController
                     'date_to' => 'End date',
                 ],
             ],
-            'registration_link' => base_url('visitors/visitor-registration?token=PREVIEW'),
+            'registration_link' => $process === EmailTemplateService::PROCESS_PENDING_APPROVAL
+                ? $ctx['review_url']
+                : base_url('visitors/visitor-registration?token=PREVIEW'),
             'link_expiry' => date('Y-m-d H:i:s', strtotime('+2 days')),
             'template' => $templateConfig,
             'intro_line' => $svc->applyPlaceholders($templateConfig['intro_line'] ?? '', $ctx),
@@ -4579,6 +4641,9 @@ class Config extends BaseController
     private function resolveEmailPreviewProcessAndView(string $code): array
     {
         $upper = strtoupper(trim($code));
+        if (str_contains($upper, 'PENDING_APPROVAL') || str_contains($upper, 'APPROVAL_PENDING')) {
+            return [EmailTemplateService::PROCESS_PENDING_APPROVAL, 'emails/invitation_template'];
+        }
         if (str_contains($upper, 'APPROVAL')) {
             return [EmailTemplateService::PROCESS_APPROVAL, 'emails/approval_template'];
         }
@@ -5999,24 +6064,81 @@ class Config extends BaseController
 
     public function getEmailRecipientRolesConfig()
     {
-        $configRaw = $this->settingModel->getSetting('email_recipient_roles_config');
+        $clientId = $this->resolveEmailRecipientClientId((int) ($this->request->getGet('client_id') ?? 0));
+        if ($clientId <= 0) {
+            return $this->response->setStatusCode(403)->setJSON(['success' => false, 'message' => 'Client access denied']);
+        }
+        $configRaw = $this->settingModel->getSetting('email_recipient_roles_config_client_' . $clientId);
         $config = $configRaw ? json_decode((string) $configRaw, true) : [];
+        if (! is_array($config) || $config === []) {
+            $defaults = ['host', 'admin', 'clientsuperadmin'];
+            $config = [
+                EmailTemplateService::PROCESS_INVITATION => $defaults,
+                EmailTemplateService::PROCESS_APPROVAL => $defaults,
+                EmailTemplateService::PROCESS_REJECTION => $defaults,
+                'CHECK_IN' => $defaults,
+                'CHECK_OUT' => $defaults,
+            ];
+        }
         return $this->response->setJSON([
             'success' => true,
+            'client_id' => $clientId,
             'data'    => is_array($config) ? $config : []
         ]);
     }
 
     public function saveEmailRecipientRolesConfig()
     {
+        $clientId = $this->resolveEmailRecipientClientId((int) ($this->request->getGet('client_id') ?? 0));
+        if ($clientId <= 0) {
+            return $this->response->setStatusCode(403)->setJSON(['success' => false, 'message' => 'Client access denied']);
+        }
         $input = $this->request->getJSON(true);
         if (!is_array($input)) {
             return $this->response->setStatusCode(400)->setJSON(['success' => false, 'message' => 'Invalid payload']);
         }
 
-        $this->settingModel->setSetting('email_recipient_roles_config', json_encode($input));
+        $allowedEvents = [
+            EmailTemplateService::PROCESS_INVITATION,
+            EmailTemplateService::PROCESS_APPROVAL,
+            EmailTemplateService::PROCESS_REJECTION,
+            'CHECK_IN',
+            'CHECK_OUT',
+        ];
+        $sanitised = [];
+        foreach ($allowedEvents as $event) {
+            $roles = is_array($input[$event] ?? null) ? $input[$event] : [];
+            $sanitised[$event] = array_values(array_unique(array_filter(array_map(
+                static fn ($role): string => normalize_role_slug((string) $role),
+                $roles
+            ))));
+        }
+
+        $this->settingModel->setSetting('email_recipient_roles_config_client_' . $clientId, json_encode($sanitised));
 
         return $this->response->setJSON(['success' => true, 'message' => 'Email recipient configuration saved successfully']);
+    }
+
+    private function resolveEmailRecipientClientId(int $requestedClientId): int
+    {
+        helper(['role', 'feature']);
+        $role = normalize_role_slug((string) session()->get('role'));
+        if (! in_array($role, ['superadmin', 'clientsuperadmin', 'admin'], true)) {
+            return 0;
+        }
+
+        if (is_platform_superadmin()) {
+            return $requestedClientId > 0 && $this->clientModel->find($requestedClientId)
+                ? $requestedClientId
+                : 0;
+        }
+
+        $clientId = current_client_id();
+        if ($clientId <= 0 || ($requestedClientId > 0 && $requestedClientId !== $clientId)) {
+            return 0;
+        }
+
+        return $clientId;
     }
 
     public function getKioskSettings()

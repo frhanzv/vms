@@ -4,14 +4,17 @@ namespace App\Controllers;
 
 use App\Models\VideoModel;
 use App\Models\InvitationModel;
+use App\Models\InvitationScheduleModel;
 use App\Models\ClientFeatureModel;
 use App\Libraries\InvitationProcessFlowService;
 use App\Services\InvitationApprovalService;
+use App\Services\InvitationLinkExpiryService;
 
 class SecurityBriefing extends BaseController
 {
     protected $videoModel;
     protected $invitationModel;
+    protected $scheduleModel;
     protected InvitationProcessFlowService $invitationProcessFlowService;
     protected InvitationApprovalService $invitationApprovalService;
 
@@ -19,6 +22,7 @@ class SecurityBriefing extends BaseController
     {
         $this->videoModel = new VideoModel();
         $this->invitationModel = new InvitationModel();
+        $this->scheduleModel = new InvitationScheduleModel();
         $this->invitationProcessFlowService = new InvitationProcessFlowService();
         $this->invitationApprovalService = new InvitationApprovalService();
     }
@@ -40,10 +44,33 @@ class SecurityBriefing extends BaseController
 
         $clientId = (int) ($invitation['client_id'] ?? $invitation['company_id'] ?? 0);
         $auto = $clientId > 0 && (new ClientFeatureModel())->isEnabled($clientId, 'auto_approve_after_workflow');
-        if (! $invitation || ! in_array($invitation['status'], ['Submitted', 'Approved'], true)
+        if (! $invitation) {
+            return redirect()->to(base_url('security/checkin?token=' . urlencode((string) $token)));
+        }
+
+        $expiryService = new InvitationLinkExpiryService();
+        $effectiveExpiry = $expiryService->resolve(
+            $invitation['link_expiry'] ?? null,
+            $this->scheduleModel->where('invitation_id', (int) $invitationId)->findAll()
+        );
+        if (($invitation['status'] ?? '') === 'Expired' || $expiryService->isExpired($effectiveExpiry)) {
+            return $this->response
+                ->setStatusCode(410)
+                ->setBody(view('visitors/registration_unavailable', [
+                    'title' => 'Safety briefing unavailable',
+                    'message' => 'This safety briefing link has expired.',
+                ]));
+        }
+
+        if (! in_array($invitation['status'], ['Submitted', 'Approved'], true)
             || (! $auto && $invitation['status'] !== 'Approved')) {
             return redirect()->to(base_url('security/checkin?token=' . urlencode((string) $token)));
         }
+
+        if (! empty($invitation['video_watched'])) {
+            return redirect()->to(base_url('security/completed?token=' . urlencode((string) $token)));
+        }
+
         $activeVideo = $this->videoModel->getActiveVideoForClient($clientId);
         
         $data = [
@@ -72,10 +99,31 @@ class SecurityBriefing extends BaseController
             }
             $clientId = (int) (($invitation['client_id'] ?? 0) ?: ($invitation['company_id'] ?? 0));
             $auto = $clientId > 0 && (new ClientFeatureModel())->isEnabled($clientId, 'auto_approve_after_workflow');
+            $expiryService = new InvitationLinkExpiryService();
+            $effectiveExpiry = $expiryService->resolve(
+                $invitation['link_expiry'] ?? null,
+                $this->scheduleModel->where('invitation_id', (int) $id)->findAll()
+            );
+            if (($invitation['status'] ?? '') === 'Expired' || $expiryService->isExpired($effectiveExpiry)) {
+                return $this->response->setStatusCode(410)->setJSON([
+                    'success' => false,
+                    'message' => 'This safety briefing link has expired.',
+                ]);
+            }
+
             if (! in_array($invitation['status'], ['Submitted', 'Approved'], true)
                 || (! $auto && $invitation['status'] !== 'Approved')) {
                 return $this->response->setJSON(['success' => false, 'message' => 'Please wait for your visit to be approved before completing the safety briefing.']);
             }
+
+            if (! empty($invitation['video_watched'])) {
+                return $this->response->setStatusCode(409)->setJSON([
+                    'success' => false,
+                    'message' => 'The safety briefing has already been completed.',
+                    'redirect_url' => base_url('security/completed?token=' . urlencode($token)),
+                ]);
+            }
+
             $watched = $json['watched_duration'] ?? null;
             $duration = $json['video_duration'] ?? null;
             if (($json['acknowledged'] ?? false) !== true || ! is_numeric($watched) || ! is_numeric($duration) || ! is_finite((float) $watched)

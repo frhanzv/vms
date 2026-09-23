@@ -34,6 +34,7 @@ class ClientFeatureModel extends Model
             'company_visited'     => 'Company Visited Field (disable to use Visitor Type)',
             'mykad_ocr'           => 'Read MyKad / MyKad OCR',
             'auto_approve_after_workflow' => 'Auto-Approve After Video / Questionnaire',
+            'nightly_auto_checkout' => 'Nightly Auto Checkout',
         ];
     }
 
@@ -43,7 +44,10 @@ class ClientFeatureModel extends Model
      */
     public static function defaultEnabled(string $featureKey): bool
     {
-        return $featureKey !== 'auto_approve_after_workflow';
+        return ! in_array($featureKey, [
+            'auto_approve_after_workflow',
+            'nightly_auto_checkout',
+        ], true);
     }
 
     /**
