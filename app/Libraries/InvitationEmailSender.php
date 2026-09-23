@@ -133,7 +133,10 @@ class InvitationEmailSender
         $configuredRoles = ['host', 'admin', 'clientsuperadmin'];
 
         if ($eventType) {
-            $configRaw = $this->settingModel->getSetting('email_recipient_roles_config');
+            $clientId = (int) ($invitation['client_id'] ?? 0);
+            $configRaw = $clientId > 0
+                ? $this->settingModel->getSetting('email_recipient_roles_config_client_' . $clientId)
+                : null;
             if ($configRaw) {
                 $config = json_decode((string) $configRaw, true);
                 if (is_array($config) && isset($config[$eventType])) {
@@ -156,11 +159,12 @@ class InvitationEmailSender
 
         // 2. Configured roles in the company
         $dbRoles = array_filter($configuredRoles, fn($r) => $r !== 'host');
-        if (!empty($dbRoles) && !empty($invitation['company'])) {
+        $clientId = (int) ($invitation['client_id'] ?? 0);
+        if (!empty($dbRoles) && $clientId > 0) {
             $users = $this->userModel
                 ->select('id, full_name, email, contact_no')
                 ->whereIn('role', array_values($dbRoles))
-                ->where('company_id', $invitation['company'])
+                ->where('client_id', $clientId)
                 ->where('is_active', 1)
                 ->where('receive_email_notifications', 1)
                 ->findAll();
@@ -244,22 +248,120 @@ class InvitationEmailSender
                     $scheduleText = date('d M Y, g:i A', strtotime((string) $schedule['date_from']));
                 }
             }
+            if ($scheduleText === 'Not specified'
+                && strcasecmp(trim((string) ($invitation['registration_source'] ?? '')), 'kiosk') === 0) {
+                $registeredAt = strtotime((string) ($invitation['created_at'] ?? ''));
+                $scheduleText = date('d M Y, g:i A', $registeredAt ?: time());
+            }
 
             $reason = (string) ($invitation['reason_name'] ?? $invitation['reason'] ?? '-');
-            $message = '<!DOCTYPE html><html><body style="margin:0;background:#f6f7f8;font-family:Arial,sans-serif;color:#172033;">'
-                . '<div style="max-width:640px;margin:0 auto;padding:28px 16px;">'
-                . '<div style="background:#ffffff;border-radius:16px;padding:28px;border:1px solid #e5e7eb;">'
-                . '<h2 style="margin:0 0 12px;font-size:22px;">Visitor Request Pending Approval</h2>'
-                . '<p style="margin:0 0 18px;line-height:1.6;">Hi ' . esc($hostName) . ', a visitor has submitted their registration and is waiting for your approval.</p>'
-                . '<table style="width:100%;border-collapse:collapse;margin:18px 0;">'
-                . '<tr><td style="padding:8px 0;color:#667085;">Visitor</td><td style="padding:8px 0;font-weight:700;">' . esc($visitorName) . '</td></tr>'
-                . '<tr><td style="padding:8px 0;color:#667085;">Company</td><td style="padding:8px 0;font-weight:700;">' . esc($company ?: '-') . '</td></tr>'
-                . '<tr><td style="padding:8px 0;color:#667085;">Visit Date</td><td style="padding:8px 0;font-weight:700;">' . esc($scheduleText) . '</td></tr>'
-                . '<tr><td style="padding:8px 0;color:#667085;">Reason</td><td style="padding:8px 0;font-weight:700;">' . esc($reason) . '</td></tr>'
-                . '</table>'
-                . '<a href="' . esc($approvalUrl) . '" style="display:inline-block;background:#137fec;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700;">Review Request</a>'
-                . '<p style="font-size:12px;color:#667085;margin-top:18px;">If the button does not work, open: ' . esc($approvalUrl) . '</p>'
-                . '</div></div></body></html>';
+            $isKioskRequest = strcasecmp(
+                trim((string) ($invitation['registration_source'] ?? '')),
+                'kiosk'
+            ) === 0;
+            $pendingDetailFields = $this->getInvitationEmailDetailFields($invitation);
+            $pendingDetailFields['company'] = false;
+            $pendingDetailFields['location'] = false;
+            $pendingDetailFields['reason'] = true;
+            $pendingDetailFields['invited_by'] = false;
+            $pendingDetailFields['host_contact'] = false;
+            $pendingDetailFields['visitor_type'] = false;
+
+            $templateRaw = $this->getConfiguredTemplateRaw(EmailTemplateService::PROCESS_PENDING_APPROVAL, $invitation);
+            $templateConfig = $this->emailTemplateService->normalizeTemplate(
+                EmailTemplateService::PROCESS_PENDING_APPROVAL,
+                $templateRaw ? json_decode((string) $templateRaw, true) : []
+            );
+            $placeholderContext = [
+                'visitor_name' => $visitorName,
+                'visitor_contact' => trim((string) ($invitation['contact'] ?? '')) ?: 'Not specified',
+                'visitor_company' => trim((string) ($invitation['company_name'] ?? '')) ?: 'Not specified',
+                'host_name' => $hostName,
+                'company' => $company ?: '-',
+                'location' => $invitation['location_name'] ?? '-',
+                'reason' => $reason,
+                'invited_by' => $hostName,
+                'link_expiry_date' => ! empty($invitation['link_expiry'])
+                    ? date('d/m/Y H:i', strtotime((string) $invitation['link_expiry']))
+                    : '',
+                'visit_date' => $scheduleText,
+                'review_url' => $approvalUrl,
+                'registration_link' => $approvalUrl,
+            ];
+
+            $crudTemplate = $this->findConfiguredCrudTemplate(
+                ['PENDING_APPROVAL', 'VISITOR_INVITATION_APPROVAL_PENDING'],
+                $invitation
+            );
+            $customSubject = null;
+            $customBodyHtml = null;
+            $customColors = null;
+            $customLogo = null;
+            if (is_array($crudTemplate)) {
+                $rawSubject = trim((string) ($crudTemplate['subject'] ?? ''));
+                $rawBody = (string) ($crudTemplate['body'] ?? '');
+                // Ignore the legacy visitor-facing seed so existing installs
+                // receive the new approver-facing default without a migration.
+                if ($rawSubject === 'Visitor Invitation Pending Approval') {
+                    $rawSubject = '';
+                }
+                if (trim($rawBody) === "Dear {{visitor_name}},\n\nYour invitation is pending approval.\n\nThank you.") {
+                    $rawBody = '';
+                }
+                if ($rawSubject !== '') {
+                    $customSubject = $this->emailTemplateService->applyPlaceholders($rawSubject, $placeholderContext);
+                }
+                if (trim($rawBody) !== '') {
+                    $customBodyHtml = nl2br(esc(
+                        $this->emailTemplateService->applyPlaceholders($rawBody, $placeholderContext)
+                    ));
+                }
+                $customColors = [
+                    'primary_color' => $crudTemplate['primary_color'] ?? null,
+                    'content_bg_color' => $crudTemplate['content_bg_color'] ?? null,
+                    'text_color' => $crudTemplate['text_color'] ?? null,
+                ];
+                $customLogo = $crudTemplate['logo_url'] ?? null;
+            }
+
+            $subject = $customSubject ?: $this->emailTemplateService->applyPlaceholders(
+                (string) $templateConfig['subject'],
+                $placeholderContext
+            );
+            $message = view('emails/invitation_template', [
+                'recipient_name' => $hostName,
+                'visitor_name' => $visitorName,
+                'request_visitor_name' => $visitorName,
+                'request_visitor_contact' => trim((string) ($invitation['contact'] ?? '')) ?: 'Not specified',
+                'request_visitor_company' => trim((string) ($invitation['company_name'] ?? '')) ?: 'Not specified',
+                'company' => $company ?: '-',
+                'location' => $invitation['location_name'] ?? '-',
+                'reason' => $reason,
+                'other_reason' => '',
+                'invited_by' => $hostName,
+                'host_contact' => '',
+                'visitor_type' => '',
+                'pending_kiosk_visit_date' => $isKioskRequest ? date(
+                    'd/m/Y',
+                    strtotime((string) ($invitation['created_at'] ?? '')) ?: time()
+                ) : '',
+                'schedules' => $invitation['schedules'] ?? [],
+                'detail_fields' => $pendingDetailFields,
+                'registration_link' => $approvalUrl,
+                'link_expiry' => $invitation['link_expiry'] ?? null,
+                'template' => $templateConfig,
+                'intro_line' => $this->emailTemplateService->applyPlaceholders(
+                    (string) $templateConfig['intro_line'],
+                    $placeholderContext
+                ),
+                'notes_items' => array_map(
+                    fn ($item) => $this->emailTemplateService->applyPlaceholders((string) $item, $placeholderContext),
+                    (array) $templateConfig['notes_items']
+                ),
+                'custom_body_html' => $customBodyHtml,
+                'custom_colors' => $customColors,
+                'custom_logo' => $customLogo,
+            ]);
 
             $email = \Config\Services::email();
             $email->initialize([
@@ -278,7 +380,7 @@ class InvitationEmailSender
             $email->setMailType('html');
             $email->setFrom($this->emailConfig->fromEmail, $this->emailConfig->fromName);
             $email->setTo($host['email'], $hostName);
-            $email->setSubject('Visitor request pending approval: ' . $visitorName);
+            $email->setSubject($subject);
             $email->setMessage($message);
 
             $sent = $email->send();
@@ -438,6 +540,9 @@ class InvitationEmailSender
 
             $registrationLink = $registrationLinkOverride
                 ?: base_url('visitor-registration?token=' . base64_encode((string) $invitationId));
+            $hostDisplayName = trim((string) (
+                ($invitation['host_user']['full_name'] ?? '') ?: ($invitation['invited_by'] ?? '')
+            ));
 
             $templateRaw = $this->getConfiguredTemplateRaw(EmailTemplateService::PROCESS_INVITATION, $invitation);
             $templateConfig = $this->emailTemplateService->normalizeTemplate(
@@ -458,7 +563,7 @@ class InvitationEmailSender
                 'company' => $invitation['company_name'],
                 'location' => $invitation['location_name'],
                 'reason' => $invitation['reason_name'],
-                'invited_by' => $invitation['invited_by'],
+                'invited_by' => $hostDisplayName,
                 'link_expiry_date' => ! empty($invitation['link_expiry'])
                     ? date('d/m/Y', strtotime((string) $invitation['link_expiry']))
                     : '',
@@ -502,7 +607,7 @@ class InvitationEmailSender
                 'location' => $invitation['location_name'],
                 'reason' => $invitation['reason_name'],
                 'other_reason' => $invitation['other_reason'],
-                'invited_by' => $invitation['invited_by'],
+                'invited_by' => $hostDisplayName,
                 'host_contact' => trim((string) (($invitation['host_user']['contact_no'] ?? '') ?: ($invitation['host_contact'] ?? ''))),
                 'visitor_type' => $invitation['visitor_type_name'] ?? '',
                 'schedules' => $invitation['schedules'],
@@ -539,11 +644,15 @@ class InvitationEmailSender
 
             if ($result) {
                 log_message('info', 'Email sent successfully to: ' . $invitation['visitor_email']);
-                $this->sendToSecondaryRecipients(
-                    $customSubject ?: $templateConfig['subject'],
-                    $message,
-                    $this->getSecondaryRecipients($invitation, EmailTemplateService::PROCESS_INVITATION)
-                );
+                // A safety briefing is an action for the visitor. Do not copy
+                // its private completion link to the host or administrative roles.
+                if (! $safetyBriefing) {
+                    $this->sendToSecondaryRecipients(
+                        $customSubject ?: $templateConfig['subject'],
+                        $message,
+                        $this->getSecondaryRecipients($invitation, EmailTemplateService::PROCESS_INVITATION)
+                    );
+                }
             } else {
                 log_message('error', 'Email sending failed to: ' . $invitation['visitor_email']);
                 log_message('error', 'Email error: ' . $email->printDebugger(['headers', 'subject']));

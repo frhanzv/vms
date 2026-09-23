@@ -138,7 +138,9 @@ class VisitorList extends BaseController
                 'reason' => $row['visit_purpose'] ?? '',
                 'vehicle_reg' => $row['vehicle_reg'] ?? '',
                 'location' => $row['location'] ?? '',
-                'type' => $row['registration_source'] ?? 'Walk-In',
+                'type' => strcasecmp(trim((string) ($row['registration_source'] ?? '')), 'kiosk') === 0
+                    ? 'Kiosk'
+                    : ($row['registration_source'] ?? 'Walk-In'),
                 'status' => $entryDecisionCache[$visitorClientId]
                     ? $this->gxoEntryStatus($row)
                     : (! empty($row['check_out_time'])
@@ -540,7 +542,9 @@ class VisitorList extends BaseController
                 $row['vehicle_reg'] ?? '',
                 $row['location'] ?? '',
                 $row['visitor_type_name'] ?? '-',
-                $row['registration_source'] ?? 'Walk-In',
+                strcasecmp(trim((string) ($row['registration_source'] ?? '')), 'kiosk') === 0
+                    ? 'Kiosk'
+                    : ($row['registration_source'] ?? 'Walk-In'),
                 $displayStatus,
                 $cardStatus,
                 $row['card_epc'] ?? '',

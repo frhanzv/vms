@@ -128,7 +128,10 @@
                     </div>
                     <div class="flex items-baseline gap-2">
                         <p class="text-gray-900 dark:text-white text-2xl font-bold leading-tight"><?= $stats['pending'] ?></p>
-                        <span class="text-green-600 bg-green-100 dark:bg-green-900/30 text-[10px] font-bold px-1.5 py-0.5 rounded">+2%</span>
+                        <?php $pendingChange = (int) ($stats['pending_change_percent'] ?? 0); ?>
+                        <span class="<?= $pendingChange > 0 ? 'text-green-600 bg-green-100 dark:bg-green-900/30' : ($pendingChange < 0 ? 'text-red-600 bg-red-100 dark:bg-red-900/30' : 'text-gray-600 bg-gray-100 dark:bg-gray-800') ?> text-[10px] font-bold px-1.5 py-0.5 rounded">
+                            <?= $pendingChange > 0 ? '+' : '' ?><?= $pendingChange ?>%
+                        </span>
                     </div>
                 </div>
                 <div data-request-section="card_flagged" class="flex flex-col gap-1 rounded-lg p-4 bg-white dark:bg-slate-900 border border-gray-200 dark:border-gray-800 shadow-sm relative overflow-hidden">

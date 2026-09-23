@@ -11,6 +11,7 @@ use App\Models\VisitorTypeModel;
 use App\Models\ClientFormFieldModel;
 use App\Models\MobileKioskSettingModel;
 use App\Libraries\InvitationEmailSender;
+use App\Services\InvitationLinkExpiryService;
 
 class InvitationList extends BaseController
 {
@@ -803,6 +804,11 @@ class InvitationList extends BaseController
                            ->with('errors', ['schedules' => 'At least one visit schedule is required.']);
         }
 
+        $linkExpiry = (new InvitationLinkExpiryService())->resolve(
+            $isEnabled('link_expiry') ? (string) $this->request->getPost('link_expiry') : null,
+            is_array($schedules) ? $schedules : []
+        );
+
         $vtPost = $isEnabled('visitor_type') ? $this->request->getPost('visitor_type_id') : null;
         $visitorTypeId = ($vtPost !== null && $vtPost !== '') ? (int) $vtPost : null;
         if ($visitorTypeCount > 0 && $isEnabled('visitor_type')) {
@@ -835,7 +841,7 @@ class InvitationList extends BaseController
                 'location'            => $isEnabled('location')        ? $this->request->getPost('location')        : null,
                 'reason'              => $isEnabled('reason')          ? $this->request->getPost('reason')          : '',
                 'other_reason'        => $isEnabled('reason')          ? $this->request->getPost('other_reason')    : null,
-                'link_expiry'         => $isEnabled('link_expiry')     ? $this->request->getPost('link_expiry')     : null,
+                'link_expiry'         => $linkExpiry,
                 'staff_id'            => $isEnabled('staff_id')        ? $this->resolveSubmittedHostStaffId()       : '',
                 'host_contact'        => $isEnabled('host_contact')  ? $this->resolveSubmittedHostContact() : '',
                 'allow_sub_invites'   => ($isEnabled('allow_sub_invites') && $this->request->getPost('allow_sub_invites')) ? 1 : 0,

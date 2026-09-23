@@ -7,6 +7,7 @@ class EmailTemplateService
     public const INVITATION_KEY = 'email_template_invitation';
     public const PROCESS_INVITATION = 'invitation';
     public const PROCESS_REGISTRATION_SUBMITTED = 'registration_submitted';
+    public const PROCESS_PENDING_APPROVAL = 'pending_approval';
     public const PROCESS_APPROVAL = 'approval';
     public const PROCESS_REJECTION = 'rejection';
     public const PROCESS_REMINDER = 'reminder';
@@ -16,6 +17,7 @@ class EmailTemplateService
         return [
             ['key' => self::PROCESS_INVITATION, 'label' => 'Invitation Email'],
             ['key' => self::PROCESS_REGISTRATION_SUBMITTED, 'label' => 'Registration Submitted Email'],
+            ['key' => self::PROCESS_PENDING_APPROVAL, 'label' => 'Pending Approval Email'],
             ['key' => self::PROCESS_APPROVAL, 'label' => 'Approval Email'],
             ['key' => self::PROCESS_REJECTION, 'label' => 'Rejection Email'],
             ['key' => self::PROCESS_REMINDER, 'label' => 'Reminder Email'],
@@ -74,6 +76,17 @@ class EmailTemplateService
                 'notes_items' => [
                     'Our team will review your submission.',
                     'You will receive another email once your request is processed.',
+                ],
+            ],
+            self::PROCESS_PENDING_APPROVAL => [
+                'subject' => 'Visitor request pending approval: {{visitor_name}}',
+                'header_title' => 'Visitor Request Pending Approval',
+                'intro_line' => 'Hi {{host_name}}, {{visitor_name}} has submitted their registration and is waiting for your approval.',
+                'button_text' => 'Review Request',
+                'notes_title' => 'Approval Required',
+                'notes_items' => [
+                    'Review the visitor details before approving or rejecting the request.',
+                    'This request is for {{visit_date}}.',
                 ],
             ],
             self::PROCESS_APPROVAL => [

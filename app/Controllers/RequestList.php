@@ -62,8 +62,10 @@ class RequestList extends BaseController
         // Load submitted requests in batches (avoid loading entire queue into memory).
         $queueLimit = 50;
         $query = $this->invitationModel->where('status', 'Submitted');
+        $this->applyClientRequestScope($query, $viewClientId);
         $this->applyHostRequestScope($query);
         $this->applyRequestWorkflowFilters($query, $requiresBriefing, $requiresFacial);
+        $this->excludeKioskWalkIns($query);
 
         $submittedRequests = $query->orderBy('created_at', 'DESC')->findAll($queueLimit);
 
@@ -104,6 +106,8 @@ class RequestList extends BaseController
                 }
             }
             $schedule = $schedulesByInvitation[$first['id']] ?? null;
+            $hostDetails = $this->resolveHostDetails($first, $viewClientId);
+            $visitedCompany = $this->resolveVisitedCompany($first, $viewClient);
 
             // Get equipment
             $equipment = $this->equipmentModel
@@ -124,7 +128,7 @@ class RequestList extends BaseController
                 'id' => 'VIS-' . $first['id'],
                 'name' => $first['full_name'],
                 'company' => $first['company'] ?? 'N/A',
-                'host' => $first['invited_by'] ?? 'N/A',
+                'host' => $hostDetails['name'],
                 'arrival' => $schedule ? date('h:i A - d/m/Y', strtotime($schedule['date_from'])) : 'N/A',
                 'purpose' => $first['reason'] ?? 'N/A',
                 'photo' => $first['profile_photo_path'] ? base_url('uploads/' . $first['profile_photo_path']) : '',
@@ -147,26 +151,57 @@ class RequestList extends BaseController
                 'email' => $first['visitor_email'] ?? 'N/A',
                 'vehicle' => $first['vehicle_registration'] ?? 'N/A',
                 'staff_id' => $first['staff_id'] ?? 'N/A',
-                'host_contact' => $first['host_contact'] ?? 'N/A',
-                'company_visited' => $first['company_visited'] ?? 'N/A'
+                'host_contact' => $hostDetails['contact'],
+                'company_visited' => $visitedCompany
             ];
         }
 
         // Calculate stats
-        $flaggedQuery = $this->invitationModel->where('status', 'Submitted');
-        $this->applyHostRequestScope($flaggedQuery);
-        $this->applyRequestWorkflowFilters($flaggedQuery, $requiresBriefing, $requiresFacial);
-
-        $pendingQuery = (new InvitationModel())->where('status', 'Pending');
-        $expectedQuery = (new InvitationModel())->where('status', 'Approved');
-        $rejectedQuery = (new InvitationModel())->where('status', 'Rejected');
+        $pendingQuery = (new InvitationModel())->where('status', 'Submitted');
+        $this->applyClientRequestScope($pendingQuery, $viewClientId);
         $this->applyHostRequestScope($pendingQuery);
+        $this->applyRequestWorkflowFilters($pendingQuery, $requiresBriefing, $requiresFacial);
+        $this->excludeKioskWalkIns($pendingQuery);
+
+        $today = date('Y-m-d');
+        $yesterday = date('Y-m-d', strtotime('-1 day'));
+        $todayPendingQuery = (new InvitationModel())
+            ->where('status', 'Submitted')
+            ->where('DATE(created_at)', $today);
+        $yesterdayPendingQuery = (new InvitationModel())
+            ->where('status', 'Submitted')
+            ->where('DATE(created_at)', $yesterday);
+        foreach ([$todayPendingQuery, $yesterdayPendingQuery] as $trendQuery) {
+            $this->applyClientRequestScope($trendQuery, $viewClientId);
+            $this->applyHostRequestScope($trendQuery);
+            $this->applyRequestWorkflowFilters($trendQuery, $requiresBriefing, $requiresFacial);
+            $this->excludeKioskWalkIns($trendQuery);
+        }
+        $todayPending = $todayPendingQuery->countAllResults();
+        $yesterdayPending = $yesterdayPendingQuery->countAllResults();
+        $pendingChangePercent = $yesterdayPending > 0
+            ? (int) round((($todayPending - $yesterdayPending) / $yesterdayPending) * 100)
+            : ($todayPending > 0 ? 100 : 0);
+
+        $expectedQuery = (new InvitationModel())
+            ->distinct()
+            ->select('invitations.id')
+            ->join('invitation_schedules schedules', 'schedules.invitation_id = invitations.id', 'inner')
+            ->where('invitations.status', 'Approved')
+            ->where('DATE(schedules.date_from) <=', $today)
+            ->where('DATE(schedules.date_to) >=', $today);
+        $rejectedQuery = (new InvitationModel())->where('status', 'Rejected');
+        $this->applyClientRequestScope($expectedQuery, $viewClientId);
+        $this->applyClientRequestScope($rejectedQuery, $viewClientId);
         $this->applyHostRequestScope($expectedQuery);
         $this->applyHostRequestScope($rejectedQuery);
 
         $stats = [
             'pending' => $pendingQuery->countAllResults(),
-            'flagged' => $flaggedQuery->countAllResults(),
+            'pending_change_percent' => $pendingChangePercent,
+            // No persisted review flag currently exists; do not label every
+            // submitted request as flagged.
+            'flagged' => 0,
             'expected' => $expectedQuery->countAllResults(),
             'rejected' => $rejectedQuery->countAllResults(),
         ];
@@ -181,7 +216,7 @@ class RequestList extends BaseController
             'stats' => $stats,
             'currentRequest' => $currentRequest,
             'queueRequests' => $queueRequests,
-            'queueTotal' => $stats['flagged'],
+            'queueTotal' => $stats['pending'],
             'queueLimit' => $queueLimit,
         ];
 
@@ -230,6 +265,13 @@ class RequestList extends BaseController
 
         $query->groupEnd()
             ->groupEnd();
+    }
+
+    private function applyClientRequestScope($query, int $clientId): void
+    {
+        if ($clientId > 0) {
+            $query->where('client_id', $clientId);
+        }
     }
 
     private function excludeKioskWalkIns($query): void
@@ -572,5 +614,70 @@ class RequestList extends BaseController
                 'message' => 'An error occurred: ' . $e->getMessage()
             ]);
         }
+    }
+
+    /**
+     * Resolve kiosk host identifiers (for example, a staff number) to the
+     * person's display name and contact number.
+     */
+    private function resolveHostDetails(array $invitation, int $fallbackClientId): array
+    {
+        $rawName = trim((string)($invitation['invited_by'] ?? ''));
+        $staffId = trim((string)($invitation['staff_id'] ?? ''));
+        $reference = $staffId !== '' ? $staffId : $rawName;
+        $name = $rawName;
+        $contact = trim((string)($invitation['host_contact'] ?? ''));
+
+        if ($reference !== '') {
+            $clientId = (int)($invitation['client_id'] ?? $fallbackClientId);
+            $userQuery = (new \App\Models\UserModel())
+                ->select('full_name, contact_no')
+                ->where('is_active', 1)
+                ->groupStart()
+                    ->where('staff_id', $reference)
+                    ->orWhere('username', $reference)
+                    ->orWhere('full_name', $reference)
+                ->groupEnd();
+
+            if ($clientId > 0) {
+                $userQuery->where('client_id', $clientId);
+            }
+
+            $hostUser = $userQuery->first();
+            if ($hostUser) {
+                $name = trim((string)($hostUser['full_name'] ?? '')) ?: $name;
+                $contact = trim((string)($hostUser['contact_no'] ?? '')) ?: $contact;
+            } else {
+                $staff = (new \App\Models\StaffModel())
+                    ->select('full_name, contact_number')
+                    ->where('staff_no', $reference)
+                    ->first();
+                if ($staff) {
+                    $name = trim((string)($staff['full_name'] ?? '')) ?: $name;
+                    $contact = trim((string)($staff['contact_number'] ?? '')) ?: $contact;
+                }
+            }
+        }
+
+        return [
+            'name' => $name !== '' ? $name : 'N/A',
+            'contact' => $contact !== '' ? $contact : 'N/A',
+        ];
+    }
+
+    private function resolveVisitedCompany(array $invitation, ?array $viewClient): string
+    {
+        $invitationClientId = (int)($invitation['client_id'] ?? 0);
+        if ($invitationClientId > 0
+            && (!$viewClient || (int)($viewClient['id'] ?? 0) !== $invitationClientId)) {
+            $viewClient = (new \App\Models\ClientModel())->find($invitationClientId);
+        }
+
+        $company = trim((string)($viewClient['name'] ?? ''));
+        if ($company === '') {
+            $company = trim((string)($invitation['company_visited'] ?? ''));
+        }
+
+        return $company !== '' ? $company : 'N/A';
     }
 }

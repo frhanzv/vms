@@ -71,7 +71,7 @@
             <?php if (!empty($custom_body_html)): ?>
                 <div><?= $custom_body_html ?></div>
             <?php else: ?>
-                <p style="margin: 0 0 18px;">Dear <?= esc($visitor_name) ?>,</p>
+                <p style="margin: 0 0 18px;">Dear <?= esc($recipient_name ?? $visitor_name) ?>,</p>
                 <p style="margin: 0 0 18px;"><?= esc($introLine) ?></p>
                 <p style="margin: 0 0 20px;"><a href="<?= esc($registration_link) ?>" class="raw-link"><?= esc($registration_link) ?></a></p>
                 <p style="margin: 0 0 20px;">Thank you.</p>
@@ -79,6 +79,9 @@
             
             <div class="info-box">
                 <h3 class="details-title">Visit Details:</h3>
+                <?php if (!empty($request_visitor_name)): ?><p class="detail-line"><strong>Visitor Name:</strong> <?= esc($request_visitor_name) ?></p><?php endif; ?>
+                <?php if (!empty($request_visitor_contact)): ?><p class="detail-line"><strong>Visitor Contact No.:</strong> <?= esc($request_visitor_contact) ?></p><?php endif; ?>
+                <?php if (!empty($request_visitor_company)): ?><p class="detail-line"><strong>Visitor Company:</strong> <?= esc($request_visitor_company) ?></p><?php endif; ?>
                 <?php if ($detailFields['invited_by']): ?><p class="detail-line"><strong>Invited By:</strong> <?= esc($invited_by ?: 'Not specified') ?></p><?php endif; ?>
                 <?php if ($detailFields['host_contact'] || !empty($host_contact)): ?><p class="detail-line"><strong>Contact No. of Host:</strong> <?= esc($host_contact ?: 'Not specified') ?></p><?php endif; ?>
                 <?php if ($detailFields['visitor_type'] || !empty($visitor_type)): ?><p class="detail-line"><strong>Visitor Type:</strong> <?= esc($visitor_type ?: 'Not specified') ?></p><?php endif; ?>
@@ -87,6 +90,10 @@
                 <?php if ($detailFields['location']): ?><p class="detail-line"><strong>Location:</strong> <?= esc($location ?: 'Not specified') ?></p><?php endif; ?>
                 <?php if (!empty($other_reason)): ?>
                 <p class="detail-line"><strong>Additional Details:</strong> <?= esc($other_reason) ?></p>
+                <?php endif; ?>
+
+                <?php if (!empty($pending_kiosk_visit_date)): ?>
+                <p class="detail-line" style="margin-top: 16px;"><strong>Visit Date:</strong> <?= esc($pending_kiosk_visit_date) ?></p>
                 <?php endif; ?>
                 
                 <?php if ($detailFields['schedule'] && !empty($schedules)): ?>

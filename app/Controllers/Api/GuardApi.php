@@ -778,7 +778,7 @@ class GuardApi extends BaseController
             if ($elapsedSeconds >= 600) {
                 $nextAction = 'checkout';
                 $actionLabel = 'Confirm Time Out';
-                $note = 'Confirm to record the latest Time Out. This QR remains valid until 11:59 PM on the Time In date.';
+                $note = 'Confirm to record the latest Time Out. QR validity follows the invitation schedule.';
             } else {
                 $remainingMinutes = (int) ceil((600 - $elapsedSeconds) / 60);
                 $canConfirm = false;
@@ -844,17 +844,12 @@ class GuardApi extends BaseController
             'action_label'  => $actionLabel,
             'can_confirm'   => $canConfirm,
             'note'          => $note,
-            'valid_until'   => ! empty($checkInAt) ? date('Y-m-d 23:59:59', strtotime((string) $checkInAt)) : null,
+            'valid_until'   => $this->invitationValidUntil($visitor),
         ];
     }
 
     private function passClosedReason(array $visitor): ?string
     {
-        $timeIn = $visitor['checked_in_at'] ?? null;
-        if (! empty($timeIn) && date('Y-m-d', strtotime((string) $timeIn)) !== date('Y-m-d')) {
-            return 'This QR expired at 11:59 PM on the Time In date. Please register a new visit.';
-        }
-
         // A QR is only valid during one of the invitation's scheduled periods.
         // Return the wording used by the mobile app for scans outside that period.
         $invitationId = (int) ($visitor['id'] ?? $visitor['invitation_id'] ?? 0);
@@ -879,6 +874,22 @@ class GuardApi extends BaseController
             }
         }
         return null;
+    }
+
+    private function invitationValidUntil(array $visitor): ?string
+    {
+        $invitationId = (int) ($visitor['id'] ?? $visitor['invitation_id'] ?? 0);
+        if ($invitationId > 0) {
+            $schedule = (new \App\Models\InvitationScheduleModel())
+                ->selectMax('date_to')
+                ->where('invitation_id', $invitationId)
+                ->first();
+            if (! empty($schedule['date_to'])) {
+                return (string) $schedule['date_to'];
+            }
+        }
+
+        return ! empty($visitor['link_expiry']) ? (string) $visitor['link_expiry'] : null;
     }
 
     private function usesGuardEntryDecision(array $visitor): bool
