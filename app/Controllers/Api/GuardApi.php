@@ -820,7 +820,7 @@ class GuardApi extends BaseController
             'phone_no'      => $visitor['contact'] ?? '',
             'company'       => $visitor['company'] ?? '',
             'company_name'  => $visitor['company'] ?? '',
-            'host_name'     => $visitor['invited_by'] ?? '',
+            'host_name'     => $this->resolveHostName($visitor),
             'host_contact_no' => $visitor['host_contact'] ?? '',
             'host_contact'   => $visitor['host_contact'] ?? '',
             'department'    => $visitor['company_visited'] ?? '',
@@ -909,4 +909,26 @@ class GuardApi extends BaseController
         $type = (new VisitorTypeModel())->find($id);
         return $type ? ($type['name'] ?? '') : '';
     }
+
+    private function resolveHostName(array $visitor): string
+    {
+        $fallback = trim((string) ($visitor['invited_by'] ?? ''));
+        $staffId = trim((string) ($visitor['staff_id'] ?? ''));
+        $userModel = new UserModel();
+        $query = $userModel->select('full_name, username');
+        if ($staffId !== '') {
+            $query->where('staff_id', $staffId);
+        } elseif ($fallback !== '') {
+            $query->groupStart()
+                ->where('staff_id', $fallback)
+                ->orWhere('username', $fallback)
+                ->orWhere('full_name', $fallback)
+                ->groupEnd();
+        } else {
+            return '';
+        }
+        $host = $query->where('is_active', 1)->first();
+        return trim((string) ($host['full_name'] ?? '')) ?: trim((string) ($host['username'] ?? '')) ?: $fallback;
+    }
 }
+
