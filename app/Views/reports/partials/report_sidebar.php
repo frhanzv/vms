@@ -8,6 +8,7 @@ helper(['access', 'navigation', 'branding', 'feature']);
 $current = app_route_path($current ?? null);
 $isDashboard = ($current === '' || $current === 'dashboard');
 $isStaff = str_contains($current, 'staffs') || str_contains($current, 'staff-pass-request');
+$isVendor    = str_contains($current, 'vendors') || str_contains($current, 'vendorpassrequest');
 $isWorkflow = str_contains($current, 'workflow');
 $isSettings = str_contains($current, 'settings');
 
