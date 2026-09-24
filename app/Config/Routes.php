@@ -453,6 +453,8 @@ $routes->group('', ['filter' => $plusAdminOfficer], function($routes) {
     $routes->get('report/visitor/details/(:num)', 'VisitorChronology::details/$1');
     $routes->get('report/visitor/chronology-print/(:num)', 'VisitorChronology::chronologyPrint/$1');
     $routes->post('report/visitor/movement', 'VisitorChronology::movementTimeline');
+    $routes->get('report/vendor', 'VendorReport::index'); 
+    $routes->post('report/vendor/generate', 'VendorReport::generate');
 });
 
 // ===========================
