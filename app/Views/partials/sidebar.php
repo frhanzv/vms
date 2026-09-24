@@ -225,9 +225,9 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
                     <?php endif; ?>
 
                     <?php if (has_access('report', 'vendor_report')): ?>
-                    <a href="<?= base_url('report/vendor') ?>"
-                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'report/vendor' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
-                        <span class="w-1.5 h-1.5 rounded-full <?= $current == 'report/vendor' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
+                    <a href="<?= base_url('report/vendors') ?>"
+                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'report/vendors' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
+                        <span class="w-1.5 h-1.5 rounded-full <?= $current == 'report/vendors' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
                         Vendor Report
                     </a>
                     <?php endif; ?>
