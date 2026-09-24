@@ -5032,6 +5032,29 @@
                                 </div>
                             </div>
 
+
+                            <!-- Vendor Pass List -->
+                            <div>
+                                <h4 class="font-medium text-sm text-gray-800 dark:text-white mb-2">Vendor Pass List</h4>
+                                <div class="ml-4 space-y-2">
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vendor_pass_list][view]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> View
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vendor_pass_list][edit]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Edit
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vendor_pass_list][delete]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Delete
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vendor_pass_list][approve]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Approve
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vendor_pass_list][reject]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Reject
+                                    </label>
+                                </div>
+                            </div>
+
                             <!-- Staff Pass List -->
                             <div>
                                 <h4 class="font-medium text-sm text-gray-800 dark:text-white mb-2">Staff Pass List</h4>
