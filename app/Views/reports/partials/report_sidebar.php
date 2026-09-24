@@ -90,6 +90,14 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
         </a>
         <?php endif; ?>
 
+        <!-- Vendor Pass List -->
+            <?php if (client_feature_enabled('vendor_pass') && has_access('vendor_pass_list', 'view')): ?>
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?= $isVendor ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white' ?> transition-colors group" href="<?= base_url('vendors') ?>">
+                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">local_shipping</span>
+                    <p class="text-sm <?= $isVendor ? 'font-semibold' : 'font-medium' ?>">Vendor Pass List</p>
+                </a>
+            <?php endif; ?>
+
             <?php if (has_access('visitor_workflow', 'view')): ?>
             <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?= $isWorkflow ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white' ?> transition-colors group" href="<?= base_url('workflow') ?>">
                 <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">account_tree</span>
@@ -194,6 +202,14 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
                         class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= str_contains($current, 'report/bydoor') ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
                         <span class="w-1.5 h-1.5 rounded-full <?= str_contains($current, 'report/bydoor') ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
                         Visitor Info By Door
+                    </a>
+                    <?php endif; ?>
+
+                    <?php if (has_access('report', 'vendor_report')): ?>
+                    <a href="<?= base_url('report/vendor') ?>"
+                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'report/vendor' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
+                        <span class="w-1.5 h-1.5 rounded-full <?= $current == 'report/vendor' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
+                        Vendor Report
                     </a>
                     <?php endif; ?>
                 </div>
