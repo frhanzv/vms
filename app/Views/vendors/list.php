@@ -175,6 +175,16 @@
                                             title="View Details">
                                             <span class="material-symbols-outlined text-[20px]">search</span>
                                         </button>
+                                        <?php if (($canApprove ?? false) && in_array($vendor['status'], ['Pending', 'Rejected'], true)): ?>
+                                        <button onclick="event.stopPropagation(); confirmApprove(<?= $vendor['id'] ?>)" class="text-emerald-500 hover:text-emerald-700 transition-colors" title="Approve">
+                                            <span class="material-symbols-outlined text-[20px]">check_circle</span>
+                                        </button>
+                                        <?php endif; ?>
+                                        <?php if (($canReject ?? false) && in_array($vendor['status'], ['Pending', 'Approved'], true)): ?>
+                                        <button onclick="event.stopPropagation(); confirmReject(<?= $vendor['id'] ?>)" class="text-red-500 hover:text-red-700 transition-colors" title="Reject">
+                                            <span class="material-symbols-outlined text-[20px]">cancel</span>
+                                        </button>
+                                        <?php endif; ?>
                                         <?php if ($canEdit ?? false): ?>
                                         <button onclick="event.stopPropagation(); window.location.href='<?= base_url('vendorpassrequest/edit/') ?><?= $vendor['id'] ?>'" class="text-amber-500 hover:text-amber-700 transition-colors" title="Edit">
                                             <span class="material-symbols-outlined text-[20px]">edit</span>
@@ -284,6 +294,29 @@
                 method: 'POST',
                 headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': '<?= csrf_hash() ?>' },
             }).then(r => r.ok ? location.reload() : alert('Delete failed.'));
+        }
+
+        function confirmApprove(id) {
+            if (!confirm('Approve this vendor pass?')) return;
+            fetch('<?= base_url('vendors/approve') ?>', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '<?= csrf_hash() ?>' },
+                body: JSON.stringify({ id: id }),
+            })
+                .then(r => r.json())
+                .then(data => { alert(data.message); if (data.success) location.reload(); });
+        }
+
+        function confirmReject(id) {
+            const reason = prompt('Reason for rejecting this vendor pass (optional):', '');
+            if (reason === null) return; // cancelled
+            fetch('<?= base_url('vendors/reject') ?>', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '<?= csrf_hash() ?>' },
+                body: JSON.stringify({ id: id, reason: reason }),
+            })
+                .then(r => r.json())
+                .then(data => { alert(data.message); if (data.success) location.reload(); });
         }
 
         document.getElementById('vendorPerPageSelect')?.addEventListener('change', function () {

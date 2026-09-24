@@ -75,6 +75,8 @@ class VendorList extends BaseController
             'vendorList' => $vendorList,
             'canEdit'    => has_access('vendor_pass_list', 'edit'),
             'canDelete'  => has_access('vendor_pass_list', 'delete'),
+            'canApprove' => has_access('vendor_pass_list', 'approve'),
+            'canReject'  => has_access('vendor_pass_list', 'reject'),
             'searchTerm' => $searchTerm,
             'sortBy'     => $sortBy,
             'status'     => $status,
@@ -147,5 +149,107 @@ class VendorList extends BaseController
         $db->table('vendors')->where('id', (int) $id)->delete();
 
         return $this->response->setJSON(['success' => true, 'message' => 'Vendor pass record deleted.']);
+    }
+
+    /**
+     * Matches KPK's doApproveVendorPass: allowed from Pending or Rejected.
+     * Follows RequestList::approve()/reject()'s JSON + atomic-update pattern.
+     */
+    public function approve()
+    {
+        helper('access');
+        if (! has_access('vendor_pass_list', 'approve')) {
+            return $this->response->setJSON(['success' => false, 'message' => 'You are not allowed to approve vendor pass records.']);
+        }
+
+        $json = $this->request->getJSON();
+        $id   = $json->id ?? null;
+
+        if (!$id) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Invalid vendor pass ID']);
+        }
+
+        $db     = \Config\Database::connect();
+        $vendor = $db->table('vendors')->where('id', (int) $id)->get()->getRowArray();
+
+        if (!$vendor) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Vendor pass record not found']);
+        }
+
+        if (! in_array($vendor['status'], ['Pending', 'Rejected'], true)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Only Pending or Rejected records can be approved (current status: ' . $vendor['status'] . ')',
+            ]);
+        }
+
+        // Atomic update: only succeeds if status hasn't changed since we read it.
+        $db->table('vendors')
+            ->where('id', (int) $id)
+            ->where('status', $vendor['status'])
+            ->update(['status' => 'Approved']);
+
+        if ($db->affectedRows() === 0) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'This record has already been processed by another user. Please refresh the page.',
+            ]);
+        }
+
+        return $this->response->setJSON(['success' => true, 'message' => 'Vendor pass approved successfully.']);
+    }
+
+    /**
+     * Matches KPK's doRejectVendorPass: allowed from Pending, Approved, or Rejected
+     * (KPK also allows re-reject after "attended training", which VMS doesn't
+     * track yet — Pending/Approved/Rejected covers the cases this list shows).
+     */
+    public function reject()
+    {
+        helper('access');
+        if (! has_access('vendor_pass_list', 'reject')) {
+            return $this->response->setJSON(['success' => false, 'message' => 'You are not allowed to reject vendor pass records.']);
+        }
+
+        $json   = $this->request->getJSON();
+        $id     = $json->id ?? null;
+        $reason = trim((string) ($json->reason ?? ''));
+
+        if (!$id) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Invalid vendor pass ID']);
+        }
+
+        $db     = \Config\Database::connect();
+        $vendor = $db->table('vendors')->where('id', (int) $id)->get()->getRowArray();
+
+        if (!$vendor) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Vendor pass record not found']);
+        }
+
+        if (! in_array($vendor['status'], ['Pending', 'Approved'], true)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Only Pending or Approved records can be rejected (current status: ' . $vendor['status'] . ')',
+            ]);
+        }
+
+        $updateData = ['status' => 'Rejected'];
+        if ($reason !== '') {
+            $updateData['remark'] = $reason;
+        }
+
+        $db->table('vendors')
+            ->where('id', (int) $id)
+            ->where('status', $vendor['status'])
+            ->update($updateData);
+
+        if ($db->affectedRows() === 0) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'This record has already been processed by another user. Please refresh the page.',
+            ]);
+        }
+
+        return $this->response->setJSON(['success' => true, 'message' => 'Vendor pass rejected successfully.']);
     }
 }
