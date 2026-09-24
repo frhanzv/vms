@@ -80,6 +80,41 @@ class InvitationEmailSender
         return $fields;
     }
 
+    /**
+     * Kiosk visits are valid from registration until the end of that same day.
+     * They do not normally have rows in invitation_schedules, so provide the
+     * effective window to the approval/QR email without persisting a fake row.
+     */
+    protected function getApprovalEmailSchedules(array $invitation): array
+    {
+        $schedules = is_array($invitation['schedules'] ?? null)
+            ? $invitation['schedules']
+            : [];
+        if ($schedules !== []) {
+            return $schedules;
+        }
+
+        if (strcasecmp(trim((string) ($invitation['registration_source'] ?? '')), 'kiosk') !== 0) {
+            return [];
+        }
+
+        $registeredAt = trim((string) ($invitation['created_at'] ?? ''));
+        if ($registeredAt === '') {
+            return [];
+        }
+
+        try {
+            $start = new \DateTimeImmutable($registeredAt, new \DateTimeZone(app_timezone()));
+        } catch (\Exception $exception) {
+            return [];
+        }
+
+        return [[
+            'date_from' => $start->format('Y-m-d H:i:s'),
+            'date_to' => $start->setTime(23, 59, 59)->format('Y-m-d H:i:s'),
+        ]];
+    }
+
     protected function getConfiguredTemplateRaw(string $process, array $invitation): ?string
     {
         $clientId = (int) ($invitation['client_id'] ?? $invitation['company_id'] ?? 0);
@@ -601,6 +636,7 @@ class InvitationEmailSender
                 ];
             }
 
+            $approvalSchedules = $this->getApprovalEmailSchedules($invitation);
             $emailData = [
                 'visitor_name' => $invitation['full_name'],
                 'company' => $invitation['company_name'],
@@ -821,7 +857,7 @@ class InvitationEmailSender
                 'host_name' => $hostName,
                 'host_contact' => $hostContact,
                 'visitor_type' => $invitation['visitor_type_name'] ?? '',
-                'schedules' => ! empty($detailFields['schedule']) ? $invitation['schedules'] : [],
+                'schedules' => ! empty($detailFields['schedule']) ? $approvalSchedules : [],
                 'detail_fields' => $detailFields,
                 'template' => $templateConfig,
                 'intro_line' => $this->emailTemplateService->applyPlaceholders($templateConfig['intro_line'], $placeholderContext),

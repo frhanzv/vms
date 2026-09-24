@@ -6,7 +6,6 @@ use App\Models\InvitationModel;
 use App\Models\InvitationScheduleModel;
 use App\Models\InvitationVisitorModel;
 use App\Models\ClientFormFieldModel;
-use App\Models\ClientFeatureModel;
 use App\Models\MobileKioskSettingModel;
 use App\Models\VisitorCardModel;
 use App\Models\VisitorTypeModel;
@@ -29,14 +28,15 @@ class VisitorList extends BaseController
     public function index()
     {
         $db = \Config\Database::connect();
-        $searchTerm = trim((string) ($this->request->getGet('search') ?? ''));
+        $filters = $this->parseVisitorListFilters();
+        $searchTerm = $filters['search'];
         $page = max(1, (int) ($this->request->getGet('page') ?? 1));
         $perPage = (int) ($this->request->getGet('per_page') ?? 10);
         if (! in_array($perPage, [10, 25, 50], true)) {
             $perPage = 10;
         }
 
-        $builder = $this->buildVisitorListQuery($db, $searchTerm);
+        $builder = $this->buildVisitorListQuery($db, $filters);
         $totalApproved = (int) $builder->countAllResults(false);
         $lastPage = max(1, (int) ceil($totalApproved / $perPage));
         if ($page > $lastPage) {
@@ -48,9 +48,9 @@ class VisitorList extends BaseController
             ->get()
             ->getResultArray();
 
-        $statsBuilder = $this->buildVisitorListQuery($db, $searchTerm);
+        $statsBuilder = $this->buildVisitorListQuery($db, $filters);
         $checkedIn = (int) $statsBuilder->where('iv.check_in_time IS NOT NULL', null, false)->countAllResults();
-        $withCard = (int) $this->buildVisitorListQuery($db, $searchTerm)
+        $withCard = (int) $this->buildVisitorListQuery($db, $filters)
             ->where('iv.visitor_card_id IS NOT NULL', null, false)
             ->countAllResults();
 
@@ -62,7 +62,6 @@ class VisitorList extends BaseController
         $visitors = [];
         $formConfigModel = new ClientFormFieldModel();
         $formConfigCache = [];
-        $entryDecisionCache = [];
         $rowOffset = ($page - 1) * $perPage;
         foreach ($results as $index => $row) {
             $visitorClientId = (int) ($row['invitation_client_id'] ?? 0);
@@ -97,11 +96,6 @@ class VisitorList extends BaseController
                     'visit_details'         => $enabled('details_of_visit_section'),
                 ];
             }
-            if (! isset($entryDecisionCache[$visitorClientId])) {
-                $entryDecisionCache[$visitorClientId] = $visitorClientId > 0
-                    && (new ClientFeatureModel())->isEnabled($visitorClientId, 'auto_approve_after_workflow');
-            }
-
             if ($row['visitor_card_id'] && empty($row['check_out_time'])) {
                 $cardStatusBadge = 'In Use';
             } elseif (! empty($row['check_out_time'])) {
@@ -140,12 +134,12 @@ class VisitorList extends BaseController
                 'location' => $row['location'] ?? '',
                 'type' => strcasecmp(trim((string) ($row['registration_source'] ?? '')), 'kiosk') === 0
                     ? 'Kiosk'
-                    : ($row['registration_source'] ?? 'Walk-In'),
-                'status' => $entryDecisionCache[$visitorClientId]
-                    ? $this->gxoEntryStatus($row)
-                    : (! empty($row['check_out_time'])
-                        ? 'Checked Out'
-                        : (! empty($row['check_in_time']) ? 'Checked In' : 'Expected')),
+                    : 'Invitation',
+                'status' => $this->visitorEntryStatus($row),
+                'qr_available' => $this->visitorQrAvailable([
+                    'status' => 'Approved',
+                    'video_watched' => $row['invitation_video_watched'] ?? 0,
+                ]),
                 'visitor_type' => ! empty($row['visitor_type_name'] ?? '') ? $row['visitor_type_name'] : '-',
                 'visitor_type_id' => isset($row['visitor_type_id']) ? $row['visitor_type_id'] : null,
                 'pass_no' => $row['card_epc'] ?? '',
@@ -198,6 +192,7 @@ class VisitorList extends BaseController
             'visitorTypes' => $visitorTypes,
             'showVisitorTypes' => $this->invitationsSupportVisitorType(),
             'searchTerm' => $searchTerm,
+            'filters' => $filters,
             'cardEnabled' => client_feature_enabled('visitor_card'),
             'mykadOcrEnabled' => client_feature_enabled('mykad_ocr'),
             'visitorListColumns' => $this->visitorListColumnConfig(),
@@ -304,8 +299,9 @@ class VisitorList extends BaseController
      *
      * @return \CodeIgniter\Database\BaseBuilder
      */
-    private function buildVisitorListQuery($db, string $searchTerm)
+    private function buildVisitorListQuery($db, array $filters)
     {
+        $searchTerm = $filters['search'];
         $builder = $db->table('invitation_visitors iv');
         $baseSelect = 'iv.*, 
                           iv.version as iv_version,
@@ -313,7 +309,7 @@ class VisitorList extends BaseController
                           i.ic_passport as visitor_ic_passport,
                           i.contact as visitor_contact,
                           i.company as visitor_company,
-                          i.invited_by as host_name,
+                          ' . $this->hostNameSelectExpression() . ' as host_name,
                           i.reason as visit_purpose,
                           i.vehicle_registration as vehicle_reg,
                           i.location,
@@ -322,22 +318,25 @@ class VisitorList extends BaseController
                           i.profile_photo_path AS invitation_profile_photo_path,
                           i.facial_verification_image AS invitation_facial_verification_image,
                           i.registration_source,
+                          i.video_watched as invitation_video_watched,
+                          i.link_expiry as invitation_link_expiry,
                           i.created_at as invitation_created_at,
                           i.version as invitation_version,
                           sch.id as schedule_id,
                           sch.date_from as sch_date_from,
                           sch.date_to as sch_date_to,
+                          sch_bounds.final_date_to as sch_expiry_date_to,
                           vc.id as visitor_card_table_id,
                           vc.card_id as card_epc,
                           vc.status as card_status';
         if ($this->invitationsSupportVisitorType()) {
             $builder->select($baseSelect . ',
                           i.visitor_type_id,
-                          vt.name as visitor_type_name');
+                          vt.name as visitor_type_name', false);
             $builder->join('invitations i', 'i.id = iv.invitation_id');
             $builder->join('visitor_types vt', 'vt.id = i.visitor_type_id', 'left');
         } else {
-            $builder->select($baseSelect);
+            $builder->select($baseSelect, false);
             $builder->join('invitations i', 'i.id = iv.invitation_id');
         }
         $builder->join(
@@ -346,8 +345,13 @@ class VisitorList extends BaseController
             'left'
         );
         $builder->join('invitation_schedules sch', 'sch.id = sch_pick.id', 'left');
+        $builder->join(
+            '(SELECT invitation_id, MAX(date_to) AS final_date_to FROM invitation_schedules GROUP BY invitation_id) sch_bounds',
+            'sch_bounds.invitation_id = i.id',
+            'left'
+        );
         $builder->join('visitor_cards vc', 'vc.id = iv.visitor_card_id', 'left');
-        $this->applyVisitorListEligibility($builder, $db);
+        $this->applyVisitorListEligibility($builder);
         $this->applyHostVisitorScope($builder);
 
         if ($searchTerm !== '') {
@@ -372,38 +376,89 @@ class VisitorList extends BaseController
             $builder->groupEnd();
         }
 
-        $builder->orderBy('COALESCE(iv.check_in_time, i.created_at)', 'DESC', false);
+        if ($filters['visit_type'] !== '') {
+            $builder->where('LOWER(i.registration_source)', strtolower($filters['visit_type']));
+        }
+
+        $dateExpression = $filters['date_field'] === 'application_date'
+            ? 'DATE(i.created_at)'
+            : 'DATE(COALESCE(sch.date_from, i.created_at))';
+        if ($filters['filter_date'] !== '') {
+            $builder->where($dateExpression . ' =', $filters['filter_date']);
+        }
+
+        $sortDirection = $filters['sort'] === 'date_asc' ? 'ASC' : 'DESC';
+        $builder->orderBy('COALESCE(sch.date_from, iv.check_in_time, i.created_at)', $sortDirection, false);
         $builder->orderBy('iv.id', 'DESC');
 
         return $builder;
     }
 
-    /**
-     * Show invitation visitors only after their QR email was sent successfully.
-     *
-     * Non-invitation registrations do not use the invitation QR delivery flow.
-     * The check-in fallback keeps legacy visitors visible once they are on site.
-     */
-    private function applyVisitorListEligibility($builder, $db): void
+    private function parseVisitorListFilters(): array
     {
-        $builder->where('i.status', 'Approved');
+        $validDate = static function ($value): string {
+            $value = trim((string) $value);
+            return preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) ? $value : '';
+        };
 
-        if (! $db->tableExists('invitation_qr_deliveries')) {
-            return;
+        $visitType = trim((string) ($this->request->getGet('visit_type') ?? ''));
+        if (! in_array(strtolower($visitType), ['invitation', 'kiosk'], true)) {
+            $visitType = '';
         }
 
-        $builder->where(
-            "(COALESCE(i.registration_source, '') <> 'Invitation'
-                OR iv.check_in_time IS NOT NULL
-                OR EXISTS (
-                    SELECT 1
-                    FROM invitation_qr_deliveries iqd
-                    WHERE iqd.invitation_id = i.id
-                      AND iqd.status = 'sent'
-                ))",
-            null,
-            false
-        );
+        $dateField = trim((string) ($this->request->getGet('date_field') ?? 'visit_date'));
+        if (! in_array($dateField, ['visit_date', 'application_date'], true)) {
+            $dateField = 'visit_date';
+        }
+
+        $sort = trim((string) ($this->request->getGet('sort') ?? 'date_desc'));
+        if (! in_array($sort, ['date_desc', 'date_asc'], true)) {
+            $sort = 'date_desc';
+        }
+
+        return [
+            'search' => trim((string) ($this->request->getGet('search') ?? '')),
+            'visit_type' => $visitType,
+            'date_field' => $dateField,
+            'filter_date' => $validDate($this->request->getGet('filter_date')),
+            'sort' => $sort,
+        ];
+    }
+
+    /** Show approved visitors, including those still waiting to watch the video. */
+    private function applyVisitorListEligibility($builder): void
+    {
+        $builder->where('i.status', 'Approved');
+    }
+
+    /** Resolve Kiosk host references such as a staff number to a display name. */
+    private function hostNameSelectExpression(): string
+    {
+        $hostReference = "COALESCE(NULLIF(i.staff_id, ''), i.invited_by)";
+
+        return "COALESCE(
+            NULLIF((
+                SELECT u.full_name
+                FROM users u
+                WHERE u.is_active = 1
+                  AND (u.client_id = i.client_id OR u.client_id IS NULL)
+                  AND (
+                    u.staff_id = {$hostReference}
+                    OR u.username = i.invited_by
+                    OR u.full_name = i.invited_by
+                  )
+                ORDER BY CASE WHEN u.client_id IS NULL THEN 1 ELSE 0 END, u.id
+                LIMIT 1
+            ), ''),
+            NULLIF((
+                SELECT s.full_name
+                FROM staff s
+                WHERE s.staff_no = {$hostReference}
+                ORDER BY s.id
+                LIMIT 1
+            ), ''),
+            i.invited_by
+        )";
     }
 
     private function applyHostVisitorScope($builder): void
@@ -445,26 +500,29 @@ class VisitorList extends BaseController
                           i.ic_passport as visitor_ic_passport,
                           i.contact as visitor_contact,
                           i.company as visitor_company,
-                          i.invited_by as host_name,
+                          ' . $this->hostNameSelectExpression() . ' as host_name,
                           i.reason as visit_purpose,
                           i.vehicle_registration as vehicle_reg,
                           i.location,
                           i.client_id AS invitation_client_id,
                           i.guard_entry_status,
                           i.registration_source,
+                          i.video_watched as invitation_video_watched,
+                          i.link_expiry as invitation_link_expiry,
                           i.created_at as invitation_created_at,
                           sch.date_from as sch_date_from,
                           sch.date_to as sch_date_to,
+                          sch_bounds.final_date_to as sch_expiry_date_to,
                           vc.card_id as card_epc,
                           vc.status as card_status';
 
         if ($this->invitationsSupportVisitorType()) {
             $builder->select($baseSelect . ',
-                          vt.name as visitor_type_name');
+                          vt.name as visitor_type_name', false);
             $builder->join('invitations i', 'i.id = iv.invitation_id');
             $builder->join('visitor_types vt', 'vt.id = i.visitor_type_id', 'left');
         } else {
-            $builder->select($baseSelect);
+            $builder->select($baseSelect, false);
             $builder->join('invitations i', 'i.id = iv.invitation_id');
         }
 
@@ -474,8 +532,13 @@ class VisitorList extends BaseController
             'left'
         );
         $builder->join('invitation_schedules sch', 'sch.id = sch_pick.id', 'left');
+        $builder->join(
+            '(SELECT invitation_id, MAX(date_to) AS final_date_to FROM invitation_schedules GROUP BY invitation_id) sch_bounds',
+            'sch_bounds.invitation_id = i.id',
+            'left'
+        );
         $builder->join('visitor_cards vc', 'vc.id = iv.visitor_card_id', 'left');
-        $this->applyVisitorListEligibility($builder, $db);
+        $this->applyVisitorListEligibility($builder);
         $this->applyHostVisitorScope($builder);
         $builder->orderBy('COALESCE(iv.check_in_time, i.created_at)', 'DESC', false);
         $builder->orderBy('iv.id', 'DESC');
@@ -503,8 +566,6 @@ class VisitorList extends BaseController
             'Check Out Time',
         ]);
 
-        $entryDecisionCache = [];
-        $featureModel = new ClientFeatureModel();
         foreach ($rows as $index => $row) {
             $dateSrc = ! empty($row['sch_date_from'])
                 ? $row['sch_date_from']
@@ -521,16 +582,7 @@ class VisitorList extends BaseController
                 }
             }
 
-            $visitorClientId = (int) ($row['invitation_client_id'] ?? 0);
-            if (! isset($entryDecisionCache[$visitorClientId])) {
-                $entryDecisionCache[$visitorClientId] = $visitorClientId > 0
-                    && $featureModel->isEnabled($visitorClientId, 'auto_approve_after_workflow');
-            }
-            $displayStatus = $entryDecisionCache[$visitorClientId]
-                ? $this->gxoEntryStatus($row)
-                : (! empty($row['check_out_time'])
-                    ? 'Checked Out'
-                    : (! empty($row['check_in_time']) ? 'Checked In' : 'Expected'));
+            $displayStatus = $this->visitorEntryStatus($row);
 
             fputcsv($handle, [
                 $index + 1,
@@ -544,7 +596,7 @@ class VisitorList extends BaseController
                 $row['visitor_type_name'] ?? '-',
                 strcasecmp(trim((string) ($row['registration_source'] ?? '')), 'kiosk') === 0
                     ? 'Kiosk'
-                    : ($row['registration_source'] ?? 'Walk-In'),
+                    : 'Invitation',
                 $displayStatus,
                 $cardStatus,
                 $row['card_epc'] ?? '',
@@ -564,7 +616,7 @@ class VisitorList extends BaseController
             ->setBody((string) $csvContent);
     }
 
-    private function gxoEntryStatus(array $row): string
+    private function visitorEntryStatus(array $row): string
     {
         $storedStatus = strtolower(trim((string) ($row['guard_entry_status'] ?? '')));
         if (in_array($storedStatus, ['rejected', 'rejected entry'], true)) {
@@ -577,15 +629,40 @@ class VisitorList extends BaseController
             return 'Checked In';
         }
 
-        $visitEndsAt = trim((string) ($row['sch_date_to'] ?? ''));
+        $visitEndsAt = trim((string) (
+            $row['sch_expiry_date_to']
+            ?? $row['sch_date_to']
+            ?? $row['invitation_link_expiry']
+            ?? ''
+        ));
         if ($visitEndsAt !== '') {
-            $visitEndsTimestamp = strtotime($visitEndsAt);
+            try {
+                // Schedule values are stored without a timezone and represent the
+                // application's local time. Do not let the server/PHP timezone
+                // (commonly UTC in production) reinterpret them eight hours late.
+                $visitEndsTimestamp = (new \DateTimeImmutable(
+                    $visitEndsAt,
+                    new \DateTimeZone(app_timezone())
+                ))->getTimestamp();
+            } catch (\Exception $exception) {
+                $visitEndsTimestamp = false;
+            }
             if ($visitEndsTimestamp !== false && $visitEndsTimestamp < time()) {
                 return 'Expired';
             }
         }
 
+        if ((int) ($row['invitation_video_watched'] ?? 0) !== 1) {
+            return 'Pending Video Watch';
+        }
+
         return 'Expected';
+    }
+
+    private function visitorQrAvailable(array $invitation): bool
+    {
+        return strcasecmp(trim((string) ($invitation['status'] ?? '')), 'Approved') === 0
+            && (int) ($invitation['video_watched'] ?? 0) === 1;
     }
 
     /**
@@ -1247,14 +1324,21 @@ class VisitorList extends BaseController
     public function generateQr($invitationId)
     {
         $invitation = $this->invitationModel->find((int) $invitationId);
+        if (! is_array($invitation)) {
+            return $this->response->setStatusCode(404);
+        }
+        if (! $this->visitorQrAvailable($invitation)) {
+            return $this->response
+                ->setStatusCode(403)
+                ->setJSON(['message' => 'QR code is available after the safety video has been watched.']);
+        }
+
         $passId     = 'VIS-' . (int) $invitationId;
         $qrCodeData = $passId;
 
-        if (is_array($invitation)) {
-            $icPassport = trim((string) ($invitation['ic_passport'] ?? ''));
-            if ($icPassport !== '') {
-                $qrCodeData = $icPassport;
-            }
+        $icPassport = trim((string) ($invitation['ic_passport'] ?? ''));
+        if ($icPassport !== '') {
+            $qrCodeData = $icPassport;
         }
 
         $options = new \chillerlan\QRCode\QROptions([

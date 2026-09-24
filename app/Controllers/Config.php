@@ -216,6 +216,13 @@ class Config extends BaseController
         // PASS DATA TO VIEW
         // =========================
         helper(['role', 'feature']);
+        $emailRecipientInitialData = null;
+        $configRole = normalize_role_slug((string) session()->get('role'));
+        $configClientId = current_client_id();
+        if (! is_platform_superadmin() && $configClientId > 0
+            && in_array($configRole, ['clientsuperadmin', 'admin'], true)) {
+            $emailRecipientInitialData = $this->emailRecipientConfigurationForClient($configClientId);
+        }
 
         return view('config/index', [
             'pageTitle' => 'System Configuration - SafeG',
@@ -225,6 +232,7 @@ class Config extends BaseController
             'isClientScopedUserManager' => is_client_scoped_user_manager(),
             'scopedUserClientId' => user_management_client_scope(),
             'scopedUserClientName' => current_client_name(),
+            'emailRecipientInitialData' => $emailRecipientInitialData,
 
             // Reg Type
             'reg_types'        => $regTypes,
@@ -3332,9 +3340,15 @@ class Config extends BaseController
             ]);
         }
 
-        $jsonInput = $this->request->getJSON(true);
-        $input = is_array($jsonInput) ? $jsonInput : [];
-        $input = array_merge($input, $this->request->getPost() ?? []);
+        $contentType = strtolower($this->request->getHeaderLine('Content-Type'));
+        if (str_contains($contentType, 'application/json')) {
+            $jsonInput = $this->request->getJSON(true);
+            $input = is_array($jsonInput) ? $jsonInput : [];
+        } else {
+            // The configuration UI submits FormData (multipart/form-data).
+            // Calling getJSON() for that request throws before getPost() can run.
+            $input = $this->request->getPost() ?? [];
+        }
 
         // Manual validation with ID exclusion for unique check
         $rules = [
@@ -6068,6 +6082,17 @@ class Config extends BaseController
         if ($clientId <= 0) {
             return $this->response->setStatusCode(403)->setJSON(['success' => false, 'message' => 'Client access denied']);
         }
+        $payload = $this->emailRecipientConfigurationForClient($clientId);
+        return $this->response->setJSON([
+            'success' => true,
+            'client_id' => $clientId,
+            'data'    => $payload['data'],
+            'roles'   => $payload['roles'],
+        ]);
+    }
+
+    private function emailRecipientConfigurationForClient(int $clientId): array
+    {
         $configRaw = $this->settingModel->getSetting('email_recipient_roles_config_client_' . $clientId);
         $config = $configRaw ? json_decode((string) $configRaw, true) : [];
         if (! is_array($config) || $config === []) {
@@ -6080,11 +6105,31 @@ class Config extends BaseController
                 'CHECK_OUT' => $defaults,
             ];
         }
-        return $this->response->setJSON([
-            'success' => true,
-            'client_id' => $clientId,
-            'data'    => is_array($config) ? $config : []
-        ]);
+
+        // Recipient roles are configuration data, not user-management choices.
+        // Return them with the client configuration so tenant admins do not have
+        // to call the separately authorised getAllRoles endpoint in parallel.
+        $roles = [[
+            'id' => 'host',
+            'name' => 'host',
+            'description' => 'Host / Employee',
+        ]];
+        foreach ($this->roleModel->where('status', 'active')->orderBy('name', 'ASC')->findAll() as $role) {
+            $slug = normalize_role_slug((string) ($role['name'] ?? ''));
+            if ($slug === '' || $slug === 'host' || $slug === 'superadmin') {
+                continue;
+            }
+            $roles[] = [
+                'id' => $slug,
+                'name' => $slug,
+                'description' => (string) ($role['name'] ?? $slug),
+            ];
+        }
+
+        return [
+            'data' => is_array($config) ? $config : [],
+            'roles' => $roles,
+        ];
     }
 
     public function saveEmailRecipientRolesConfig()

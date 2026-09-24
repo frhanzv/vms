@@ -153,8 +153,9 @@
 
             <!-- Filters -->
             <form method="get" action="<?= base_url('visitors') ?>" id="visitorSearchForm" class="flex flex-col gap-4 mb-6">
+                <input type="hidden" name="per_page" value="<?= (int) ($pagination['per_page'] ?? 10) ?>">
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
-                    <div class="lg:col-span-5 flex shadow-sm">
+                    <div class="lg:col-span-6 flex shadow-sm">
                         <input id="visitorSearchInput" name="search" value="<?= esc($searchTerm ?? '') ?>"
                             class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-xs focus:ring-primary focus:border-primary outline-none uppercase"
                             placeholder="IC / PASSPORT / VISITOR PASS NO / FULL NAME / VEHICLE REGISTRATION NO" type="text"/>
@@ -168,7 +169,7 @@
                             <span class="material-icons text-white">search</span>
                         </button>
                     </div>
-                    <div class="lg:col-span-4 flex gap-2">
+                    <div class="lg:col-span-6 flex gap-2">
                         <?php if ($mykadOcrEnabled ?? true): ?>
                         <button type="button" id="btnReadMyKad" class="bg-success hover:bg-emerald-600 text-white px-4 py-2.5 rounded text-xs font-semibold uppercase shadow transition-colors flex-1 text-center whitespace-nowrap"
                             title="Scan a MyKad image to auto-search by IC number">
@@ -183,44 +184,40 @@
                         </button>
                         <?php endif; ?>
                     </div>
-                    <div class="lg:col-span-3">
-                        <input class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs focus:ring-primary focus:border-primary uppercase placeholder-gray-500 dark:placeholder-gray-400" placeholder="DATE OF VISIT TO" type="text"/>
-                    </div>
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div class="relative">
-                        <select class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs appearance-none focus:ring-primary focus:border-primary text-gray-500 dark:text-gray-300">
-                            <option>VISIT TYPE</option>
-                            <option>Walk-In</option>
-                            <option>Invitation</option>
+                        <select name="visit_type" onchange="this.form.submit()" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs appearance-none focus:ring-primary focus:border-primary text-gray-500 dark:text-gray-300">
+                            <option value="">VISIT TYPE</option>
+                            <option value="kiosk" <?= strtolower($filters['visit_type'] ?? '') === 'kiosk' ? 'selected' : '' ?>>Kiosk</option>
+                            <option value="Invitation" <?= strtolower($filters['visit_type'] ?? '') === 'invitation' ? 'selected' : '' ?>>Invitation</option>
                         </select>
                         <span class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-icons text-sm">expand_more</span>
                     </div>
                     <div class="relative">
-                        <select class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs appearance-none focus:ring-primary focus:border-primary text-gray-500 dark:text-gray-300">
-                            <option>APP DATE</option>
+                        <select name="date_field" onchange="this.form.submit()" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs appearance-none focus:ring-primary focus:border-primary text-gray-500 dark:text-gray-300">
+                            <option value="visit_date" <?= ($filters['date_field'] ?? 'visit_date') === 'visit_date' ? 'selected' : '' ?>>VISIT DATE</option>
+                            <option value="application_date" <?= ($filters['date_field'] ?? '') === 'application_date' ? 'selected' : '' ?>>APPLICATION DATE</option>
                         </select>
                         <span class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-icons text-sm">expand_more</span>
                     </div>
                     <div>
-                        <input class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs focus:ring-primary focus:border-primary uppercase text-gray-500 dark:text-gray-300" placeholder="DATE FROM" type="text"/>
-                    </div>
-                    <div>
-                        <input class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs focus:ring-primary focus:border-primary uppercase text-gray-500 dark:text-gray-300" placeholder="DATE TO" type="text"/>
+                        <input name="filter_date" value="<?= esc($filters['filter_date'] ?? '') ?>" onchange="this.form.submit()" title="Filter date" aria-label="Filter date" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs focus:ring-primary focus:border-primary uppercase text-gray-500 dark:text-gray-300" type="date"/>
                     </div>
                     <div class="relative">
-                        <select class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs appearance-none focus:ring-primary focus:border-primary text-gray-500 dark:text-gray-300">
-                            <option>DATE TIME DESC</option>
+                        <select name="sort" onchange="this.form.submit()" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs appearance-none focus:ring-primary focus:border-primary text-gray-500 dark:text-gray-300">
+                            <option value="date_desc" <?= ($filters['sort'] ?? 'date_desc') === 'date_desc' ? 'selected' : '' ?>>DATE TIME DESC</option>
+                            <option value="date_asc" <?= ($filters['sort'] ?? '') === 'date_asc' ? 'selected' : '' ?>>DATE TIME ASC</option>
                         </select>
                         <span class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-icons text-sm">expand_more</span>
                     </div>
                 </div>
             </form>
 
-            <?php if (! empty($searchTerm)): ?>
+            <?php if (array_filter($filters ?? [], static fn ($value, $key) => ! in_array($key, ['sort', 'date_field'], true) && $value !== '', ARRAY_FILTER_USE_BOTH)): ?>
             <div class="mb-4 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded px-3 py-2">
                 <span class="material-icons text-sm text-primary">filter_alt</span>
-                <span>Showing results for <strong class="text-gray-800 dark:text-white"><?= esc($searchTerm) ?></strong> — <?= number_format($pagination['total'] ?? count($visitors)) ?> match<?= ($pagination['total'] ?? count($visitors)) === 1 ? '' : 'es' ?></span>
+                <span><?= ! empty($searchTerm) ? 'Showing results for <strong class="text-gray-800 dark:text-white">' . esc($searchTerm) . '</strong> — ' : 'Filters applied — ' ?><?= number_format($pagination['total'] ?? count($visitors)) ?> match<?= ($pagination['total'] ?? count($visitors)) === 1 ? '' : 'es' ?></span>
                 <a href="<?= base_url('visitors') ?>" class="ml-auto text-primary hover:underline font-semibold">Clear</a>
             </div>
             <?php endif; ?>
@@ -263,7 +260,7 @@
                 $visibleColumnCount = max(1, $visibleColumnCount);
             ?>
             <div class="overflow-x-auto rounded border border-gray-200 dark:border-gray-700 mb-6">
-                <table class="w-full min-w-max text-left border-collapse">
+                <table id="visitorPassTable" class="w-full min-w-max text-left border-collapse">
                     <thead>
                         <tr class="bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs font-bold uppercase tracking-wide">
                             <?php if ($showCardColumn('return_selection')): ?>
@@ -409,7 +406,9 @@
                                 <?php elseif ($visitor['status'] === 'Checked Out'): ?>
                                 <span class="bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Checked Out</span>
                                 <?php elseif ($visitor['status'] === 'Expired'): ?>
-                                <span class="bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Expired</span>
+                                <span class="bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Expired</span>
+                                <?php elseif ($visitor['status'] === 'Pending Video Watch'): ?>
+                                <span class="bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Pending Video Watch</span>
                                 <?php else: ?>
                                 <span class="bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Expected</span>
                                 <?php endif; ?>
@@ -460,11 +459,13 @@
             $pgTotal  = $pagination['total'] ?? count($visitors);
             $pgPer    = $pagination['per_page'] ?? 10;
 
-            $buildUrl = function (int $pg, int $pp = 0) use ($searchTerm, $pgPer): string {
+            $buildUrl = function (int $pg, int $pp = 0) use ($filters, $pgPer): string {
                 $pp = $pp ?: $pgPer;
                 $params = [];
-                if ($searchTerm !== '') {
-                    $params['search'] = $searchTerm;
+                foreach ($filters as $key => $value) {
+                    if ($value !== '' && ! ($key === 'sort' && $value === 'date_desc')) {
+                        $params[$key] = $value;
+                    }
                 }
                 if ($pp !== 10) {
                     $params['per_page'] = $pp;
@@ -851,7 +852,7 @@
                         i Card Details
                     </button>
                     <?php endif; ?>
-                    <button type="button" onclick="openQrCodeModal()" class="px-4 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
+                    <button type="button" id="btnVisitorQrCode" onclick="openQrCodeModal()" class="hidden px-4 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
                         <span class="material-symbols-outlined text-lg">qr_code</span>
                         QR Code
                     </button>
@@ -1002,6 +1003,7 @@
     <script>
         let currentVisitorId = null;
         let currentInvitationVisitorId = null;
+        let currentVisitor = null;
         let selectedProfilePhotoPreviewUrl = null;
 
         function getVisitorColumnCheckboxes() {
@@ -1015,6 +1017,158 @@
             const checkedCount = boxes.filter((box) => box.checked).length;
             selectAll.checked = boxes.length > 0 && checkedCount === boxes.length;
             selectAll.indeterminate = checkedCount > 0 && checkedCount < boxes.length;
+        }
+
+        const visitorColumnFilterState = {};
+        let activeVisitorColumnFilter = null;
+
+        function getVisitorTableDataRows() {
+            const table = document.getElementById('visitorPassTable');
+            if (!table) return [];
+            return Array.from(table.querySelectorAll('tbody tr.visitor-data-row'));
+        }
+
+        function visitorCellText(row, columnIndex) {
+            const cell = row.cells[columnIndex];
+            return cell ? cell.textContent.replace(/\s+/g, ' ').trim() : '';
+        }
+
+        function closeVisitorColumnFilters() {
+            const table = document.getElementById('visitorPassTable');
+            if (!table) return;
+            table.querySelectorAll('.js-visitor-column-filter-dropdown').forEach((dropdown) => {
+                dropdown.classList.add('hidden');
+            });
+            activeVisitorColumnFilter = null;
+        }
+
+        function updateVisitorColumnFilterIcon(columnIndex) {
+            const table = document.getElementById('visitorPassTable');
+            if (!table) return;
+            const icon = table.querySelector(`.js-visitor-column-filter-icon[data-col="${columnIndex}"]`);
+            const state = visitorColumnFilterState[columnIndex];
+            if (!icon || !state) return;
+            const active = state.selectedValues.size !== state.allValues.length;
+            icon.classList.toggle('text-[#535dec]', active);
+            icon.classList.toggle('text-gray-300', !active);
+        }
+
+        function applyVisitorColumnFilters() {
+            getVisitorTableDataRows().forEach((row) => {
+                const visible = Object.entries(visitorColumnFilterState).every(([columnIndex, state]) => {
+                    return state.selectedValues.size === state.allValues.length
+                        || state.selectedValues.has(visitorCellText(row, Number(columnIndex)));
+                });
+                row.style.display = visible ? '' : 'none';
+            });
+        }
+
+        function buildVisitorColumnFilter(columnIndex, values) {
+            const state = visitorColumnFilterState[columnIndex] || {
+                allValues: values,
+                selectedValues: new Set(values),
+            };
+            state.allValues = values;
+            state.selectedValues = new Set(values.filter((value) => state.selectedValues.has(value)));
+            if (state.selectedValues.size === 0) state.selectedValues = new Set(values);
+            visitorColumnFilterState[columnIndex] = state;
+
+            const dropdown = document.createElement('div');
+            dropdown.className = 'js-visitor-column-filter-dropdown hidden absolute top-full left-0 mt-1 min-w-[220px] max-h-[280px] overflow-y-auto rounded border border-gray-200 bg-white p-2 text-left text-xs normal-case shadow-lg z-50 dark:border-gray-700 dark:bg-gray-800';
+            dropdown.addEventListener('click', (event) => event.stopPropagation());
+
+            const search = document.createElement('input');
+            search.type = 'text';
+            search.placeholder = 'Search in this column...';
+            search.className = 'mb-2 w-full rounded border border-gray-200 px-2 py-1 text-xs font-normal focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white';
+            dropdown.appendChild(search);
+
+            const allLabel = document.createElement('label');
+            allLabel.className = 'mb-1 flex cursor-pointer items-center gap-2 px-2 py-1.5 font-semibold text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700';
+            const allCheckbox = document.createElement('input');
+            allCheckbox.type = 'checkbox';
+            allCheckbox.className = 'h-4 w-4 cursor-pointer accent-[#535dec]';
+            allCheckbox.checked = state.selectedValues.size === values.length;
+            allLabel.append(allCheckbox, document.createTextNode('All'));
+            dropdown.appendChild(allLabel);
+
+            const separator = document.createElement('hr');
+            separator.className = 'my-1 border-gray-200 dark:border-gray-700';
+            dropdown.appendChild(separator);
+
+            const items = values.map((value) => {
+                const label = document.createElement('label');
+                label.className = 'js-visitor-filter-item flex cursor-pointer items-center gap-2 px-2 py-1.5 font-normal text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700';
+                label.dataset.filterText = value.toLowerCase();
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.value = value;
+                checkbox.checked = state.selectedValues.has(value);
+                checkbox.className = 'h-4 w-4 cursor-pointer accent-[#535dec]';
+                const text = document.createElement('span');
+                text.textContent = value || '(Blank)';
+                label.append(checkbox, text);
+                dropdown.appendChild(label);
+                return { label, checkbox };
+            });
+
+            const sync = () => {
+                const selected = items.filter((item) => item.checkbox.checked).map((item) => item.checkbox.value);
+                state.selectedValues = new Set(selected);
+                allCheckbox.checked = selected.length === values.length;
+                updateVisitorColumnFilterIcon(columnIndex);
+                applyVisitorColumnFilters();
+            };
+
+            search.addEventListener('input', () => {
+                const term = search.value.trim().toLowerCase();
+                items.forEach((item) => {
+                    item.label.style.display = item.label.dataset.filterText.includes(term) ? '' : 'none';
+                });
+            });
+            allCheckbox.addEventListener('change', () => {
+                items.forEach((item) => { item.checkbox.checked = allCheckbox.checked; });
+                sync();
+            });
+            items.forEach((item) => item.checkbox.addEventListener('change', sync));
+            return dropdown;
+        }
+
+        function setupVisitorColumnFilters() {
+            const table = document.getElementById('visitorPassTable');
+            if (!table) return;
+            const rows = getVisitorTableDataRows();
+            if (rows.length === 0) return;
+
+            table.querySelectorAll('thead th').forEach((header, columnIndex) => {
+                const heading = header.textContent.replace(/\s+/g, ' ').trim().toLowerCase();
+                if (heading === '' || heading === 'no') return;
+                const values = Array.from(new Set(rows.map((row) => visitorCellText(row, columnIndex))))
+                    .sort((a, b) => a.localeCompare(b));
+                if (values.length === 0) return;
+
+                header.classList.add('relative');
+                const wrapper = document.createElement('span');
+                wrapper.className = 'js-visitor-column-filter-wrapper relative ml-1 inline-block align-middle';
+                wrapper.addEventListener('click', (event) => event.stopPropagation());
+                const icon = document.createElement('span');
+                icon.className = 'js-visitor-column-filter-icon material-symbols-outlined cursor-pointer align-middle text-[16px] text-gray-300 transition-colors hover:text-[#535dec]';
+                icon.dataset.col = String(columnIndex);
+                icon.textContent = 'filter_alt';
+                const dropdown = buildVisitorColumnFilter(columnIndex, values);
+                wrapper.append(icon, dropdown);
+                header.appendChild(wrapper);
+
+                icon.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    if (activeVisitorColumnFilter && activeVisitorColumnFilter !== dropdown) {
+                        closeVisitorColumnFilters();
+                    }
+                    dropdown.classList.toggle('hidden');
+                    activeVisitorColumnFilter = dropdown.classList.contains('hidden') ? null : dropdown;
+                });
+            });
         }
 
         function openVisitorColumnsModal() {
@@ -1042,6 +1196,13 @@
                 box.addEventListener('change', syncVisitorColumnSelectAll);
             });
             syncVisitorColumnSelectAll();
+            setupVisitorColumnFilters();
+        });
+
+        document.addEventListener('click', (event) => {
+            if (!event.target.closest('.js-visitor-column-filter-wrapper')) {
+                closeVisitorColumnFilters();
+            }
         });
 
         function mysqlToDatetimeLocal(v) {
@@ -1255,6 +1416,7 @@
             
             currentVisitorId = visitor.id;
             currentInvitationVisitorId = visitor.id;
+            currentVisitor = visitor;
 
             document.getElementById('editInvitationVisitorId').value = visitor.id ?? '';
             document.getElementById('editInvitationId').value = visitor.invitation_id ?? '';
@@ -1352,12 +1514,19 @@
                 return;
             }
 
+            const qrAvailable = visitor && visitor.qr_available === true;
             const invitationId = visitor && visitor.invitation_id ? String(visitor.invitation_id).trim() : '';
-            if (!invitationId) {
+            const qrButton = document.getElementById('btnVisitorQrCode');
+            if (qrButton) {
+                qrButton.classList.toggle('hidden', !qrAvailable);
+            }
+            if (!invitationId || !qrAvailable) {
                 qrImg.src = '';
                 qrImg.classList.add('hidden');
                 qrEmpty.classList.remove('hidden');
-                qrEmpty.textContent = 'QR not available';
+                qrEmpty.textContent = invitationId
+                    ? 'Available after safety video'
+                    : 'QR not available';
                 return;
             }
 
@@ -1511,6 +1680,7 @@
         }
 
         function closeDetailModal() {
+            currentVisitor = null;
             const modal = document.getElementById('detailModal');
             modal.classList.add('hidden');
             modal.classList.remove('flex');
@@ -1531,6 +1701,9 @@
         }
 
         function openQrCodeModal() {
+            if (!currentVisitor || currentVisitor.qr_available !== true) {
+                return;
+            }
             const invitationId = document.getElementById('editInvitationId').value;
             if (!invitationId) {
                 alert('No invitation data available for this visitor.');
