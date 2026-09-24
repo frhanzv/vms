@@ -226,7 +226,7 @@
                 </section>
 
                 <!-- Visit Details -->
-                <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 p-6 sm:p-8">
+            <!--    <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 p-6 sm:p-8">
                     <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
                         <div class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-primary">
                             <span class="material-symbols-outlined">location_on</span>
@@ -247,10 +247,10 @@
                             <input name="location_visited" value="<?= $v('location_visited') ?>" class="<?= $inputClass ?>" type="text" maxlength="100"/>
                         </div>
                     </div>
-                </section>
+                </section>-->
 
                 <!-- CSP & E-Vetting -->
-                <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 p-6 sm:p-8">
+                <!--<section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 p-6 sm:p-8">
                     <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
                         <div class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-primary">
                             <span class="material-symbols-outlined">verified_user</span>
@@ -283,7 +283,7 @@
                             </div>
                         </div>
                     </div>
-                </section>
+                </section>-->
 
                 <!-- Pass & Documents -->
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 p-6 sm:p-8">
