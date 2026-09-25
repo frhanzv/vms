@@ -135,7 +135,7 @@
                 </section>
 
                 <!-- Visit Details -->
-                <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8">
+                <!--<section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8">
                     <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
                         <div class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-primary"><span class="material-symbols-outlined">location_on</span></div>
                         <h2 class="text-lg font-bold font-brand text-text-main dark:text-white">Visit Details</h2>
@@ -145,7 +145,7 @@
                         <div class="space-y-2"><label class="<?= $label ?>">Contact No. Of Person Visited</label><input value="<?= $f('contact_no_of_person_visited') ?>" class="<?= $ro ?>" readonly/></div>
                         <div class="space-y-2"><label class="<?= $label ?>">Location Visited</label><input value="<?= $f('location_visited') ?>" class="<?= $ro ?>" readonly/></div>
                     </div>
-                </section>
+                </section>-->
 
                 <!-- CSP & E-Vetting -->
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8">

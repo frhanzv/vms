@@ -382,6 +382,7 @@ $routes->group('', ['filter' => [$plusAdminOfficer, 'client_feature:staff_pass']
     $routes->post('vendors/vendorpassrequest/store', 'VendorPassRequest::store'); 
     $routes->get('vendorpassrequest/view/(:any)', 'VendorPassRequest::view/$1'); 
     $routes->get('vendorpassrequest/edit/(:num)', 'VendorPassRequest::edit/$1'); 
+    $routes->get('vendors/vendorpassrequest/export', 'VendorPassRequest::export');
     $routes->post('vendors/vendorpassrequest/update/(:num)', 'VendorPassRequest::update/$1');
     $routes->post('vendors/vendorpassrequest/delete/(:num)', 'VendorPassRequest::delete/$1'); 
     $routes->post('vendors/delete/(:num)', 'VendorList::delete/$1');
