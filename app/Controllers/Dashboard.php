@@ -475,10 +475,37 @@ class Dashboard extends BaseController
             'todayAppointments' => $todayAppointments,
             'trafficHours' => $trafficHours,
             'widgetPreferences' => (new DashboardWidgetPreferenceModel())->getPreferences($this->dashboardPreferenceOwnerId()),
+            'vendorSummary' => $this->getVendorSummaryData(),
             'canCustomizeDashboard' => $this->canCustomizeDashboard(),
         ];
 
         return view('dashboard', $data);
+    }
+
+    private function vendorSummaryStats(): array
+    {
+        helper('role');
+        $db = \Config\Database::connect();
+    
+        $builder = $db->table('vendors');
+        if (! is_platform_superadmin()) {
+            $builder->where('company_id', current_company_id());
+        }
+    
+        $total    = (clone $builder)->countAllResults(false);
+        $pending  = (clone $builder)->where('status', 'Pending')->countAllResults(false);
+        $approved = (clone $builder)->where('status', 'Approved')->countAllResults(false);
+        $active   = (clone $builder)
+            ->where('status', 'Approved')
+            ->where('pass_expiry >=', date('Y-m-d'))
+            ->countAllResults(false);
+    
+        return [
+            'total'    => $total,
+            'pending'  => $pending,
+            'approved' => $approved,
+            'active'   => $active,
+        ];
     }
     
     /**
@@ -2470,3 +2497,5 @@ class Dashboard extends BaseController
         ];
     }
 }
+
+

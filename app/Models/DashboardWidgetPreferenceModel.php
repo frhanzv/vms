@@ -28,6 +28,7 @@ class DashboardWidgetPreferenceModel extends Model
         'onsite-table'          => 'col-span-2 xl:col-span-4',
         'traffic-analytics'     => 'col-span-2 xl:col-span-4',
         'poster-banner'         => 'col-span-2 xl:col-span-4',
+        'vendor-summary'        => 'col-span-1',
     ];
 
     public static array $defaultWidgets = [
@@ -46,6 +47,7 @@ class DashboardWidgetPreferenceModel extends Model
         ['id' => 'onsite-table',          'label' => 'Currently On-Site Table', 'visible' => true, 'position' => 12],
         ['id' => 'traffic-analytics',     'label' => 'Traffic Analytics',       'visible' => true,  'position' => 13],
         ['id' => 'poster-banner',         'label' => 'Poster Banner',           'visible' => false, 'position' => 14, 'image' => null],
+        ['id' => 'vendor-summary',        'label' => 'Vendor Summary',          'visible' => true,  'position' => 15],
     ];
 
     public function getPreferences(int $userId): array
