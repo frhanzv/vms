@@ -475,7 +475,7 @@ class Dashboard extends BaseController
             'todayAppointments' => $todayAppointments,
             'trafficHours' => $trafficHours,
             'widgetPreferences' => (new DashboardWidgetPreferenceModel())->getPreferences($this->dashboardPreferenceOwnerId()),
-            'vendorSummary' => $this->getVendorSummaryStats(),
+            'vendorSummary' => $this->vendorSummaryStats(),
             'canCustomizeDashboard' => $this->canCustomizeDashboard(),
         ];
 
