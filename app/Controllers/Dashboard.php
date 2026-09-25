@@ -2261,38 +2261,7 @@ class Dashboard extends BaseController
         ], true);
     }
 
-    private function getVendorSummaryData(): array
-    {
-        $db = \Config\Database::connect();
-        $today = date('Y-m-d');
-
-        $row = $db->query(
-            "SELECT
-                COUNT(*) AS total_all,
-                SUM(CASE WHEN iv.check_in_time IS NULL THEN 1 ELSE 0 END) AS pre_arrival,
-                SUM(CASE WHEN iv.check_in_time IS NOT NULL AND iv.check_out_time IS NULL THEN 1 ELSE 0 END) AS checked_in,
-                SUM(CASE WHEN iv.check_in_time IS NOT NULL AND iv.check_out_time IS NOT NULL THEN 1 ELSE 0 END) AS checked_out
-             FROM invitations i
-             LEFT JOIN invitation_visitors iv ON iv.invitation_id = i.id
-             WHERE i.status = 'Approved'
-             AND (
-                 EXISTS (
-                     SELECT 1 FROM invitation_schedules s
-                     WHERE s.invitation_id = i.id
-                     AND DATE(s.date_from) <= ? AND DATE(s.date_to) >= ?
-                 )
-                 OR (iv.check_in_time IS NOT NULL AND iv.check_out_time IS NULL)
-             )",
-            [$today, $today]
-        )->getRowArray();
-
-        return [
-            'all'        => (int) ($row['total_all'] ?? 0),
-            'preArrival' => (int) ($row['pre_arrival'] ?? 0),
-            'checkedIn'  => (int) ($row['checked_in'] ?? 0),
-            'checkedOut' => (int) ($row['checked_out'] ?? 0),
-        ];
-    }
+    
 
     /**
      * All users in a client organization share the same admin-owned layout.
