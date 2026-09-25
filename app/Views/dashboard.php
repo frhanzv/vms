@@ -350,12 +350,12 @@
                         <div>
                             <p class="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Vendor Passes</p>
                             <div class="flex items-baseline gap-2">
-                                <p class="text-3xl font-bold text-slate-900 dark:text-white"><?= $vendorStats['total'] ?></p>
+                                <p class="text-3xl font-bold text-slate-900 dark:text-white"><?= $vendorSummary['total'] ?></p>
                                 <span class="text-sm text-slate-400 font-normal">total</span>
                             </div>
                             <div class="flex items-center gap-3 mt-2 text-xs">
-                                <span class="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-medium"><span class="size-1.5 rounded-full bg-amber-500"></span> <?= $vendorStats['pending'] ?> Pending</span>
-                                <span class="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium"><span class="size-1.5 rounded-full bg-emerald-500"></span> <?= $vendorStats['active'] ?> Active</span>
+                                <span class="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-medium"><span class="size-1.5 rounded-full bg-amber-500"></span> <?= $vendorSummary['pending'] ?> Pending</span>
+                                <span class="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium"><span class="size-1.5 rounded-full bg-emerald-500"></span> <?= $vendorSummary['active'] ?> Active</span>
                             </div>
                         </div>
                     </div>
