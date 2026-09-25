@@ -175,7 +175,7 @@
                                             title="View Details">
                                             <span class="material-symbols-outlined text-[20px]">search</span>
                                         </button>
-                                        <?php if ($vendor['status'] === 'Approved'): ?>
+                                        <?php if (($canQr ?? true) && $vendor['status'] === 'Approved'): ?>
                                         <button onclick="event.stopPropagation(); window.location.href='<?= base_url('vendors/qr/') ?><?= $vendor['id'] ?>'" class="text-slate-600 hover:text-slate-900 transition-colors" title="QR Pass">
                                             <span class="material-symbols-outlined text-[20px]">qr_code_2</span>
                                         </button>

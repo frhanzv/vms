@@ -26,6 +26,7 @@ class ClientFormFieldModel extends Model
             'invitation'            => 'Invitation Form',
             'staff_pass_request'    => 'Staff Pass Request',
             'visitor_pass_request'  => 'Visitor Pass Request',
+            'vendor_pass_request'   => 'Vendor Pass Request',
         ];
     }
 
@@ -149,6 +150,37 @@ class ClientFormFieldModel extends Model
         ];
     }
 
+    public static function vendorPassFields(): array
+{
+    return [
+            // --- Application Info section ---
+            ['field_key' => 'type_of_application',  'label' => 'Type Of Application'],
+            ['field_key' => 'sub_type',              'label' => 'Sub Type'],
+            ['field_key' => 'resident',              'label' => 'Resident'],
+            ['field_key' => 'vendor_company',        'label' => 'Vendor Company Section (SSM No / Company Name)'],
+            ['field_key' => 'staff_no',              'label' => 'Staff No. (at vendor company)'],
+            ['field_key' => 'ic_passport',            'label' => 'IC / Passport Number'],
+            ['field_key' => 'date_of_birth',          'label' => 'Date Of Birth'],
+            ['field_key' => 'sex',                    'label' => 'Sex'],
+            ['field_key' => 'designation',            'label' => 'Designation'],
+            ['field_key' => 'contact_number',         'label' => 'Contact Number'],
+            ['field_key' => 'email',                  'label' => 'Email Address'],
+            ['field_key' => 'address',                'label' => 'Address Section (Line 1-3 & Postcode)'],
+            ['field_key' => 'visit_details',          'label' => 'Visit Details Section (Person/Contact/Location Visited)'],
+            ['field_key' => 'csp_number',             'label' => 'CSP Number & Expiry Date',        'default_enabled' => false],
+            ['field_key' => 'evetting',                'label' => 'E-Vetting Section',                'default_enabled' => false],
+            ['field_key' => 'pass_expiry',             'label' => 'Pass Expiry Field'],
+            ['field_key' => 'remark',                  'label' => 'Remark Field'],
+            ['field_key' => 'photo_upload',            'label' => 'Photo Upload'],
+            ['field_key' => 'document_upload',         'label' => 'Government ID / Other Documents Upload'],
+            ['field_key' => 'edit_button',             'label' => 'Show Edit Button (Vendor List)'],
+            ['field_key' => 'delete_button',           'label' => 'Show Delete Button (Vendor List)'],
+            ['field_key' => 'approve_button',          'label' => 'Show Approve Button (Vendor List)'],
+            ['field_key' => 'reject_button',           'label' => 'Show Reject Button (Vendor List)'],
+            ['field_key' => 'qr_button',               'label' => 'Show QR Pass Button (Vendor List)'],
+        ];
+    }
+
     /**
      * Returns all field definitions for a form type with per-client enabled state applied.
      * Absence of a record means the field defaults to enabled.
@@ -249,6 +281,10 @@ class ClientFormFieldModel extends Model
 
         if ($formType === 'visitor_pass_request') {
             return self::visitorPassRequestFields();
+        }
+
+        if ($formType === 'vendor_pass_request') {
+            return self::vendorPassFields();
         }
 
         return [];

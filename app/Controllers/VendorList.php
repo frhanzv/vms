@@ -65,6 +65,10 @@ class VendorList extends BaseController
             ];
         }
 
+        $formFieldModel = new \App\Models\ClientFormFieldModel();
+        $companyId      = current_company_id();
+        $cfg            = fn(string $key) => $formFieldModel->isEnabled($companyId, 'vendor_pass_request', $key);
+
         return view('vendors/list', [
             'pageTitle'  => 'Vendor Pass List - SafeG',
             'stats'      => [
@@ -73,10 +77,11 @@ class VendorList extends BaseController
                 'approved' => $approvedCount,
             ],
             'vendorList' => $vendorList,
-            'canEdit'    => has_access('vendor_pass_list', 'edit'),
-            'canDelete'  => has_access('vendor_pass_list', 'delete'),
-            'canApprove' => has_access('vendor_pass_list', 'approve'),
-            'canReject'  => has_access('vendor_pass_list', 'reject'),
+            'canEdit'    => has_access('vendor_pass_list', 'edit') && $cfg('edit_button'),
+            'canDelete'  => has_access('vendor_pass_list', 'delete') && $cfg('delete_button'),
+            'canApprove' => has_access('vendor_pass_list', 'approve') && $cfg('approve_button'),
+            'canReject'  => has_access('vendor_pass_list', 'reject') && $cfg('reject_button'),
+            'canQr'      => $cfg('qr_button'),
             'searchTerm' => $searchTerm,
             'sortBy'     => $sortBy,
             'status'     => $status,

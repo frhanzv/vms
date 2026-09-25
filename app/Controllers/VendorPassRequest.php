@@ -14,6 +14,7 @@ class VendorPassRequest extends BaseController
         $data = [
             'pageTitle' => 'Vendor Pass Request - SafeG',
             'countries' => $countries,
+            'fields'    => $this->vendorFieldToggles(),
         ];
 
         return view('vendors/vendorpassrequest', $data);
@@ -65,7 +66,10 @@ class VendorPassRequest extends BaseController
             return redirect()->to(base_url('vendors'))->with('error', 'Vendor pass record not found.');
         }
 
-        return view('vendors/vendorpassrequest_detail', ['vendor' => $vendor]);
+        return view('vendors/vendorpassrequest_detail', [
+            'vendor' => $vendor,
+            'fields' => $this->vendorFieldToggles(),
+        ]);
     }
 
     public function edit($id)
@@ -91,6 +95,7 @@ class VendorPassRequest extends BaseController
             'vendor'     => $vendor,
             'formAction' => 'vendors/vendorpassrequest/update/' . (int) $id,
             'isEdit'     => true,
+            'fields'     => $this->vendorFieldToggles(),
         ]);
     }
 
@@ -219,5 +224,23 @@ class VendorPassRequest extends BaseController
         if (!empty($otherDocPaths)) {
             $formData['other_doc'] = json_encode($otherDocPaths);
         }
+    }
+
+    /**
+     * field_key => is_enabled map for the current company, from the
+     * 'vendor_pass_request' form type registered in ClientFormFieldModel.
+     * Absence of a saved row means enabled — same default as everywhere else.
+     */
+    private function vendorFieldToggles(): array
+    {
+        helper('feature');
+        $model  = new \App\Models\ClientFormFieldModel();
+        $rows   = $model->getForCompanyForm(current_company_id(), 'vendor_pass_request');
+
+        $toggles = [];
+        foreach ($rows as $row) {
+            $toggles[$row['field_key']] = (bool) $row['is_enabled'];
+        }
+        return $toggles;
     }
 }

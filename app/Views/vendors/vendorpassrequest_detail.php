@@ -39,6 +39,7 @@
                     'Rejected'  => 'bg-red-50 text-red-700',
                     'Suspended' => 'bg-gray-100 text-gray-700',
                 ][$vendor['status'] ?? 'Pending'] ?? 'bg-gray-100 text-gray-700';
+                $on = fn(string $key) => $fields[$key] ?? true;
             ?>
 
             <!-- Page Header -->
@@ -77,12 +78,13 @@
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                         <div class="space-y-2"><label class="<?= $label ?>">Date Of Application</label><input value="<?= $f('date_of_application') ?>" class="<?= $ro ?>" readonly/></div>
-                        <div class="space-y-2"><label class="<?= $label ?>">Type Of Application</label><input value="<?= $f('type_of_application') ?>" class="<?= $ro ?>" readonly/></div>
-                        <div class="space-y-2"><label class="<?= $label ?>">Sub Type</label><input value="<?= $f('sub_type') ?>" class="<?= $ro ?>" readonly/></div>
-                        <div class="space-y-2"><label class="<?= $label ?>">Resident</label><input value="<?= $f('resident') ?>" class="<?= $ro ?>" readonly/></div>
+                        <?php if ($on('type_of_application')): ?><div class="space-y-2"><label class="<?= $label ?>">Type Of Application</label><input value="<?= $f('type_of_application') ?>" class="<?= $ro ?>" readonly/></div><?php endif; ?>
+                        <?php if ($on('sub_type')): ?><div class="space-y-2"><label class="<?= $label ?>">Sub Type</label><input value="<?= $f('sub_type') ?>" class="<?= $ro ?>" readonly/></div><?php endif; ?>
+                        <?php if ($on('resident')): ?><div class="space-y-2"><label class="<?= $label ?>">Resident</label><input value="<?= $f('resident') ?>" class="<?= $ro ?>" readonly/></div><?php endif; ?>
                     </div>
                 </section>
 
+                <?php if ($on('vendor_company')): ?>
                 <!-- Vendor Company -->
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8">
                     <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
@@ -94,6 +96,7 @@
                         <div class="space-y-2"><label class="<?= $label ?>">Company Name</label><input value="<?= $f('vendor_company_name') ?>" class="<?= $ro ?>" readonly/></div>
                     </div>
                 </section>
+                <?php endif; ?>
 
                 <!-- Personal Details -->
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8">
@@ -104,22 +107,29 @@
                     <div class="space-y-6">
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <div class="space-y-2"><label class="<?= $label ?>">Full Name</label><input value="<?= $f('full_name') ?>" class="<?= $ro ?>" readonly/></div>
-                            <div class="space-y-2"><label class="<?= $label ?>">Staff No. (at vendor company)</label><input value="<?= $f('staff_no') ?>" class="<?= $ro ?>" readonly/></div>
+                            <?php if ($on('staff_no')): ?><div class="space-y-2"><label class="<?= $label ?>">Staff No. (at vendor company)</label><input value="<?= $f('staff_no') ?>" class="<?= $ro ?>" readonly/></div><?php endif; ?>
                         </div>
+                        <?php if ($on('ic_passport') || $on('date_of_birth') || $on('sex')): ?>
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <?php if ($on('ic_passport')): ?>
                             <div class="space-y-2"><label class="<?= $label ?>">IC Number</label><input value="<?= esc(mask_ic_passport($vendor['ic_no'] ?? '', '')) ?>" class="<?= $ro ?>" readonly/></div>
                             <div class="space-y-2"><label class="<?= $label ?>">Passport Number</label><input value="<?= esc(mask_ic_passport($vendor['passport_no'] ?? '', '')) ?>" class="<?= $ro ?>" readonly/></div>
-                            <div class="space-y-2"><label class="<?= $label ?>">Date Of Birth</label><input value="<?= $f('dob') ?>" class="<?= $ro ?>" readonly/></div>
-                            <div class="space-y-2"><label class="<?= $label ?>">Sex</label><input value="<?= $f('sex') ?>" class="<?= $ro ?>" readonly/></div>
+                            <?php endif; ?>
+                            <?php if ($on('date_of_birth')): ?><div class="space-y-2"><label class="<?= $label ?>">Date Of Birth</label><input value="<?= $f('dob') ?>" class="<?= $ro ?>" readonly/></div><?php endif; ?>
+                            <?php if ($on('sex')): ?><div class="space-y-2"><label class="<?= $label ?>">Sex</label><input value="<?= $f('sex') ?>" class="<?= $ro ?>" readonly/></div><?php endif; ?>
                         </div>
+                        <?php endif; ?>
+                        <?php if ($on('designation') || $on('contact_number') || $on('email')): ?>
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                            <div class="space-y-2"><label class="<?= $label ?>">Designation</label><input value="<?= $f('designation') ?>" class="<?= $ro ?>" readonly/></div>
-                            <div class="space-y-2"><label class="<?= $label ?>">Contact Number</label><input value="<?= $f('contact_no') ?>" class="<?= $ro ?>" readonly/></div>
-                            <div class="space-y-2"><label class="<?= $label ?>">Email</label><input value="<?= $f('email') ?>" class="<?= $ro ?>" readonly/></div>
+                            <?php if ($on('designation')): ?><div class="space-y-2"><label class="<?= $label ?>">Designation</label><input value="<?= $f('designation') ?>" class="<?= $ro ?>" readonly/></div><?php endif; ?>
+                            <?php if ($on('contact_number')): ?><div class="space-y-2"><label class="<?= $label ?>">Contact Number</label><input value="<?= $f('contact_no') ?>" class="<?= $ro ?>" readonly/></div><?php endif; ?>
+                            <?php if ($on('email')): ?><div class="space-y-2"><label class="<?= $label ?>">Email</label><input value="<?= $f('email') ?>" class="<?= $ro ?>" readonly/></div><?php endif; ?>
                         </div>
+                        <?php endif; ?>
                     </div>
                 </section>
 
+                <?php if ($on('address')): ?>
                 <!-- Address -->
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8">
                     <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
@@ -133,9 +143,11 @@
                         <div class="space-y-2"><label class="<?= $label ?>">Postcode</label><input value="<?= $f('postcode') ?>" class="<?= $ro ?>" readonly/></div>
                     </div>
                 </section>
+                <?php endif; ?>
 
+                <?php if ($on('visit_details')): ?>
                 <!-- Visit Details -->
-                <!--<section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8">
+                <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8">
                     <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
                         <div class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-primary"><span class="material-symbols-outlined">location_on</span></div>
                         <h2 class="text-lg font-bold font-brand text-text-main dark:text-white">Visit Details</h2>
@@ -145,8 +157,10 @@
                         <div class="space-y-2"><label class="<?= $label ?>">Contact No. Of Person Visited</label><input value="<?= $f('contact_no_of_person_visited') ?>" class="<?= $ro ?>" readonly/></div>
                         <div class="space-y-2"><label class="<?= $label ?>">Location Visited</label><input value="<?= $f('location_visited') ?>" class="<?= $ro ?>" readonly/></div>
                     </div>
-                </section>-->
+                </section>
+                <?php endif; ?>
 
+                <?php if ($on('csp_number') || $on('evetting')): ?>
                 <!-- CSP & E-Vetting -->
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8">
                     <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
@@ -154,17 +168,22 @@
                         <h2 class="text-lg font-bold font-brand text-text-main dark:text-white">CSP &amp; E-Vetting</h2>
                     </div>
                     <div class="space-y-6">
+                        <?php if ($on('csp_number')): ?>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <div class="space-y-2"><label class="<?= $label ?>">CSP Number</label><input value="<?= $f('csp_number') ?>" class="<?= $ro ?>" readonly/></div>
                             <div class="space-y-2"><label class="<?= $label ?>">CSP Expiry Date</label><input value="<?= $f('csp_expiry_date') ?>" class="<?= $ro ?>" readonly/></div>
                         </div>
+                        <?php endif; ?>
+                        <?php if ($on('evetting')): ?>
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
                             <div class="space-y-2"><label class="<?= $label ?>">E-Vetting Date Of Application</label><input value="<?= $f('evetting_date_of_application') ?>" class="<?= $ro ?>" readonly/></div>
                             <div class="space-y-2"><label class="<?= $label ?>">E-Vetting Date Of Result</label><input value="<?= $f('evetting_date_of_result') ?>" class="<?= $ro ?>" readonly/></div>
                             <div class="space-y-2"><label class="<?= $label ?>">E-Vetting Result</label><input value="<?= $f('evetting_result') ?>" class="<?= $ro ?>" readonly/></div>
                         </div>
+                        <?php endif; ?>
                     </div>
                 </section>
+                <?php endif; ?>
 
                 <!-- Pass & Documents -->
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8">
@@ -173,11 +192,13 @@
                         <h2 class="text-lg font-bold font-brand text-text-main dark:text-white">Pass &amp; Documents</h2>
                     </div>
                     <div class="space-y-6">
+                        <?php if ($on('pass_expiry') || $on('remark')): ?>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                            <div class="space-y-2"><label class="<?= $label ?>">Pass Expiry</label><input value="<?= $f('pass_expiry') ?>" class="<?= $ro ?>" readonly/></div>
-                            <div class="space-y-2"><label class="<?= $label ?>">Remark</label><input value="<?= $f('remark') ?>" class="<?= $ro ?>" readonly/></div>
+                            <?php if ($on('pass_expiry')): ?><div class="space-y-2"><label class="<?= $label ?>">Pass Expiry</label><input value="<?= $f('pass_expiry') ?>" class="<?= $ro ?>" readonly/></div><?php endif; ?>
+                            <?php if ($on('remark')): ?><div class="space-y-2"><label class="<?= $label ?>">Remark</label><input value="<?= $f('remark') ?>" class="<?= $ro ?>" readonly/></div><?php endif; ?>
                         </div>
-                        <?php if (!empty($vendor['photo'])): ?>
+                        <?php endif; ?>
+                        <?php if ($on('photo_upload') && !empty($vendor['photo'])): ?>
                         <div class="space-y-2">
                             <label class="<?= $label ?>">Photo</label>
                             <img src="<?= base_url('uploads/vendor_photos/' . $vendor['photo']) ?>" alt="Vendor Photo" class="w-32 h-32 object-cover rounded-lg border border-border-color dark:border-gray-700"/>
