@@ -175,6 +175,11 @@
                                             title="View Details">
                                             <span class="material-symbols-outlined text-[20px]">search</span>
                                         </button>
+                                        <?php if ($vendor['status'] === 'Approved'): ?>
+                                        <button onclick="event.stopPropagation(); window.location.href='<?= base_url('vendors/qr/') ?><?= $vendor['id'] ?>'" class="text-slate-600 hover:text-slate-900 transition-colors" title="QR Pass">
+                                            <span class="material-symbols-outlined text-[20px]">qr_code_2</span>
+                                        </button>
+                                        <?php endif; ?>
                                         <?php if (($canApprove ?? false) && in_array($vendor['status'], ['Pending', 'Rejected'], true)): ?>
                                         <button onclick="event.stopPropagation(); confirmApprove(<?= $vendor['id'] ?>)" class="text-emerald-500 hover:text-emerald-700 transition-colors" title="Approve">
                                             <span class="material-symbols-outlined text-[20px]">check_circle</span>

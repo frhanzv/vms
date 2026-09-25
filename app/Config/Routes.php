@@ -21,6 +21,7 @@ $plusAdminHost    = 'role:superadmin,clientsuperadmin,admin,host';
 $routes->get('login', 'Auth::login');
 $routes->post('auth/attemptLogin', 'Auth::attemptLogin');
 $routes->get('auth/logout', 'Auth::logout');
+$routes->get('vendor-pass-qr/(:any)', 'VendorPassQr::show/$1');
 
 $routes->group('api/rfid', function($routes) {
     $routes->get('scan', 'RFID::scan');
@@ -383,6 +384,7 @@ $routes->group('', ['filter' => [$plusAdminOfficer, 'client_feature:staff_pass']
     $routes->get('vendorpassrequest/edit/(:num)', 'VendorPassRequest::edit/$1'); 
     $routes->post('vendorpassrequest/update/(:num)', 'VendorPassRequest::update/$1'); 
     $routes->post('vendors/delete/(:num)', 'VendorList::delete/$1');
+    $routes->get('vendors/qr/(:num)', 'VendorPassQr::generate/$1');
 }); 
 
 // ===========================
