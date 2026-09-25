@@ -57,6 +57,7 @@ class VendorPassRequest extends BaseController
 
     public function view($id)
     {
+        helper('privacy');
         $db     = \Config\Database::connect();
         $vendor = $db->table('vendors')->where('id', (int) $id)->get()->getRowArray();
 
