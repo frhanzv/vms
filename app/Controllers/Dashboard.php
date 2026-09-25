@@ -6,6 +6,7 @@ use App\Models\UserModel;
 use App\Models\InvitationModel;
 use App\Models\InvitationVisitorModel;
 use App\Models\DashboardWidgetPreferenceModel;
+use App\Models\VendorModel;
 
 class Dashboard extends BaseController
 {
