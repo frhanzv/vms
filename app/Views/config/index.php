@@ -5966,7 +5966,7 @@
             }
 
             // Close modal on backdrop click
-            document.getElementById('appConfigModal').addEventListener('click', function (e) {
+            document.getElementById('appConfigModal')?.addEventListener('click', function (e) {
                 if (e.target === this) closeAppConfigModal();
             });
 
@@ -17325,7 +17325,7 @@
             modal.classList.remove('flex');
         }
 
-        document.getElementById('apikeyStatus').addEventListener('change', function () {
+        document.getElementById('apikeyStatus')?.addEventListener('change', function () {
             document.getElementById('apikeyStatusLabel').textContent = this.checked ? 'Active' : 'Inactive';
         });
 
@@ -18413,9 +18413,17 @@
         ];
 
         const canSelectEmailRecipientClient = <?= $canManageAllClientCompanies ? 'true' : 'false' ?>;
+        const initialEmailRecipientData = <?= json_encode($emailRecipientInitialData ?? null, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
 
         document.addEventListener('DOMContentLoaded', function () {
-            if (!canSelectEmailRecipientClient) return;
+            if (!canSelectEmailRecipientClient) {
+                if (initialEmailRecipientData) {
+                    emailRoles = Array.isArray(initialEmailRecipientData.roles) ? initialEmailRecipientData.roles : [];
+                    emailConfig = initialEmailRecipientData.data || {};
+                    renderEmailRecipients();
+                }
+                return;
+            }
             const select = document.getElementById('email-recipient-client-select');
             if (!select) return;
             fetch(`${configBaseUrl}/getAllClients`)
@@ -18438,25 +18446,33 @@
             }
             document.getElementById('emailRecipientsContainer').innerHTML = '<div class="text-center py-4 text-slate-500">Loading configuration...</div>';
             
-            Promise.all([
-                fetch(`${configBaseUrl}/getAllRoles`).then(r => r.json()),
-                fetch(`${configBaseUrl}/getEmailRecipientRolesConfig?client_id=${encodeURIComponent(clientId)}`).then(r => r.json())
-            ]).then(([rolesRes, configRes]) => {
-                emailRoles = [{id: 'host', name: 'host', description: 'Host / Employee'}]; // Insert dynamic host role
-                if (rolesRes.success && Array.isArray(rolesRes.data)) {
-                    // Extract roles and merge
-                    rolesRes.data.forEach(r => {
-                        const slug = String(r.name || '').toLowerCase().replace(/[\s_-]+/g, '');
-                        if (!slug || slug === 'host' || emailRoles.some(role => role.name === slug)) return;
-                        emailRoles.push({ id: slug, name: slug, description: r.description || r.name });
-                    });
+            const controller = new AbortController();
+            const timeout = window.setTimeout(() => controller.abort(), 15000);
+            fetch(`${configBaseUrl}/getEmailRecipientRolesConfig?client_id=${encodeURIComponent(clientId)}`, {
+                signal: controller.signal,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(async response => {
+                const payload = await response.json().catch(() => null);
+                if (!response.ok || !payload || !payload.success) {
+                    throw new Error(payload?.message || `Request failed (${response.status})`);
                 }
-                
-                emailConfig = configRes.success && configRes.data ? configRes.data : {};
+                return payload;
+            })
+            .then(configRes => {
+                emailRoles = Array.isArray(configRes.roles) ? configRes.roles : [];
+                emailConfig = configRes.data || {};
                 renderEmailRecipients();
-            }).catch(err => {
+            })
+            .catch(err => {
                 console.error(err);
-                document.getElementById('emailRecipientsContainer').innerHTML = '<div class="text-center py-4 text-red-500">Failed to load configuration.</div>';
+                const message = err.name === 'AbortError'
+                    ? 'Configuration request timed out. Please try again.'
+                    : `Failed to load configuration: ${String(err.message || 'Unknown error')}`;
+                document.getElementById('emailRecipientsContainer').innerHTML = `<div class="text-center py-4 text-red-500">${message}</div>`;
+            })
+            .finally(() => {
+                window.clearTimeout(timeout);
             });
         }
 

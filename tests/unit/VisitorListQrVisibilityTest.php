@@ -5,7 +5,7 @@ use CodeIgniter\Test\CIUnitTestCase;
 
 final class VisitorListQrVisibilityTest extends CIUnitTestCase
 {
-    public function testInvitationVisitorAppearsOnlyAfterQrWasSent(): void
+    public function testApprovedVisitorsAppearBeforeQrDeliveryForVideoStatus(): void
     {
         $db = \Config\Database::connect([
             'DBDriver' => 'SQLite3',
@@ -43,10 +43,10 @@ final class VisitorListQrVisibilityTest extends CIUnitTestCase
 
         $controller = (new ReflectionClass(VisitorList::class))->newInstanceWithoutConstructor();
         $method = new ReflectionMethod(VisitorList::class, 'applyVisitorListEligibility');
-        $method->invoke($controller, $builder, $db);
+        $method->invoke($controller, $builder);
 
         $ids = array_column($builder->orderBy('iv.id')->get()->getResultArray(), 'id');
-        $this->assertSame(['2', '3', '4'], array_map('strval', $ids));
+        $this->assertSame(['1', '2', '3', '4'], array_map('strval', $ids));
 
         $db->close();
     }
