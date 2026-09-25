@@ -636,7 +636,6 @@ class InvitationEmailSender
                 ];
             }
 
-            $approvalSchedules = $this->getApprovalEmailSchedules($invitation);
             $emailData = [
                 'visitor_name' => $invitation['full_name'],
                 'company' => $invitation['company_name'],
@@ -857,7 +856,9 @@ class InvitationEmailSender
                 'host_name' => $hostName,
                 'host_contact' => $hostContact,
                 'visitor_type' => $invitation['visitor_type_name'] ?? '',
-                'schedules' => ! empty($detailFields['schedule']) ? $approvalSchedules : [],
+                'schedules' => ! empty($detailFields['schedule'])
+                    ? $this->getApprovalEmailSchedules($invitation)
+                    : [],
                 'detail_fields' => $detailFields,
                 'template' => $templateConfig,
                 'intro_line' => $this->emailTemplateService->applyPlaceholders($templateConfig['intro_line'], $placeholderContext),
