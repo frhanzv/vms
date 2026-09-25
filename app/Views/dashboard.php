@@ -342,23 +342,7 @@
                         <div><p class="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Checked Out</p><p class="text-3xl font-bold text-slate-900 dark:text-white"><?= $stats['checkedOut'] ?></p></div>
                     </div>
                 
-                <?php elseif ($wid === 'vendor-summary'): ?>
-                    <!-- Vendor Passes Widget -->
-                    <div onclick="window.location.href='<?= base_url('vendors') ?>'" class="bg-surface-light dark:bg-surface-dark rounded-xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col gap-4 relative overflow-hidden group cursor-pointer hover:border-primary/50 dark:hover:border-primary/50 hover:ring-1 hover:ring-primary/10 transition-all h-full">
-                        <div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><span class="material-symbols-outlined text-6xl text-primary">local_shipping</span></div>
-                        <div class="size-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary"><span class="material-symbols-outlined">local_shipping</span></div>
-                        <div>
-                            <p class="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Vendor Passes</p>
-                            <div class="flex items-baseline gap-2">
-                                <p class="text-3xl font-bold text-slate-900 dark:text-white"><?= $vendorSummary['total'] ?></p>
-                                <span class="text-sm text-slate-400 font-normal">total</span>
-                            </div>
-                            <div class="flex items-center gap-3 mt-2 text-xs">
-                                <span class="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-medium"><span class="size-1.5 rounded-full bg-amber-500"></span> <?= $vendorSummary['pending'] ?> Pending</span>
-                                <span class="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium"><span class="size-1.5 rounded-full bg-emerald-500"></span> <?= $vendorSummary['active'] ?> Active</span>
-                            </div>
-                        </div>
-                    </div>
+                
                 
                 <?php elseif ($wid === 'stat-alerts'): ?>
                     <!-- Security Alerts Stat -->
@@ -401,6 +385,23 @@
                             <?php endforeach; ?>
                         </div>
                         <?php endif; ?>
+                    </div>
+                <?php elseif ($wid === 'vendor-summary'): ?>
+                    <!-- Vendor Passes Widget -->
+                    <div onclick="window.location.href='<?= base_url('vendors') ?>'" class="bg-surface-light dark:bg-surface-dark rounded-xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col gap-4 relative overflow-hidden group cursor-pointer hover:border-primary/50 dark:hover:border-primary/50 hover:ring-1 hover:ring-primary/10 transition-all h-full">
+                        <div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><span class="material-symbols-outlined text-6xl text-primary">local_shipping</span></div>
+                        <div class="size-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary"><span class="material-symbols-outlined">local_shipping</span></div>
+                        <div>
+                            <p class="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Vendor Passes</p>
+                            <div class="flex items-baseline gap-2">
+                                <p class="text-3xl font-bold text-slate-900 dark:text-white"><?= $vendorSummary['total'] ?></p>
+                                <span class="text-sm text-slate-400 font-normal">total</span>
+                            </div>
+                            <div class="flex items-center gap-3 mt-2 text-xs">
+                                <span class="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-medium"><span class="size-1.5 rounded-full bg-amber-500"></span> <?= $vendorSummary['pending'] ?> Pending</span>
+                                <span class="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium"><span class="size-1.5 rounded-full bg-emerald-500"></span> <?= $vendorSummary['active'] ?> Active</span>
+                            </div>
+                        </div>
                     </div>
                 <?php elseif ($wid === 'occupancy-chart'): ?>
                     <!-- Visitor Occupancy Chart -->
