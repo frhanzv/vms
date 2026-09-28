@@ -187,6 +187,12 @@ class VendorPassRequest extends BaseController
             'pass_expiry'                   => $r('pass_expiry') ?: null,
             'status'                        => $r('status') ?: 'Pending',
             'remark'                        => $r('remark'),
+
+            // Card Issuance (from KPK's real Closed List fields)
+            'receipt_no'                    => $r('receipt_no'),
+            'vehicle_registration'          => $r('vehicle_registration'),
+            'card_type'                     => $r('card_type') ?: null,
+            'card_status'                   => $r('card_status') ?: 'Inactive',
         ];
     }
 
@@ -223,6 +229,15 @@ class VendorPassRequest extends BaseController
         }
         if (!empty($otherDocPaths)) {
             $formData['other_doc'] = json_encode($otherDocPaths);
+        }
+
+        foreach (['mysejahtera_cert' => 'uploads/mysejahtera', 'mysejahtera_cert_2' => 'uploads/mysejahtera', 'facial_photo' => 'uploads/facial_photos'] as $field => $dir) {
+            $file = $this->request->getFile($field);
+            if ($file && $file->isValid() && !$file->hasMoved()) {
+                $newName = $file->getRandomName();
+                $file->move($dir, $newName);
+                $formData[$field] = $newName;
+            }
         }
     }
 

@@ -373,6 +373,69 @@
                     </div>
                 </section>
 
+                <?php if ($on('card_issuance')): ?>
+                <!-- Card Issuance -->
+                <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 p-6 sm:p-8">
+                    <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
+                        <div class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-primary">
+                            <span class="material-symbols-outlined">badge</span>
+                        </div>
+                        <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Card Issuance</h2>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div class="space-y-2">
+                            <label class="<?= $labelClass ?>">Receipt No</label>
+                            <input name="receipt_no" value="<?= $v('receipt_no') ?>" class="<?= $inputClass ?>" type="text" maxlength="50"/>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="<?= $labelClass ?>">Vehicle Registration</label>
+                            <input name="vehicle_registration" value="<?= $v('vehicle_registration') ?>" class="<?= $inputClass ?>" type="text" maxlength="20"/>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="<?= $labelClass ?>">Card Type</label>
+                            <select name="card_type" class="<?= $inputClass ?>">
+                                <option value="">-- Select --</option>
+                                <option value="Permanent" <?= $sel('card_type', 'Permanent') ?>>Permanent</option>
+                                <option value="Temporary" <?= $sel('card_type', 'Temporary') ?>>Temporary</option>
+                            </select>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="<?= $labelClass ?>">Card Status</label>
+                            <select name="card_status" class="<?= $inputClass ?>">
+                                <option value="Inactive" <?= $sel('card_status', 'Inactive') ?>>Inactive</option>
+                                <option value="Active" <?= $sel('card_status', 'Active') ?>>Active</option>
+                            </select>
+                        </div>
+                    </div>
+                </section>
+                <?php endif; ?>
+
+                <?php if ($on('additional_verification')): ?>
+                <!-- Additional Verification -->
+                <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 p-6 sm:p-8">
+                    <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
+                        <div class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-primary">
+                            <span class="material-symbols-outlined">verified</span>
+                        </div>
+                        <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Additional Verification</h2>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                        <div class="space-y-2">
+                            <label class="<?= $labelClass ?>">MySejahtera Certificate</label>
+                            <input name="mysejahtera_cert" class="<?= $inputClass ?> pt-2.5" type="file" accept="image/*,application/pdf"/>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="<?= $labelClass ?>">MySejahtera Certificate (2nd Dose)</label>
+                            <input name="mysejahtera_cert_2" class="<?= $inputClass ?> pt-2.5" type="file" accept="image/*,application/pdf"/>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="<?= $labelClass ?>">Facial Identity Photo</label>
+                            <input name="facial_photo" class="<?= $inputClass ?> pt-2.5" type="file" accept="image/*"/>
+                        </div>
+                    </div>
+                </section>
+                <?php endif; ?>
+
                 <!-- Actions -->
                 <div class="flex justify-end gap-3 pb-8">
                     <a href="<?= base_url('vendors') ?>" class="h-12 px-6 rounded-lg border border-border-color dark:border-gray-700 text-text-main dark:text-gray-200 font-brand font-medium flex items-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
