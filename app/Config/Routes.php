@@ -28,6 +28,7 @@ $routes->group('api/rfid', function($routes) {
     $routes->get('scan-lane', 'RFID::scanLane');
     $routes->get('status', 'RFID::status');
     $routes->get('test-connection', 'RFID::testConnection');
+    $routes->get('api/vendor-rfid/scan', 'VendorRFID::scan');
 });
 
 $routes->post('api/receive-worker-count', 'Api\WorkerCountReceiver::receive');

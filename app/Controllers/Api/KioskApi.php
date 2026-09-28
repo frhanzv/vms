@@ -607,7 +607,7 @@ class KioskApi extends BaseController
      *   - invitation_visitors record created/updated
      *   - VisitorCardLog entry created
      */
-    public function insertVendorPassCard(): \CodeIgniter\HTTP\Response
+    /**public function insertVendorPassCard(): \CodeIgniter\HTTP\Response
     {
         $body         = $this->request->getJSON(true) ?? $this->request->getPost();
         $cardId       = trim($body['cardId']       ?? $body['card_id']       ?? '');
@@ -691,6 +691,79 @@ class KioskApi extends BaseController
             'message'      => 'Card assigned successfully',
             'cardId'       => $cardId,
             'invitationId' => $invitationId,
+        ]);
+    }*/
+
+    /**
+     * REPLACE the existing insertVendorPassCard() method
+     * Why: the original method was a stopgap written before the `vendors` table
+     * existed, so it bound cards to `invitations` instead. Now that vendor
+     * passes have their own table, this corrects it to bind against `vendors`
+     * and log to `vendor_card_logs` — otherwise vendor card assignments from
+     * the mobile app would silently create phantom invitation records instead
+     * of updating the real vendor pass.
+     *
+     * POST /api/vendorpass/insertVendorPassCard
+     * Android sends: { "cardId": "...", "vendorId": 123 }
+     */
+    public function insertVendorPassCard(): \CodeIgniter\HTTP\Response
+    {
+        $body     = $this->request->getJSON(true) ?? $this->request->getPost();
+        $cardId   = trim($body['cardId'] ?? $body['card_id'] ?? '');
+        $vendorId = (int) ($body['vendorId'] ?? $body['vendor_id'] ?? 0);
+
+        if ($cardId === '' || $vendorId === 0) {
+            return $this->failValidationErrors('cardId and vendorId are required');
+        }
+
+        $db     = \Config\Database::connect();
+        $vendor = $db->table('vendors')->where('id', $vendorId)->get()->getRowArray();
+
+        if (!$vendor) {
+            return $this->failNotFound('Vendor pass not found');
+        }
+
+        if ($vendor['status'] !== 'Approved') {
+            return $this->failForbidden("Vendor pass status is '{$vendor['status']}' — must be Approved before a card can be assigned");
+        }
+
+        $cardModel = new \App\Models\VisitorCardModel();
+        $card      = $cardModel->where('card_id', $cardId)->first();
+
+        if (!$card) {
+            return $this->failNotFound("Card '{$cardId}' not found in VMS");
+        }
+
+        if ($card['status'] !== 'active') {
+            return $this->failForbidden("Card '{$cardId}' is not available (status: {$card['status']})");
+        }
+
+        // Bind the card to this vendor pass (checked by VendorRFID::scan on check-in)
+        $db->table('vendors')->where('id', $vendorId)->update(['card_id' => $card['id']]);
+
+        // Mark card as in_use
+        $cardModel->update($card['id'], ['status' => 'in_use']);
+
+        // Open a visit cycle immediately, same as the original method auto-approved + checked in
+        $db->table('vendor_visits')->insert([
+            'vendor_id'      => $vendorId,
+            'vendor_card_id' => (int) $card['id'],
+            'check_in_time'  => date('Y-m-d H:i:s'),
+            'created_at'     => date('Y-m-d H:i:s'),
+        ]);
+
+        $db->table('vendor_card_logs')->insert([
+            'vendor_card_id' => (int) $card['id'],
+            'vendor_id'       => $vendorId,
+            'action'          => 'assigned',
+            'scanned_at'      => date('Y-m-d H:i:s'),
+            'created_at'      => date('Y-m-d H:i:s'),
+        ]);
+
+        return $this->respond([
+            'success' => true,
+            'message' => 'Card assigned and vendor checked in.',
+            'vendor'  => $vendor['full_name'],
         ]);
     }
 
