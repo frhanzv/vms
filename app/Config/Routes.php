@@ -388,6 +388,11 @@ $routes->group('', ['filter' => [$plusAdminOfficer, 'client_feature:staff_pass']
     $routes->post('vendors/vendorpassrequest/delete/(:num)', 'VendorPassRequest::delete/$1'); 
     $routes->post('vendors/delete/(:num)', 'VendorList::delete/$1');
     $routes->get('vendors/qr/(:num)', 'VendorPassQr::generate/$1');
+    $routes->get('vendors/closed-list', 'VendorClosedList::index');
+    $routes->get('vendors/printing-list', 'VendorPrintingList::index');
+    $routes->post('vendors/printing-list/mark-printed/(:num)', 'VendorPrintingList::markPrinted/$1');
+    $routes->get('vendors/issuance-list', 'VendorIssuanceList::index');
+    $routes->post('vendors/issuance-list/issue/(:num)', 'VendorIssuanceList::issue/$1');
 }); 
 
 // ===========================
