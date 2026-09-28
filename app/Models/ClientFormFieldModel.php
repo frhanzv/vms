@@ -173,6 +173,8 @@ class ClientFormFieldModel extends Model
             ['field_key' => 'remark',                  'label' => 'Remark Field'],
             ['field_key' => 'photo_upload',            'label' => 'Photo Upload'],
             ['field_key' => 'document_upload',         'label' => 'Government ID / Other Documents Upload'],
+            ['field_key' => 'card_issuance', 'label' => 'Card Issuance Section (Receipt/Vehicle/Card Type/Status)', 'default_enabled' => false],
+            ['field_key' => 'additional_verification', 'label' => 'Additional Verification (MySejahtera/Facial Photo)', 'default_enabled' => false],
             ['field_key' => 'edit_button',             'label' => 'Show Edit Button (Vendor List)'],
             ['field_key' => 'delete_button',           'label' => 'Show Delete Button (Vendor List)'],
             ['field_key' => 'approve_button',          'label' => 'Show Approve Button (Vendor List)'],
