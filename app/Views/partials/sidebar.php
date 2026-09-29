@@ -108,55 +108,42 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
 
             <!-- Vendor Pass List -->
             <?php if (client_feature_enabled('vendor_pass') && has_access('vendor_pass_list', 'view')): ?>
-            <div x-data="{ openVendor: <?= $isVendor ? 'true' : 'false' ?> }">
-                <button type="button" @click="openVendor = !openVendor"
-                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= $isVendor ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
-                    <div class="flex items-center gap-3">
-                        <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">local_shipping</span>
-                        <p class="text-sm <?= $isVendor ? 'font-semibold' : 'font-medium' ?>">Vendor Pass List</p>
-                    </div>
-                    <span class="material-symbols-outlined text-[18px] transition-transform duration-200" :class="openVendor ? 'rotate-180' : ''">expand_more</span>
-                </button>
-                <div x-show="openVendor"
-                    x-transition:enter="transition ease-out duration-150"
-                    x-transition:enter-start="opacity-0 -translate-y-1"
-                    x-transition:enter-end="opacity-100 translate-y-0"
-                    x-transition:leave="transition ease-in duration-100"
-                    x-transition:leave-start="opacity-100 translate-y-0"
-                    x-transition:leave-end="opacity-0 -translate-y-1"
-                    class="ml-4 mt-1 flex flex-col gap-1">
-                    <a href="<?= base_url('vendors') ?>"
-                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'vendors' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
-                        <span class="w-1.5 h-1.5 rounded-full <?= $current == 'vendors' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
-                        Pass List
-                    </a>
-                    <a href="<?= base_url('vendors/vendorpassrequest') ?>"
-                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'vendors/vendorpassrequest' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
-                        <span class="w-1.5 h-1.5 rounded-full <?= $current == 'vendors/vendorpassrequest' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
-                        New Request
-                    </a>
-                    <a href="<?= base_url('vendors/process-list') ?>"
-                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'vendors/process-list' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
-                        <span class="w-1.5 h-1.5 rounded-full <?= $current == 'vendors/process-list' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
-                        Process List
-                    </a>
-                    <a href="<?= base_url('vendors/printing-list') ?>"
-                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'vendors/printing-list' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
-                        <span class="w-1.5 h-1.5 rounded-full <?= $current == 'vendors/printing-list' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
-                        Printing List
-                    </a>
-                    <a href="<?= base_url('vendors/issuance-list') ?>"
-                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'vendors/issuance-list' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
-                        <span class="w-1.5 h-1.5 rounded-full <?= $current == 'vendors/issuance-list' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
-                        Issuance List
-                    </a>
-                    <a href="<?= base_url('vendors/closed-list') ?>"
-                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'vendors/closed-list' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
-                        <span class="w-1.5 h-1.5 rounded-full <?= $current == 'vendors/closed-list' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
-                        Closed List
-                    </a>
-                </div>
-            </div>
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?= $current == 'vendors' ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white' ?> transition-colors group" href="<?= base_url('vendors') ?>">
+                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">local_shipping</span>
+                    <p class="text-sm <?= $current == 'vendors' ? 'font-semibold' : 'font-medium' ?>">Vendor Pass List</p>
+                </a>
+            <?php endif; ?>
+
+            <!-- Vendor Process List -->
+            <?php if (client_feature_enabled('vendor_pass') && has_access('vendor_pass_list', 'view')): ?>
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?= $current == 'vendors/process-list' ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white' ?> transition-colors group" href="<?= base_url('vendors/process-list') ?>">
+                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">pending_actions</span>
+                    <p class="text-sm <?= $current == 'vendors/process-list' ? 'font-semibold' : 'font-medium' ?>">Vendor Process List</p>
+                </a>
+            <?php endif; ?>
+
+            <!-- Vendor Printing List -->
+            <?php if (client_feature_enabled('vendor_pass') && has_access('vendor_pass_list', 'view')): ?>
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?= $current == 'vendors/printing-list' ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white' ?> transition-colors group" href="<?= base_url('vendors/printing-list') ?>">
+                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">print</span>
+                    <p class="text-sm <?= $current == 'vendors/printing-list' ? 'font-semibold' : 'font-medium' ?>">Vendor Printing List</p>
+                </a>
+            <?php endif; ?>
+
+            <!-- Vendor Issuance List -->
+            <?php if (client_feature_enabled('vendor_pass') && has_access('vendor_pass_list', 'view')): ?>
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?= $current == 'vendors/issuance-list' ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white' ?> transition-colors group" href="<?= base_url('vendors/issuance-list') ?>">
+                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">badge</span>
+                    <p class="text-sm <?= $current == 'vendors/issuance-list' ? 'font-semibold' : 'font-medium' ?>">Vendor Issuance List</p>
+                </a>
+            <?php endif; ?>
+
+            <!-- Vendor Closed List -->
+            <?php if (client_feature_enabled('vendor_pass') && has_access('vendor_pass_list', 'view')): ?>
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?= $current == 'vendors/closed-list' ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white' ?> transition-colors group" href="<?= base_url('vendors/closed-list') ?>">
+                    <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">folder_off</span>
+                    <p class="text-sm <?= $current == 'vendors/closed-list' ? 'font-semibold' : 'font-medium' ?>">Vendor Closed List</p>
+                </a>
             <?php endif; ?>
 
             <!-- Visitor Workflow -->
