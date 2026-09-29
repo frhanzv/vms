@@ -133,6 +133,41 @@
                         <div style="font-size:2.4mm; font-family:'Courier New',monospace; margin-top:0.5mm;">Valid Until: ${card.valid_until}</div>
                         <div style="font-size:2.2mm; opacity:.75; margin-top:0.5mm; font-family:'Courier New',monospace;">${card.receipt_no}</div>
                     </div>
+                </div>` + cardBackMarkup(card);
+        }
+
+        /*
+         * Back of the card — matches KPK's real print job, which prints
+         * every card as TWO pages: front (photo) + back (terms &
+         * conditions and a signature line). We don't have KPK's actual
+         * back-of-card artwork or legal wording (proprietary/government
+         * text), so this is an original layout at the same size with
+         * placeholder terms — replace TERMS_TEXT below with your
+         * company's actual wording.
+         */
+        const TERMS_TEXT = [
+            "This pass remains the property of the issuing company and must be returned upon request or on expiry.",
+            "This pass must be worn visibly at all times while on the premises.",
+            "Loss of this pass must be reported to security immediately.",
+            "This pass is not transferable and may only be used by the person named on it.",
+        ];
+
+        function cardBackMarkup(card) {
+            const typeClass = String(card.card_type).toLowerCase() === 'permanent' ? 'type-permanent' : 'type-temporary';
+            const terms = TERMS_TEXT.map((t, i) => `<li style="margin-bottom:1.5mm;">${i + 1}. ${t}</li>`).join('');
+            return `
+                <div class="card-page ${typeClass}" style="background:#fff; color:#1f2937; border:0.3mm solid #d1d5db;">
+                    <div style="padding:4mm; display:flex; flex-direction:column; height:100%; box-sizing:border-box;">
+                        <div style="font-size:2.6mm; font-weight:700; text-align:center; margin-bottom:2mm; text-transform:uppercase;">Terms &amp; Conditions</div>
+                        <ol style="list-style:none; padding:0; margin:0; font-size:2.2mm; line-height:1.3;">
+                            ${terms}
+                        </ol>
+                        <div style="margin-top:auto; text-align:center; font-size:2.2mm;">
+                            <div style="font-size:2mm; opacity:.7;">${card.company}</div>
+                            <div style="border-top:0.2mm solid #9ca3af; width:80%; margin:6mm auto 1mm;"></div>
+                            <div style="font-size:2mm;">Authorized Signature</div>
+                        </div>
+                    </div>
                 </div>`;
         }
 
