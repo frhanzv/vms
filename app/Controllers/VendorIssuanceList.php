@@ -6,6 +6,11 @@ namespace App\Controllers;
  * Issuance List stage: card printed (receipt_no set) but not yet handed
  * over/activated (card_status still Inactive). Handing it over sets
  * card_status = Active, which moves it into the Closed List.
+ *
+ * Updated to capture who physically collected the card — matching KPK's
+ * real issueCards()/finishPortPassProcessing() action, which records the
+ * collector's name, IC/passport, and the physical card ID before closing
+ * the pass out. Previously this just flipped a flag with no audit trail.
  */
 class VendorIssuanceList extends BaseController
 {
@@ -64,15 +69,47 @@ class VendorIssuanceList extends BaseController
         ]);
     }
 
-    /** Hands the card over to the vendor — activates it, which moves it to the Closed List. */
+    /**
+     * Hands the card over to the vendor — activates it, which moves it to
+     * the Closed List. Now requires the collector's name and IC/passport
+     * (the person standing in front of the counter collecting the card) —
+     * the same audit trail KPK's real Issue Cards action records before it
+     * closes the pass out. (This table's existing `card_id` column is a
+     * separate INT foreign-key-shaped field, not touched here.)
+     */
     public function issue($id)
     {
         helper('access');
         if (! has_access('vendor_pass_list', 'edit')) {
             return $this->response->setJSON(['success' => false, 'message' => 'Not allowed.']);
         }
-        $db = \Config\Database::connect();
-        $db->table('vendors')->where('id', (int) $id)->update(['card_status' => 'Active']);
-        return $this->response->setJSON(['success' => true, 'message' => 'Card issued — moved to Closed List.']);
+
+        $body                = $this->request->getJSON(true) ?? [];
+        $collectorName       = trim((string) ($body['collector_name'] ?? ''));
+        $collectorIcPassport = trim((string) ($body['collector_ic_passport'] ?? ''));
+
+        if ($collectorName === '' || $collectorIcPassport === '') {
+            return $this->response->setJSON(['success' => false, 'message' => 'Please enter the collector\'s name and IC/passport before issuing the card.']);
+        }
+
+        $db      = \Config\Database::connect();
+        $builder = $db->table('vendors')->where('id', (int) $id);
+        if (! is_platform_superadmin()) {
+            $builder->where('company_id', current_company_id());
+        }
+        $vendor = $builder->get()->getRowArray();
+        if (! $vendor) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Record not found.']);
+        }
+
+        $db->table('vendors')->where('id', (int) $id)->update([
+            'card_status'           => 'Active',
+            'collector_name'        => $collectorName,
+            'collector_ic_passport' => $collectorIcPassport,
+            'issued_by'             => (string) (session()->get('full_name') ?: session()->get('username')),
+            'issued_at'             => date('Y-m-d H:i:s'),
+        ]);
+
+        return $this->response->setJSON(['success' => true, 'message' => 'Card issued to ' . $collectorName . ' — moved to Closed List.']);
     }
 }

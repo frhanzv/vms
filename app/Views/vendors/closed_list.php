@@ -101,11 +101,13 @@
                             <th class="p-3 border-b dark:border-gray-600">Card ID</th>
                             <th class="p-3 border-b dark:border-gray-600">Card Status</th>
                             <th class="p-3 border-b dark:border-gray-600">Card Expiry</th>
+                            <th class="p-3 border-b dark:border-gray-600">Collected By</th>
+                            <th class="p-3 border-b dark:border-gray-600">Issued At</th>
                         </tr>
                     </thead>
                     <tbody class="text-gray-600 dark:text-gray-300">
                         <?php if (empty($closedList)): ?>
-                        <tr><td colspan="12" class="p-8 text-center text-gray-500">No closed vendor pass records found.</td></tr>
+                        <tr><td colspan="14" class="p-8 text-center text-gray-500">No closed vendor pass records found.</td></tr>
                         <?php else: foreach ($closedList as $row): ?>
                         <tr class="border-b border-gray-100 dark:border-gray-700">
                             <td class="p-3"><?= $row['no'] ?></td>
@@ -122,6 +124,8 @@
                                 <span class="px-2 py-0.5 rounded-full text-[10px] font-bold <?= $row['card_status'] === 'Active' ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-700' ?>"><?= esc($row['card_status']) ?></span>
                             </td>
                             <td class="p-3"><?= esc($row['card_expiry']) ?></td>
+                            <td class="p-3"><?= esc($row['collector_name']) ?></td>
+                            <td class="p-3"><?= esc($row['issued_at']) ?></td>
                         </tr>
                         <?php endforeach; endif; ?>
                     </tbody>

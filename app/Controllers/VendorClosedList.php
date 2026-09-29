@@ -92,6 +92,8 @@ class VendorClosedList extends BaseController
                 'card_id'              => $row['card_id'] ?? '-',
                 'card_status'          => $row['card_status'],
                 'card_expiry'          => $row['pass_expiry'] ? date('d/m/Y', strtotime($row['pass_expiry'])) : '-',
+                'collector_name'       => $row['collector_name'] ?? '-',
+                'issued_at'            => ! empty($row['issued_at']) ? date('d/m/Y H:i', strtotime($row['issued_at'])) : '-',
             ];
         }
 
