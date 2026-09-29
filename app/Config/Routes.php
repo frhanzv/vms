@@ -393,7 +393,7 @@ $routes->group('', ['filter' => [$plusAdminOfficer, 'client_feature:staff_pass']
     $routes->post('vendors/printing-list/mark-printed/(:num)', 'VendorPrintingList::markPrinted/$1');
     $routes->get('vendors/issuance-list', 'VendorIssuanceList::index');
     $routes->post('vendors/issuance-list/issue/(:num)', 'VendorIssuanceList::issue/$1');
-}); 
+    }); 
 
 // ===========================
 // Visitor Pass Request

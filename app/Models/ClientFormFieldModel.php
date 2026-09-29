@@ -181,7 +181,7 @@ class ClientFormFieldModel extends Model
             ['field_key' => 'reject_button',           'label' => 'Show Reject Button (Vendor List)'],
             ['field_key' => 'qr_button',               'label' => 'Show QR Pass Button (Vendor List)'],
             ['field_key' => 'print_button',            'label' => 'Show Print Button (Vendor List)'],
-            
+            ['field_key' => 'direct_close', 'label' => 'Direct Close (skip Printing/Issuance, activate card immediately on approval)', 'default_enabled' => false],
         ];
     }
 

@@ -180,13 +180,19 @@
                                             <span class="material-symbols-outlined text-[20px]">qr_code_2</span>
                                         </button>
                                         <?php endif; ?>
-                                        <?php if (($canApprove ?? false) && in_array($vendor['status'], ['Pending', 'Rejected'], true)): ?>
-                                        <button onclick="event.stopPropagation(); confirmApprove(<?= $vendor['id'] ?>)" class="text-emerald-500 hover:text-emerald-700 transition-colors" title="Approve">
+                                        <?php if ($vendor['can_approve'] ?? false): ?>
+                                        <button type="button"
+                                            data-id="<?= (int) $vendor['id'] ?>" data-name="<?= esc($vendor['full_name'], 'attr') ?>" data-app="<?= esc($vendor['app_no'], 'attr') ?>"
+                                            onclick="event.stopPropagation(); openApprove(this)"
+                                            class="text-emerald-500 hover:text-emerald-700 transition-colors" title="Approve">
                                             <span class="material-symbols-outlined text-[20px]">check_circle</span>
                                         </button>
                                         <?php endif; ?>
-                                        <?php if (($canReject ?? false) && in_array($vendor['status'], ['Pending', 'Approved'], true)): ?>
-                                        <button onclick="event.stopPropagation(); confirmReject(<?= $vendor['id'] ?>)" class="text-red-500 hover:text-red-700 transition-colors" title="Reject">
+                                        <?php if ($vendor['can_reject'] ?? false): ?>
+                                        <button type="button"
+                                            data-id="<?= (int) $vendor['id'] ?>" data-name="<?= esc($vendor['full_name'], 'attr') ?>" data-app="<?= esc($vendor['app_no'], 'attr') ?>"
+                                            onclick="event.stopPropagation(); openReject(this)"
+                                            class="text-red-500 hover:text-red-700 transition-colors" title="Reject">
                                             <span class="material-symbols-outlined text-[20px]">cancel</span>
                                         </button>
                                         <?php endif; ?>
@@ -211,6 +217,9 @@
                                     <span class="px-2.5 py-1 rounded-full text-[11px] font-bold <?= $badgeClass[$vendor['status']] ?? 'bg-gray-100 text-gray-700' ?>">
                                         <?= esc($vendor['status']) ?>
                                     </span>
+                                    <?php if (!empty($vendor['awaiting'])): ?>
+                                    <p class="text-[10px] text-gray-400 mt-1"><?= esc($vendor['awaiting']) ?></p>
+                                    <?php endif; ?>
                                 </td>
                                 <td class="p-4"><?= esc($vendor['pass_expiry']) ?></td>
                             </tr>
@@ -292,36 +301,132 @@
 
         </div>
     </main>
+
+    <!-- Approve Modal -->
+    <div id="approveModal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg max-w-sm w-full p-6">
+            <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-1">Approve Vendor Pass</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4"><span id="approveName"></span> — <span id="approveApp"></span></p>
+            <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Remark (optional)</label>
+            <textarea id="approveRemark" rows="2" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white rounded px-3 py-2 text-sm mb-4"></textarea>
+            <div class="flex justify-end gap-2">
+                <button type="button" onclick="closeModal('approveModal')" class="px-4 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm font-medium">Cancel</button>
+                <button type="button" id="approveSubmitBtn" onclick="submitApprove()" class="px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold">Approve</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reject Modal -->
+    <div id="rejectModal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg max-w-sm w-full p-6">
+            <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-1">Reject Vendor Pass</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4"><span id="rejectName"></span> — <span id="rejectApp"></span></p>
+            <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Reason <span class="text-red-500">*</span></label>
+            <select id="rejectReasonId" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white rounded px-3 py-2 text-sm mb-3">
+                <option value="">-- Select a reason --</option>
+                <?php foreach (($rejectReasons ?? []) as $r): ?>
+                <option value="<?= (int) $r['id'] ?>"><?= esc($r['reason']) ?></option>
+                <?php endforeach; ?>
+            </select>
+            <?php if (empty($rejectReasons)): ?>
+            <p class="text-xs text-amber-600 dark:text-amber-400 mb-3">No active reject reasons are configured yet — add some under Config, or a remark alone won't be accepted.</p>
+            <?php endif; ?>
+            <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Remark (optional)</label>
+            <textarea id="rejectRemark" rows="2" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white rounded px-3 py-2 text-sm mb-4"></textarea>
+            <div class="flex justify-end gap-2">
+                <button type="button" onclick="closeModal('rejectModal')" class="px-4 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm font-medium">Cancel</button>
+                <button type="button" id="rejectSubmitBtn" onclick="submitReject()" class="px-4 py-2 rounded bg-red-600 hover:bg-red-700 text-white text-sm font-semibold">Reject</button>
+            </div>
+        </div>
+    </div>
     <script>
         function confirmDelete(id) {
             if (!confirm('Are you sure you want to delete this vendor pass record? This action cannot be undone.')) return;
             fetch('<?= base_url('vendors/delete/') ?>' + id, {
                 method: 'POST',
                 headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': '<?= csrf_hash() ?>' },
-            }).then(r => r.ok ? location.reload() : alert('Delete failed.'));
+            })
+                .then(r => r.ok ? location.reload() : alert('Delete failed. Please try again.'))
+                .catch(() => alert('Could not reach the server. Please check your connection and try again.'));
         }
 
-        function confirmApprove(id) {
-            if (!confirm('Approve this vendor pass?')) return;
-            fetch('<?= base_url('vendors/approve') ?>', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '<?= csrf_hash() ?>' },
-                body: JSON.stringify({ id: id }),
-            })
-                .then(r => r.json())
-                .then(data => { alert(data.message); if (data.success) location.reload(); });
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
         }
 
-        function confirmReject(id) {
-            const reason = prompt('Reason for rejecting this vendor pass (optional):', '');
-            if (reason === null) return; // cancelled
-            fetch('<?= base_url('vendors/reject') ?>', {
+        let activeApproveId = null;
+        let activeRejectId  = null;
+
+        function openApprove(btn) {
+            activeApproveId = btn.dataset.id;
+            document.getElementById('approveName').textContent = btn.dataset.name;
+            document.getElementById('approveApp').textContent = btn.dataset.app;
+            document.getElementById('approveRemark').value = '';
+            document.getElementById('approveModal').classList.remove('hidden');
+        }
+
+        function openReject(btn) {
+            activeRejectId = btn.dataset.id;
+            document.getElementById('rejectName').textContent = btn.dataset.name;
+            document.getElementById('rejectApp').textContent = btn.dataset.app;
+            document.getElementById('rejectReasonId').value = '';
+            document.getElementById('rejectRemark').value = '';
+            document.getElementById('rejectModal').classList.remove('hidden');
+        }
+
+        function postAction(url, payload, submitBtnId) {
+            const btn = document.getElementById(submitBtnId);
+            btn.disabled = true;
+            const originalText = btn.textContent;
+            btn.textContent = 'Please wait…';
+
+            return fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '<?= csrf_hash() ?>' },
-                body: JSON.stringify({ id: id, reason: reason }),
+                body: JSON.stringify(payload),
             })
-                .then(r => r.json())
-                .then(data => { alert(data.message); if (data.success) location.reload(); });
+                .then(r => {
+                    if (!r.ok) throw new Error('http_' + r.status);
+                    return r.json();
+                })
+                .then(data => {
+                    alert(data.message);
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        btn.disabled = false;
+                        btn.textContent = originalText;
+                    }
+                })
+                .catch(err => {
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                    if (String(err.message).startsWith('http_')) {
+                        alert('Something went wrong on the server (' + err.message.replace('http_', '') + '). If this keeps happening, check that all migrations have been run.');
+                    } else {
+                        alert('Could not reach the server. Please check your connection and try again.');
+                    }
+                });
+        }
+
+        function submitApprove() {
+            postAction('<?= base_url('vendors/approve') ?>', {
+                id: activeApproveId,
+                remark: document.getElementById('approveRemark').value.trim(),
+            }, 'approveSubmitBtn');
+        }
+
+        function submitReject() {
+            const reasonId = document.getElementById('rejectReasonId').value;
+            if (!reasonId) {
+                alert('Please select a reason for rejecting this vendor pass.');
+                return;
+            }
+            postAction('<?= base_url('vendors/reject') ?>', {
+                id: activeRejectId,
+                reject_reason_id: reasonId,
+                remark: document.getElementById('rejectRemark').value.trim(),
+            }, 'rejectSubmitBtn');
         }
 
         document.getElementById('vendorPerPageSelect')?.addEventListener('change', function () {
