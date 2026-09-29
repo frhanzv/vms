@@ -395,6 +395,8 @@ $routes->group('', ['filter' => [$plusAdminOfficer, 'client_feature:staff_pass']
     $routes->post('vendors/issuance-list/issue/(:num)', 'VendorIssuanceList::issue/$1');
     $routes->post('vendors/approve', 'VendorList::approve');
     $routes->post('vendors/reject', 'VendorList::reject');
+    $routes->get('vendors/process-list', 'VendorProcessList::index');
+    $routes->post('vendors/process-list/assign-card-type/(:num)', 'VendorProcessList::assignCardType/$1');
     }); 
 
 // ===========================
