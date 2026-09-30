@@ -51,6 +51,8 @@ class VendorProcessDetail extends BaseController
             $card = $db->table('visitor_cards')->where('id', (int) $vendor['card_id'])->get()->getRowArray();
         }
 
+        $licenses = $db->table('vendor_driving_licenses')->where('vendor_id', (int) $id)->orderBy('id', 'DESC')->get()->getResultArray();
+
         $rejectReasons = [];
         try {
             $rejectReasons = (new \App\Models\RejectReasonModel())->findAll();
@@ -59,14 +61,18 @@ class VendorProcessDetail extends BaseController
         }
 
         return view('vendors/process_detail', [
-            'pageTitle'     => 'Vendor Process Detail - SafeG',
-            'vendor'        => $vendor,
-            'icPassport'    => mask_ic_passport($vendor['ic_no'] ?: ($vendor['passport_no'] ?? ''), 'N/A'),
-            'urineTests'    => $urineTests,
-            'printLogs'     => $printLogs,
-            'boundCard'     => $card,
-            'rejectReasons' => $rejectReasons,
-            'canEdit'       => has_access('vendor_pass_list', 'edit'),
+            'pageTitle'       => 'Vendor Process Detail - SafeG',
+            'vendor'          => $vendor,
+            'icPassport'      => mask_ic_passport($vendor['ic_no'] ?: ($vendor['passport_no'] ?? ''), 'N/A'),
+            'urineTests'      => $urineTests,
+            'printLogs'       => $printLogs,
+            'boundCard'       => $card,
+            'licenses'        => $licenses,
+            'locationOptions' => VendorPassRequest::LOCATION_OPTIONS,
+            'stateOptions'    => VendorPassRequest::STATE_OPTIONS,
+            'selectedLocations' => array_filter(explode(',', (string) ($vendor['location_access'] ?? ''))),
+            'rejectReasons'   => $rejectReasons,
+            'canEdit'         => has_access('vendor_pass_list', 'edit'),
         ]);
     }
 
@@ -83,13 +89,25 @@ class VendorProcessDetail extends BaseController
         }
 
         $body = $this->request->getJSON(true) ?? [];
-        $allowed = ['vendor_company_name', 'full_name', 'contact_no', 'email', 'designation', 'remark', 'pass_expiry', 'card_type'];
+        // Mirrors the full field set on the request form (Application Info,
+        // Company, Person) so a mistake spotted here can be fixed directly,
+        // per the real KPK "Update" button on this page.
+        $allowed = [
+            'vendor_company_name', 'full_name', 'name_on_vendor_pass', 'contact_no', 'email',
+            'designation', 'remark', 'pass_expiry', 'card_type', 'type_of_registration', 'payment',
+            'resident', 'in_out_bound', 'staff_no', 'address_1', 'address_2', 'address_3',
+            'country', 'state', 'city', 'postcode', 'vehicle_registration',
+        ];
         $update = [];
         foreach ($allowed as $field) {
             if (array_key_exists($field, $body)) {
                 $value = trim((string) $body[$field]);
                 $update[$field] = $value !== '' ? $value : null;
             }
+        }
+        if (isset($body['location_access']) && is_array($body['location_access'])) {
+            $codes = array_values(array_intersect($body['location_access'], array_keys(VendorPassRequest::LOCATION_OPTIONS)));
+            $update['location_access'] = ! empty($codes) ? implode(',', $codes) : null;
         }
         if (empty($update)) {
             return $this->response->setJSON(['success' => false, 'message' => 'Nothing to update.']);

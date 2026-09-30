@@ -8,18 +8,28 @@
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>tailwind.config = { theme: { extend: { colors: { primary: "#137fec" }, fontFamily: { sans: ["Montserrat","sans-serif"] } } } };</script>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 font-sans text-gray-800 dark:text-gray-200 h-screen flex">
     <?= view('partials/sidebar') ?>
-    <main class="flex-1 overflow-y-auto p-4 md:p-8">
+    <main class="flex-1 overflow-y-auto p-4 md:p-8" x-data="{ view: (localStorage.getItem('processListView') || 'card') }" x-init="$watch('view', v => localStorage.setItem('processListView', v))">
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mx-auto max-w-6xl">
             <h1 class="text-xl font-bold uppercase mb-2">Vendor Process List</h1>
             <p class="text-xs text-gray-500 dark:text-gray-400 mb-6">Approved passes that haven't been printed yet. A record stays here (and also shows in the Printing List) until it's printed from either page — printing is what moves it on to the Issuance List.</p>
 
+            <div class="flex items-center gap-6 mb-4">
+                <label class="flex items-center gap-1.5 text-sm cursor-pointer">
+                    <input type="radio" name="viewmode" value="card" x-model="view"/> Card View
+                </label>
+                <label class="flex items-center gap-1.5 text-sm cursor-pointer">
+                    <input type="radio" name="viewmode" value="table" x-model="view"/> Table View
+                </label>
+            </div>
+
             <form method="get" class="mb-4 flex flex-wrap gap-2 items-center">
-                <input name="search" value="<?= esc($searchTerm ?? '') ?>" class="border border-gray-300 dark:border-gray-600 dark:bg-gray-900 rounded px-3 py-2 text-sm w-72" placeholder="IC / Passport / Full Name / App No / Company"/>
+                <input name="search" value="<?= esc($searchTerm ?? '') ?>" class="border border-gray-300 dark:border-gray-600 dark:bg-gray-900 rounded px-3 py-2 text-sm w-80" placeholder="IC / Passport / Company / Sub Company / Full Name / Receipt No"/>
                 <select name="card_type" class="border border-gray-300 dark:border-gray-600 dark:bg-gray-900 rounded px-3 py-2 text-sm" onchange="this.form.submit()">
-                    <option value="" <?= ($cardType ?? '') === '' ? 'selected' : '' ?>>All Card Types</option>
+                    <option value="" <?= ($cardType ?? '') === '' ? 'selected' : '' ?>>All Worker Types</option>
                     <option value="unassigned" <?= ($cardType ?? '') === 'unassigned' ? 'selected' : '' ?>>Not Assigned</option>
                     <option value="Permanent" <?= ($cardType ?? '') === 'Permanent' ? 'selected' : '' ?>>Permanent</option>
                     <option value="Temporary" <?= ($cardType ?? '') === 'Temporary' ? 'selected' : '' ?>>Temporary</option>
@@ -35,33 +45,63 @@
                 <button type="submit" class="h-9 px-4 rounded-lg bg-primary text-white text-sm font-semibold">Search</button>
             </form>
 
-            <table class="w-full text-left text-xs border-collapse">
-                <thead>
-                    <tr class="bg-gray-50 dark:bg-gray-700 font-bold uppercase">
-                        <th class="p-3 border-b">No</th><th class="p-3 border-b">App No</th><th class="p-3 border-b">Full Name</th>
-                        <th class="p-3 border-b">Vendor Company</th><th class="p-3 border-b">IC/Passport</th>
-                        <th class="p-3 border-b">Card Type</th><th class="p-3 border-b">Pass Expiry</th><th class="p-3 border-b">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (empty($list)): ?>
-                    <tr><td colspan="8" class="p-6 text-center text-gray-500">No approved passes waiting to be printed.</td></tr>
-                    <?php else: foreach ($list as $row): ?>
-                    <tr class="border-b border-gray-100 dark:border-gray-700">
-                        <td class="p-3"><?= $row['no'] ?></td>
-                        <td class="p-3"><?= esc($row['app_no']) ?></td>
-                        <td class="p-3 font-semibold"><?= esc($row['full_name']) ?></td>
-                        <td class="p-3"><?= esc($row['vendor_company_name']) ?></td>
-                        <td class="p-3"><?= esc($row['ic_passport_masked']) ?></td>
-                        <td class="p-3"><?= esc($row['card_type']) ?></td>
-                        <td class="p-3"><?= esc($row['pass_expiry']) ?></td>
-                        <td class="p-3">
-                            <a href="<?= base_url('vendors/process-list/detail/view/' . $row['id']) ?>" class="text-primary hover:underline text-xs font-semibold">View Details</a>
-                        </td>
-                    </tr>
-                    <?php endforeach; endif; ?>
-                </tbody>
-            </table>
+            <!-- Card View -->
+            <div x-show="view === 'card'" x-cloak>
+                <?php if (empty($list)): ?>
+                <p class="p-6 text-center text-gray-500 text-sm">No approved passes waiting to be printed.</p>
+                <?php else: ?>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <?php foreach ($list as $row): ?>
+                    <a href="<?= base_url('vendors/process-list/detail/view/' . $row['id']) ?>" class="flex items-center justify-between gap-4 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-primary hover:shadow-sm transition">
+                        <div>
+                            <div class="text-sm font-bold"><?= esc($row['app_no']) ?></div>
+                            <div class="text-xs text-gray-600 dark:text-gray-300 mt-1"><?= esc($row['vendor_company_name']) ?></div>
+                            <div class="text-xs text-gray-600 dark:text-gray-300"><?= esc($row['full_name']) ?></div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400"><?= esc($row['ic_passport_masked']) ?></div>
+                        </div>
+                        <?php if ($row['photo_url']): ?>
+                        <img src="<?= esc($row['photo_url']) ?>" class="w-12 h-12 rounded-full object-cover border border-gray-200 dark:border-gray-700 flex-shrink-0"/>
+                        <?php else: ?>
+                        <div class="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+                            <span class="material-symbols-outlined text-gray-400">photo_camera</span>
+                        </div>
+                        <?php endif; ?>
+                    </a>
+                    <?php endforeach; ?>
+                </div>
+                <?php endif; ?>
+            </div>
+
+            <!-- Table View -->
+            <div x-show="view === 'table'" x-cloak>
+                <table class="w-full text-left text-xs border-collapse">
+                    <thead>
+                        <tr class="bg-gray-50 dark:bg-gray-700 font-bold uppercase">
+                            <th class="p-3 border-b">No</th><th class="p-3 border-b">App No</th><th class="p-3 border-b">Full Name</th>
+                            <th class="p-3 border-b">Vendor Company</th><th class="p-3 border-b">IC/Passport</th>
+                            <th class="p-3 border-b">Worker Type</th><th class="p-3 border-b">Pass Expiry</th><th class="p-3 border-b">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($list)): ?>
+                        <tr><td colspan="8" class="p-6 text-center text-gray-500">No approved passes waiting to be printed.</td></tr>
+                        <?php else: foreach ($list as $row): ?>
+                        <tr class="border-b border-gray-100 dark:border-gray-700">
+                            <td class="p-3"><?= $row['no'] ?></td>
+                            <td class="p-3"><?= esc($row['app_no']) ?></td>
+                            <td class="p-3 font-semibold"><?= esc($row['full_name']) ?></td>
+                            <td class="p-3"><?= esc($row['vendor_company_name']) ?></td>
+                            <td class="p-3"><?= esc($row['ic_passport_masked']) ?></td>
+                            <td class="p-3"><?= esc($row['card_type']) ?></td>
+                            <td class="p-3"><?= esc($row['pass_expiry']) ?></td>
+                            <td class="p-3">
+                                <a href="<?= base_url('vendors/process-list/detail/view/' . $row['id']) ?>" class="text-primary hover:underline text-xs font-semibold">View Details</a>
+                            </td>
+                        </tr>
+                        <?php endforeach; endif; ?>
+                    </tbody>
+                </table>
+            </div>
 
             <?php if (($pagination['last_page'] ?? 1) > 1): ?>
             <div class="flex justify-end gap-1 mt-4">

@@ -52,13 +52,14 @@ class VendorProcessList extends BaseController
             $builder->where('company_id', current_company_id());
         }
         if ($searchTerm !== '') {
-            // Matches KPK's search bar: IC / Passport / Full Name / App No / Company.
+            // Matches KPK's search bar: IC / Passport / Company / Sub Company / Full Name / Receipt No / Card ID.
             $builder->groupStart()
                 ->like('full_name', $searchTerm)
                 ->orLike('ic_no', $searchTerm)
                 ->orLike('passport_no', $searchTerm)
                 ->orLike('app_no', $searchTerm)
                 ->orLike('vendor_company_name', $searchTerm)
+                ->orLike('receipt_no', $searchTerm)
                 ->groupEnd();
         }
         if ($cardType === 'unassigned') {
@@ -78,6 +79,7 @@ class VendorProcessList extends BaseController
 
         $list = [];
         foreach ($rows as $i => $row) {
+            $photo = $row['facial_photo'] ?? null;
             $list[] = [
                 'id'                  => $row['id'],
                 'no'                  => ($page - 1) * $perPage + $i + 1,
@@ -87,6 +89,7 @@ class VendorProcessList extends BaseController
                 'ic_passport_masked'  => mask_ic_passport($row['ic_no'] ?: ($row['passport_no'] ?? ''), 'N/A'),
                 'card_type'           => $row['card_type'] ?? 'Not assigned',
                 'pass_expiry'         => $row['pass_expiry'] ? date('d/m/Y', strtotime($row['pass_expiry'])) : '-',
+                'photo_url'           => $photo ? base_url('uploads/facial_photos/' . $photo) : null,
             ];
         }
 
