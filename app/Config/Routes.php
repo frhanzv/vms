@@ -373,30 +373,73 @@ $routes->group('', ['filter' => [$plusAdminOfficer, 'client_feature:staff_pass']
 });
 
 // ===========================
-// Vendor Management
-// superadmin, clientsuperadmin, admin, officer
+// Vendor Pass
 // ===========================
-
- $routes->group('', ['filter' => [$plusAdminOfficer, 'client_feature:vendor_pass']], function($routes) { 
-    $routes->get('vendors', 'VendorList::index'); 
-    $routes->get('vendors/vendorpassrequest', 'VendorPassRequest::index'); 
-    $routes->post('vendors/vendorpassrequest/store', 'VendorPassRequest::store'); 
-    $routes->get('vendorpassrequest/view/(:any)', 'VendorPassRequest::view/$1'); 
-    $routes->get('vendorpassrequest/edit/(:num)', 'VendorPassRequest::edit/$1'); 
-    $routes->get('vendors/vendorpassrequest/export', 'VendorPassRequest::export');
-    $routes->post('vendors/vendorpassrequest/update/(:num)', 'VendorPassRequest::update/$1');
-    $routes->post('vendors/vendorpassrequest/delete/(:num)', 'VendorPassRequest::delete/$1'); 
+ 
+$routes->group('', ['filter' => [$plusAdminOfficer, 'client_feature:vendor_pass']], function ($routes) {
+ 
+    // --- List + row actions ---
+    $routes->get('vendors', 'VendorList::index');
     $routes->post('vendors/delete/(:num)', 'VendorList::delete/$1');
-    $routes->get('vendors/qr/(:num)', 'VendorPassQr::generate/$1');
-    $routes->get('vendors/closed-list', 'VendorClosedList::index');
-    $routes->get('vendors/printing-list', 'VendorPrintingList::index');
-    $routes->post('vendors/printing-list/generate-serial/(:num)', 'VendorPrintingList::generateSerial/$1');    $routes->get('vendors/issuance-list', 'VendorIssuanceList::index');
-    $routes->post('vendors/issuance-list/issue/(:num)', 'VendorIssuanceList::issue/$1');
     $routes->post('vendors/approve', 'VendorList::approve');
     $routes->post('vendors/reject', 'VendorList::reject');
+ 
+    // --- Request form (create / edit / view) ---
+    $routes->get('vendors/vendorpassrequest', 'VendorPassRequest::index');
+    $routes->post('vendors/vendorpassrequest/store', 'VendorPassRequest::store');
+    $routes->get('vendorpassrequest/view/(:any)', 'VendorPassRequest::view/$1');
+    $routes->get('vendorpassrequest/edit/(:num)', 'VendorPassRequest::edit/$1');
+    $routes->post('vendorpassrequest/update/(:num)', 'VendorPassRequest::update/$1');
+ 
+    // --- QR pass (staff-side generation) ---
+    $routes->get('vendors/qr/(:num)', 'VendorPassQr::generate/$1');
+ 
+    // --- Pipeline stages ---
+ 
+    // Process List (Approved, card type not yet chosen)
     $routes->get('vendors/process-list', 'VendorProcessList::index');
     $routes->post('vendors/process-list/assign-card-type/(:num)', 'VendorProcessList::assignCardType/$1');
-    }); 
+ 
+    // Process List — detail view (full KPK feature-parity page: view/update,
+    // reject, photo upload/live camera, RFID card bind, urine test history,
+    // and (from here) the same printing + finish-and-issue actions as the
+    // dedicated Printing List / Issuance List pages).
+    $routes->get('vendors/process-list/detail/view/(:num)', 'VendorProcessDetail::view/$1');
+    $routes->post('vendors/process-list/detail/update/(:num)', 'VendorProcessDetail::update/$1');
+    $routes->post('vendors/process-list/detail/reject/(:num)', 'VendorProcessDetail::reject/$1');
+    $routes->post('vendors/process-list/detail/upload-photo/(:num)', 'VendorProcessDetail::uploadPhoto/$1');
+    $routes->post('vendors/process-list/detail/read-card/(:num)', 'VendorProcessDetail::readCard/$1');
+    $routes->post('vendors/process-list/detail/add-urine-test/(:num)', 'VendorProcessDetail::addUrineTest/$1');
+    // Optional — only needed if you later switch the urine-test/print-log
+    // tables on the detail page to load over AJAX instead of server-side:
+    $routes->get('vendors/process-list/detail/urine-tests/(:num)', 'VendorProcessDetail::urineTests/$1');
+    $routes->get('vendors/process-list/detail/print-logs/(:num)', 'VendorProcessDetail::printLogs/$1');
+ 
+    // Printing List (card type chosen, not yet printed)
+    $routes->get('vendors/printing-list', 'VendorPrintingList::index');
+    $routes->post('vendors/printing-list/generate-serial/(:num)', 'VendorPrintingList::generateSerial/$1');
+ 
+    // Issuance List (printed, waiting to be handed to the collector)
+    $routes->get('vendors/issuance-list', 'VendorIssuanceList::index');
+    $routes->post('vendors/issuance-list/issue/(:num)', 'VendorIssuanceList::issue/$1');
+ 
+    // Closed List (issued / completed)
+    $routes->get('vendors/closed-list', 'VendorClosedList::index');
+ 
+    // Card Info panel (reachable from Closed List's "Card Details" link AND
+    // from Process Detail's "Card Details" button — same screen either way)
+    $routes->get('vendors/card-info/view/(:num)', 'VendorCardInfo::view/$1');
+    $routes->post('vendors/card-info/add-license/(:num)', 'VendorCardInfo::addLicense/$1');
+    $routes->post('vendors/card-info/update-location-access/(:num)', 'VendorCardInfo::updateLocationAccess/$1');
+    $routes->post('vendors/card-info/upload-photo/(:num)', 'VendorCardInfo::uploadPhoto/$1');
+    $routes->post('vendors/card-info/activate/(:num)', 'VendorCardInfo::activateCard/$1');
+    $routes->post('vendors/card-info/terminate/(:num)', 'VendorCardInfo::terminateCard/$1');
+    $routes->post('vendors/card-info/update/(:num)', 'VendorCardInfo::update/$1');
+ 
+    // --- Report ---
+    $routes->get('report/vendor', 'VendorReport::index');
+    $routes->post('report/vendor/generate', 'VendorReport::generate');
+});
 
 // ===========================
 // Visitor Pass Request
