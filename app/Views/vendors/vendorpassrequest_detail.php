@@ -79,9 +79,22 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                         <div class="space-y-2"><label class="<?= $label ?>">Date Of Application</label><input value="<?= $f('date_of_application') ?>" class="<?= $ro ?>" readonly/></div>
                         <?php if ($on('type_of_application')): ?><div class="space-y-2"><label class="<?= $label ?>">Type Of Application</label><input value="<?= $f('type_of_application') ?>" class="<?= $ro ?>" readonly/></div><?php endif; ?>
+                        <?php if ($on('type_of_registration')): ?><div class="space-y-2"><label class="<?= $label ?>">Type Of Registration</label><input value="<?= $f('type_of_registration') ?>" class="<?= $ro ?>" readonly/></div><?php endif; ?>
                         <?php if ($on('sub_type')): ?><div class="space-y-2"><label class="<?= $label ?>">Sub Type</label><input value="<?= $f('sub_type') ?>" class="<?= $ro ?>" readonly/></div><?php endif; ?>
+                        <?php if ($on('designation')): ?><div class="space-y-2"><label class="<?= $label ?>">Designation</label><input value="<?= $f('designation') ?>" class="<?= $ro ?>" readonly/></div><?php endif; ?>
+                        <?php if ($on('payment')): ?><div class="space-y-2"><label class="<?= $label ?>">Payment</label><input value="<?= $f('payment') ?>" class="<?= $ro ?>" readonly/></div><?php endif; ?>
                         <?php if ($on('resident')): ?><div class="space-y-2"><label class="<?= $label ?>">Resident</label><input value="<?= $f('resident') ?>" class="<?= $ro ?>" readonly/></div><?php endif; ?>
+                        <div class="space-y-2"><label class="<?= $label ?>">Worker Type</label><input value="<?= $f('card_type') ?>" class="<?= $ro ?>" readonly/></div>
                     </div>
+                    <?php if ($on('location_access')):
+                        $selectedLocations = array_filter(explode(',', (string) ($vendor['location_access'] ?? '')));
+                        $locationLabels = array_map(fn($code) => \App\Controllers\VendorPassRequest::LOCATION_OPTIONS[$code] ?? $code, $selectedLocations);
+                    ?>
+                    <div class="mt-6 space-y-2">
+                        <label class="<?= $label ?>">Location Access</label>
+                        <input value="<?= esc(!empty($locationLabels) ? implode(', ', $locationLabels) : '—') ?>" class="<?= $ro ?>" readonly/>
+                    </div>
+                    <?php endif; ?>
                 </section>
 
                 <?php if ($on('vendor_company')): ?>
@@ -107,7 +120,9 @@
                     <div class="space-y-6">
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <div class="space-y-2"><label class="<?= $label ?>">Full Name</label><input value="<?= $f('full_name') ?>" class="<?= $ro ?>" readonly/></div>
+                            <div class="space-y-2"><label class="<?= $label ?>">Name On Vendor Pass</label><input value="<?= $f('name_on_vendor_pass') ?>" class="<?= $ro ?>" readonly/></div>
                             <?php if ($on('staff_no')): ?><div class="space-y-2"><label class="<?= $label ?>">Staff No. (at vendor company)</label><input value="<?= $f('staff_no') ?>" class="<?= $ro ?>" readonly/></div><?php endif; ?>
+                            <?php if ($on('in_out_bound')): ?><div class="space-y-2"><label class="<?= $label ?>">In/Out Bound</label><input value="<?= $f('in_out_bound') ?>" class="<?= $ro ?>" readonly/></div><?php endif; ?>
                         </div>
                         <?php if ($on('ic_passport') || $on('date_of_birth') || $on('sex')): ?>
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -119,15 +134,40 @@
                             <?php if ($on('sex')): ?><div class="space-y-2"><label class="<?= $label ?>">Sex</label><input value="<?= $f('sex') ?>" class="<?= $ro ?>" readonly/></div><?php endif; ?>
                         </div>
                         <?php endif; ?>
-                        <?php if ($on('designation') || $on('contact_number') || $on('email')): ?>
+                        <?php if ($on('contact_number') || $on('email') || $on('vehicle_registration')): ?>
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                            <?php if ($on('designation')): ?><div class="space-y-2"><label class="<?= $label ?>">Designation</label><input value="<?= $f('designation') ?>" class="<?= $ro ?>" readonly/></div><?php endif; ?>
                             <?php if ($on('contact_number')): ?><div class="space-y-2"><label class="<?= $label ?>">Contact Number</label><input value="<?= $f('contact_no') ?>" class="<?= $ro ?>" readonly/></div><?php endif; ?>
                             <?php if ($on('email')): ?><div class="space-y-2"><label class="<?= $label ?>">Email</label><input value="<?= $f('email') ?>" class="<?= $ro ?>" readonly/></div><?php endif; ?>
+                            <?php if ($on('vehicle_registration')): ?><div class="space-y-2"><label class="<?= $label ?>">Vehicle Registration Number</label><input value="<?= $f('vehicle_registration') ?>" class="<?= $ro ?>" readonly/></div><?php endif; ?>
                         </div>
                         <?php endif; ?>
                     </div>
                 </section>
+
+                <?php if (!empty($licenses)): ?>
+                <!-- Driving License -->
+                <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8">
+                    <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
+                        <div class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-primary"><span class="material-symbols-outlined">directions_car</span></div>
+                        <h2 class="text-lg font-bold font-brand text-text-main dark:text-white">Driving License</h2>
+                    </div>
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="bg-gray-50 dark:bg-gray-700 font-bold uppercase">
+                                <th class="p-2 border-b">Class</th><th class="p-2 border-b">Expiry</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($licenses as $lic): ?>
+                            <tr class="border-b border-gray-100 dark:border-gray-700">
+                                <td class="p-2"><?= esc($lic['license_class']) ?></td>
+                                <td class="p-2"><?= esc($lic['license_expiry']) ?></td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </section>
+                <?php endif; ?>
 
                 <?php if ($on('address')): ?>
                 <!-- Address -->
@@ -140,6 +180,9 @@
                         <div class="space-y-2"><label class="<?= $label ?>">Address Line 1</label><input value="<?= $f('address_1') ?>" class="<?= $ro ?>" readonly/></div>
                         <div class="space-y-2"><label class="<?= $label ?>">Address Line 2</label><input value="<?= $f('address_2') ?>" class="<?= $ro ?>" readonly/></div>
                         <div class="space-y-2"><label class="<?= $label ?>">Address Line 3</label><input value="<?= $f('address_3') ?>" class="<?= $ro ?>" readonly/></div>
+                        <div class="space-y-2"><label class="<?= $label ?>">Country</label><input value="<?= $f('country') ?: 'Malaysia' ?>" class="<?= $ro ?>" readonly/></div>
+                        <div class="space-y-2"><label class="<?= $label ?>">State</label><input value="<?= $f('state') ?>" class="<?= $ro ?>" readonly/></div>
+                        <div class="space-y-2"><label class="<?= $label ?>">City</label><input value="<?= $f('city') ?>" class="<?= $ro ?>" readonly/></div>
                         <div class="space-y-2"><label class="<?= $label ?>">Postcode</label><input value="<?= $f('postcode') ?>" class="<?= $ro ?>" readonly/></div>
                     </div>
                 </section>

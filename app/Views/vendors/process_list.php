@@ -56,17 +56,7 @@
                         <td class="p-3"><?= esc($row['card_type']) ?></td>
                         <td class="p-3"><?= esc($row['pass_expiry']) ?></td>
                         <td class="p-3">
-                            <div class="flex items-center gap-2">
-                                <a href="<?= base_url('vendors/process-list/detail/view/' . $row['id']) ?>" class="text-primary hover:underline text-xs font-semibold">View Details</a>
-                                <?php if ($canAssign ?? false): ?>
-                                <span class="text-gray-300">|</span>
-                                <div class="flex gap-1">
-                                    <button onclick="assignCardType(<?= $row['id'] ?>, 'Permanent')" class="text-primary hover:underline text-xs font-semibold">Permanent</button>
-                                    <span class="text-gray-300">|</span>
-                                    <button onclick="assignCardType(<?= $row['id'] ?>, 'Temporary')" class="text-primary hover:underline text-xs font-semibold">Temporary</button>
-                                </div>
-                                <?php endif; ?>
-                            </div>
+                            <a href="<?= base_url('vendors/process-list/detail/view/' . $row['id']) ?>" class="text-primary hover:underline text-xs font-semibold">View Details</a>
                         </td>
                     </tr>
                     <?php endforeach; endif; ?>
@@ -84,27 +74,5 @@
             <?php endif; ?>
         </div>
     </main>
-    <script>
-        function assignCardType(id, cardType) {
-            if (!confirm('Assign ' + cardType + ' card type?')) return;
-            fetch('<?= base_url('vendors/process-list/assign-card-type/') ?>' + id, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '<?= csrf_hash() ?>' },
-                body: JSON.stringify({ card_type: cardType }),
-            })
-                .then(r => {
-                    if (!r.ok) throw new Error('http_' + r.status);
-                    return r.json();
-                })
-                .then(d => { alert(d.message); if (d.success) location.reload(); })
-                .catch(err => {
-                    if (String(err.message).startsWith('http_')) {
-                        alert('Something went wrong on the server. If this keeps happening, check that all migrations have been run and the route is registered.');
-                    } else {
-                        alert('Could not reach the server. Please check your connection and try again.');
-                    }
-                });
-        }
-    </script>
 </body>
 </html>

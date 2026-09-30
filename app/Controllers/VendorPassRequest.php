@@ -2,8 +2,31 @@
 
 namespace App\Controllers;
 
+/**
+ * Vendor Pass Request — rebuilt field-for-field against the real KPK
+ * "Contractor/Vendor Request" form (new-port-pass-request), per instruction:
+ * "follow all the things that they have inside here, dont leave a single
+ * things." Worker Type (Permanent/Temporary — KPK's real physical card
+ * type) is now chosen HERE at intake, not assigned later in Process List —
+ * that's the other explicit instruction this rebuild follows.
+ */
 class VendorPassRequest extends BaseController
 {
+    /** Same location list Card Info's "Edit Location Access" uses — kept in one place so both forms stay in sync. */
+    public const LOCATION_OPTIONS = [
+        'annexe_building' => 'Annexe Building',
+        'kpk_gate'        => 'KPK Gate',
+        'ksb_phase2_gate' => 'KSB Phase 2 Gate',
+        'phase1'          => 'Phase 1',
+    ];
+
+    /** Malaysian states — KPK's real form drives this from a location API we don't have; a fixed list covers the same field faithfully enough. */
+    public const STATE_OPTIONS = [
+        'Johor', 'Kedah', 'Kelantan', 'Melaka', 'Negeri Sembilan', 'Pahang',
+        'Perak', 'Perlis', 'Pulau Pinang', 'Sabah', 'Sarawak', 'Selangor',
+        'Terengganu', 'W.P. Kuala Lumpur', 'W.P. Labuan', 'W.P. Putrajaya',
+    ];
+
     public function index()
     {
         helper('feature');
@@ -12,9 +35,11 @@ class VendorPassRequest extends BaseController
         $countries    = $countryModel->where('status', 'Active')->orderBy('name', 'ASC')->findAll();
 
         $data = [
-            'pageTitle' => 'Vendor Pass Request - SafeG',
-            'countries' => $countries,
-            'fields'    => $this->vendorFieldToggles(),
+            'pageTitle'       => 'Vendor Pass Request - SafeG',
+            'countries'       => $countries,
+            'fields'          => $this->vendorFieldToggles(),
+            'locationOptions' => self::LOCATION_OPTIONS,
+            'stateOptions'    => self::STATE_OPTIONS,
         ];
 
         return view('vendors/vendorpassrequest', $data);
@@ -35,12 +60,14 @@ class VendorPassRequest extends BaseController
             $appNo = $batchTag . '-' . str_pad($counter, 3, '0', STR_PAD_LEFT);
         }
 
-        $formData = $this->collectFormData($appNo);
+        $isDraft  = (bool) $this->request->getPost('save_as_draft');
+        $formData = $this->collectFormData($appNo, $isDraft);
 
         // Same duplicate check pattern as StaffPassRequest::store() — IC/Passport must be unique.
+        // Skipped for drafts, which are commonly saved with fields still missing.
         $icOrPassport = $formData['ic_no'] ?: $formData['passport_no'];
         $column       = $formData['ic_no'] ? 'ic_no' : 'passport_no';
-        if ($icOrPassport && $db->table('vendors')->where($column, $icOrPassport)->countAllResults() > 0) {
+        if (! $isDraft && $icOrPassport && $db->table('vendors')->where($column, $icOrPassport)->countAllResults() > 0) {
             return redirect()->back()->withInput()
                 ->with('error', "A vendor pass record with IC/Passport '{$icOrPassport}' already exists.");
         }
@@ -51,9 +78,12 @@ class VendorPassRequest extends BaseController
         $this->handleUploads($formData);
 
         $db->table('vendors')->insert($formData);
+        $vendorId = $db->insertID();
+
+        $this->saveDrivingLicenses($vendorId);
 
         return redirect()->to(base_url('vendors'))
-            ->with('success', 'Vendor pass request submitted successfully.');
+            ->with('success', $isDraft ? 'Vendor pass request saved as draft.' : 'Vendor pass request submitted successfully.');
     }
 
     public function view($id)
@@ -66,9 +96,13 @@ class VendorPassRequest extends BaseController
             return redirect()->to(base_url('vendors'))->with('error', 'Vendor pass record not found.');
         }
 
+        $licenses = $db->table('vendor_driving_licenses')->where('vendor_id', (int) $id)->orderBy('id', 'DESC')->get()->getResultArray();
+
         return view('vendors/vendorpassrequest_detail', [
-            'vendor' => $vendor,
-            'fields' => $this->vendorFieldToggles(),
+            'vendor'          => $vendor,
+            'fields'          => $this->vendorFieldToggles(),
+            'licenses'        => $licenses,
+            'locationOptions' => self::LOCATION_OPTIONS,
         ]);
     }
 
@@ -89,13 +123,18 @@ class VendorPassRequest extends BaseController
         $countryModel = new \App\Models\CountryModel();
         $countries    = $countryModel->where('status', 'Active')->orderBy('name', 'ASC')->findAll();
 
+        $licenses = $db->table('vendor_driving_licenses')->where('vendor_id', (int) $id)->orderBy('id', 'DESC')->get()->getResultArray();
+
         return view('vendors/vendorpassrequest', [
-            'pageTitle'  => 'Edit Vendor Pass - SafeG',
-            'countries'  => $countries,
-            'vendor'     => $vendor,
-            'formAction' => 'vendors/vendorpassrequest/update/' . (int) $id,
-            'isEdit'     => true,
-            'fields'     => $this->vendorFieldToggles(),
+            'pageTitle'       => 'Edit Vendor Pass - SafeG',
+            'countries'       => $countries,
+            'vendor'          => $vendor,
+            'formAction'      => 'vendors/vendorpassrequest/update/' . (int) $id,
+            'isEdit'          => true,
+            'fields'          => $this->vendorFieldToggles(),
+            'licenses'        => $licenses,
+            'locationOptions' => self::LOCATION_OPTIONS,
+            'stateOptions'    => self::STATE_OPTIONS,
         ]);
     }
 
@@ -114,11 +153,12 @@ class VendorPassRequest extends BaseController
             $appNo    = $existing?->app_no ?? '';
         }
 
-        $formData = $this->collectFormData($appNo);
+        $isDraft  = (bool) $this->request->getPost('save_as_draft');
+        $formData = $this->collectFormData($appNo, $isDraft);
 
         $icOrPassport = $formData['ic_no'] ?: $formData['passport_no'];
         $column       = $formData['ic_no'] ? 'ic_no' : 'passport_no';
-        if ($icOrPassport && $db->table('vendors')->where($column, $icOrPassport)->where('id !=', (int) $id)->countAllResults() > 0) {
+        if (! $isDraft && $icOrPassport && $db->table('vendors')->where($column, $icOrPassport)->where('id !=', (int) $id)->countAllResults() > 0) {
             return redirect()->back()->withInput()
                 ->with('error', "A vendor pass record with IC/Passport '{$icOrPassport}' already exists.");
         }
@@ -127,17 +167,25 @@ class VendorPassRequest extends BaseController
 
         $db->table('vendors')->where('id', (int) $id)->update($formData);
 
+        // Editing only ever ADDS new license rows here — matches Card Info's
+        // "Add License" (also add-only); removing a license goes through
+        // that page once it's needed.
+        $this->saveDrivingLicenses((int) $id);
+
         return redirect()->to(base_url('vendors'))
-            ->with('success', 'Vendor pass record updated successfully.');
+            ->with('success', $isDraft ? 'Vendor pass request saved as draft.' : 'Vendor pass record updated successfully.');
     }
 
     /**
      * Pulls every posted field into one array, matching the vendors table columns.
      * Shared by store() and update() so both stay in sync.
      */
-    private function collectFormData(string $appNo): array
+    private function collectFormData(string $appNo, bool $isDraft = false): array
     {
         $r = fn(string $key) => $this->request->getPost($key);
+
+        $locations = (array) ($this->request->getPost('location_access') ?? []);
+        $locations = array_values(array_intersect($locations, array_keys(self::LOCATION_OPTIONS)));
 
         return [
             'app_no'                        => $appNo,
@@ -146,18 +194,24 @@ class VendorPassRequest extends BaseController
             'date_of_application'           => $r('date_of_application'),
             'type_of_application'           => $r('type_of_application'),
             'sub_type'                      => $r('sub_type'),
+            'type_of_registration'          => $r('type_of_registration'),
+            'payment'                       => $r('payment'),
+            'resident'                      => $r('resident'),
+            'card_type'                     => $r('card_type') ?: null, // "Worker Type" on the form — Permanent/Temporary
+            'location_access'               => implode(',', $locations),
 
             // Vendor's company (SSM)
             'vendor_company_reg_id'         => $r('vendor_company_reg_id'),
             'vendor_company_name'           => $r('vendor_company_name'),
 
             // Personal Details
+            'in_out_bound'                  => $r('in_out_bound'),
             'full_name'                     => $r('full_name'),
+            'name_on_vendor_pass'           => $r('name_on_vendor_pass'),
             'ic_no'                         => $r('ic_no'),
             'passport_no'                   => $r('passport_no'),
             'dob'                           => $r('dob') ?: null,
             'sex'                           => $r('sex'),
-            'resident'                      => $r('resident'),
             'contact_no'                    => $r('contact_no'),
             'email'                         => $r('email'),
             'staff_no'                      => $r('staff_no'),
@@ -167,7 +221,11 @@ class VendorPassRequest extends BaseController
             'address_1'                     => $r('address_1'),
             'address_2'                     => $r('address_2'),
             'address_3'                     => $r('address_3'),
+            'country'                       => $r('country') ?: 'Malaysia',
+            'state'                         => $r('state'),
+            'city'                          => $r('city'),
             'postcode'                      => $r('postcode'),
+            'vehicle_registration'          => $r('vehicle_registration'),
 
             // Visit Details
             'name_of_person_visited'        => $r('name_of_person_visited'),
@@ -185,15 +243,43 @@ class VendorPassRequest extends BaseController
 
             // Pass
             'pass_expiry'                   => $r('pass_expiry') ?: null,
-            'status'                        => $r('status') ?: 'Pending',
+            'status'                        => $isDraft ? 'Draft' : ($r('status') ?: 'Pending'),
             'remark'                        => $r('remark'),
-
-            // Card Issuance (from KPK's real Closed List fields)
-            'receipt_no'                    => $r('receipt_no'),
-            'vehicle_registration'          => $r('vehicle_registration'),
-            'card_type'                     => $r('card_type') ?: null,
-            'card_status'                   => $r('card_status') ?: 'Inactive',
         ];
+    }
+
+    /**
+     * Driving License rows, posted as parallel arrays (license_class[],
+     * license_expiry[]) from the repeatable +/- section on the form —
+     * inserted into the same vendor_driving_licenses table the Card Info
+     * page's "Add License" uses, so both stay consistent.
+     */
+    private function saveDrivingLicenses(int $vendorId): void
+    {
+        $classes  = (array) ($this->request->getPost('license_class') ?? []);
+        $expiries = (array) ($this->request->getPost('license_expiry') ?? []);
+        if (empty($classes)) {
+            return;
+        }
+
+        $db   = \Config\Database::connect();
+        $rows = [];
+        foreach ($classes as $i => $class) {
+            $class  = trim((string) $class);
+            $expiry = trim((string) ($expiries[$i] ?? ''));
+            if ($class === '' && $expiry === '') {
+                continue;
+            }
+            $rows[] = [
+                'vendor_id'      => $vendorId,
+                'license_class'  => $class !== '' ? $class : null,
+                'license_expiry' => $expiry !== '' ? $expiry : null,
+                'created_at'     => date('Y-m-d H:i:s'),
+            ];
+        }
+        if (! empty($rows)) {
+            $db->table('vendor_driving_licenses')->insertBatch($rows);
+        }
     }
 
     /**
@@ -202,6 +288,7 @@ class VendorPassRequest extends BaseController
      */
     private function handleUploads(array &$formData): void
     {
+        // "Passport Photo" in KPK's Upload section.
         $photo = $this->request->getFile('photo');
         if ($photo && $photo->isValid() && !$photo->hasMoved()) {
             $newName = $photo->getRandomName();
@@ -209,6 +296,10 @@ class VendorPassRequest extends BaseController
             $formData['photo'] = $newName;
         }
 
+        // Shared by both the "Upload IC" quick button (Person section) and
+        // the "Photostat IC / Passport" slot in KPK's Upload section — same
+        // underlying field either way, so whichever one the person used is
+        // the one that gets saved.
         $governmentId = $this->request->getFile('government_id');
         if ($governmentId && $governmentId->isValid() && !$governmentId->hasMoved()) {
             $newName = $governmentId->getRandomName();

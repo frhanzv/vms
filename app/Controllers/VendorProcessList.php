@@ -7,7 +7,8 @@ namespace App\Controllers;
  * user): once Approved, a pass shows up here AND in the Printing List at
  * the same time — they're two views onto the same "approved, not yet
  * printed" set, not two sequential stages. Process List is where staff
- * review/update/reject a record or assign its card type; Printing List is
+ * review, update, or reject a record — Worker Type (card_type) is chosen
+ * once at intake on the request form, not here. Printing List is
  * the bulk-print screen. Either page can actually print it (Process
  * Detail's own Print button, or Printing List's row/bulk print) — whichever
  * happens first is what moves the record out of BOTH lists and into the
@@ -95,27 +96,7 @@ class VendorProcessList extends BaseController
             'searchTerm' => $searchTerm,
             'cardType'   => $cardType,
             'sortBy'     => $sortBy,
-            'canAssign'  => has_access('vendor_pass_list', 'edit'),
             'pagination' => ['current_page' => $page, 'last_page' => $lastPage, 'total' => $totalCount],
         ]);
-    }
-
-    /** Assigns a card type. Does NOT move the record anywhere — it still shows here and in Printing List until it's actually printed. */
-    public function assignCardType($id)
-    {
-        helper('access');
-        if (! has_access('vendor_pass_list', 'edit')) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Not allowed.']);
-        }
-
-        $cardType = trim((string) ($this->request->getJSON(true)['card_type'] ?? ''));
-        if (! in_array($cardType, ['Permanent', 'Temporary'], true)) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Please choose Permanent or Temporary.']);
-        }
-
-        $db = \Config\Database::connect();
-        $db->table('vendors')->where('id', (int) $id)->update(['card_type' => $cardType]);
-
-        return $this->response->setJSON(['success' => true, 'message' => 'Card type assigned.']);
     }
 }

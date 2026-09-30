@@ -63,7 +63,7 @@
 
             <div class="mb-8 space-y-2">
                 <h1 class="text-3xl sm:text-4xl font-black text-text-main dark:text-white font-brand tracking-tight">
-                    <?= isset($isEdit) ? 'Edit Vendor Pass' : 'Vendor Pass Request' ?>
+                    <?= isset($isEdit) ? 'Edit Vendor Pass' : 'Contractor/Vendor Request' ?>
                 </h1>
             </div>
 
@@ -85,9 +85,12 @@
                     // Config-driven field/section toggles — set by Config > Dynamic Form Fields >
                     // Vendor Pass Request. Absence of a key means enabled (same default as everywhere else).
                     $on = fn(string $key) => $fields[$key] ?? true;
+
+                    $selectedLocations = ! empty($s['location_access']) ? explode(',', $s['location_access']) : [];
+                    $existingLicenses  = $licenses ?? [];
                 ?>
 
-                <!-- Application Information -->
+                <!-- Application Info (matches KPK's real request form field-for-field) -->
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 p-6 sm:p-8">
                     <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
                         <div class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-primary">
@@ -111,12 +114,28 @@
                                 </select>
                             </div>
                             <?php endif; ?>
-                            <?php if ($on('sub_type')): ?>
                             <div class="space-y-2">
-                                <label class="<?= $labelClass ?>">Sub Type</label>
-                                <input name="sub_type" value="<?= $v('sub_type') ?>" class="<?= $inputClass ?>" type="text" placeholder="e.g. Contractor, Supplier"/>
+                                <label class="<?= $labelClass ?>">Type Of Registration</label>
+                                <select name="type_of_registration" class="<?= $inputClass ?>">
+                                    <option value="">-- Select --</option>
+                                    <option value="TENANT" <?= $sel('type_of_registration', 'TENANT') ?>>TENANT</option>
+                                    <option value="NON-TENANT" <?= $sel('type_of_registration', 'NON-TENANT') ?>>NON-TENANT</option>
+                                </select>
                             </div>
-                            <?php endif; ?>
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">Designation <span class="text-red-500">*</span></label>
+                                <input name="designation" value="<?= $v('designation') ?>" class="<?= $inputClass ?>" type="text" maxlength="50" required/>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">Payment</label>
+                                <select name="payment" class="<?= $inputClass ?>">
+                                    <option value="NONE" <?= $sel('payment', 'NONE') ?>>NONE</option>
+                                    <option value="ONLINE" <?= $sel('payment', 'ONLINE') ?>>ONLINE</option>
+                                    <option value="CASH" <?= $sel('payment', 'CASH') ?>>CASH</option>
+                                </select>
+                            </div>
                             <?php if ($on('resident')): ?>
                             <div class="space-y-2">
                                 <label class="<?= $labelClass ?>">Resident</label>
@@ -126,22 +145,49 @@
                                 </select>
                             </div>
                             <?php endif; ?>
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">Worker Type <span class="text-red-500">*</span></label>
+                                <select name="card_type" class="<?= $inputClass ?>" required>
+                                    <option value="">-- Select --</option>
+                                    <option value="Permanent" <?= $sel('card_type', 'Permanent') ?>>Permanent</option>
+                                    <option value="Temporary" <?= $sel('card_type', 'Temporary') ?>>Temporary (Contract)</option>
+                                </select>
+                                <p class="text-xs text-text-sub">This decides the pass/card type printed for this person — it's no longer chosen later in Process List.</p>
+                            </div>
+                        </div>
+                        <div class="space-y-2" x-data="{ selected: <?= json_encode($selectedLocations) ?> }">
+                            <div class="flex items-center gap-3">
+                                <label class="<?= $labelClass ?>">Location Access <span class="text-red-500">*</span></label>
+                                <label class="flex items-center gap-1.5 text-sm text-text-sub">
+                                    <input type="checkbox" @change="selected = $event.target.checked ? <?= json_encode(array_keys($locationOptions)) ?> : []"
+                                        :checked="selected.length === <?= count($locationOptions) ?>"/>
+                                    Select All
+                                </label>
+                            </div>
+                            <div class="flex flex-wrap gap-6 pt-1">
+                                <?php foreach ($locationOptions as $code => $label): ?>
+                                <label class="flex items-center gap-2 text-sm">
+                                    <input type="checkbox" name="location_access[]" value="<?= esc($code) ?>" x-model="selected"/>
+                                    <?= esc($label) ?>
+                                </label>
+                                <?php endforeach; ?>
+                            </div>
                         </div>
                     </div>
                 </section>
 
                 <?php if ($on('vendor_company')): ?>
-                <!-- Vendor Company -->
+                <!-- Company -->
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 p-6 sm:p-8">
                     <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
                         <div class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-primary">
                             <span class="material-symbols-outlined">business</span>
                         </div>
-                        <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Vendor Company</h2>
+                        <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Company</h2>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <div class="space-y-2">
-                            <label class="<?= $labelClass ?>">Company SSM No / Reg ID</label>
+                            <label class="<?= $labelClass ?>">Company Registration ID</label>
                             <input name="vendor_company_reg_id" value="<?= $v('vendor_company_reg_id') ?>" class="<?= $inputClass ?>" type="text" maxlength="100"/>
                         </div>
                         <div class="space-y-2">
@@ -152,30 +198,29 @@
                 </section>
                 <?php endif; ?>
 
-                <!-- Personal Details -->
+                <!-- Person -->
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 p-6 sm:p-8">
-                    <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
-                        <div class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-primary">
-                            <span class="material-symbols-outlined">badge</span>
+                    <div class="flex items-center justify-between gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
+                        <div class="flex items-center gap-3">
+                            <div class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-primary">
+                                <span class="material-symbols-outlined">badge</span>
+                            </div>
+                            <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Person</h2>
                         </div>
-                        <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Personal Details</h2>
+                        <button type="button" onclick="document.getElementById('governmentIdInput').click()" class="h-10 px-4 rounded-lg bg-primary hover:bg-primary-hover text-white text-sm font-brand font-semibold">
+                            Upload IC
+                        </button>
                     </div>
                     <div class="space-y-6">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                            <div class="space-y-2">
-                                <label class="<?= $labelClass ?>">Full Name</label>
-                                <input name="full_name" value="<?= $v('full_name') ?>" class="<?= $inputClass ?>" type="text" maxlength="100" required/>
-                            </div>
-                            <?php if ($on('staff_no')): ?>
-                            <div class="space-y-2">
-                                <label class="<?= $labelClass ?>">Staff No. (at vendor company)</label>
-                                <input name="staff_no" value="<?= $v('staff_no') ?>" class="<?= $inputClass ?>" type="text" maxlength="50"/>
-                            </div>
-                            <?php endif; ?>
-                        </div>
-                        <?php if ($on('ic_passport') || $on('date_of_birth') || $on('sex')): ?>
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                             <?php if ($on('ic_passport')): ?>
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">In/ Out Bound</label>
+                                <select name="in_out_bound" class="<?= $inputClass ?>">
+                                    <option value="INSIDE" <?= $sel('in_out_bound', 'INSIDE') ?>>INSIDE</option>
+                                    <option value="OUTSIDE" <?= $sel('in_out_bound', 'OUTSIDE') ?>>OUTSIDE</option>
+                                </select>
+                            </div>
                             <div class="space-y-2">
                                 <label class="<?= $labelClass ?>">IC Number</label>
                                 <input name="ic_no" value="<?= $v('ic_no') ?>" class="<?= $inputClass ?>" type="text" maxlength="50"/>
@@ -191,6 +236,8 @@
                                 <input name="dob" value="<?= $v('dob') ?>" class="<?= $inputClass ?>" type="date"/>
                             </div>
                             <?php endif; ?>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                             <?php if ($on('sex')): ?>
                             <div class="space-y-2">
                                 <label class="<?= $labelClass ?>">Sex</label>
@@ -200,16 +247,17 @@
                                 </select>
                             </div>
                             <?php endif; ?>
-                        </div>
-                        <?php endif; ?>
-                        <?php if ($on('designation') || $on('contact_number') || $on('email')): ?>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                            <?php if ($on('designation')): ?>
                             <div class="space-y-2">
-                                <label class="<?= $labelClass ?>">Designation</label>
-                                <input name="designation" value="<?= $v('designation') ?>" class="<?= $inputClass ?>" type="text" maxlength="50"/>
+                                <label class="<?= $labelClass ?>">Full Name <span class="text-red-500">*</span></label>
+                                <input name="full_name" value="<?= $v('full_name') ?>" class="<?= $inputClass ?>" type="text" maxlength="100" required/>
                             </div>
-                            <?php endif; ?>
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">Name On Vendor Pass <span class="text-red-500">*</span></label>
+                                <input name="name_on_vendor_pass" value="<?= $v('name_on_vendor_pass') ?>" class="<?= $inputClass ?>" type="text" maxlength="100" required/>
+                            </div>
+                        </div>
+                        <?php if ($on('contact_number') || $on('email')): ?>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <?php if ($on('contact_number')): ?>
                             <div class="space-y-2">
                                 <label class="<?= $labelClass ?>">Contact Number</label>
@@ -218,47 +266,105 @@
                             <?php endif; ?>
                             <?php if ($on('email')): ?>
                             <div class="space-y-2">
-                                <label class="<?= $labelClass ?>">Email</label>
+                                <label class="<?= $labelClass ?>">Email Address</label>
                                 <input name="email" value="<?= $v('email') ?>" class="<?= $inputClass ?>" type="email" maxlength="100"/>
                             </div>
                             <?php endif; ?>
                         </div>
                         <?php endif; ?>
+                        <?php if ($on('address')): ?>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">Address 1</label>
+                                <input name="address_1" value="<?= $v('address_1') ?>" class="<?= $inputClass ?>" type="text" maxlength="150"/>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">Address 2</label>
+                                <input name="address_2" value="<?= $v('address_2') ?>" class="<?= $inputClass ?>" type="text" maxlength="150"/>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">Address 3</label>
+                                <input name="address_3" value="<?= $v('address_3') ?>" class="<?= $inputClass ?>" type="text" maxlength="150"/>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">Country</label>
+                                <select name="country" class="<?= $inputClass ?> bg-gray-100 dark:bg-background-dark" disabled>
+                                    <option selected>MALAYSIA</option>
+                                </select>
+                                <input type="hidden" name="country" value="Malaysia"/>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">State</label>
+                                <select name="state" class="<?= $inputClass ?>">
+                                    <option value="">SELECT</option>
+                                    <?php foreach ($stateOptions ?? [] as $state): ?>
+                                    <option value="<?= esc($state) ?>" <?= $sel('state', $state) ?>><?= esc(strtoupper($state)) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">City</label>
+                                <input name="city" value="<?= $v('city') ?>" class="<?= $inputClass ?>" type="text" maxlength="50" placeholder="SELECT"/>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">Postal Code</label>
+                                <input name="postcode" value="<?= $v('postcode') ?>" class="<?= $inputClass ?>" type="text" maxlength="10"/>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">Vehicle Registration Number</label>
+                                <input name="vehicle_registration" value="<?= $v('vehicle_registration') ?>" class="<?= $inputClass ?>" type="text" maxlength="20"/>
+                            </div>
+                            <?php if ($on('staff_no')): ?>
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">Staff No. (at vendor company)</label>
+                                <input name="staff_no" value="<?= $v('staff_no') ?>" class="<?= $inputClass ?>" type="text" maxlength="50"/>
+                            </div>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </section>
 
-                <?php if ($on('address')): ?>
-                <!-- Address -->
-                <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 p-6 sm:p-8">
-                    <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
-                        <div class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-primary">
-                            <span class="material-symbols-outlined">home</span>
+                <!-- Driving License -->
+                <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 p-6 sm:p-8"
+                    x-data="{ rows: [<?php foreach ($existingLicenses as $lic): ?>{ class: <?= json_encode($lic['license_class'] ?? '') ?>, expiry: <?= json_encode($lic['license_expiry'] ?? '') ?>, saved: true }, <?php endforeach; ?>] }">
+                    <div class="flex items-center justify-between gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
+                        <div class="flex items-center gap-3">
+                            <div class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-primary">
+                                <span class="material-symbols-outlined">directions_car</span>
+                            </div>
+                            <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Driving License</h2>
                         </div>
-                        <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Address</h2>
-                    </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        <div class="space-y-2">
-                            <label class="<?= $labelClass ?>">Address Line 1</label>
-                            <input name="address_1" value="<?= $v('address_1') ?>" class="<?= $inputClass ?>" type="text" maxlength="150"/>
-                        </div>
-                        <div class="space-y-2">
-                            <label class="<?= $labelClass ?>">Address Line 2</label>
-                            <input name="address_2" value="<?= $v('address_2') ?>" class="<?= $inputClass ?>" type="text" maxlength="150"/>
-                        </div>
-                        <div class="space-y-2">
-                            <label class="<?= $labelClass ?>">Address Line 3</label>
-                            <input name="address_3" value="<?= $v('address_3') ?>" class="<?= $inputClass ?>" type="text" maxlength="150"/>
-                        </div>
-                        <div class="space-y-2">
-                            <label class="<?= $labelClass ?>">Postcode</label>
-                            <input name="postcode" value="<?= $v('postcode') ?>" class="<?= $inputClass ?>" type="text" maxlength="10"/>
+                        <div class="flex items-center gap-2">
+                            <button type="button" @click="rows.push({ class: '', expiry: '', saved: false })" class="size-9 rounded-full border border-border-color dark:border-gray-700 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800">
+                                <span class="material-symbols-outlined text-[20px]">add</span>
+                            </button>
+                            <button type="button" @click="if (rows.length) rows.pop()" class="size-9 rounded-full border border-border-color dark:border-gray-700 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800">
+                                <span class="material-symbols-outlined text-[20px]">remove</span>
+                            </button>
                         </div>
                     </div>
+                    <p x-show="rows.length === 0" class="text-sm text-text-sub text-center py-4">No Record</p>
+                    <template x-for="(row, i) in rows" :key="i">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-4">
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">License Class</label>
+                                <input :name="'license_class[' + i + ']'" x-model="row.class" class="<?= $inputClass ?>" type="text" placeholder="e.g. D" :readonly="row.saved" :class="row.saved ? 'bg-gray-100 dark:bg-background-dark' : ''"/>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">License Expiry</label>
+                                <input :name="'license_expiry[' + i + ']'" x-model="row.expiry" class="<?= $inputClass ?>" type="date" :readonly="row.saved" :class="row.saved ? 'bg-gray-100 dark:bg-background-dark' : ''"/>
+                            </div>
+                        </div>
+                    </template>
                 </section>
-                <?php endif; ?>
 
                 <?php if ($on('visit_details')): ?>
-                <!-- Visit Details -->
+                <!-- Visit Details (VMS addition, kept beyond KPK's own request form) -->
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 p-6 sm:p-8">
                     <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
                         <div class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-primary">
@@ -284,7 +390,7 @@
                 <?php endif; ?>
 
                 <?php if ($on('csp_number') || $on('evetting')): ?>
-                <!-- CSP & E-Vetting -->
+                <!-- CSP & E-Vetting (VMS addition, kept beyond KPK's own request form) -->
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 p-6 sm:p-8">
                     <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
                         <div class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-primary">
@@ -325,93 +431,70 @@
                 </section>
                 <?php endif; ?>
 
-                <!-- Pass & Documents -->
+                <?php if ($on('pass_expiry') || $on('remark')): ?>
+                <!-- Pass -->
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 p-6 sm:p-8">
                     <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
                         <div class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-primary">
                             <span class="material-symbols-outlined">badge</span>
                         </div>
-                        <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Pass &amp; Documents</h2>
+                        <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Pass</h2>
                     </div>
-                    <div class="space-y-6">
-                        <?php if ($on('pass_expiry') || $on('remark')): ?>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                            <?php if ($on('pass_expiry')): ?>
-                            <div class="space-y-2">
-                                <label class="<?= $labelClass ?>">Pass Expiry</label>
-                                <input name="pass_expiry" value="<?= $v('pass_expiry') ?>" class="<?= $inputClass ?>" type="date"/>
-                            </div>
-                            <?php endif; ?>
-                            <?php if ($on('remark')): ?>
-                            <div class="space-y-2">
-                                <label class="<?= $labelClass ?>">Remark</label>
-                                <input name="remark" value="<?= $v('remark') ?>" class="<?= $inputClass ?>" type="text"/>
-                            </div>
-                            <?php endif; ?>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <?php if ($on('pass_expiry')): ?>
+                        <div class="space-y-2">
+                            <label class="<?= $labelClass ?>">Pass Expiry</label>
+                            <input name="pass_expiry" value="<?= $v('pass_expiry') ?>" class="<?= $inputClass ?>" type="date"/>
                         </div>
                         <?php endif; ?>
-                        <?php if ($on('photo_upload') || $on('document_upload')): ?>
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                            <?php if ($on('photo_upload')): ?>
-                            <div class="space-y-2">
-                                <label class="<?= $labelClass ?>">Photo</label>
-                                <input name="photo" class="<?= $inputClass ?> pt-2.5" type="file" accept="image/*"/>
-                            </div>
-                            <?php endif; ?>
-                            <?php if ($on('document_upload')): ?>
-                            <div class="space-y-2">
-                                <label class="<?= $labelClass ?>">Government ID (MyKad/Passport scan)</label>
-                                <input name="government_id" class="<?= $inputClass ?> pt-2.5" type="file"/>
-                            </div>
-                            <div class="space-y-2">
-                                <label class="<?= $labelClass ?>">Other Documents</label>
-                                <input name="other_doc[]" class="<?= $inputClass ?> pt-2.5" type="file" multiple/>
-                            </div>
-                            <?php endif; ?>
+                        <?php if ($on('remark')): ?>
+                        <div class="space-y-2">
+                            <label class="<?= $labelClass ?>">Remark</label>
+                            <input name="remark" value="<?= $v('remark') ?>" class="<?= $inputClass ?>" type="text"/>
                         </div>
                         <?php endif; ?>
                     </div>
                 </section>
+                <?php endif; ?>
 
-                <?php if ($on('card_issuance')): ?>
-                <!-- Card Issuance -->
+                <!-- Upload -->
+                <?php if ($on('photo_upload') || $on('document_upload')): ?>
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 p-6 sm:p-8">
                     <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
                         <div class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-primary">
-                            <span class="material-symbols-outlined">badge</span>
+                            <span class="material-symbols-outlined">upload_file</span>
                         </div>
-                        <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Card Issuance</h2>
+                        <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Upload</h2>
                     </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <?php if ($on('document_upload')): ?>
                         <div class="space-y-2">
-                            <label class="<?= $labelClass ?>">Receipt No</label>
-                            <input name="receipt_no" value="<?= $v('receipt_no') ?>" class="<?= $inputClass ?>" type="text" maxlength="50"/>
+                            <label class="<?= $labelClass ?>">Photostat IC / Passport</label>
+                            <input id="governmentIdInput" name="government_id" class="<?= $inputClass ?> pt-2.5" type="file"/>
                         </div>
+                        <?php endif; ?>
+                        <?php if ($on('photo_upload')): ?>
                         <div class="space-y-2">
-                            <label class="<?= $labelClass ?>">Vehicle Registration</label>
-                            <input name="vehicle_registration" value="<?= $v('vehicle_registration') ?>" class="<?= $inputClass ?>" type="text" maxlength="20"/>
+                            <label class="<?= $labelClass ?>">Passport Photo</label>
+                            <label for="passportPhotoInput" class="flex flex-col items-center justify-center h-32 rounded-lg border-2 border-dashed border-border-color dark:border-gray-700 text-text-sub text-sm cursor-pointer hover:border-primary transition-colors">
+                                <span class="material-symbols-outlined text-2xl mb-1">cloud_upload</span>
+                                Click or drag files to upload
+                                <input id="passportPhotoInput" name="photo" class="hidden" type="file" accept="image/*" onchange="this.previousElementSibling.nextSibling.textContent = this.files[0] ? this.files[0].name : 'Click or drag files to upload'"/>
+                            </label>
                         </div>
-                        <div class="space-y-2">
-                            <label class="<?= $labelClass ?>">Card Type</label>
-                            <select name="card_type" class="<?= $inputClass ?>">
-                                <option value="">-- Select --</option>
-                                <option value="Permanent" <?= $sel('card_type', 'Permanent') ?>>Permanent</option>
-                                <option value="Temporary" <?= $sel('card_type', 'Temporary') ?>>Temporary</option>
-                            </select>
+                        <?php endif; ?>
+                        <?php if ($on('document_upload')): ?>
+                        <div class="space-y-2 sm:col-span-2">
+                            <label class="<?= $labelClass ?>">Other Documents</label>
+                            <input name="other_doc[]" class="<?= $inputClass ?> pt-2.5" type="file" multiple/>
                         </div>
-                        <div class="space-y-2">
-                            <label class="<?= $labelClass ?>">Card Status</label>
-                            <select name="card_status" class="<?= $inputClass ?>">
-                                <option value="Inactive" <?= $sel('card_status', 'Inactive') ?>>Inactive</option>
-                                <option value="Active" <?= $sel('card_status', 'Active') ?>>Active</option>
-                            </select>
-                        </div>
+                        <?php endif; ?>
                     </div>
                 </section>
                 <?php endif; ?>
 
                 <?php if ($on('additional_verification')): ?>
-                <!-- Additional Verification -->
+                <!-- Additional Verification (VMS addition, kept beyond KPK's own request form) -->
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 p-6 sm:p-8">
                     <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
                         <div class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-primary">
@@ -441,9 +524,12 @@
                     <a href="<?= base_url('vendors') ?>" class="h-12 px-6 rounded-lg border border-border-color dark:border-gray-700 text-text-main dark:text-gray-200 font-brand font-medium flex items-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                         Cancel
                     </a>
+                    <button type="submit" name="save_as_draft" value="1" formnovalidate class="h-12 px-6 rounded-lg border border-border-color dark:border-gray-700 text-text-main dark:text-gray-200 font-brand font-semibold flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                        Save As Draft
+                    </button>
                     <button type="submit" class="h-12 px-6 rounded-lg bg-primary hover:bg-primary-hover text-white font-brand font-semibold flex items-center gap-2 shadow transition-colors">
                         <span class="material-symbols-outlined text-[20px]">check_circle</span>
-                        <?= isset($isEdit) ? 'Save Changes' : 'Submit Request' ?>
+                        <?= isset($isEdit) ? 'Save Changes' : 'Submit' ?>
                     </button>
                 </div>
             </form>
