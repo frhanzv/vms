@@ -118,35 +118,13 @@
                 <?php endif; ?>
             </div>
 
-            <!-- Urine Test -->
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-sm font-bold uppercase">Urine Test History</h2>
-                    <?php if ($canEdit ?? false): ?>
-                    <button onclick="openUrineModal()" class="h-8 px-3 rounded-lg bg-primary text-white text-xs font-semibold">+ Add Result</button>
-                    <?php endif; ?>
-                </div>
-                <table class="w-full text-left text-xs border-collapse">
-                    <thead>
-                        <tr class="bg-gray-50 dark:bg-gray-700 font-bold uppercase">
-                            <th class="p-2 border-b">Date</th><th class="p-2 border-b">Result</th><th class="p-2 border-b">Remark</th><th class="p-2 border-b">Attachment</th><th class="p-2 border-b">Recorded By</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if (empty($urineTests)): ?>
-                        <tr><td colspan="5" class="p-4 text-center text-gray-500">No urine test results recorded.</td></tr>
-                        <?php else: foreach ($urineTests as $t): ?>
-                        <tr class="border-b border-gray-100 dark:border-gray-700">
-                            <td class="p-2"><?= esc($t['test_date']) ?></td>
-                            <td class="p-2"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold <?= $t['result'] === 'Negative' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' ?>"><?= esc($t['result']) ?></span></td>
-                            <td class="p-2"><?= esc($t['remark'] ?? '-') ?></td>
-                            <td class="p-2"><?php if ($t['attachment']): ?><a href="<?= base_url('uploads/urine_tests/' . $t['attachment']) ?>" target="_blank" class="text-primary hover:underline">View</a><?php else: ?>-<?php endif; ?></td>
-                            <td class="p-2"><?= esc($t['created_by'] ?? '-') ?></td>
-                        </tr>
-                        <?php endforeach; endif; ?>
-                    </tbody>
-                </table>
-            </div>
+            <!--
+                Urine Test History was removed from this page for now — the
+                supervisor said that tracking is for a later phase. The
+                backing table/controller/routes are still in the codebase
+                (harmless if unused) so this can be switched back on later
+                without rebuilding it from scratch.
+            -->
 
             <!-- Card / Print -->
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
@@ -223,28 +201,6 @@
                 <button onclick="retakePhoto()" class="h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-sm">Retake</button>
                 <button onclick="rotatePreview()" class="h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-sm">Rotate</button>
                 <button onclick="usePhoto()" class="h-9 px-4 rounded-lg bg-primary text-white text-sm font-semibold">Use Photo</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Urine Test Modal -->
-    <div id="urineModal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg w-full max-w-sm p-6">
-            <h2 class="text-base font-bold mb-3">Add Urine Test Result</h2>
-            <label class="block text-xs font-semibold mb-1">Test Date</label>
-            <input id="urineDate" type="date" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-900 rounded px-3 py-2 text-sm mb-3"/>
-            <label class="block text-xs font-semibold mb-1">Result</label>
-            <select id="urineResult" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-900 rounded px-3 py-2 text-sm mb-3">
-                <option value="Negative">Negative</option>
-                <option value="Positive">Positive</option>
-            </select>
-            <label class="block text-xs font-semibold mb-1">Remark</label>
-            <input id="urineRemark" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-900 rounded px-3 py-2 text-sm mb-3"/>
-            <label class="block text-xs font-semibold mb-1">Attachment (optional)</label>
-            <input id="urineAttachment" type="file" class="w-full text-sm mb-4"/>
-            <div class="flex justify-end gap-2">
-                <button onclick="closeUrineModal()" class="h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-sm">Cancel</button>
-                <button onclick="submitUrineTest()" class="h-9 px-4 rounded-lg bg-primary text-white text-sm font-semibold">Save</button>
             </div>
         </div>
     </div>
@@ -381,20 +337,6 @@
                 .catch(netErr);
         }
 
-        // --- Urine test ---
-        function openUrineModal() { document.getElementById('urineModal').classList.remove('hidden'); }
-        function closeUrineModal() { document.getElementById('urineModal').classList.add('hidden'); }
-        function submitUrineTest() {
-            const fd = new FormData();
-            fd.append('test_date', document.getElementById('urineDate').value);
-            fd.append('result', document.getElementById('urineResult').value);
-            fd.append('remark', document.getElementById('urineRemark').value);
-            const file = document.getElementById('urineAttachment').files[0];
-            if (file) fd.append('attachment', file);
-            postForm('<?= base_url('vendors/process-list/detail/add-urine-test/') ?>' + VENDOR_ID, fd)
-                .then(d => { alert(d.message); if (d.success) location.reload(); })
-                .catch(netErr);
-        }
 
         // --- Card print ---
         function cardMarkup(card) {

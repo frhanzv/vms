@@ -15,8 +15,17 @@
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mx-auto max-w-5xl">
             <h1 class="text-xl font-bold uppercase mb-2">Vendor Issuance List</h1>
             <p class="text-xs text-gray-500 dark:text-gray-400 mb-6">Recording who collects the card — name and IC/passport — before it's activated and closed out.</p>
-            <form method="get" class="mb-4">
-                <input name="search" value="<?= esc($searchTerm ?? '') ?>" class="border border-gray-300 dark:border-gray-600 dark:bg-gray-900 rounded px-3 py-2 text-sm w-72" placeholder="Search name / app no / receipt no"/>
+            <form method="get" class="mb-4 flex flex-wrap gap-2 items-center">
+                <input name="search" value="<?= esc($searchTerm ?? '') ?>" class="border border-gray-300 dark:border-gray-600 dark:bg-gray-900 rounded px-3 py-2 text-sm w-72" placeholder="IC / Passport / Full Name / App No / Company / Receipt No"/>
+                <select name="sort_by" class="border border-gray-300 dark:border-gray-600 dark:bg-gray-900 rounded px-3 py-2 text-sm" onchange="this.form.submit()">
+                    <option value="date_desc" <?= ($sortBy ?? '') === 'date_desc' ? 'selected' : '' ?>>Date (Newest First)</option>
+                    <option value="date_asc" <?= ($sortBy ?? '') === 'date_asc' ? 'selected' : '' ?>>Date (Oldest First)</option>
+                    <option value="name_asc" <?= ($sortBy ?? '') === 'name_asc' ? 'selected' : '' ?>>Full Name (A-Z)</option>
+                    <option value="name_desc" <?= ($sortBy ?? '') === 'name_desc' ? 'selected' : '' ?>>Full Name (Z-A)</option>
+                    <option value="company_asc" <?= ($sortBy ?? '') === 'company_asc' ? 'selected' : '' ?>>Company (A-Z)</option>
+                    <option value="company_desc" <?= ($sortBy ?? '') === 'company_desc' ? 'selected' : '' ?>>Company (Z-A)</option>
+                </select>
+                <button type="submit" class="h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold">Search</button>
             </form>
             <table class="w-full text-left text-xs border-collapse">
                 <thead>

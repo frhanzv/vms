@@ -70,7 +70,7 @@
                 <div>
                     <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Card Status</label>
                     <select name="card_status" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2 text-sm">
-                        <?php foreach (['all' => 'All', 'Active' => 'Active', 'Inactive' => 'Inactive'] as $val => $lbl): ?>
+                        <?php foreach (['all' => 'All', 'Active' => 'Active', 'Inactive' => 'Inactive', 'Terminated' => 'Terminated'] as $val => $lbl): ?>
                         <option value="<?= $val ?>" <?= ($cardStatus ?? 'all') === $val ? 'selected' : '' ?>><?= $lbl ?></option>
                         <?php endforeach; ?>
                     </select>
@@ -78,6 +78,21 @@
                 <div>
                     <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Card Expiry Date</label>
                     <input id="cardExpiry" name="card_expiry" value="<?= esc($cardExpiry ?? '') ?>" class="flatpickr w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2 text-sm" placeholder="dd/mm/yyyy"/>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Sort By</label>
+                    <select name="sort_by" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2 text-sm">
+                        <?php foreach ([
+                            'date_desc'    => 'Date (Newest First)',
+                            'date_asc'     => 'Date (Oldest First)',
+                            'name_asc'     => 'Full Name (A-Z)',
+                            'name_desc'    => 'Full Name (Z-A)',
+                            'company_asc'  => 'Company (A-Z)',
+                            'company_desc' => 'Company (Z-A)',
+                        ] as $val => $lbl): ?>
+                        <option value="<?= $val ?>" <?= ($sortBy ?? 'date_desc') === $val ? 'selected' : '' ?>><?= $lbl ?></option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
                 <div class="flex items-end">
                     <button type="submit" class="w-full h-[38px] bg-primary hover:bg-blue-700 text-white rounded text-sm font-medium">Filter</button>

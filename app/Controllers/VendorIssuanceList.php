@@ -14,14 +14,28 @@ namespace App\Controllers;
  */
 class VendorIssuanceList extends BaseController
 {
+    private const SORT_OPTIONS = [
+        'date_desc'    => ['created_at', 'DESC'],
+        'date_asc'     => ['created_at', 'ASC'],
+        'name_asc'     => ['full_name', 'ASC'],
+        'name_desc'    => ['full_name', 'DESC'],
+        'company_asc'  => ['vendor_company_name', 'ASC'],
+        'company_desc' => ['vendor_company_name', 'DESC'],
+    ];
+
     public function index()
     {
         helper(['access', 'feature', 'privacy', 'role']);
         $db = \Config\Database::connect();
 
         $searchTerm = trim((string) ($this->request->getGet('search') ?? ''));
+        $sortBy     = trim((string) ($this->request->getGet('sort_by') ?? 'date_desc'));
         $page       = max(1, (int) ($this->request->getGet('page') ?? 1));
         $perPage    = 10;
+
+        if (! array_key_exists($sortBy, self::SORT_OPTIONS)) {
+            $sortBy = 'date_desc';
+        }
 
         $builder = $db->table('vendors')
             ->where('status', 'Approved')
@@ -32,9 +46,13 @@ class VendorIssuanceList extends BaseController
             $builder->where('company_id', current_company_id());
         }
         if ($searchTerm !== '') {
+            // Matches KPK's search bar: IC / Passport / Full Name / App No / Company / Receipt No.
             $builder->groupStart()
                 ->like('full_name', $searchTerm)
+                ->orLike('ic_no', $searchTerm)
+                ->orLike('passport_no', $searchTerm)
                 ->orLike('app_no', $searchTerm)
+                ->orLike('vendor_company_name', $searchTerm)
                 ->orLike('receipt_no', $searchTerm)
                 ->groupEnd();
         }
@@ -45,7 +63,8 @@ class VendorIssuanceList extends BaseController
             $page = $lastPage;
         }
 
-        $rows = $builder->orderBy('created_at', 'DESC')->limit($perPage, ($page - 1) * $perPage)->get()->getResultArray();
+        [$sortField, $sortDir] = self::SORT_OPTIONS[$sortBy];
+        $rows = $builder->orderBy($sortField, $sortDir)->limit($perPage, ($page - 1) * $perPage)->get()->getResultArray();
 
         $list = [];
         foreach ($rows as $i => $row) {
@@ -64,6 +83,7 @@ class VendorIssuanceList extends BaseController
             'pageTitle'  => 'Vendor Issuance List - SafeG',
             'list'       => $list,
             'searchTerm' => $searchTerm,
+            'sortBy'     => $sortBy,
             'canIssue'   => has_access('vendor_pass_list', 'edit'),
             'pagination' => ['current_page' => $page, 'last_page' => $lastPage, 'total' => $totalCount],
         ]);

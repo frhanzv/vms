@@ -4,11 +4,23 @@ namespace App\Controllers;
 
 class VendorClosedList extends BaseController
 {
+    private const SORT_OPTIONS = [
+        'date_desc'    => ['created_at', 'DESC'],
+        'date_asc'     => ['created_at', 'ASC'],
+        'name_asc'     => ['full_name', 'ASC'],
+        'name_desc'    => ['full_name', 'DESC'],
+        'company_asc'  => ['vendor_company_name', 'ASC'],
+        'company_desc' => ['vendor_company_name', 'DESC'],
+    ];
+
     /**
      * "Closed" here = card_status = 'Active' (a card has actually been
      * issued) — matching what KPK's Closed List represents: fully processed
      * passes with a physical card, as opposed to Approved (workflow-approved
-     * but card not necessarily issued yet).
+     * but card not necessarily issued yet). A terminated card (card_status
+     * = 'Terminated') also lands here rather than disappearing, since the
+     * pass itself was still fully processed — the Card Status filter below
+     * can narrow to just one state.
      */
     public function index()
     {
@@ -22,14 +34,18 @@ class VendorClosedList extends BaseController
         $cardStatus    = trim((string) ($this->request->getGet('card_status') ?? 'all'));
         $cardExpiry    = trim((string) ($this->request->getGet('card_expiry') ?? ''));
         $searchTerm    = trim((string) ($this->request->getGet('search') ?? ''));
+        $sortBy        = trim((string) ($this->request->getGet('sort_by') ?? 'date_desc'));
         $page          = max(1, (int) ($this->request->getGet('page') ?? 1));
         $perPage       = (int) ($this->request->getGet('per_page') ?? 10);
 
         if (! in_array($perPage, [10, 25, 50], true)) {
             $perPage = 10;
         }
+        if (! array_key_exists($sortBy, self::SORT_OPTIONS)) {
+            $sortBy = 'date_desc';
+        }
 
-        $builder = $db->table('vendors')->where('card_status', 'Active');
+        $builder = $db->table('vendors')->whereIn('card_status', ['Active', 'Terminated']);
 
         if (! is_platform_superadmin()) {
             $builder->where('company_id', current_company_id());
@@ -69,8 +85,9 @@ class VendorClosedList extends BaseController
             $page = $lastPage;
         }
 
+        [$sortField, $sortDir] = self::SORT_OPTIONS[$sortBy];
         $rows = $builder
-            ->orderBy('created_at', 'DESC')
+            ->orderBy($sortField, $sortDir)
             ->limit($perPage, ($page - 1) * $perPage)
             ->get()
             ->getResultArray();
@@ -107,6 +124,7 @@ class VendorClosedList extends BaseController
             'resident'       => $resident,
             'cardStatus'     => $cardStatus,
             'cardExpiry'     => $cardExpiry,
+            'sortBy'         => $sortBy,
             'pagination'     => [
                 'current_page' => $page,
                 'last_page'    => $lastPage,

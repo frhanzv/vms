@@ -3,56 +3,67 @@
 namespace App\Controllers;
 
 /**
- * Printing List stage — rebuilt to follow KPK's real printing-list.component.ts
- * more closely, per instruction: "the printing list make sure to follow
- * accordingly."
- *
- * What KPK's real page actually does (traced from printing-list.component.ts
- * + VendorPassServiceImpl.generateVendorPassCardSerialNo/generatePortPassCardSerialNo):
- *  - Lists Approved passes waiting to be carded (their query keys off
- *    NEXTACTION = 'process'; we key off card_type being chosen but not yet
- *    printed, since our schema doesn't carry a separate next_action value
- *    for every KPK sub-stage — same effect, one field fewer).
- *  - Each row has a checkbox; "Select all" is supported.
- *  - Printing a card runs a serial-number generator server-side
- *    (format: <YYYYMM><running id for that month>) and stores it — that's
- *    what "Receipt No" is in KPK's table.
- *  - A row that already has a serial number shows a "Printed" badge but can
- *    still be re-printed (KPK allows reprints too).
- *  - The printed artifact is a physical card sized to a CR80 card
- *    (54mm x 85.6mm) with the person's photo, name, IC/passport and card
- *    validity — KPK renders this from proprietary government card artwork
- *    (vendor_permanent.jpg / vendor_temporary.jpg) which we don't have and
- *    isn't ours to copy, so the view below draws an original card design of
- *    the same physical size and fields, color-coded by card_type the same
- *    way KPK's asset split works (Permanent vs Temporary).
+ * Printing List stage — per the real KPK workflow (confirmed directly by
+ * the user): this shows the exact same "approved, not yet printed" set as
+ * the Process List — it's not a separate sequential stage, just a
+ * bulk-print-focused view onto the same records. Whichever page actually
+ * prints a record first (Process Detail's Print button, or this page's
+ * row/bulk print) is what moves it out of both lists and into the
+ * Issuance List, which is why the query below no longer requires a card
+ * type to already be assigned — assigning one can happen from either page
+ * too.
  */
 class VendorPrintingList extends BaseController
 {
+    private const SORT_OPTIONS = [
+        'date_desc'    => ['created_at', 'DESC'],
+        'date_asc'     => ['created_at', 'ASC'],
+        'name_asc'     => ['full_name', 'ASC'],
+        'name_desc'    => ['full_name', 'DESC'],
+        'company_asc'  => ['vendor_company_name', 'ASC'],
+        'company_desc' => ['vendor_company_name', 'DESC'],
+    ];
+
     public function index()
     {
         helper(['access', 'feature', 'privacy', 'role']);
         $db = \Config\Database::connect();
 
         $searchTerm = trim((string) ($this->request->getGet('search') ?? ''));
+        $cardType   = trim((string) ($this->request->getGet('card_type') ?? ''));
+        $sortBy     = trim((string) ($this->request->getGet('sort_by') ?? 'date_desc'));
         $page       = max(1, (int) ($this->request->getGet('page') ?? 1));
         $perPage    = 10;
 
+        if (! array_key_exists($sortBy, self::SORT_OPTIONS)) {
+            $sortBy = 'date_desc';
+        }
+
         $builder = $db->table('vendors')
             ->where('status', 'Approved')
-            ->where('card_status', 'Inactive')
-            ->where('card_type IS NOT NULL', null, false);
+            ->groupStart()
+                ->where('receipt_no', null)
+                ->orWhere('receipt_no', '')
+            ->groupEnd();
 
         if (! is_platform_superadmin()) {
             $builder->where('company_id', current_company_id());
         }
         if ($searchTerm !== '') {
+            // Matches KPK's search bar: IC / Passport / Full Name / App No / Company / Receipt No.
             $builder->groupStart()
                 ->like('full_name', $searchTerm)
+                ->orLike('ic_no', $searchTerm)
+                ->orLike('passport_no', $searchTerm)
                 ->orLike('app_no', $searchTerm)
                 ->orLike('vendor_company_name', $searchTerm)
                 ->orLike('receipt_no', $searchTerm)
                 ->groupEnd();
+        }
+        if ($cardType === 'unassigned') {
+            $builder->where('card_type IS NULL', null, false);
+        } elseif (in_array($cardType, ['Permanent', 'Temporary'], true)) {
+            $builder->where('card_type', $cardType);
         }
 
         $totalCount = (int) $builder->countAllResults(false);
@@ -61,7 +72,8 @@ class VendorPrintingList extends BaseController
             $page = $lastPage;
         }
 
-        $rows = $builder->orderBy('created_at', 'DESC')->limit($perPage, ($page - 1) * $perPage)->get()->getResultArray();
+        [$sortField, $sortDir] = self::SORT_OPTIONS[$sortBy];
+        $rows = $builder->orderBy($sortField, $sortDir)->limit($perPage, ($page - 1) * $perPage)->get()->getResultArray();
 
         $list = [];
         foreach ($rows as $i => $row) {
@@ -77,9 +89,7 @@ class VendorPrintingList extends BaseController
                 'full_name'           => $row['full_name'] ?? 'N/A',
                 'vendor_company_name' => $row['vendor_company_name'] ?? 'N/A',
                 'ic_passport_masked'  => mask_ic_passport($row['ic_no'] ?: ($row['passport_no'] ?? ''), 'N/A'),
-                'card_type'           => $row['card_type'] ?? '-',
-                'receipt_no'          => $row['receipt_no'] ?? null,
-                'printed'             => ! empty($row['receipt_no']),
+                'card_type'           => $row['card_type'] ?? 'Not assigned',
                 'photo_url'           => $photoUrl,
             ];
         }
@@ -88,6 +98,8 @@ class VendorPrintingList extends BaseController
             'pageTitle'  => 'Vendor Printing List - SafeG',
             'list'       => $list,
             'searchTerm' => $searchTerm,
+            'cardType'   => $cardType,
+            'sortBy'     => $sortBy,
             'canPrint'   => has_access('vendor_pass_list', 'edit'),
             'pagination' => ['current_page' => $page, 'last_page' => $lastPage, 'total' => $totalCount],
         ]);
@@ -103,7 +115,10 @@ class VendorPrintingList extends BaseController
      * Re-printing an already-serialed card is allowed (KPK allows this too
      * — see printCards() calling generateCard again on already-printed
      * rows) — it just returns the existing serial instead of making a new
-     * one, so printing never duplicates numbers.
+     * one, so printing never duplicates numbers. This matters because this
+     * same endpoint is reused by the Card Info page's "Reprint" button,
+     * which calls it on records that already left Process/Printing List
+     * for the Issuance/Closed List.
      */
     public function generateSerial($id)
     {
