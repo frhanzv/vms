@@ -37,13 +37,17 @@
                         <td class="p-3"><?= esc($row['ic_passport_masked']) ?></td>
                         <td class="p-3"><?= esc($row['pass_expiry']) ?></td>
                         <td class="p-3">
-                            <?php if ($canAssign ?? false): ?>
-                            <div class="flex gap-1">
-                                <button onclick="assignCardType(<?= $row['id'] ?>, 'Permanent')" class="text-primary hover:underline text-xs font-semibold">Permanent</button>
+                            <div class="flex items-center gap-2">
+                                <a href="<?= base_url('vendors/process-list/detail/view/' . $row['id']) ?>" class="text-primary hover:underline text-xs font-semibold">View Details</a>
+                                <?php if ($canAssign ?? false): ?>
                                 <span class="text-gray-300">|</span>
-                                <button onclick="assignCardType(<?= $row['id'] ?>, 'Temporary')" class="text-primary hover:underline text-xs font-semibold">Temporary</button>
+                                <div class="flex gap-1">
+                                    <button onclick="assignCardType(<?= $row['id'] ?>, 'Permanent')" class="text-primary hover:underline text-xs font-semibold">Permanent</button>
+                                    <span class="text-gray-300">|</span>
+                                    <button onclick="assignCardType(<?= $row['id'] ?>, 'Temporary')" class="text-primary hover:underline text-xs font-semibold">Temporary</button>
+                                </div>
+                                <?php endif; ?>
                             </div>
-                            <?php endif; ?>
                         </td>
                     </tr>
                     <?php endforeach; endif; ?>

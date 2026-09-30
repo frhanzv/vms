@@ -90,6 +90,7 @@
                     <thead>
                         <tr class="bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold uppercase tracking-wide">
                             <th class="p-3 border-b dark:border-gray-600">No</th>
+                            <th class="p-3 border-b dark:border-gray-600">Action</th>
                             <th class="p-3 border-b dark:border-gray-600">App No</th>
                             <th class="p-3 border-b dark:border-gray-600">Receipt No</th>
                             <th class="p-3 border-b dark:border-gray-600">App Date</th>
@@ -107,10 +108,13 @@
                     </thead>
                     <tbody class="text-gray-600 dark:text-gray-300">
                         <?php if (empty($closedList)): ?>
-                        <tr><td colspan="14" class="p-8 text-center text-gray-500">No closed vendor pass records found.</td></tr>
+                        <tr><td colspan="15" class="p-8 text-center text-gray-500">No closed vendor pass records found.</td></tr>
                         <?php else: foreach ($closedList as $row): ?>
                         <tr class="border-b border-gray-100 dark:border-gray-700">
                             <td class="p-3"><?= $row['no'] ?></td>
+                            <td class="p-3">
+                                <a href="<?= base_url('vendors/card-info/view/' . $row['id']) ?>" class="text-primary hover:underline text-xs font-semibold">Card Details</a>
+                            </td>
                             <td class="p-3"><?= esc($row['app_no']) ?></td>
                             <td class="p-3"><?= esc($row['receipt_no']) ?></td>
                             <td class="p-3"><?= esc($row['app_date']) ?></td>
@@ -121,7 +125,7 @@
                             <td class="p-3"><?= esc($row['card_type']) ?></td>
                             <td class="p-3"><?= esc($row['card_id']) ?></td>
                             <td class="p-3">
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold <?= $row['card_status'] === 'Active' ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-700' ?>"><?= esc($row['card_status']) ?></span>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold <?= $row['card_status'] === 'Active' ? 'bg-emerald-50 text-emerald-700' : ($row['card_status'] === 'Terminated' ? 'bg-red-50 text-red-700' : 'bg-gray-100 text-gray-700') ?>"><?= esc($row['card_status']) ?></span>
                             </td>
                             <td class="p-3"><?= esc($row['card_expiry']) ?></td>
                             <td class="p-3"><?= esc($row['collector_name']) ?></td>

@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <title><?= esc($pageTitle) ?></title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { theme: { extend: { colors: { primary: "#137fec" }, fontFamily: { sans: ["Montserrat","sans-serif"] } } } };</script>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 font-sans text-gray-800 dark:text-gray-200 min-h-screen flex">
+    <?= view('partials/sidebar') ?>
+    <main class="flex-1 overflow-y-auto p-4 md:p-8">
+        <div class="max-w-6xl mx-auto space-y-6">
+
+            <div class="flex items-center justify-between">
+                <div>
+                    <a href="<?= base_url('vendors/process-list') ?>" class="text-xs text-primary hover:underline flex items-center gap-1 mb-1">
+                        <span class="material-symbols-outlined text-sm">arrow_back</span> Back to Process List
+                    </a>
+                    <h1 class="text-xl font-bold uppercase"><?= esc($vendor['full_name']) ?></h1>
+                    <p class="text-xs text-gray-500 dark:text-gray-400"><?= esc($vendor['app_no'] ?? 'N/A') ?> &middot; <?= esc($vendor['vendor_company_name'] ?? '') ?></p>
+                </div>
+                <span class="px-3 py-1 rounded-full text-xs font-bold bg-primary/10 text-primary"><?= esc($vendor['status']) ?></span>
+            </div>
+
+            <!-- Details / Update -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <h2 class="text-sm font-bold uppercase mb-4">Details</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <label class="block text-xs font-semibold mb-1">Vendor Company</label>
+                        <input id="f_vendor_company_name" value="<?= esc($vendor['vendor_company_name'] ?? '') ?>" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-900 rounded px-3 py-2 text-sm" <?= ($canEdit ?? false) ? '' : 'disabled' ?>/>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold mb-1">Full Name</label>
+                        <input id="f_full_name" value="<?= esc($vendor['full_name'] ?? '') ?>" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-900 rounded px-3 py-2 text-sm" <?= ($canEdit ?? false) ? '' : 'disabled' ?>/>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold mb-1">IC / Passport No</label>
+                        <input value="<?= esc($icPassport) ?>" class="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 rounded px-3 py-2 text-sm text-gray-500" disabled/>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold mb-1">Contact No</label>
+                        <input id="f_contact_no" value="<?= esc($vendor['contact_no'] ?? '') ?>" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-900 rounded px-3 py-2 text-sm" <?= ($canEdit ?? false) ? '' : 'disabled' ?>/>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold mb-1">Email</label>
+                        <input id="f_email" value="<?= esc($vendor['email'] ?? '') ?>" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-900 rounded px-3 py-2 text-sm" <?= ($canEdit ?? false) ? '' : 'disabled' ?>/>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold mb-1">Designation</label>
+                        <input id="f_designation" value="<?= esc($vendor['designation'] ?? '') ?>" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-900 rounded px-3 py-2 text-sm" <?= ($canEdit ?? false) ? '' : 'disabled' ?>/>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold mb-1">Pass Expiry</label>
+                        <input id="f_pass_expiry" type="date" value="<?= esc($vendor['pass_expiry'] ?? '') ?>" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-900 rounded px-3 py-2 text-sm" <?= ($canEdit ?? false) ? '' : 'disabled' ?>/>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold mb-1">Card Type</label>
+                        <select id="f_card_type" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-900 rounded px-3 py-2 text-sm" <?= ($canEdit ?? false) ? '' : 'disabled' ?>>
+                            <option value="" <?= empty($vendor['card_type']) ? 'selected' : '' ?>>Not assigned</option>
+                            <option value="Permanent" <?= $vendor['card_type'] === 'Permanent' ? 'selected' : '' ?>>Permanent</option>
+                            <option value="Temporary" <?= $vendor['card_type'] === 'Temporary' ? 'selected' : '' ?>>Temporary</option>
+                        </select>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-semibold mb-1">Remark</label>
+                        <textarea id="f_remark" rows="2" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-900 rounded px-3 py-2 text-sm" <?= ($canEdit ?? false) ? '' : 'disabled' ?>><?= esc($vendor['remark'] ?? '') ?></textarea>
+                    </div>
+                </div>
+                <?php if ($canEdit ?? false): ?>
+                <div class="flex justify-end gap-2 mt-4">
+                    <button onclick="location.reload()" class="h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold">Refresh</button>
+                    <button onclick="openReject()" class="h-9 px-4 rounded-lg border border-red-300 text-red-600 text-sm font-semibold">Reject</button>
+                    <button onclick="saveDetails()" class="h-9 px-4 rounded-lg bg-primary text-white text-sm font-semibold">Save Changes</button>
+                </div>
+                <?php endif; ?>
+            </div>
+
+            <!-- Photo -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <h2 class="text-sm font-bold uppercase mb-4">Photo</h2>
+                <div class="flex items-start gap-6 flex-wrap">
+                    <img id="currentPhoto" src="<?= $vendor['facial_photo'] ? base_url('uploads/facial_photos/' . $vendor['facial_photo']) : ($vendor['photo'] ? base_url('uploads/vendor_photos/' . $vendor['photo']) : base_url('assets/images/avatar-placeholder.png')) ?>"
+                        class="w-32 h-32 object-cover rounded-lg border border-gray-200 dark:border-gray-700"/>
+                    <?php if ($canEdit ?? false): ?>
+                    <div class="flex flex-col gap-2">
+                        <label class="h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold flex items-center gap-1.5 cursor-pointer w-fit">
+                            <span class="material-symbols-outlined text-base">upload</span> Upload from file
+                            <input type="file" accept="image/*" class="hidden" onchange="uploadPhotoFile(this.files[0])"/>
+                        </label>
+                        <button onclick="openCamera()" class="h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold flex items-center gap-1.5 w-fit">
+                            <span class="material-symbols-outlined text-base">photo_camera</span> Take Photo
+                        </button>
+                    </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- Card / RFID -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <h2 class="text-sm font-bold uppercase mb-4">Physical Card</h2>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                    <?php if ($boundCard): ?>
+                        Bound to card <span class="font-mono font-semibold"><?= esc($boundCard['card_id']) ?></span> — status: <?= esc($boundCard['status']) ?>
+                    <?php else: ?>
+                        No physical card bound yet.
+                    <?php endif; ?>
+                </p>
+                <?php if ($canEdit ?? false): ?>
+                <div class="flex gap-2 items-center flex-wrap">
+                    <input id="cardEpcInput" placeholder="Tap RFID card or type EPC, then press Enter" class="border border-gray-300 dark:border-gray-600 dark:bg-gray-900 rounded px-3 py-2 text-sm w-80" onkeydown="if(event.key==='Enter'){readCard();}"/>
+                    <button onclick="readCard()" class="h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold">Bind Card</button>
+                    <span class="text-[11px] text-gray-400">Most USB/RFID readers act like a keyboard — tap a card while this box is focused.</span>
+                </div>
+                <?php endif; ?>
+            </div>
+
+            <!-- Urine Test -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-sm font-bold uppercase">Urine Test History</h2>
+                    <?php if ($canEdit ?? false): ?>
+                    <button onclick="openUrineModal()" class="h-8 px-3 rounded-lg bg-primary text-white text-xs font-semibold">+ Add Result</button>
+                    <?php endif; ?>
+                </div>
+                <table class="w-full text-left text-xs border-collapse">
+                    <thead>
+                        <tr class="bg-gray-50 dark:bg-gray-700 font-bold uppercase">
+                            <th class="p-2 border-b">Date</th><th class="p-2 border-b">Result</th><th class="p-2 border-b">Remark</th><th class="p-2 border-b">Attachment</th><th class="p-2 border-b">Recorded By</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($urineTests)): ?>
+                        <tr><td colspan="5" class="p-4 text-center text-gray-500">No urine test results recorded.</td></tr>
+                        <?php else: foreach ($urineTests as $t): ?>
+                        <tr class="border-b border-gray-100 dark:border-gray-700">
+                            <td class="p-2"><?= esc($t['test_date']) ?></td>
+                            <td class="p-2"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold <?= $t['result'] === 'Negative' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' ?>"><?= esc($t['result']) ?></span></td>
+                            <td class="p-2"><?= esc($t['remark'] ?? '-') ?></td>
+                            <td class="p-2"><?php if ($t['attachment']): ?><a href="<?= base_url('uploads/urine_tests/' . $t['attachment']) ?>" target="_blank" class="text-primary hover:underline">View</a><?php else: ?>-<?php endif; ?></td>
+                            <td class="p-2"><?= esc($t['created_by'] ?? '-') ?></td>
+                        </tr>
+                        <?php endforeach; endif; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Card / Print -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-sm font-bold uppercase">Card Printing</h2>
+                    <?php if ($canEdit ?? false): ?>
+                    <div class="flex gap-2">
+                        <a href="<?= base_url('vendors/card-info/view/' . $vendor['id']) ?>" class="h-8 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-xs font-semibold flex items-center">Card Details</a>
+                        <button onclick="printCard()" class="h-8 px-3 rounded-lg bg-primary text-white text-xs font-semibold">Print</button>
+                        <button onclick="finishAndIssue()" class="h-8 px-3 rounded-lg bg-emerald-600 text-white text-xs font-semibold">Finish (Issue Card)</button>
+                    </div>
+                    <?php endif; ?>
+                </div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Receipt No: <span class="font-mono"><?= esc($vendor['receipt_no'] ?? '-') ?></span> &middot; Card Status: <?= esc($vendor['card_status'] ?? '-') ?></p>
+
+                <h3 class="text-xs font-bold uppercase mt-4 mb-2 text-gray-500">Reprint History</h3>
+                <table class="w-full text-left text-xs border-collapse">
+                    <thead>
+                        <tr class="bg-gray-50 dark:bg-gray-700 font-bold uppercase">
+                            <th class="p-2 border-b">Date</th><th class="p-2 border-b">Receipt No</th><th class="p-2 border-b">Reprint?</th><th class="p-2 border-b">By</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($printLogs)): ?>
+                        <tr><td colspan="4" class="p-4 text-center text-gray-500">Not printed yet.</td></tr>
+                        <?php else: foreach ($printLogs as $l): ?>
+                        <tr class="border-b border-gray-100 dark:border-gray-700">
+                            <td class="p-2"><?= esc($l['printed_at']) ?></td>
+                            <td class="p-2 font-mono"><?= esc($l['receipt_no']) ?></td>
+                            <td class="p-2"><?= $l['is_reprint'] ? 'Yes' : 'No' ?></td>
+                            <td class="p-2"><?= esc($l['printed_by'] ?? '-') ?></td>
+                        </tr>
+                        <?php endforeach; endif; ?>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Reject Modal -->
+    <div id="rejectModal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg w-full max-w-sm p-6">
+            <h2 class="text-base font-bold mb-3">Reject Vendor Pass</h2>
+            <label class="block text-xs font-semibold mb-1">Reason</label>
+            <select id="rejectReasonId" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-900 rounded px-3 py-2 text-sm mb-3">
+                <option value="">Select a reason...</option>
+                <?php foreach ($rejectReasons as $r): ?>
+                <option value="<?= $r['id'] ?>"><?= esc($r['reason'] ?? $r['name'] ?? '') ?></option>
+                <?php endforeach; ?>
+            </select>
+            <label class="block text-xs font-semibold mb-1">Remark (optional)</label>
+            <textarea id="rejectRemark" rows="2" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-900 rounded px-3 py-2 text-sm mb-4"></textarea>
+            <div class="flex justify-end gap-2">
+                <button onclick="closeReject()" class="h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-sm">Cancel</button>
+                <button onclick="submitReject()" class="h-9 px-4 rounded-lg bg-red-600 text-white text-sm font-semibold">Confirm Reject</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Camera Modal -->
+    <div id="cameraModal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg w-full max-w-md p-6 text-center">
+            <h2 class="text-base font-bold mb-3">Take Photo</h2>
+            <video id="cameraVideo" autoplay playsinline class="w-full rounded-lg bg-black mb-3" style="max-height:320px;"></video>
+            <canvas id="cameraCanvas" class="hidden"></canvas>
+            <img id="cameraPreview" class="hidden w-full rounded-lg mb-3" style="max-height:320px; object-fit:contain; margin-left:auto; margin-right:auto;"/>
+            <div id="cameraLiveBtns" class="flex justify-center gap-2">
+                <button onclick="closeCamera()" class="h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-sm">Cancel</button>
+                <button onclick="rotatePreview()" class="h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-sm hidden" id="rotateBtn">Rotate</button>
+                <button onclick="takeSnapshot()" id="snapBtn" class="h-9 px-4 rounded-lg bg-primary text-white text-sm font-semibold">Capture</button>
+            </div>
+            <div id="cameraPreviewBtns" class="justify-center gap-2 hidden">
+                <button onclick="retakePhoto()" class="h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-sm">Retake</button>
+                <button onclick="rotatePreview()" class="h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-sm">Rotate</button>
+                <button onclick="usePhoto()" class="h-9 px-4 rounded-lg bg-primary text-white text-sm font-semibold">Use Photo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Urine Test Modal -->
+    <div id="urineModal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg w-full max-w-sm p-6">
+            <h2 class="text-base font-bold mb-3">Add Urine Test Result</h2>
+            <label class="block text-xs font-semibold mb-1">Test Date</label>
+            <input id="urineDate" type="date" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-900 rounded px-3 py-2 text-sm mb-3"/>
+            <label class="block text-xs font-semibold mb-1">Result</label>
+            <select id="urineResult" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-900 rounded px-3 py-2 text-sm mb-3">
+                <option value="Negative">Negative</option>
+                <option value="Positive">Positive</option>
+            </select>
+            <label class="block text-xs font-semibold mb-1">Remark</label>
+            <input id="urineRemark" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-900 rounded px-3 py-2 text-sm mb-3"/>
+            <label class="block text-xs font-semibold mb-1">Attachment (optional)</label>
+            <input id="urineAttachment" type="file" class="w-full text-sm mb-4"/>
+            <div class="flex justify-end gap-2">
+                <button onclick="closeUrineModal()" class="h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-sm">Cancel</button>
+                <button onclick="submitUrineTest()" class="h-9 px-4 rounded-lg bg-primary text-white text-sm font-semibold">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="print-section"></div>
+
+    <script>
+        const VENDOR_ID = <?= (int) $vendor['id'] ?>;
+        const CSRF = { 'X-CSRF-TOKEN': '<?= csrf_hash() ?>' };
+
+        function postJson(url, body) {
+            return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', ...CSRF }, body: JSON.stringify(body || {}) })
+                .then(r => { if (!r.ok) throw new Error('http_' + r.status); return r.json(); });
+        }
+        function postForm(url, formData) {
+            formData.append('<?= csrf_token() ?>', '<?= csrf_hash() ?>');
+            return fetch(url, { method: 'POST', body: formData }).then(r => { if (!r.ok) throw new Error('http_' + r.status); return r.json(); });
+        }
+        function netErr() { alert('Could not reach the server. Please check your connection and try again.'); }
+
+        // --- Save details ---
+        function saveDetails() {
+            postJson('<?= base_url('vendors/process-list/detail/update/') ?>' + VENDOR_ID, {
+                vendor_company_name: document.getElementById('f_vendor_company_name').value,
+                full_name: document.getElementById('f_full_name').value,
+                contact_no: document.getElementById('f_contact_no').value,
+                email: document.getElementById('f_email').value,
+                designation: document.getElementById('f_designation').value,
+                pass_expiry: document.getElementById('f_pass_expiry').value,
+                card_type: document.getElementById('f_card_type').value,
+                remark: document.getElementById('f_remark').value,
+            }).then(d => alert(d.message)).catch(netErr);
+        }
+
+        // --- Reject ---
+        function openReject() { document.getElementById('rejectModal').classList.remove('hidden'); }
+        function closeReject() { document.getElementById('rejectModal').classList.add('hidden'); }
+        function submitReject() {
+            postJson('<?= base_url('vendors/process-list/detail/reject/') ?>' + VENDOR_ID, {
+                reject_reason_id: document.getElementById('rejectReasonId').value,
+                remark: document.getElementById('rejectRemark').value,
+            }).then(d => { alert(d.message); if (d.success) location.href = '<?= base_url('vendors/process-list') ?>'; }).catch(netErr);
+        }
+
+        // --- Photo upload (file) ---
+        function uploadPhotoFile(file) {
+            if (!file) return;
+            const fd = new FormData();
+            fd.append('photo', file);
+            postForm('<?= base_url('vendors/process-list/detail/upload-photo/') ?>' + VENDOR_ID, fd)
+                .then(d => { if (d.success) document.getElementById('currentPhoto').src = d.photo_url; else alert(d.message); })
+                .catch(netErr);
+        }
+
+        // --- Live camera capture ---
+        let cameraStream = null, capturedDataUrl = null, rotation = 0;
+        function openCamera() {
+            document.getElementById('cameraModal').classList.remove('hidden');
+            document.getElementById('cameraPreview').classList.add('hidden');
+            document.getElementById('cameraPreviewBtns').classList.add('hidden');
+            document.getElementById('cameraPreviewBtns').classList.remove('flex');
+            document.getElementById('cameraLiveBtns').classList.remove('hidden');
+            const video = document.getElementById('cameraVideo');
+            video.classList.remove('hidden');
+            navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
+                cameraStream = stream;
+                video.srcObject = stream;
+            }).catch(() => { alert('Could not access the camera. You can still use "Upload from file" instead.'); closeCamera(); });
+        }
+        function closeCamera() {
+            if (cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
+            document.getElementById('cameraModal').classList.add('hidden');
+        }
+        function takeSnapshot() {
+            const video = document.getElementById('cameraVideo');
+            const canvas = document.getElementById('cameraCanvas');
+            canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            capturedDataUrl = canvas.toDataURL('image/jpeg');
+            rotation = 0;
+            showPreview();
+        }
+        function showPreview() {
+            const img = document.getElementById('cameraPreview');
+            img.src = capturedDataUrl;
+            img.style.transform = 'rotate(' + rotation + 'deg)';
+            img.classList.remove('hidden');
+            document.getElementById('cameraVideo').classList.add('hidden');
+            document.getElementById('cameraLiveBtns').classList.add('hidden');
+            document.getElementById('cameraPreviewBtns').classList.remove('hidden');
+            document.getElementById('cameraPreviewBtns').classList.add('flex');
+        }
+        function retakePhoto() {
+            capturedDataUrl = null;
+            document.getElementById('cameraPreview').classList.add('hidden');
+            document.getElementById('cameraVideo').classList.remove('hidden');
+            document.getElementById('cameraPreviewBtns').classList.add('hidden');
+            document.getElementById('cameraLiveBtns').classList.remove('hidden');
+        }
+        function rotatePreview() {
+            rotation = (rotation + 90) % 360;
+            const canvas = document.getElementById('cameraCanvas');
+            const img = new Image();
+            img.onload = () => {
+                const rad = rotation * Math.PI / 180;
+                const swap = rotation % 180 !== 0;
+                canvas.width = swap ? img.height : img.width;
+                canvas.height = swap ? img.width : img.height;
+                const ctx = canvas.getContext('2d');
+                ctx.save();
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                ctx.rotate(rad);
+                ctx.drawImage(img, -img.width / 2, -img.height / 2);
+                ctx.restore();
+                capturedDataUrl = canvas.toDataURL('image/jpeg');
+                rotation = 0;
+                document.getElementById('cameraPreview').src = capturedDataUrl;
+                document.getElementById('cameraPreview').style.transform = '';
+            };
+            img.src = capturedDataUrl;
+        }
+        function usePhoto() {
+            postJson('<?= base_url('vendors/process-list/detail/upload-photo/') ?>' + VENDOR_ID, { photo_data: capturedDataUrl })
+                .then(d => { if (d.success) { document.getElementById('currentPhoto').src = d.photo_url; closeCamera(); } else alert(d.message); })
+                .catch(netErr);
+        }
+
+        // --- RFID card ---
+        function readCard() {
+            const epc = document.getElementById('cardEpcInput').value.trim();
+            if (!epc) return;
+            postJson('<?= base_url('vendors/process-list/detail/read-card/') ?>' + VENDOR_ID, { card_epc: epc })
+                .then(d => { alert(d.message); if (d.success) location.reload(); })
+                .catch(netErr);
+        }
+
+        // --- Urine test ---
+        function openUrineModal() { document.getElementById('urineModal').classList.remove('hidden'); }
+        function closeUrineModal() { document.getElementById('urineModal').classList.add('hidden'); }
+        function submitUrineTest() {
+            const fd = new FormData();
+            fd.append('test_date', document.getElementById('urineDate').value);
+            fd.append('result', document.getElementById('urineResult').value);
+            fd.append('remark', document.getElementById('urineRemark').value);
+            const file = document.getElementById('urineAttachment').files[0];
+            if (file) fd.append('attachment', file);
+            postForm('<?= base_url('vendors/process-list/detail/add-urine-test/') ?>' + VENDOR_ID, fd)
+                .then(d => { alert(d.message); if (d.success) location.reload(); })
+                .catch(netErr);
+        }
+
+        // --- Card print ---
+        function cardMarkup(card) {
+            const typeClass = String(card.card_type).toLowerCase() === 'permanent' ? 'background:linear-gradient(160deg,#0f3d91,#137fec,#1e2a5e);' : 'background:linear-gradient(160deg,#92400e,#f59e0b,#78350f);';
+            return `<div style="width:54mm;height:85.6mm;position:relative;overflow:hidden;border-radius:3mm;color:#fff;font-family:'Montserrat',sans-serif;${typeClass}">
+                <div style="padding:4mm;display:flex;flex-direction:column;align-items:center;height:100%;box-sizing:border-box;">
+                    <div style="font-size:2.6mm;letter-spacing:0.5mm;opacity:.85;margin-bottom:2mm;">SAFEG VENDOR PASS</div>
+                    <img src="${card.photo_url}" style="width:22mm;height:22mm;object-fit:cover;border-radius:2mm;border:0.5mm solid rgba(255,255,255,.8);" />
+                    <div style="margin-top:3mm;font-size:3.6mm;font-weight:700;text-align:center;">${card.full_name}</div>
+                    <div style="font-size:2.8mm;opacity:.9;margin-top:1mm;font-family:'Courier New',monospace;">${card.ic_no}</div>
+                    <div style="font-size:2.4mm;opacity:.85;margin-top:1mm;text-align:center;">${card.company}</div>
+                    <div style="margin-top:auto;width:100%;text-align:center;font-size:2.6mm;font-weight:700;text-transform:uppercase;">${card.card_type}</div>
+                    <div style="font-size:2.4mm;font-family:'Courier New',monospace;margin-top:0.5mm;">Valid Until: ${card.valid_until}</div>
+                    <div style="font-size:2.2mm;opacity:.75;margin-top:0.5mm;font-family:'Courier New',monospace;">${card.receipt_no}</div>
+                </div>
+            </div>`;
+        }
+        function fetchCard() {
+            return postJson('<?= base_url('vendors/printing-list/generate-serial/') ?>' + VENDOR_ID, {});
+        }
+        function printCard() {
+            fetchCard().then(d => {
+                if (!d.success) { alert(d.message); return; }
+                document.getElementById('print-section').innerHTML = cardMarkup(d.card);
+                setTimeout(() => { window.print(); location.reload(); }, 150);
+            }).catch(netErr);
+        }
+
+        // --- Finish / Issue ---
+        function finishAndIssue() {
+            const name = prompt("Collector's full name:");
+            if (!name) return;
+            const ic = prompt("Collector's IC / Passport No:");
+            if (!ic) return;
+            postJson('<?= base_url('vendors/issuance-list/issue/') ?>' + VENDOR_ID, { collector_name: name, collector_ic_passport: ic })
+                .then(d => { alert(d.message); if (d.success) location.href = '<?= base_url('vendors/closed-list') ?>'; })
+                .catch(netErr);
+        }
+    </script>
+</body>
+</html>

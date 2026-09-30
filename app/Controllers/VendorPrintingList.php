@@ -126,11 +126,21 @@ class VendorPrintingList extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'This record has no card type assigned yet — send it through Process List first.']);
         }
 
-        $serial = $vendor['receipt_no'];
+        $isReprint = ! empty($vendor['receipt_no']);
+        $serial    = $vendor['receipt_no'];
         if (empty($serial)) {
             $serial = $this->nextSerialNo($db);
             $db->table('vendors')->where('id', (int) $id)->update(['receipt_no' => $serial]);
         }
+
+        // KPK logs every print/reprint (viewReprintHistoryDetails) — do the same here.
+        $db->table('vendor_card_print_logs')->insert([
+            'vendor_id'  => (int) $id,
+            'receipt_no' => $serial,
+            'is_reprint' => $isReprint ? 1 : 0,
+            'printed_by' => (string) (session()->get('full_name') ?: session()->get('username')),
+            'printed_at' => date('Y-m-d H:i:s'),
+        ]);
 
         $photoFile = $vendor['facial_photo'] ?: $vendor['photo'];
         $photoUrl  = $photoFile
