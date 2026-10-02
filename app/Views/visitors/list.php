@@ -32,422 +32,221 @@
                         display: ["Montserrat", "sans-serif"],
                         sans: ["Montserrat", "sans-serif"],
                     },
-                    borderRadius: {
-                        DEFAULT: "0.375rem",
-                    },
+                    borderRadius: { DEFAULT: "0.375rem" },
                 },
             },
         };
     </script>
-    <!-- Blacklist dropdown function-->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body class="bg-background-light dark:bg-background-dark font-sans text-gray-800 dark:text-gray-200 antialiased h-screen flex overflow-hidden transition-colors duration-200">
-    <?php
-        $visitorListColumns = $visitorListColumns ?? [
-            'return_selection' => true,
-            'no'               => true,
-            'date'             => true,
-            'full_name'        => true,
-            'ic_passport'      => true,
-            'contact'          => true,
-            'company'          => false,
-            'host'             => false,
-            'vehicle_reg'      => true,
-            'location'         => true,
-            'visitor_type'     => true,
-            'type'             => true,
-            'status'           => true,
-            'check_in'         => false,
-            'check_out'        => false,
-            'card_issue_badge'  => true,
-            'card_detail_button' => true,
-            'card_status'      => true,
-            'visitor_pass_no'  => true,
-            'reason'           => true,
-        ];
-        $visitorListColumnLabels = [
-            'return_selection'   => 'Return Selection',
-            'no'                 => 'No',
-            'date'               => 'Date',
-            'full_name'          => 'Full Name',
-            'ic_passport'        => 'IC / Passport No',
-            'contact'            => 'Contact No',
-            'company'            => 'Company',
-            'host'               => 'Host Name',
-            'vehicle_reg'        => 'Vehicle Registration',
-            'location'           => 'Location',
-            'visitor_type'       => 'Visitor Type',
-            'type'               => 'Type',
-            'status'             => 'Status',
-            'check_in'           => 'Check In',
-            'check_out'          => 'Check Out',
-            'card_issue_badge'   => 'Card Issue Badge',
-            'card_detail_button' => 'i Card Details Button',
-            'card_status'        => 'Card Status',
-            'visitor_pass_no'    => 'Visitor Pass No',
-            'reason'             => 'Reason',
-        ];
-    ?>
-    <!-- Sidebar -->
-    <?= view("partials/sidebar") ?>
 
+    <!-- Sidebar -->
+    <?= view('partials/sidebar') ?>
 
     <!-- Main Content -->
     <main class="flex-1 overflow-y-auto h-full p-4 md:p-8 bg-background-light dark:bg-background-dark">
         <div class="bg-card-light dark:bg-card-dark rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mx-auto max-w-7xl">
+
             <!-- Header -->
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                 <h1 class="text-xl md:text-2xl font-bold tracking-tight text-gray-800 dark:text-white uppercase">
-                    Visitor Pass List
+                    Vendor Pass List
                 </h1>
                 <div class="flex flex-wrap gap-2">
-                    <button type="button" onclick="openVisitorColumnsModal()" class="bg-[#535dec] hover:bg-[#4853e0] text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
-                        <span class="material-symbols-outlined text-[18px] mr-1">visibility</span>
-                        Show/Hide Columns
+                    <?php if ($canImport ?? false): ?>
+                    <button onclick="document.getElementById('uploadModal').classList.toggle('hidden')" class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
+                        <span class="material-icons text-sm mr-1">add</span>
+                        Import
                     </button>
-                    <a href="<?= base_url('visitors/export') ?>" class="bg-secondary hover:bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
+                    <button type="button" onclick="document.getElementById('reminderModal').classList.remove('hidden')"
+                        class="bg-primary hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
                         <span class="material-icons text-sm mr-1">file_download</span>
+                        Template
+                    </button>
+                    <?php endif; ?>
+                    <a href="<?= base_url('vendors/export') ?><?= $searchTerm || ($status ?? 'all') !== 'all' ? '?' . http_build_query(array_filter(['search' => $searchTerm ?? '', 'status' => ($status ?? 'all') !== 'all' ? $status : ''])) : '' ?>"
+                        class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
+                        <span class="material-icons text-sm mr-1">file_upload</span>
                         Export
                     </a>
-                    <a href="<?= base_url('visitor-pass-request') ?>" class="bg-primary hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
+                    <a href="<?= base_url('vendors/vendorpassrequest') ?>" class="bg-primary hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
                         <span class="material-icons text-sm mr-1">add</span>
                         Request
                     </a>
                 </div>
             </div>
 
-            <!-- Stats Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                <div class="bg-white dark:bg-gray-800 rounded-lg p-5 border-l-4 border-indigo-500 shadow-sm border-t border-r border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
-                    <div>
-                        <p class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Total Visitors</p>
-                        <p class="text-2xl font-bold text-gray-800 dark:text-white mt-1"><?= number_format($stats['total']) ?></p>
-                        <p class="text-[10px] text-gray-400 mt-1">Total recorded entries</p>
-                    </div>
-                    <div class="p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-full text-indigo-600 dark:text-indigo-400">
-                        <span class="material-symbols-outlined text-2xl">groups</span>
-                    </div>
+            <!-- Stat cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                    <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 font-semibold">Total Vendor Passes</p>
+                    <p class="text-2xl font-bold text-gray-800 dark:text-white mt-1"><?= number_format($stats['total']) ?></p>
                 </div>
-                <div class="bg-white dark:bg-gray-800 rounded-lg p-5 border-l-4 border-green-500 shadow-sm border-t border-r border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
-                    <div>
-                        <p class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Checked In</p>
-                        <p class="text-2xl font-bold text-gray-800 dark:text-white mt-1"><?= number_format($stats['checkedIn']) ?></p>
-                        <p class="text-[10px] text-green-600 mt-1 font-medium">Currently on site</p>
-                    </div>
-                    <div class="p-3 bg-green-50 dark:bg-green-900/20 rounded-full text-green-600 dark:text-green-400">
-                        <span class="material-symbols-outlined text-2xl">how_to_reg</span>
-                    </div>
+                <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                    <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 font-semibold">Pending</p>
+                    <p class="text-2xl font-bold text-amber-500 mt-1"><?= number_format($stats['pending']) ?></p>
                 </div>
-                <div class="bg-white dark:bg-gray-800 rounded-lg p-5 border-l-4 border-orange-500 shadow-sm border-t border-r border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
-                    <div>
-                        <p class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Pending Approval</p>
-                        <p class="text-2xl font-bold text-gray-800 dark:text-white mt-1"><?= number_format($stats['pending']) ?></p>
-                        <p class="text-[10px] text-orange-500 mt-1 font-medium">Action required</p>
-                    </div>
-                    <div class="p-3 bg-orange-50 dark:bg-orange-900/20 rounded-full text-orange-600 dark:text-orange-400">
-                        <span class="material-symbols-outlined text-2xl">pending_actions</span>
-                    </div>
+                <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                    <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 font-semibold">Approved</p>
+                    <p class="text-2xl font-bold text-emerald-500 mt-1"><?= number_format($stats['approved']) ?></p>
                 </div>
             </div>
 
-            <!-- Filters -->
-            <form method="get" action="<?= base_url('visitors') ?>" id="visitorSearchForm" class="flex flex-col gap-4 mb-6">
-                <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
-                    <div class="lg:col-span-5 flex shadow-sm">
-                        <input id="visitorSearchInput" name="search" value="<?= esc($searchTerm ?? '') ?>"
-                            class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-xs focus:ring-primary focus:border-primary outline-none uppercase"
-                            placeholder="IC / PASSPORT / VISITOR PASS NO / FULL NAME / VEHICLE REGISTRATION NO" type="text"/>
-                        <?php if (! empty($searchTerm)): ?>
-                        <a href="<?= base_url('visitors') ?>" title="Clear search"
-                            class="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-3 py-2 flex items-center justify-center transition-colors">
-                            <span class="material-icons text-base">close</span>
-                        </a>
-                        <?php endif; ?>
-                        <button type="submit" class="bg-primary hover:bg-indigo-700 text-white px-4 py-2 rounded-r flex items-center justify-center transition-colors">
-                            <span class="material-icons text-white">search</span>
-                        </button>
-                    </div>
-                    <div class="lg:col-span-4 flex gap-2">
-                        <?php if ($mykadOcrEnabled ?? true): ?>
-                        <button type="button" id="btnReadMyKad" class="bg-success hover:bg-emerald-600 text-white px-4 py-2.5 rounded text-xs font-semibold uppercase shadow transition-colors flex-1 text-center whitespace-nowrap"
-                            title="Scan a MyKad image to auto-search by IC number">
-                            Read MyKad
-                        </button>
-                        <?php endif; ?>
-                        <?php if ($cardEnabled): ?>
-                        <button type="button" id="btnToolbarReturnCard" disabled
-                            class="bg-success hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2.5 rounded text-xs font-semibold uppercase shadow transition-colors flex-1 text-center whitespace-nowrap"
-                            title="Select one or more visitors with a card in use, then return cards in batch">
-                            Return Card
-                        </button>
-                        <?php endif; ?>
-                    </div>
-                    <div class="lg:col-span-3">
-                        <input class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs focus:ring-primary focus:border-primary uppercase placeholder-gray-500 dark:placeholder-gray-400" placeholder="DATE OF VISIT TO" type="text"/>
+            <!-- Flash Messages -->
+            <?php if (session()->getFlashdata('success')): ?>
+                <div class="mb-4 flex items-center gap-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 text-green-800 dark:text-green-300 text-sm rounded-lg px-4 py-3">
+                    <span class="material-symbols-outlined text-[20px] flex-shrink-0">check_circle</span>
+                    <span><?= esc(session()->getFlashdata('success')) ?></span>
+                </div>
+            <?php endif; ?>
+            <?php if (session()->getFlashdata('error')): ?>
+                <?php $errorLines = explode("\n", (string) session()->getFlashdata('error')); ?>
+                <div class="mb-4 flex items-start gap-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-800 dark:text-red-300 text-sm rounded-lg px-4 py-3">
+                    <span class="material-symbols-outlined text-[20px] flex-shrink-0 mt-0.5">error</span>
+                    <div>
+                        <?php foreach ($errorLines as $line): ?>
+                            <p><?= esc($line) ?></p>
+                        <?php endforeach; ?>
                     </div>
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                    <div class="relative">
-                        <select class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs appearance-none focus:ring-primary focus:border-primary text-gray-500 dark:text-gray-300">
-                            <option>VISIT TYPE</option>
-                            <option>Walk-In</option>
-                            <option>Invitation</option>
-                        </select>
-                        <span class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-icons text-sm">expand_more</span>
-                    </div>
-                    <div class="relative">
-                        <select class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs appearance-none focus:ring-primary focus:border-primary text-gray-500 dark:text-gray-300">
-                            <option>APP DATE</option>
-                        </select>
-                        <span class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-icons text-sm">expand_more</span>
-                    </div>
-                    <div>
-                        <input class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs focus:ring-primary focus:border-primary uppercase text-gray-500 dark:text-gray-300" placeholder="DATE FROM" type="text"/>
-                    </div>
-                    <div>
-                        <input class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs focus:ring-primary focus:border-primary uppercase text-gray-500 dark:text-gray-300" placeholder="DATE TO" type="text"/>
-                    </div>
-                    <div class="relative">
-                        <select class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2.5 text-xs appearance-none focus:ring-primary focus:border-primary text-gray-500 dark:text-gray-300">
-                            <option>DATE TIME DESC</option>
-                        </select>
-                        <span class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-icons text-sm">expand_more</span>
-                    </div>
+            <?php endif; ?>
+
+            <!-- Filter -->
+            <form id="vendorSearchForm" method="get" action="<?= base_url('vendors') ?>" class="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
+                <div class="flex shadow-sm w-full max-w-lg">
+                    <input name="search" value="<?= esc($searchTerm ?? '') ?>"
+                        class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-xs focus:ring-primary focus:border-primary outline-none"
+                        placeholder="IC / PASSPORT / FULL NAME / APP NO / COMPANY" type="text"/>
+                    <button type="submit" class="bg-primary hover:bg-indigo-700 text-white px-4 py-2 rounded-r flex items-center justify-center transition-colors">
+                        <span class="material-icons text-white">search</span>
+                    </button>
+                </div>
+                <div class="flex gap-3 w-full md:w-auto">
+                    <select name="status" onchange="this.form.submit()"
+                        class="w-full md:w-40 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-xs focus:ring-primary focus:border-primary outline-none appearance-none bg-white">
+                        <?php foreach (['all' => 'All Status', 'Pending' => 'Pending', 'Approved' => 'Approved', 'Rejected' => 'Rejected', 'Suspended' => 'Suspended'] as $val => $label): ?>
+                        <option value="<?= $val ?>" <?= ($status ?? 'all') === $val ? 'selected' : '' ?>><?= $label ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <select name="sort" onchange="this.form.submit()"
+                        class="w-full md:w-48 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-xs focus:ring-primary focus:border-primary outline-none appearance-none bg-white">
+                        <option value="date_desc" <?= ($sortBy ?? 'date_desc') === 'date_desc' ? 'selected' : '' ?>>Date (Newest)</option>
+                        <option value="date_asc" <?= ($sortBy ?? '') === 'date_asc' ? 'selected' : '' ?>>Date (Oldest)</option>
+                        <option value="name_asc" <?= ($sortBy ?? '') === 'name_asc' ? 'selected' : '' ?>>Name (A - Z)</option>
+                        <option value="name_desc" <?= ($sortBy ?? '') === 'name_desc' ? 'selected' : '' ?>>Name (Z - A)</option>
+                    </select>
                 </div>
             </form>
 
             <?php if (! empty($searchTerm)): ?>
-            <div class="mb-4 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded px-3 py-2">
-                <span class="material-icons text-sm text-primary">filter_alt</span>
-                <span>Showing results for <strong class="text-gray-800 dark:text-white"><?= esc($searchTerm) ?></strong> — <?= number_format($pagination['total'] ?? count($visitors)) ?> match<?= ($pagination['total'] ?? count($visitors)) === 1 ? '' : 'es' ?></span>
-                <a href="<?= base_url('visitors') ?>" class="ml-auto text-primary hover:underline font-semibold">Clear</a>
-            </div>
-            <?php endif; ?>
-
-            <?php if (session()->getFlashdata('success')): ?>
-            <div class="mb-4 flex items-center gap-2 rounded border border-green-200 bg-green-50 px-3 py-2 text-xs font-semibold text-green-800 dark:border-green-800 dark:bg-green-900/20 dark:text-green-200">
-                <span class="material-symbols-outlined text-base">check_circle</span>
-                <span><?= esc(session()->getFlashdata('success')) ?></span>
+            <div class="mb-4 text-xs text-gray-500 dark:text-gray-400">
+                Showing results for <strong class="text-gray-800 dark:text-white"><?= esc($searchTerm) ?></strong>
+                — <?= number_format($pagination['total'] ?? count($vendorList)) ?> match<?= ($pagination['total'] ?? count($vendorList)) === 1 ? '' : 'es' ?>
+                <a href="<?= base_url('vendors') ?>" class="ml-2 text-primary hover:underline">Clear</a>
             </div>
             <?php endif; ?>
 
             <!-- Table -->
-            <?php
-                $showColumn = static fn(string $key): bool => ! empty($visitorListColumns[$key]);
-                $showCardColumn = static fn(string $key): bool => ! empty($cardEnabled) && ! empty($visitorListColumns[$key]);
-                $visibleColumnKeys = [
-                    'no',
-                    'date',
-                    'full_name',
-                    'ic_passport',
-                    'contact',
-                    'company',
-                    'host',
-                    'vehicle_reg',
-                    'location',
-                    'visitor_type',
-                    'type',
-                    'status',
-                    'check_in',
-                    'check_out',
-                    'reason',
-                ];
-                $visibleColumnCount = 0;
-                $visibleColumnCount += $showCardColumn('return_selection') ? 1 : 0;
-                foreach ($visibleColumnKeys as $columnKey) {
-                    $visibleColumnCount += $showColumn($columnKey) ? 1 : 0;
-                }
-                $visibleColumnCount += $showCardColumn('card_status') ? 1 : 0;
-                $visibleColumnCount += $showCardColumn('visitor_pass_no') ? 1 : 0;
-                $visibleColumnCount = max(1, $visibleColumnCount);
-            ?>
             <div class="overflow-x-auto rounded border border-gray-200 dark:border-gray-700 mb-6">
                 <table class="w-full min-w-max text-left border-collapse">
                     <thead>
                         <tr class="bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs font-bold uppercase tracking-wide">
-                            <?php if ($showCardColumn('return_selection')): ?>
-                            <th class="p-2 w-10 border-b dark:border-gray-600 text-center" title="Select rows for batch return">
-                                <input type="checkbox" id="selectAllVisitorRows" class="rounded border-gray-300 text-primary focus:ring-primary" aria-label="Select all returnable rows"/>
-                            </th>
-                            <?php endif; ?>
-                            <?php if ($showColumn('no')): ?>
                             <th class="p-4 border-b dark:border-gray-600">No</th>
-                            <?php endif; ?>
-                            <?php if ($showColumn('date')): ?>
+                            <th class="p-4 border-b dark:border-gray-600">Action</th>
                             <th class="p-4 border-b dark:border-gray-600">Date</th>
-                            <?php endif; ?>
-                            <?php if ($showColumn('full_name')): ?>
+                            <th class="p-4 border-b dark:border-gray-600">App No</th>
                             <th class="p-4 border-b dark:border-gray-600">Full Name</th>
-                            <?php endif; ?>
-                            <?php if ($showColumn('ic_passport')): ?>
                             <th class="p-4 border-b dark:border-gray-600">IC / Passport No</th>
-                            <?php endif; ?>
-                            <?php if ($showColumn('contact')): ?>
-                            <th class="p-4 border-b dark:border-gray-600">Contact No</th>
-                            <?php endif; ?>
-                            <?php if ($showColumn('company')): ?>
-                            <th class="p-4 border-b dark:border-gray-600">Company</th>
-                            <?php endif; ?>
-                            <?php if ($showColumn('host')): ?>
-                            <th class="p-4 border-b dark:border-gray-600">Host Name</th>
-                            <?php endif; ?>
-                            <?php if ($showColumn('vehicle_reg')): ?>
-                            <th class="p-4 border-b dark:border-gray-600">Vehicle Registration</th>
-                            <?php endif; ?>
-                            <?php if ($showColumn('location')): ?>
-                            <th class="p-4 border-b dark:border-gray-600">Location</th>
-                            <?php endif; ?>
-                            <?php if ($showColumn('visitor_type')): ?>
-                            <th class="p-4 border-b dark:border-gray-600">Visitor Type</th>
-                            <?php endif; ?>
-                            <?php if ($showColumn('type')): ?>
-                            <th class="p-4 border-b dark:border-gray-600">Type</th>
-                            <?php endif; ?>
-                            <?php if ($showColumn('status')): ?>
+                            <th class="p-4 border-b dark:border-gray-600">Vendor Company</th>
                             <th class="p-4 border-b dark:border-gray-600">Status</th>
-                            <?php endif; ?>
-                            <?php if ($showColumn('check_in')): ?>
-                            <th class="p-4 border-b dark:border-gray-600">Check In</th>
-                            <?php endif; ?>
-                            <?php if ($showColumn('check_out')): ?>
-                            <th class="p-4 border-b dark:border-gray-600">Check Out</th>
-                            <?php endif; ?>
-                            <?php if ($showCardColumn('card_status')): ?>
-                            <th class="p-4 border-b dark:border-gray-600">Card Status</th>
-                            <?php endif; ?>
-                            <?php if ($showCardColumn('visitor_pass_no')): ?>
-                            <th class="p-4 border-b dark:border-gray-600">Visitor Pass No</th>
-                            <?php endif; ?>
-                            <?php if ($showColumn('reason')): ?>
-                            <th class="p-4 border-b dark:border-gray-600">Reason</th>
-                            <?php endif; ?>
+                            <th class="p-4 border-b dark:border-gray-600">Pass Expiry</th>
                         </tr>
                     </thead>
                     <tbody class="text-xs text-gray-600 dark:text-gray-300 font-medium">
-                        <?php if (empty($visitors)): ?>
+                        <?php if (empty($vendorList)): ?>
                         <tr>
-                            <td colspan="<?= (int) $visibleColumnCount ?>" class="p-8 text-center">
+                            <td colspan="9" class="p-8 text-center">
                                 <div class="flex flex-col items-center justify-center gap-3">
                                     <div class="bg-gray-100 dark:bg-gray-800 rounded-full p-4">
                                         <span class="material-symbols-outlined text-4xl text-gray-400 dark:text-gray-500">folder_off</span>
                                     </div>
                                     <div>
                                         <p class="text-base font-semibold text-gray-700 dark:text-gray-300">No Data Available</p>
-                                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">There are no approved visitors at the moment.</p>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">There are no vendor pass records at the moment.</p>
                                     </div>
                                 </div>
                             </td>
                         </tr>
                         <?php else: ?>
-                        <?php foreach ($visitors as $visitor): ?>
-                        <?php
-                            // Only visitors with a bound visitor_card (iv.visitor_card_id IS NOT NULL) can be returned.
-                            // The checkbox stays disabled for the rest so the user cannot accidentally tick a row that
-                            // has nothing to return; the Card Status column shows "No card" so the reason is visible.
-                            $hasBoundCard = ! empty($visitor['card_id']) || ! empty($visitor['visitor_card_table_id']);
-                            $canReturnCard = $hasBoundCard;
-                        ?>
-                        <tr
-                            class="visitor-data-row hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-b border-gray-100 dark:border-gray-700 cursor-pointer"
-                            data-invitation-visitor-id="<?= (int) $visitor['id'] ?>"
-                            data-returnable="<?= $canReturnCard ? '1' : '0' ?>"
-                            data-visitor-json="<?= esc(base64_encode(json_encode($visitor, JSON_INVALID_UTF8_SUBSTITUTE)), 'attr') ?>"
-                            onclick="openDetailModalFromRow(this, event)">
-                            <?php if ($showCardColumn('return_selection')): ?>
-                            <td class="visitor-check-cell p-2 w-10 text-center align-middle" onclick="event.stopPropagation();">
-                                <input type="checkbox"
-                                    class="visitor-row-check rounded border-gray-300 text-primary focus:ring-primary <?= $canReturnCard ? '' : 'opacity-40 cursor-not-allowed' ?>"
-                                    data-invitation-visitor-id="<?= (int) $visitor['id'] ?>"
-                                    data-returnable="<?= $canReturnCard ? '1' : '0' ?>"
-                                    <?= $canReturnCard ? '' : 'disabled' ?>
-                                    title="<?= $canReturnCard ? 'Select to include in Return Card' : 'No visitor card is bound to this row — nothing to return' ?>"
-                                    aria-label="Select visitor row"/>
-                            </td>
-                            <?php endif; ?>
-                            <?php if ($showColumn('no')): ?>
-                            <td class="p-4"><?= $visitor['no'] ?></td>
-                            <?php endif; ?>
-                            <?php if ($showColumn('date')): ?>
-                            <td class="p-4"><?= esc($visitor['date']) ?></td>
-                            <?php endif; ?>
-                            <?php if ($showColumn('full_name')): ?>
-                            <td class="p-4 font-semibold text-gray-800 dark:text-white"><?= esc($visitor['full_name']) ?></td>
-                            <?php endif; ?>
-                            <?php if ($showColumn('ic_passport')): ?>
-                            <td class="p-4"><?= esc(mask_ic_passport($visitor['ic_passport'])) ?></td>
-                            <?php endif; ?>
-                            <?php if ($showColumn('contact')): ?>
-                            <td class="p-4"><?= esc($visitor['contact']) ?></td>
-                            <?php endif; ?>
-                            <?php if ($showColumn('company')): ?>
-                            <td class="p-4"><?= esc($visitor['company'] ?: '-') ?></td>
-                            <?php endif; ?>
-                            <?php if ($showColumn('host')): ?>
-                            <td class="p-4"><?= esc($visitor['host'] ?: '-') ?></td>
-                            <?php endif; ?>
-                            <?php if ($showColumn('vehicle_reg')): ?>
-                            <td class="p-4 <?= empty($visitor['vehicle_reg']) ? 'text-gray-400' : '' ?>">
-                                <?= empty($visitor['vehicle_reg']) ? 'NULL' : esc($visitor['vehicle_reg']) ?>
-                            </td>
-                            <?php endif; ?>
-                            <?php if ($showColumn('location')): ?>
-                            <td class="p-4"><?= esc($visitor['location']) ?></td>
-                            <?php endif; ?>
-                            <?php if ($showColumn('visitor_type')): ?>
-                            <td class="p-4"><?= esc($visitor['visitor_type'] ?? '-') ?></td>
-                            <?php endif; ?>
-                            <?php if ($showColumn('type')): ?>
-                            <td class="p-4"><?= esc($visitor['type']) ?></td>
-                            <?php endif; ?>
-                            <?php if ($showColumn('status')): ?>
-                            <td class="p-4">
-                                <?php if ($visitor['status'] === 'Checked In'): ?>
-                                <span class="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Checked In</span>
-                                <?php elseif ($visitor['status'] === 'Rejected Entry'): ?>
-                                <span class="bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Rejected Entry</span>
-                                <?php elseif ($visitor['status'] === 'Checked Out'): ?>
-                                <span class="bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Checked Out</span>
-                                <?php elseif ($visitor['status'] === 'Expired'): ?>
-                                <span class="bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Expired</span>
-                                <?php else: ?>
-                                <span class="bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Expected</span>
-                                <?php endif; ?>
-                            </td>
-                            <?php endif; ?>
-                            <?php if ($showColumn('check_in')): ?>
-                            <td class="p-4">
-                                <?php if (! empty($visitor['check_in_display'])): ?>
-                                <span class="text-green-700 dark:text-green-300 font-semibold"><?= esc($visitor['check_in_display']) ?></span>
-                                <?php else: ?>
-                                <span class="text-gray-400">-</span>
-                                <?php endif; ?>
-                            </td>
-                            <?php endif; ?>
-                            <?php if ($showColumn('check_out')): ?>
-                            <td class="p-4">
-                                <?= ! empty($visitor['check_out_display']) ? esc($visitor['check_out_display']) : '<span class="text-gray-400">-</span>' ?>
-                            </td>
-                            <?php endif; ?>
-                            <?php if ($showCardColumn('card_status')): ?>
-                            <td class="p-4">
-                                <?php if ($visitor['card_status'] === 'In Use'): ?>
-                                <span class="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 px-2 py-1 rounded-full text-[10px] uppercase font-bold">IN USE</span>
-                                <?php elseif ($visitor['card_status'] === 'Inactive'): ?>
-                                <span class="bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 px-2 py-1 rounded-full text-[10px] uppercase font-bold">Inactive</span>
-                                <?php else: ?>
-                                <span class="text-gray-400 text-[10px]">-</span>
-                                <?php endif; ?>
-                            </td>
-                            <?php endif; ?>
-                            <?php if ($showCardColumn('visitor_pass_no')): ?>
-                            <td class="p-4"><?= esc($visitor['pass_no'] ?? '') ?></td>
-                            <?php endif; ?>
-                            <?php if ($showColumn('reason')): ?>
-                            <td class="p-4"><?= esc($visitor['reason']) ?></td>
-                            <?php endif; ?>
-                        </tr>
-                        <?php endforeach; ?>
+                            <?php
+                            $badgeClass = [
+                                'Pending'   => 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+                                'Approved'  => 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+                                'Rejected'  => 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+                                'Suspended' => 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400',
+                            ];
+                            ?>
+                            <?php foreach ($vendorList as $vendor): ?>
+                            <tr class="border-b border-gray-100 dark:border-gray-700">
+                                <td class="p-4"><?= $vendor['no'] ?></td>
+                                <td class="p-4">
+                                    <div class="flex items-center gap-2">
+                                        <button
+                                            onclick="event.stopPropagation(); window.location.href='<?= base_url('vendorpassrequest/view/') ?><?= $vendor['id'] ?>'"
+                                            class="text-primary hover:text-blue-700 transition-colors"
+                                            title="View Details">
+                                            <span class="material-symbols-outlined text-[20px]">search</span>
+                                        </button>
+                                        <?php
+                                            // Per the supervisor: no QR action here. The QR is a vendor-detail
+                                            // lookup (not a pass-verification code) and only makes sense once
+                                            // the card has actually been issued — it lives in Closed List now.
+                                        ?>
+                                        <?php if ($vendor['can_approve'] ?? false): ?>
+                                        <button type="button"
+                                            data-id="<?= (int) $vendor['id'] ?>" data-name="<?= esc($vendor['full_name'], 'attr') ?>" data-app="<?= esc($vendor['app_no'], 'attr') ?>"
+                                            onclick="event.stopPropagation(); openApprove(this)"
+                                            class="text-emerald-500 hover:text-emerald-700 transition-colors" title="Approve">
+                                            <span class="material-symbols-outlined text-[20px]">check_circle</span>
+                                        </button>
+                                        <?php endif; ?>
+                                        <?php if ($vendor['can_reject'] ?? false): ?>
+                                        <button type="button"
+                                            data-id="<?= (int) $vendor['id'] ?>" data-name="<?= esc($vendor['full_name'], 'attr') ?>" data-app="<?= esc($vendor['app_no'], 'attr') ?>"
+                                            onclick="event.stopPropagation(); openReject(this)"
+                                            class="text-red-500 hover:text-red-700 transition-colors" title="Reject">
+                                            <span class="material-symbols-outlined text-[20px]">cancel</span>
+                                        </button>
+                                        <?php endif; ?>
+                                        <?php if ($canEdit ?? false): ?>
+                                        <button onclick="event.stopPropagation(); window.location.href='<?= base_url('vendorpassrequest/edit/') ?><?= $vendor['id'] ?>'" class="text-amber-500 hover:text-amber-700 transition-colors" title="Edit">
+                                            <span class="material-symbols-outlined text-[20px]">edit</span>
+                                        </button>
+                                        <?php endif; ?>
+                                        <?php if ($canDelete ?? false): ?>
+                                        <button onclick="event.stopPropagation(); confirmDelete(<?= $vendor['id'] ?>)" class="text-red-500 hover:text-red-700 transition-colors" title="Delete">
+                                            <span class="material-symbols-outlined text-[20px]">delete</span>
+                                        </button>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+                                <td class="p-4"><?= esc($vendor['date']) ?></td>
+                                <td class="p-4"><?= esc($vendor['app_no']) ?></td>
+                                <td class="p-4 font-semibold text-gray-800 dark:text-white"><?= esc($vendor['full_name']) ?></td>
+                                <td class="p-4"><?= esc(mask_ic_passport($vendor['ic_passport'])) ?></td>
+                                <td class="p-4"><?= esc($vendor['vendor_company_name']) ?></td>
+                                <td class="p-4">
+                                    <span class="px-2.5 py-1 rounded-full text-[11px] font-bold <?= $badgeClass[$vendor['status']] ?? 'bg-gray-100 text-gray-700' ?>">
+                                        <?= esc($vendor['status']) ?>
+                                    </span>
+                                    <?php if (!empty($vendor['awaiting'])): ?>
+                                    <p class="text-[10px] text-gray-400 mt-1"><?= esc($vendor['awaiting']) ?></p>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="p-4"><?= esc($vendor['pass_expiry']) ?></td>
+                            </tr>
+                            <?php endforeach; ?>
                         <?php endif; ?>
                     </tbody>
                 </table>
@@ -457,42 +256,29 @@
             <?php
             $curPage  = $pagination['current_page'] ?? 1;
             $lastPage = $pagination['last_page'] ?? 1;
-            $pgTotal  = $pagination['total'] ?? count($visitors);
+            $pgTotal  = $pagination['total'] ?? count($vendorList);
             $pgPer    = $pagination['per_page'] ?? 10;
 
-            $buildUrl = function (int $pg, int $pp = 0) use ($searchTerm, $pgPer): string {
+            $buildUrl = function (int $pg, int $pp = 0) use ($searchTerm, $sortBy, $status, $pgPer): string {
                 $pp = $pp ?: $pgPer;
                 $params = [];
-                if ($searchTerm !== '') {
-                    $params['search'] = $searchTerm;
-                }
-                if ($pp !== 10) {
-                    $params['per_page'] = $pp;
-                }
-                if ($pg > 1) {
-                    $params['page'] = $pg;
-                }
+                if (($searchTerm ?? '') !== '') $params['search'] = $searchTerm;
+                if (($status ?? 'all') !== 'all') $params['status'] = $status;
+                if (($sortBy ?? 'date_desc') !== 'date_desc') $params['sort'] = $sortBy;
+                if ($pp !== 10) $params['per_page'] = $pp;
+                if ($pg > 1) $params['page'] = $pg;
                 $qs = http_build_query($params);
-
-                return base_url('visitors') . ($qs ? '?' . $qs : '');
+                return base_url('vendors') . ($qs ? '?' . $qs : '');
             };
 
             $pgNumbers = [];
             if ($lastPage <= 7) {
-                for ($i = 1; $i <= $lastPage; $i++) {
-                    $pgNumbers[] = $i;
-                }
+                for ($i = 1; $i <= $lastPage; $i++) $pgNumbers[] = $i;
             } else {
                 $pgNumbers[] = 1;
-                if ($curPage > 3) {
-                    $pgNumbers[] = '...';
-                }
-                for ($i = max(2, $curPage - 1); $i <= min($lastPage - 1, $curPage + 1); $i++) {
-                    $pgNumbers[] = $i;
-                }
-                if ($curPage < $lastPage - 2) {
-                    $pgNumbers[] = '...';
-                }
+                if ($curPage > 3) $pgNumbers[] = '...';
+                for ($i = max(2, $curPage - 1); $i <= min($lastPage - 1, $curPage + 1); $i++) $pgNumbers[] = $i;
+                if ($curPage < $lastPage - 2) $pgNumbers[] = '...';
                 $pgNumbers[] = $lastPage;
             }
 
@@ -500,7 +286,7 @@
             $lastItem  = min($curPage * $pgPer, $pgTotal);
             ?>
             <div class="flex flex-col md:flex-row justify-between items-center gap-4 text-xs font-medium text-gray-500 dark:text-gray-400">
-                <div id="paginationContainer" class="flex items-center gap-1">
+                <div class="flex items-center gap-1">
                     <?php if ($curPage > 1): ?>
                     <a href="<?= $buildUrl($curPage - 1) ?>" class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">«</a>
                     <?php else: ?>
@@ -524,9 +310,9 @@
                     <?php endif; ?>
                 </div>
                 <div class="flex items-center gap-3">
-                    <span id="paginationSummary" class="text-gray-400">Showing <?= number_format($firstItem) ?>–<?= number_format($lastItem) ?> of <?= number_format($pgTotal) ?></span>
+                    <span class="text-gray-400">Showing <?= number_format($firstItem) ?>–<?= number_format($lastItem) ?> of <?= number_format($pgTotal) ?></span>
                     <div class="relative">
-                        <select id="perPageSelect" class="appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 py-1.5 pl-3 pr-8 rounded focus:outline-none focus:ring-1 focus:ring-primary text-xs font-medium cursor-pointer shadow-sm">
+                        <select id="vendorPerPageSelect" class="appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 py-1.5 pl-3 pr-8 rounded focus:outline-none focus:ring-1 focus:ring-primary text-xs font-medium cursor-pointer shadow-sm">
                             <?php foreach ([10, 25, 50] as $pp): ?>
                             <option value="<?= $pp ?>" <?= $pgPer === $pp ? 'selected' : '' ?>><?= $pp ?> ITEMS PER PAGE</option>
                             <?php endforeach; ?>
@@ -535,1471 +321,201 @@
                     </div>
                 </div>
             </div>
+
         </div>
     </main>
 
-    <!-- Columns Modal Overlay -->
-    <div id="visitorColumnsModal" class="hidden fixed inset-0 z-[120] flex items-center justify-center p-4">
-        <div id="visitorColumnsBackdrop" onclick="closeVisitorColumnsModal()" class="absolute inset-0 bg-slate-900/55 dark:bg-black/65 cursor-pointer"></div>
-        <form method="POST" action="<?= base_url('visitors/saveColumnSettings') ?>" class="relative flex w-full max-w-[600px] flex-col rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
-            <?= csrf_field() ?>
-            <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4 dark:border-slate-700">
-                <h2 class="text-lg font-bold tracking-tight text-[#3b5998] dark:text-white">Show/Hide Columns</h2>
-                <button type="button" onclick="closeVisitorColumnsModal()" class="text-slate-300 hover:text-slate-500">
-                    <span class="material-symbols-outlined text-[20px]">close</span>
+    <!-- Import Modal -->
+    <?php if ($canImport ?? false): ?>
+    <div id="uploadModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div class="flex items-center justify-between p-4 border-b dark:border-slate-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">UPLOAD FILE</h3>
+                <button onclick="document.getElementById('uploadModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600">
+                    <span class="material-icons">close</span>
                 </button>
             </div>
-            <div class="px-6 py-5 overflow-y-auto max-h-[60vh] custom-scrollbar">
-                <div class="mb-5 flex items-center gap-2">
-                    <input type="checkbox" id="selectAllVisitorColumns" onchange="toggleAllVisitorColumns(this)" class="rounded border-slate-300 text-[#535dec] focus:ring-[#535dec] h-4 w-4 cursor-pointer">
-                    <label for="selectAllVisitorColumns" class="text-sm font-bold text-slate-700 dark:text-slate-300 cursor-pointer">Select All Columns</label>
+            <form action="<?= base_url('vendors/import') ?>" method="post" enctype="multipart/form-data">
+                <?= csrf_field() ?>
+                <div class="p-6">
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">Choose Excel File</label>
+                    <input name="upload_file" type="file" accept=".xlsx, .xls" required
+                        class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none dark:bg-slate-700 dark:border-slate-600 dark:placeholder-gray-400">
+                    <p class="mt-2 text-xs text-gray-500">Only .xlsx or .xls files allowed. Download the Template first to see the expected columns.</p>
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-4">
-                    <?php foreach ($visitorListColumnLabels as $key => $label): ?>
-                    <div class="flex items-center gap-2">
-                        <input type="checkbox"
-                               id="visitor_col_<?= esc($key) ?>"
-                               name="visitor_list_columns[<?= esc($key) ?>]"
-                               value="true"
-                               class="visitor-column-toggle rounded border-slate-300 text-[#535dec] focus:ring-[#535dec] h-4 w-4 cursor-pointer"
-                               <?= ! empty($visitorListColumns[$key]) ? 'checked' : '' ?>>
-                        <label for="visitor_col_<?= esc($key) ?>" class="text-sm text-slate-600 dark:text-slate-300 uppercase cursor-pointer">
-                            <?= esc($label) ?>
-                        </label>
-                    </div>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-            <div class="flex justify-end gap-3 border-t border-slate-100 bg-white px-6 py-4 dark:border-slate-700 dark:bg-slate-900 rounded-b-xl border-t-2">
-                <button type="button" onclick="closeVisitorColumnsModal()" class="rounded-md border border-slate-400 bg-slate-500 hover:bg-slate-600 px-5 py-2 text-sm font-semibold text-white transition-colors">Close</button>
-                <button type="submit" class="rounded-md bg-[#535dec] hover:bg-[#4853e0] px-5 py-2 text-sm font-semibold text-white shadow-md transition-colors">Apply Changes</button>
-            </div>
-        </form>
-    </div>
-
-    <!-- MyKad OCR Modal -->
-    <div id="visitorMyKadModal" class="hidden fixed inset-0 z-[110] overflow-y-auto" aria-hidden="true">
-        <div class="flex min-h-screen items-center justify-center p-4">
-            <div class="fixed inset-0 bg-black/50 backdrop-blur-sm" id="visitorMyKadBackdrop"></div>
-            <div class="relative bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-2xl">
-                <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                    <div>
-                        <h3 class="text-lg font-bold text-slate-900 dark:text-white">Read MyKad</h3>
-                        <p class="text-sm text-slate-500 dark:text-slate-400">Upload a MyKad photo — the IC number will be used to search the list automatically.</p>
-                    </div>
-                    <button type="button" id="visitorMyKadClose" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                        <span class="material-symbols-outlined">close</span>
+                <div class="flex justify-end gap-2 p-4 border-t dark:border-slate-700">
+                    <button type="button" onclick="document.getElementById('uploadModal').classList.add('hidden')" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200">
+                        Cancel
+                    </button>
+                    <button type="submit" class="bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-2 rounded text-sm font-medium flex items-center transition-colors">
+                        <span class="material-icons text-sm mr-1">publish</span>
+                        Import
                     </button>
                 </div>
-                <div class="p-6 space-y-4">
-                    <input type="file" id="visitorMyKadFileInput" accept="image/*" class="hidden"/>
-                    <div id="visitorMyKadDropzone" class="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-8 text-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-colors">
-                        <span class="material-symbols-outlined text-4xl text-slate-400">badge</span>
-                        <p class="mt-2 text-slate-700 dark:text-slate-200 font-semibold">Drop your MyKad image here</p>
-                        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">or <button type="button" id="visitorMyKadBrowse" class="text-primary underline font-semibold">browse files</button></p>
-                        <p class="text-xs text-slate-400 mt-2">Supports JPG, PNG (Max 5MB)</p>
-                    </div>
-                    <div id="visitorMyKadSelected" class="hidden rounded-lg border border-slate-200 dark:border-slate-700 p-3 bg-slate-50 dark:bg-slate-800/40 flex items-center justify-between gap-3">
-                        <div class="min-w-0">
-                            <p id="visitorMyKadFilename" class="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate"></p>
-                            <p id="visitorMyKadFilesize" class="text-xs text-slate-500 dark:text-slate-400"></p>
-                        </div>
-                        <button type="button" id="visitorMyKadClear" class="text-red-500 hover:text-red-700 text-sm font-semibold">Remove</button>
-                    </div>
-                    <div id="visitorMyKadError" class="hidden rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 px-3 py-2 text-sm text-red-700 dark:text-red-300"></div>
-                </div>
-                <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-3">
-                    <button type="button" id="visitorMyKadCancel" class="px-4 py-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300">Cancel</button>
-                    <button type="button" id="visitorMyKadProcess" disabled class="px-5 py-2 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed">Scan &amp; Search</button>
-                </div>
-            </div>
+            </form>
         </div>
     </div>
+    <?php endif; ?>
 
-    <!-- Detail Modal -->
-    <div id="detailModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-        <div class="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <!-- Modal Header -->
-            <div class="sticky top-0 bg-gradient-to-r from-primary to-blue-600 text-white px-6 py-4 flex justify-between items-center shadow-md z-10">
-                <div class="flex items-center gap-3">
-                    <div class="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
-                        <span class="material-symbols-outlined text-2xl">person</span>
-                    </div>
-                    <div>
-                        <h2 class="text-xl font-bold">Visitor Details</h2>
-                        <p class="text-sm text-blue-100">Complete visitor information</p>
-                    </div>
-                </div>
-                <button onclick="closeDetailModal()" class="hover:bg-white/20 p-2 rounded-lg transition-colors">
-                    <span class="material-symbols-outlined text-2xl">close</span>
+    <!-- Reminder Modal — shown before the Template file actually downloads,
+         same as the real KPK "Online Vendor List" page's Reminder popup. -->
+    <?php if ($canImport ?? false): ?>
+    <div id="reminderModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div class="flex items-center justify-between p-4 border-b dark:border-slate-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">REMINDER</h3>
+                <button onclick="document.getElementById('reminderModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600">
+                    <span class="material-icons">close</span>
                 </button>
             </div>
-
-            <!-- Modal Content -->
-            <div id="detailModalScroll" class="flex-1 overflow-y-auto px-6 py-6">
-                <!-- Status Badge -->
-                <div id="statusBadge" class="mb-6"></div>
-
-                <!-- Visitor Information (editable) -->
-                <div id="detailVisitorInformationSection" class="mb-6">
-                    <h3 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-lg">badge</span>
-                        Visitor Information
-                    </h3>
-                    <div class="bg-gray-50 dark:bg-slate-800 rounded-lg p-5 border border-gray-200 dark:border-gray-700">
-                        <div class="flex flex-col lg:flex-row gap-6">
-                            <!-- Photo Section -->
-                            <div id="detailProfilePhotoWrap" class="flex flex-col items-center gap-3">
-                                <div class="w-32 h-40 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden shadow-sm flex items-center justify-center relative">
-                                    <img id="detailProfilePhoto" src="" class="absolute inset-0 w-full h-full object-cover hidden" alt="Visitor">
-                                    <div id="detailPhotoPlaceholder" class="flex flex-col items-center text-slate-300 dark:text-slate-600">
-                                        <div class="size-16 rounded-full border-4 border-slate-100 dark:border-slate-800 flex items-center justify-center mb-2">
-                                            <span class="material-symbols-outlined text-4xl">person</span>
-                                        </div>
-                                        <p id="detailPhotoPlaceholderText" class="text-[10px] font-bold uppercase tracking-widest">NO PHOTO</p>
-                                    </div>
-                                </div>
-                                <input type="file" id="editProfilePhotoInput" accept="image/*" class="hidden" onchange="handleProfilePhotoSelected(event)">
-                                <button type="button" onclick="document.getElementById('editProfilePhotoInput').click()" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 hover:border-primary hover:text-primary transition-colors">
-                                    <span class="material-symbols-outlined text-sm">add_a_photo</span>
-                                    Change photo
-                                </button>
-                            </div>
-
-                            <!-- Fields Grid -->
-                            <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div id="detailFullNameWrap">
-                                    <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Full Name</label>
-                                    <input type="text" id="editFullName" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
-                                </div>
-                                <div id="detailIcPassportWrap">
-                                    <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">IC / Passport No</label>
-                                    <input type="text" id="editIcPassport" readonly class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-gray-100 dark:bg-slate-700 text-gray-900 dark:text-white cursor-not-allowed"/>
-                                    <input type="hidden" id="editIcPassportRaw"/>
-                                </div>
-                                <div id="detailContactWrap">
-                                    <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Contact Number</label>
-                                    <input type="text" id="editContact" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
-                                </div>
-                                <div id="detailCompanyWrap">
-                                    <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Company</label>
-                                    <input type="text" id="editCompany" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
-                                </div>
-                                <div id="detailReasonWrap" class="md:col-span-2">
-                                    <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Reason</label>
-                                    <textarea id="editReason" rows="2" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"></textarea>
-                                </div>
-                                <div id="detailHostWrap">
-                                    <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Host / Invited By</label>
-                                    <input type="text" id="editInvitedBy" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
-                                </div>
-                                <div id="detailVehicleWrap">
-                                    <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Vehicle Registration</label>
-                                    <input type="text" id="editVehicle" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
-                                </div>
-                                <div id="detailLocationWrap" class="md:col-span-2">
-                                    <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Location</label>
-                                    <input type="text" id="editLocation" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
-                                </div>
-                            </div>
-
-                            <!-- QR Preview -->
-                            <div id="detailQrPreviewWrap" class="w-full lg:w-40 flex flex-col items-center">
-                                <div class="w-36 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 shadow-sm">
-                                    <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 text-center mb-2">Visitor QR</p>
-                                    <div class="h-28 flex items-center justify-center">
-                                        <img id="detailQrCodeImage" src="" alt="Visitor QR Code" class="hidden w-28 h-28 object-contain">
-                                        <div id="detailQrCodeEmpty" class="text-center text-[11px] leading-snug text-slate-400 dark:text-slate-500">QR not available</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Date of Visit -->
-                <div id="detailDateOfVisitSection" class="mb-6">
-                    <h3 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-lg">event_available</span>
-                        Date of Visit
-                    </h3>
-                    <div class="bg-gray-50 dark:bg-slate-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                        <div class="mb-3 border-b border-gray-300 dark:border-gray-600 pb-2">
-                            <span class="text-sm font-bold text-gray-800 dark:text-white">No 1</span>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                            <div>
-                                <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Date From:</label>
-                                <input type="text" id="displayDateFrom" readonly class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-gray-100 dark:bg-slate-700 text-gray-900 dark:text-white cursor-not-allowed"/>
-                            </div>
-                            <div>
-                                <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Date To:</label>
-                                <input type="text" id="displayDateTo" readonly class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-gray-100 dark:bg-slate-700 text-gray-900 dark:text-white cursor-not-allowed"/>
-                            </div>
-                            <?php if (in_array(session()->get('role'), ['admin', 'superadmin', 'clientsuperadmin'])): ?>
-                            <div>
-                                <button type="button" onclick="openEditVisitDateModal()" class="w-full md:w-auto px-6 py-2 bg-secondary hover:bg-blue-600 text-white font-medium rounded-lg shadow-sm transition-colors duration-200">
-                                    Update
-                                </button>
-                            </div>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Visit Details -->
-                <div id="detailVisitDetailsSection" class="mb-6">
-                    <h3 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-lg">event</span>
-                        Visit Details
-                    </h3>
-                    <div class="bg-gray-50 dark:bg-slate-800 rounded-lg p-4 grid grid-cols-1 md:grid-cols-2 gap-4 border border-gray-200 dark:border-gray-700">
-                        <div class="<?= empty($visitorListColumns['type']) ? 'hidden' : '' ?>">
-                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Visit Type (from check-in)</p>
-                            <p id="detailType" class="text-sm font-semibold text-gray-900 dark:text-white py-2"></p>
-                        </div>
-                        <div id="visitorTypeFieldWrap" class="min-w-0 transition-shadow duration-300 <?= empty($visitorListColumns['visitor_type']) ? 'hidden' : '' ?>">
-                        <?php if (! empty($showVisitorTypes)): ?>
-                            <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Visitor Type</label>
-                            <select id="editVisitorTypeId" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary">
-                                <option value="">— None —</option>
-                                <?php foreach ($visitorTypes as $vt): ?>
-                                <option value="<?= (int) $vt['id'] ?>"><?= esc($vt['name']) ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        <?php else: ?>
-                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Visitor Type</p>
-                            <p id="detailVisitorTypeReadonly" class="text-sm font-semibold text-gray-900 dark:text-white py-2 min-h-[2.5rem]"></p>
-                        <?php endif; ?>
-                        </div>
-
-                        <div class="<?= empty($visitorListColumns['check_in']) ? 'hidden' : '' ?>">
-                            <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Check-in</label>
-                            <input type="datetime-local" id="editCheckIn" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
-                        </div>
-                        <div class="<?= empty($visitorListColumns['check_out']) ? 'hidden' : '' ?>">
-                            <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Check-out</label>
-                            <input type="datetime-local" id="editCheckOut" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
-                        </div>
-                    </div>
-                </div>
-
-                <?php if ($cardEnabled): ?>
-                <!-- Pass Information -->
-                <div class="<?= empty($visitorListColumns['visitor_pass_no']) && empty($visitorListColumns['card_status']) ? 'hidden' : '' ?>">
-                    <h3 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-lg">credit_card</span>
-                        Pass Information
-                    </h3>
-                    <div class="bg-gray-50 dark:bg-slate-800 rounded-lg p-4 grid grid-cols-1 md:grid-cols-2 gap-4 border border-gray-200 dark:border-gray-700">
-                        <div class="<?= empty($visitorListColumns['visitor_pass_no']) ? 'hidden' : '' ?>">
-                            <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Visitor Pass No (EPC)</label>
-                            <input type="text" id="editPassNo" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"/>
-                            <p id="editPassNoHint" class="text-[10px] text-gray-500 mt-1 hidden">Bind a card first to edit EPC, or use Bind Card below.</p>
-                        </div>
-                        <div class="<?= empty($visitorListColumns['card_status']) ? 'hidden' : '' ?>">
-                            <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Card Status (raw)</label>
-                            <select id="editCardStatusRaw" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary">
-                                <option value="active">active</option>
-                                <option value="in_use">in_use</option>
-                                <option value="lost">lost</option>
-                                <option value="inactive">inactive</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                <?php endif; ?>
-                <input type="hidden" id="editInvitationVisitorId"/>
-                <input type="hidden" id="editInvitationId"/>
-                <input type="hidden" id="editScheduleId"/>
-                <input type="hidden" id="editIvVersion"/>
-                <input type="hidden" id="editInvitationVersion"/>
-                <div id="visitorSaveError" class="hidden mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-600 dark:text-red-400"></div>
-            </div>
-
-            <!-- Modal Footer -->
-            <div class="sticky bottom-0 bg-gray-50 dark:bg-slate-900 border-t border-gray-200 dark:border-gray-700 px-6 py-4 flex flex-wrap gap-3 justify-between items-center">
-                <div class="flex flex-wrap gap-2">
-                    <button onclick="closeDetailModal()" class="px-4 py-2.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg transition-colors duration-200">
-                        Close
-                    </button>
-                    <button type="button" onclick="saveVisitorChanges()" id="btnSaveVisitor" class="px-4 py-2.5 bg-success hover:bg-emerald-600 text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-lg">save</span>
-                        Save changes
-                    </button>
-                </div>
-                <div class="flex flex-wrap gap-2">
-                    <?php if (! empty($showVisitorTypes)): ?>
-                    <button type="button" id="btnVisitorTypeFooter" onclick="openVisitorTypeFromFooter()" class="px-4 py-2.5 bg-primary hover:bg-blue-600 text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2" title="Jump to visitor type and open the list">
-                        <span class="material-symbols-outlined text-lg">category</span>
-                        Visitor Type
-                    </button>
-                    <?php else: ?>
-                    <button type="button" disabled class="px-4 py-2.5 bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 font-medium rounded-lg cursor-not-allowed flex items-center gap-2" title="Visitor types are not enabled (database migrations for visitor_types and invitations.visitor_type_id).">
-                        <span class="material-symbols-outlined text-lg">category</span>
-                        Visitor Type
-                    </button>
-                    <?php endif; ?>
-                    <?php if ($cardEnabled): ?>
-                    <button type="button" id="btnReturnCardFromDetail" onclick="returnCardFromDetail()" class="hidden px-4 py-2.5 bg-success hover:bg-emerald-600 text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-lg">assignment_return</span>
-                        Return Card
-                    </button>
-                    <?php if (! empty($visitorListColumns['card_detail_button'])): ?>
-                    <button onclick="openCardBindingModal()" class="px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-lg">badge</span>
-                        i Card Details
-                    </button>
-                    <?php endif; ?>
-                    <button type="button" onclick="openQrCodeModal()" class="px-4 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-lg">qr_code</span>
-                        QR Code
-                    </button>
-                    <?php endif; ?>
-                    <button type="button" class="px-4 py-2.5 bg-primary hover:bg-primary-dark text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-lg">print</span>
-                        Print Slip
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <?php if ($cardEnabled): ?>
-    <!-- Card Binding Modal -->
-    <div id="cardBindingModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-md w-full">
-            <!-- Modal Header -->
-            <div class="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4 rounded-t-xl">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <span class="material-symbols-outlined text-white text-3xl">badge</span>
-                        <h3 class="text-xl font-bold text-white">Issue Card</h3>
-                    </div>
-                    <button onclick="closeCardBindingModal()" class="text-white hover:bg-white/20 rounded-lg p-1 transition-colors">
-                        <span class="material-symbols-outlined">close</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Modal Body -->
             <div class="p-6">
-                <div class="mb-4">
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                        Select an available card to issue to this visitor.
-                    </p>
-                    
-                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                        Card Number
-                    </label>
-                    <select id="cardEpcSelect" class="w-full px-4 py-2.5 bg-white dark:bg-slate-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        <option value="">-- Select Available Card --</option>
-                        <?php foreach ($availableCards as $card): ?>
-                        <option value="<?= $card['id'] ?>"><?= esc($card['card_id']) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                    
-                    <div class="mt-4 hidden">
-                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                            Or Enter New EPC Number
-                        </label>
-                        <input type="text" id="newCardEpc" placeholder="Enter 24-character EPC (e.g., DD123456789012345678901)" 
-                               class="w-full px-4 py-2.5 bg-white dark:bg-slate-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                               maxlength="24">
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            EPC format: 24 hex characters (DD/E2/30 prefixes)
-                        </p>
-                    </div>
-                </div>
-
-                <div id="cardBindingError" class="hidden mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                    <p class="text-sm text-red-600 dark:text-red-400"></p>
-                </div>
+                <ul class="list-disc pl-5 space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                    <li>Do not use dashes (-) in IC Number or Contact No. Use only numbers.</li>
+                    <li>Resident must be <strong>Malaysian</strong> or <strong>Non-Malaysian</strong>.</li>
+                    <li>Worker Type must be <strong>Permanent</strong> or <strong>Temporary</strong>.</li>
+                    <li>For Date Of Birth and Pass Expiry, use the slash ( / ) format only (e.g., 24/06/1990). Do not use dots ( . ).</li>
+                    <li>Location Access accepts one or more of: Annexe Building, KPK Gate, KSB Phase 2 Gate, Phase 1 — separate multiple values with a comma.</li>
+                </ul>
             </div>
-
-            <!-- Modal Footer -->
-            <div class="bg-gray-50 dark:bg-slate-900 border-t border-gray-200 dark:border-gray-700 px-6 py-4 rounded-b-xl flex gap-3 justify-end">
-                <button onclick="closeCardBindingModal()" class="px-4 py-2.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg transition-colors duration-200">
-                    Cancel
-                </button>
-                <button onclick="bindCardToVisitor()" class="px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
-                    <span class="material-symbols-outlined text-lg">link</span>
-                    Issue Card
-                </button>
+            <div class="flex justify-end gap-2 p-4 border-t dark:border-slate-700">
+                <a href="<?= base_url('files/VendorTemplateNew.xlsx') ?>" download="VendorTemplateNew.xlsx"
+                    class="bg-primary hover:bg-indigo-700 text-white px-6 py-2 rounded text-sm font-medium flex items-center transition-colors">
+                    <span class="material-icons text-sm mr-1">file_download</span>
+                    Download
+                </a>
             </div>
         </div>
     </div>
     <?php endif; ?>
 
-    <!-- Edit Visit Date Modal -->
-    <div id="editVisitDateModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-md w-full">
-            <div class="px-6 py-4 rounded-t-xl border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                <h3 class="text-lg font-bold text-gray-800 dark:text-white uppercase tracking-wide">Edit Visit Date</h3>
-                <button onclick="closeEditVisitDateModal()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white transition-colors p-1 bg-gray-100 dark:bg-gray-700 rounded-full">
-                    <span class="material-symbols-outlined block text-xl">close</span>
-                </button>
-            </div>
-            <div class="p-6 space-y-4">
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                        Date From
-                    </label>
-                    <input type="datetime-local" id="editSchDateFrom" class="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 dark:text-white text-sm" placeholder="DATE AND TIME FROM"/>
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                        Date To
-                    </label>
-                    <input type="datetime-local" id="editSchDateTo" class="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 dark:text-white text-sm" placeholder="DATE AND TIME TO"/>
-                </div>
-                <div id="editVisitDateError" class="hidden p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-600 dark:text-red-400"></div>
-            </div>
-            <div class="border-t border-gray-200 dark:border-gray-700 px-6 py-4 rounded-b-xl flex gap-3 justify-end">
-                <button type="button" onclick="saveVisitDate()" id="btnSaveVisitDate" class="px-5 py-2.5 bg-success hover:bg-emerald-600 text-white font-medium rounded-lg transition-colors duration-200 shadow-sm">
-                    Save
-                </button>
-                <button type="button" onclick="closeEditVisitDateModal()" class="px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg transition-colors duration-200 shadow-sm">
-                    Cancel
-                </button>
+    <!-- Approve Modal -->
+    <div id="approveModal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg max-w-sm w-full p-6">
+            <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-1">Approve Vendor Pass</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4"><span id="approveName"></span> — <span id="approveApp"></span></p>
+            <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Remark (optional)</label>
+            <textarea id="approveRemark" rows="2" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white rounded px-3 py-2 text-sm mb-4"></textarea>
+            <div class="flex justify-end gap-2">
+                <button type="button" onclick="closeModal('approveModal')" class="px-4 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm font-medium">Cancel</button>
+                <button type="button" id="approveSubmitBtn" onclick="submitApprove()" class="px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold">Approve</button>
             </div>
         </div>
     </div>
 
-    <?php if ($cardEnabled): ?>
-    <!-- QR Code Modal -->
-    <div id="qrCodeModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-sm w-full">
-            <div class="bg-gradient-to-r from-indigo-500 to-indigo-600 px-6 py-4 rounded-t-xl">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <span class="material-symbols-outlined text-white text-3xl">qr_code</span>
-                        <h3 class="text-xl font-bold text-white">Visitor QR Code</h3>
-                    </div>
-                    <button onclick="closeQrCodeModal()" class="text-white hover:bg-white/20 rounded-lg p-1 transition-colors">
-                        <span class="material-symbols-outlined">close</span>
-                    </button>
-                </div>
-            </div>
-            <div class="p-6 flex flex-col items-center">
-                <div class="bg-white p-4 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm mb-4">
-                    <img id="qrCodeImage" src="" alt="Visitor QR Code" class="w-48 h-48 object-contain">
-                </div>
-                <p id="qrCodePassId" class="text-lg font-bold text-gray-800 dark:text-white tracking-widest uppercase"></p>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-2 text-center">
-                    Scan this QR code at the entrance
-                </p>
-            </div>
-            <div class="bg-gray-50 dark:bg-slate-900 border-t border-gray-200 dark:border-gray-700 px-6 py-4 rounded-b-xl flex justify-center">
-                <button onclick="closeQrCodeModal()" class="px-6 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg transition-colors duration-200">
-                    Close
-                </button>
+    <!-- Reject Modal -->
+    <div id="rejectModal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg max-w-sm w-full p-6">
+            <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-1">Reject Vendor Pass</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4"><span id="rejectName"></span> — <span id="rejectApp"></span></p>
+            <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Reason <span class="text-red-500">*</span></label>
+            <select id="rejectReasonId" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white rounded px-3 py-2 text-sm mb-3">
+                <option value="">-- Select a reason --</option>
+                <?php foreach (($rejectReasons ?? []) as $r): ?>
+                <option value="<?= (int) $r['id'] ?>"><?= esc($r['reason']) ?></option>
+                <?php endforeach; ?>
+            </select>
+            <?php if (empty($rejectReasons)): ?>
+            <p class="text-xs text-amber-600 dark:text-amber-400 mb-3">No active reject reasons are configured yet — add some under Config, or a remark alone won't be accepted.</p>
+            <?php endif; ?>
+            <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Remark (optional)</label>
+            <textarea id="rejectRemark" rows="2" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white rounded px-3 py-2 text-sm mb-4"></textarea>
+            <div class="flex justify-end gap-2">
+                <button type="button" onclick="closeModal('rejectModal')" class="px-4 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm font-medium">Cancel</button>
+                <button type="button" id="rejectSubmitBtn" onclick="submitReject()" class="px-4 py-2 rounded bg-red-600 hover:bg-red-700 text-white text-sm font-semibold">Reject</button>
             </div>
         </div>
     </div>
-    <?php endif; ?>
-
     <script>
-        let currentVisitorId = null;
-        let currentInvitationVisitorId = null;
-        let selectedProfilePhotoPreviewUrl = null;
-
-        function getVisitorColumnCheckboxes() {
-            return Array.from(document.querySelectorAll('.visitor-column-toggle'));
-        }
-
-        function syncVisitorColumnSelectAll() {
-            const selectAll = document.getElementById('selectAllVisitorColumns');
-            if (!selectAll) return;
-            const boxes = getVisitorColumnCheckboxes();
-            const checkedCount = boxes.filter((box) => box.checked).length;
-            selectAll.checked = boxes.length > 0 && checkedCount === boxes.length;
-            selectAll.indeterminate = checkedCount > 0 && checkedCount < boxes.length;
-        }
-
-        function openVisitorColumnsModal() {
-            const modal = document.getElementById('visitorColumnsModal');
-            if (!modal) return;
-            syncVisitorColumnSelectAll();
-            modal.classList.remove('hidden');
-        }
-
-        function closeVisitorColumnsModal() {
-            const modal = document.getElementById('visitorColumnsModal');
-            if (!modal) return;
-            modal.classList.add('hidden');
-        }
-
-        function toggleAllVisitorColumns(elem) {
-            getVisitorColumnCheckboxes().forEach((box) => {
-                box.checked = elem.checked;
-            });
-            syncVisitorColumnSelectAll();
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            getVisitorColumnCheckboxes().forEach((box) => {
-                box.addEventListener('change', syncVisitorColumnSelectAll);
-            });
-            syncVisitorColumnSelectAll();
-        });
-
-        function mysqlToDatetimeLocal(v) {
-            if (!v) return '';
-            return String(v).replace(' ', 'T').slice(0, 16);
-        }
-
-        const SERVER_UPLOADS_BASE = <?= json_encode(rtrim(base_url('uploads'), '/')) ?>;
-        const VISITOR_UPLOADS_BASE = (function () {
-            try {
-                const configured = new URL(SERVER_UPLOADS_BASE, window.location.href);
-                return (window.location.origin || configured.origin) + configured.pathname.replace(/\/+$/, '');
-            } catch (e) {
-                return SERVER_UPLOADS_BASE;
-            }
-        })();
-
-        function normalizeVisitorMediaUrl(url) {
-            const raw = (url && String(url).trim()) || '';
-            if (!raw) {
-                return '';
-            }
-            try {
-                const parsed = new URL(raw, window.location.href);
-                if (parsed.pathname.indexOf('/uploads/') !== -1) {
-                    return (window.location.origin || parsed.origin) + parsed.pathname + parsed.search + parsed.hash;
-                }
-            } catch (e) {
-                return raw;
-            }
-            return raw;
-        }
-
-        /** Build URL for invitation media stored as relative paths (visitors/…, facial/…, visitor_photos/…). */
-        function visitorUploadMediaUrl(path) {
-            const p = (path && String(path).trim()) || '';
-            if (!p) {
-                return '';
-            }
-            if (/^https?:\/\//i.test(p) || p.startsWith('//')) {
-                return normalizeVisitorMediaUrl(p);
-            }
-            if (p.charAt(0) === '/') {
-                const origin = window.location.origin || '';
-                return origin + p;
-            }
-            return VISITOR_UPLOADS_BASE + '/' + p.replace(/^\/+/, '');
-        }
-
-        /** DB order: profile_photo_path → facial_verification_image; optional profile_picture_path alias.
-         *  Prefer server-built *_url (matches App baseURL) then fall back to path + VISITOR_UPLOADS_BASE. */
-        function visitorPhotoPathFromRecord(v) {
-            const norm = function (x) {
-                if (x === undefined || x === null) {
-                    return '';
-                }
-                const s = String(x).trim();
-                if (s === '' || s.toLowerCase() === 'null') {
-                    return '';
-                }
-                return s;
-            };
-            const profile = norm(v.profile_photo_path) || norm(v.profile_picture_path);
-            const facial = norm(v.facial_verification_image);
-            const profileUrl = normalizeVisitorMediaUrl(norm(v.profile_photo_url)) || (profile ? visitorUploadMediaUrl(profile) : '');
-            const facialUrl = normalizeVisitorMediaUrl(norm(v.facial_verification_url)) || (facial ? visitorUploadMediaUrl(facial) : '');
-            const profileMissing = !!profile && v.profile_photo_exists === false;
-            const facialMissing = !!facial && v.facial_verification_exists === false;
-
-            return { profileUrl, facialUrl, profileMissing, facialMissing };
-        }
-
-        function syncVisitorDetailPhoto(visitor) {
-            const photoImg = document.getElementById('detailProfilePhoto');
-            const placeholder = document.getElementById('detailPhotoPlaceholder');
-            const placeholderText = document.getElementById('detailPhotoPlaceholderText');
-            if (!photoImg || !placeholder || !placeholderText) {
-                return;
-            }
-
-            const paths = visitorPhotoPathFromRecord(visitor);
-            const profileUrl = paths.profileUrl;
-            const facialUrl = paths.facialUrl;
-
-            function showNoPhoto() {
-                photoImg.onerror = null;
-                photoImg.removeAttribute('src');
-                photoImg.classList.add('hidden');
-                placeholderText.textContent = 'NO PHOTO';
-                placeholder.classList.remove('hidden');
-            }
-
-            function showUrl(url) {
-                photoImg.onerror = function () {
-                    this.onerror = null;
-                    showNoPhoto();
-                };
-                photoImg.src = url;
-                photoImg.classList.remove('hidden');
-                placeholderText.textContent = 'NO PHOTO';
-                placeholder.classList.add('hidden');
-            }
-
-            if (profileUrl && !paths.profileMissing) {
-                photoImg.classList.remove('hidden');
-                placeholder.classList.add('hidden');
-                placeholderText.textContent = 'NO PHOTO';
-                photoImg.onerror = function () {
-                    this.onerror = null;
-                    if (facialUrl && !paths.facialMissing) {
-                        showUrl(facialUrl);
-                    } else {
-                        showNoPhoto();
-                    }
-                };
-                photoImg.src = profileUrl;
-            } else if (facialUrl && !paths.facialMissing) {
-                showUrl(facialUrl);
-            } else {
-                showNoPhoto();
-            }
-        }
-
-        /** Match pass-list UX: footer “Visitor Type” jumps to the type field and opens the picker when supported. */
-        function handleProfilePhotoSelected(event) {
-            const file = event.target.files && event.target.files[0] ? event.target.files[0] : null;
-            if (!file) {
-                return;
-            }
-            const photoImg = document.getElementById('detailProfilePhoto');
-            const placeholder = document.getElementById('detailPhotoPlaceholder');
-            if (!photoImg || !placeholder) {
-                return;
-            }
-            if (selectedProfilePhotoPreviewUrl) {
-                URL.revokeObjectURL(selectedProfilePhotoPreviewUrl);
-            }
-            selectedProfilePhotoPreviewUrl = URL.createObjectURL(file);
-            photoImg.onerror = null;
-            photoImg.src = selectedProfilePhotoPreviewUrl;
-            photoImg.classList.remove('hidden');
-            placeholder.classList.add('hidden');
-        }
-
-        function openVisitorTypeFromFooter() {
-            const sel = document.getElementById('editVisitorTypeId');
-            const wrap = document.getElementById('visitorTypeFieldWrap');
-            if (!sel || !wrap) {
-                return;
-            }
-            wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            wrap.classList.add('ring-2', 'ring-primary', 'ring-offset-2', 'dark:ring-offset-slate-900', 'rounded-lg');
-            window.setTimeout(function () {
-                sel.focus();
-                if (typeof sel.showPicker === 'function') {
-                    try {
-                        sel.showPicker();
-                    } catch (e) { /* some browsers restrict showPicker on select */ }
-                }
-            }, 280);
-            window.setTimeout(function () {
-                wrap.classList.remove('ring-2', 'ring-primary', 'ring-offset-2', 'dark:ring-offset-slate-900', 'rounded-lg');
-            }, 2200);
-        }
-
-        function openDetailModalFromRow(row, event) {
-            if (event && event.target && event.target.closest('.visitor-check-cell')) {
-                return;
-            }
-
-            try {
-                const raw = row.getAttribute('data-visitor-json') || '{}';
-                const bytes = Uint8Array.from(atob(raw), character => character.charCodeAt(0));
-                const json = new TextDecoder('utf-8').decode(bytes);
-                openDetailModal(JSON.parse(json));
-            } catch (err) {
-                console.error('Failed to parse visitor payload:', err);
-                alert('Unable to open visitor details for this row. Please refresh and try again.');
-            }
-        }
-
-        function applyVisitorDetailConfig(config) {
-            const resolved = config && typeof config === 'object' ? config : {};
-            const visibility = {
-                detailVisitorInformationSection: resolved.visitor_information !== false,
-                detailProfilePhotoWrap: resolved.profile_photo !== false,
-                detailFullNameWrap: resolved.full_name !== false,
-                detailIcPassportWrap: resolved.ic_passport !== false,
-                detailContactWrap: resolved.contact !== false,
-                detailCompanyWrap: resolved.company !== false,
-                detailReasonWrap: resolved.reason !== false,
-                detailHostWrap: resolved.host !== false,
-                detailVehicleWrap: resolved.vehicle_registration !== false,
-                detailLocationWrap: resolved.location !== false,
-                detailDateOfVisitSection: resolved.date_of_visit !== false,
-                detailVisitDetailsSection: resolved.visit_details !== false
-            };
-
-            Object.entries(visibility).forEach(function ([id, visible]) {
-                const element = document.getElementById(id);
-                if (element) {
-                    element.classList.toggle('hidden', !visible);
-                }
-            });
-        }
-
-        function openDetailModal(visitor) {
-            const modal = document.getElementById('detailModal');
-
-            applyVisitorDetailConfig(visitor.detail_config);
-            
-            currentVisitorId = visitor.id;
-            currentInvitationVisitorId = visitor.id;
-
-            document.getElementById('editInvitationVisitorId').value = visitor.id ?? '';
-            document.getElementById('editInvitationId').value = visitor.invitation_id ?? '';
-            document.getElementById('editScheduleId').value = visitor.schedule_id != null ? visitor.schedule_id : '';
-            document.getElementById('editIvVersion').value = visitor.iv_version ?? 1;
-            document.getElementById('editInvitationVersion').value = visitor.invitation_version ?? 1;
-            document.getElementById('editProfilePhotoInput').value = '';
-            if (selectedProfilePhotoPreviewUrl) {
-                URL.revokeObjectURL(selectedProfilePhotoPreviewUrl);
-                selectedProfilePhotoPreviewUrl = null;
-            }
-
-            document.getElementById('editFullName').value = visitor.full_name || '';
-            const rawIcPassport = (visitor.ic_passport && visitor.ic_passport !== 'N/A') ? String(visitor.ic_passport) : '';
-            document.getElementById('editIcPassportRaw').value = rawIcPassport;
-            document.getElementById('editIcPassport').value = rawIcPassport ? 'XXXX' + rawIcPassport.slice(-4) : '';
-            document.getElementById('editContact').value = (visitor.contact && visitor.contact !== 'N/A') ? visitor.contact : '';
-            document.getElementById('editCompany').value = visitor.company || '';
-            document.getElementById('editVehicle').value = visitor.vehicle_reg || '';
-            document.getElementById('editInvitedBy').value = visitor.invited_by || visitor.host || '';
-            document.getElementById('editLocation').value = (visitor.location && visitor.location !== 'N/A') ? visitor.location : '';
-            document.getElementById('editReason').value = visitor.reason || '';
-            
-            document.getElementById('displayDateFrom').value = visitor.date_from || '';
-            document.getElementById('displayDateTo').value = visitor.date_to || '';
-
-            document.getElementById('detailType').textContent = visitor.type || '—';
-
-            const vtSelect = document.getElementById('editVisitorTypeId');
-            if (vtSelect) {
-                const vid = visitor.visitor_type_id;
-                vtSelect.value = (vid != null && vid !== '') ? String(vid) : '';
-            }
-            const vtRead = document.getElementById('detailVisitorTypeReadonly');
-            if (vtRead) {
-                vtRead.textContent = visitor.visitor_type || '—';
-            }
-
-            document.getElementById('editCheckIn').value = mysqlToDatetimeLocal(visitor.check_in_time);
-            document.getElementById('editCheckOut').value = mysqlToDatetimeLocal(visitor.check_out_time);
-
-            // Photo: profile_photo_path → facial_verification_image → NO PHOTO placeholder (see syncVisitorDetailPhoto)
-            syncVisitorDetailPhoto(visitor);
-            syncVisitorDetailQr(visitor);
-
-            const hasCard = !!(visitor.card_id || visitor.visitor_card_table_id);
-            const passNoInput = document.getElementById('editPassNo');
-            const cardStatusInput = document.getElementById('editCardStatusRaw');
-            const passNoHint = document.getElementById('editPassNoHint');
-            const raw = visitor.card_status_raw;
-            if (passNoInput && cardStatusInput && passNoHint) {
-                passNoInput.disabled = !hasCard;
-                cardStatusInput.disabled = !hasCard;
-                passNoHint.classList.toggle('hidden', hasCard);
-                passNoInput.value = visitor.pass_no || visitor.card_epc || '';
-                const allowed = ['active', 'in_use', 'lost', 'inactive'];
-                cardStatusInput.value = raw && allowed.includes(raw) ? raw : 'active';
-            }
-
-            const returnBtn = document.getElementById('btnReturnCardFromDetail');
-            const normalizedCardStatus = String(visitor.card_status || '').toLowerCase().trim();
-            const showReturnButton = raw === 'in_use' || normalizedCardStatus === 'in use' || normalizedCardStatus === 'in_use';
-            if (returnBtn) {
-                returnBtn.classList.toggle('hidden', !showReturnButton);
-                returnBtn.disabled = false;
-            }
-
-            const statusBadge = document.getElementById('statusBadge');
-            const showCardIssueBadge = <?= ! empty($visitorListColumns['card_issue_badge']) ? 'true' : 'false' ?>;
-            if (!showCardIssueBadge) {
-                statusBadge.innerHTML = '';
-                statusBadge.classList.add('hidden');
-            } else if (visitor.card_status === 'In Use') {
-                statusBadge.classList.remove('hidden');
-                statusBadge.innerHTML = '<span class="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-lg text-sm font-semibold border border-blue-200 dark:border-blue-800"><span class="material-symbols-outlined text-base">credit_card</span>IN USE</span>';
-            } else if (visitor.card_status === 'Inactive') {
-                statusBadge.classList.remove('hidden');
-                statusBadge.innerHTML = '<span class="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded-lg text-sm font-semibold border border-gray-200 dark:border-gray-700"><span class="material-symbols-outlined text-base">credit_card_off</span>Inactive</span>';
-            } else {
-                statusBadge.classList.remove('hidden');
-                statusBadge.innerHTML = '<span class="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-lg text-sm font-semibold border border-gray-200 dark:border-gray-700"><span class="material-symbols-outlined text-base">info</span>No Card Issued</span>';
-            }
-
-            document.getElementById('visitorSaveError').classList.add('hidden');
-
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function syncVisitorDetailQr(visitor) {
-            const qrImg = document.getElementById('detailQrCodeImage');
-            const qrEmpty = document.getElementById('detailQrCodeEmpty');
-            if (!qrImg || !qrEmpty) {
-                return;
-            }
-
-            const invitationId = visitor && visitor.invitation_id ? String(visitor.invitation_id).trim() : '';
-            if (!invitationId) {
-                qrImg.src = '';
-                qrImg.classList.add('hidden');
-                qrEmpty.classList.remove('hidden');
-                qrEmpty.textContent = 'QR not available';
-                return;
-            }
-
-            qrEmpty.classList.add('hidden');
-            qrImg.classList.remove('hidden');
-            qrImg.src = '<?= base_url('visitors/generateQr') ?>/' + encodeURIComponent(invitationId);
-        }
-
-        function openEditVisitDateModal() {
-            document.getElementById('editVisitDateModal').classList.remove('hidden');
-            document.getElementById('editVisitDateModal').classList.add('flex');
-            
-            const fromVal = document.getElementById('displayDateFrom').value;
-            const toVal = document.getElementById('displayDateTo').value;
-            
-            document.getElementById('editSchDateFrom').value = fromVal ? fromVal.replace(' ', 'T').slice(0, 16) : '';
-            document.getElementById('editSchDateTo').value = toVal ? toVal.replace(' ', 'T').slice(0, 16) : '';
-            document.getElementById('editVisitDateError').classList.add('hidden');
-        }
-
-        function closeEditVisitDateModal() {
-            document.getElementById('editVisitDateModal').classList.add('hidden');
-            document.getElementById('editVisitDateModal').classList.remove('flex');
-        }
-
-        function saveVisitDate() {
-            const errEl = document.getElementById('editVisitDateError');
-            errEl.classList.add('hidden');
-            
-            const btn = document.getElementById('btnSaveVisitDate');
-            const prev = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = '<span class="material-symbols-outlined text-sm animate-spin mr-1 align-middle">progress_activity</span> Saving...';
-
-            const payload = {
-                schedule_id: parseInt(document.getElementById('editScheduleId').value, 10) || 0,
-                invitation_id: parseInt(document.getElementById('editInvitationId').value, 10) || 0,
-                date_from: document.getElementById('editSchDateFrom').value,
-                date_to: document.getElementById('editSchDateTo').value
-            };
-
-            fetch('<?= base_url('visitors/updateVisitDate') ?>', {
+        function confirmDelete(id) {
+            if (!confirm('Are you sure you want to delete this vendor pass record? This action cannot be undone.')) return;
+            fetch('<?= base_url('vendors/delete/') ?>' + id, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': '<?= csrf_hash() ?>' },
             })
-            .then(r => r.json())
-            .then(result => {
-                btn.disabled = false;
-                btn.innerHTML = prev;
-                if (result.success) {
-                    closeEditVisitDateModal();
-                    document.getElementById('displayDateFrom').value = payload.date_from.replace('T', ' ') + ':00';
-                    document.getElementById('displayDateTo').value = payload.date_to.replace('T', ' ') + ':00';
-                    location.reload();
-                } else {
-                    errEl.textContent = result.message || 'Save failed';
-                    errEl.classList.remove('hidden');
-                }
-            })
-            .catch(() => {
-                btn.disabled = false;
-                btn.innerHTML = prev;
-                errEl.textContent = 'Network error while saving.';
-                errEl.classList.remove('hidden');
-            });
+                .then(r => r.ok ? location.reload() : alert('Delete failed. Please try again.'))
+                .catch(() => alert('Could not reach the server. Please check your connection and try again.'));
         }
 
-        function saveVisitorChanges() {
-            const errEl = document.getElementById('visitorSaveError');
-            errEl.classList.add('hidden');
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
 
-            const ivId = parseInt(document.getElementById('editInvitationVisitorId').value, 10);
-            const passNoInput = document.getElementById('editPassNo');
-            const cardStatusInput = document.getElementById('editCardStatusRaw');
-            const payload = {
-                invitation_visitor_id: ivId,
-                iv_version: parseInt(document.getElementById('editIvVersion').value, 10) || 1,
-                invitation_version: parseInt(document.getElementById('editInvitationVersion').value, 10) || 1,
-                full_name: document.getElementById('editFullName').value.trim(),
-                ic_passport: document.getElementById('editIcPassportRaw').value.trim(),
-                contact: document.getElementById('editContact').value.trim(),
-                company: document.getElementById('editCompany').value.trim(),
-                vehicle_reg: document.getElementById('editVehicle').value.trim(),
-                invited_by: document.getElementById('editInvitedBy').value.trim(),
-                location: document.getElementById('editLocation').value.trim(),
-                reason: document.getElementById('editReason').value.trim(),
-                check_in_time: document.getElementById('editCheckIn').value || null,
-                check_out_time: document.getElementById('editCheckOut').value || null,
-                pass_no: !passNoInput || passNoInput.disabled ? '' : passNoInput.value.trim(),
-                card_status_raw: !cardStatusInput || cardStatusInput.disabled ? '' : cardStatusInput.value,
-            };
+        let activeApproveId = null;
+        let activeRejectId  = null;
 
-            const sid = document.getElementById('editScheduleId').value;
-            if (sid !== '') {
-                payload.schedule_id = parseInt(sid, 10);
-            }
+        function openApprove(btn) {
+            activeApproveId = btn.dataset.id;
+            document.getElementById('approveName').textContent = btn.dataset.name;
+            document.getElementById('approveApp').textContent = btn.dataset.app;
+            document.getElementById('approveRemark').value = '';
+            document.getElementById('approveModal').classList.remove('hidden');
+        }
 
-            const vtSelect = document.getElementById('editVisitorTypeId');
-            if (vtSelect) {
-                payload.visitor_type_id = vtSelect.value === '' ? null : parseInt(vtSelect.value, 10);
-            }
+        function openReject(btn) {
+            activeRejectId = btn.dataset.id;
+            document.getElementById('rejectName').textContent = btn.dataset.name;
+            document.getElementById('rejectApp').textContent = btn.dataset.app;
+            document.getElementById('rejectReasonId').value = '';
+            document.getElementById('rejectRemark').value = '';
+            document.getElementById('rejectModal').classList.remove('hidden');
+        }
 
-            const btn = document.getElementById('btnSaveVisitor');
-            const prev = btn.innerHTML;
+        function postAction(url, payload, submitBtnId) {
+            const btn = document.getElementById(submitBtnId);
             btn.disabled = true;
-            btn.innerHTML = '<span class="material-symbols-outlined text-lg animate-spin">progress_activity</span> Saving…';
+            const originalText = btn.textContent;
+            btn.textContent = 'Please wait…';
 
-            const photoInput = document.getElementById('editProfilePhotoInput');
-            const photoFile = photoInput && photoInput.files && photoInput.files[0] ? photoInput.files[0] : null;
-            let fetchOptions;
-            if (photoFile) {
-                const formData = new FormData();
-                Object.keys(payload).forEach(function (key) {
-                    if (payload[key] !== undefined && payload[key] !== null) {
-                        formData.append(key, payload[key]);
-                    }
-                });
-                formData.append('profile_photo', photoFile);
-                fetchOptions = {
-                    method: 'POST',
-                    body: formData
-                };
-            } else {
-                fetchOptions = {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                };
-            }
-
-            fetch('<?= base_url('visitors/update') ?>', fetchOptions)
-            .then(r => r.json())
-            .then(result => {
-                btn.disabled = false;
-                btn.innerHTML = prev;
-                if (result.success) {
-                    closeDetailModal();
-                    location.reload();
-                } else {
-                    errEl.textContent = result.message || 'Save failed';
-                    errEl.classList.remove('hidden');
-                }
-            })
-            .catch(() => {
-                btn.disabled = false;
-                btn.innerHTML = prev;
-                errEl.textContent = 'Network error while saving.';
-                errEl.classList.remove('hidden');
-            });
-        }
-
-        function closeDetailModal() {
-            const modal = document.getElementById('detailModal');
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-            document.body.style.overflow = 'auto';
-        }
-
-        function openCardBindingModal() {
-            document.getElementById('cardBindingModal').classList.remove('hidden');
-            document.getElementById('cardBindingModal').classList.add('flex');
-            document.getElementById('cardEpcSelect').value = '';
-            document.getElementById('newCardEpc').value = '';
-            hideCardBindingError();
-        }
-
-        function closeCardBindingModal() {
-            document.getElementById('cardBindingModal').classList.add('hidden');
-            document.getElementById('cardBindingModal').classList.remove('flex');
-        }
-
-        function openQrCodeModal() {
-            const invitationId = document.getElementById('editInvitationId').value;
-            if (!invitationId) {
-                alert('No invitation data available for this visitor.');
-                return;
-            }
-            
-            const icPassport = document.getElementById('editIcPassport').value.trim();
-            const passId = icPassport !== '' ? icPassport : 'VIS-' + invitationId;
-            const qrUrl = '<?= base_url('visitors/generateQr') ?>/' + invitationId;
-            
-            document.getElementById('qrCodeImage').src = qrUrl;
-            document.getElementById('qrCodePassId').textContent = passId;
-            
-            document.getElementById('qrCodeModal').classList.remove('hidden');
-            document.getElementById('qrCodeModal').classList.add('flex');
-        }
-
-        function closeQrCodeModal() {
-            document.getElementById('qrCodeModal').classList.add('hidden');
-            document.getElementById('qrCodeModal').classList.remove('flex');
-            document.getElementById('qrCodeImage').src = '';
-        }
-
-        function returnCardFromDetail() {
-            if (!currentInvitationVisitorId) {
-                alert('No visitor selected.');
-                return;
-            }
-
-            if (!confirm('Return this card and mark it as available?')) {
-                return;
-            }
-
-            const returnBtn = document.getElementById('btnReturnCardFromDetail');
-            const originalText = returnBtn.innerHTML;
-            returnBtn.disabled = true;
-            returnBtn.innerHTML = '<span class="material-symbols-outlined text-lg animate-spin">progress_activity</span> Returning...';
-
-            fetch('<?= base_url('visitors/unbindCard') ?>', {
+            return fetch(url, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    invitation_visitor_id: currentInvitationVisitorId
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '<?= csrf_hash() ?>' },
+                body: JSON.stringify(payload),
+            })
+                .then(r => {
+                    if (!r.ok) throw new Error('http_' + r.status);
+                    return r.json();
                 })
-            })
-            .then(response => response.json())
-            .then(result => {
-                if (result.success) {
-                    alert(result.message || 'Card returned successfully');
-                    closeDetailModal();
-                    location.reload();
-                    return;
-                }
-
-                alert(result.message || 'Failed to return card');
-                returnBtn.disabled = false;
-                returnBtn.innerHTML = originalText;
-            })
-            .catch(() => {
-                alert('An error occurred while returning the card');
-                returnBtn.disabled = false;
-                returnBtn.innerHTML = originalText;
-            });
-        }
-
-        function showCardBindingError(message) {
-            const errorDiv = document.getElementById('cardBindingError');
-            errorDiv.querySelector('p').textContent = message;
-            errorDiv.classList.remove('hidden');
-        }
-
-        function hideCardBindingError() {
-            document.getElementById('cardBindingError').classList.add('hidden');
-        }
-
-        function bindCardToVisitor() {
-            const selectedCardId = document.getElementById('cardEpcSelect').value;
-            const newCardEpc = document.getElementById('newCardEpc').value.trim();
-            
-            if (!selectedCardId && !newCardEpc) {
-                showCardBindingError('Please select a card or enter a new EPC number');
-                return;
-            }
-
-            if (newCardEpc && newCardEpc.length !== 24) {
-                showCardBindingError('EPC number must be exactly 24 characters');
-                return;
-            }
-
-            // Validate EPC format (hex characters)
-            if (newCardEpc && !/^[0-9A-Fa-f]{24}$/.test(newCardEpc)) {
-                showCardBindingError('EPC must contain only hexadecimal characters (0-9, A-F)');
-                return;
-            }
-
-            const data = {
-                invitation_visitor_id: currentInvitationVisitorId,
-                card_id: selectedCardId || null,
-                new_card_epc: newCardEpc || null
-            };
-
-            // Show loading state
-            const bindButton = event.target.closest('button');
-            const originalText = bindButton.innerHTML;
-            bindButton.disabled = true;
-            bindButton.innerHTML = '<span class="material-symbols-outlined text-lg animate-spin">refresh</span> Binding...';
-
-            fetch('<?= base_url('visitors/bindCard') ?>', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data)
-            })
-            .then(response => response.json())
-            .then(result => {
-                if (result.success) {
-                    alert(result.message);
-                    closeCardBindingModal();
-                    closeDetailModal();
-                    location.reload(); // Refresh the page to show updated data
-                } else {
-                    showCardBindingError(result.message || 'Failed to bind card');
-                    bindButton.disabled = false;
-                    bindButton.innerHTML = originalText;
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showCardBindingError('An error occurred while binding the card');
-                bindButton.disabled = false;
-                bindButton.innerHTML = originalText;
-            });
-        }
-
-        // Close modal on backdrop click
-        document.getElementById('detailModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeDetailModal();
-            }
-        });
-
-        document.getElementById('editVisitDateModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeEditVisitDateModal();
-            }
-        });
-
-        document.getElementById('cardBindingModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeCardBindingModal();
-            }
-        });
-
-        document.getElementById('qrCodeModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeQrCodeModal();
-            }
-        });
-
-        // Close modal on Escape key
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                const cardModal = document.getElementById('cardBindingModal');
-                const detailModal = document.getElementById('detailModal');
-                const visitDateModal = document.getElementById('editVisitDateModal');
-                
-                if (visitDateModal && !visitDateModal.classList.contains('hidden')) {
-                    closeEditVisitDateModal();
-                } else if (!cardModal.classList.contains('hidden')) {
-                    closeCardBindingModal();
-                } else if (!document.getElementById('qrCodeModal').classList.contains('hidden')) {
-                    closeQrCodeModal();
-                } else if (!detailModal.classList.contains('hidden')) {
-                    closeDetailModal();
-                }
-            }
-        });
-
-        // Clear new EPC input when selecting from dropdown
-        document.getElementById('cardEpcSelect').addEventListener('change', function() {
-            if (this.value) {
-                document.getElementById('newCardEpc').value = '';
-            }
-        });
-
-        // Clear dropdown when typing in new EPC input
-        document.getElementById('newCardEpc').addEventListener('input', function() {
-            if (this.value) {
-                document.getElementById('cardEpcSelect').value = '';
-            }
-        });
-
-        /* ── Toolbar Return Card + row checkboxes (batch return) ───────────── */
-        function getToolbarReturnCardButton() {
-            return document.getElementById('btnToolbarReturnCard');
-        }
-
-        function updateToolbarReturnCardState() {
-            const btn = getToolbarReturnCardButton();
-            const selAll = document.getElementById('selectAllVisitorRows');
-            const eligible = document.querySelectorAll('.visitor-row-check:not(:disabled)');
-            const checked = document.querySelectorAll('.visitor-row-check:checked:not(:disabled)');
-            if (btn) {
-                btn.disabled = checked.length === 0;
-                btn.title = checked.length === 0
-                    ? 'Select one or more visitors whose Card Status is In Use or Active'
-                    : 'Return ' + checked.length + ' card(s)';
-            }
-            if (selAll && eligible.length > 0) {
-                selAll.checked = checked.length === eligible.length;
-                selAll.indeterminate = checked.length > 0 && checked.length < eligible.length;
-            } else if (selAll) {
-                selAll.checked = false;
-                selAll.indeterminate = false;
-                selAll.disabled = eligible.length === 0;
-            }
-        }
-
-        function returnCardsFromToolbar() {
-            const ids = Array.from(document.querySelectorAll('.visitor-row-check:checked:not(:disabled)'))
-                .map(function (cb) { return parseInt(cb.getAttribute('data-invitation-visitor-id'), 10); })
-                .filter(function (id) { return id > 0; });
-
-            if (ids.length === 0) {
-                alert('Tick at least one visitor with a bound card (Card Status = In Use or Active).');
-                return;
-            }
-
-            const msg = ids.length === 1
-                ? 'Return this card and mark it as available?'
-                : ('Return ' + ids.length + ' cards and mark them as available?');
-            if (!confirm(msg)) {
-                return;
-            }
-
-            const btn = getToolbarReturnCardButton();
-            const prevLabel = btn ? btn.textContent : '';
-            if (btn) {
-                btn.disabled = true;
-                btn.textContent = 'Returning…';
-            }
-
-            fetch('<?= base_url('visitors/batchUnbindCards') ?>', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ invitation_visitor_ids: ids })
-            })
-                .then(function (r) { return r.json(); })
-                .then(function (result) {
-                    alert(result.message || (result.success ? 'Done' : 'Failed'));
-                    if (result.success) {
+                .then(data => {
+                    alert(data.message);
+                    if (data.success) {
                         location.reload();
-                        return;
+                    } else {
+                        btn.disabled = false;
+                        btn.textContent = originalText;
                     }
-                    if (btn) {
-                        btn.textContent = prevLabel;
-                    }
-                    updateToolbarReturnCardState();
                 })
-                .catch(function () {
-                    alert('An error occurred while returning cards');
-                    if (btn) {
-                        btn.textContent = prevLabel;
+                .catch(err => {
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                    if (String(err.message).startsWith('http_')) {
+                        alert('Something went wrong on the server (' + err.message.replace('http_', '') + '). If this keeps happening, check that all migrations have been run.');
+                    } else {
+                        alert('Could not reach the server. Please check your connection and try again.');
                     }
-                    updateToolbarReturnCardState();
                 });
         }
 
-        document.addEventListener('DOMContentLoaded', function () {
-            const btn = getToolbarReturnCardButton();
-            if (btn) {
-                btn.addEventListener('click', returnCardsFromToolbar);
-            }
-            const selAll = document.getElementById('selectAllVisitorRows');
-            if (selAll) {
-                selAll.addEventListener('change', function () {
-                    document.querySelectorAll('.visitor-row-check:not(:disabled)').forEach(function (cb) {
-                        cb.checked = selAll.checked;
-                    });
-                    updateToolbarReturnCardState();
-                });
-            }
-            document.querySelectorAll('.visitor-row-check').forEach(function (cb) {
-                cb.addEventListener('change', updateToolbarReturnCardState);
-            });
-            updateToolbarReturnCardState();
-        });
+        function submitApprove() {
+            postAction('<?= base_url('vendors/approve') ?>', {
+                id: activeApproveId,
+                remark: document.getElementById('approveRemark').value.trim(),
+            }, 'approveSubmitBtn');
+        }
 
-        /* ── READ MYKAD → upload image, OCR the IC, then auto-search the list ─── */
-        (function () {
-            const trigger = document.getElementById('btnReadMyKad');
-            const modal = document.getElementById('visitorMyKadModal');
-            const backdrop = document.getElementById('visitorMyKadBackdrop');
-            const closeBtn = document.getElementById('visitorMyKadClose');
-            const cancelBtn = document.getElementById('visitorMyKadCancel');
-            const dropzone = document.getElementById('visitorMyKadDropzone');
-            const browseBtn = document.getElementById('visitorMyKadBrowse');
-            const fileInput = document.getElementById('visitorMyKadFileInput');
-            const selected = document.getElementById('visitorMyKadSelected');
-            const filenameEl = document.getElementById('visitorMyKadFilename');
-            const filesizeEl = document.getElementById('visitorMyKadFilesize');
-            const clearBtn = document.getElementById('visitorMyKadClear');
-            const processBtn = document.getElementById('visitorMyKadProcess');
-            const errorEl = document.getElementById('visitorMyKadError');
-            const searchInput = document.getElementById('visitorSearchInput');
-            const searchForm = document.getElementById('visitorSearchForm');
-
-            if (!trigger || !modal) {
+        function submitReject() {
+            const reasonId = document.getElementById('rejectReasonId').value;
+            if (!reasonId) {
+                alert('Please select a reason for rejecting this vendor pass.');
                 return;
             }
+            postAction('<?= base_url('vendors/reject') ?>', {
+                id: activeRejectId,
+                reject_reason_id: reasonId,
+                remark: document.getElementById('rejectRemark').value.trim(),
+            }, 'rejectSubmitBtn');
+        }
 
-            let chosenFile = null;
-            const PROCESS_LABEL = 'Scan & Search';
-
-            function fmtSize(bytes) {
-                if (!bytes || bytes <= 0) return '0 B';
-                const u = ['B', 'KB', 'MB', 'GB'];
-                const e = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), u.length - 1);
-                return (bytes / Math.pow(1024, e)).toFixed(1) + ' ' + u[e];
-            }
-
-            function showError(msg) {
-                if (!errorEl) return;
-                errorEl.textContent = msg || '';
-                errorEl.classList.toggle('hidden', !msg);
-            }
-
-            function setFile(file) {
-                chosenFile = file || null;
-                showError('');
-                if (chosenFile) {
-                    filenameEl.textContent = chosenFile.name || 'MyKad image';
-                    filesizeEl.textContent = fmtSize(chosenFile.size || 0);
-                    selected.classList.remove('hidden');
-                    processBtn.disabled = false;
-                } else {
-                    filenameEl.textContent = '';
-                    filesizeEl.textContent = '';
-                    selected.classList.add('hidden');
-                    processBtn.disabled = true;
-                }
-            }
-
-            function validateFile(file) {
-                if (!file) return false;
-                if (!/^image\//.test(file.type || '')) {
-                    showError('Please choose an image file.');
-                    return false;
-                }
-                if ((file.size || 0) > 5 * 1024 * 1024) {
-                    showError('Image must be 5MB or smaller.');
-                    return false;
-                }
-                return true;
-            }
-
-            function openModal() {
-                modal.classList.remove('hidden');
-                modal.setAttribute('aria-hidden', 'false');
-                showError('');
-            }
-
-            function closeModal() {
-                modal.classList.add('hidden');
-                modal.setAttribute('aria-hidden', 'true');
-                if (fileInput) fileInput.value = '';
-                setFile(null);
-                processBtn.disabled = true;
-                processBtn.textContent = PROCESS_LABEL;
-            }
-
-            trigger.addEventListener('click', openModal);
-            closeBtn?.addEventListener('click', closeModal);
-            cancelBtn?.addEventListener('click', closeModal);
-            backdrop?.addEventListener('click', closeModal);
-
-            browseBtn?.addEventListener('click', function () { fileInput?.click(); });
-            dropzone?.addEventListener('click', function (e) {
-                if (e.target === browseBtn) return;
-                fileInput?.click();
-            });
-
-            fileInput?.addEventListener('change', function (e) {
-                const f = e.target.files && e.target.files[0];
-                if (!f) { setFile(null); return; }
-                if (!validateFile(f)) { this.value = ''; setFile(null); return; }
-                setFile(f);
-            });
-
-            clearBtn?.addEventListener('click', function () {
-                if (fileInput) fileInput.value = '';
-                setFile(null);
-            });
-
-            ['dragover', 'dragleave', 'drop'].forEach(function (evt) {
-                dropzone?.addEventListener(evt, function (e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                });
-            });
-            dropzone?.addEventListener('dragover', function () { this.classList.add('border-primary'); });
-            dropzone?.addEventListener('dragleave', function () { this.classList.remove('border-primary'); });
-            dropzone?.addEventListener('drop', function (e) {
-                this.classList.remove('border-primary');
-                const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-                if (!f) return;
-                if (!validateFile(f)) { setFile(null); return; }
-                setFile(f);
-            });
-
-            processBtn?.addEventListener('click', async function () {
-                if (!chosenFile) {
-                    showError('Please choose a MyKad image first.');
-                    return;
-                }
-                processBtn.disabled = true;
-                processBtn.textContent = 'Scanning…';
-                showError('');
-
-                try {
-                    const fd = new FormData();
-                    fd.append('mykad_image', chosenFile);
-
-                    const response = await fetch('<?= base_url('visitor-registration/processMyKad') ?>', {
-                        method: 'POST',
-                        body: fd,
-                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                    });
-
-                    const result = await response.json().catch(function () { return null; });
-                    if (!result || !result.success || !result.data) {
-                        showError((result && result.message) ? result.message : 'Could not read MyKad image. Please try a clearer photo.');
-                        processBtn.disabled = false;
-                        processBtn.textContent = PROCESS_LABEL;
-                        return;
-                    }
-
-                    const ic = result.data.ic_number ? String(result.data.ic_number).replace(/\D+/g, '') : '';
-                    if (!ic) {
-                        showError(result.data.warning || 'IC number not detected on the MyKad. Please try again with a clearer photo.');
-                        processBtn.disabled = false;
-                        processBtn.textContent = PROCESS_LABEL;
-                        return;
-                    }
-
-                    if (searchInput) searchInput.value = ic;
-                    if (searchForm) {
-                        searchForm.submit();
-                    } else {
-                        window.location.href = '<?= base_url('visitors') ?>?search=' + encodeURIComponent(ic);
-                    }
-                } catch (err) {
-                    showError('Network error while reading MyKad. Please try again.');
-                    processBtn.disabled = false;
-                    processBtn.textContent = PROCESS_LABEL;
-                }
-            });
-
-            document.addEventListener('keydown', function (e) {
-                if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
-                    closeModal();
-                }
-            });
-        })();
-
-        document.getElementById('perPageSelect')?.addEventListener('change', function () {
+        document.getElementById('vendorPerPageSelect')?.addEventListener('change', function () {
             const url = new URL(window.location.href);
             url.searchParams.set('per_page', this.value);
             url.searchParams.delete('page');
