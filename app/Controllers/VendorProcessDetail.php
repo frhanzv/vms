@@ -36,10 +36,10 @@ class VendorProcessDetail extends BaseController
 
         $db = \Config\Database::connect();
 
-        $urineTests = $db->table('vendor_urine_tests')
-            ->where('vendor_id', (int) $id)
-            ->orderBy('test_date', 'DESC')
-            ->get()->getResultArray();
+        // Urine Test History is on hold — supervisor's call — so this page
+        // no longer touches vendor_urine_tests at all (not even to read it).
+        // That keeps the page working even on a database where that table
+        // was never migrated.
 
         $printLogs = $db->table('vendor_card_print_logs')
             ->where('vendor_id', (int) $id)
@@ -64,7 +64,6 @@ class VendorProcessDetail extends BaseController
             'pageTitle'       => 'Vendor Process Detail - SafeG',
             'vendor'          => $vendor,
             'icPassport'      => mask_ic_passport($vendor['ic_no'] ?: ($vendor['passport_no'] ?? ''), 'N/A'),
-            'urineTests'      => $urineTests,
             'printLogs'       => $printLogs,
             'boundCard'       => $card,
             'licenses'        => $licenses,
@@ -208,51 +207,26 @@ class VendorProcessDetail extends BaseController
         ]);
     }
 
-    /** urineTests() — KPK's viewUrineHistoryDetails(). */
+    /**
+     * urineTests() — KPK's viewUrineHistoryDetails(). On hold per the
+     * supervisor's instruction — the UI no longer calls this, and it
+     * refuses outright rather than querying vendor_urine_tests, which
+     * isn't guaranteed to exist on every environment right now.
+     */
     public function urineTests($id)
     {
-        $db   = \Config\Database::connect();
-        $rows = $db->table('vendor_urine_tests')->where('vendor_id', (int) $id)->orderBy('test_date', 'DESC')->get()->getResultArray();
-        return $this->response->setJSON(['success' => true, 'tests' => $rows]);
+        return $this->response->setJSON(['success' => false, 'message' => 'Urine Test History is on hold for now.']);
     }
 
-    /** addUrineTest() — records a new test result. */
+    /**
+     * addUrineTest() — on hold, same as above. The original logic (insert
+     * into vendor_urine_tests with a test_date/result/remark/attachment)
+     * is preserved in git history / earlier deliveries — re-add it here
+     * once the supervisor gives the go-ahead and the table is migrated.
+     */
     public function addUrineTest($id)
     {
-        helper('access');
-        if (! has_access('vendor_pass_list', 'edit')) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Not allowed.']);
-        }
-        $vendor = $this->loadScopedVendor($id);
-        if (! $vendor) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Record not found.']);
-        }
-
-        $testDate = trim((string) ($this->request->getPost('test_date') ?? ''));
-        $result   = trim((string) ($this->request->getPost('result') ?? ''));
-        $remark   = trim((string) ($this->request->getPost('remark') ?? ''));
-
-        if (! in_array($result, ['Negative', 'Positive'], true)) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Please choose a result (Negative/Positive).']);
-        }
-
-        $attachment = null;
-        $file = $this->request->getFile('attachment');
-        if ($file && $file->isValid() && ! $file->hasMoved()) {
-            $attachment = $file->getRandomName();
-            $file->move('uploads/urine_tests', $attachment);
-        }
-
-        \Config\Database::connect()->table('vendor_urine_tests')->insert([
-            'vendor_id'  => (int) $id,
-            'test_date'  => $testDate !== '' ? $testDate : date('Y-m-d'),
-            'result'     => $result,
-            'remark'     => $remark !== '' ? $remark : null,
-            'attachment' => $attachment,
-            'created_by' => (string) (session()->get('full_name') ?: session()->get('username')),
-        ]);
-
-        return $this->response->setJSON(['success' => true, 'message' => 'Urine test result recorded.']);
+        return $this->response->setJSON(['success' => false, 'message' => 'Urine Test History is on hold for now.']);
     }
 
     /**
