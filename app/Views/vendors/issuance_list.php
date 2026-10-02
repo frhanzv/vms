@@ -95,7 +95,6 @@
         function submitIssue() {
             const collectorName = document.getElementById('collectorName').value.trim();
             const collectorIc = document.getElementById('collectorIc').value.trim();
-            const cardId = document.getElementById('cardId').value.trim();
 
             if (!collectorName || !collectorIc) {
                 alert('Please enter the collector\'s name and IC/passport.');
