@@ -2,6 +2,8 @@
 
 namespace App\Controllers;
 
+use PhpOffice\PhpSpreadsheet\IOFactory;
+
 /**
  * Vendor pass list + approve / reject.
  *
@@ -136,6 +138,11 @@ class VendorList extends BaseController
             'rejectReasons' => $rejectReasons,
             'canEdit'       => has_access('vendor_pass_list', 'edit') && $cfg('edit_button'),
             'canDelete'     => has_access('vendor_pass_list', 'delete') && $cfg('delete_button'),
+            // Import/Export/Template — KPK's real Vendor Pass List has these
+            // next to "Request" (same row as the +Request button). Gated on
+            // the same 'edit' permission as everything else that writes
+            // vendor records, since importing is just bulk-creating them.
+            'canImport'     => has_access('vendor_pass_list', 'edit'),
             // No 'canQr' here on purpose — the QR action moved to Closed List
             // (it's a vendor-detail lookup, not a pass-verification code, so
             // it only makes sense once a card has actually been issued).
@@ -216,6 +223,365 @@ class VendorList extends BaseController
         $db->table('vendors')->where('id', (int) $id)->delete();
 
         return $this->response->setJSON(['success' => true, 'message' => 'Vendor pass record deleted.']);
+    }
+
+    // =====================================================================
+    //  EXPORT (CSV) — honours whatever search/status filter is on screen,
+    //  same idea as VisitorList::export().
+    // =====================================================================
+
+    public function export()
+    {
+        helper(['feature', 'privacy', 'role']);
+        $db = \Config\Database::connect();
+
+        $searchTerm = trim((string) ($this->request->getGet('search') ?? ''));
+        $status     = trim((string) ($this->request->getGet('status') ?? 'all'));
+
+        $rows = $this->buildVendorListQuery($db, $searchTerm, $status)
+            ->orderBy('created_at', 'DESC')
+            ->get()
+            ->getResultArray();
+
+        $handle = fopen('php://temp', 'w+');
+        fwrite($handle, "\xEF\xBB\xBF");
+        fputcsv($handle, [
+            'No', 'Date', 'App No', 'Full Name', 'IC/Passport', 'Vendor Company',
+            'Designation', 'Contact No', 'Email', 'Worker Type', 'Status',
+            'Awaiting', 'Pass Expiry', 'Remark',
+        ]);
+
+        $awaitingLabels = [
+            'ksb_approve' => 'Awaiting KSB approval',
+            'kpk_approve' => 'Awaiting KPK approval',
+        ];
+
+        foreach ($rows as $index => $row) {
+            fputcsv($handle, [
+                $index + 1,
+                ! empty($row['created_at']) ? date('d/m/Y', strtotime((string) $row['created_at'])) : '',
+                $row['app_no'] ?? '',
+                $row['full_name'] ?? '',
+                mask_ic_passport($row['ic_no'] ?: ($row['passport_no'] ?? '')),
+                $row['vendor_company_name'] ?? '',
+                $row['designation'] ?? '',
+                ! empty($row['contact_no']) ? '="' . $row['contact_no'] . '"' : '',
+                $row['email'] ?? '',
+                $row['card_type'] ?? '',
+                $row['status'] ?? '',
+                $awaitingLabels[$row['next_action'] ?? ''] ?? '',
+                ! empty($row['pass_expiry']) ? date('d/m/Y', strtotime((string) $row['pass_expiry'])) : '',
+                $row['remark'] ?? '',
+            ]);
+        }
+
+        rewind($handle);
+        $csvContent = stream_get_contents($handle);
+        fclose($handle);
+
+        return $this->response
+            ->setHeader('Content-Type', 'text/csv; charset=UTF-8')
+            ->setHeader('Content-Disposition', 'attachment; filename="vendor-pass-list-' . date('Y-m-d-His') . '.csv"')
+            ->setBody((string) $csvContent);
+    }
+
+    // =====================================================================
+    //  IMPORT (bulk create from Excel) — same shape as StaffController::import(),
+    //  built against the real vendors table columns (see
+    //  VendorPassRequest::collectFormData() for the field list this mirrors).
+    // =====================================================================
+
+    public function import()
+    {
+        helper(['access', 'role']);
+        if (! has_access('vendor_pass_list', 'edit')) {
+            return redirect()->back()->with('error', 'You are not allowed to import vendor pass records.');
+        }
+
+        $file = $this->request->getFile('upload_file');
+
+        if (! $file || ! $file->isValid() || $file->hasMoved()) {
+            return redirect()->back()->with('error', 'No valid file uploaded.');
+        }
+
+        $ext = strtolower($file->getClientExtension());
+        if (! in_array($ext, ['xlsx', 'xls'], true)) {
+            return redirect()->back()->with('error', 'Only .xlsx or .xls files are allowed.');
+        }
+
+        $tmpPath = $file->getTempName();
+
+        try {
+            $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($tmpPath);
+        } catch (\Throwable $e) {
+            return redirect()->back()->with('error', 'Failed to read the Excel file: ' . $e->getMessage());
+        }
+
+        $sheet = $spreadsheet->getActiveSheet();
+        $rows  = $sheet->toArray(null, true, true, false);
+
+        if (count($rows) < 2) {
+            return redirect()->back()->with('error', 'The file has no data rows.');
+        }
+
+        // Normalised header map: lowercase trimmed header => column index.
+        $rawHeaders = array_map(fn($h) => trim(str_replace('*', '', strtolower(trim((string) $h)))), $rows[0]);
+        $headerMap  = array_flip($rawHeaders);
+
+        $columnAliases = [
+            'app_no'                       => ['app no', 'app_no', 'application no', 'application number'],
+            'full_name'                    => ['full name', 'full_name', 'name'],
+            'name_on_vendor_pass'          => ['name on vendor pass', 'name_on_vendor_pass', 'pass name'],
+            'ic_passport'                  => ['ic/passport', 'ic / passport', 'ic no. / passport', 'ic_passport', 'ic no.', 'ic no', 'ic', 'passport no.', 'passport no', 'passport', 'ic/passport no'],
+            'vendor_company_reg_id'        => ['ssm no', 'ssm no.', 'vendor company reg id', 'registration id', 'reg id'],
+            'vendor_company_name'          => ['vendor company', 'vendor company name', 'company', 'company name'],
+            'designation'                  => ['designation', 'position'],
+            'contact_no'                   => ['contact number', 'contact_number', 'contact no.', 'contact no', 'phone', 'mobile', 'tel'],
+            'email'                        => ['email', 'email address'],
+            'staff_no'                     => ['staff no.', 'staff no', 'staff_no', 'staff number'],
+            'dob'                          => ['date of birth', 'date_of_birth', 'dob'],
+            'sex'                          => ['sex', 'gender'],
+            'resident'                     => ['resident'],
+            'type_of_application'          => ['type of application', 'type_of_application', 'application type'],
+            'sub_type'                     => ['sub type', 'sub_type'],
+            'type_of_registration'         => ['type of registration', 'type_of_registration'],
+            'payment'                      => ['payment'],
+            'card_type'                    => ['worker type', 'worker_type', 'card type', 'card_type'],
+            'in_out_bound'                 => ['in/out bound', 'in out bound', 'in_out_bound'],
+            'address_1'                    => ['address 1', 'address_1', 'address1', 'address'],
+            'address_2'                    => ['address 2', 'address_2', 'address2'],
+            'address_3'                    => ['address 3', 'address_3', 'address3'],
+            'country'                      => ['country'],
+            'state'                        => ['state'],
+            'city'                         => ['city'],
+            'postcode'                     => ['postal code', 'postcode', 'postal_code', 'zip'],
+            'vehicle_registration'         => ['vehicle registration', 'vehicle reg', 'vehicle_registration', 'vehicle no'],
+            'name_of_person_visited'       => ['person visited', 'name of person visited'],
+            'contact_no_of_person_visited' => ['contact of person visited', 'contact no of person visited'],
+            'location_visited'             => ['location visited'],
+            'location_access'              => ['location access', 'location_access'],
+            'pass_expiry'                  => ['pass expiry', 'pass_expiry', 'pass expiry date'],
+            'remark'                       => ['remark', 'remarks', 'notes'],
+        ];
+
+        $fieldIndex = [];
+        foreach ($columnAliases as $field => $aliases) {
+            foreach ($aliases as $alias) {
+                if (isset($headerMap[$alias])) {
+                    $fieldIndex[$field] = $headerMap[$alias];
+                    break;
+                }
+            }
+        }
+
+        $passportFallbackIndex = null;
+        if (isset($fieldIndex['ic_passport'])) {
+            $icHeader = $rawHeaders[$fieldIndex['ic_passport']] ?? '';
+            if (in_array($icHeader, ['ic no.', 'ic no', 'ic'], true)) {
+                foreach (['passport no.', 'passport no', 'passport'] as $passAlias) {
+                    if (isset($headerMap[$passAlias])) {
+                        $passportFallbackIndex = $headerMap[$passAlias];
+                        break;
+                    }
+                }
+            }
+        }
+
+        $db       = \Config\Database::connect();
+        $now      = date('Y-m-d H:i:s');
+        $today    = date('d-m-Y');
+        $batchTag = 'VP-IMP-' . date('Ymd');
+        $companyId = current_company_id();
+
+        $requiredFields = [
+            'full_name'           => 'Full Name',
+            'ic_passport'         => 'IC No. / Passport',
+            'vendor_company_name' => 'Vendor Company Name',
+            'contact_no'          => 'Contact No.',
+            'email'               => 'Email',
+            'resident'            => 'Resident',
+        ];
+
+        $validationErrors = [];
+        $seenInFile        = [];
+
+        foreach (array_slice($rows, 1) as $i => $row) {
+            $get = fn(string $field) => isset($fieldIndex[$field])
+                ? (trim((string) ($row[$fieldIndex[$field]] ?? '')) ?: null)
+                : null;
+
+            $rowValues = array_filter(array_map(fn($v) => trim((string) $v), $row));
+            if (empty($rowValues)) {
+                continue;
+            }
+
+            $rowNum  = $i + 2;
+            $missing = [];
+            foreach ($requiredFields as $field => $label) {
+                $value = $get($field);
+                if ($field === 'ic_passport' && $value === null && $passportFallbackIndex !== null) {
+                    $value = trim((string) ($row[$passportFallbackIndex] ?? '')) ?: null;
+                }
+                if ($value === null) {
+                    $missing[] = $label;
+                }
+            }
+            if (! empty($missing)) {
+                $validationErrors[] = "Row {$rowNum}: missing " . implode(', ', $missing) . '.';
+            }
+
+            $ic = $get('ic_passport') ?? (
+                $passportFallbackIndex !== null
+                    ? (trim((string) ($row[$passportFallbackIndex] ?? '')) ?: null)
+                    : null
+            );
+            if ($ic !== null) {
+                // Normalise the same way the insert pass does, so "900101-10-1234"
+                // and "900101101234" are recognised as the same IC.
+                $icDigits    = str_replace('-', '', $ic);
+                $looksLikeIc = preg_match('/^\d+$/', $icDigits) === 1;
+                if ($looksLikeIc && strlen($icDigits) !== 12) {
+                    $validationErrors[] = "Row {$rowNum}: IC number must be exactly 12 digits (got \"{$ic}\").";
+                }
+                $dedupeKey = $looksLikeIc ? $icDigits : $ic;
+
+                if (isset($seenInFile[$dedupeKey])) {
+                    $validationErrors[] = "Row {$rowNum}: IC/Passport '{$ic}' is duplicated in the file (first seen on row {$seenInFile[$dedupeKey]}).";
+                } else {
+                    $seenInFile[$dedupeKey] = $rowNum;
+                    $exists = $db->table('vendors')
+                        ->groupStart()->where('ic_no', $dedupeKey)->orWhere('passport_no', $dedupeKey)->groupEnd()
+                        ->countAllResults();
+                    if ($exists > 0) {
+                        $validationErrors[] = "Row {$rowNum}: IC/Passport '{$ic}' already exists in the system.";
+                    }
+                }
+            }
+        }
+
+        if (! empty($validationErrors)) {
+            $errorMsg = 'Import denied. Please fix the following errors and re-upload:' . "\n" . implode("\n", $validationErrors);
+            return redirect()->back()->with('error', $errorMsg);
+        }
+
+        $inserted = 0;
+        $counter  = 1;
+
+        foreach (array_slice($rows, 1) as $row) {
+            $get = fn(string $field) => isset($fieldIndex[$field])
+                ? (trim((string) ($row[$fieldIndex[$field]] ?? '')) ?: null)
+                : null;
+
+            $rowValues = array_filter(array_map(fn($v) => trim((string) $v), $row));
+            if (empty($rowValues)) {
+                continue;
+            }
+
+            $icValue = $get('ic_passport') ?? (
+                $passportFallbackIndex !== null
+                    ? (trim((string) ($row[$passportFallbackIndex] ?? '')) ?: null)
+                    : null
+            );
+
+            // The template merges IC/Passport into one column — split it back
+            // into the two real DB columns the rest of the app reads (a
+            // 12-digit number, dashes allowed, is an IC; anything else is
+            // treated as a passport number).
+            $icDigitsOnly = $icValue !== null ? str_replace('-', '', $icValue) : null;
+            $isIcNumber   = $icDigitsOnly !== null && preg_match('/^\d{12}$/', $icDigitsOnly) === 1;
+
+            // Keep Worker Type to the values the rest of the app expects.
+            $cardType = $get('card_type');
+            if ($cardType !== null) {
+                $normalized = ucfirst(strtolower($cardType));
+                $cardType   = in_array($normalized, ['Permanent', 'Temporary'], true) ? $normalized : null;
+            }
+
+            $locations = [];
+            if ($get('location_access') !== null) {
+                $raw = preg_split('/[,;]+/', (string) $get('location_access')) ?: [];
+                foreach ($raw as $loc) {
+                    $key = str_replace(' ', '_', strtolower(trim($loc)));
+                    if (array_key_exists($key, \App\Controllers\VendorPassRequest::LOCATION_OPTIONS)) {
+                        $locations[] = $key;
+                    }
+                }
+            }
+
+            $record = [
+                'company_id'                    => $companyId,
+                'app_no'                         => $get('app_no') ?? ($batchTag . '-' . str_pad((string) $counter, 3, '0', STR_PAD_LEFT)),
+                'date_of_application'            => $today,
+                'type_of_application'            => $get('type_of_application'),
+                'sub_type'                       => $get('sub_type'),
+                'type_of_registration'           => $get('type_of_registration'),
+                'payment'                        => $get('payment'),
+                'resident'                       => $get('resident'),
+                'card_type'                      => $cardType,
+                'location_access'                => implode(',', $locations),
+                'vendor_company_reg_id'          => $get('vendor_company_reg_id'),
+                'vendor_company_name'            => $get('vendor_company_name'),
+                'in_out_bound'                   => $get('in_out_bound'),
+                'full_name'                      => $get('full_name'),
+                'name_on_vendor_pass'            => $get('name_on_vendor_pass'),
+                'ic_no'                          => $isIcNumber ? $icDigitsOnly : null,
+                'passport_no'                    => ! $isIcNumber ? $icValue : null,
+                'dob'                            => $this->parseDate($get('dob')),
+                'sex'                            => $get('sex'),
+                'contact_no'                     => $get('contact_no'),
+                'email'                          => $get('email'),
+                'staff_no'                       => $get('staff_no'),
+                'designation'                    => $get('designation'),
+                'address_1'                      => $get('address_1'),
+                'address_2'                      => $get('address_2'),
+                'address_3'                      => $get('address_3'),
+                'country'                        => $get('country') ?? 'Malaysia',
+                'state'                          => $get('state'),
+                'city'                           => $get('city'),
+                'postcode'                       => $get('postcode'),
+                'vehicle_registration'           => $get('vehicle_registration'),
+                'name_of_person_visited'         => $get('name_of_person_visited'),
+                'contact_no_of_person_visited'   => $get('contact_no_of_person_visited'),
+                'location_visited'               => $get('location_visited'),
+                'pass_expiry'                    => $this->parseDate($get('pass_expiry')),
+                'status'                         => 'Pending',
+                'card_status'                    => 'Inactive',
+                'remark'                         => $get('remark'),
+                'created_at'                     => $now,
+            ];
+
+            $db->table('vendors')->insert($record);
+            $inserted++;
+            $counter++;
+        }
+
+        return redirect()->to(base_url('vendors'))->with('success', "{$inserted} vendor pass record(s) imported successfully.");
+    }
+
+    private function parseDate(?string $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (is_numeric($value)) {
+            try {
+                $date = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject((float) $value);
+                return $date->format('Y-m-d');
+            } catch (\Throwable $e) {
+                return null;
+            }
+        }
+
+        $formats = ['d/m/Y', 'Y-m-d', 'd-m-Y', 'm/d/Y', 'd.m.Y'];
+        foreach ($formats as $format) {
+            $dt = \DateTime::createFromFormat($format, $value);
+            if ($dt instanceof \DateTime) {
+                return $dt->format('Y-m-d');
+            }
+        }
+
+        return null;
     }
 
     // =====================================================================

@@ -53,10 +53,29 @@
                 <h1 class="text-xl md:text-2xl font-bold tracking-tight text-gray-800 dark:text-white uppercase">
                     Vendor Pass List
                 </h1>
-                <a href="<?= base_url('vendors/vendorpassrequest') ?>" class="bg-primary hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
-                    <span class="material-icons text-sm mr-1">add</span>
-                    Request
-                </a>
+                <div class="flex flex-wrap gap-2">
+                    <?php if ($canImport ?? false): ?>
+                    <button onclick="document.getElementById('uploadModal').classList.toggle('hidden')" class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
+                        <span class="material-icons text-sm mr-1">add</span>
+                        Import
+                    </button>
+                    <a href="<?= base_url('files/VendorTemplateNew.xlsx') ?>"
+                        download="VendorTemplateNew.xlsx"
+                        class="bg-primary hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
+                        <span class="material-icons text-sm mr-1">file_download</span>
+                        Template
+                    </a>
+                    <?php endif; ?>
+                    <a href="<?= base_url('vendors/export') ?><?= $searchTerm || ($status ?? 'all') !== 'all' ? '?' . http_build_query(array_filter(['search' => $searchTerm ?? '', 'status' => ($status ?? 'all') !== 'all' ? $status : ''])) : '' ?>"
+                        class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
+                        <span class="material-icons text-sm mr-1">file_upload</span>
+                        Export
+                    </a>
+                    <a href="<?= base_url('vendors/vendorpassrequest') ?>" class="bg-primary hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
+                        <span class="material-icons text-sm mr-1">add</span>
+                        Request
+                    </a>
+                </div>
             </div>
 
             <!-- Stat cards -->
@@ -83,9 +102,14 @@
                 </div>
             <?php endif; ?>
             <?php if (session()->getFlashdata('error')): ?>
+                <?php $errorLines = explode("\n", (string) session()->getFlashdata('error')); ?>
                 <div class="mb-4 flex items-start gap-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-800 dark:text-red-300 text-sm rounded-lg px-4 py-3">
                     <span class="material-symbols-outlined text-[20px] flex-shrink-0 mt-0.5">error</span>
-                    <span><?= esc(session()->getFlashdata('error')) ?></span>
+                    <div>
+                        <?php foreach ($errorLines as $line): ?>
+                            <p><?= esc($line) ?></p>
+                        <?php endforeach; ?>
+                    </div>
                 </div>
             <?php endif; ?>
 
@@ -301,6 +325,38 @@
 
         </div>
     </main>
+
+    <!-- Import Modal -->
+    <?php if ($canImport ?? false): ?>
+    <div id="uploadModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div class="flex items-center justify-between p-4 border-b dark:border-slate-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">UPLOAD FILE</h3>
+                <button onclick="document.getElementById('uploadModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600">
+                    <span class="material-icons">close</span>
+                </button>
+            </div>
+            <form action="<?= base_url('vendors/import') ?>" method="post" enctype="multipart/form-data">
+                <?= csrf_field() ?>
+                <div class="p-6">
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">Choose Excel File</label>
+                    <input name="upload_file" type="file" accept=".xlsx, .xls" required
+                        class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none dark:bg-slate-700 dark:border-slate-600 dark:placeholder-gray-400">
+                    <p class="mt-2 text-xs text-gray-500">Only .xlsx or .xls files allowed. Download the Template first to see the expected columns.</p>
+                </div>
+                <div class="flex justify-end gap-2 p-4 border-t dark:border-slate-700">
+                    <button type="button" onclick="document.getElementById('uploadModal').classList.add('hidden')" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200">
+                        Cancel
+                    </button>
+                    <button type="submit" class="bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-2 rounded text-sm font-medium flex items-center transition-colors">
+                        <span class="material-icons text-sm mr-1">publish</span>
+                        Import
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <?php endif; ?>
 
     <!-- Approve Modal -->
     <div id="approveModal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
