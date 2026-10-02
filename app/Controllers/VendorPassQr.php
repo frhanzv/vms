@@ -5,9 +5,14 @@ namespace App\Controllers;
 class VendorPassQr extends BaseController
 {
     /**
-     * Staff-side: generate (or reuse) the QR string for a vendor pass and
-     * show it. Matches KPK's getVendorPassQRById: ID-prefixed + random
+     * Staff-side: generate (or reuse) the QR string for a vendor and show
+     * it. Matches KPK's getVendorPassQRById: ID-prefixed + random
      * uppercase-letter padding, stored once and reused after that.
+     *
+     * Per the supervisor: this is a "Vendor Detail QR" — it only appears
+     * in Closed List (once a card has actually been issued), not on the
+     * Vendor Pass List. Scanning it looks up the vendor's details, it
+     * doesn't claim to verify a pass.
      */
     public function generate($id)
     {
@@ -38,7 +43,7 @@ class VendorPassQr extends BaseController
         $publicUrl = base_url('vendor-pass-qr/' . $vendor['qr_string']);
 
         return view('vendors/qr_generate', [
-            'pageTitle' => 'Vendor Pass QR - SafeG',
+            'pageTitle' => 'Vendor Detail QR - SafeG',
             'vendor'    => $vendor,
             'publicUrl' => $publicUrl,
         ]);
@@ -46,7 +51,8 @@ class VendorPassQr extends BaseController
 
     /**
      * Public, no-login page — matches KPK's getVendorPassByQR. This is what
-     * opens when someone scans the pass at a gate/checkpoint.
+     * opens when someone scans the QR from Closed List: a vendor detail
+     * lookup, not a pass-verification check.
      */
     public function show($qrString)
     {
@@ -55,7 +61,7 @@ class VendorPassQr extends BaseController
         $vendor = $db->table('vendors')->where('qr_string', $qrString)->get()->getRowArray();
 
         return view('vendors/qr_public', [
-            'pageTitle' => 'Vendor Pass Verification - SafeG',
+            'pageTitle' => 'Vendor Detail - SafeG',
             'vendor'    => $vendor, // null if not found — the view handles that
         ]);
     }

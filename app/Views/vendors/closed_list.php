@@ -128,7 +128,13 @@
                         <tr class="border-b border-gray-100 dark:border-gray-700">
                             <td class="p-3"><?= $row['no'] ?></td>
                             <td class="p-3">
-                                <a href="<?= base_url('vendors/card-info/view/' . $row['id']) ?>" class="text-primary hover:underline text-xs font-semibold">Card Details</a>
+                                <div class="flex items-center gap-2">
+                                    <a href="<?= base_url('vendors/card-info/view/' . $row['id']) ?>" class="text-primary hover:underline text-xs font-semibold">Card Details</a>
+                                    <span class="text-gray-300">|</span>
+                                    <a href="<?= base_url('vendors/qr/' . $row['id']) ?>" class="text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white" title="Vendor Detail QR">
+                                        <span class="material-symbols-outlined text-[18px] align-middle">qr_code_2</span>
+                                    </a>
+                                </div>
                             </td>
                             <td class="p-3"><?= esc($row['app_no']) ?></td>
                             <td class="p-3"><?= esc($row['receipt_no']) ?></td>

@@ -175,11 +175,11 @@
                                             title="View Details">
                                             <span class="material-symbols-outlined text-[20px]">search</span>
                                         </button>
-                                        <?php if (($canQr ?? true) && $vendor['status'] === 'Approved'): ?>
-                                        <button onclick="event.stopPropagation(); window.location.href='<?= base_url('vendors/qr/') ?><?= $vendor['id'] ?>'" class="text-slate-600 hover:text-slate-900 transition-colors" title="QR Pass">
-                                            <span class="material-symbols-outlined text-[20px]">qr_code_2</span>
-                                        </button>
-                                        <?php endif; ?>
+                                        <?php
+                                            // Per the supervisor: no QR action here. The QR is a vendor-detail
+                                            // lookup (not a pass-verification code) and only makes sense once
+                                            // the card has actually been issued — it lives in Closed List now.
+                                        ?>
                                         <?php if ($vendor['can_approve'] ?? false): ?>
                                         <button type="button"
                                             data-id="<?= (int) $vendor['id'] ?>" data-name="<?= esc($vendor['full_name'], 'attr') ?>" data-app="<?= esc($vendor['app_no'], 'attr') ?>"

@@ -136,7 +136,9 @@ class VendorList extends BaseController
             'rejectReasons' => $rejectReasons,
             'canEdit'       => has_access('vendor_pass_list', 'edit') && $cfg('edit_button'),
             'canDelete'     => has_access('vendor_pass_list', 'delete') && $cfg('delete_button'),
-            'canQr'         => $cfg('qr_button'),
+            // No 'canQr' here on purpose — the QR action moved to Closed List
+            // (it's a vendor-detail lookup, not a pass-verification code, so
+            // it only makes sense once a card has actually been issued).
             'searchTerm'    => $searchTerm,
             'sortBy'        => $sortBy,
             'status'        => $status,
