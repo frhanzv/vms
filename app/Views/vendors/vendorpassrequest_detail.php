@@ -77,22 +77,40 @@
                         <h2 class="text-lg font-bold font-brand text-text-main dark:text-white">Application Info</h2>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div class="space-y-2"><label class="<?= $label ?>">Application Number</label><input value="<?= $f('app_no') ?>" class="<?= $ro ?>" readonly/></div>
                         <div class="space-y-2"><label class="<?= $label ?>">Date Of Application</label><input value="<?= $f('date_of_application') ?>" class="<?= $ro ?>" readonly/></div>
                         <?php if ($on('type_of_application')): ?><div class="space-y-2"><label class="<?= $label ?>">Type Of Application</label><input value="<?= $f('type_of_application') ?>" class="<?= $ro ?>" readonly/></div><?php endif; ?>
                         <?php if ($on('type_of_registration')): ?><div class="space-y-2"><label class="<?= $label ?>">Type Of Registration</label><input value="<?= $f('type_of_registration') ?>" class="<?= $ro ?>" readonly/></div><?php endif; ?>
-                        <?php if ($on('sub_type')): ?><div class="space-y-2"><label class="<?= $label ?>">Sub Type</label><input value="<?= $f('sub_type') ?>" class="<?= $ro ?>" readonly/></div><?php endif; ?>
                         <?php if ($on('designation')): ?><div class="space-y-2"><label class="<?= $label ?>">Designation</label><input value="<?= $f('designation') ?>" class="<?= $ro ?>" readonly/></div><?php endif; ?>
                         <?php if ($on('payment')): ?><div class="space-y-2"><label class="<?= $label ?>">Payment</label><input value="<?= $f('payment') ?>" class="<?= $ro ?>" readonly/></div><?php endif; ?>
                         <?php if ($on('resident')): ?><div class="space-y-2"><label class="<?= $label ?>">Resident</label><input value="<?= $f('resident') ?>" class="<?= $ro ?>" readonly/></div><?php endif; ?>
+                        <?php if ($on('sub_type')): ?><div class="space-y-2"><label class="<?= $label ?>">Sub Type</label><input value="<?= $f('sub_type') ?>" class="<?= $ro ?>" readonly/></div><?php endif; ?>
                         <div class="space-y-2"><label class="<?= $label ?>">Worker Type</label><input value="<?= $f('card_type') ?>" class="<?= $ro ?>" readonly/></div>
                     </div>
+                    <?php if ($on('remark')): ?>
+                    <div class="mt-6 space-y-2">
+                        <label class="<?= $label ?>">Remark</label>
+                        <input value="<?= $f('remark') ?>" class="<?= $ro ?>" readonly/>
+                    </div>
+                    <?php endif; ?>
                     <?php if ($on('location_access')):
                         $selectedLocations = array_filter(explode(',', (string) ($vendor['location_access'] ?? '')));
-                        $locationLabels = array_map(fn($code) => \App\Controllers\VendorPassRequest::LOCATION_OPTIONS[$code] ?? $code, $selectedLocations);
+                        $locationLabelMap  = \App\Controllers\VendorPassRequest::LOCATION_OPTIONS;
                     ?>
                     <div class="mt-6 space-y-2">
                         <label class="<?= $label ?>">Location Access</label>
-                        <input value="<?= esc(!empty($locationLabels) ? implode(', ', $locationLabels) : '—') ?>" class="<?= $ro ?>" readonly/>
+                        <?php if (empty($selectedLocations)): ?>
+                            <p class="text-sm text-text-sub dark:text-gray-400">No Record</p>
+                        <?php else: ?>
+                            <div class="flex flex-wrap gap-x-6 gap-y-2">
+                                <?php foreach ($locationLabelMap as $code => $labelText): ?>
+                                <label class="flex items-center gap-2 text-sm text-text-main dark:text-gray-200">
+                                    <input type="checkbox" disabled <?= in_array($code, $selectedLocations, true) ? 'checked' : '' ?> class="rounded border-border-color"/>
+                                    <?= esc($labelText) ?>
+                                </label>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
                     </div>
                     <?php endif; ?>
                 </section>
@@ -141,16 +159,29 @@
                             <?php if ($on('vehicle_registration')): ?><div class="space-y-2"><label class="<?= $label ?>">Vehicle Registration Number</label><input value="<?= $f('vehicle_registration') ?>" class="<?= $ro ?>" readonly/></div><?php endif; ?>
                         </div>
                         <?php endif; ?>
+                        <?php if ($on('address')): ?>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div class="space-y-2"><label class="<?= $label ?>">Address 1</label><input value="<?= $f('address_1') ?>" class="<?= $ro ?>" readonly/></div>
+                            <div class="space-y-2"><label class="<?= $label ?>">Address 2</label><input value="<?= $f('address_2') ?>" class="<?= $ro ?>" readonly/></div>
+                            <div class="space-y-2"><label class="<?= $label ?>">Address 3</label><input value="<?= $f('address_3') ?>" class="<?= $ro ?>" readonly/></div>
+                            <div class="space-y-2"><label class="<?= $label ?>">Country</label><input value="<?= $f('country') ?: 'Malaysia' ?>" class="<?= $ro ?>" readonly/></div>
+                            <div class="space-y-2"><label class="<?= $label ?>">State</label><input value="<?= $f('state') ?>" class="<?= $ro ?>" readonly/></div>
+                            <div class="space-y-2"><label class="<?= $label ?>">City</label><input value="<?= $f('city') ?>" class="<?= $ro ?>" readonly/></div>
+                            <div class="space-y-2"><label class="<?= $label ?>">Postal Code</label><input value="<?= $f('postcode') ?>" class="<?= $ro ?>" readonly/></div>
+                        </div>
+                        <?php endif; ?>
                     </div>
                 </section>
 
-                <?php if (!empty($licenses)): ?>
-                <!-- Driving License -->
+                <!-- Driving License — always shown, "No Record" when empty, same as KPK's Card Info page -->
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8">
                     <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
                         <div class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-primary"><span class="material-symbols-outlined">directions_car</span></div>
                         <h2 class="text-lg font-bold font-brand text-text-main dark:text-white">Driving License</h2>
                     </div>
+                    <?php if (empty($licenses)): ?>
+                        <p class="text-sm text-text-sub dark:text-gray-400 text-center py-2">No Record</p>
+                    <?php else: ?>
                     <table class="w-full text-left text-xs border-collapse">
                         <thead>
                             <tr class="bg-gray-50 dark:bg-gray-700 font-bold uppercase">
@@ -166,27 +197,8 @@
                             <?php endforeach; ?>
                         </tbody>
                     </table>
+                    <?php endif; ?>
                 </section>
-                <?php endif; ?>
-
-                <?php if ($on('address')): ?>
-                <!-- Address -->
-                <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8">
-                    <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
-                        <div class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-primary"><span class="material-symbols-outlined">home</span></div>
-                        <h2 class="text-lg font-bold font-brand text-text-main dark:text-white">Address</h2>
-                    </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        <div class="space-y-2"><label class="<?= $label ?>">Address Line 1</label><input value="<?= $f('address_1') ?>" class="<?= $ro ?>" readonly/></div>
-                        <div class="space-y-2"><label class="<?= $label ?>">Address Line 2</label><input value="<?= $f('address_2') ?>" class="<?= $ro ?>" readonly/></div>
-                        <div class="space-y-2"><label class="<?= $label ?>">Address Line 3</label><input value="<?= $f('address_3') ?>" class="<?= $ro ?>" readonly/></div>
-                        <div class="space-y-2"><label class="<?= $label ?>">Country</label><input value="<?= $f('country') ?: 'Malaysia' ?>" class="<?= $ro ?>" readonly/></div>
-                        <div class="space-y-2"><label class="<?= $label ?>">State</label><input value="<?= $f('state') ?>" class="<?= $ro ?>" readonly/></div>
-                        <div class="space-y-2"><label class="<?= $label ?>">City</label><input value="<?= $f('city') ?>" class="<?= $ro ?>" readonly/></div>
-                        <div class="space-y-2"><label class="<?= $label ?>">Postcode</label><input value="<?= $f('postcode') ?>" class="<?= $ro ?>" readonly/></div>
-                    </div>
-                </section>
-                <?php endif; ?>
 
                 <?php if ($on('visit_details')): ?>
                 <!-- Visit Details -->
@@ -228,27 +240,59 @@
                 </section>
                 <?php endif; ?>
 
-                <!-- Pass & Documents -->
+                <?php if ($on('pass_expiry')): ?>
+                <!-- Pass -->
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8">
                     <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
                         <div class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-primary"><span class="material-symbols-outlined">badge</span></div>
-                        <h2 class="text-lg font-bold font-brand text-text-main dark:text-white">Pass &amp; Documents</h2>
+                        <h2 class="text-lg font-bold font-brand text-text-main dark:text-white">Pass</h2>
                     </div>
-                    <div class="space-y-6">
-                        <?php if ($on('pass_expiry') || $on('remark')): ?>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                            <?php if ($on('pass_expiry')): ?><div class="space-y-2"><label class="<?= $label ?>">Pass Expiry</label><input value="<?= $f('pass_expiry') ?>" class="<?= $ro ?>" readonly/></div><?php endif; ?>
-                            <?php if ($on('remark')): ?><div class="space-y-2"><label class="<?= $label ?>">Remark</label><input value="<?= $f('remark') ?>" class="<?= $ro ?>" readonly/></div><?php endif; ?>
-                        </div>
-                        <?php endif; ?>
-                        <?php if ($on('photo_upload') && !empty($vendor['photo'])): ?>
-                        <div class="space-y-2">
-                            <label class="<?= $label ?>">Photo</label>
-                            <img src="<?= base_url('uploads/vendor_photos/' . $vendor['photo']) ?>" alt="Vendor Photo" class="w-32 h-32 object-cover rounded-lg border border-border-color dark:border-gray-700"/>
-                        </div>
-                        <?php endif; ?>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div class="space-y-2"><label class="<?= $label ?>">Pass Expiry</label><input value="<?= $f('pass_expiry') ?>" class="<?= $ro ?>" readonly/></div>
                     </div>
                 </section>
+                <?php endif; ?>
+
+                <!-- Upload — same idea as KPK's Upload section: whatever documents
+                     were attached at intake, shown as links, "No Record" if none. -->
+                <?php
+                    $uploadLinks = [];
+                    if (!empty($vendor['photo'])) {
+                        $uploadLinks[] = ['label' => $vendor['photo'], 'url' => base_url('uploads/vendor_photos/' . $vendor['photo'])];
+                    }
+                    if (!empty($vendor['government_id'])) {
+                        $uploadLinks[] = ['label' => $vendor['government_id'], 'url' => base_url('uploads/government_ids/' . $vendor['government_id'])];
+                    }
+                    if (!empty($vendor['other_doc'])) {
+                        $otherDocs = json_decode((string) $vendor['other_doc'], true);
+                        foreach ((array) $otherDocs as $doc) {
+                            if ($doc) {
+                                $uploadLinks[] = ['label' => $doc, 'url' => base_url('uploads/other_docs/' . $doc)];
+                            }
+                        }
+                    }
+                ?>
+                <?php if ($on('document_upload') || $on('photo_upload')): ?>
+                <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8">
+                    <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
+                        <div class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-primary"><span class="material-symbols-outlined">attach_file</span></div>
+                        <h2 class="text-lg font-bold font-brand text-text-main dark:text-white">Upload</h2>
+                    </div>
+                    <?php if (empty($uploadLinks)): ?>
+                        <p class="text-sm text-text-sub dark:text-gray-400">No Record</p>
+                    <?php else: ?>
+                        <ul class="list-disc pl-5 space-y-1">
+                            <?php foreach ($uploadLinks as $up): ?>
+                            <li><a href="<?= $up['url'] ?>" target="_blank" class="text-primary hover:underline text-sm"><?= esc($up['label']) ?></a></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    <?php endif; ?>
+                </section>
+                <?php endif; ?>
+
+                <div class="flex justify-start">
+                    <button onclick="window.history.back()" class="h-10 px-6 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold">Back</button>
+                </div>
 
             </div>
         </div>
