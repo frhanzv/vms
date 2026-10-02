@@ -59,12 +59,11 @@
                         <span class="material-icons text-sm mr-1">add</span>
                         Import
                     </button>
-                    <a href="<?= base_url('files/VendorTemplateNew.xlsx') ?>"
-                        download="VendorTemplateNew.xlsx"
+                    <button type="button" onclick="document.getElementById('reminderModal').classList.remove('hidden')"
                         class="bg-primary hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
                         <span class="material-icons text-sm mr-1">file_download</span>
                         Template
-                    </a>
+                    </button>
                     <?php endif; ?>
                     <a href="<?= base_url('vendors/export') ?><?= $searchTerm || ($status ?? 'all') !== 'all' ? '?' . http_build_query(array_filter(['search' => $searchTerm ?? '', 'status' => ($status ?? 'all') !== 'all' ? $status : ''])) : '' ?>"
                         class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
@@ -354,6 +353,37 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <!-- Reminder Modal — shown before the Template file actually downloads,
+         same as the real KPK "Online Vendor List" page's Reminder popup. -->
+    <?php if ($canImport ?? false): ?>
+    <div id="reminderModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div class="flex items-center justify-between p-4 border-b dark:border-slate-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">REMINDER</h3>
+                <button onclick="document.getElementById('reminderModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600">
+                    <span class="material-icons">close</span>
+                </button>
+            </div>
+            <div class="p-6">
+                <ul class="list-disc pl-5 space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                    <li>Do not use dashes (-) in IC Number or Contact No. Use only numbers.</li>
+                    <li>Resident must be <strong>Malaysian</strong> or <strong>Non-Malaysian</strong>.</li>
+                    <li>Worker Type must be <strong>Permanent</strong> or <strong>Temporary</strong>.</li>
+                    <li>For Date Of Birth and Pass Expiry, use the slash ( / ) format only (e.g., 24/06/1990). Do not use dots ( . ).</li>
+                    <li>Location Access accepts one or more of: Annexe Building, KPK Gate, KSB Phase 2 Gate, Phase 1 — separate multiple values with a comma.</li>
+                </ul>
+            </div>
+            <div class="flex justify-end gap-2 p-4 border-t dark:border-slate-700">
+                <a href="<?= base_url('files/VendorTemplateNew.xlsx') ?>" download="VendorTemplateNew.xlsx"
+                    class="bg-primary hover:bg-indigo-700 text-white px-6 py-2 rounded text-sm font-medium flex items-center transition-colors">
+                    <span class="material-icons text-sm mr-1">file_download</span>
+                    Download
+                </a>
+            </div>
         </div>
     </div>
     <?php endif; ?>
