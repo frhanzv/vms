@@ -20,7 +20,10 @@ class AddIntakeFieldsToVendorsTable extends Migration
 {
     public function up()
     {
-        $this->forge->addColumn('vendors', [
+        // Guarded per-column — see AddApprovalWorkflowFieldsToVendorsTable
+        // for why.
+        $this->db->resetDataCache();
+        $columns = [
             'type_of_registration' => [
                 'type'       => 'VARCHAR',
                 'constraint' => 30,
@@ -63,7 +66,15 @@ class AddIntakeFieldsToVendorsTable extends Migration
                 'null'       => true,
                 'after'      => 'state',
             ],
-        ]);
+        ];
+        foreach (array_keys($columns) as $field) {
+            if ($this->db->fieldExists($field, 'vendors')) {
+                unset($columns[$field]);
+            }
+        }
+        if (! empty($columns)) {
+            $this->forge->addColumn('vendors', $columns);
+        }
     }
 
     public function down()

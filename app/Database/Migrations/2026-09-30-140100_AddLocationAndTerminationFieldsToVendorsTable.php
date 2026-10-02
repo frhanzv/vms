@@ -14,7 +14,10 @@ class AddLocationAndTerminationFieldsToVendorsTable extends Migration
 {
     public function up()
     {
-        $this->forge->addColumn('vendors', [
+        // Guarded per-column — see AddApprovalWorkflowFieldsToVendorsTable
+        // for why.
+        $this->db->resetDataCache();
+        $columns = [
             'location_access' => [
                 'type'       => 'VARCHAR',
                 'constraint' => 255,
@@ -33,7 +36,15 @@ class AddLocationAndTerminationFieldsToVendorsTable extends Migration
                 'null'       => true,
                 'after'      => 'terminated_at',
             ],
-        ]);
+        ];
+        foreach (array_keys($columns) as $field) {
+            if ($this->db->fieldExists($field, 'vendors')) {
+                unset($columns[$field]);
+            }
+        }
+        if (! empty($columns)) {
+            $this->forge->addColumn('vendors', $columns);
+        }
     }
 
     public function down()

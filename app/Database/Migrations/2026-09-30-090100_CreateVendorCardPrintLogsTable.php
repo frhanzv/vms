@@ -14,6 +14,10 @@ class CreateVendorCardPrintLogsTable extends Migration
 {
     public function up()
     {
+        if ($this->db->tableExists('vendor_card_print_logs')) {
+            return;
+        }
+
         $this->forge->addField([
             'id' => [
                 'type'           => 'INT',

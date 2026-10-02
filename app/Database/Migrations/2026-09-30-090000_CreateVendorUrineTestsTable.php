@@ -14,6 +14,10 @@ class CreateVendorUrineTestsTable extends Migration
 {
     public function up()
     {
+        if ($this->db->tableExists('vendor_urine_tests')) {
+            return;
+        }
+
         $this->forge->addField([
             'id' => [
                 'type'           => 'INT',

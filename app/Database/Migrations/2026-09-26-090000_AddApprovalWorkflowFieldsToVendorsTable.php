@@ -17,8 +17,12 @@ class AddApprovalWorkflowFieldsToVendorsTable extends Migration
 {
     public function up()
     {
-        $this->forge->addColumn('vendors', [
-            // KPK's two-branch approval (user.branch = KSB/KPK/BOTH), see canActOn().
+        // Guarded per-column: this environment's `vendors` table already had
+        // some of these columns added outside of a tracked migration run, so
+        // a plain addColumn() would fail with "Duplicate column name" and
+        // block every migration after it. Only add what's actually missing.
+        $this->db->resetDataCache();
+        $columns = [
             'access_branch' => [
                 'type'       => 'VARCHAR',
                 'constraint' => 10,
@@ -37,7 +41,15 @@ class AddApprovalWorkflowFieldsToVendorsTable extends Migration
                 'null'       => true,
                 'after'      => 'remark',
             ],
-        ]);
+        ];
+        foreach (array_keys($columns) as $field) {
+            if ($this->db->fieldExists($field, 'vendors')) {
+                unset($columns[$field]);
+            }
+        }
+        if (! empty($columns)) {
+            $this->forge->addColumn('vendors', $columns);
+        }
 
         if (! $this->db->tableExists('vendor_status_logs')) {
             $this->forge->addField([

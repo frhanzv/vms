@@ -14,6 +14,10 @@ class CreateVendorDrivingLicensesTable extends Migration
 {
     public function up()
     {
+        if ($this->db->tableExists('vendor_driving_licenses')) {
+            return;
+        }
+
         $this->forge->addField([
             'id' => [
                 'type'           => 'INT',

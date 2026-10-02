@@ -21,7 +21,11 @@ class AddCollectorFieldsToVendorsTable extends Migration
 {
     public function up()
     {
-        $this->forge->addColumn('vendors', [
+        // Guarded per-column — see AddApprovalWorkflowFieldsToVendorsTable
+        // for why: some environments already have a few of these columns
+        // from an untracked prior run, which would otherwise error out.
+        $this->db->resetDataCache();
+        $columns = [
             'collector_name' => [
                 'type'       => 'VARCHAR',
                 'constraint' => 100,
@@ -45,7 +49,15 @@ class AddCollectorFieldsToVendorsTable extends Migration
                 'null' => true,
                 'after' => 'issued_by',
             ],
-        ]);
+        ];
+        foreach (array_keys($columns) as $field) {
+            if ($this->db->fieldExists($field, 'vendors')) {
+                unset($columns[$field]);
+            }
+        }
+        if (! empty($columns)) {
+            $this->forge->addColumn('vendors', $columns);
+        }
     }
 
     public function down()
