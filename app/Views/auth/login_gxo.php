@@ -216,6 +216,10 @@ $loginButtonText = $lp['login_button_text'] ?? 'Sign In';
                         </button>
                     </form>
 
+                    <div class="mt-4 text-sm font-medium text-slate-600">
+                        Vendor company? <a href="<?= base_url('register') ?>" class="font-semibold text-[#ff3d0b] hover:text-[#d93108]">Register your company</a>
+                    </div>
+
                     <div class="mt-3 text-right text-sm font-semibold text-slate-500">V1.1</div>
 
                     <div class="mt-auto pt-10 text-right">
