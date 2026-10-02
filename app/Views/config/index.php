@@ -4569,7 +4569,11 @@
                                         class="px-4 py-2 text-sm font-medium font-brand border-b-2 border-primary text-primary -mb-px">
                                         Visitor Registration
                                     </button>
-                                    
+                                    <button type="button" id="dff-tab-vendor_pass_request"
+                                        onclick="dffSwitchTab('vendor_pass_request')"
+                                        class="px-4 py-2 text-sm font-medium font-brand border-b-2 border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 -mb-px">
+                                        Vendor Pass Request
+                                    </button>
                                     <button type="button" id="dff-tab-invitation"
                                         onclick="dffSwitchTab('invitation')"
                                         class="px-4 py-2 text-sm font-medium font-brand border-b-2 border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 -mb-px">
@@ -4584,11 +4588,6 @@
                                         onclick="dffSwitchTab('visitor_pass_request')"
                                         class="px-4 py-2 text-sm font-medium font-brand border-b-2 border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 -mb-px">
                                         Visitor Pass Request
-                                    </button>
-                                    <button type="button" id="dff-tab-vendor_pass_request"
-                                        onclick="dffSwitchTab('vendor_pass_request')"
-                                        class="px-4 py-2 text-sm font-medium font-brand border-b-2 border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 -mb-px">
-                                        Vendor Pass Request
                                     </button>
                                 </div>
 
@@ -5057,6 +5056,9 @@
                                     </label>
                                     <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                                         <input type="checkbox" name="access[vendor_pass_list][reject]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Reject
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vendor_pass_list][manage_locations]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Manage Locations
                                     </label>
                                 </div>
                             </div>
@@ -7225,9 +7227,16 @@
                         class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Registration Number</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Registration Number (SSM No)</label>
                     <input type="text" id="clientRegistrationNo" value="${escapeHtml(data.registration_no || '')}"
                         class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2">
+                    <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Used as the login username when this company self-registers for a Vendor Pass account, and to look the company up on the public Register page.</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Company Name In Port Pass</label>
+                    <input type="text" id="clientPassName" value="${escapeHtml(data.pass_name || '')}"
+                        class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2">
+                    <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Shown on the printed Vendor Pass and during self-registration. Leave blank to fall back to Client Name.</p>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Address</label>
@@ -7305,6 +7314,7 @@
                 name: document.getElementById('clientName').value.trim(),
                 code: document.getElementById('clientCode').value.trim(),
                 registration_no: document.getElementById('clientRegistrationNo').value.trim(),
+                pass_name: document.getElementById('clientPassName').value.trim(),
                 address: document.getElementById('clientAddress').value.trim(),
                 contact_no: document.getElementById('clientContactNo').value.trim(),
                 email: document.getElementById('clientEmail').value.trim(),

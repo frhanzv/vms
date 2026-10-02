@@ -2,6 +2,8 @@
 
 namespace App\Controllers;
 
+use App\Models\VendorLocationModel;
+
 /**
  * "Card Info" panel — KPK's card-management screen, traced from the real
  * Closed List detail screenshot: a Driving License section (repeatable,
@@ -16,13 +18,6 @@ namespace App\Controllers;
  */
 class VendorCardInfo extends BaseController
 {
-    public const LOCATION_OPTIONS = [
-        'annexe_building' => 'Annexe Building',
-        'kpk_gate'        => 'KPK Gate',
-        'ksb_phase2_gate' => 'KSB Phase 2 Gate',
-        'phase1'          => 'Phase 1',
-    ];
-
     private function loadScopedVendor($id): ?array
     {
         $db      = \Config\Database::connect();
@@ -71,7 +66,7 @@ class VendorCardInfo extends BaseController
             'licenses'          => $licenses,
             'printLogs'         => $printLogs,
             'boundCard'         => $boundCard,
-            'locationOptions'   => self::LOCATION_OPTIONS,
+            'locationOptions'   => (new VendorLocationModel())->getActiveOptions(),
             'selectedLocations' => $selectedLocations,
             'canEdit'           => $canEditBase,
             'canAddLicense'     => $canEditBase && $cfg('card_info_add_license_button'),
@@ -126,7 +121,7 @@ class VendorCardInfo extends BaseController
         }
 
         $body     = $this->request->getJSON(true) ?? [];
-        $selected = array_values(array_intersect((array) ($body['locations'] ?? []), array_keys(self::LOCATION_OPTIONS)));
+        $selected = array_values(array_intersect((array) ($body['locations'] ?? []), array_keys((new VendorLocationModel())->getActiveOptions())));
 
         \Config\Database::connect()->table('vendors')->where('id', (int) $id)->update([
             'location_access' => implode(',', $selected),

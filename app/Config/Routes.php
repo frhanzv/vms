@@ -7,13 +7,13 @@ use CodeIgniter\Router\RouteCollection;
  */
 
 // Role filter string aliases for readability
-$superadmins      = 'role:superadmin,clientsuperadmin';
-$plusAdmin        = 'role:superadmin,clientsuperadmin,admin';
-$plusOfficer      = 'role:superadmin,clientsuperadmin,officer';
-$plusAdminOfficer = 'role:superadmin,clientsuperadmin,admin,officer';
-$plusHost         = 'role:superadmin,clientsuperadmin,officer,host';
-$plusAdminHost    = 'role:superadmin,clientsuperadmin,admin,host';
-
+$superadmins            = 'role:superadmin,clientsuperadmin';
+$plusAdmin              = 'role:superadmin,clientsuperadmin,admin';
+$plusOfficer            = 'role:superadmin,clientsuperadmin,officer';
+$plusAdminOfficer       = 'role:superadmin,clientsuperadmin,admin,officer';
+$plusHost               = 'role:superadmin,clientsuperadmin,officer,host';
+$plusAdminHost          = 'role:superadmin,clientsuperadmin,admin,host';
+$plusAdminOfficerVendor = 'role:superadmin,clientsuperadmin,admin,officer,vendor_admin';
 // ===========================
 // Public Routes (no auth)
 // ===========================
@@ -22,6 +22,12 @@ $routes->get('login', 'Auth::login');
 $routes->post('auth/attemptLogin', 'Auth::attemptLogin');
 $routes->get('auth/logout', 'Auth::logout');
 $routes->get('vendor-pass-qr/(:any)', 'VendorPassQr::show/$1');
+$routes->get('register', 'Auth::register');
+$routes->post('register/search-company', 'Auth::searchCompany');
+$routes->post('register', 'Auth::doRegister');
+$routes->get('activate/(:segment)', 'Auth::activate/$1');
+$routes->get('forgot-password', 'Auth::forgotPassword');
+$routes->post('forgot-password', 'Auth::doForgotPassword');
 
 $routes->group('api/rfid', function($routes) {
     $routes->get('scan', 'RFID::scan');
@@ -373,28 +379,34 @@ $routes->group('', ['filter' => [$plusAdminOfficer, 'client_feature:staff_pass']
 });
 
 // ===========================
-// Vendor Pass
+// Vendor Pass — shared with a self-registered vendor company account
+// (their own "Online Vendor List" + Request form only)
 // ===========================
- 
-$routes->group('', ['filter' => [$plusAdminOfficer, 'client_feature:vendor_pass']], function ($routes) {
 
-    // --- List + row actions ---
+$routes->group('', ['filter' => [$plusAdminOfficerVendor, 'client_feature:vendor_pass']], function ($routes) {
     $routes->get('vendors', 'VendorList::index');
-    $routes->post('vendors/delete/(:num)', 'VendorList::delete/$1');
-    $routes->post('vendors/approve', 'VendorList::approve');
-    $routes->post('vendors/reject', 'VendorList::reject');
-
-    // --- Export / Template / Import (the 3 buttons next to "Request" that
-    // KPK's real Vendor Pass List has) ---
     $routes->get('vendors/export', 'VendorList::export');
     $routes->post('vendors/import', 'VendorList::import');
 
-    // --- Request form (create / edit / view) ---
     $routes->get('vendors/vendorpassrequest', 'VendorPassRequest::index');
     $routes->post('vendors/vendorpassrequest/store', 'VendorPassRequest::store');
     $routes->get('vendorpassrequest/view/(:any)', 'VendorPassRequest::view/$1');
     $routes->get('vendorpassrequest/edit/(:num)', 'VendorPassRequest::edit/$1');
     $routes->post('vendorpassrequest/update/(:num)', 'VendorPassRequest::update/$1');
+});
+
+// ===========================
+// Vendor Pass — KPK staff only (approve/reject, processing pipeline,
+// Card Info, Locations, Report). A vendor company account cannot reach
+// any of these, even though some share the same 'edit' permission flag —
+// the route filter below is what actually keeps them out.
+// ===========================
+
+$routes->group('', ['filter' => [$plusAdminOfficer, 'client_feature:vendor_pass']], function ($routes) {
+
+    $routes->post('vendors/delete/(:num)', 'VendorList::delete/$1');
+    $routes->post('vendors/approve', 'VendorList::approve');
+    $routes->post('vendors/reject', 'VendorList::reject');
 
     // --- QR pass (staff-side generation) ---
     $routes->get('vendors/qr/(:num)', 'VendorPassQr::generate/$1');
@@ -441,6 +453,12 @@ $routes->group('', ['filter' => [$plusAdminOfficer, 'client_feature:vendor_pass'
     $routes->post('vendors/card-info/activate/(:num)', 'VendorCardInfo::activateCard/$1');
     $routes->post('vendors/card-info/terminate/(:num)', 'VendorCardInfo::terminateCard/$1');
     $routes->post('vendors/card-info/update/(:num)', 'VendorCardInfo::update/$1');
+
+    // Locations — the Location Access choices offered everywhere above.
+    $routes->get('vendors/locations', 'VendorLocations::index');
+    $routes->post('vendors/locations/create', 'VendorLocations::create');
+    $routes->post('vendors/locations/update/(:num)', 'VendorLocations::update/$1');
+    $routes->post('vendors/locations/delete/(:num)', 'VendorLocations::delete/$1');
 
     // --- Report ---
     $routes->get('report/vendor', 'VendorReport::index');

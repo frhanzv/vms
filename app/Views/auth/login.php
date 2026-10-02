@@ -111,7 +111,7 @@
                         <input class="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary/20 cursor-pointer" type="checkbox" name="remember" value="1"/>
                         <span class="text-sm font-medium text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-300 transition-colors"><?= esc($lp['remember_text'] ?? 'Remember me') ?></span>
                     </label>
-                    <a class="text-sm font-semibold text-primary hover:text-blue-600 transition-colors" href="#"><?= esc($lp['forgot_password_text'] ?? 'Forgot Password?') ?></a>
+                    <a class="text-sm font-semibold text-primary hover:text-blue-600 transition-colors" href="<?= base_url('forgot-password') ?>"><?= esc($lp['forgot_password_text'] ?? 'Forgot Password?') ?></a>
                 </div>
 
                 <!-- Login Button -->
@@ -146,6 +146,9 @@
             <div class="mt-8 text-center sm:text-left">
                 <p class="text-sm text-slate-500 dark:text-slate-400">
                     <?= esc($lp['contact_prompt'] ?? "Don't have an account?") ?> <a class="font-semibold text-primary hover:text-blue-600 underline decoration-transparent hover:decoration-current transition-all" href="#"><?= esc($lp['contact_link_text'] ?? 'Contact Administrator') ?></a>
+                </p>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                    Vendor company? <a class="font-semibold text-primary hover:text-blue-600 underline decoration-transparent hover:decoration-current transition-all" href="<?= base_url('register') ?>">Register your company</a>
                 </p>
             </div>
         </div>

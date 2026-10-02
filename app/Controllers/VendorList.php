@@ -367,6 +367,8 @@ class VendorList extends BaseController
             'location_visited'             => ['location visited'],
             'location_access'              => ['location access', 'location_access'],
             'pass_expiry'                  => ['pass expiry', 'pass_expiry', 'pass expiry date'],
+            'license_class'                => ['license class', 'license_class', 'driving license class', 'licence class'],
+            'license_expiry'               => ['license expiry', 'license_expiry', 'driving license expiry', 'licence expiry'],
             'remark'                       => ['remark', 'remarks', 'notes'],
         ];
 
@@ -472,6 +474,7 @@ class VendorList extends BaseController
 
         $inserted = 0;
         $counter  = 1;
+        $activeLocationOptions = (new \App\Models\VendorLocationModel())->getActiveOptions();
 
         foreach (array_slice($rows, 1) as $row) {
             $get = fn(string $field) => isset($fieldIndex[$field])
@@ -508,7 +511,7 @@ class VendorList extends BaseController
                 $raw = preg_split('/[,;]+/', (string) $get('location_access')) ?: [];
                 foreach ($raw as $loc) {
                     $key = str_replace(' ', '_', strtolower(trim($loc)));
-                    if (array_key_exists($key, \App\Controllers\VendorPassRequest::LOCATION_OPTIONS)) {
+                    if (array_key_exists($key, $activeLocationOptions)) {
                         $locations[] = $key;
                     }
                 }
@@ -557,6 +560,24 @@ class VendorList extends BaseController
             ];
 
             $db->table('vendors')->insert($record);
+            $vendorId = (int) $db->insertID();
+
+            // Driving License (template's optional "License Class" / "License
+            // Expiry" columns) — same vendor_driving_licenses table the Card
+            // Info "Add License" button and the request form's repeatable
+            // license section both write to, so an imported vendor shows its
+            // license the same way one entered by hand would.
+            $licenseClass  = $get('license_class');
+            $licenseExpiry = $this->parseDate($get('license_expiry'));
+            if ($licenseClass !== null || $licenseExpiry !== null) {
+                $db->table('vendor_driving_licenses')->insert([
+                    'vendor_id'      => $vendorId,
+                    'license_class'  => $licenseClass,
+                    'license_expiry' => $licenseExpiry,
+                    'created_at'     => $now,
+                ]);
+            }
+
             $inserted++;
             $counter++;
         }

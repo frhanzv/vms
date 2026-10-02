@@ -2,6 +2,8 @@
 
 namespace App\Controllers;
 
+use App\Models\VendorLocationModel;
+
 /**
  * Vendor Pass Request — rebuilt field-for-field against the real KPK
  * "Contractor/Vendor Request" form (new-port-pass-request), per instruction:
@@ -12,14 +14,6 @@ namespace App\Controllers;
  */
 class VendorPassRequest extends BaseController
 {
-    /** Same location list Card Info's "Edit Location Access" uses — kept in one place so both forms stay in sync. */
-    public const LOCATION_OPTIONS = [
-        'annexe_building' => 'Annexe Building',
-        'kpk_gate'        => 'KPK Gate',
-        'ksb_phase2_gate' => 'KSB Phase 2 Gate',
-        'phase1'          => 'Phase 1',
-    ];
-
     /** Malaysian states — KPK's real form drives this from a location API we don't have; a fixed list covers the same field faithfully enough. */
     public const STATE_OPTIONS = [
         'Johor', 'Kedah', 'Kelantan', 'Melaka', 'Negeri Sembilan', 'Pahang',
@@ -39,7 +33,7 @@ class VendorPassRequest extends BaseController
             'countries'       => $countries,
             'fields'          => $this->vendorFieldToggles(),
             'required'        => $this->vendorFieldRequired(),
-            'locationOptions' => self::LOCATION_OPTIONS,
+            'locationOptions' => (new VendorLocationModel())->getActiveOptions(),
             'stateOptions'    => self::STATE_OPTIONS,
         ];
 
@@ -112,7 +106,7 @@ class VendorPassRequest extends BaseController
             'fields'          => $this->vendorFieldToggles(),
             'required'        => $this->vendorFieldRequired(),
             'licenses'        => $licenses,
-            'locationOptions' => self::LOCATION_OPTIONS,
+            'locationOptions' => (new VendorLocationModel())->getActiveOptions(),
         ]);
     }
 
@@ -144,7 +138,7 @@ class VendorPassRequest extends BaseController
             'fields'          => $this->vendorFieldToggles(),
             'required'        => $this->vendorFieldRequired(),
             'licenses'        => $licenses,
-            'locationOptions' => self::LOCATION_OPTIONS,
+            'locationOptions' => (new VendorLocationModel())->getActiveOptions(),
             'stateOptions'    => self::STATE_OPTIONS,
         ]);
     }
@@ -204,7 +198,7 @@ class VendorPassRequest extends BaseController
         $r = fn(string $key) => $this->request->getPost($key);
 
         $locations = (array) ($this->request->getPost('location_access') ?? []);
-        $locations = array_values(array_intersect($locations, array_keys(self::LOCATION_OPTIONS)));
+        $locations = array_values(array_intersect($locations, array_keys((new VendorLocationModel())->getActiveOptions())));
 
         return [
             'app_no'                        => $appNo,

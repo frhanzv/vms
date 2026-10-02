@@ -95,7 +95,7 @@
                     <?php endif; ?>
                     <?php if ($on('location_access')):
                         $selectedLocations = array_filter(explode(',', (string) ($vendor['location_access'] ?? '')));
-                        $locationLabelMap  = \App\Controllers\VendorPassRequest::LOCATION_OPTIONS;
+                        $locationLabelMap  = (new \App\Models\VendorLocationModel())->getAllLabelMap();
                     ?>
                     <div class="mt-6 space-y-2">
                         <label class="<?= $label ?>">Location Access</label>

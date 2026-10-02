@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Models\UserModel;
 use App\Models\SettingModel;
+use App\Models\ClientModel;
 
 class Auth extends BaseController
 {
@@ -139,10 +140,218 @@ class Auth extends BaseController
     {
         // Destroy session
         session()->destroy();
-        
+
         // Remove remember me cookie
         setcookie('remember_user', '', time() - 3600, '/');
 
         return redirect()->to('/login')->with('success', 'You have been logged out successfully.');
+    }
+
+    // =========================================================================
+    // Vendor company self-registration (ACMS manual section on Online Vendor
+    // registration). A registering company must already exist as a `clients`
+    // row (pre-registered by KPK with its SSM No) — this flow creates the
+    // company's FIRST login account (role: vendor_admin) against that row,
+    // it does not create the company itself.
+    // =========================================================================
+
+    public function register()
+    {
+        if (session()->get('isLoggedIn')) {
+            return redirect()->to('/dashboard');
+        }
+
+        return view('auth/register', [
+            'pageTitle' => 'Register Your Company - SafeG',
+        ]);
+    }
+
+    /**
+     * AJAX: look up a company by SSM No so the form can auto-fill its name
+     * before the applicant commits to registering.
+     */
+    public function searchCompany()
+    {
+        $ssmNo = trim((string) $this->request->getPost('ssm_no'));
+        if ($ssmNo === '') {
+            return $this->response->setJSON(['success' => false, 'message' => 'Please enter your company SSM No.']);
+        }
+
+        $client = (new ClientModel())->findByRegistrationNo($ssmNo);
+        if (! $client) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'We could not find a company with that SSM No. Please contact KPK to have your company registered first.',
+            ]);
+        }
+
+        $userModel = new UserModel();
+        $existingAccount = $userModel->where('username', $ssmNo)->first();
+        if ($existingAccount) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'An account already exists for this company. Please log in, or use "Forgot Password" if you cannot remember the password.',
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success'   => true,
+            'name'      => $client['name'],
+            'pass_name' => $client['pass_name'] ?? $client['name'],
+        ]);
+    }
+
+    public function doRegister()
+    {
+        $ssmNo        = trim((string) $this->request->getPost('ssm_no'));
+        $password     = (string) $this->request->getPost('password');
+        $email        = trim((string) $this->request->getPost('email'));
+        $country      = trim((string) $this->request->getPost('country'));
+        $fullName     = trim((string) $this->request->getPost('full_name'));
+        $icNumber     = trim((string) $this->request->getPost('ic_number'));
+        $contactNo    = trim((string) $this->request->getPost('contact_no'));
+        $agreedTerms  = (bool) $this->request->getPost('agree_terms');
+
+        $errors = [];
+        if ($ssmNo === '') { $errors[] = 'Company SSM No is required.'; }
+        if ($password === '' || strlen($password) < 6) { $errors[] = 'Password must be at least 6 characters.'; }
+        if ($email === '' || ! filter_var($email, FILTER_VALIDATE_EMAIL)) { $errors[] = 'A valid email is required.'; }
+        if ($fullName === '') { $errors[] = "Administrator's full name is required."; }
+        if ($icNumber === '') { $errors[] = 'IC Number is required.'; }
+        if ($contactNo === '') { $errors[] = 'Contact Number is required.'; }
+        if (! $agreedTerms) { $errors[] = 'You must accept the Terms & Conditions to register.'; }
+
+        $client = $ssmNo !== '' ? (new ClientModel())->findByRegistrationNo($ssmNo) : null;
+        if (! $client) {
+            $errors[] = 'We could not find a company with that SSM No. Please contact KPK to have your company registered first.';
+        }
+
+        $userModel = new UserModel();
+        if ($ssmNo !== '' && $userModel->where('username', $ssmNo)->first()) {
+            $errors[] = 'An account already exists for this company.';
+        }
+        if ($email !== '' && $userModel->where('email', $email)->first()) {
+            $errors[] = 'This email is already registered.';
+        }
+
+        if (! empty($errors)) {
+            return redirect()->back()->withInput()->with('error', implode(' ', $errors));
+        }
+
+        $token = bin2hex(random_bytes(32));
+
+        $ok = $userModel->insert([
+            'client_id'                    => $client['id'],
+            'company_id'                   => $client['id'],
+            'username'                     => $ssmNo,
+            'email'                        => $email,
+            'password'                     => $password,
+            'full_name'                    => $fullName,
+            'ic_number'                    => $icNumber,
+            'contact_no'                   => $contactNo,
+            'role'                         => 'vendor_admin',
+            'is_active'                    => 0,
+            'activation_token'             => $token,
+            'activation_token_expires_at'  => date('Y-m-d H:i:s', strtotime('+48 hours')),
+        ]);
+
+        if (! $ok) {
+            return redirect()->back()->withInput()->with('error', 'Could not complete registration: ' . implode(' ', $userModel->errors() ?: ['Please check your details and try again.']));
+        }
+
+        $this->sendActivationEmail($email, $fullName, $client['name'], $token);
+
+        return redirect()->to(base_url('login'))->with('success', 'Registration received. Please check your email (' . $email . ') for an activation link before logging in.');
+    }
+
+    private function sendActivationEmail(string $toEmail, string $fullName, string $companyName, string $token): void
+    {
+        $activationUrl = base_url('activate/' . $token);
+        $emailConfig   = config('Email');
+
+        $message = '
+            <p>Hello ' . esc($fullName) . ',</p>
+            <p>Thank you for registering <strong>' . esc($companyName) . '</strong> on the SafeG Vendor Pass system.</p>
+            <p>Please click the link below to activate your account. This link expires in 48 hours.</p>
+            <p><a href="' . $activationUrl . '">' . $activationUrl . '</a></p>
+            <p>If you did not request this, please ignore this email.</p>
+        ';
+
+        $email = \Config\Services::email();
+        $email->setMailType('html');
+        $email->setFrom($emailConfig->fromEmail, $emailConfig->fromName);
+        $email->setTo($toEmail);
+        $email->setSubject('Activate Your SafeG Vendor Account');
+        $email->setMessage($message);
+        $email->send();
+    }
+
+    public function activate($token)
+    {
+        $userModel = new UserModel();
+        $user      = $userModel->findByActivationToken((string) $token);
+
+        if (! $user) {
+            return redirect()->to(base_url('login'))->with('error', 'This activation link is invalid or has expired. Please contact KPK, or register again.');
+        }
+
+        $userModel->update($user['id'], [
+            'is_active'                   => 1,
+            'activation_token'            => null,
+            'activation_token_expires_at' => null,
+        ]);
+
+        return redirect()->to(base_url('login'))->with('success', 'Your account has been activated. You may now log in.');
+    }
+
+    public function forgotPassword()
+    {
+        if (session()->get('isLoggedIn')) {
+            return redirect()->to('/dashboard');
+        }
+
+        return view('auth/forgot_password', [
+            'pageTitle' => 'Forgot Password - SafeG',
+        ]);
+    }
+
+    public function doForgotPassword()
+    {
+        $identifier = trim((string) $this->request->getPost('identifier'));
+        $generic    = 'If that account exists, a new password has been sent to its registered email.';
+
+        if ($identifier === '') {
+            return redirect()->back()->withInput()->with('error', 'Please enter your Staff ID, IC Number or Passport Number.');
+        }
+
+        $userModel = new UserModel();
+        $user      = $userModel->findForPasswordRecovery($identifier);
+
+        if (! $user || empty($user['email'])) {
+            // Same message whether or not the account exists, so this page
+            // can't be used to probe which staff IDs / IC numbers are valid.
+            return redirect()->to(base_url('login'))->with('success', $generic);
+        }
+
+        $newPassword = substr(bin2hex(random_bytes(6)), 0, 10);
+        $userModel->update($user['id'], ['password' => $newPassword]);
+
+        $emailConfig = config('Email');
+        $message = '
+            <p>Hello ' . esc($user['full_name'] ?? $user['username']) . ',</p>
+            <p>Your password has been reset. Your new password is:</p>
+            <p style="font-size:16px;font-weight:bold;">' . esc($newPassword) . '</p>
+            <p>Please log in and change it as soon as possible.</p>
+        ';
+
+        $email = \Config\Services::email();
+        $email->setMailType('html');
+        $email->setFrom($emailConfig->fromEmail, $emailConfig->fromName);
+        $email->setTo($user['email']);
+        $email->setSubject('Your SafeG Password Has Been Reset');
+        $email->setMessage($message);
+        $email->send();
+
+        return redirect()->to(base_url('login'))->with('success', $generic);
     }
 }

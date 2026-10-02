@@ -15,7 +15,7 @@ class UserModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['client_id', 'company_id', 'username', 'email', 'password', 'full_name', 'staff_id', 'contact_no', 'role', 'is_active', 'receive_email_notifications', 'profile_photo', 'version'];
+    protected $allowedFields    = ['client_id', 'company_id', 'username', 'email', 'password', 'full_name', 'staff_id', 'contact_no', 'ic_number', 'activation_token', 'activation_token_expires_at', 'role', 'is_active', 'receive_email_notifications', 'profile_photo', 'version'];
 
     // Dates
     protected $useTimestamps = true;
@@ -173,5 +173,52 @@ class UserModel extends Model
         }
         
         return $this->countAllResults();
+    }
+
+    /**
+     * Looks up a pending self-registration by its activation token — used
+     * by Auth::activate(). Expired tokens are not matched (caller gets null
+     * and can tell the person it expired vs. was never valid).
+     */
+    public function findByActivationToken(string $token): ?array
+    {
+        $token = trim($token);
+        if ($token === '') {
+            return null;
+        }
+
+        $user = $this->where('activation_token', $token)->first();
+        if (! $user) {
+            return null;
+        }
+
+        if (! empty($user['activation_token_expires_at']) && strtotime($user['activation_token_expires_at']) < time()) {
+            return null;
+        }
+
+        return $user;
+    }
+
+    /**
+     * "Forgot Password" lookup — the real ACMS manual accepts Staff ID, IC
+     * Number or Passport Number. This VMS build doesn't track a separate
+     * passport_no on users (it's a per-pass-type field elsewhere), so this
+     * matches on username (which is the SSM No for a self-registered vendor
+     * account, or the staff ID for everyone else) or ic_number.
+     */
+    public function findForPasswordRecovery(string $identifier): ?array
+    {
+        $identifier = trim($identifier);
+        if ($identifier === '') {
+            return null;
+        }
+
+        return $this->where('is_active', 1)
+            ->groupStart()
+                ->where('username', $identifier)
+                ->orWhere('staff_id', $identifier)
+                ->orWhere('ic_number', $identifier)
+            ->groupEnd()
+            ->first();
     }
 }

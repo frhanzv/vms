@@ -375,12 +375,14 @@
                 </button>
             </div>
             <div class="p-6">
+                <?php $reminderLocationLabels = implode(', ', (new \App\Models\VendorLocationModel())->getActiveOptions()); ?>
                 <ul class="list-disc pl-5 space-y-2 text-sm text-gray-700 dark:text-gray-300">
-                    <li>Do not use dashes (-) in IC Number or Contact No. Use only numbers.</li>
+                    <li>Do not use dashes (-) in IC Number or Phone Number. Use only numbers.</li>
                     <li>Resident must be <strong>Malaysian</strong> or <strong>Non-Malaysian</strong>.</li>
                     <li>Worker Type must be <strong>Permanent</strong> or <strong>Temporary</strong>.</li>
-                    <li>For Date Of Birth and Pass Expiry, use the slash ( / ) format only (e.g., 24/06/1990). Do not use dots ( . ).</li>
-                    <li>Location Access accepts one or more of: Annexe Building, KPK Gate, KSB Phase 2 Gate, Phase 1 — separate multiple values with a comma.</li>
+                    <li>For Date of Birth and License Expiry, use the slash ( / ) format only (e.g., 24/06/2025). Do not use dots ( . ).</li>
+                    <li>Individual License Class Format (eg,B). Multiple License Class Format (eg,B,C,D).</li>
+                    <li>Location Access accepts one or more of: <?= esc($reminderLocationLabels) ?> — separate multiple values with a comma.</li>
                 </ul>
             </div>
             <div class="flex justify-end gap-2 p-4 border-t dark:border-slate-700">

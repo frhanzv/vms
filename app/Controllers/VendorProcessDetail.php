@@ -2,6 +2,8 @@
 
 namespace App\Controllers;
 
+use App\Models\VendorLocationModel;
+
 /**
  * The Process List "detail view" — this is the real workhorse KPK page.
  * KPK's process-list.component.ts (~1,800 lines) is really one giant detail
@@ -71,7 +73,7 @@ class VendorProcessDetail extends BaseController
             'printLogs'       => $printLogs,
             'boundCard'       => $card,
             'licenses'        => $licenses,
-            'locationOptions' => VendorPassRequest::LOCATION_OPTIONS,
+            'locationOptions' => (new VendorLocationModel())->getActiveOptions(),
             'stateOptions'    => VendorPassRequest::STATE_OPTIONS,
             'selectedLocations' => array_filter(explode(',', (string) ($vendor['location_access'] ?? ''))),
             'rejectReasons'   => $rejectReasons,
@@ -113,7 +115,7 @@ class VendorProcessDetail extends BaseController
             }
         }
         if (isset($body['location_access']) && is_array($body['location_access'])) {
-            $codes = array_values(array_intersect($body['location_access'], array_keys(VendorPassRequest::LOCATION_OPTIONS)));
+            $codes = array_values(array_intersect($body['location_access'], array_keys((new VendorLocationModel())->getActiveOptions())));
             $update['location_access'] = ! empty($codes) ? implode(',', $codes) : null;
         }
         if (empty($update)) {
