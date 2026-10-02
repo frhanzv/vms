@@ -60,6 +60,10 @@ class VendorProcessDetail extends BaseController
             // reject_reasons config not seeded yet — reject still works, just with a free-text fallback.
         }
 
+        $formFieldModel = new \App\Models\ClientFormFieldModel();
+        $companyId      = current_company_id();
+        $cfg            = fn(string $key) => $formFieldModel->isEnabled($companyId, 'vendor_pass_request', $key);
+
         return view('vendors/process_detail', [
             'pageTitle'       => 'Vendor Process Detail - SafeG',
             'vendor'          => $vendor,
@@ -71,7 +75,11 @@ class VendorProcessDetail extends BaseController
             'stateOptions'    => VendorPassRequest::STATE_OPTIONS,
             'selectedLocations' => array_filter(explode(',', (string) ($vendor['location_access'] ?? ''))),
             'rejectReasons'   => $rejectReasons,
-            'canEdit'         => has_access('vendor_pass_list', 'edit'),
+            'canEdit'         => has_access('vendor_pass_list', 'edit') && $cfg('process_update_button'),
+            'canReject'       => has_access('vendor_pass_list', 'edit') && $cfg('process_reject_button'),
+            'canUploadPhoto'  => $cfg('process_upload_photo_button'),
+            'showRfidSection' => $cfg('process_rfid_section'),
+            'showPrintingSection' => $cfg('process_card_printing_section'),
         ]);
     }
 
@@ -79,7 +87,7 @@ class VendorProcessDetail extends BaseController
     public function update($id)
     {
         helper('access');
-        if (! has_access('vendor_pass_list', 'edit')) {
+        if (! has_access('vendor_pass_list', 'edit') || ! (new \App\Models\ClientFormFieldModel())->isEnabled(current_company_id(), 'vendor_pass_request', 'process_update_button')) {
             return $this->response->setJSON(['success' => false, 'message' => 'Not allowed.']);
         }
         $vendor = $this->loadScopedVendor($id);
@@ -124,7 +132,7 @@ class VendorProcessDetail extends BaseController
     public function reject($id)
     {
         helper('access');
-        if (! has_access('vendor_pass_list', 'edit')) {
+        if (! has_access('vendor_pass_list', 'edit') || ! (new \App\Models\ClientFormFieldModel())->isEnabled(current_company_id(), 'vendor_pass_request', 'process_reject_button')) {
             return $this->response->setJSON(['success' => false, 'message' => 'Not allowed.']);
         }
         $vendor = $this->loadScopedVendor($id);

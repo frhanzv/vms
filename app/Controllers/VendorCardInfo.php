@@ -59,6 +59,11 @@ class VendorCardInfo extends BaseController
 
         $selectedLocations = $vendor['location_access'] ? explode(',', $vendor['location_access']) : [];
 
+        $formFieldModel = new \App\Models\ClientFormFieldModel();
+        $companyId      = current_company_id();
+        $cfg            = fn(string $key) => $formFieldModel->isEnabled($companyId, 'vendor_pass_request', $key);
+        $canEditBase    = has_access('vendor_pass_list', 'edit');
+
         return view('vendors/card_info', [
             'pageTitle'         => 'Vendor Pass Card Info - SafeG',
             'vendor'            => $vendor,
@@ -68,7 +73,12 @@ class VendorCardInfo extends BaseController
             'boundCard'         => $boundCard,
             'locationOptions'   => self::LOCATION_OPTIONS,
             'selectedLocations' => $selectedLocations,
-            'canEdit'           => has_access('vendor_pass_list', 'edit'),
+            'canEdit'           => $canEditBase,
+            'canAddLicense'     => $canEditBase && $cfg('card_info_add_license_button'),
+            'canEditLocation'   => $canEditBase && $cfg('card_info_edit_location_button'),
+            'canUploadPhoto'    => $canEditBase && $cfg('card_info_upload_photo_button'),
+            'canActivate'       => $canEditBase && $cfg('card_info_activate_button'),
+            'canTerminate'      => $canEditBase && $cfg('card_info_terminate_button'),
         ]);
     }
 
@@ -76,7 +86,8 @@ class VendorCardInfo extends BaseController
     public function addLicense($id)
     {
         helper('access');
-        if (! has_access('vendor_pass_list', 'edit')) {
+        if (! has_access('vendor_pass_list', 'edit')
+            || ! (new \App\Models\ClientFormFieldModel())->isEnabled(current_company_id(), 'vendor_pass_request', 'card_info_add_license_button')) {
             return $this->response->setJSON(['success' => false, 'message' => 'Not allowed.']);
         }
         $vendor = $this->loadScopedVendor($id);
@@ -105,7 +116,8 @@ class VendorCardInfo extends BaseController
     public function updateLocationAccess($id)
     {
         helper('access');
-        if (! has_access('vendor_pass_list', 'edit')) {
+        if (! has_access('vendor_pass_list', 'edit')
+            || ! (new \App\Models\ClientFormFieldModel())->isEnabled(current_company_id(), 'vendor_pass_request', 'card_info_edit_location_button')) {
             return $this->response->setJSON(['success' => false, 'message' => 'Not allowed.']);
         }
         $vendor = $this->loadScopedVendor($id);
@@ -127,7 +139,8 @@ class VendorCardInfo extends BaseController
     public function uploadPhoto($id)
     {
         helper('access');
-        if (! has_access('vendor_pass_list', 'edit')) {
+        if (! has_access('vendor_pass_list', 'edit')
+            || ! (new \App\Models\ClientFormFieldModel())->isEnabled(current_company_id(), 'vendor_pass_request', 'card_info_upload_photo_button')) {
             return $this->response->setJSON(['success' => false, 'message' => 'Not allowed.']);
         }
         $vendor = $this->loadScopedVendor($id);
@@ -161,7 +174,8 @@ class VendorCardInfo extends BaseController
     public function activateCard($id)
     {
         helper('access');
-        if (! has_access('vendor_pass_list', 'edit')) {
+        if (! has_access('vendor_pass_list', 'edit')
+            || ! (new \App\Models\ClientFormFieldModel())->isEnabled(current_company_id(), 'vendor_pass_request', 'card_info_activate_button')) {
             return $this->response->setJSON(['success' => false, 'message' => 'Not allowed.']);
         }
         $vendor = $this->loadScopedVendor($id);
@@ -190,7 +204,8 @@ class VendorCardInfo extends BaseController
     public function terminateCard($id)
     {
         helper('access');
-        if (! has_access('vendor_pass_list', 'edit')) {
+        if (! has_access('vendor_pass_list', 'edit')
+            || ! (new \App\Models\ClientFormFieldModel())->isEnabled(current_company_id(), 'vendor_pass_request', 'card_info_terminate_button')) {
             return $this->response->setJSON(['success' => false, 'message' => 'Not allowed.']);
         }
         $vendor = $this->loadScopedVendor($id);

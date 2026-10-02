@@ -32,9 +32,11 @@
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                 <h1 class="text-xl md:text-2xl font-bold tracking-tight text-gray-800 dark:text-white uppercase">Vendor Pass Closed List</h1>
                 <div class="flex gap-2">
+                    <?php if ($canExport ?? false): ?>
                     <button id="exportBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-1.5 shadow">
                         <span class="material-symbols-outlined text-[18px]">download</span> Export
                     </button>
+                    <?php endif; ?>
                     <a href="<?= base_url('vendors/vendorpassrequest') ?>" class="bg-primary hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-1.5 shadow">
                         <span class="material-icons text-[18px]">add</span> Request
                     </a>
@@ -129,11 +131,17 @@
                             <td class="p-3"><?= $row['no'] ?></td>
                             <td class="p-3">
                                 <div class="flex items-center gap-2">
+                                    <?php if ($canCardDetails ?? false): ?>
                                     <a href="<?= base_url('vendors/card-info/view/' . $row['id']) ?>" class="text-primary hover:underline text-xs font-semibold">Card Details</a>
+                                    <?php endif; ?>
+                                    <?php if (($canCardDetails ?? false) && ($canQr ?? false)): ?>
                                     <span class="text-gray-300">|</span>
+                                    <?php endif; ?>
+                                    <?php if ($canQr ?? false): ?>
                                     <a href="<?= base_url('vendors/qr/' . $row['id']) ?>" class="text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white" title="Vendor Detail QR">
                                         <span class="material-symbols-outlined text-[18px] align-middle">qr_code_2</span>
                                     </a>
+                                    <?php endif; ?>
                                 </div>
                             </td>
                             <td class="p-3"><?= esc($row['app_no']) ?></td>

@@ -38,6 +38,7 @@ class VendorPassRequest extends BaseController
             'pageTitle'       => 'Vendor Pass Request - SafeG',
             'countries'       => $countries,
             'fields'          => $this->vendorFieldToggles(),
+            'required'        => $this->vendorFieldRequired(),
             'locationOptions' => self::LOCATION_OPTIONS,
             'stateOptions'    => self::STATE_OPTIONS,
         ];
@@ -62,6 +63,14 @@ class VendorPassRequest extends BaseController
 
         $isDraft  = (bool) $this->request->getPost('save_as_draft');
         $formData = $this->collectFormData($appNo, $isDraft);
+
+        if (! $isDraft) {
+            $missing = $this->validateRequiredFields();
+            if ($missing) {
+                return redirect()->back()->withInput()
+                    ->with('error', "Please complete the following mandatory field(s): " . implode(', ', $missing) . '.');
+            }
+        }
 
         // Same duplicate check pattern as StaffPassRequest::store() — IC/Passport must be unique.
         // Skipped for drafts, which are commonly saved with fields still missing.
@@ -101,6 +110,7 @@ class VendorPassRequest extends BaseController
         return view('vendors/vendorpassrequest_detail', [
             'vendor'          => $vendor,
             'fields'          => $this->vendorFieldToggles(),
+            'required'        => $this->vendorFieldRequired(),
             'licenses'        => $licenses,
             'locationOptions' => self::LOCATION_OPTIONS,
         ]);
@@ -132,6 +142,7 @@ class VendorPassRequest extends BaseController
             'formAction'      => 'vendors/vendorpassrequest/update/' . (int) $id,
             'isEdit'          => true,
             'fields'          => $this->vendorFieldToggles(),
+            'required'        => $this->vendorFieldRequired(),
             'licenses'        => $licenses,
             'locationOptions' => self::LOCATION_OPTIONS,
             'stateOptions'    => self::STATE_OPTIONS,
@@ -155,6 +166,14 @@ class VendorPassRequest extends BaseController
 
         $isDraft  = (bool) $this->request->getPost('save_as_draft');
         $formData = $this->collectFormData($appNo, $isDraft);
+
+        if (! $isDraft) {
+            $missing = $this->validateRequiredFields();
+            if ($missing) {
+                return redirect()->back()->withInput()
+                    ->with('error', "Please complete the following mandatory field(s): " . implode(', ', $missing) . '.');
+            }
+        }
 
         $icOrPassport = $formData['ic_no'] ?: $formData['passport_no'];
         $column       = $formData['ic_no'] ? 'ic_no' : 'passport_no';
@@ -348,5 +367,106 @@ class VendorPassRequest extends BaseController
             $toggles[$row['field_key']] = (bool) $row['is_enabled'];
         }
         return $toggles;
+    }
+
+    /**
+     * field_key => is_required map, for fields marked 'requirable' in
+     * ClientFormFieldModel::vendorPassFields(). Passed to the view so the
+     * form can render the red "*" and the HTML `required` attribute
+     * dynamically, per Config > Dynamic Form Fields > Vendor Pass Request.
+     */
+    private function vendorFieldRequired(): array
+    {
+        $model = new \App\Models\ClientFormFieldModel();
+        $rows  = $model->getForCompanyForm(current_company_id(), 'vendor_pass_request');
+
+        $required = [];
+        foreach ($rows as $row) {
+            if (! empty($row['requirable'])) {
+                $required[$row['field_key']] = (bool) $row['is_required'];
+            }
+        }
+        return $required;
+    }
+
+    /**
+     * Maps each requirable field_key to the POST field name(s) that satisfy
+     * it. A key is "filled" when at least one of its mapped POST names is
+     * non-empty (location_access[] is checked as a non-empty array).
+     * Section-type keys (e.g. 'address') are satisfied if any one of their
+     * sub-fields is filled — mirrors how the rest of this form treats a
+     * section as one configurable unit.
+     */
+    private function requiredFieldPostKeys(): array
+    {
+        return [
+            'type_of_application'  => ['type_of_application'],
+            'type_of_registration' => ['type_of_registration'],
+            'payment'              => ['payment'],
+            'sub_type'             => ['sub_type'],
+            'resident'             => ['resident'],
+            'card_type'            => ['card_type'],
+            'location_access'      => ['location_access'],
+            'in_out_bound'         => ['in_out_bound'],
+            'vendor_company'       => ['vendor_company_reg_id', 'vendor_company_name'],
+            'staff_no'             => ['staff_no'],
+            'full_name'            => ['full_name'],
+            'name_on_vendor_pass'  => ['name_on_vendor_pass'],
+            'ic_passport'          => ['ic_no', 'passport_no'],
+            'date_of_birth'        => ['date_of_birth'],
+            'sex'                  => ['sex'],
+            'designation'          => ['designation'],
+            'contact_number'       => ['contact_number'],
+            'email'                => ['email'],
+            'vehicle_registration' => ['vehicle_registration'],
+            'address'              => ['address_line1', 'address_line2', 'address_line3', 'country', 'state', 'city', 'postal_code'],
+            'csp_number'           => ['csp_number'],
+            'pass_expiry'          => ['pass_expiry'],
+            'remark'               => ['remark'],
+        ];
+    }
+
+    /**
+     * Checks every field the current company has marked mandatory (Config >
+     * Dynamic Form Fields > Vendor Pass Request > "Mandatory") and returns
+     * the human labels of any that were left empty. A field that is
+     * currently disabled is skipped — a hidden field can't be mandatory.
+     */
+    private function validateRequiredFields(): array
+    {
+        $required = $this->vendorFieldRequired();
+        if (empty($required)) {
+            return [];
+        }
+
+        $toggles   = $this->vendorFieldToggles();
+        $postKeys  = $this->requiredFieldPostKeys();
+        $labels    = array_column(\App\Models\ClientFormFieldModel::vendorPassFields(), 'label', 'field_key');
+        $missing   = [];
+
+        foreach ($required as $key => $isRequired) {
+            if (! $isRequired) {
+                continue;
+            }
+            if (isset($toggles[$key]) && ! $toggles[$key]) {
+                continue; // disabled fields can't be mandatory
+            }
+
+            $names  = $postKeys[$key] ?? [];
+            $filled = false;
+            foreach ($names as $name) {
+                $value = $this->request->getPost($name);
+                if (is_array($value) ? ! empty($value) : trim((string) $value) !== '') {
+                    $filled = true;
+                    break;
+                }
+            }
+
+            if (! $filled && $names) {
+                $missing[] = $labels[$key] ?? $key;
+            }
+        }
+
+        return $missing;
     }
 }

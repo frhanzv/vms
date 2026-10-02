@@ -99,18 +99,24 @@
 
                 <?php if ($canEdit ?? false): ?>
                 <div class="flex flex-wrap justify-end gap-2 mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+                    <?php if ($canAddLicense ?? false): ?>
                     <button onclick="openLicenseModal()" class="h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold">Add License</button>
+                    <?php endif; ?>
+                    <?php if ($canEditLocation ?? false): ?>
                     <button onclick="openLocationModal()" class="h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold">Edit Location Access</button>
+                    <?php endif; ?>
+                    <?php if ($canUploadPhoto ?? false): ?>
                     <label class="h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold flex items-center gap-1.5 cursor-pointer">
                         <span class="material-symbols-outlined text-base">upload</span> Upload Photo
                         <input type="file" accept="image/*" class="hidden" onchange="uploadPhotoFile(this.files[0])"/>
                     </label>
+                    <?php endif; ?>
                     <a href="<?= base_url('vendors/qr/' . $vendor['id']) ?>" class="h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold flex items-center">QR Code</a>
                     <button onclick="reprintCard()" class="h-9 px-4 rounded-lg bg-gray-600 text-white text-sm font-semibold">Reprint</button>
-                    <?php if (($vendor['card_status'] ?? '') !== 'Active'): ?>
+                    <?php if (($vendor['card_status'] ?? '') !== 'Active' && ($canActivate ?? false)): ?>
                     <button onclick="activateCard()" class="h-9 px-4 rounded-lg bg-emerald-600 text-white text-sm font-semibold">Activate Card</button>
                     <?php endif; ?>
-                    <?php if (($vendor['card_status'] ?? '') !== 'Terminated'): ?>
+                    <?php if (($vendor['card_status'] ?? '') !== 'Terminated' && ($canTerminate ?? false)): ?>
                     <button onclick="terminateCard()" class="h-9 px-4 rounded-lg bg-red-600 text-white text-sm font-semibold">Card Terminate</button>
                     <?php endif; ?>
                     <button onclick="saveCardInfo()" class="h-9 px-4 rounded-lg bg-primary text-white text-sm font-semibold">Update</button>

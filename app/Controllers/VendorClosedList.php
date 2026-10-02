@@ -114,9 +114,16 @@ class VendorClosedList extends BaseController
             ];
         }
 
+        $formFieldModel = new \App\Models\ClientFormFieldModel();
+        $companyId      = current_company_id();
+        $cfg            = fn(string $key) => $formFieldModel->isEnabled($companyId, 'vendor_pass_request', $key);
+
         return view('vendors/closed_list', [
             'pageTitle'      => 'Vendor Pass Closed List - SafeG',
             'closedList'     => $closedList,
+            'canExport'      => $cfg('closed_export_button'),
+            'canQr'          => $cfg('qr_button'),
+            'canCardDetails' => $cfg('closed_card_details_button'),
             'searchTerm'     => $searchTerm,
             'issueDateFrom'  => $issueDateFrom,
             'issueDateTo'    => $issueDateTo,

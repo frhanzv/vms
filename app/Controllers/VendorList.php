@@ -141,8 +141,14 @@ class VendorList extends BaseController
             // Import/Export/Template — KPK's real Vendor Pass List has these
             // next to "Request" (same row as the +Request button). Gated on
             // the same 'edit' permission as everything else that writes
-            // vendor records, since importing is just bulk-creating them.
-            'canImport'     => has_access('vendor_pass_list', 'edit'),
+            // vendor records, since importing is just bulk-creating them,
+            // AND on their own Config > Dynamic Form Fields toggle so each
+            // button can be switched off per company independently.
+            'canImport'     => has_access('vendor_pass_list', 'edit') && $cfg('import_button'),
+            'canExport'     => $cfg('export_button'),
+            'canTemplate'   => $cfg('template_button'),
+            'canRequest'    => $cfg('request_button'),
+            'canPrint'      => $cfg('print_button'),
             // No 'canQr' here on purpose — the QR action moved to Closed List
             // (it's a vendor-detail lookup, not a pass-verification code, so
             // it only makes sense once a card has actually been issued).

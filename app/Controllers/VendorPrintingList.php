@@ -100,7 +100,8 @@ class VendorPrintingList extends BaseController
             'searchTerm' => $searchTerm,
             'cardType'   => $cardType,
             'sortBy'     => $sortBy,
-            'canPrint'   => has_access('vendor_pass_list', 'edit'),
+            'canPrint'   => has_access('vendor_pass_list', 'edit')
+                && (new \App\Models\ClientFormFieldModel())->isEnabled(current_company_id(), 'vendor_pass_request', 'printing_generate_button'),
             'pagination' => ['current_page' => $page, 'last_page' => $lastPage, 'total' => $totalCount],
         ]);
     }
@@ -123,7 +124,8 @@ class VendorPrintingList extends BaseController
     public function generateSerial($id)
     {
         helper(['access', 'privacy']);
-        if (! has_access('vendor_pass_list', 'edit')) {
+        if (! has_access('vendor_pass_list', 'edit')
+            || ! (new \App\Models\ClientFormFieldModel())->isEnabled(current_company_id(), 'vendor_pass_request', 'printing_generate_button')) {
             return $this->response->setJSON(['success' => false, 'message' => 'Not allowed.']);
         }
 

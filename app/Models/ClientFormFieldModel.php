@@ -12,7 +12,7 @@ class ClientFormFieldModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['client_id', 'form_type', 'field_key', 'is_enabled'];
+    protected $allowedFields    = ['client_id', 'form_type', 'field_key', 'is_enabled', 'is_required'];
 
     protected $useTimestamps = true;
     protected $dateFormat    = 'datetime';
@@ -150,40 +150,69 @@ class ClientFormFieldModel extends Model
         ];
     }
 
+    /**
+     * Every field, section and button the Vendor module can show — per the
+     * instruction "everything configurable: the button, the field, the
+     * mandatory". Each entry can carry:
+     *   - 'default_enabled' (bool, default true)      — shown unless turned off
+     *   - 'requirable' (bool, default false)           — whether a "Mandatory"
+     *                                                     switch applies at all
+     *   - 'default_required' (bool, default false)     — its out-of-the-box state,
+     *                                                     chosen to match what the
+     *                                                     form already enforced in
+     *                                                     code before this existed
+     * Buttons never set 'requirable' — "Mandatory" has no meaning for a button,
+     * so the Config screen only shows an Enabled switch for those.
+     */
     public static function vendorPassFields(): array
 {
     return [
-            // --- Application Info section ---
-            ['field_key' => 'type_of_application',  'label' => 'Type Of Application'],
-            ['field_key' => 'sub_type',              'label' => 'Sub Type'],
-            ['field_key' => 'resident',              'label' => 'Resident'],
-            ['field_key' => 'vendor_company',        'label' => 'Vendor Company Section (SSM No / Company Name)'],
-            ['field_key' => 'staff_no',              'label' => 'Staff No. (at vendor company)'],
-            ['field_key' => 'ic_passport',            'label' => 'IC / Passport Number'],
-            ['field_key' => 'date_of_birth',          'label' => 'Date Of Birth'],
-            ['field_key' => 'sex',                    'label' => 'Sex'],
-            ['field_key' => 'designation',            'label' => 'Designation'],
-            ['field_key' => 'contact_number',         'label' => 'Contact Number'],
-            ['field_key' => 'email',                  'label' => 'Email Address'],
-            ['field_key' => 'address',                'label' => 'Address Section (Line 1-3 & Postcode)'],
-            ['field_key' => 'visit_details',          'label' => 'Visit Details Section (Person/Contact/Location Visited)'],
-            ['field_key' => 'csp_number',             'label' => 'CSP Number & Expiry Date',        'default_enabled' => false],
-            ['field_key' => 'evetting',                'label' => 'E-Vetting Section',                'default_enabled' => false],
-            ['field_key' => 'pass_expiry',             'label' => 'Pass Expiry Field'],
-            ['field_key' => 'remark',                  'label' => 'Remark Field'],
-            ['field_key' => 'photo_upload',            'label' => 'Photo Upload'],
-            ['field_key' => 'document_upload',         'label' => 'Government ID / Other Documents Upload'],
-            ['field_key' => 'card_issuance',           'label' => 'Card Issuance Section (Receipt/Vehicle/Card Type/Status)', 'default_enabled' => false],
-            ['field_key' => 'additional_verification', 'label' => 'Additional Verification (MySejahtera/Facial Photo)', 'default_enabled' => false],
-            ['field_key' => 'edit_button',             'label' => 'Show Edit Button (Vendor List)'],
-            ['field_key' => 'delete_button',           'label' => 'Show Delete Button (Vendor List)'],
-            ['field_key' => 'approve_button',          'label' => 'Show Approve Button (Vendor List)'],
-            ['field_key' => 'reject_button',           'label' => 'Show Reject Button (Vendor List)'],
-            ['field_key' => 'qr_button',               'label' => 'Show QR Pass Button (Vendor List)'],
-            ['field_key' => 'print_button',            'label' => 'Show Print Button (Vendor List)'],
-            ['field_key' => 'direct_close', 'label' => 'Direct Close (skip Printing/Issuance, activate card immediately on approval)', 'default_enabled' => false],
-        ];
-    }
+        // --- Application Info section ---
+        ['field_key' => 'type_of_application',  'label' => 'Type Of Application'],
+        ['field_key' => 'sub_type',              'label' => 'Sub Type'],
+        ['field_key' => 'resident',              'label' => 'Resident'],
+
+        // --- Vendor Company section ---
+        ['field_key' => 'vendor_company',        'label' => 'Vendor Company Section (SSM No / Company Name)'],
+
+        // --- Personal Details section ---
+        ['field_key' => 'staff_no',              'label' => 'Staff No. (at vendor company)'],
+        ['field_key' => 'ic_passport',            'label' => 'IC / Passport Number'],
+        ['field_key' => 'date_of_birth',          'label' => 'Date Of Birth'],
+        ['field_key' => 'sex',                    'label' => 'Sex'],
+        ['field_key' => 'designation',            'label' => 'Designation'],
+        ['field_key' => 'contact_number',         'label' => 'Contact Number'],
+        ['field_key' => 'email',                  'label' => 'Email Address'],
+
+        // --- Address section ---
+        ['field_key' => 'address',                'label' => 'Address Section (Line 1-3 & Postcode)'],
+
+        // --- Visit Details section ---
+        ['field_key' => 'visit_details',          'label' => 'Visit Details Section (Person/Contact/Location Visited)'],
+
+        // --- CSP & E-Vetting section (matches Staff's csp_number/evetting, off by default there too) ---
+        ['field_key' => 'csp_number',             'label' => 'CSP Number & Expiry Date',        'default_enabled' => false],
+        ['field_key' => 'evetting',                'label' => 'E-Vetting Section',                'default_enabled' => false],
+
+        // --- Pass & Documents section ---
+        ['field_key' => 'pass_expiry',             'label' => 'Pass Expiry Field'],
+        ['field_key' => 'remark',                  'label' => 'Remark Field'],
+        ['field_key' => 'photo_upload',            'label' => 'Photo Upload'],
+        ['field_key' => 'document_upload',         'label' => 'Government ID / Other Documents Upload'],
+
+        ['field_key' => 'direct_close', 'label' => 'Direct Close (skip Printing/Issuance, activate card immediately on approval)', 'default_enabled' => false],
+        // This mirrors KPK's ModuleConfig.vpDirectClose. Off by default — most
+    // companies will want the normal Printing -> Issuance -> Closed flow.
+        ['field_key' => 'additional_verification', 'label' => 'Additional Verification (MySejahtera/Facial Photo)', 'default_enabled' => false],
+        ['field_key' => 'card_issuance', 'label' => 'Card Issuance Section (Receipt/Vehicle/Card Type/Status)', 'default_enabled' => false],
+        // --- List page buttons (checked alongside has_access, same as print_button) ---
+        ['field_key' => 'edit_button',             'label' => 'Show Edit Button (Vendor List)'],
+        ['field_key' => 'delete_button',           'label' => 'Show Delete Button (Vendor List)'],
+        ['field_key' => 'approve_button',          'label' => 'Show Approve Button (Vendor List)'],
+        ['field_key' => 'reject_button',           'label' => 'Show Reject Button (Vendor List)'],
+        ['field_key' => 'qr_button',               'label' => 'Show QR Pass Button (Vendor List)'],
+    ];
+}
 
     /**
      * Returns all field definitions for a form type with per-client enabled state applied.
@@ -196,43 +225,84 @@ class ClientFormFieldModel extends Model
             return [];
         }
 
-        $rows   = $this->where('client_id', $companyId)->where('form_type', $formType)->findAll();
-        $stored = array_column($rows, 'is_enabled', 'field_key');
+        $rows         = $this->where('client_id', $companyId)->where('form_type', $formType)->findAll();
+        $storedEnable = array_column($rows, 'is_enabled', 'field_key');
+        $storedRequire = array_column($rows, 'is_required', 'field_key');
 
         $result = [];
         foreach ($definitions as $def) {
-            $key      = $def['field_key'];
-            $result[] = [
+            $key           = $def['field_key'];
+            $requirable    = (bool) ($def['requirable'] ?? false);
+            $defaultEnable = isset($def['default_enabled']) ? (int) $def['default_enabled'] : 1;
+            $defaultRequire = isset($def['default_required']) ? (int) $def['default_required'] : 0;
+
+            $row = [
                 'field_key'  => $key,
                 'label'      => $def['label'],
-                'is_enabled' => isset($stored[$key]) ? (int) $stored[$key] : (isset($def['default_enabled']) ? (int) $def['default_enabled'] : 1),
+                'is_enabled' => isset($storedEnable[$key]) ? (int) $storedEnable[$key] : $defaultEnable,
+                'requirable' => $requirable,
             ];
+
+            if ($requirable) {
+                $storedReq         = $storedRequire[$key] ?? null;
+                $row['is_required'] = $storedReq !== null ? (int) $storedReq : $defaultRequire;
+            } else {
+                $row['is_required'] = 0;
+            }
+
+            $result[] = $row;
         }
         return $result;
     }
 
     /**
-     * Upserts field flags for a company+form. Only writes rows that are disabled
-     * or already exist — absence means enabled.
+     * Upserts field flags for a company+form. Only writes rows that are disabled,
+     * marked required, or already exist — absence means enabled/not-required
+     * (falling back to each field's own default).
+     *
+     * $fields accepts two shapes for backward compatibility across the 5 form
+     * types that share this method/UI:
+     *   - legacy: [field_key => bool $enabled]
+     *   - extended (used by vendor_pass_request's "Mandatory" switch):
+     *     [field_key => ['enabled' => bool, 'required' => bool]]
      */
     public function saveForCompanyForm(int $companyId, string $formType, array $fields): void
     {
-        foreach ($fields as $key => $enabled) {
-            $enabled  = $enabled ? 1 : 0;
+        $definitions = $this->getDefinitions($formType);
+        $requirableKeys = [];
+        foreach ($definitions as $def) {
+            if (! empty($def['requirable'])) {
+                $requirableKeys[$def['field_key']] = true;
+            }
+        }
+
+        foreach ($fields as $key => $value) {
+            if (is_array($value)) {
+                $enabled  = ! empty($value['enabled']) ? 1 : 0;
+                $required = isset($requirableKeys[$key]) && ! empty($value['required']) ? 1 : 0;
+            } else {
+                $enabled  = $value ? 1 : 0;
+                $required = null;
+            }
+
             $existing = $this->where('client_id', $companyId)
                              ->where('form_type', $formType)
                              ->where('field_key', $key)
                              ->first();
 
+            $data = ['is_enabled' => $enabled];
+            if (isset($requirableKeys[$key])) {
+                $data['is_required'] = $required;
+            }
+
             if ($existing) {
-                $this->update($existing['id'], ['is_enabled' => $enabled]);
-            } elseif ($enabled === 0) {
-                $this->insert([
+                $this->update($existing['id'], $data);
+            } elseif ($enabled === 0 || ! empty($data['is_required'])) {
+                $this->insert(array_merge([
                     'client_id' => $companyId,
-                    'form_type'  => $formType,
-                    'field_key'  => $key,
-                    'is_enabled' => 0,
-                ]);
+                    'form_type' => $formType,
+                    'field_key' => $key,
+                ], $data));
             }
         }
     }
@@ -259,6 +329,38 @@ class ClientFormFieldModel extends Model
         }
 
         return true;
+    }
+
+    /**
+     * Check if a field is mandatory for a company+form. A saved 0/1 in
+     * is_required always wins; otherwise falls back to the field definition's
+     * 'default_required' (default false). A field not marked 'requirable' in
+     * its definition is never mandatory regardless of stored data.
+     */
+    public function isRequired(int $companyId, string $formType, string $fieldKey): bool
+    {
+        $def = null;
+        foreach ($this->getDefinitions($formType) as $candidate) {
+            if ($candidate['field_key'] === $fieldKey) {
+                $def = $candidate;
+                break;
+            }
+        }
+
+        if ($def === null || empty($def['requirable'])) {
+            return false;
+        }
+
+        $row = $this->where('client_id', $companyId)
+                    ->where('form_type', $formType)
+                    ->where('field_key', $fieldKey)
+                    ->first();
+
+        if ($row !== null && $row['is_required'] !== null) {
+            return (bool) $row['is_required'];
+        }
+
+        return (bool) ($def['default_required'] ?? false);
     }
 
     protected function getDefinitions(string $formType): array

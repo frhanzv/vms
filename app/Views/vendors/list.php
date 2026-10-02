@@ -59,21 +59,27 @@
                         <span class="material-icons text-sm mr-1">add</span>
                         Import
                     </button>
+                    <?php endif; ?>
+                    <?php if ($canTemplate ?? false): ?>
                     <button type="button" onclick="document.getElementById('reminderModal').classList.remove('hidden')"
                         class="bg-primary hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
                         <span class="material-icons text-sm mr-1">file_download</span>
                         Template
                     </button>
                     <?php endif; ?>
+                    <?php if ($canExport ?? false): ?>
                     <a href="<?= base_url('vendors/export') ?><?= $searchTerm || ($status ?? 'all') !== 'all' ? '?' . http_build_query(array_filter(['search' => $searchTerm ?? '', 'status' => ($status ?? 'all') !== 'all' ? $status : ''])) : '' ?>"
                         class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
                         <span class="material-icons text-sm mr-1">file_upload</span>
                         Export
                     </a>
+                    <?php endif; ?>
+                    <?php if ($canRequest ?? false): ?>
                     <a href="<?= base_url('vendors/vendorpassrequest') ?>" class="bg-primary hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
                         <span class="material-icons text-sm mr-1">add</span>
                         Request
                     </a>
+                    <?php endif; ?>
                 </div>
             </div>
 
@@ -359,7 +365,7 @@
 
     <!-- Reminder Modal — shown before the Template file actually downloads,
          same as the real KPK "Online Vendor List" page's Reminder popup. -->
-    <?php if ($canImport ?? false): ?>
+    <?php if ($canTemplate ?? false): ?>
     <div id="reminderModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
         <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md mx-4">
             <div class="flex items-center justify-between p-4 border-b dark:border-slate-700">

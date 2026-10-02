@@ -86,6 +86,13 @@
                     // Vendor Pass Request. Absence of a key means enabled (same default as everywhere else).
                     $on = fn(string $key) => $fields[$key] ?? true;
 
+                    // Config-driven "Mandatory" toggle for the same fields. $req() returns the
+                    // red asterisk markup, $reqAttr() returns the HTML `required` attribute —
+                    // both read from the same per-company setting the server validates against.
+                    $required = $required ?? [];
+                    $req      = fn(string $key) => ($required[$key] ?? false) ? ' <span class="text-red-500">*</span>' : '';
+                    $reqAttr  = fn(string $key) => ($required[$key] ?? false) ? 'required' : '';
+
                     $selectedLocations = ! empty($s['location_access']) ? explode(',', $s['location_access']) : [];
                     $existingLicenses  = $licenses ?? [];
                 ?>
@@ -114,50 +121,57 @@
                                 </select>
                             </div>
                             <?php endif; ?>
+                            <?php if ($on('type_of_registration')): ?>
                             <div class="space-y-2">
-                                <label class="<?= $labelClass ?>">Type Of Registration</label>
-                                <select name="type_of_registration" class="<?= $inputClass ?>">
+                                <label class="<?= $labelClass ?>">Type Of Registration<?= $req('type_of_registration') ?></label>
+                                <select name="type_of_registration" class="<?= $inputClass ?>" <?= $reqAttr('type_of_registration') ?>>
                                     <option value="">-- Select --</option>
                                     <option value="TENANT" <?= $sel('type_of_registration', 'TENANT') ?>>TENANT</option>
                                     <option value="NON-TENANT" <?= $sel('type_of_registration', 'NON-TENANT') ?>>NON-TENANT</option>
                                 </select>
                             </div>
+                            <?php endif; ?>
                             <div class="space-y-2">
-                                <label class="<?= $labelClass ?>">Designation <span class="text-red-500">*</span></label>
-                                <input name="designation" value="<?= $v('designation') ?>" class="<?= $inputClass ?>" type="text" maxlength="50" required/>
+                                <label class="<?= $labelClass ?>">Designation<?= $req('designation') ?></label>
+                                <input name="designation" value="<?= $v('designation') ?>" class="<?= $inputClass ?>" type="text" maxlength="50" <?= $reqAttr('designation') ?>/>
                             </div>
                         </div>
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <?php if ($on('payment')): ?>
                             <div class="space-y-2">
-                                <label class="<?= $labelClass ?>">Payment</label>
-                                <select name="payment" class="<?= $inputClass ?>">
+                                <label class="<?= $labelClass ?>">Payment<?= $req('payment') ?></label>
+                                <select name="payment" class="<?= $inputClass ?>" <?= $reqAttr('payment') ?>>
                                     <option value="NONE" <?= $sel('payment', 'NONE') ?>>NONE</option>
                                     <option value="ONLINE" <?= $sel('payment', 'ONLINE') ?>>ONLINE</option>
                                     <option value="CASH" <?= $sel('payment', 'CASH') ?>>CASH</option>
                                 </select>
                             </div>
+                            <?php endif; ?>
                             <?php if ($on('resident')): ?>
                             <div class="space-y-2">
-                                <label class="<?= $labelClass ?>">Resident</label>
-                                <select name="resident" class="<?= $inputClass ?>">
+                                <label class="<?= $labelClass ?>">Resident<?= $req('resident') ?></label>
+                                <select name="resident" class="<?= $inputClass ?>" <?= $reqAttr('resident') ?>>
                                     <option value="Malaysian" <?= $sel('resident', 'Malaysian') ?>>Malaysian</option>
                                     <option value="Non-Malaysian" <?= $sel('resident', 'Non-Malaysian') ?>>Non-Malaysian</option>
                                 </select>
                             </div>
                             <?php endif; ?>
+                            <?php if ($on('card_type')): ?>
                             <div class="space-y-2">
-                                <label class="<?= $labelClass ?>">Worker Type <span class="text-red-500">*</span></label>
-                                <select name="card_type" class="<?= $inputClass ?>" required>
+                                <label class="<?= $labelClass ?>">Worker Type<?= $req('card_type') ?></label>
+                                <select name="card_type" class="<?= $inputClass ?>" <?= $reqAttr('card_type') ?>>
                                     <option value="">-- Select --</option>
                                     <option value="Permanent" <?= $sel('card_type', 'Permanent') ?>>Permanent</option>
                                     <option value="Temporary" <?= $sel('card_type', 'Temporary') ?>>Temporary (Contract)</option>
                                 </select>
                                 <p class="text-xs text-text-sub">This decides the pass/card type printed for this person — it's no longer chosen later in Process List.</p>
                             </div>
+                            <?php endif; ?>
                         </div>
+                        <?php if ($on('location_access')): ?>
                         <div class="space-y-2" x-data="{ selected: <?= json_encode($selectedLocations) ?> }">
                             <div class="flex items-center gap-3">
-                                <label class="<?= $labelClass ?>">Location Access <span class="text-red-500">*</span></label>
+                                <label class="<?= $labelClass ?>">Location Access<?= $req('location_access') ?></label>
                                 <label class="flex items-center gap-1.5 text-sm text-text-sub">
                                     <input type="checkbox" @change="selected = $event.target.checked ? <?= json_encode(array_keys($locationOptions)) ?> : []"
                                         :checked="selected.length === <?= count($locationOptions) ?>"/>
@@ -173,6 +187,7 @@
                                 <?php endforeach; ?>
                             </div>
                         </div>
+                        <?php endif; ?>
                     </div>
                 </section>
 
@@ -187,11 +202,11 @@
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <div class="space-y-2">
-                            <label class="<?= $labelClass ?>">Company Registration ID</label>
+                            <label class="<?= $labelClass ?>">Company Registration ID<?= $req('vendor_company') ?></label>
                             <input name="vendor_company_reg_id" value="<?= $v('vendor_company_reg_id') ?>" class="<?= $inputClass ?>" type="text" maxlength="100"/>
                         </div>
                         <div class="space-y-2">
-                            <label class="<?= $labelClass ?>">Company Name</label>
+                            <label class="<?= $labelClass ?>">Company Name<?= $req('vendor_company') ?></label>
                             <input name="vendor_company_name" value="<?= $v('vendor_company_name') ?>" class="<?= $inputClass ?>" type="text" maxlength="255"/>
                         </div>
                     </div>
@@ -213,61 +228,70 @@
                     </div>
                     <div class="space-y-6">
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                            <?php if ($on('ic_passport')): ?>
+                            <?php if ($on('in_out_bound')): ?>
                             <div class="space-y-2">
-                                <label class="<?= $labelClass ?>">In/ Out Bound</label>
-                                <select name="in_out_bound" class="<?= $inputClass ?>">
+                                <label class="<?= $labelClass ?>">In/ Out Bound<?= $req('in_out_bound') ?></label>
+                                <select name="in_out_bound" class="<?= $inputClass ?>" <?= $reqAttr('in_out_bound') ?>>
                                     <option value="INSIDE" <?= $sel('in_out_bound', 'INSIDE') ?>>INSIDE</option>
                                     <option value="OUTSIDE" <?= $sel('in_out_bound', 'OUTSIDE') ?>>OUTSIDE</option>
                                 </select>
                             </div>
+                            <?php endif; ?>
+                            <?php if ($on('ic_passport')): ?>
                             <div class="space-y-2">
-                                <label class="<?= $labelClass ?>">IC Number</label>
+                                <label class="<?= $labelClass ?>">IC Number<?= $req('ic_passport') ?></label>
                                 <input name="ic_no" value="<?= $v('ic_no') ?>" class="<?= $inputClass ?>" type="text" maxlength="50"/>
                             </div>
                             <div class="space-y-2">
-                                <label class="<?= $labelClass ?>">Passport Number</label>
+                                <label class="<?= $labelClass ?>">Passport Number<?= $req('ic_passport') ?></label>
                                 <input name="passport_no" value="<?= $v('passport_no') ?>" class="<?= $inputClass ?>" type="text" maxlength="16"/>
                             </div>
+                            <?php if ($required['ic_passport'] ?? false): ?>
+                            <p class="text-xs text-text-sub sm:col-span-2 -mt-4">Either IC Number or Passport Number is required.</p>
+                            <?php endif; ?>
                             <?php endif; ?>
                             <?php if ($on('date_of_birth')): ?>
                             <div class="space-y-2">
-                                <label class="<?= $labelClass ?>">Date Of Birth</label>
-                                <input name="dob" value="<?= $v('dob') ?>" class="<?= $inputClass ?>" type="date"/>
+                                <label class="<?= $labelClass ?>">Date Of Birth<?= $req('date_of_birth') ?></label>
+                                <input name="dob" value="<?= $v('dob') ?>" class="<?= $inputClass ?>" type="date" <?= $reqAttr('date_of_birth') ?>/>
                             </div>
                             <?php endif; ?>
                         </div>
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                             <?php if ($on('sex')): ?>
                             <div class="space-y-2">
-                                <label class="<?= $labelClass ?>">Sex</label>
-                                <select name="sex" class="<?= $inputClass ?>">
+                                <label class="<?= $labelClass ?>">Sex<?= $req('sex') ?></label>
+                                <select name="sex" class="<?= $inputClass ?>" <?= $reqAttr('sex') ?>>
                                     <option value="Male" <?= $sel('sex', 'Male') ?>>Male</option>
                                     <option value="Female" <?= $sel('sex', 'Female') ?>>Female</option>
                                 </select>
                             </div>
                             <?php endif; ?>
+                            <?php if ($on('full_name')): ?>
                             <div class="space-y-2">
-                                <label class="<?= $labelClass ?>">Full Name <span class="text-red-500">*</span></label>
-                                <input name="full_name" value="<?= $v('full_name') ?>" class="<?= $inputClass ?>" type="text" maxlength="100" required/>
+                                <label class="<?= $labelClass ?>">Full Name<?= $req('full_name') ?></label>
+                                <input name="full_name" value="<?= $v('full_name') ?>" class="<?= $inputClass ?>" type="text" maxlength="100" <?= $reqAttr('full_name') ?>/>
                             </div>
+                            <?php endif; ?>
+                            <?php if ($on('name_on_vendor_pass')): ?>
                             <div class="space-y-2">
-                                <label class="<?= $labelClass ?>">Name On Vendor Pass <span class="text-red-500">*</span></label>
-                                <input name="name_on_vendor_pass" value="<?= $v('name_on_vendor_pass') ?>" class="<?= $inputClass ?>" type="text" maxlength="100" required/>
+                                <label class="<?= $labelClass ?>">Name On Vendor Pass<?= $req('name_on_vendor_pass') ?></label>
+                                <input name="name_on_vendor_pass" value="<?= $v('name_on_vendor_pass') ?>" class="<?= $inputClass ?>" type="text" maxlength="100" <?= $reqAttr('name_on_vendor_pass') ?>/>
                             </div>
+                            <?php endif; ?>
                         </div>
                         <?php if ($on('contact_number') || $on('email')): ?>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <?php if ($on('contact_number')): ?>
                             <div class="space-y-2">
-                                <label class="<?= $labelClass ?>">Contact Number</label>
-                                <input name="contact_no" value="<?= $v('contact_no') ?>" class="<?= $inputClass ?>" type="tel" maxlength="30"/>
+                                <label class="<?= $labelClass ?>">Contact Number<?= $req('contact_number') ?></label>
+                                <input name="contact_no" value="<?= $v('contact_no') ?>" class="<?= $inputClass ?>" type="tel" maxlength="30" <?= $reqAttr('contact_number') ?>/>
                             </div>
                             <?php endif; ?>
                             <?php if ($on('email')): ?>
                             <div class="space-y-2">
-                                <label class="<?= $labelClass ?>">Email Address</label>
-                                <input name="email" value="<?= $v('email') ?>" class="<?= $inputClass ?>" type="email" maxlength="100"/>
+                                <label class="<?= $labelClass ?>">Email Address<?= $req('email') ?></label>
+                                <input name="email" value="<?= $v('email') ?>" class="<?= $inputClass ?>" type="email" maxlength="100" <?= $reqAttr('email') ?>/>
                             </div>
                             <?php endif; ?>
                         </div>
@@ -275,7 +299,7 @@
                         <?php if ($on('address')): ?>
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
                             <div class="space-y-2">
-                                <label class="<?= $labelClass ?>">Address 1</label>
+                                <label class="<?= $labelClass ?>">Address 1<?= $req('address') ?></label>
                                 <input name="address_1" value="<?= $v('address_1') ?>" class="<?= $inputClass ?>" type="text" maxlength="150"/>
                             </div>
                             <div class="space-y-2">
@@ -315,14 +339,16 @@
                         </div>
                         <?php endif; ?>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <?php if ($on('vehicle_registration')): ?>
                             <div class="space-y-2">
-                                <label class="<?= $labelClass ?>">Vehicle Registration Number</label>
-                                <input name="vehicle_registration" value="<?= $v('vehicle_registration') ?>" class="<?= $inputClass ?>" type="text" maxlength="20"/>
+                                <label class="<?= $labelClass ?>">Vehicle Registration Number<?= $req('vehicle_registration') ?></label>
+                                <input name="vehicle_registration" value="<?= $v('vehicle_registration') ?>" class="<?= $inputClass ?>" type="text" maxlength="20" <?= $reqAttr('vehicle_registration') ?>/>
                             </div>
+                            <?php endif; ?>
                             <?php if ($on('staff_no')): ?>
                             <div class="space-y-2">
-                                <label class="<?= $labelClass ?>">Staff No. (at vendor company)</label>
-                                <input name="staff_no" value="<?= $v('staff_no') ?>" class="<?= $inputClass ?>" type="text" maxlength="50"/>
+                                <label class="<?= $labelClass ?>">Staff No. (at vendor company)<?= $req('staff_no') ?></label>
+                                <input name="staff_no" value="<?= $v('staff_no') ?>" class="<?= $inputClass ?>" type="text" maxlength="50" <?= $reqAttr('staff_no') ?>/>
                             </div>
                             <?php endif; ?>
                         </div>
@@ -402,8 +428,8 @@
                         <?php if ($on('csp_number')): ?>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <div class="space-y-2">
-                                <label class="<?= $labelClass ?>">CSP Number</label>
-                                <input name="csp_number" value="<?= $v('csp_number') ?>" class="<?= $inputClass ?>" type="text" maxlength="50"/>
+                                <label class="<?= $labelClass ?>">CSP Number<?= $req('csp_number') ?></label>
+                                <input name="csp_number" value="<?= $v('csp_number') ?>" class="<?= $inputClass ?>" type="text" maxlength="50" <?= $reqAttr('csp_number') ?>/>
                             </div>
                             <div class="space-y-2">
                                 <label class="<?= $labelClass ?>">CSP Expiry Date</label>
@@ -443,14 +469,14 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <?php if ($on('pass_expiry')): ?>
                         <div class="space-y-2">
-                            <label class="<?= $labelClass ?>">Pass Expiry</label>
-                            <input name="pass_expiry" value="<?= $v('pass_expiry') ?>" class="<?= $inputClass ?>" type="date"/>
+                            <label class="<?= $labelClass ?>">Pass Expiry<?= $req('pass_expiry') ?></label>
+                            <input name="pass_expiry" value="<?= $v('pass_expiry') ?>" class="<?= $inputClass ?>" type="date" <?= $reqAttr('pass_expiry') ?>/>
                         </div>
                         <?php endif; ?>
                         <?php if ($on('remark')): ?>
                         <div class="space-y-2">
-                            <label class="<?= $labelClass ?>">Remark</label>
-                            <input name="remark" value="<?= $v('remark') ?>" class="<?= $inputClass ?>" type="text"/>
+                            <label class="<?= $labelClass ?>">Remark<?= $req('remark') ?></label>
+                            <input name="remark" value="<?= $v('remark') ?>" class="<?= $inputClass ?>" type="text" <?= $reqAttr('remark') ?>/>
                         </div>
                         <?php endif; ?>
                     </div>

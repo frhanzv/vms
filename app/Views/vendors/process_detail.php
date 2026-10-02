@@ -108,7 +108,7 @@
                     <div class="flex flex-col items-center gap-2 w-full lg:w-44">
                         <img id="currentPhoto" src="<?= $vendor['facial_photo'] ? base_url('uploads/facial_photos/' . $vendor['facial_photo']) : ($vendor['photo'] ? base_url('uploads/vendor_photos/' . $vendor['photo']) : base_url('assets/images/avatar-placeholder.png')) ?>"
                             class="w-full lg:w-40 h-40 object-cover rounded-lg border border-gray-200 dark:border-gray-700"/>
-                        <?php if ($canEdit ?? false): ?>
+                        <?php if ($canUploadPhoto ?? false): ?>
                         <div class="flex gap-2">
                             <label class="h-9 w-9 rounded-lg border border-gray-300 dark:border-gray-600 flex items-center justify-center cursor-pointer" title="Upload from file">
                                 <span class="material-symbols-outlined text-base">upload</span>
@@ -145,20 +145,27 @@
                 </table>
             </div>
 
-            <?php if ($canEdit ?? false): ?>
+            <?php if (($canEdit ?? false) || ($canReject ?? false) || ($canUploadPhoto ?? false)): ?>
             <div class="flex justify-end gap-2">
                 <a href="<?= base_url('vendors/process-list') ?>" class="h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold flex items-center">Back</a>
                 <button onclick="location.reload()" class="h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold">Refresh</button>
+                <?php if ($canEdit ?? false): ?>
                 <button onclick="saveDetails()" class="h-9 px-4 rounded-lg bg-primary text-white text-sm font-semibold">Update</button>
+                <?php endif; ?>
+                <?php if ($canReject ?? false): ?>
                 <button onclick="openReject()" class="h-9 px-4 rounded-lg bg-red-600 text-white text-sm font-semibold">Reject</button>
+                <?php endif; ?>
+                <?php if ($canUploadPhoto ?? false): ?>
                 <label class="h-9 px-4 rounded-lg bg-emerald-600 text-white text-sm font-semibold flex items-center gap-1.5 cursor-pointer">
                     Upload Photo
                     <input type="file" accept="image/*" class="hidden" onchange="uploadPhotoFile(this.files[0])"/>
                 </label>
+                <?php endif; ?>
             </div>
             <?php endif; ?>
 
             <!-- Card / RFID -->
+            <?php if ($showRfidSection ?? true): ?>
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <h2 class="text-sm font-bold uppercase mb-4">Physical Card</h2>
                 <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
@@ -176,6 +183,7 @@
                 </div>
                 <?php endif; ?>
             </div>
+            <?php endif; ?>
 
             <!--
                 Urine Test History was removed from this page for now — the
@@ -186,6 +194,7 @@
             -->
 
             <!-- Card / Print -->
+            <?php if ($showPrintingSection ?? true): ?>
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="text-sm font-bold uppercase">Card Printing</h2>
@@ -219,6 +228,8 @@
                         <?php endforeach; endif; ?>
                     </tbody>
                 </table>
+            </div>
+            <?php endif; ?>
             </div>
 
         </div>

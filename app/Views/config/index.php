@@ -4569,11 +4569,7 @@
                                         class="px-4 py-2 text-sm font-medium font-brand border-b-2 border-primary text-primary -mb-px">
                                         Visitor Registration
                                     </button>
-                                    <button type="button" id="dff-tab-vendor_pass_request"
-                                        onclick="dffSwitchTab('vendor_pass_request')"
-                                        class="px-4 py-2 text-sm font-medium font-brand border-b-2 border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 -mb-px">
-                                        Vendor Pass Request
-                                    </button>
+                                    
                                     <button type="button" id="dff-tab-invitation"
                                         onclick="dffSwitchTab('invitation')"
                                         class="px-4 py-2 text-sm font-medium font-brand border-b-2 border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 -mb-px">
@@ -4588,6 +4584,11 @@
                                         onclick="dffSwitchTab('visitor_pass_request')"
                                         class="px-4 py-2 text-sm font-medium font-brand border-b-2 border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 -mb-px">
                                         Visitor Pass Request
+                                    </button>
+                                    <button type="button" id="dff-tab-vendor_pass_request"
+                                        onclick="dffSwitchTab('vendor_pass_request')"
+                                        class="px-4 py-2 text-sm font-medium font-brand border-b-2 border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 -mb-px">
+                                        Vendor Pass Request
                                     </button>
                                 </div>
 
@@ -17877,7 +17878,7 @@
         // ── Dynamic Form Fields ──────────────────────────────────────
         let dffCompanyId = null;
         let dffActiveTab = 'visitor_registration';
-        let dffFields    = {};        // { form_type: { field_key: bool } }
+        let dffFields    = {};        // { form_type: { field_key: { enabled, required, requirable } } }
         let dffLabels    = {};        // { form_type: { field_key: label } }
 
         document.addEventListener('DOMContentLoaded', function () {
@@ -17938,7 +17939,11 @@
                     dffFields[formType] = {};
                     dffLabels[formType] = {};
                     res.fields.forEach(f => {
-                        dffFields[formType][f.field_key] = f.is_enabled == 1;
+                        dffFields[formType][f.field_key] = {
+                            enabled:    f.is_enabled == 1,
+                            required:   f.is_required == 1,
+                            requirable: !!f.requirable,
+                        };
                         dffLabels[formType][f.field_key] = f.label;
                     });
                     dffRenderGrid(formType);
@@ -17949,38 +17954,56 @@
         function dffRenderGrid(formType) {
             const fields = dffFields[formType] || {};
             const labels = dffLabels[formType] || {};
-            document.getElementById('dff-grid').innerHTML = Object.entries(fields).map(([key, enabled]) => `
+            document.getElementById('dff-grid').innerHTML = Object.entries(fields).map(([key, f]) => `
                 <div class="bg-white dark:bg-slate-700 rounded-lg border border-gray-200 dark:border-slate-600 p-4 flex items-center justify-between gap-3">
                     <span class="text-sm font-medium text-gray-700 dark:text-slate-300 font-brand">${labels[key] || key}</span>
-                    <button type="button"
-                        id="dff-toggle-${formType}-${key}"
-                        onclick="dffToggle('${formType}', '${key}')"
-                        class="relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 cursor-pointer focus:outline-none ${enabled ? 'bg-primary' : 'bg-gray-300 dark:bg-slate-500'}"
-                        role="switch" aria-checked="${enabled}">
-                        <span class="pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition duration-200 ${enabled ? 'translate-x-5' : 'translate-x-0'}"></span>
-                    </button>
+                    <div class="flex items-center gap-4 flex-shrink-0">
+                        ${f.requirable ? `
+                        <label class="flex items-center gap-2 cursor-pointer select-none" title="Mandatory">
+                            <span class="text-xs text-gray-500 dark:text-slate-400">Mandatory</span>
+                            <button type="button"
+                                id="dff-required-${formType}-${key}"
+                                onclick="dffToggle('${formType}', '${key}', 'required')"
+                                ${f.enabled ? '' : 'disabled'}
+                                class="relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${f.enabled ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'} ${f.required ? 'bg-amber-500' : 'bg-gray-300 dark:bg-slate-500'}"
+                                role="switch" aria-checked="${f.required}">
+                                <span class="pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition duration-200 ${f.required ? 'translate-x-5' : 'translate-x-0'}"></span>
+                            </button>
+                        </label>` : ''}
+                        <label class="flex items-center gap-2 cursor-pointer select-none" title="Enabled">
+                            <span class="text-xs text-gray-500 dark:text-slate-400">Enabled</span>
+                            <button type="button"
+                                id="dff-toggle-${formType}-${key}"
+                                onclick="dffToggle('${formType}', '${key}', 'enabled')"
+                                class="relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 cursor-pointer focus:outline-none ${f.enabled ? 'bg-primary' : 'bg-gray-300 dark:bg-slate-500'}"
+                                role="switch" aria-checked="${f.enabled}">
+                                <span class="pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition duration-200 ${f.enabled ? 'translate-x-5' : 'translate-x-0'}"></span>
+                            </button>
+                        </label>
+                    </div>
                 </div>`).join('');
         }
 
-        function dffToggle(formType, key) {
-            dffFields[formType][key] = !dffFields[formType][key];
-            const btn  = document.getElementById(`dff-toggle-${formType}-${key}`);
-            const knob = btn.querySelector('span');
-            const on   = dffFields[formType][key];
-            if (on) {
-                btn.classList.remove('bg-gray-300', 'dark:bg-slate-500');
-                btn.classList.add('bg-primary');
-                knob.classList.replace('translate-x-0', 'translate-x-5');
+        function dffToggle(formType, key, which) {
+            const f = dffFields[formType][key];
+            if (which === 'required') {
+                if (!f.enabled) return; // can't require a disabled field
+                f.required = !f.required;
             } else {
-                btn.classList.remove('bg-primary');
-                btn.classList.add('bg-gray-300', 'dark:bg-slate-500');
-                knob.classList.replace('translate-x-5', 'translate-x-0');
+                f.enabled = !f.enabled;
+                if (!f.enabled) f.required = false; // disabling a field also clears "mandatory"
             }
-            btn.setAttribute('aria-checked', on);
+            dffRenderGrid(formType);
         }
 
         function dffSave() {
             if (!dffCompanyId || !dffFields[dffActiveTab]) return;
+            const payload = {};
+            Object.entries(dffFields[dffActiveTab]).forEach(([key, f]) => {
+                payload[key] = f.requirable
+                    ? { enabled: f.enabled, required: f.required }
+                    : f.enabled;
+            });
             fetch(`${configBaseUrl}/saveClientFormFields/${dffCompanyId}`, {
                 method: 'POST',
                 headers: {
@@ -17988,7 +18011,7 @@
                     'X-Requested-With': 'XMLHttpRequest',
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '<?= csrf_hash() ?>'
                 },
-                body: JSON.stringify({ form_type: dffActiveTab, fields: dffFields[dffActiveTab] })
+                body: JSON.stringify({ form_type: dffActiveTab, fields: payload })
             })
             .then(r => r.json())
             .then(res => {

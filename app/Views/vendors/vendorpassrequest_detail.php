@@ -129,11 +129,11 @@
                 </section>
                 <?php endif; ?>
 
-                <!-- Personal Details -->
+                <!-- Applicant Details (personal info + contact + address — KPK calls this section "Person") -->
                 <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8">
                     <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
                         <div class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-primary"><span class="material-symbols-outlined">badge</span></div>
-                        <h2 class="text-lg font-bold font-brand text-text-main dark:text-white">Personal Details</h2>
+                        <h2 class="text-lg font-bold font-brand text-text-main dark:text-white">Applicant Details</h2>
                     </div>
                     <div class="space-y-6">
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">

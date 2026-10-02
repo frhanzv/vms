@@ -5909,7 +5909,19 @@ class Config extends BaseController
         $allowed   = array_column($this->clientFormFieldModel->getForCompanyForm($clientId, $formType), 'field_key');
         $sanitised = [];
         foreach ($fields as $key => $val) {
-            if (in_array($key, $allowed, true)) {
+            if (! in_array($key, $allowed, true)) {
+                continue;
+            }
+
+            // Two accepted shapes: a plain bool (legacy — enabled only), or
+            // {enabled, required} sent by forms with a "Mandatory" switch
+            // (currently only vendor_pass_request).
+            if (is_array($val)) {
+                $sanitised[$key] = [
+                    'enabled'  => ! empty($val['enabled']),
+                    'required' => ! empty($val['required']),
+                ];
+            } else {
                 $sanitised[$key] = (bool) $val;
             }
         }

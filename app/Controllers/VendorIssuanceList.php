@@ -84,7 +84,8 @@ class VendorIssuanceList extends BaseController
             'list'       => $list,
             'searchTerm' => $searchTerm,
             'sortBy'     => $sortBy,
-            'canIssue'   => has_access('vendor_pass_list', 'edit'),
+            'canIssue'   => has_access('vendor_pass_list', 'edit')
+                && (new \App\Models\ClientFormFieldModel())->isEnabled(current_company_id(), 'vendor_pass_request', 'issuance_issue_button'),
             'pagination' => ['current_page' => $page, 'last_page' => $lastPage, 'total' => $totalCount],
         ]);
     }
@@ -100,7 +101,8 @@ class VendorIssuanceList extends BaseController
     public function issue($id)
     {
         helper('access');
-        if (! has_access('vendor_pass_list', 'edit')) {
+        if (! has_access('vendor_pass_list', 'edit')
+            || ! (new \App\Models\ClientFormFieldModel())->isEnabled(current_company_id(), 'vendor_pass_request', 'issuance_issue_button')) {
             return $this->response->setJSON(['success' => false, 'message' => 'Not allowed.']);
         }
 
