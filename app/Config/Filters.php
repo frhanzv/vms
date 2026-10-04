@@ -97,6 +97,10 @@ class Filters extends BaseFilters
                 'api/guard/*',
                 'decrypt',
                 'vms/api/*',
+                'register',
+                'register/*',
+                'activate/*',
+                'forgot-password',
             ]
         ],
     ],
