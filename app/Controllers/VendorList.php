@@ -171,10 +171,14 @@ class VendorList extends BaseController
     {
         $builder = $db->table('vendors')->select('*');
 
-        // Company-scoped, like every other module here — superadmin sees all.
+        // Client-scoped, like every other module here — superadmin sees all.
         if (! is_platform_superadmin()) {
             $builder->where('company_id', current_company_id());
         }
+
+        // A vendor company's own account only ever sees its own company's passes.
+        helper('vendor_company');
+        apply_vendor_company_scope($builder);
 
         if ($searchTerm !== '') {
             $builder->groupStart()
@@ -401,6 +405,18 @@ class VendorList extends BaseController
         $batchTag = 'VP-IMP-' . date('Ymd');
         $companyId = current_company_id();
 
+        // A vendor company's own account can only import for ITS company: the
+        // sheet's company columns are ignored and the registered company is
+        // stamped on every row instead.
+        helper('vendor_company');
+        $lockedCompany = null;
+        if (is_vendor_admin()) {
+            $lockedCompany = current_vendor_company();
+            if (! $lockedCompany) {
+                return redirect()->back()->with('error', 'Your account is not linked to an active company. Please contact the administrator.');
+            }
+        }
+
         $requiredFields = [
             'full_name'           => 'Full Name',
             'ic_passport'         => 'IC No. / Passport',
@@ -426,6 +442,9 @@ class VendorList extends BaseController
             $rowNum  = $i + 2;
             $missing = [];
             foreach ($requiredFields as $field => $label) {
+                if ($lockedCompany && $field === 'vendor_company_name') {
+                    continue; // stamped from the registered company below
+                }
                 $value = $get($field);
                 if ($field === 'ic_passport' && $value === null && $passportFallbackIndex !== null) {
                     $value = trim((string) ($row[$passportFallbackIndex] ?? '')) ?: null;
@@ -528,8 +547,8 @@ class VendorList extends BaseController
                 'resident'                       => $get('resident'),
                 'card_type'                      => $cardType,
                 'location_access'                => implode(',', $locations),
-                'vendor_company_reg_id'          => $get('vendor_company_reg_id'),
-                'vendor_company_name'            => $get('vendor_company_name'),
+                'vendor_company_reg_id'          => $lockedCompany ? $lockedCompany['registration_no'] : $get('vendor_company_reg_id'),
+                'vendor_company_name'            => $lockedCompany ? $lockedCompany['name'] : $get('vendor_company_name'),
                 'in_out_bound'                   => $get('in_out_bound'),
                 'full_name'                      => $get('full_name'),
                 'name_on_vendor_pass'            => $get('name_on_vendor_pass'),

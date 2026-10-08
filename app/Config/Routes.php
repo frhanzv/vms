@@ -378,11 +378,6 @@ $routes->group('', ['filter' => [$plusAdminOfficer, 'client_feature:staff_pass']
     $routes->post('staffpassrequest/update/(:num)', 'StaffPassRequest::update/$1');
 });
 
-// ===========================
-// Vendor Pass — shared with a self-registered vendor company account
-// (their own "Online Vendor List" + Request form only)
-// ===========================
-
 $routes->group('', ['filter' => [$plusAdminOfficerVendor, 'client_feature:vendor_pass']], function ($routes) {
     $routes->get('vendors', 'VendorList::index');
     $routes->get('vendors/export', 'VendorList::export');

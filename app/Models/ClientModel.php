@@ -15,7 +15,7 @@ class ClientModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['name', 'pass_name', 'code', 'registration_no', 'address', 'contact_no', 'email', 'status', 'version'];
+    protected $allowedFields    = ['name', 'code', 'registration_no', 'address', 'contact_no', 'email', 'status', 'version'];
 
     protected $useTimestamps = true;
     protected $dateFormat    = 'datetime';
@@ -70,24 +70,5 @@ class ClientModel extends Model
         }
 
         return $this->countAllResults();
-    }
-
-    /**
-     * Looks up an already-admin-registered company by its SSM No
-     * (registration_no) for the public vendor self-registration form —
-     * "KPK admin will first register your company in the system" (ACMS
-     * manual, Company Registration). Only active companies are findable
-     * this way.
-     */
-    public function findByRegistrationNo(string $ssmNo): ?array
-    {
-        $ssmNo = trim($ssmNo);
-        if ($ssmNo === '') {
-            return null;
-        }
-
-        return $this->where('registration_no', $ssmNo)
-            ->where('status', 'active')
-            ->first();
     }
 }

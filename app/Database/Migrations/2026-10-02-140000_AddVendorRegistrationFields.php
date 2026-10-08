@@ -8,12 +8,10 @@ use CodeIgniter\Database\Migration;
  * Supports the vendor company self-registration flow (ACMS User Manual
  * 2.0.0, section 1.0 "Company Registration"): a new vendor company's
  * administrator registers their own login account against a company the
- * KPK admin has already pre-registered in Clients, matched by SSM No
- * (clients.registration_no).
+ * KPK admin has already pre-registered under Config > Company Management,
+ * matched by SSM No (companies.registration_no). ("Company Name In Port
+ * Pass" lives on companies too — see 2026-10-02-140400.)
  *
- * - clients.pass_name: "Company Name In Port Pass" — shown on the
- *   registration form as a second, separate field from the company's
- *   legal name (clients.name), both auto-filled from the SSM lookup.
  * - users.ic_number: the administrator's IC Number, collected at
  *   registration and also used (along with username) by "forgot password".
  * - users.activation_token / activation_token_expires_at: a self-registered
@@ -24,17 +22,6 @@ class AddVendorRegistrationFields extends Migration
 {
     public function up()
     {
-        if (! $this->db->fieldExists('pass_name', 'clients')) {
-            $this->forge->addColumn('clients', [
-                'pass_name' => [
-                    'type'       => 'VARCHAR',
-                    'constraint' => 255,
-                    'null'       => true,
-                    'after'      => 'name',
-                ],
-            ]);
-        }
-
         if (! $this->db->fieldExists('ic_number', 'users')) {
             $this->forge->addColumn('users', [
                 'ic_number' => [
@@ -80,10 +67,6 @@ class AddVendorRegistrationFields extends Migration
 
     public function down()
     {
-        if ($this->db->fieldExists('pass_name', 'clients')) {
-            $this->forge->dropColumn('clients', 'pass_name');
-        }
-
         foreach (['activation_token_expires_at', 'activation_token', 'ic_number'] as $col) {
             if ($this->db->fieldExists($col, 'users')) {
                 $this->forge->dropColumn('users', $col);

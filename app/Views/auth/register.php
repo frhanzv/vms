@@ -81,6 +81,14 @@
                 </div>
             </div>
 
+            <div id="clientWrap" class="hidden flex flex-col gap-2">
+                <label class="text-sm font-semibold" for="client_id">Client you are working with</label>
+                <select class="form-select rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#101922] h-12 px-4 text-base" id="client_id" name="client_id">
+                    <option value="">Select client</option>
+                </select>
+                <p class="text-xs text-slate-500 dark:text-slate-400">The passes you request will be submitted to this client.</p>
+            </div>
+
             <hr class="border-slate-200 dark:border-slate-700"/>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -130,14 +138,31 @@
     const baseUrl = '<?= rtrim(base_url(), '/') ?>';
     const csrfToken = '<?= csrf_hash() ?>';
     const csrfName = '<?= csrf_token() ?>';
+    const previousClientId = '<?= esc((string) old('client_id'), 'js') ?>';
 
-    document.getElementById('searchCompanyBtn').addEventListener('click', function () {
+    const msg = document.getElementById('searchMsg');
+    const clientWrap = document.getElementById('clientWrap');
+    const clientSelect = document.getElementById('client_id');
+
+    function showMsg(text, ok) {
+        msg.textContent = text;
+        msg.className = 'mb-6 p-4 rounded-lg text-sm ' + (ok
+            ? 'bg-green-50 text-green-800 dark:bg-green-900/20 dark:text-green-200'
+            : 'bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-200');
+        msg.classList.remove('hidden');
+    }
+
+    function clearCompany() {
+        document.getElementById('company_name').value = '';
+        document.getElementById('company_pass_name').value = '';
+        clientWrap.classList.add('hidden');
+        clientSelect.innerHTML = '<option value="">Select client</option>';
+    }
+
+    function searchCompany(quiet) {
         const ssmNo = document.getElementById('ssm_no').value.trim();
-        const msg = document.getElementById('searchMsg');
         if (!ssmNo) {
-            msg.textContent = 'Please enter your company SSM No first.';
-            msg.className = 'mb-6 p-4 rounded-lg text-sm bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-200';
-            msg.classList.remove('hidden');
+            if (!quiet) showMsg('Please enter your company SSM No first.', false);
             return;
         }
 
@@ -147,25 +172,42 @@
         fetch(`${baseUrl}/register/search-company`, { method: 'POST', body })
             .then(r => r.json())
             .then(res => {
-                if (res.success) {
-                    document.getElementById('company_name').value = res.name;
-                    document.getElementById('company_pass_name').value = res.pass_name;
-                    msg.textContent = 'Company found: ' + res.name;
-                    msg.className = 'mb-6 p-4 rounded-lg text-sm bg-green-50 text-green-800 dark:bg-green-900/20 dark:text-green-200';
-                } else {
-                    document.getElementById('company_name').value = '';
-                    document.getElementById('company_pass_name').value = '';
-                    msg.textContent = res.message || 'Company not found.';
-                    msg.className = 'mb-6 p-4 rounded-lg text-sm bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-200';
+                if (!res.success) {
+                    clearCompany();
+                    if (!quiet) showMsg(res.message || 'Company not found.', false);
+                    return;
                 }
-                msg.classList.remove('hidden');
+
+                document.getElementById('company_name').value = res.name;
+                document.getElementById('company_pass_name').value = res.pass_name;
+
+                clientSelect.innerHTML = '<option value="">Select client</option>';
+                (res.clients || []).forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.id;
+                    opt.textContent = c.name;
+                    clientSelect.appendChild(opt);
+                });
+                if ((res.clients || []).length === 1) {
+                    clientSelect.value = res.clients[0].id;
+                } else if (previousClientId) {
+                    clientSelect.value = previousClientId;
+                }
+                clientWrap.classList.remove('hidden');
+
+                if (!quiet) showMsg('Company found: ' + res.name, true);
             })
             .catch(() => {
-                msg.textContent = 'Network error while searching. Please try again.';
-                msg.className = 'mb-6 p-4 rounded-lg text-sm bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-200';
-                msg.classList.remove('hidden');
+                if (!quiet) showMsg('Network error while searching. Please try again.', false);
             });
-    });
+    }
+
+    document.getElementById('searchCompanyBtn').addEventListener('click', () => searchCompany(false));
+
+    // Coming back from a failed submit: refill the company + client choices.
+    if (document.getElementById('ssm_no').value.trim() !== '') {
+        searchCompany(true);
+    }
 </script>
 </body>
 </html>

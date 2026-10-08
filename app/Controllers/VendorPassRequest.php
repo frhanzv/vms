@@ -35,6 +35,7 @@ class VendorPassRequest extends BaseController
             'required'        => $this->vendorFieldRequired(),
             'locationOptions' => (new VendorLocationModel())->getActiveOptions(),
             'stateOptions'    => self::STATE_OPTIONS,
+            'lockedCompany'   => $this->vendorAccountCompany(),
         ];
 
         return view('vendors/vendorpassrequest', $data);
@@ -57,6 +58,12 @@ class VendorPassRequest extends BaseController
 
         $isDraft  = (bool) $this->request->getPost('save_as_draft');
         $formData = $this->collectFormData($appNo, $isDraft);
+
+        helper('vendor_company');
+        if (is_vendor_admin() && ! current_vendor_company()) {
+            return redirect()->back()->withInput()
+                ->with('error', 'Your account is not linked to an active company. Please contact the administrator.');
+        }
 
         if (! $isDraft) {
             $missing = $this->validateRequiredFields();
@@ -93,7 +100,7 @@ class VendorPassRequest extends BaseController
     {
         helper('privacy');
         $db     = \Config\Database::connect();
-        $vendor = $db->table('vendors')->where('id', (int) $id)->get()->getRowArray();
+        $vendor = $this->loadScopedVendor((int) $id);
 
         if (!$vendor) {
             return redirect()->to(base_url('vendors'))->with('error', 'Vendor pass record not found.');
@@ -118,10 +125,14 @@ class VendorPassRequest extends BaseController
         }
 
         $db     = \Config\Database::connect();
-        $vendor = $db->table('vendors')->where('id', (int) $id)->get()->getRowArray();
+        $vendor = $this->loadScopedVendor((int) $id);
 
         if (!$vendor) {
             return redirect()->to(base_url('vendors'))->with('error', 'Vendor pass record not found.');
+        }
+
+        if ($blocked = $this->vendorAccountEditBlock($vendor)) {
+            return redirect()->to(base_url('vendors'))->with('error', $blocked);
         }
 
         $countryModel = new \App\Models\CountryModel();
@@ -140,6 +151,7 @@ class VendorPassRequest extends BaseController
             'licenses'        => $licenses,
             'locationOptions' => (new VendorLocationModel())->getActiveOptions(),
             'stateOptions'    => self::STATE_OPTIONS,
+            'lockedCompany'   => $this->vendorAccountCompany(),
         ]);
     }
 
@@ -152,10 +164,17 @@ class VendorPassRequest extends BaseController
 
         $db = \Config\Database::connect();
 
+        $current = $this->loadScopedVendor((int) $id);
+        if (! $current) {
+            return $this->response->setStatusCode(404, 'Vendor pass record not found.');
+        }
+        if ($blocked = $this->vendorAccountEditBlock($current)) {
+            return redirect()->to(base_url('vendors'))->with('error', $blocked);
+        }
+
         $appNo = trim($this->request->getPost('app_no') ?? '');
         if (empty($appNo)) {
-            $existing = $db->table('vendors')->where('id', (int) $id)->select('app_no')->get()->getRow();
-            $appNo    = $existing?->app_no ?? '';
+            $appNo = (string) ($current['app_no'] ?? '');
         }
 
         $isDraft  = (bool) $this->request->getPost('save_as_draft');
@@ -200,7 +219,7 @@ class VendorPassRequest extends BaseController
         $locations = (array) ($this->request->getPost('location_access') ?? []);
         $locations = array_values(array_intersect($locations, array_keys((new VendorLocationModel())->getActiveOptions())));
 
-        return [
+        return $this->lockForVendorAccount([
             'app_no'                        => $appNo,
 
             // Application Info
@@ -258,7 +277,83 @@ class VendorPassRequest extends BaseController
             'pass_expiry'                   => $r('pass_expiry') ?: null,
             'status'                        => $isDraft ? 'Draft' : ($r('status') ?: 'Pending'),
             'remark'                        => $r('remark'),
-        ];
+        ], $isDraft);
+    }
+
+    // ---------------------------------------------------------------------
+    // Vendor company accounts (role vendor_admin)
+    // ---------------------------------------------------------------------
+
+    /** The logged-in vendor account's own company, or null for everyone else. */
+    private function vendorAccountCompany(): ?array
+    {
+        helper('vendor_company');
+        return is_vendor_admin() ? current_vendor_company() : null;
+    }
+
+    /**
+     * Loads one vendors row the current user is allowed to see: same client
+     * (unless platform superadmin) and, for a vendor company account, only
+     * its own company's records.
+     */
+    private function loadScopedVendor(int $id): ?array
+    {
+        helper(['feature', 'vendor_company']);
+
+        $builder = \Config\Database::connect()->table('vendors')->where('id', $id);
+        if (! is_platform_superadmin()) {
+            $builder->where('company_id', current_company_id());
+        }
+        apply_vendor_company_scope($builder);
+
+        return $builder->get()->getRowArray() ?: null;
+    }
+
+    /**
+     * A vendor company can only change a request while it is still theirs to
+     * change; once KPK staff have approved it / started processing it, it is
+     * locked. Returns an error message, or null when editing is fine.
+     */
+    private function vendorAccountEditBlock(array $vendor): ?string
+    {
+        helper('vendor_company');
+        if (! is_vendor_admin()) {
+            return null;
+        }
+
+        if (! in_array((string) ($vendor['status'] ?? ''), ['Draft', 'Pending', 'Rejected'], true)) {
+            return 'This request can no longer be edited because it has already been processed.';
+        }
+
+        return null;
+    }
+
+    /**
+     * For a vendor company account: stamp its registered company on the
+     * record (ignoring whatever was posted), force the status to Draft or
+     * Pending (they can never approve their own request) and drop the
+     * KPK-side e-vetting fields. Everyone else's data passes through.
+     */
+    private function lockForVendorAccount(array $formData, bool $isDraft): array
+    {
+        helper('vendor_company');
+        if (! is_vendor_admin()) {
+            return $formData;
+        }
+
+        $company = current_vendor_company();
+        if ($company) {
+            $formData['vendor_company_reg_id'] = $company['registration_no'];
+            $formData['vendor_company_name']   = $company['name'];
+        }
+
+        $formData['status'] = $isDraft ? 'Draft' : 'Pending';
+
+        foreach (['evetting_date_of_application', 'evetting_date_of_result', 'evetting_result'] as $key) {
+            unset($formData[$key]);
+        }
+
+        return $formData;
     }
 
     /**

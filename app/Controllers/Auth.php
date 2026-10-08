@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Models\UserModel;
 use App\Models\SettingModel;
 use App\Models\ClientModel;
+use App\Models\CompanyModel;
 
 class Auth extends BaseController
 {
@@ -128,6 +129,10 @@ class Auth extends BaseController
                 'admin'            => '/visitors',
                 'officer'          => '/workflow',
                 'host'             => '/invitations',
+                // Self-registered vendor company accounts have no real use
+                // for the staff dashboard — their whole reach is their own
+                // Online Vendor List, so send them straight there.
+                'vendor_admin'     => '/vendors',
             ];
             $destination = $redirectMap[$role] ?? '/dashboard';
             return redirect()->to($destination)->with('success', 'Login successful!');
@@ -148,11 +153,15 @@ class Auth extends BaseController
     }
 
     // =========================================================================
-    // Vendor company self-registration (ACMS manual section on Online Vendor
-    // registration). A registering company must already exist as a `clients`
-    // row (pre-registered by KPK with its SSM No) — this flow creates the
-    // company's FIRST login account (role: vendor_admin) against that row,
-    // it does not create the company itself.
+    // Vendor company self-registration.
+    //
+    // A vendor is a COMPANY (Config > Company Management, `companies` table)
+    // that deals with a CLIENT (the tenant, `clients` table — e.g. GXO). The
+    // company must already be registered by an administrator; this flow
+    // creates that company's first LOGIN ACCOUNT (role: vendor_admin), linked
+    // to the company (users.company_id) and to the client it deals with
+    // (users.client_id). That account can then add its own employees' vendor
+    // pass requests — only ever for its own company.
     // =========================================================================
 
     public function register()
@@ -166,9 +175,35 @@ class Auth extends BaseController
         ]);
     }
 
+    /** Active clients a vendor can choose to register with: [{id, name}]. */
+    private function activeClientOptions(): array
+    {
+        $rows = (new ClientModel())->where('status', 'active')->orderBy('name', 'ASC')->findAll();
+
+        return array_map(
+            static fn(array $c) => ['id' => (int) $c['id'], 'name' => (string) $c['name']],
+            $rows
+        );
+    }
+
+    /** True when this company already has a vendor account (by SSM username or by company link). */
+    private function companyHasAccount(array $company): bool
+    {
+        $userModel = new UserModel();
+
+        if ($userModel->where('username', (string) $company['registration_no'])->first()) {
+            return true;
+        }
+
+        return (bool) $userModel
+            ->where('company_id', (int) $company['id'])
+            ->where('role', 'vendor_admin')
+            ->first();
+    }
+
     /**
      * AJAX: look up a company by SSM No so the form can auto-fill its name
-     * before the applicant commits to registering.
+     * (and offer the clients to register with) before the applicant commits.
      */
     public function searchCompany()
     {
@@ -177,17 +212,15 @@ class Auth extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'Please enter your company SSM No.']);
         }
 
-        $client = (new ClientModel())->findByRegistrationNo($ssmNo);
-        if (! $client) {
+        $company = (new CompanyModel())->findByRegistrationNo($ssmNo);
+        if (! $company) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'We could not find a company with that SSM No. Please contact KPK to have your company registered first.',
+                'message' => 'We could not find a company with that SSM No. Please contact the administrator to have your company registered first.',
             ]);
         }
 
-        $userModel = new UserModel();
-        $existingAccount = $userModel->where('username', $ssmNo)->first();
-        if ($existingAccount) {
+        if ($this->companyHasAccount($company)) {
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'An account already exists for this company. Please log in, or use "Forgot Password" if you cannot remember the password.',
@@ -196,17 +229,18 @@ class Auth extends BaseController
 
         return $this->response->setJSON([
             'success'   => true,
-            'name'      => $client['name'],
-            'pass_name' => $client['pass_name'] ?? $client['name'],
+            'name'      => $company['name'],
+            'pass_name' => ($company['pass_name'] ?? '') !== '' ? $company['pass_name'] : $company['name'],
+            'clients'   => $this->activeClientOptions(),
         ]);
     }
 
     public function doRegister()
     {
         $ssmNo        = trim((string) $this->request->getPost('ssm_no'));
+        $clientId     = (int) $this->request->getPost('client_id');
         $password     = (string) $this->request->getPost('password');
         $email        = trim((string) $this->request->getPost('email'));
-        $country      = trim((string) $this->request->getPost('country'));
         $fullName     = trim((string) $this->request->getPost('full_name'));
         $icNumber     = trim((string) $this->request->getPost('ic_number'));
         $contactNo    = trim((string) $this->request->getPost('contact_no'));
@@ -221,13 +255,18 @@ class Auth extends BaseController
         if ($contactNo === '') { $errors[] = 'Contact Number is required.'; }
         if (! $agreedTerms) { $errors[] = 'You must accept the Terms & Conditions to register.'; }
 
-        $client = $ssmNo !== '' ? (new ClientModel())->findByRegistrationNo($ssmNo) : null;
+        $company = $ssmNo !== '' ? (new CompanyModel())->findByRegistrationNo($ssmNo) : null;
+        if (! $company) {
+            $errors[] = 'We could not find a company with that SSM No. Please contact the administrator to have your company registered first.';
+        }
+
+        $client = $clientId > 0 ? (new ClientModel())->where('id', $clientId)->where('status', 'active')->first() : null;
         if (! $client) {
-            $errors[] = 'We could not find a company with that SSM No. Please contact KPK to have your company registered first.';
+            $errors[] = 'Please choose the client you are registering with.';
         }
 
         $userModel = new UserModel();
-        if ($ssmNo !== '' && $userModel->where('username', $ssmNo)->first()) {
+        if ($company && $this->companyHasAccount($company)) {
             $errors[] = 'An account already exists for this company.';
         }
         if ($email !== '' && $userModel->where('email', $email)->first()) {
@@ -241,9 +280,9 @@ class Auth extends BaseController
         $token = bin2hex(random_bytes(32));
 
         $ok = $userModel->insert([
-            'client_id'                    => $client['id'],
-            'company_id'                   => $client['id'],
-            'username'                     => $ssmNo,
+            'client_id'                    => (int) $client['id'],
+            'company_id'                   => (int) $company['id'],
+            'username'                     => (string) $company['registration_no'],
             'email'                        => $email,
             'password'                     => $password,
             'full_name'                    => $fullName,
@@ -259,9 +298,9 @@ class Auth extends BaseController
             return redirect()->back()->withInput()->with('error', 'Could not complete registration: ' . implode(' ', $userModel->errors() ?: ['Please check your details and try again.']));
         }
 
-        $this->sendActivationEmail($email, $fullName, $client['name'], $token);
+        $this->sendActivationEmail($email, $fullName, (string) $company['name'], $token);
 
-        return redirect()->to(base_url('login'))->with('success', 'Registration received. Please check your email (' . $email . ') for an activation link before logging in.');
+        return redirect()->to(base_url('login'))->with('success', 'Registration received. Please check your email (' . $email . ') for an activation link before logging in. Your username is your company SSM No.');
     }
 
     private function sendActivationEmail(string $toEmail, string $fullName, string $companyName, string $token): void

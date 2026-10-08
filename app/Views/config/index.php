@@ -7227,16 +7227,9 @@
                         class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Registration Number (SSM No)</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Registration Number</label>
                     <input type="text" id="clientRegistrationNo" value="${escapeHtml(data.registration_no || '')}"
                         class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2">
-                    <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Used as the login username when this company self-registers for a Vendor Pass account, and to look the company up on the public Register page.</p>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Company Name In Port Pass</label>
-                    <input type="text" id="clientPassName" value="${escapeHtml(data.pass_name || '')}"
-                        class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2">
-                    <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Shown on the printed Vendor Pass and during self-registration. Leave blank to fall back to Client Name.</p>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Address</label>
@@ -7314,7 +7307,6 @@
                 name: document.getElementById('clientName').value.trim(),
                 code: document.getElementById('clientCode').value.trim(),
                 registration_no: document.getElementById('clientRegistrationNo').value.trim(),
-                pass_name: document.getElementById('clientPassName').value.trim(),
                 address: document.getElementById('clientAddress').value.trim(),
                 contact_no: document.getElementById('clientContactNo').value.trim(),
                 email: document.getElementById('clientEmail').value.trim(),
@@ -7539,10 +7531,16 @@
                                 <div id="companyNameError" class="text-red-500 text-sm mt-1 hidden"></div>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Registration Number</label>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Registration Number (SSM No)</label>
                                 <input type="text" id="companyRegistrationNo" name="registration_no"
                                     class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2 focus:ring-primary focus:border-primary">
                                 <div id="companyRegistrationNoError" class="text-red-500 text-sm mt-1 hidden"></div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Company Name In Port Pass</label>
+                                <input type="text" id="companyPassName" name="pass_name"
+                                    class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2 focus:ring-primary focus:border-primary">
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Name printed on the pass. Leave blank to use the Company Name.</p>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Address</label>
@@ -7617,10 +7615,16 @@
                                             <div id="companyNameError" class="text-red-500 text-sm mt-1 hidden"></div>
                                         </div>
                                         <div>
-                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Registration Number</label>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Registration Number (SSM No)</label>
                                             <input type="text" id="companyRegistrationNo" name="registration_no" value="${escapeHtml(data.data.registration_no || '')}"
                                                 class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2 focus:ring-primary focus:border-primary">
                                             <div id="companyRegistrationNoError" class="text-red-500 text-sm mt-1 hidden"></div>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Company Name In Port Pass</label>
+                                            <input type="text" id="companyPassName" name="pass_name" value="${escapeHtml(data.data.pass_name || '')}"
+                                                class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2 focus:ring-primary focus:border-primary">
+                                            <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Name printed on the pass. Leave blank to use the Company Name.</p>
                                         </div>
                                         <div>
                                             <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Address</label>
@@ -7702,6 +7706,7 @@
             const formData = {
                 name: document.getElementById('companyName').value,
                 registration_no: document.getElementById('companyRegistrationNo').value,
+                pass_name: document.getElementById('companyPassName').value,
                 address: document.getElementById('companyAddress').value,
                 contact_no: document.getElementById('companyContactNo').value,
                 email: document.getElementById('companyEmail').value,

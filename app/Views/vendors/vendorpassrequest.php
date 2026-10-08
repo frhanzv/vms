@@ -203,11 +203,19 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <div class="space-y-2">
                             <label class="<?= $labelClass ?>">Company Registration ID<?= $req('vendor_company') ?></label>
+                            <?php if (! empty($lockedCompany)): ?>
+                            <input name="vendor_company_reg_id" value="<?= esc($lockedCompany['registration_no']) ?>" class="<?= $inputClass ?> bg-gray-100 dark:bg-gray-800 cursor-not-allowed" type="text" maxlength="100" readonly/>
+                            <?php else: ?>
                             <input name="vendor_company_reg_id" value="<?= $v('vendor_company_reg_id') ?>" class="<?= $inputClass ?>" type="text" maxlength="100"/>
+                            <?php endif; ?>
                         </div>
                         <div class="space-y-2">
                             <label class="<?= $labelClass ?>">Company Name<?= $req('vendor_company') ?></label>
+                            <?php if (! empty($lockedCompany)): ?>
+                            <input name="vendor_company_name" value="<?= esc($lockedCompany['name']) ?>" class="<?= $inputClass ?> bg-gray-100 dark:bg-gray-800 cursor-not-allowed" type="text" maxlength="255" readonly/>
+                            <?php else: ?>
                             <input name="vendor_company_name" value="<?= $v('vendor_company_name') ?>" class="<?= $inputClass ?>" type="text" maxlength="255"/>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </section>
@@ -437,7 +445,7 @@
                             </div>
                         </div>
                         <?php endif; ?>
-                        <?php if ($on('evetting')): ?>
+                        <?php if ($on('evetting') && empty($lockedCompany)): ?>
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
                             <div class="space-y-2">
                                 <label class="<?= $labelClass ?>">E-Vetting Date Of Application</label>

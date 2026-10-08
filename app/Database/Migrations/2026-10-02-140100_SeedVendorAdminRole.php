@@ -26,7 +26,6 @@ class SeedVendorAdminRole extends Migration
         }
 
         $access = [
-            'dashboard'        => ['main_menu' => true],
             'vendor_pass_list' => ['view' => true, 'edit' => true],
         ];
 

@@ -15,7 +15,7 @@ class CompanyModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['name', 'registration_no', 'address', 'contact_no', 'email', 'status', 'version'];
+    protected $allowedFields    = ['name', 'pass_name', 'registration_no', 'address', 'contact_no', 'email', 'status', 'version'];
 
     protected bool $allowEmptyInserts = false;
     protected bool $updateOnlyChanged = true;
@@ -33,6 +33,7 @@ class CompanyModel extends Model
     // Validation
     protected $validationRules      = [
         'name' => 'required|min_length[3]|max_length[255]',
+        'pass_name' => 'permit_empty|max_length[255]',
         'registration_no' => 'permit_empty|max_length[100]',
         'address' => 'permit_empty|max_length[500]',
         'contact_no' => 'permit_empty|max_length[20]',
@@ -69,7 +70,7 @@ class CompanyModel extends Model
      */
     public function getCompaniesWithPagination($search = '', $sortBy = '', $limit = 10, $offset = 0)
     {
-        $builder = $this->select('id, name, registration_no, address, contact_no, email, status, created_at');
+        $builder = $this->select('id, name, pass_name, registration_no, address, contact_no, email, status, created_at');
         
         if (!empty($search)) {
             $builder->groupStart()
@@ -115,5 +116,22 @@ class CompanyModel extends Model
         }
         
         return $this->countAllResults();
+    }
+
+    /**
+     * Looks up an admin-registered company by its SSM No (registration_no)
+     * for the public vendor self-registration page. Only ACTIVE companies
+     * are findable, and the match is exact after trimming.
+     */
+    public function findByRegistrationNo(string $ssmNo): ?array
+    {
+        $ssmNo = trim($ssmNo);
+        if ($ssmNo === '') {
+            return null;
+        }
+
+        return $this->where('registration_no', $ssmNo)
+            ->where('status', 'active')
+            ->first();
     }
 }
