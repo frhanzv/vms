@@ -55,7 +55,14 @@ class DashboardCards extends BaseController
             return redirect()->to(base_url('config/dashboard-cards'))->with('error', 'Please choose a client first.');
         }
 
-        $ok = $this->store('client', $clientId, (array) $this->request->getPost('cards'));
+        $ok = true;
+        foreach (dash_card_registry() as $dash => $def) {
+            $shown  = (array) ($this->request->getPost('cards')[$dash] ?? []);
+            $keys   = array_keys($def['cards']);
+            $order  = dash_card_order($dash, $clientId, 0);          // keep the client's existing order
+            $hidden = array_values(array_diff($keys, $shown));
+            $ok     = $this->store('client', $clientId, $dash, $order, $hidden) && $ok;
+        }
         $to = base_url('config/dashboard-cards') . (is_platform_superadmin() ? '?client_id=' . $clientId : '');
 
         return $ok
@@ -63,47 +70,81 @@ class DashboardCards extends BaseController
             : redirect()->to($to)->with('error', 'Could not save. Please try again.');
     }
 
-    /** A user's own choice for one dashboard (the Customize panel). */
+    /**
+     * The Customize drawer on a dashboard (JSON in, JSON out).
+     *   scope "me"     — this user's own order / hidden cards
+     *   scope "client" — the whole client's order / hidden cards (client superadmin only)
+     *   reset          — forget this user's (or the client's) choices for the dashboard
+     */
     public function saveMine()
     {
         helper(['dashboard_nav', 'dashboard_cards', 'feature', 'access', 'vendor_company', 'role']);
 
-        $dash = (string) $this->request->getPost('dashboard');
-        if (! isset(dash_card_registry()[$dash]) || ! dashboard_tab_allowed($dash)) {
-            return redirect()->to(base_url('dashboard'))->with('error', 'You are not allowed to customise that dashboard.');
+        $in   = $this->request->getJSON(true) ?: $this->request->getPost();
+        $dash = (string) ($in['dashboard'] ?? '');
+        $reg  = dash_card_registry();
+
+        if (! isset($reg[$dash]) || ! dashboard_tab_allowed($dash)) {
+            return $this->response->setStatusCode(403)->setJSON(['success' => false, 'message' => 'You are not allowed to customise that dashboard.']);
         }
 
-        $userId = (int) session()->get('user_id');
-        $posted = (array) ($this->request->getPost('cards')[$dash] ?? []);
-        if ($this->request->getPost('reset')) {
-            $posted = array_keys(dash_card_registry()[$dash]['cards']);
+        $scope = (string) ($in['scope'] ?? 'me');
+        if ($scope === 'client') {
+            if (! is_client_superadmin() || (int) current_client_id() <= 0) {
+                return $this->response->setStatusCode(403)->setJSON(['success' => false, 'message' => 'Only the client administrator can change this for everyone.']);
+            }
+            $type = 'client';
+            $id   = (int) current_client_id();
+        } else {
+            $type = 'user';
+            $id   = (int) session()->get('user_id');
         }
 
-        // Only cards the client allows can be switched on by a user.
-        $this->store('user', $userId, [$dash => array_values(array_filter($posted, static fn($k) => dash_card_allowed($dash, (string) $k)))], $dash);
+        $db = \Config\Database::connect();
+        if (! empty($in['reset'])) {
+            $db->table('dashboard_card_settings')->where(['scope_type' => $type, 'scope_id' => $id, 'dashboard_key' => $dash])->delete();
 
-        return redirect()->to(base_url($dash === 'visitor' ? 'dashboard' : 'dashboard/' . $dash));
+            return $this->response->setJSON(['success' => true]);
+        }
+
+        $known  = array_keys($reg[$dash]['cards']);
+        $order  = array_values(array_filter((array) ($in['order'] ?? []), static fn($k) => in_array($k, $known, true)));
+        $hidden = array_values(array_filter((array) ($in['hidden'] ?? []), static fn($k) => in_array($k, $known, true)));
+
+        // A user can only arrange cards the client allows.
+        if ($type === 'user') {
+            $order = array_values(array_filter($order, static fn($k) => dash_card_allowed($dash, $k)));
+        }
+
+        $ok = $this->store($type, $id, $dash, $order, $hidden);
+
+        return $this->response->setJSON(['success' => $ok, 'message' => $ok ? '' : 'Could not save. Please try again.']);
     }
 
-    /** @param array<string, list<string>> $shownByDash  dashboard => [shown card keys] */
-    private function store(string $scopeType, int $scopeId, array $shownByDash, ?string $only = null): bool
+    /**
+     * Write one scope's cards for a dashboard.
+     *
+     * @param list<string> $order   keys in display order (position = index)
+     * @param list<string> $hidden  keys switched off
+     */
+    private function store(string $scopeType, int $scopeId, string $dash, array $order, array $hidden): bool
     {
         $db  = \Config\Database::connect();
         $now = date('Y-m-d H:i:s');
+        $hasOrder = $db->fieldExists('sort_order', 'dashboard_card_settings');
+        $pos = array_flip($order);
+
         $db->transStart();
-        foreach (dash_card_registry() as $dash => $def) {
-            if ($only !== null && $dash !== $only) {
-                continue;
+        foreach ($order as $key) {
+            $where = ['scope_type' => $scopeType, 'scope_id' => $scopeId, 'dashboard_key' => $dash, 'card_key' => $key];
+            $data  = ['is_visible' => in_array($key, $hidden, true) ? 0 : 1, 'updated_at' => $now];
+            if ($hasOrder) {
+                $data['sort_order'] = $pos[$key];
             }
-            $shown = (array) ($shownByDash[$dash] ?? []);
-            foreach (array_keys($def['cards']) as $key) {
-                $where   = ['scope_type' => $scopeType, 'scope_id' => $scopeId, 'dashboard_key' => $dash, 'card_key' => $key];
-                $visible = in_array($key, $shown, true) ? 1 : 0;
-                if ($db->table('dashboard_card_settings')->where($where)->countAllResults() > 0) {
-                    $db->table('dashboard_card_settings')->where($where)->update(['is_visible' => $visible, 'updated_at' => $now]);
-                } else {
-                    $db->table('dashboard_card_settings')->insert($where + ['is_visible' => $visible, 'created_at' => $now, 'updated_at' => $now]);
-                }
+            if ($db->table('dashboard_card_settings')->where($where)->countAllResults() > 0) {
+                $db->table('dashboard_card_settings')->where($where)->update($data);
+            } else {
+                $db->table('dashboard_card_settings')->insert($where + $data + ['created_at' => $now]);
             }
         }
         $db->transComplete();

@@ -1,6 +1,6 @@
 <?php
 helper(['access', 'navigation', 'branding', 'feature']);
-$current     = app_route_path();
+$current     = app_route_path($current ?? null); // report pages pass their own path
 $isDashboard = ($current === '' || $current === 'dashboard');
 $isEmap      = str_starts_with($current, 'e-map');
 $isStaff     = str_contains($current, 'staffs') || str_contains($current, 'staff-pass-request');
@@ -45,20 +45,29 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
                 <p class="text-sm <?= $on ? 'font-semibold' : 'font-medium' ?>">Dashboard</p>
             </a>
             <?php elseif (count($dashTabs) > 1): ?>
-            <details class="group/dash" <?= $dashActive !== '' ? 'open' : '' ?>>
-                <summary class="flex cursor-pointer list-none items-center gap-3 px-3 py-2.5 rounded-lg <?= $dashActive !== '' ? 'text-primary' : 'text-slate-600 dark:text-slate-400' ?> hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors">
-                    <span class="material-symbols-outlined text-[22px]">dashboard</span>
-                    <p class="flex-1 text-sm font-medium">Dashboard</p>
-                    <span class="material-symbols-outlined text-[18px] transition-transform group-open/dash:rotate-180">expand_more</span>
-                </summary>
-                <div class="mt-1 ml-5 flex flex-col gap-1 border-l border-slate-200 pl-3 dark:border-slate-700">
+            <div x-data="{ openDash: <?= $dashActive !== '' ? 'true' : 'false' ?> }">
+                <button type="button" @click="openDash = !openDash"
+                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= $dashActive !== '' ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
+                    <div class="flex items-center gap-3">
+                        <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">dashboard</span>
+                        <p class="text-sm font-medium">Dashboard</p>
+                    </div>
+                    <span class="material-symbols-outlined text-[18px] transition-transform duration-200" :class="openDash ? 'rotate-180' : ''">expand_more</span>
+                </button>
+                <div x-show="openDash"
+                    x-transition:enter="transition ease-out duration-200"
+                    x-transition:enter-start="opacity-0 -translate-y-1"
+                    x-transition:enter-end="opacity-100 translate-y-0"
+                    class="ml-4 mt-1 flex flex-col gap-1">
                     <?php foreach ($dashTabs as $t): $on = $dashActive === $t['key']; ?>
-                    <a class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm <?= $on ? 'bg-primary/10 font-semibold text-primary' : 'font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white' ?> transition-colors" href="<?= esc($t['url'], 'attr') ?>">
-                        <span class="material-symbols-outlined text-[18px]"><?= esc($t['icon']) ?></span><?= esc($t['label']) ?>
+                    <a href="<?= esc($t['url'], 'attr') ?>"
+                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $on ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
+                        <span class="material-symbols-outlined text-[18px]"><?= esc($t['icon']) ?></span>
+                        <?= esc($t['label']) ?>
                     </a>
                     <?php endforeach; ?>
                 </div>
-            </details>
+            </div>
             <?php endif; ?>
 
             <!-- E-Map -->
@@ -118,12 +127,34 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
             </div>
             <?php endif; ?>
 
-            <!-- Staff Pass List -->
+            <!-- Staff Pass List (KPK staff pass pipeline) -->
             <?php if (client_feature_enabled('staff_pass') && has_access('staff_pass_list', 'view')): ?>
-            <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?= $isStaff ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white' ?> transition-colors group" href="<?= base_url('staffs') ?>">
-                <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">badge</span>
-                <p class="text-sm <?= $isStaff ? 'font-semibold' : 'font-medium' ?>">Staff Pass List</p>
-            </a>
+            <?php $isStaff = $isStaff || str_contains($current, 'staffpassrequest'); ?>
+            <div x-data="{ openStaff: <?= $isStaff ? 'true' : 'false' ?> }">
+                <button type="button" @click="openStaff = !openStaff"
+                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= $isStaff ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
+                    <div class="flex items-center gap-3">
+                        <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">badge</span>
+                        <p class="text-sm font-medium">Staff Pass List</p>
+                    </div>
+                    <span class="material-symbols-outlined text-[18px] transition-transform duration-200" :class="openStaff ? 'rotate-180' : ''">expand_more</span>
+                </button>
+                <div x-show="openStaff" class="ml-4 mt-1 flex flex-col gap-1">
+                    <?php foreach ([
+                        'staffs'               => 'Staff List',
+                        'staffs/process-list'  => 'Process List',
+                        'staffs/printing-list' => 'Printing List',
+                        'staffs/issuance-list' => 'Issuance List',
+                        'staffs/closed-list'   => 'Closed List',
+                    ] as $staffPath => $staffLabel): $on = $current === $staffPath; ?>
+                    <a href="<?= base_url($staffPath) ?>"
+                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $on ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
+                        <span class="w-1.5 h-1.5 rounded-full <?= $on ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
+                        <?= $staffLabel ?>
+                    </a>
+                    <?php endforeach; ?>
+                </div>
+            </div>
             <?php endif; ?>
 
             <!-- Vendor Pass List -->
@@ -317,14 +348,6 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
             <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?= $isListCols ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white' ?> transition-colors group" href="<?= base_url('config/list-columns') ?>">
                 <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">view_column</span>
                 <p class="text-sm <?= $isListCols ? 'font-semibold' : 'font-medium' ?>">List Columns</p>
-            </a>
-            <?php endif; ?>
-
-            <!-- Dashboard Cards (which cards a client's dashboards have) -->
-            <?php if (is_platform_superadmin() || is_client_superadmin()): $isDashCards = str_contains($current, 'config/dashboard-cards'); ?>
-            <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?= $isDashCards ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white' ?> transition-colors group" href="<?= base_url('config/dashboard-cards') ?>">
-                <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">widgets</span>
-                <p class="text-sm <?= $isDashCards ? 'font-semibold' : 'font-medium' ?>">Dashboard Cards</p>
             </a>
             <?php endif; ?>
 

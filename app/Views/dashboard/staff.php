@@ -34,6 +34,7 @@ $staffUrl = static fn(string $search = ''): string => base_url('staffs') . ($sea
     </script>
     <style>body { font-family: 'Montserrat', sans-serif; }</style>
     <?= view('partials/dashboard_viz_assets', ['part' => 'head']) ?>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white overflow-hidden">
 <div class="flex h-screen w-full">
@@ -69,22 +70,31 @@ $staffUrl = static fn(string $search = ''): string => base_url('staffs') . ($sea
             <!-- KPIs -->
             <section class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Key numbers">
                 <?php if (dash_card('staff', 'kpi_total')): ?>
+                <div class="[&>*]:h-full" style="order: <?= dash_card_pos('staff', 'kpi_total') ?>">
                 <?= dash_stat('Total staff', $total, $active . ' active', 'badge', 'info', $staffUrl()) ?>
+                </div>
                 <?php endif; ?>
                 <?php if (dash_card('staff', 'kpi_cards_active')): ?>
+                <div class="[&>*]:h-full" style="order: <?= dash_card_pos('staff', 'kpi_cards_active') ?>">
                 <?= dash_stat('Active pass cards', $cardsActive, $withoutCard . ' staff without a card', 'credit_card', 'good') ?>
+                </div>
                 <?php endif; ?>
                 <?php if (dash_card('staff', 'kpi_cards_expiring')): ?>
+                <div class="[&>*]:h-full" style="order: <?= dash_card_pos('staff', 'kpi_cards_expiring') ?>">
                 <?= dash_stat('Cards expiring ≤ 30 days', $cardsExpiring, $cardsExpired . ' already expired', 'event_upcoming', $cardsExpiring > 0 ? 'warn' : 'neutral') ?>
+                </div>
                 <?php endif; ?>
                 <?php if (dash_card('staff', 'kpi_docs_expiring')): ?>
+                <div class="[&>*]:h-full" style="order: <?= dash_card_pos('staff', 'kpi_docs_expiring') ?>">
                 <?= dash_stat('Documents expiring ≤ 30 days', $docsExpiring, 'Licences, permits and similar', 'description', $docsExpiring > 0 ? 'warn' : 'neutral') ?>
+                </div>
                 <?php endif; ?>
             </section>
 
             <!-- Charts -->
             <section class="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
                 <?php if (dash_card('staff', 'chart_status')): ?>
+                <div class="[&>*]:h-full" style="order: <?= dash_card_pos('staff', 'chart_status') ?>">
                 <div class="rounded-xl border border-slate-200 bg-surface-light p-5 shadow-sm dark:border-slate-700 dark:bg-surface-dark">
                     <h3 class="mb-4 text-sm font-bold">Staff by status</h3>
                     <?= dash_stacked([
@@ -93,9 +103,11 @@ $staffUrl = static fn(string $search = ''): string => base_url('staffs') . ($sea
                         ['label' => 'Inactive / other', 'value' => $inactive],
                     ], 'Staff by status') ?>
                 </div>
+                </div>
                 <?php endif; ?>
 
                 <?php if (dash_card('staff', 'chart_card_health')): ?>
+                <div class="[&>*]:h-full" style="order: <?= dash_card_pos('staff', 'chart_card_health') ?>">
                 <div class="rounded-xl border border-slate-200 bg-surface-light p-5 shadow-sm dark:border-slate-700 dark:bg-surface-dark">
                     <h3 class="mb-4 text-sm font-bold">Pass card health</h3>
                     <?= dash_hbars([
@@ -105,17 +117,21 @@ $staffUrl = static fn(string $search = ''): string => base_url('staffs') . ($sea
                         ['label' => 'Staff without card',  'value' => $withoutCard],
                     ], 'staff', 'Pass card health') ?>
                 </div>
+                </div>
                 <?php endif; ?>
 
                 <?php if (dash_card('staff', 'chart_monthly')): ?>
+                <div class="[&>*]:h-full" style="order: <?= dash_card_pos('staff', 'chart_monthly') ?>">
                 <div class="rounded-xl border border-slate-200 bg-surface-light p-5 shadow-sm dark:border-slate-700 dark:bg-surface-dark">
                     <h3 class="mb-1 text-sm font-bold">New staff per month</h3>
                     <p class="mb-2 text-xs text-slate-500 dark:text-slate-400">Last 6 months</p>
                     <?= dash_columns($monthLabels, $monthValues, 'new staff', 'New staff per month') ?>
                 </div>
+                </div>
                 <?php endif; ?>
 
                 <?php if (dash_card('staff', 'chart_departments')): ?>
+                <div class="[&>*]:h-full" style="order: <?= dash_card_pos('staff', 'chart_departments') ?>">
                 <div class="rounded-xl border border-slate-200 bg-surface-light p-5 shadow-sm dark:border-slate-700 dark:bg-surface-dark">
                     <h3 class="mb-4 text-sm font-bold">Top departments</h3>
                     <?php
@@ -126,12 +142,14 @@ $staffUrl = static fn(string $search = ''): string => base_url('staffs') . ($sea
                     echo dash_hbars($deptItems, 'staff', 'Staff by department');
                     ?>
                 </div>
+                </div>
                 <?php endif; ?>
             </section>
 
             <!-- Tables -->
             <section class="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
                 <?php if (dash_card('staff', 'list_attention')): ?>
+                <div class="[&>*]:h-full" style="order: <?= dash_card_pos('staff', 'list_attention') ?>">
                 <div class="rounded-xl border border-slate-200 bg-surface-light p-5 shadow-sm dark:border-slate-700 dark:bg-surface-dark">
                     <h3 class="mb-3 text-sm font-bold">Needs attention</h3>
                     <?php if (empty($needsAttention)): ?>
@@ -148,9 +166,11 @@ $staffUrl = static fn(string $search = ''): string => base_url('staffs') . ($sea
                     </ul>
                     <?php endif; ?>
                 </div>
+                </div>
                 <?php endif; ?>
 
                 <?php if (dash_card('staff', 'list_expiring')): ?>
+                <div class="[&>*]:h-full" style="order: <?= dash_card_pos('staff', 'list_expiring') ?>">
                 <div class="rounded-xl border border-slate-200 bg-surface-light p-5 shadow-sm dark:border-slate-700 dark:bg-surface-dark">
                     <h3 class="mb-3 text-sm font-bold">Cards expiring soon</h3>
                     <?php if (empty($expiringCards)): ?>
@@ -167,9 +187,11 @@ $staffUrl = static fn(string $search = ''): string => base_url('staffs') . ($sea
                     </ul>
                     <?php endif; ?>
                 </div>
+                </div>
                 <?php endif; ?>
 
                 <?php if (dash_card('staff', 'list_recent')): ?>
+                <div class="[&>*]:h-full" style="order: <?= dash_card_pos('staff', 'list_recent') ?>">
                 <div class="rounded-xl border border-slate-200 bg-surface-light p-5 shadow-sm dark:border-slate-700 dark:bg-surface-dark">
                     <h3 class="mb-3 text-sm font-bold">Recent registrations</h3>
                     <?php if (empty($recent)): ?>
@@ -185,6 +207,7 @@ $staffUrl = static fn(string $search = ''): string => base_url('staffs') . ($sea
                         <?php endforeach; ?>
                     </ul>
                     <?php endif; ?>
+                </div>
                 </div>
                 <?php endif; ?>
             </section>

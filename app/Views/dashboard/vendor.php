@@ -36,6 +36,7 @@ $st = $stages;
     </script>
     <style>body { font-family: 'Montserrat', sans-serif; }</style>
     <?= view('partials/dashboard_viz_assets', ['part' => 'head']) ?>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white overflow-hidden">
 <div class="flex h-screen w-full">
@@ -81,21 +82,30 @@ $st = $stages;
 
             <section class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Key numbers">
                 <?php if (dash_card('vendor', 'kpi_total')): ?>
+                <div class="[&>*]:h-full" style="order: <?= dash_card_pos('vendor', 'kpi_total') ?>">
                 <?= dash_stat('Total applications', $total, 'All time', 'groups', 'info', $passUrl()) ?>
+                </div>
                 <?php endif; ?>
                 <?php if (dash_card('vendor', 'kpi_active')): ?>
+                <div class="[&>*]:h-full" style="order: <?= dash_card_pos('vendor', 'kpi_active') ?>">
                 <?= dash_stat('Active passes', $activePasses, $expired . ' expired', 'badge', 'good', $passUrl('Approved')) ?>
+                </div>
                 <?php endif; ?>
                 <?php if (dash_card('vendor', 'kpi_expiring')): ?>
+                <div class="[&>*]:h-full" style="order: <?= dash_card_pos('vendor', 'kpi_expiring') ?>">
                 <?= dash_stat('Expiring ≤ 30 days', $expiring, 'Active passes', 'event_upcoming', $expiring > 0 ? 'warn' : 'neutral') ?>
+                </div>
                 <?php endif; ?>
                 <?php if (dash_card('vendor', 'kpi_awaiting')): ?>
+                <div class="[&>*]:h-full" style="order: <?= dash_card_pos('vendor', 'kpi_awaiting') ?>">
                 <?= dash_stat($isVendorAccount ? 'Awaiting KPK' : 'Awaiting approval', $st['Pending'], $isVendorAccount ? ($st['Rejected'] . ' rejected · ' . $st['Draft'] . ' draft') : ($st['Rejected'] . ' rejected'), 'schedule', $st['Pending'] > 0 ? 'warn' : 'neutral', $passUrl('Pending')) ?>
+                </div>
                 <?php endif; ?>
             </section>
 
             <section class="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
                 <?php if (dash_card('vendor', 'chart_pipeline')): ?>
+                <div class="[&>*]:h-full" style="order: <?= dash_card_pos('vendor', 'chart_pipeline') ?>">
                 <div class="rounded-xl border border-slate-200 bg-surface-light p-5 shadow-sm dark:border-slate-700 dark:bg-surface-dark">
                     <h3 class="mb-1 text-sm font-bold">Pass pipeline</h3>
                     <p class="mb-3 text-xs text-slate-500 dark:text-slate-400">Where every application is right now</p>
@@ -114,17 +124,21 @@ $st = $stages;
                     echo dash_hbars($items, 'applications', 'Applications by pipeline stage');
                     ?>
                 </div>
+                </div>
                 <?php endif; ?>
 
                 <?php if (dash_card('vendor', 'chart_monthly')): ?>
+                <div class="[&>*]:h-full" style="order: <?= dash_card_pos('vendor', 'chart_monthly') ?>">
                 <div class="rounded-xl border border-slate-200 bg-surface-light p-5 shadow-sm dark:border-slate-700 dark:bg-surface-dark">
                     <h3 class="mb-1 text-sm font-bold">Applications per month</h3>
                     <p class="mb-2 text-xs text-slate-500 dark:text-slate-400">Last 6 months</p>
                     <?= dash_columns($monthLabels, $monthValues, 'applications', 'Applications per month') ?>
                 </div>
+                </div>
                 <?php endif; ?>
 
                 <?php if (dash_card('vendor', 'chart_worker_type')): ?>
+                <div class="[&>*]:h-full" style="order: <?= dash_card_pos('vendor', 'chart_worker_type') ?>">
                 <div class="rounded-xl border border-slate-200 bg-surface-light p-5 shadow-sm dark:border-slate-700 dark:bg-surface-dark">
                     <h3 class="mb-4 text-sm font-bold">Worker type</h3>
                     <?php
@@ -135,10 +149,12 @@ $st = $stages;
                     echo dash_stacked($seg, 'Applications by worker type');
                     ?>
                 </div>
+                </div>
                 <?php endif; ?>
 
                 <?php if (! $isVendorAccount): ?>
                 <?php if (dash_card('vendor', 'chart_companies')): ?>
+                <div class="[&>*]:h-full" style="order: <?= dash_card_pos('vendor', 'chart_companies') ?>">
                 <div class="rounded-xl border border-slate-200 bg-surface-light p-5 shadow-sm dark:border-slate-700 dark:bg-surface-dark">
                     <h3 class="mb-1 text-sm font-bold">Top vendor companies</h3>
                     <p class="mb-3 text-xs text-slate-500 dark:text-slate-400">By number of applications</p>
@@ -150,6 +166,7 @@ $st = $stages;
                     }
                     echo dash_hbars($ci, 'applications', 'Applications by vendor company');
                     ?>
+                </div>
                 </div>
                 <?php endif; ?>
                 <?php endif; ?>
@@ -164,7 +181,7 @@ $st = $stages;
                 ];
                 foreach ($lists as [$title, $data, $empty, $mode, $cardKey]):
                     if (! dash_card('vendor', $cardKey)) { continue; } ?>
-                <div class="rounded-xl border border-slate-200 bg-surface-light p-5 shadow-sm dark:border-slate-700 dark:bg-surface-dark">
+                <div style="order: <?= dash_card_pos('vendor', $cardKey) ?>" class="rounded-xl border border-slate-200 bg-surface-light p-5 shadow-sm dark:border-slate-700 dark:bg-surface-dark">
                     <h3 class="mb-3 text-sm font-bold"><?= esc($title) ?></h3>
                     <?php if (empty($data)): ?>
                         <p class="text-sm text-slate-500 dark:text-slate-400"><?= esc($empty) ?></p>
