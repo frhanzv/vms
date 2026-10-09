@@ -262,7 +262,9 @@ $routes->get('config/generateVisitorQr', 'Config::generateVisitorQr');
 // Protected Routes — All Roles
 // ===========================
 
-$routes->get('/', 'Dashboard::index');
+$routes->get('dashboard', 'Dashboard::index');
+$routes->get('config/list-columns',       'ListColumnConfig::index', ['filter' => 'role:superadmin,clientsuperadmin']);
+$routes->post('config/list-columns/save', 'ListColumnConfig::save',  ['filter' => 'role:superadmin,clientsuperadmin']);
 $routes->get('dashboard', 'Dashboard::index');
 $routes->get('dashboard/staff',  'DashboardStaff::index',  ['filter' => 'client_feature:staff_pass']);
 $routes->get('dashboard/vendor', 'DashboardVendor::index', ['filter' => 'client_feature:vendor_pass']);

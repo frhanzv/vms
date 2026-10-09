@@ -253,36 +253,37 @@ class VendorList extends BaseController
             ->get()
             ->getResultArray();
 
-        $handle = fopen('php://temp', 'w+');
-        fwrite($handle, "\xEF\xBB\xBF");
-        fputcsv($handle, [
-            'No', 'Date', 'App No', 'Full Name', 'IC/Passport', 'Vendor Company',
-            'Designation', 'Contact No', 'Email', 'Worker Type', 'Status',
-            'Awaiting', 'Pass Expiry', 'Remark',
-        ]);
-
+        helper('list_columns');
         $awaitingLabels = [
             'ksb_approve' => 'Awaiting KSB approval',
             'kpk_approve' => 'Awaiting KPK approval',
         ];
 
+        // Columns the client may not see on screen are left out of the file too.
+        // [heading, list-column key (null = export-only), value]
+        $columns = [
+            ['No',             'no',                  static fn($r, $i) => $i + 1],
+            ['Date',           'date',                static fn($r, $i) => ! empty($r['created_at']) ? date('d/m/Y', strtotime((string) $r['created_at'])) : ''],
+            ['App No',         'app_no',              static fn($r, $i) => $r['app_no'] ?? ''],
+            ['Full Name',      'full_name',           static fn($r, $i) => $r['full_name'] ?? ''],
+            ['IC/Passport',    'ic_passport',         static fn($r, $i) => mask_ic_passport($r['ic_no'] ?: ($r['passport_no'] ?? ''))],
+            ['Vendor Company', 'vendor_company_name', static fn($r, $i) => $r['vendor_company_name'] ?? ''],
+            ['Designation',    null,                  static fn($r, $i) => $r['designation'] ?? ''],
+            ['Contact No',     null,                  static fn($r, $i) => ! empty($r['contact_no']) ? '="' . $r['contact_no'] . '"' : ''],
+            ['Email',          null,                  static fn($r, $i) => $r['email'] ?? ''],
+            ['Worker Type',    null,                  static fn($r, $i) => $r['card_type'] ?? ''],
+            ['Status',         'status',              static fn($r, $i) => $r['status'] ?? ''],
+            ['Awaiting',       null,                  fn($r, $i) => $awaitingLabels[$r['next_action'] ?? ''] ?? ''],
+            ['Pass Expiry',    'pass_expiry',         static fn($r, $i) => ! empty($r['pass_expiry']) ? date('d/m/Y', strtotime((string) $r['pass_expiry'])) : ''],
+            ['Remark',         null,                  static fn($r, $i) => $r['remark'] ?? ''],
+        ];
+        $columns = array_values(array_filter($columns, static fn($c) => $c[1] === null || list_col('vendor_pass_list', $c[1])));
+
+        $handle = fopen('php://temp', 'w+');
+        fwrite($handle, "\xEF\xBB\xBF");
+        fputcsv($handle, array_column($columns, 0));
         foreach ($rows as $index => $row) {
-            fputcsv($handle, [
-                $index + 1,
-                ! empty($row['created_at']) ? date('d/m/Y', strtotime((string) $row['created_at'])) : '',
-                $row['app_no'] ?? '',
-                $row['full_name'] ?? '',
-                mask_ic_passport($row['ic_no'] ?: ($row['passport_no'] ?? '')),
-                $row['vendor_company_name'] ?? '',
-                $row['designation'] ?? '',
-                ! empty($row['contact_no']) ? '="' . $row['contact_no'] . '"' : '',
-                $row['email'] ?? '',
-                $row['card_type'] ?? '',
-                $row['status'] ?? '',
-                $awaitingLabels[$row['next_action'] ?? ''] ?? '',
-                ! empty($row['pass_expiry']) ? date('d/m/Y', strtotime((string) $row['pass_expiry'])) : '',
-                $row['remark'] ?? '',
-            ]);
+            fputcsv($handle, array_map(static fn($c) => $c[2]($row, $index), $columns));
         }
 
         rewind($handle);

@@ -1,3 +1,4 @@
+<?php helper('list_columns'); $col = static fn(string $k): bool => list_col('vendor_pass_list', $k); ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -158,21 +159,39 @@
                 <table class="w-full min-w-max text-left border-collapse">
                     <thead>
                         <tr class="bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs font-bold uppercase tracking-wide">
+                            <?php if ($col('no')): ?>
                             <th class="p-4 border-b dark:border-gray-600">No</th>
+                            <?php endif; ?>
+                            <?php if ($col('action')): ?>
                             <th class="p-4 border-b dark:border-gray-600">Action</th>
+                            <?php endif; ?>
+                            <?php if ($col('date')): ?>
                             <th class="p-4 border-b dark:border-gray-600">Date</th>
+                            <?php endif; ?>
+                            <?php if ($col('app_no')): ?>
                             <th class="p-4 border-b dark:border-gray-600">App No</th>
+                            <?php endif; ?>
+                            <?php if ($col('full_name')): ?>
                             <th class="p-4 border-b dark:border-gray-600">Full Name</th>
+                            <?php endif; ?>
+                            <?php if ($col('ic_passport')): ?>
                             <th class="p-4 border-b dark:border-gray-600">IC / Passport No</th>
+                            <?php endif; ?>
+                            <?php if ($col('vendor_company_name')): ?>
                             <th class="p-4 border-b dark:border-gray-600">Vendor Company</th>
+                            <?php endif; ?>
+                            <?php if ($col('status')): ?>
                             <th class="p-4 border-b dark:border-gray-600">Status</th>
+                            <?php endif; ?>
+                            <?php if ($col('pass_expiry')): ?>
                             <th class="p-4 border-b dark:border-gray-600">Pass Expiry</th>
+                            <?php endif; ?>
                         </tr>
                     </thead>
                     <tbody class="text-xs text-gray-600 dark:text-gray-300 font-medium">
                         <?php if (empty($vendorList)): ?>
                         <tr>
-                            <td colspan="9" class="p-8 text-center">
+                            <td colspan="<?= list_col_count('vendor_pass_list') ?>" class="p-8 text-center">
                                 <div class="flex flex-col items-center justify-center gap-3">
                                     <div class="bg-gray-100 dark:bg-gray-800 rounded-full p-4">
                                         <span class="material-symbols-outlined text-4xl text-gray-400 dark:text-gray-500">folder_off</span>
@@ -195,7 +214,10 @@
                             ?>
                             <?php foreach ($vendorList as $vendor): ?>
                             <tr class="border-b border-gray-100 dark:border-gray-700">
+                                <?php if ($col('no')): ?>
                                 <td class="p-4"><?= $vendor['no'] ?></td>
+                                <?php endif; ?>
+                                <?php if ($col('action')): ?>
                                 <td class="p-4">
                                     <div class="flex items-center gap-2">
                                         <button
@@ -237,11 +259,23 @@
                                         <?php endif; ?>
                                     </div>
                                 </td>
+                                <?php endif; ?>
+                                <?php if ($col('date')): ?>
                                 <td class="p-4"><?= esc($vendor['date']) ?></td>
+                                <?php endif; ?>
+                                <?php if ($col('app_no')): ?>
                                 <td class="p-4"><?= esc($vendor['app_no']) ?></td>
+                                <?php endif; ?>
+                                <?php if ($col('full_name')): ?>
                                 <td class="p-4 font-semibold text-gray-800 dark:text-white"><?= esc($vendor['full_name']) ?></td>
+                                <?php endif; ?>
+                                <?php if ($col('ic_passport')): ?>
                                 <td class="p-4"><?= esc(mask_ic_passport($vendor['ic_passport'])) ?></td>
+                                <?php endif; ?>
+                                <?php if ($col('vendor_company_name')): ?>
                                 <td class="p-4"><?= esc($vendor['vendor_company_name']) ?></td>
+                                <?php endif; ?>
+                                <?php if ($col('status')): ?>
                                 <td class="p-4">
                                     <span class="px-2.5 py-1 rounded-full text-[11px] font-bold <?= $badgeClass[$vendor['status']] ?? 'bg-gray-100 text-gray-700' ?>">
                                         <?= esc($vendor['status']) ?>
@@ -250,7 +284,10 @@
                                     <p class="text-[10px] text-gray-400 mt-1"><?= esc($vendor['awaiting']) ?></p>
                                     <?php endif; ?>
                                 </td>
+                                <?php endif; ?>
+                                <?php if ($col('pass_expiry')): ?>
                                 <td class="p-4"><?= esc($vendor['pass_expiry']) ?></td>
+                                <?php endif; ?>
                             </tr>
                             <?php endforeach; ?>
                         <?php endif; ?>
