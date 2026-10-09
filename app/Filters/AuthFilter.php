@@ -16,8 +16,8 @@ class AuthFilter implements FilterInterface
      * self-registered account just because nobody remembered to restrict it.
      */
     private const VENDOR_ADMIN_ALLOWED = [
-        '#^dashboard/vendor$#',
-        '#^dashboard/cards/mine$#',   // Customize panel on their own dashboard        // their own (company-scoped) dashboard
+        '#^dashboard/vendor$#',        // their own (company-scoped) dashboard
+        '#^dashboard/cards/mine$#',    // Customize drawer on their own dashboard
         '#^vendors$#',
         '#^vendors/export$#',
         '#^vendors/import$#',
