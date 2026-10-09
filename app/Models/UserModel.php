@@ -15,7 +15,7 @@ class UserModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['client_id', 'company_id', 'username', 'email', 'password', 'full_name', 'staff_id', 'contact_no', 'ic_number', 'activation_token', 'activation_token_expires_at', 'role', 'is_active', 'receive_email_notifications', 'profile_photo', 'version'];
+    protected $allowedFields    = ['client_id', 'company_id', 'username', 'email', 'password', 'full_name', 'staff_id', 'contact_no', 'ic_number', 'activation_token', 'activation_token_expires_at', 'verified_at', 'verified_by', 'role', 'is_active', 'receive_email_notifications', 'profile_photo', 'version'];
 
     // Dates
     protected $useTimestamps = true;
@@ -37,12 +37,26 @@ class UserModel extends Model
     // Callbacks
     protected $allowCallbacks = true;
     protected $beforeInsert   = ['hashPassword'];
-    protected $beforeUpdate   = ['hashPassword'];
+    protected $beforeUpdate   = ['hashPassword', 'stampVerification'];
 
     protected function hashPassword(array $data)
     {
         if (isset($data['data']['password'])) {
             $data['data']['password'] = password_hash($data['data']['password'], PASSWORD_DEFAULT);
+        }
+
+        return $data;
+    }
+
+    /**
+     * Whenever an account is switched to Active (from the Verify button OR the
+     * Edit User form), remember that it has been verified — so a later
+     * deactivation is never mistaken for a registration still waiting.
+     */
+    protected function stampVerification(array $data)
+    {
+        if (isset($data['data']['is_active']) && (int) $data['data']['is_active'] === 1 && ! array_key_exists('verified_at', $data['data'])) {
+            $data['data']['verified_at'] = date('Y-m-d H:i:s');
         }
 
         return $data;
@@ -78,7 +92,7 @@ class UserModel extends Model
     public function getUsersWithPagination($search = '', $sortBy = '', $limit = 10, $offset = 0, ?int $clientId = null)
     {
         helper('role');
-        $builder = $this->select('users.id, users.username, users.email, users.full_name, users.staff_id, users.contact_no, users.role, users.is_active, users.client_id, users.company_id, users.created_at, clients.name AS client_name')
+        $builder = $this->select('users.id, users.username, users.email, users.full_name, users.staff_id, users.contact_no, users.role, users.is_active, users.verified_at, users.client_id, users.company_id, users.created_at, clients.name AS client_name, (SELECT c.name FROM companies c WHERE c.id = users.company_id) AS company_name, (SELECT c.registration_no FROM companies c WHERE c.id = users.company_id) AS company_reg_no')
             ->join('clients', 'clients.id = users.client_id', 'left');
 
         if ($clientId !== null && $clientId > 0) {
@@ -173,30 +187,6 @@ class UserModel extends Model
         }
         
         return $this->countAllResults();
-    }
-
-    /**
-     * Looks up a pending self-registration by its activation token — used
-     * by Auth::activate(). Expired tokens are not matched (caller gets null
-     * and can tell the person it expired vs. was never valid).
-     */
-    public function findByActivationToken(string $token): ?array
-    {
-        $token = trim($token);
-        if ($token === '') {
-            return null;
-        }
-
-        $user = $this->where('activation_token', $token)->first();
-        if (! $user) {
-            return null;
-        }
-
-        if (! empty($user['activation_token_expires_at']) && strtotime($user['activation_token_expires_at']) < time()) {
-            return null;
-        }
-
-        return $user;
     }
 
     /**

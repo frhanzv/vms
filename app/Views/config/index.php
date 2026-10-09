@@ -6633,16 +6633,18 @@
             }
 
             tbody.innerHTML = users.map((user, index) => {
+                // A vendor company that registered itself and is still waiting for an admin.
+                const isPending = user.role === 'vendor_admin' && user.is_active != 1 && !user.verified_at;
                 const statusClass = user.is_active == 1
                     ? 'bg-green-500/20 text-green-400'
-                    : 'bg-gray-500/20 text-gray-400';
-                const statusText = user.is_active == 1 ? 'Active' : 'Inactive';
+                    : (isPending ? 'bg-amber-500/20 text-amber-600' : 'bg-gray-500/20 text-gray-400');
+                const statusText = user.is_active == 1 ? 'Active' : (isPending ? 'Pending verification' : 'Inactive');
                 const borderClass = index < users.length - 1 ? 'border-b border-gray-100 dark:border-slate-700' : '';
 
                 return `
                     <tr class="${borderClass} hover:bg-gray-100 dark:hover:bg-slate-700/30">
                         <td class="px-4 py-3 font-medium">${escapeHtml(user.username)}</td>
-                        <td class="px-4 py-3">${escapeHtml(user.full_name)}</td>
+                        <td class="px-4 py-3">${escapeHtml(user.full_name)}${user.company_name ? `<span class="block text-xs text-gray-500 dark:text-slate-400">${escapeHtml(user.company_name)}</span>` : ''}</td>
                         <td class="px-4 py-3">${escapeHtml(user.staff_id || '-')}</td>
                         <td class="px-4 py-3">${escapeHtml(user.email)}</td>
                         <td class="px-4 py-3">${escapeHtml(user.contact_no || '-')}</td>
@@ -6651,7 +6653,10 @@
                         <td class="px-4 py-3">
                             <span class="px-2 py-1 ${statusClass} rounded text-xs font-semibold">${statusText}</span>
                         </td>
-                        <td class="px-4 py-3">
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            ${isPending ? `<button onclick="verifyVendorAccount(${user.id}, '${escapeHtml(user.company_name || user.username)}')" class="mr-2 inline-flex items-center gap-1 rounded bg-primary px-2 py-1 text-xs font-bold text-white hover:bg-primary/90" title="Verify this vendor account so it can log in">
+                                <span class="material-symbols-outlined text-sm">verified</span>Verify
+                            </button>` : ''}
                             <button onclick="openEditUserModal(${user.id})" class="text-primary hover:text-primary/80 mr-2" title="Edit User">
                                 <span class="material-symbols-outlined text-base">edit</span>
                             </button>
@@ -6662,6 +6667,22 @@
                     </tr>
                 `;
             }).join('');
+        }
+
+        function verifyVendorAccount(id, label) {
+            if (!confirm('Verify the account for "' + label + '"? The vendor will be able to log in straight away.')) {
+                return;
+            }
+            fetch(`<?= base_url('config/verifyVendorAccount') ?>/${id}`, {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '<?= csrf_hash() ?>' }
+            })
+                .then(r => r.json())
+                .then(data => {
+                    alert(data.message || (data.success ? 'Verified.' : 'Could not verify.'));
+                    if (data.success) { loadUsers(currentUserPage, currentUserSearch, currentUserSort); }
+                })
+                .catch(() => alert('Could not verify this account. Please try again.'));
         }
 
         function updateUserPagination(pagination) {
@@ -17399,7 +17420,7 @@
                 headers: {
                     'Content-Type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
-                    '<?= csrf_header() ?>': '<?= csrf_hash() ?>'
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '<?= csrf_hash() ?>'
                 },
                 body: JSON.stringify({ name, service, api_key, description, status }),
             })
@@ -17461,7 +17482,7 @@
                 method: 'DELETE',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
-                    '<?= csrf_header() ?>': '<?= csrf_hash() ?>'
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '<?= csrf_hash() ?>'
                 }
             })
                 .then(r => r.json())
@@ -17494,7 +17515,7 @@
                 headers: {
                     'Content-Type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
-                    '<?= csrf_header() ?>': '<?= csrf_hash() ?>'
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '<?= csrf_hash() ?>'
                 },
                 body: JSON.stringify({
                     api_key_id: id,
@@ -17568,7 +17589,7 @@
                 headers: {
                     'Content-Type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
-                    '<?= csrf_header() ?>': '<?= csrf_hash() ?>'
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '<?= csrf_hash() ?>'
                 }
             })
             .then(async response => {
@@ -17658,7 +17679,7 @@
                 headers: {
                     'Content-Type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
-                    '<?= csrf_header() ?>': '<?= csrf_hash() ?>'
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '<?= csrf_hash() ?>'
                 },
                 body: JSON.stringify({ laravel_url: url })
             })

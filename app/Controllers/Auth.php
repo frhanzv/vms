@@ -137,6 +137,14 @@ class Auth extends BaseController
             $destination = $redirectMap[$role] ?? '/dashboard';
             return redirect()->to($destination)->with('success', 'Login successful!');
         } else {
+            // Tell a freshly registered vendor why they can't log in yet.
+            $pending = (new UserModel())
+                ->groupStart()->where('username', $usernameOrEmail)->orWhere('email', $usernameOrEmail)->groupEnd()
+                ->where('role', 'vendor_admin')->where('is_active', 0)->where('verified_at IS NULL', null, false)->first();
+            if ($pending && password_verify((string) $password, (string) $pending['password'])) {
+                return redirect()->back()->with('error', 'Your registration is still waiting to be verified by the administrator. You will be able to log in once it is verified.')->withInput();
+            }
+
             return redirect()->back()->with('error', 'Invalid username or password')->withInput();
         }
     }
@@ -277,8 +285,8 @@ class Auth extends BaseController
             return redirect()->back()->withInput()->with('error', implode(' ', $errors));
         }
 
-        $token = bin2hex(random_bytes(32));
-
+        // The account is created INACTIVE and waits in Config > User until an
+        // administrator verifies it (no email link — the admin is the gate).
         $ok = $userModel->insert([
             'client_id'                    => (int) $client['id'],
             'company_id'                   => (int) $company['id'],
@@ -290,57 +298,13 @@ class Auth extends BaseController
             'contact_no'                   => $contactNo,
             'role'                         => 'vendor_admin',
             'is_active'                    => 0,
-            'activation_token'             => $token,
-            'activation_token_expires_at'  => date('Y-m-d H:i:s', strtotime('+48 hours')),
         ]);
 
         if (! $ok) {
             return redirect()->back()->withInput()->with('error', 'Could not complete registration: ' . implode(' ', $userModel->errors() ?: ['Please check your details and try again.']));
         }
 
-        $this->sendActivationEmail($email, $fullName, (string) $company['name'], $token);
-
-        return redirect()->to(base_url('login'))->with('success', 'Registration received. Please check your email (' . $email . ') for an activation link before logging in. Your username is your company SSM No.');
-    }
-
-    private function sendActivationEmail(string $toEmail, string $fullName, string $companyName, string $token): void
-    {
-        $activationUrl = base_url('activate/' . $token);
-        $emailConfig   = config('Email');
-
-        $message = '
-            <p>Hello ' . esc($fullName) . ',</p>
-            <p>Thank you for registering <strong>' . esc($companyName) . '</strong> on the SafeG Vendor Pass system.</p>
-            <p>Please click the link below to activate your account. This link expires in 48 hours.</p>
-            <p><a href="' . $activationUrl . '">' . $activationUrl . '</a></p>
-            <p>If you did not request this, please ignore this email.</p>
-        ';
-
-        $email = \Config\Services::email();
-        $email->setMailType('html');
-        $email->setFrom($emailConfig->fromEmail, $emailConfig->fromName);
-        $email->setTo($toEmail);
-        $email->setSubject('Activate Your SafeG Vendor Account');
-        $email->setMessage($message);
-        $email->send();
-    }
-
-    public function activate($token)
-    {
-        $userModel = new UserModel();
-        $user      = $userModel->findByActivationToken((string) $token);
-
-        if (! $user) {
-            return redirect()->to(base_url('login'))->with('error', 'This activation link is invalid or has expired. Please contact KPK, or register again.');
-        }
-
-        $userModel->update($user['id'], [
-            'is_active'                   => 1,
-            'activation_token'            => null,
-            'activation_token_expires_at' => null,
-        ]);
-
-        return redirect()->to(base_url('login'))->with('success', 'Your account has been activated. You may now log in.');
+        return redirect()->to(base_url('login'))->with('success', 'Registration received. Your account now needs to be verified by the administrator. Once it is verified you can log in with your company SSM No as the username.');
     }
 
     public function forgotPassword()

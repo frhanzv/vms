@@ -560,11 +560,12 @@ $routes->group('', ['filter' => $plusAdminOfficer], function($routes) {
 $routes->group('config', ['filter' => $plusAdmin], function($routes) {
     $routes->get('lookupUserStaff', 'Config::lookupUserStaff');
     $routes->get('getUsers', 'Config::getUsers');
-    $routes->get('getUser/(:num)', 'Config::getUser/$1');
-    $routes->post('createUser', 'Config::createUser');
+    //$routes->get('getUser/(:num)', 'Config::getUser/$1');
+    //$routes->post('createUser', 'Config::createUser');
     $routes->post('updateUser/(:num)', 'Config::updateUser/$1');
-    $routes->delete('deleteUser/(:num)', 'Config::deleteUser/$1');
+    //$routes->delete('deleteUser/(:num)', 'Config::deleteUser/$1');
     $routes->get('getAllRoles', 'Config::getAllRoles');
+    $routes->post('verifyVendorAccount/(:num)', 'VendorAccountVerify::verify/$1');
 });
 
 // ===========================
