@@ -8,6 +8,11 @@ class StaffController extends BaseController
 {
     public function import()
     {
+        helper(['access', 'feature']);
+        if (! has_access('staff_pass_list', 'edit')) {
+            return redirect()->back()->with('error', 'You are not allowed to import staff records.');
+        }
+
         $file = $this->request->getFile('upload_file');
 
         if (!$file || !$file->isValid() || $file->hasMoved()) {
@@ -211,9 +216,17 @@ class StaffController extends BaseController
                 'type_of_application'          => $get('type_of_application'),
                 'date_of_application'          => $this->parseDate($get('date_of_application')) ?? $get('date_of_application') ?? $today,
                 'location_access'              => $get('location_access'),
-                'status'                       => $get('status'),
+                // KPK upload-staff-record: HR's sheet is the source of truth, so an
+                // imported staff pass skips approval (KPK puts it straight to
+                // CLOSED). Here it lands as Approved so the card can be printed
+                // from Process List. The sheet's Status column is the employee
+                // flag (Active / Inactive), not the pass workflow.
+                'status'                       => 'Approved',
+                'is_active'                    => strtolower((string) $get('status')) === 'inactive' ? 0 : 1,
+                'card_status'                  => 'Inactive',
+                'company_id'                   => current_company_id() ?: null,
                 'suspension_period'            => $get('suspension_period'),
-                'next_action'                  => $get('next_action'),
+                'next_action'                  => null,
                 'remark'                       => $get('remark'),
                 'csp_number'                   => $get('csp_number'),
                 'csp_expiry_date'              => $this->parseDate($get('csp_expiry_date')),
@@ -230,7 +243,18 @@ class StaffController extends BaseController
                 'created_at'                   => $now,
             ];
 
-            $db->table('staff')->insert($record);
+            $fields = $db->getFieldNames('staff');
+            $db->table('staff')->insert(array_intersect_key($record, array_flip($fields)));
+            $staffId = (int) $db->insertID();
+
+            if (($record['license_class'] || $record['license_expiry']) && $db->tableExists('staff_driving_licenses')) {
+                $db->table('staff_driving_licenses')->insert([
+                    'staff_id'       => $staffId,
+                    'license_class'  => $record['license_class'],
+                    'license_expiry' => $record['license_expiry'],
+                    'created_at'     => $now,
+                ]);
+            }
             $inserted++;
             $counter++;
         }

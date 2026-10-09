@@ -74,6 +74,29 @@
                 </p>
             </div>
 
+            <!-- Pass status (KPK staff pipeline) -->
+            <?php
+            $st = $staff['status'] ?: 'Pending';
+            $stCls = ['Draft' => 'bg-slate-100 text-slate-600', 'Pending' => 'bg-amber-50 text-amber-700', 'Approved' => 'bg-emerald-50 text-emerald-700', 'Rejected' => 'bg-red-50 text-red-700', 'Suspended' => 'bg-gray-100 text-gray-700'][$st] ?? 'bg-gray-100 text-gray-700';
+            ?>
+            <section class="mb-8 bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 flex flex-col md:flex-row gap-6 items-start">
+                <?php if (! empty($photoUrl)): ?>
+                <img src="<?= esc($photoUrl, 'attr') ?>" alt="" class="w-24 h-28 object-cover rounded border"/>
+                <?php endif; ?>
+                <div class="flex-1 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div><p class="text-xs text-text-sub uppercase">Pass Status</p><span class="inline-block mt-1 px-2.5 py-1 rounded-full text-xs font-bold <?= $stCls ?>"><?= esc($st) ?></span></div>
+                    <div><p class="text-xs text-text-sub uppercase">Card</p><p class="font-semibold mt-1"><?= esc($staff['card_status'] ?: 'Inactive') ?><?= ! empty($staff['receipt_no']) ? ' · ' . esc($staff['receipt_no']) : '' ?></p></div>
+                    <div><p class="text-xs text-text-sub uppercase">Employee</p><p class="font-semibold mt-1"><?= (int) ($staff['is_active'] ?? 1) === 1 ? 'Active' : 'Inactive' ?></p></div>
+                    <div><p class="text-xs text-text-sub uppercase">Approving Branch</p><p class="font-semibold mt-1"><?= esc($staff['access_branch'] ?: 'Any') ?></p></div>
+                    <?php if ($st === 'Rejected' && ! empty($staff['reject_reason'])): ?>
+                    <div class="col-span-2 md:col-span-4 text-red-600 text-xs">Rejected: <?= esc($staff['reject_reason']) ?></div>
+                    <?php endif; ?>
+                </div>
+                <?php if (in_array($st, ['Approved', 'Suspended'], true)): ?>
+                <a href="<?= base_url('staffs/card-info/' . (int) $staff['id']) ?>" class="px-4 py-2 rounded-lg bg-primary text-white text-sm font-bold">Pass / Card Details</a>
+                <?php endif; ?>
+            </section>
+
             <div class="space-y-8">
 
                 <!-- Application Information -->
@@ -306,7 +329,7 @@
                         <div class="flex flex-col gap-3">
                             <p class="text-sm font-medium text-text-main dark:text-gray-200 font-brand">IC / MyKad</p>
                             <?php if (!empty($staff['government_id'])): ?>
-                                <a href="<?= base_url('uploads/' . $staff['government_id']) ?>" target="_blank"
+                                <a href="<?= base_url('uploads/government_ids/' . basename($staff['government_id'])) ?>" target="_blank"
                                    class="flex items-center gap-3 p-4 rounded-xl border border-border-color dark:border-gray-700 hover:border-primary/40 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all">
                                     <span class="material-symbols-outlined text-3xl text-indigo-500">id_card</span>
                                     <div>
@@ -323,15 +346,21 @@
                         </div>
                         <div class="flex flex-col gap-3">
                             <p class="text-sm font-medium text-text-main dark:text-gray-200 font-brand">Other Documents</p>
-                            <?php if (!empty($staff['other_doc'])): ?>
-                                <a href="<?= base_url('uploads/' . $staff['other_doc']) ?>" target="_blank"
+                            <?php
+                            $otherDocs = json_decode((string) ($staff['other_doc'] ?? ''), true);
+                            if (! is_array($otherDocs)) { $otherDocs = ! empty($staff['other_doc']) ? [$staff['other_doc']] : []; }
+                            ?>
+                            <?php if ($otherDocs): ?>
+                                <?php foreach ($otherDocs as $doc): ?>
+                                <a href="<?= base_url('uploads/other_docs/' . basename((string) $doc)) ?>" target="_blank"
                                    class="flex items-center gap-3 p-4 rounded-xl border border-border-color dark:border-gray-700 hover:border-primary/40 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all">
                                     <span class="material-symbols-outlined text-3xl text-indigo-500">upload_file</span>
                                     <div>
-                                        <p class="text-sm font-semibold text-text-main dark:text-white font-brand"><?= esc(basename($staff['other_doc'])) ?></p>
+                                        <p class="text-sm font-semibold text-text-main dark:text-white font-brand"><?= esc(basename((string) $doc)) ?></p>
                                         <p class="text-xs text-primary font-brand">Click to view</p>
                                     </div>
                                 </a>
+                                <?php endforeach; ?>
                             <?php else: ?>
                                 <div class="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl">
                                     <span class="material-symbols-outlined text-3xl text-gray-300 dark:text-gray-600 mb-1">upload_file</span>
@@ -341,6 +370,33 @@
                         </div>
                     </div>
                 </section>
+
+                <?php if (! empty($licenses)): ?>
+                <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8">
+                    <h2 class="text-lg font-bold font-brand text-text-main dark:text-white mb-4">Driving License</h2>
+                    <ul class="text-sm space-y-1">
+                        <?php foreach ($licenses as $lic): ?>
+                        <li>Class <strong><?= esc($lic['license_class'] ?? '-') ?></strong> — expires <?= ! empty($lic['license_expiry']) ? esc(date('d/m/Y', strtotime($lic['license_expiry']))) : '-' ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </section>
+                <?php endif; ?>
+
+                <?php if (! empty($statusLogs)): ?>
+                <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 p-6 sm:p-8">
+                    <h2 class="text-lg font-bold font-brand text-text-main dark:text-white mb-4">Activity</h2>
+                    <ul class="text-sm space-y-2">
+                        <?php foreach ($statusLogs as $log): ?>
+                        <li><span class="text-text-sub"><?= esc(date('d/m/Y H:i', strtotime($log['created_at']))) ?></span> —
+                            <strong><?= esc(ucwords(str_replace('_', ' ', $log['action']))) ?></strong>
+                            <?= $log['to_status'] ? '→ ' . esc($log['to_status']) : '' ?>
+                            <?= $log['reject_reason'] ? ' · ' . esc($log['reject_reason']) : '' ?>
+                            <?= $log['remark'] ? ' · ' . esc($log['remark']) : '' ?>
+                            <span class="text-text-sub">(<?= esc($log['acted_by'] ?? '') ?>)</span></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </section>
+                <?php endif; ?>
 
                 <!-- Actions -->
                 <div class="flex items-center justify-end gap-4 py-6 border-t border-border-color dark:border-gray-800">

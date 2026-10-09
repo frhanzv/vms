@@ -86,12 +86,28 @@
         <div class="max-w-[960px] mx-auto">
             <!-- Page Header -->
                 <div class="mb-8 space-y-2">
-                    <h1 class="text-3xl sm:text-4xl font-black text-text-main dark:text-white font-brand tracking-tight"><?= isset($isEdit) ? 'Edit Staff' : 'Staff Pass Request' ?></h1>
+                    <h1 class="text-3xl sm:text-4xl font-black text-text-main dark:text-white font-brand tracking-tight"><?= ! empty($isRenew) ? 'Renew Staff Pass' : (isset($isEdit) ? 'Edit Staff' : 'Staff Pass Request') ?></h1>
+                    <?php if (! empty($isRenew)): ?>
+                    <p class="text-sm text-text-sub dark:text-gray-400 font-brand">Name, IC / passport and Staff No. stay as they are. The renewal goes back to Pending for approval; once approved a new card is printed and issued.</p>
+                    <?php endif; ?>
                 </div>
 
                 <form action="<?= base_url($formAction ?? 'staffs/staffpassrequest/store') ?>" method="post" enctype="multipart/form-data" class="space-y-8">
                     <?= csrf_field() ?>
+                    <?php if (session()->getFlashdata('error')): ?>
+                    <div class="flex items-start gap-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-800 dark:text-red-300 text-sm rounded-lg px-4 py-3">
+                        <span class="material-symbols-outlined text-[20px]">error</span>
+                        <span><?= esc(session()->getFlashdata('error')) ?></span>
+                    </div>
+                    <?php endif; ?>
+                    <?php if (($staff['status'] ?? '') === 'Rejected' && ! empty($staff['reject_reason'])): ?>
+                    <div class="bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-lg px-4 py-3">
+                        This request was rejected: <strong><?= esc($staff['reject_reason']) ?></strong>. Fix it and submit again to send it back for approval.
+                    </div>
+                    <?php endif; ?>
                     <?php
+                        $isRenew = ! empty($isRenew);
+                        $lock    = $isRenew ? 'readonly tabindex="-1" style="background:#f1f5f9"' : '';
                         $s    = $staff ?? [];
                         $v    = fn($f, $db = null) => esc(old($f, $s[$db ?? $f] ?? ''));
                         $sel  = fn($f, $val) => ($s[$f] ?? '') === $val ? 'selected' : '';
@@ -115,16 +131,21 @@
                             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Date Of Application</label>
-                                    <input name="date_of_application" value="<?= isset($isEdit) ? esc($s['date_of_application'] ?? '') : date('d/m/Y') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-gray-100 dark:bg-background-dark text-text-main dark:text-white px-4 outline-none font-brand" type="text" readonly/>
+                                    <input name="date_of_application" value="<?= isset($isEdit) && ! $isRenew ? esc($s['date_of_application'] ?? '') : date('d/m/Y') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-gray-100 dark:bg-background-dark text-text-main dark:text-white px-4 outline-none font-brand" type="text" readonly/>
                                 </div>
                                 <?php if ($fs['type_of_application'] ?? true): ?>
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Type Of Application</label>
+                                    <?php if ($isRenew): ?>
+                                    <input type="hidden" name="type_of_application" value="RENEWAL"/>
+                                    <input value="RENEWAL" class="w-full h-12 rounded-lg border-border-color bg-gray-100 dark:bg-background-dark text-text-main dark:text-white px-4 outline-none font-brand" readonly/>
+                                    <?php else: ?>
                                     <select name="type_of_application" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
                                         <option value="NEW" <?= $sel('type_of_application','NEW') ?>>NEW</option>
                                         <option value="RENEWAL" <?= $sel('type_of_application','RENEWAL') ?>>RENEWAL</option>
                                         <option value="REPLACEMENT" <?= $sel('type_of_application','REPLACEMENT') ?>>REPLACEMENT</option>
                                     </select>
+                                    <?php endif; ?>
                                 </div>
                                 <?php endif; ?>
                                 <?php if ($fs['designation'] ?? true): ?>
@@ -264,7 +285,7 @@
                         <div class="p-6 space-y-6">
 
                             <!-- Read MyKad Button -->
-                            <?php if ($mykadOcrEnabled ?? true): ?>
+                            <?php if (($mykadOcrEnabled ?? true) && ! $isRenew): ?>
                             <div>
                                 <button type="button" id="staff-mykad-btn" class="bg-success hover:bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-semibold uppercase shadow transition-all font-brand flex items-center gap-2">
                                     <span class="material-symbols-outlined text-base">credit_card</span>
@@ -278,13 +299,13 @@
                                 <?php if ($fs['ic_number'] ?? true): ?>
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">IC / Passport Number <span class="text-red-500">*</span></label>
-                                    <input name="ic_number" value="<?= $v('ic_number', 'ic_passport') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="Enter IC / Passport Number" type="text" required/>
+                                    <input name="ic_number" value="<?= $v('ic_number', 'ic_passport') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="Enter IC / Passport Number" type="text" required <?= $lock ?>/>
                                 </div>
                                 <?php endif; ?>
                                 <?php if ($fs['date_of_birth'] ?? true): ?>
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Date Of Birth <span class="text-red-500">*</span></label>
-                                    <input name="date_of_birth" value="<?= $v('date_of_birth') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="DD/MM/YYYY" type="date" required/>
+                                    <input name="date_of_birth" value="<?= $v('date_of_birth') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="DD/MM/YYYY" type="date" required <?= $lock ?>/>
                                 </div>
                                 <?php endif; ?>
                             </div>
@@ -303,7 +324,7 @@
                                 <?php if ($fs['full_name'] ?? true): ?>
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Full Name <span class="text-red-500">*</span></label>
-                                    <input name="full_name" value="<?= $v('full_name') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="Full name as per ID" type="text" required/>
+                                    <input name="full_name" value="<?= $v('full_name') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="Full name as per ID" type="text" required <?= $lock ?>/>
                                 </div>
                                 <?php endif; ?>
                                 <?php if ($fs['name_on_staff_pass'] ?? true): ?>
@@ -319,7 +340,7 @@
                                 <?php if ($fs['staff_no'] ?? true): ?>
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Staff No <span class="text-red-500">*</span></label>
-                                    <input name="staff_no" value="<?= $v('staff_no') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text" required/>
+                                    <input name="staff_no" value="<?= $v('staff_no') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text" required <?= $lock ?>/>
                                 </div>
                                 <?php endif; ?>
                                 <?php if ($fs['contact_number'] ?? true): ?>
@@ -343,12 +364,10 @@
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Department <span class="text-red-500">*</span></label>
                                     <select name="department" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" required>
                                         <option value="">SELECT</option>
-                                        <option value="EPIC" <?= $sel('department','EPIC') ?>>EPIC</option>
-                                        <option value="HR" <?= $sel('department','HR') ?>>HR</option>
-                                        <option value="FINANCE" <?= $sel('department','FINANCE') ?>>FINANCE</option>
-                                        <option value="OPERATIONS" <?= $sel('department','OPERATIONS') ?>>OPERATIONS</option>
-                                        <option value="IT" <?= $sel('department','IT') ?>>IT</option>
-                                        <option value="MAINTENANCE" <?= $sel('department','MAINTENANCE') ?>>MAINTENANCE</option>
+                                        <?php $deps = $departments ?? []; if (! empty($s['department']) && ! in_array($s['department'], $deps, true)) { $deps[] = $s['department']; } ?>
+                                        <?php foreach ($deps as $dep): ?>
+                                        <option value="<?= esc($dep, 'attr') ?>" <?= (old('department', $s['department'] ?? '')) === $dep ? 'selected' : '' ?>><?= esc($dep) ?></option>
+                                        <?php endforeach; ?>
                                     </select>
                                 </div>
                             </div>
@@ -429,6 +448,47 @@
                         </div>
                     </section>
 
+                    <!-- Approval, Photo & Remark (KPK staff form: branch office, photo, remark) -->
+                    <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 p-6 sm:p-8">
+                        <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
+                            <div class="size-10 rounded-full bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center text-emerald-600">
+                                <span class="material-symbols-outlined">verified_user</span>
+                            </div>
+                            <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Approval &amp; Photo</h2>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <?php if ($fs['access_branch'] ?? true): ?>
+                            <div class="space-y-2">
+                                <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Approving Branch</label>
+                                <select name="access_branch" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 outline-none font-brand">
+                                    <?php foreach (['' => 'Any approver', 'KSB' => 'KSB', 'KPK' => 'KPK', 'BOTH' => 'Both (KSB + KPK)'] as $bv => $bl): ?>
+                                    <option value="<?= $bv ?>" <?= old('access_branch', $s['access_branch'] ?? '') === $bv ? 'selected' : '' ?>><?= $bl ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <?php endif; ?>
+                            <div class="space-y-2">
+                                <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Visa / Work Permit Expiry <span class="text-xs text-text-sub">(foreigner)</span></label>
+                                <input name="visa_expiry" type="date" value="<?= $v('visa_expiry') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 outline-none font-brand"/>
+                            </div>
+                            <?php if ($fs['photo_upload'] ?? true): ?>
+                            <div class="space-y-2">
+                                <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Passport Photo <span class="text-xs text-text-sub">(needed before the card is printed)</span></label>
+                                <?php if (! empty($s['photo'])): ?>
+                                <img src="<?= base_url('uploads/staff_photos/' . esc($s['photo'], 'url')) ?>" alt="" class="w-16 h-20 object-cover rounded border mb-2"/>
+                                <?php endif; ?>
+                                <input name="photo" type="file" accept="image/png,image/jpeg" class="block w-full text-sm"/>
+                            </div>
+                            <?php endif; ?>
+                            <?php if ($fs['remark'] ?? true): ?>
+                            <div class="space-y-2 md:col-span-3">
+                                <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Remark</label>
+                                <textarea name="remark" rows="2" class="w-full rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 py-2 outline-none font-brand"><?= $v('remark') ?></textarea>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                    </section>
+
                     <!-- Driving License Section -->
                     <?php if ($fs['driving_license'] ?? true): ?>
                     <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 mt-8">
@@ -452,6 +512,16 @@
                                 </button>
                                 </div>
                             </div>
+                            <?php if (! empty($licenses)): ?>
+                            <div class="mb-4 text-sm">
+                                <p class="font-medium text-text-main dark:text-gray-200 mb-2"><?= $isRenew ? 'Current licenses (replaced if you add new ones below)' : 'Saved licenses' ?></p>
+                                <ul class="space-y-1">
+                                    <?php foreach ($licenses as $lic): ?>
+                                    <li class="text-text-sub dark:text-gray-400">Class <strong><?= esc($lic['license_class'] ?? '-') ?></strong> — expires <?= ! empty($lic['license_expiry']) ? esc(date('d/m/Y', strtotime($lic['license_expiry']))) : '-' ?></li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            </div>
+                            <?php endif; ?>
                             <div id="licenseContainer" class="flex flex-col gap-4">
                                 <div class="text-center py-8 text-text-sub dark:text-gray-400">
                                     <span class="material-symbols-outlined text-5xl mb-3 block text-gray-300 dark:text-gray-600">badge</span>
@@ -595,8 +665,13 @@
                         <button type="button" onclick="window.history.back()" class="px-6 py-3 rounded-lg border border-border-color dark:border-gray-700 text-text-main dark:text-gray-300 font-bold hover:bg-background-light dark:hover:bg-gray-800 transition-all font-brand">
                             Cancel
                         </button>
+                        <?php if (! $isRenew && in_array($s['status'] ?? 'Draft', ['Draft', ''], true)): ?>
+                        <button type="submit" name="save_as_draft" value="1" formnovalidate class="px-6 py-3 rounded-lg border border-primary text-primary font-bold hover:bg-blue-50 dark:hover:bg-gray-800 transition-all font-brand">
+                            Save as Draft
+                        </button>
+                        <?php endif; ?>
                         <button type="submit" class="px-8 py-3 rounded-lg bg-primary text-white font-bold hover:bg-primary-hover shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2 font-brand">
-                            <span><?= isset($isEdit) ? 'Save Changes' : 'Submit Request' ?></span>
+                            <span><?= $isRenew ? 'Submit Renewal' : (isset($isEdit) && ($s['status'] ?? '') !== 'Draft' ? 'Save Changes' : 'Submit Request') ?></span>
                             <span class="material-symbols-outlined text-sm"><?= isset($isEdit) ? 'save' : 'send' ?></span>
                         </button>
                     </div>

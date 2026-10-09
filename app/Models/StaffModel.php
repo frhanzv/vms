@@ -52,6 +52,23 @@ class StaffModel extends Model
         'visa_expiry',
         'license_class',
         'license_expiry',
+        // KPK staff pass pipeline (2026-10-09 migration)
+        'company_id',
+        'access_branch',
+        'reject_reason',
+        'is_active',
+        'photo',
+        'receipt_no',
+        'card_id',
+        'collector_name',
+        'collector_ic_passport',
+        'issued_by',
+        'issued_at',
+        'terminated_at',
+        'terminated_by',
+        'suspended_reason',
+        'renewed_at',
+        'updated_at',
     ];
 
     // Timestamps

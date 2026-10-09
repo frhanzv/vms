@@ -900,12 +900,24 @@ class KioskApi extends BaseController
         );
 
         $model = new StaffModel();
-        $staffQuery = $model->groupStart()
-            ->where('status', 'active')
-            ->orWhere('status', 'Active')
-            ->orWhere('status IS NULL', null, false)
-            ->orWhere('status', '')
-            ->groupEnd();
+        // Host lookup: any staff member still with the company. Since the KPK
+        // staff pipeline, `status` is the pass workflow (Pending / Approved /
+        // ...) and `is_active` is the employee flag.
+        $staffFields = \Config\Database::connect()->getFieldNames('staff');
+        if (in_array('is_active', $staffFields, true)) {
+            $staffQuery = $model->where('is_active', 1)
+                ->groupStart()
+                    ->where('status IS NULL', null, false)
+                    ->orWhereNotIn('status', ['Draft', 'Rejected', 'Suspended'])
+                ->groupEnd();
+        } else {
+            $staffQuery = $model->groupStart()
+                ->where('status', 'active')
+                ->orWhere('status', 'Active')
+                ->orWhere('status IS NULL', null, false)
+                ->orWhere('status', '')
+                ->groupEnd();
+        }
         if ($keyword !== '') {
             $staffQuery->groupStart()
                 ->like('staff_no', $keyword)

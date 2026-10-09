@@ -262,12 +262,8 @@ $routes->get('config/generateVisitorQr', 'Config::generateVisitorQr');
 // Protected Routes — All Roles
 // ===========================
 
+$routes->get('/', 'Dashboard::index');
 $routes->get('dashboard', 'Dashboard::index');
-$routes->get('config/list-columns',       'ListColumnConfig::index', ['filter' => 'role:superadmin,clientsuperadmin']);
-$routes->post('config/list-columns/save', 'ListColumnConfig::save',  ['filter' => 'role:superadmin,clientsuperadmin']);
-$routes->get('dashboard', 'Dashboard::index');
-$routes->get('dashboard/staff',  'DashboardStaff::index',  ['filter' => 'client_feature:staff_pass']);
-$routes->get('dashboard/vendor', 'DashboardVendor::index', ['filter' => 'client_feature:vendor_pass']);
 $routes->post('dashboard/acknowledgeAlert', 'Dashboard::acknowledgeAlert');
 $routes->get('dashboard/trafficData', 'Dashboard::trafficData');
 $routes->get('dashboard/hostVisitorsData', 'Dashboard::hostVisitorsData');
@@ -372,32 +368,48 @@ $routes->group('', ['filter' => [$plusAdminHost, 'client_feature:auto_approve_af
 // ===========================
 
 $routes->group('', ['filter' => [$plusAdminOfficer, 'client_feature:staff_pass']], function($routes) {
+    // --- Staff List (active / inactive) + approve / reject ---
     $routes->get('staffs', 'StaffList::index');
+    $routes->get('staffs/export', 'StaffList::export');
     $routes->post('staffs/delete/(:num)', 'StaffList::delete/$1');
+    $routes->post('staffs/approve', 'StaffList::approve');
+    $routes->post('staffs/reject', 'StaffList::reject');
+    $routes->post('staffs/set-active/(:num)', 'StaffList::setActive/$1');
+    $routes->post('staffs/change-staff-no/(:num)', 'StaffList::changeStaffNo/$1');
+
+    // --- Request / draft / edit / renew ---
     $routes->get('staffs/staffpassrequest', 'StaffPassRequest::index');
     $routes->post('staffs/staffpassrequest/store', 'StaffPassRequest::store');
     $routes->post('staff-pass/import', 'StaffController::import');
-    $routes->get('staffpassrequest/view/(:any)', 'StaffPassRequest::view/$1');
+    $routes->get('staffpassrequest/view/(:num)', 'StaffPassRequest::view/$1');
     $routes->get('staffpassrequest/edit/(:num)', 'StaffPassRequest::edit/$1');
     $routes->post('staffpassrequest/update/(:num)', 'StaffPassRequest::update/$1');
+    $routes->get('staffs/renew/(:num)', 'StaffPassRequest::renew/$1');
+    $routes->post('staffs/renew/(:num)', 'StaffPassRequest::renewStore/$1');
+
+    // --- Card pipeline (KPK process / printing / issuance / closed lists) ---
+    $routes->get('staffs/process-list', 'StaffPipeline::processList');
+    $routes->get('staffs/printing-list', 'StaffPipeline::printingList');
+    $routes->post('staffs/printing-list/generate-serial/(:num)', 'StaffPipeline::generateSerial/$1');
+    $routes->get('staffs/issuance-list', 'StaffPipeline::issuanceList');
+    $routes->post('staffs/issuance-list/issue/(:num)', 'StaffPipeline::issue/$1');
+    $routes->get('staffs/closed-list', 'StaffPipeline::closedList');
+    $routes->get('staffs/closed-list/export', 'StaffPipeline::closedExport');
+
+    // --- Pass detail / Card Info ---
+    $routes->get('staffs/card-info/(:num)', 'StaffCardInfo::view/$1');
+    $routes->post('staffs/card-info/update/(:num)', 'StaffCardInfo::update/$1');
+    $routes->post('staffs/card-info/reject/(:num)', 'StaffCardInfo::reject/$1');
+    $routes->post('staffs/card-info/upload-photo/(:num)', 'StaffCardInfo::uploadPhoto/$1');
+    $routes->post('staffs/card-info/read-card/(:num)', 'StaffCardInfo::readCard/$1');
+    $routes->post('staffs/card-info/add-license/(:num)', 'StaffCardInfo::addLicense/$1');
+    $routes->post('staffs/card-info/delete-license/(:num)/(:num)', 'StaffCardInfo::deleteLicense/$1/$2');
+    $routes->post('staffs/card-info/location-access/(:num)', 'StaffCardInfo::updateLocationAccess/$1');
+    $routes->post('staffs/card-info/activate/(:num)', 'StaffCardInfo::activate/$1');
+    $routes->post('staffs/card-info/terminate/(:num)', 'StaffCardInfo::terminate/$1');
+    $routes->post('staffs/card-info/suspend/(:num)', 'StaffCardInfo::suspend/$1');
+    $routes->post('staffs/card-info/unsuspend/(:num)', 'StaffCardInfo::unsuspend/$1');
 });
-
-$routes->group('', ['filter' => [$plusAdminOfficerVendor, 'client_feature:vendor_pass']], function ($routes) {
-    $routes->get('vendors', 'VendorList::index');
-    $routes->get('vendors/export', 'VendorList::export');
-    $routes->post('vendors/import', 'VendorList::import');
-
-    $routes->get('vendors/vendorpassrequest', 'VendorPassRequest::index');
-    $routes->post('vendors/vendorpassrequest/store', 'VendorPassRequest::store');
-    $routes->get('vendorpassrequest/view/(:any)', 'VendorPassRequest::view/$1');
-    $routes->get('vendorpassrequest/edit/(:num)', 'VendorPassRequest::edit/$1');
-    $routes->post('vendorpassrequest/update/(:num)', 'VendorPassRequest::update/$1');
-});
-
-// ===========================
-// Vendor Pass — shared with a self-registered vendor company account
-// (their own "Online Vendor List" + Request form only)
-// ===========================
 
 $routes->group('', ['filter' => [$plusAdminOfficerVendor, 'client_feature:vendor_pass']], function ($routes) {
     $routes->get('vendors', 'VendorList::index');
@@ -562,12 +574,11 @@ $routes->group('', ['filter' => $plusAdminOfficer], function($routes) {
 $routes->group('config', ['filter' => $plusAdmin], function($routes) {
     $routes->get('lookupUserStaff', 'Config::lookupUserStaff');
     $routes->get('getUsers', 'Config::getUsers');
-    //$routes->get('getUser/(:num)', 'Config::getUser/$1');
-    //$routes->post('createUser', 'Config::createUser');
+    $routes->get('getUser/(:num)', 'Config::getUser/$1');
+    $routes->post('createUser', 'Config::createUser');
     $routes->post('updateUser/(:num)', 'Config::updateUser/$1');
-    //$routes->delete('deleteUser/(:num)', 'Config::deleteUser/$1');
+    $routes->delete('deleteUser/(:num)', 'Config::deleteUser/$1');
     $routes->get('getAllRoles', 'Config::getAllRoles');
-    $routes->post('verifyVendorAccount/(:num)', 'VendorAccountVerify::verify/$1');
 });
 
 // ===========================
