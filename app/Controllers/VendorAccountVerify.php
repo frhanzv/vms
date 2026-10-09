@@ -22,7 +22,7 @@ class VendorAccountVerify extends BaseController
         if (! $user || ! can_manage_target_user($user)) {
             return $this->response->setStatusCode(403)->setJSON(['success' => false, 'message' => 'You are not allowed to verify this account.']);
         }
-        if (normalize_role_slug((string) $user['role']) !== 'vendor_admin') {
+        if (normalize_role_slug((string) $user['role']) !== normalize_role_slug('vendor_admin')) {
             return $this->response->setStatusCode(422)->setJSON(['success' => false, 'message' => 'Only vendor company accounts are verified here.']);
         }
         if ((int) $user['is_active'] === 1) {

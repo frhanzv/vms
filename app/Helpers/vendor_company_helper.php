@@ -19,7 +19,7 @@ if (! function_exists('is_vendor_admin')) {
     function is_vendor_admin(): bool
     {
         helper('role');
-        return normalize_role_slug((string) session()->get('role')) === 'vendor_admin';
+        return normalize_role_slug((string) session()->get('role')) === normalize_role_slug('vendor_admin');
     }
 }
 

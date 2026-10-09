@@ -70,7 +70,8 @@ class CompanyModel extends Model
      */
     public function getCompaniesWithPagination($search = '', $sortBy = '', $limit = 10, $offset = 0)
     {
-        $builder = $this->select('id, name, pass_name, registration_no, address, contact_no, email, status, created_at');
+        $builder = $this->select('companies.id, companies.name, companies.pass_name, companies.registration_no, companies.address, companies.contact_no, companies.email, companies.status, companies.created_at, ' . $this->registrationStateSql() . ' AS registration_state', false);
+        $this->applyRegistrationFilter($builder);
         
         if (!empty($search)) {
             $builder->groupStart()
@@ -106,6 +107,7 @@ class CompanyModel extends Model
      */
     public function getTotalCompanies($search = '')
     {
+        $this->applyRegistrationFilter($this);
         if (!empty($search)) {
             $this->groupStart()
                  ->like('name', $search)
@@ -116,6 +118,35 @@ class CompanyModel extends Model
         }
         
         return $this->countAllResults();
+    }
+
+    /**
+     * Has the vendor registered yet? (Config > Company "Registered" column.)
+     *   registered      = a vendor account exists and is active (verified)
+     *   pending         = a vendor account exists, waiting for admin verification
+     *                     (or switched off)
+     *   not_registered  = nobody has registered for this company
+     */
+    private function registrationStateSql(): string
+    {
+        return "CASE "
+            . "WHEN EXISTS (SELECT 1 FROM users vu WHERE vu.company_id = companies.id AND vu.role = 'vendor_admin' AND vu.is_active = 1) THEN 'registered' "
+            . "WHEN EXISTS (SELECT 1 FROM users vu WHERE vu.company_id = companies.id AND vu.role = 'vendor_admin') THEN 'pending' "
+            . "ELSE 'not_registered' END";
+    }
+
+    /** Optional ?registered=registered|pending|not_registered filter from the list page. */
+    private function applyRegistrationFilter($builder): void
+    {
+        $f = (string) service('request')->getGet('registered');
+        $conds = [
+            'registered'     => "EXISTS (SELECT 1 FROM users vu WHERE vu.company_id = companies.id AND vu.role = 'vendor_admin' AND vu.is_active = 1)",
+            'pending'        => "(EXISTS (SELECT 1 FROM users vu WHERE vu.company_id = companies.id AND vu.role = 'vendor_admin') AND NOT EXISTS (SELECT 1 FROM users vu WHERE vu.company_id = companies.id AND vu.role = 'vendor_admin' AND vu.is_active = 1))",
+            'not_registered' => "NOT EXISTS (SELECT 1 FROM users vu WHERE vu.company_id = companies.id AND vu.role = 'vendor_admin')",
+        ];
+        if (isset($conds[$f])) {
+            $builder->where($conds[$f], null, false);
+        }
     }
 
     /**

@@ -36,7 +36,7 @@ class AuthFilter implements FilterInterface
         }
 
         helper('role');
-        if (normalize_role_slug((string) session()->get('role')) === 'vendor_admin') {
+        if (normalize_role_slug((string) session()->get('role')) === normalize_role_slug('vendor_admin')) {
             $path = trim((string) (method_exists($request, 'getPath') ? $request->getPath() : $request->getUri()->getPath()), '/');
 
             foreach (self::VENDOR_ADMIN_ALLOWED as $pattern) {
