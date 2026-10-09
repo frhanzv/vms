@@ -3,7 +3,7 @@
  * Staff dashboard. Data comes from App\Libraries\StaffDashboardStats via
  * Controllers\DashboardStaff.
  */
-helper(['dashboard_chart']);
+helper(['dashboard_chart', 'dashboard_cards']);
 $staffUrl = static fn(string $search = ''): string => base_url('staffs') . ($search !== '' ? '?search=' . rawurlencode($search) : '');
 ?>
 <!DOCTYPE html>
@@ -45,11 +45,14 @@ $staffUrl = static fn(string $search = ''): string => base_url('staffs') . ($sea
                 <h2 class="text-lg font-bold leading-tight text-slate-900 dark:text-white">Staff Dashboard</h2>
                 <p class="text-xs text-slate-500 dark:text-slate-400">Today, <?= esc($currentDate) ?></p>
             </div>
+            <div class="flex items-center gap-3">
+            <?= view('partials/dashboard_customize', ['dash' => 'staff']) ?>
             <?php if (! empty($canAddStaff)): ?>
             <a href="<?= base_url('staffs/staffpassrequest') ?>" class="flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-bold text-white shadow-sm transition-colors hover:bg-primary-dark">
                 <span class="material-symbols-outlined text-[20px]">add</span>New Staff Pass
             </a>
             <?php endif; ?>
+            </div>
         </header>
 
         <div class="viz-root flex-1 overflow-y-auto p-8">
@@ -59,16 +62,29 @@ $staffUrl = static fn(string $search = ''): string => base_url('staffs') . ($sea
 
             <?= view('partials/dashboard_tabs', ['active' => 'staff']) ?>
 
+            <?php if (! dash_card_any('staff')): ?>
+                <p class="rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">No cards are switched on. Use <strong>Customize</strong> to show some.</p>
+            <?php endif; ?>
+
             <!-- KPIs -->
             <section class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Key numbers">
+                <?php if (dash_card('staff', 'kpi_total')): ?>
                 <?= dash_stat('Total staff', $total, $active . ' active', 'badge', 'info', $staffUrl()) ?>
+                <?php endif; ?>
+                <?php if (dash_card('staff', 'kpi_cards_active')): ?>
                 <?= dash_stat('Active pass cards', $cardsActive, $withoutCard . ' staff without a card', 'credit_card', 'good') ?>
+                <?php endif; ?>
+                <?php if (dash_card('staff', 'kpi_cards_expiring')): ?>
                 <?= dash_stat('Cards expiring ≤ 30 days', $cardsExpiring, $cardsExpired . ' already expired', 'event_upcoming', $cardsExpiring > 0 ? 'warn' : 'neutral') ?>
+                <?php endif; ?>
+                <?php if (dash_card('staff', 'kpi_docs_expiring')): ?>
                 <?= dash_stat('Documents expiring ≤ 30 days', $docsExpiring, 'Licences, permits and similar', 'description', $docsExpiring > 0 ? 'warn' : 'neutral') ?>
+                <?php endif; ?>
             </section>
 
             <!-- Charts -->
             <section class="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
+                <?php if (dash_card('staff', 'chart_status')): ?>
                 <div class="rounded-xl border border-slate-200 bg-surface-light p-5 shadow-sm dark:border-slate-700 dark:bg-surface-dark">
                     <h3 class="mb-4 text-sm font-bold">Staff by status</h3>
                     <?= dash_stacked([
@@ -77,7 +93,9 @@ $staffUrl = static fn(string $search = ''): string => base_url('staffs') . ($sea
                         ['label' => 'Inactive / other', 'value' => $inactive],
                     ], 'Staff by status') ?>
                 </div>
+                <?php endif; ?>
 
+                <?php if (dash_card('staff', 'chart_card_health')): ?>
                 <div class="rounded-xl border border-slate-200 bg-surface-light p-5 shadow-sm dark:border-slate-700 dark:bg-surface-dark">
                     <h3 class="mb-4 text-sm font-bold">Pass card health</h3>
                     <?= dash_hbars([
@@ -87,13 +105,17 @@ $staffUrl = static fn(string $search = ''): string => base_url('staffs') . ($sea
                         ['label' => 'Staff without card',  'value' => $withoutCard],
                     ], 'staff', 'Pass card health') ?>
                 </div>
+                <?php endif; ?>
 
+                <?php if (dash_card('staff', 'chart_monthly')): ?>
                 <div class="rounded-xl border border-slate-200 bg-surface-light p-5 shadow-sm dark:border-slate-700 dark:bg-surface-dark">
                     <h3 class="mb-1 text-sm font-bold">New staff per month</h3>
                     <p class="mb-2 text-xs text-slate-500 dark:text-slate-400">Last 6 months</p>
                     <?= dash_columns($monthLabels, $monthValues, 'new staff', 'New staff per month') ?>
                 </div>
+                <?php endif; ?>
 
+                <?php if (dash_card('staff', 'chart_departments')): ?>
                 <div class="rounded-xl border border-slate-200 bg-surface-light p-5 shadow-sm dark:border-slate-700 dark:bg-surface-dark">
                     <h3 class="mb-4 text-sm font-bold">Top departments</h3>
                     <?php
@@ -104,10 +126,12 @@ $staffUrl = static fn(string $search = ''): string => base_url('staffs') . ($sea
                     echo dash_hbars($deptItems, 'staff', 'Staff by department');
                     ?>
                 </div>
+                <?php endif; ?>
             </section>
 
             <!-- Tables -->
             <section class="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
+                <?php if (dash_card('staff', 'list_attention')): ?>
                 <div class="rounded-xl border border-slate-200 bg-surface-light p-5 shadow-sm dark:border-slate-700 dark:bg-surface-dark">
                     <h3 class="mb-3 text-sm font-bold">Needs attention</h3>
                     <?php if (empty($needsAttention)): ?>
@@ -124,7 +148,9 @@ $staffUrl = static fn(string $search = ''): string => base_url('staffs') . ($sea
                     </ul>
                     <?php endif; ?>
                 </div>
+                <?php endif; ?>
 
+                <?php if (dash_card('staff', 'list_expiring')): ?>
                 <div class="rounded-xl border border-slate-200 bg-surface-light p-5 shadow-sm dark:border-slate-700 dark:bg-surface-dark">
                     <h3 class="mb-3 text-sm font-bold">Cards expiring soon</h3>
                     <?php if (empty($expiringCards)): ?>
@@ -141,7 +167,9 @@ $staffUrl = static fn(string $search = ''): string => base_url('staffs') . ($sea
                     </ul>
                     <?php endif; ?>
                 </div>
+                <?php endif; ?>
 
+                <?php if (dash_card('staff', 'list_recent')): ?>
                 <div class="rounded-xl border border-slate-200 bg-surface-light p-5 shadow-sm dark:border-slate-700 dark:bg-surface-dark">
                     <h3 class="mb-3 text-sm font-bold">Recent registrations</h3>
                     <?php if (empty($recent)): ?>
@@ -158,6 +186,7 @@ $staffUrl = static fn(string $search = ''): string => base_url('staffs') . ($sea
                     </ul>
                     <?php endif; ?>
                 </div>
+                <?php endif; ?>
             </section>
         </div>
     </main>

@@ -264,6 +264,13 @@ $routes->get('config/generateVisitorQr', 'Config::generateVisitorQr');
 
 $routes->get('/', 'Dashboard::index');
 $routes->get('dashboard', 'Dashboard::index');
+$routes->get('dashboard/staff',  'DashboardStaff::index',  ['filter' => 'client_feature:staff_pass']);
+$routes->get('dashboard/vendor', 'DashboardVendor::index', ['filter' => 'client_feature:vendor_pass']);
+$routes->get('config/list-columns',        'ListColumnConfig::index', ['filter' => 'role:superadmin,clientsuperadmin']);
+$routes->post('config/list-columns/save',  'ListColumnConfig::save',  ['filter' => 'role:superadmin,clientsuperadmin']);
+$routes->get('config/dashboard-cards',       'DashboardCards::index',  ['filter' => 'role:superadmin,clientsuperadmin']);
+$routes->post('config/dashboard-cards/save', 'DashboardCards::save',   ['filter' => 'role:superadmin,clientsuperadmin']);
+$routes->post('dashboard/cards/mine',        'DashboardCards::saveMine');
 $routes->post('dashboard/acknowledgeAlert', 'Dashboard::acknowledgeAlert');
 $routes->get('dashboard/trafficData', 'Dashboard::trafficData');
 $routes->get('dashboard/hostVisitorsData', 'Dashboard::hostVisitorsData');
@@ -410,6 +417,23 @@ $routes->group('', ['filter' => [$plusAdminOfficer, 'client_feature:staff_pass']
     $routes->post('staffs/card-info/suspend/(:num)', 'StaffCardInfo::suspend/$1');
     $routes->post('staffs/card-info/unsuspend/(:num)', 'StaffCardInfo::unsuspend/$1');
 });
+
+$routes->group('', ['filter' => [$plusAdminOfficerVendor, 'client_feature:vendor_pass']], function ($routes) {
+    $routes->get('vendors', 'VendorList::index');
+    $routes->get('vendors/export', 'VendorList::export');
+    $routes->post('vendors/import', 'VendorList::import');
+
+    $routes->get('vendors/vendorpassrequest', 'VendorPassRequest::index');
+    $routes->post('vendors/vendorpassrequest/store', 'VendorPassRequest::store');
+    $routes->get('vendorpassrequest/view/(:any)', 'VendorPassRequest::view/$1');
+    $routes->get('vendorpassrequest/edit/(:num)', 'VendorPassRequest::edit/$1');
+    $routes->post('vendorpassrequest/update/(:num)', 'VendorPassRequest::update/$1');
+});
+
+// ===========================
+// Vendor Pass — shared with a self-registered vendor company account
+// (their own "Online Vendor List" + Request form only)
+// ===========================
 
 $routes->group('', ['filter' => [$plusAdminOfficerVendor, 'client_feature:vendor_pass']], function ($routes) {
     $routes->get('vendors', 'VendorList::index');

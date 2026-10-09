@@ -3,7 +3,7 @@
  * Vendor dashboard. Data comes from App\Libraries\VendorDashboardStats via
  * Controllers\DashboardVendor.
  */
-helper(['dashboard_chart']);
+helper(['dashboard_chart', 'dashboard_cards']);
 $passUrl = static fn(string $status = ''): string => base_url('vendors') . ($status !== '' ? '?status=' . rawurlencode($status) : '');
 $viewUrl = static fn($id): string => base_url('vendorpassrequest/view/' . (int) $id);
 $st = $stages;
@@ -47,8 +47,9 @@ $st = $stages;
                 <h2 class="text-lg font-bold leading-tight text-slate-900 dark:text-white">Vendor Dashboard<?= $isVendorAccount && $companyName !== '' ? ' · ' . esc($companyName) : '' ?></h2>
                 <p class="text-xs text-slate-500 dark:text-slate-400">Today, <?= esc($currentDate) ?></p>
             </div>
-            <?php if (! empty($canAdd)): ?>
             <div class="flex items-center gap-3">
+            <?= view('partials/dashboard_customize', ['dash' => 'vendor']) ?>
+            <?php if (! empty($canAdd)): ?>
                 <?php if ($isVendorAccount): ?>
                 <a href="<?= base_url('vendors/import') ?>" class="flex h-10 items-center gap-2 rounded-lg border border-primary bg-surface-light px-4 text-sm font-bold text-primary shadow-sm hover:bg-slate-50 dark:bg-surface-dark dark:hover:bg-slate-800">
                     <span class="material-symbols-outlined text-[20px]">upload_file</span>Import
@@ -57,8 +58,8 @@ $st = $stages;
                 <a href="<?= base_url('vendors/vendorpassrequest') ?>" class="flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-bold text-white shadow-sm transition-colors hover:bg-primary-dark">
                     <span class="material-symbols-outlined text-[20px]">add</span>New Request
                 </a>
-            </div>
             <?php endif; ?>
+            </div>
         </header>
 
         <div class="viz-root flex-1 overflow-y-auto p-8">
@@ -74,14 +75,27 @@ $st = $stages;
 
             <?= view('partials/dashboard_tabs', ['active' => 'vendor']) ?>
 
+            <?php if (! dash_card_any('vendor')): ?>
+                <p class="rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">No cards are switched on. Use <strong>Customize</strong> to show some.</p>
+            <?php endif; ?>
+
             <section class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Key numbers">
+                <?php if (dash_card('vendor', 'kpi_total')): ?>
                 <?= dash_stat('Total applications', $total, 'All time', 'groups', 'info', $passUrl()) ?>
+                <?php endif; ?>
+                <?php if (dash_card('vendor', 'kpi_active')): ?>
                 <?= dash_stat('Active passes', $activePasses, $expired . ' expired', 'badge', 'good', $passUrl('Approved')) ?>
+                <?php endif; ?>
+                <?php if (dash_card('vendor', 'kpi_expiring')): ?>
                 <?= dash_stat('Expiring ≤ 30 days', $expiring, 'Active passes', 'event_upcoming', $expiring > 0 ? 'warn' : 'neutral') ?>
+                <?php endif; ?>
+                <?php if (dash_card('vendor', 'kpi_awaiting')): ?>
                 <?= dash_stat($isVendorAccount ? 'Awaiting KPK' : 'Awaiting approval', $st['Pending'], $isVendorAccount ? ($st['Rejected'] . ' rejected · ' . $st['Draft'] . ' draft') : ($st['Rejected'] . ' rejected'), 'schedule', $st['Pending'] > 0 ? 'warn' : 'neutral', $passUrl('Pending')) ?>
+                <?php endif; ?>
             </section>
 
             <section class="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
+                <?php if (dash_card('vendor', 'chart_pipeline')): ?>
                 <div class="rounded-xl border border-slate-200 bg-surface-light p-5 shadow-sm dark:border-slate-700 dark:bg-surface-dark">
                     <h3 class="mb-1 text-sm font-bold">Pass pipeline</h3>
                     <p class="mb-3 text-xs text-slate-500 dark:text-slate-400">Where every application is right now</p>
@@ -100,13 +114,17 @@ $st = $stages;
                     echo dash_hbars($items, 'applications', 'Applications by pipeline stage');
                     ?>
                 </div>
+                <?php endif; ?>
 
+                <?php if (dash_card('vendor', 'chart_monthly')): ?>
                 <div class="rounded-xl border border-slate-200 bg-surface-light p-5 shadow-sm dark:border-slate-700 dark:bg-surface-dark">
                     <h3 class="mb-1 text-sm font-bold">Applications per month</h3>
                     <p class="mb-2 text-xs text-slate-500 dark:text-slate-400">Last 6 months</p>
                     <?= dash_columns($monthLabels, $monthValues, 'applications', 'Applications per month') ?>
                 </div>
+                <?php endif; ?>
 
+                <?php if (dash_card('vendor', 'chart_worker_type')): ?>
                 <div class="rounded-xl border border-slate-200 bg-surface-light p-5 shadow-sm dark:border-slate-700 dark:bg-surface-dark">
                     <h3 class="mb-4 text-sm font-bold">Worker type</h3>
                     <?php
@@ -117,8 +135,10 @@ $st = $stages;
                     echo dash_stacked($seg, 'Applications by worker type');
                     ?>
                 </div>
+                <?php endif; ?>
 
                 <?php if (! $isVendorAccount): ?>
+                <?php if (dash_card('vendor', 'chart_companies')): ?>
                 <div class="rounded-xl border border-slate-200 bg-surface-light p-5 shadow-sm dark:border-slate-700 dark:bg-surface-dark">
                     <h3 class="mb-1 text-sm font-bold">Top vendor companies</h3>
                     <p class="mb-3 text-xs text-slate-500 dark:text-slate-400">By number of applications</p>
@@ -132,16 +152,18 @@ $st = $stages;
                     ?>
                 </div>
                 <?php endif; ?>
+                <?php endif; ?>
             </section>
 
             <section class="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
                 <?php
                 $lists = [
-                    [$isVendorAccount ? 'Needs your attention' : 'Waiting for approval', $needsAction, $isVendorAccount ? 'Nothing to fix or submit.' : 'No pending applications.', 'status'],
-                    ['Passes expiring soon', $expiringList, 'No passes expire in the next 30 days.', 'expiry'],
-                    ['Recent applications', $recent, 'No applications yet.', 'status'],
+                    [$isVendorAccount ? 'Needs your attention' : 'Waiting for approval', $needsAction, $isVendorAccount ? 'Nothing to fix or submit.' : 'No pending applications.', 'status', 'list_action'],
+                    ['Passes expiring soon', $expiringList, 'No passes expire in the next 30 days.', 'expiry', 'list_expiring'],
+                    ['Recent applications', $recent, 'No applications yet.', 'status', 'list_recent'],
                 ];
-                foreach ($lists as [$title, $data, $empty, $mode]): ?>
+                foreach ($lists as [$title, $data, $empty, $mode, $cardKey]):
+                    if (! dash_card('vendor', $cardKey)) { continue; } ?>
                 <div class="rounded-xl border border-slate-200 bg-surface-light p-5 shadow-sm dark:border-slate-700 dark:bg-surface-dark">
                     <h3 class="mb-3 text-sm font-bold"><?= esc($title) ?></h3>
                     <?php if (empty($data)): ?>

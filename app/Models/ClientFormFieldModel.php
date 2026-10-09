@@ -59,33 +59,6 @@ class ClientFormFieldModel extends Model
             ['field_key' => 'csp_number',           'label' => 'CSP Number & Expiry Date',       'default_enabled' => false],
             ['field_key' => 'evetting',             'label' => 'E-Vetting Section',              'default_enabled' => false],
             ['field_key' => 'print_button',         'label' => 'Show Print Button (Staff List)', 'default_enabled' => false],
-
-            // --- KPK staff pass pipeline (request -> approve -> process -> print -> issue -> closed) ---
-            ['field_key' => 'access_branch',        'label' => 'Approving Branch (KSB / KPK / Both)'],
-            ['field_key' => 'photo_upload',         'label' => 'Passport Photo Upload (Request Form)'],
-            ['field_key' => 'remark',               'label' => 'Remark Field (Request Form)'],
-            ['field_key' => 'direct_close',         'label' => 'Direct Close (skip Printing/Issuance, activate card immediately on approval)', 'default_enabled' => false],
-            ['field_key' => 'request_button',       'label' => 'Show Request Button (Staff List)'],
-            ['field_key' => 'edit_button',          'label' => 'Show Edit Button (Staff List)'],
-            ['field_key' => 'delete_button',        'label' => 'Show Delete Button (Staff List)'],
-            ['field_key' => 'approve_button',       'label' => 'Show Approve Button (Staff List)'],
-            ['field_key' => 'reject_button',        'label' => 'Show Reject Button (Staff List)'],
-            ['field_key' => 'import_button',        'label' => 'Show Import Button (Staff List)'],
-            ['field_key' => 'export_button',        'label' => 'Show Export Button (Staff List)'],
-            ['field_key' => 'process_update_button',       'label' => 'Process / Card Info: Update Details Button'],
-            ['field_key' => 'process_reject_button',       'label' => 'Process / Card Info: Reject Button'],
-            ['field_key' => 'process_upload_photo_button', 'label' => 'Process / Card Info: Upload / Take Photo'],
-            ['field_key' => 'process_rfid_section',        'label' => 'Process / Card Info: RFID Card Binding'],
-            ['field_key' => 'printing_generate_button',    'label' => 'Print / Reprint Card Button'],
-            ['field_key' => 'issuance_issue_button',       'label' => 'Issue Card Button (Issuance List)'],
-            ['field_key' => 'closed_export_button',        'label' => 'Show Export Button (Closed List)'],
-            ['field_key' => 'closed_card_details_button',  'label' => 'Show Card Details Button (Closed List)'],
-            ['field_key' => 'card_info_add_license_button',   'label' => 'Card Info: Add / Remove License'],
-            ['field_key' => 'card_info_edit_location_button', 'label' => 'Card Info: Edit Location Access'],
-            ['field_key' => 'card_info_activate_button',      'label' => 'Card Info: Activate Card'],
-            ['field_key' => 'card_info_terminate_button',     'label' => 'Card Info: Terminate Card'],
-            ['field_key' => 'suspend_button',       'label' => 'Card Info: Suspend / Unsuspend Pass'],
-            ['field_key' => 'renew_button',         'label' => 'Renew Pass Button (Closed List / Card Info)'],
         ];
     }
 
@@ -192,54 +165,77 @@ class ClientFormFieldModel extends Model
      * so the Config screen only shows an Enabled switch for those.
      */
     public static function vendorPassFields(): array
-{
-    return [
-        // --- Application Info section ---
-        ['field_key' => 'type_of_application',  'label' => 'Type Of Application'],
-        ['field_key' => 'sub_type',              'label' => 'Sub Type'],
-        ['field_key' => 'resident',              'label' => 'Resident'],
+    {
+        return [
+            // === Vendor Pass Request form — Application Info section ===
+            ['field_key' => 'type_of_application',  'label' => 'Type Of Application', 'requirable' => true],
+            ['field_key' => 'type_of_registration', 'label' => 'Type Of Registration', 'requirable' => true],
+            ['field_key' => 'payment',               'label' => 'Payment', 'requirable' => true],
+            ['field_key' => 'sub_type',              'label' => 'Sub Type', 'requirable' => true],
+            ['field_key' => 'resident',              'label' => 'Resident', 'requirable' => true],
+            ['field_key' => 'card_type',             'label' => 'Worker Type (Permanent / Temporary)', 'requirable' => true, 'default_required' => true],
+            ['field_key' => 'location_access',       'label' => 'Location Access', 'requirable' => true],
+            ['field_key' => 'in_out_bound',          'label' => 'In / Out Bound', 'requirable' => true],
+            ['field_key' => 'vendor_company',        'label' => 'Vendor Company Section (SSM No / Company Name)', 'requirable' => true],
+            ['field_key' => 'staff_no',              'label' => 'Staff No. (at vendor company)', 'requirable' => true],
+            ['field_key' => 'full_name',             'label' => 'Full Name', 'requirable' => true, 'default_required' => true],
+            ['field_key' => 'name_on_vendor_pass',   'label' => 'Name On Vendor Pass', 'requirable' => true, 'default_required' => true],
+            ['field_key' => 'ic_passport',           'label' => 'IC / Passport Number', 'requirable' => true],
+            ['field_key' => 'date_of_birth',         'label' => 'Date Of Birth', 'requirable' => true],
+            ['field_key' => 'sex',                   'label' => 'Sex', 'requirable' => true],
+            ['field_key' => 'designation',           'label' => 'Designation', 'requirable' => true, 'default_required' => true],
+            ['field_key' => 'contact_number',        'label' => 'Contact Number', 'requirable' => true],
+            ['field_key' => 'email',                 'label' => 'Email Address', 'requirable' => true],
+            ['field_key' => 'vehicle_registration',  'label' => 'Vehicle Registration Number', 'requirable' => true],
+            ['field_key' => 'address',               'label' => 'Address Section (Line 1-3, Country, State, City, Postcode)', 'requirable' => true],
+            ['field_key' => 'visit_details',         'label' => 'Visit Details Section (Person/Contact/Location Visited)'],
+            ['field_key' => 'csp_number',            'label' => 'CSP Number & Expiry Date', 'default_enabled' => false, 'requirable' => true],
+            ['field_key' => 'evetting',              'label' => 'E-Vetting Section', 'default_enabled' => false],
+            ['field_key' => 'pass_expiry',           'label' => 'Pass Expiry Field', 'requirable' => true],
+            ['field_key' => 'remark',                'label' => 'Remark Field', 'requirable' => true],
+            ['field_key' => 'photo_upload',          'label' => 'Photo Upload'],
+            ['field_key' => 'document_upload',       'label' => 'Government ID / Other Documents Upload'],
+            ['field_key' => 'card_issuance',         'label' => 'Card Issuance Section (Receipt/Vehicle/Card Type/Status)', 'default_enabled' => false],
+            ['field_key' => 'additional_verification', 'label' => 'Additional Verification (MySejahtera/Facial Photo)', 'default_enabled' => false],
 
-        // --- Vendor Company section ---
-        ['field_key' => 'vendor_company',        'label' => 'Vendor Company Section (SSM No / Company Name)'],
+            // === Vendor Pass List buttons ===
+            ['field_key' => 'edit_button',           'label' => 'Show Edit Button (Vendor Pass List)'],
+            ['field_key' => 'delete_button',          'label' => 'Show Delete Button (Vendor Pass List)'],
+            ['field_key' => 'approve_button',         'label' => 'Show Approve Button (Vendor Pass List)'],
+            ['field_key' => 'reject_button',          'label' => 'Show Reject Button (Vendor Pass List)'],
+            ['field_key' => 'import_button',          'label' => 'Show Import Button (Vendor Pass List)'],
+            ['field_key' => 'export_button',          'label' => 'Show Export Button (Vendor Pass List)'],
+            ['field_key' => 'template_button',        'label' => 'Show Template Button (Vendor Pass List)'],
+            ['field_key' => 'request_button',         'label' => 'Show Request Button (Vendor Pass List / Closed List)'],
+            ['field_key' => 'print_button',           'label' => 'Show Print Button (Vendor Pass List)'],
+            ['field_key' => 'direct_close',           'label' => 'Direct Close (skip Printing/Issuance, activate card immediately on approval)', 'default_enabled' => false],
 
-        // --- Personal Details section ---
-        ['field_key' => 'staff_no',              'label' => 'Staff No. (at vendor company)'],
-        ['field_key' => 'ic_passport',            'label' => 'IC / Passport Number'],
-        ['field_key' => 'date_of_birth',          'label' => 'Date Of Birth'],
-        ['field_key' => 'sex',                    'label' => 'Sex'],
-        ['field_key' => 'designation',            'label' => 'Designation'],
-        ['field_key' => 'contact_number',         'label' => 'Contact Number'],
-        ['field_key' => 'email',                  'label' => 'Email Address'],
+            // === Process List / Process Detail ===
+            ['field_key' => 'process_update_button',       'label' => 'Show Update Button (Process Detail)'],
+            ['field_key' => 'process_reject_button',       'label' => 'Show Reject Button (Process Detail)'],
+            ['field_key' => 'process_upload_photo_button', 'label' => 'Show Upload Photo Button (Process Detail)'],
+            ['field_key' => 'process_rfid_section',        'label' => 'Show Physical Card / RFID Section (Process Detail)'],
+            ['field_key' => 'process_card_printing_section', 'label' => 'Show Card Printing Section (Process Detail)'],
 
-        // --- Address section ---
-        ['field_key' => 'address',                'label' => 'Address Section (Line 1-3 & Postcode)'],
+            // === Printing List ===
+            ['field_key' => 'printing_generate_button', 'label' => 'Show Generate Serial Button (Printing List)'],
 
-        // --- Visit Details section ---
-        ['field_key' => 'visit_details',          'label' => 'Visit Details Section (Person/Contact/Location Visited)'],
+            // === Issuance List ===
+            ['field_key' => 'issuance_issue_button', 'label' => 'Show Issue Card Button (Issuance List)'],
 
-        // --- CSP & E-Vetting section (matches Staff's csp_number/evetting, off by default there too) ---
-        ['field_key' => 'csp_number',             'label' => 'CSP Number & Expiry Date',        'default_enabled' => false],
-        ['field_key' => 'evetting',                'label' => 'E-Vetting Section',                'default_enabled' => false],
+            // === Closed List ===
+            ['field_key' => 'closed_export_button',       'label' => 'Show Export Button (Closed List)'],
+            ['field_key' => 'qr_button',                   'label' => 'Show QR / Vendor Detail Button (Closed List)'],
+            ['field_key' => 'closed_card_details_button', 'label' => 'Show Card Details Button (Closed List)'],
 
-        // --- Pass & Documents section ---
-        ['field_key' => 'pass_expiry',             'label' => 'Pass Expiry Field'],
-        ['field_key' => 'remark',                  'label' => 'Remark Field'],
-        ['field_key' => 'photo_upload',            'label' => 'Photo Upload'],
-        ['field_key' => 'document_upload',         'label' => 'Government ID / Other Documents Upload'],
-
-        ['field_key' => 'direct_close', 'label' => 'Direct Close (skip Printing/Issuance, activate card immediately on approval)', 'default_enabled' => false],
-        // This mirrors KPK's ModuleConfig.vpDirectClose. Off by default — most
-    // companies will want the normal Printing -> Issuance -> Closed flow.
-        ['field_key' => 'additional_verification', 'label' => 'Additional Verification (MySejahtera/Facial Photo)', 'default_enabled' => false],
-        ['field_key' => 'card_issuance', 'label' => 'Card Issuance Section (Receipt/Vehicle/Card Type/Status)', 'default_enabled' => false],
-        // --- List page buttons (checked alongside has_access, same as print_button) ---
-        ['field_key' => 'edit_button',             'label' => 'Show Edit Button (Vendor List)'],
-        ['field_key' => 'delete_button',           'label' => 'Show Delete Button (Vendor List)'],
-        ['field_key' => 'approve_button',          'label' => 'Show Approve Button (Vendor List)'],
-        ['field_key' => 'reject_button',           'label' => 'Show Reject Button (Vendor List)'],
-        ['field_key' => 'qr_button',               'label' => 'Show QR Pass Button (Vendor List)'],
-    ];
-}
+            // === Card Info panel ===
+            ['field_key' => 'card_info_add_license_button',    'label' => 'Show Add License Button (Card Info)'],
+            ['field_key' => 'card_info_edit_location_button',  'label' => 'Show Edit Location Access Button (Card Info)'],
+            ['field_key' => 'card_info_upload_photo_button',   'label' => 'Show Upload Photo Button (Card Info)'],
+            ['field_key' => 'card_info_activate_button',       'label' => 'Show Activate Card Button (Card Info)'],
+            ['field_key' => 'card_info_terminate_button',      'label' => 'Show Terminate Card Button (Card Info)'],
+        ];
+    }
 
     /**
      * Returns all field definitions for a form type with per-client enabled state applied.

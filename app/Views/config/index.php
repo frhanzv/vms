@@ -1615,6 +1615,17 @@
                                         <span
                                             class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-symbols-outlined text-[20px]">expand_more</span>
                                     </div>
+                                    <div class="relative w-full sm:w-48">
+                                        <select id="companyRegisteredFilter" onchange="loadCompanies(1, currentCompanySearch, currentCompanySort)"
+                                            class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm appearance-none focus:ring-primary focus:border-primary text-gray-700 dark:text-gray-300">
+                                            <option value="">All registrations</option>
+                                            <option value="registered">Registered</option>
+                                            <option value="pending">Pending verification</option>
+                                            <option value="not_registered">Not registered yet</option>
+                                        </select>
+                                        <span
+                                            class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-symbols-outlined text-[20px]">expand_more</span>
+                                    </div>
                                 </div>
                                 <button onclick="openCreateCompanyModal()"
                                     class="px-4 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm flex items-center gap-2 w-full sm:w-auto">
@@ -1631,16 +1642,18 @@
                                         <tr>
                                             <th class="px-4 py-3">Registration No</th>
                                             <th class="px-4 py-3">Company Name</th>
+                                            <th class="px-4 py-3">Company Name In Port Pass</th>
                                             <th class="px-4 py-3">Contact No</th>
                                             <th class="px-4 py-3">Email</th>
                                             <th class="px-4 py-3">Status</th>
+                                            <th class="px-4 py-3 text-center" title="Has the vendor registered its login account?">Registered</th>
                                             <th class="px-4 py-3">Created At</th>
                                             <th class="px-4 py-3">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody id="companyTableBody" class="text-gray-700 dark:text-slate-300">
                                         <tr>
-                                            <td colspan="7"
+                                            <td colspan="9"
                                                 class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
                                                 <div class="flex flex-col items-center justify-center">
                                                     <div
@@ -5079,27 +5092,6 @@
                                     <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                                         <input type="checkbox" name="access[staff_pass_list][print]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Print
                                     </label>
-                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                                        <input type="checkbox" name="access[staff_pass_list][approve]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Approve
-                                    </label>
-                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                                        <input type="checkbox" name="access[staff_pass_list][reject]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Reject
-                                    </label>
-                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                                        <input type="checkbox" name="access[staff_pass_list][approve_ksb]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Approve (KSB branch)
-                                    </label>
-                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                                        <input type="checkbox" name="access[staff_pass_list][approve_kpk]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Approve (KPK branch)
-                                    </label>
-                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                                        <input type="checkbox" name="access[staff_pass_list][reject_ksb]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Reject (KSB branch)
-                                    </label>
-                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                                        <input type="checkbox" name="access[staff_pass_list][reject_kpk]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Reject (KPK branch)
-                                    </label>
-                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                                        <input type="checkbox" name="access[staff_pass_list][manage_status]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Active / Inactive Staff
-                                    </label>
                                 </div>
                             </div>
 
@@ -6654,16 +6646,18 @@
             }
 
             tbody.innerHTML = users.map((user, index) => {
+                // A vendor company that registered itself and is still waiting for an admin.
+                const isPending = user.role === 'vendor_admin' && user.is_active != 1 && !user.verified_at;
                 const statusClass = user.is_active == 1
                     ? 'bg-green-500/20 text-green-400'
-                    : 'bg-gray-500/20 text-gray-400';
-                const statusText = user.is_active == 1 ? 'Active' : 'Inactive';
+                    : (isPending ? 'bg-amber-500/20 text-amber-600' : 'bg-gray-500/20 text-gray-400');
+                const statusText = user.is_active == 1 ? 'Active' : (isPending ? 'Pending verification' : 'Inactive');
                 const borderClass = index < users.length - 1 ? 'border-b border-gray-100 dark:border-slate-700' : '';
 
                 return `
                     <tr class="${borderClass} hover:bg-gray-100 dark:hover:bg-slate-700/30">
                         <td class="px-4 py-3 font-medium">${escapeHtml(user.username)}</td>
-                        <td class="px-4 py-3">${escapeHtml(user.full_name)}</td>
+                        <td class="px-4 py-3">${escapeHtml(user.full_name)}${user.company_name ? `<span class="block text-xs text-gray-500 dark:text-slate-400">${escapeHtml(user.company_name)}</span>` : ''}</td>
                         <td class="px-4 py-3">${escapeHtml(user.staff_id || '-')}</td>
                         <td class="px-4 py-3">${escapeHtml(user.email)}</td>
                         <td class="px-4 py-3">${escapeHtml(user.contact_no || '-')}</td>
@@ -6672,7 +6666,10 @@
                         <td class="px-4 py-3">
                             <span class="px-2 py-1 ${statusClass} rounded text-xs font-semibold">${statusText}</span>
                         </td>
-                        <td class="px-4 py-3">
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            ${isPending ? `<button onclick="verifyVendorAccount(${user.id}, '${escapeHtml(user.company_name || user.username)}')" class="mr-2 inline-flex items-center gap-1 rounded bg-primary px-2 py-1 text-xs font-bold text-white hover:bg-primary/90" title="Verify this vendor account so it can log in">
+                                <span class="material-symbols-outlined text-sm">verified</span>Verify
+                            </button>` : ''}
                             <button onclick="openEditUserModal(${user.id})" class="text-primary hover:text-primary/80 mr-2" title="Edit User">
                                 <span class="material-symbols-outlined text-base">edit</span>
                             </button>
@@ -6683,6 +6680,22 @@
                     </tr>
                 `;
             }).join('');
+        }
+
+        function verifyVendorAccount(id, label) {
+            if (!confirm('Verify the account for "' + label + '"? The vendor will be able to log in straight away.')) {
+                return;
+            }
+            fetch(`<?= base_url('config/verifyVendorAccount') ?>/${id}`, {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '<?= csrf_hash() ?>' }
+            })
+                .then(r => r.json())
+                .then(data => {
+                    alert(data.message || (data.success ? 'Verified.' : 'Could not verify.'));
+                    if (data.success) { loadUsers(currentUserPage, currentUserSearch, currentUserSort); }
+                })
+                .catch(() => alert('Could not verify this account. Please try again.'));
         }
 
         function updateUserPagination(pagination) {
@@ -7391,7 +7404,7 @@
             const tbody = document.getElementById('companyTableBody');
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="7" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
+                    <td colspan="9" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
                         <div class="flex flex-col items-center justify-center">
                             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
                             <span>Loading companies...</span>
@@ -7400,7 +7413,7 @@
                 </tr>
             `;
 
-            fetch(`<?= base_url('config/getCompanies') ?>?page=${page}&per_page=10&search=${encodeURIComponent(search)}&sort=${encodeURIComponent(sort)}`)
+            fetch(`<?= base_url('config/getCompanies') ?>?page=${page}&per_page=10&search=${encodeURIComponent(search)}&sort=${encodeURIComponent(sort)}&registered=${encodeURIComponent((document.getElementById('companyRegisteredFilter') || {}).value || '')}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
@@ -7408,7 +7421,7 @@
                     } else {
                         tbody.innerHTML = `
                             <tr>
-                                <td colspan="7" class="px-4 py-8 text-center text-red-500 dark:text-red-400">
+                                <td colspan="9" class="px-4 py-8 text-center text-red-500 dark:text-red-400">
                                     Failed to load companies
                                 </td>
                             </tr>
@@ -7419,12 +7432,24 @@
                     console.error('Error loading companies:', error);
                     tbody.innerHTML = `
                         <tr>
-                            <td colspan="7" class="px-4 py-8 text-center text-red-500 dark:text-red-400">
+                            <td colspan="9" class="px-4 py-8 text-center text-red-500 dark:text-red-400">
                                 Error loading companies
                             </td>
                         </tr>
                     `;
                 });
+        }
+
+        // Registered column — same idea as the KPK list: tick / cross, plus "waiting" when
+        // the vendor has registered but the admin has not verified it yet (Config > User).
+        function registrationBadge(state) {
+            if (state === 'registered') {
+                return '<span class="inline-flex items-center gap-1 text-green-600 font-semibold" title="Vendor has registered and is verified"><span class="material-symbols-outlined text-[18px]">check_circle</span><span class="text-xs">Registered</span></span>';
+            }
+            if (state === 'pending') {
+                return '<span class="inline-flex items-center gap-1 text-amber-600 font-semibold" title="Vendor has registered — verify the account under Config > User"><span class="material-symbols-outlined text-[18px]">hourglass_top</span><span class="text-xs">Pending</span></span>';
+            }
+            return '<span class="inline-flex items-center gap-1 text-red-500 font-semibold" title="Vendor has not registered yet"><span class="material-symbols-outlined text-[18px]">cancel</span><span class="text-xs">Not yet</span></span>';
         }
 
         function renderCompanyTable(companies, pagination) {
@@ -7433,7 +7458,7 @@
             if (companies.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="7" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
+                        <td colspan="9" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
                             No companies found
                         </td>
                     </tr>
@@ -7445,6 +7470,7 @@
                 <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
                     <td class="px-4 py-3">${escapeHtml(company.registration_no || '-')}</td>
                     <td class="px-4 py-3 font-medium">${escapeHtml(company.name)}</td>
+                    <td class="px-4 py-3">${escapeHtml(company.pass_name || '-')}</td>
                     <td class="px-4 py-3">${escapeHtml(company.contact_no || '-')}</td>
                     <td class="px-4 py-3">${escapeHtml(company.email || '-')}</td>
                     <td class="px-4 py-3">
@@ -7452,6 +7478,7 @@
                             ${company.status === 'active' ? 'Active' : 'Inactive'}
                         </span>
                     </td>
+                    <td class="px-4 py-3 text-center">${registrationBadge(company.registration_state)}</td>
                     <td class="px-4 py-3">${new Date(company.created_at).toLocaleDateString()}</td>
                     <td class="px-4 py-3">
                         <button onclick="openEditCompanyModal(${company.id})" class="text-primary hover:text-primary/80 mr-2" title="Edit">
@@ -17420,7 +17447,7 @@
                 headers: {
                     'Content-Type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
-                    '<?= csrf_header() ?>': '<?= csrf_hash() ?>'
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '<?= csrf_hash() ?>'
                 },
                 body: JSON.stringify({ name, service, api_key, description, status }),
             })
@@ -17482,7 +17509,7 @@
                 method: 'DELETE',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
-                    '<?= csrf_header() ?>': '<?= csrf_hash() ?>'
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '<?= csrf_hash() ?>'
                 }
             })
                 .then(r => r.json())
@@ -17515,7 +17542,7 @@
                 headers: {
                     'Content-Type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
-                    '<?= csrf_header() ?>': '<?= csrf_hash() ?>'
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '<?= csrf_hash() ?>'
                 },
                 body: JSON.stringify({
                     api_key_id: id,
@@ -17589,7 +17616,7 @@
                 headers: {
                     'Content-Type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
-                    '<?= csrf_header() ?>': '<?= csrf_hash() ?>'
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '<?= csrf_hash() ?>'
                 }
             })
             .then(async response => {
@@ -17679,7 +17706,7 @@
                 headers: {
                     'Content-Type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
-                    '<?= csrf_header() ?>': '<?= csrf_hash() ?>'
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '<?= csrf_hash() ?>'
                 },
                 body: JSON.stringify({ laravel_url: url })
             })
