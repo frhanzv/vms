@@ -132,7 +132,7 @@ class Auth extends BaseController
                 // Self-registered vendor company accounts have no real use
                 // for the staff dashboard — their whole reach is their own
                 // Online Vendor List, so send them straight there.
-                'vendor_admin'     => '/vendors',
+                'vendor_admin'     => '/dashboard/vendor',
             ];
             $destination = $redirectMap[$role] ?? '/dashboard';
             return redirect()->to($destination)->with('success', 'Login successful!');

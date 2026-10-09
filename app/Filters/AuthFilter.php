@@ -16,6 +16,7 @@ class AuthFilter implements FilterInterface
      * self-registered account just because nobody remembered to restrict it.
      */
     private const VENDOR_ADMIN_ALLOWED = [
+        '#^dashboard/vendor$#',        // their own (company-scoped) dashboard
         '#^vendors$#',
         '#^vendors/export$#',
         '#^vendors/import$#',
@@ -44,7 +45,7 @@ class AuthFilter implements FilterInterface
                 }
             }
 
-            return redirect()->to('/vendors')->with('error', 'You do not have access to that page.');
+            return redirect()->to('/dashboard/vendor')->with('error', 'You do not have access to that page.');
         }
     }
 

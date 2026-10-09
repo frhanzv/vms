@@ -83,6 +83,10 @@ class Filters extends BaseFilters
             'except' => [
                 'login',
                 'auth/*',
+                'register',
+                'register/*',
+                'activate/*',
+                'forgot-password',
                 'visitor-registration',
                 'visitor-registration/*',
                 'security/*',
@@ -97,10 +101,6 @@ class Filters extends BaseFilters
                 'api/guard/*',
                 'decrypt',
                 'vms/api/*',
-                'register',
-                'register/*',
-                'activate/*',
-                'forgot-password',
             ]
         ],
     ],

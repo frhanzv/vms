@@ -33,12 +33,32 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
         </div>
         <nav class="flex flex-col gap-2 overflow-y-auto pr-1 custom-scrollbar">
 
-            <!-- Dashboard -->
-            <?php if (has_access('dashboard', 'main_menu')): ?>
-            <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?= $isDashboard ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white' ?> transition-colors group" href="<?= base_url('dashboard') ?>">
-                <span class="material-symbols-outlined text-[22px] <?= $isDashboard ? 'font-medium fill-1' : '' ?> group-hover:scale-110 transition-transform">dashboard</span>
-                <p class="text-sm <?= $isDashboard ? 'font-semibold' : 'font-medium' ?>">Dashboard</p>
+            <!-- Dashboard (Visitor / Staff / Vendor — only the ones this user may open) -->
+            <?php
+            helper('dashboard_nav');
+            $dashTabs   = dashboard_tabs();
+            $dashActive = $current === 'dashboard/staff' ? 'staff' : ($current === 'dashboard/vendor' ? 'vendor' : (($current === '' || $current === 'dashboard') ? 'visitor' : ''));
+            ?>
+            <?php if (count($dashTabs) === 1): $t = $dashTabs[0]; $on = $dashActive === $t['key']; ?>
+            <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?= $on ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white' ?> transition-colors group" href="<?= esc($t['url'], 'attr') ?>">
+                <span class="material-symbols-outlined text-[22px] <?= $on ? 'font-medium fill-1' : '' ?> group-hover:scale-110 transition-transform">dashboard</span>
+                <p class="text-sm <?= $on ? 'font-semibold' : 'font-medium' ?>">Dashboard</p>
             </a>
+            <?php elseif (count($dashTabs) > 1): ?>
+            <details class="group/dash" <?= $dashActive !== '' ? 'open' : '' ?>>
+                <summary class="flex cursor-pointer list-none items-center gap-3 px-3 py-2.5 rounded-lg <?= $dashActive !== '' ? 'text-primary' : 'text-slate-600 dark:text-slate-400' ?> hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white transition-colors">
+                    <span class="material-symbols-outlined text-[22px]">dashboard</span>
+                    <p class="flex-1 text-sm font-medium">Dashboard</p>
+                    <span class="material-symbols-outlined text-[18px] transition-transform group-open/dash:rotate-180">expand_more</span>
+                </summary>
+                <div class="mt-1 ml-5 flex flex-col gap-1 border-l border-slate-200 pl-3 dark:border-slate-700">
+                    <?php foreach ($dashTabs as $t): $on = $dashActive === $t['key']; ?>
+                    <a class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm <?= $on ? 'bg-primary/10 font-semibold text-primary' : 'font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white' ?> transition-colors" href="<?= esc($t['url'], 'attr') ?>">
+                        <span class="material-symbols-outlined text-[18px]"><?= esc($t['icon']) ?></span><?= esc($t['label']) ?>
+                    </a>
+                    <?php endforeach; ?>
+                </div>
+            </details>
             <?php endif; ?>
 
             <!-- E-Map -->
