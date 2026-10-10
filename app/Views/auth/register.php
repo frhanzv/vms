@@ -55,16 +55,22 @@
         </div>
         <?php endif; ?>
 
+        <?php if (! empty($clientLink)): ?>
+        <div class="mb-6 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm">
+            You are registering with <strong><?= esc($clientLink['name']) ?></strong>. Your passes will be submitted to this client.
+        </div>
+        <?php endif; ?>
+
         <div id="searchMsg" class="hidden mb-6 p-4 rounded-lg text-sm"></div>
 
-        <form action="<?= base_url('register') ?>" method="post" class="bg-white dark:bg-[#1a2632] border border-slate-200 dark:border-slate-700 rounded-xl p-6 sm:p-8 flex flex-col gap-6">
+        <form action="<?= ! empty($clientLink) ? base_url('c/' . rawurlencode($clientLink['code']) . '/register') : base_url('register') ?>" method="post" class="bg-white dark:bg-[#1a2632] border border-slate-200 dark:border-slate-700 rounded-xl p-6 sm:p-8 flex flex-col gap-6">
             <?= csrf_field() ?>
 
             <!-- Company lookup -->
             <div class="flex flex-col gap-2">
                 <label class="text-sm font-semibold" for="ssm_no">Company SSM No</label>
                 <div class="flex gap-2">
-                    <input class="form-input flex-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#101922] h-12 px-4 text-base" id="ssm_no" name="ssm_no" type="text" value="<?= old('ssm_no') ?>" placeholder="e.g. 201901012345" required/>
+                    <input class="form-input flex-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#101922] h-12 px-4 text-base" id="ssm_no" name="ssm_no" type="text" value="<?= esc(old('ssm_no') ?: ($prefillSsm ?? '')) ?>" placeholder="e.g. 201901012345" required/>
                     <button type="button" id="searchCompanyBtn" class="h-12 px-5 rounded-lg bg-slate-700 hover:bg-slate-800 text-white text-sm font-semibold whitespace-nowrap">Search</button>
                 </div>
                 <p class="text-xs text-slate-500 dark:text-slate-400">Search for your company first — it must already be registered with KPK before you can create an account for it.</p>
@@ -81,6 +87,9 @@
                 </div>
             </div>
 
+            <?php if (! empty($clientLink)): ?>
+            <input type="hidden" name="client_id" value="<?= (int) $clientLink['id'] ?>"/>
+            <?php endif; ?>
             <div id="clientWrap" class="hidden flex flex-col gap-2">
                 <label class="text-sm font-semibold" for="client_id">Client you are working with</label>
                 <select class="form-select rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#101922] h-12 px-4 text-base" id="client_id" name="client_id">
@@ -138,6 +147,7 @@
     const baseUrl = '<?= rtrim(base_url(), '/') ?>';
     const csrfToken = '<?= csrf_hash() ?>';
     const csrfName = '<?= csrf_token() ?>';
+    const linkClient = <?= ! empty($clientLink) ? 'true' : 'false' ?>;
     const previousClientId = '<?= esc((string) old('client_id'), 'js') ?>';
 
     const msg = document.getElementById('searchMsg');
@@ -157,6 +167,11 @@
         document.getElementById('company_pass_name').value = '';
         clientWrap.classList.add('hidden');
         clientSelect.innerHTML = '<option value="">Select client</option>';
+    }
+
+    function fillIfEmpty(id, value) {
+        const el = document.getElementById(id);
+        if (el && value && el.value.trim() === '') el.value = value;
     }
 
     function searchCompany(quiet) {
@@ -180,6 +195,15 @@
 
                 document.getElementById('company_name').value = res.name;
                 document.getElementById('company_pass_name').value = res.pass_name;
+
+                // Company details already on file are filled in for the applicant.
+                fillIfEmpty('email', res.email);
+                fillIfEmpty('contact_no', res.contact_no);
+
+                if (linkClient) {
+                    if (!quiet) showMsg('Company found: ' + res.name, true);
+                    return;
+                }
 
                 clientSelect.innerHTML = '<option value="">Select client</option>';
                 (res.clients || []).forEach(c => {

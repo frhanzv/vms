@@ -283,12 +283,16 @@ class StaffCardInfo extends StaffPassBase
         if (! $staff) {
             return $this->fail('Record not found.');
         }
-        $selected = array_values(array_intersect((array) ($this->input()['locations'] ?? []), $this->locationValues()));
+        $csv = $this->resolveLocationCsv($this->input()['locations'] ?? [], (string) ($staff['location_access'] ?? ''));
+        if ($csv === '') {
+            return $this->fail('Location Access is mandatory — choose at least one.');
+        }
         $this->db()->table('staff')->where('id', (int) $id)->update($this->onlyColumns([
-            'location_access' => $selected ? implode(',', $selected) : null,
+            'location_access' => $csv,
             'updated_at'      => date('Y-m-d H:i:s'),
         ]));
-        $this->logAction($staff, 'location_access', $staff['status'], null, implode(', ', $selected));
+        $this->syncApprovals((int) $id, $csv);
+        $this->logAction($staff, 'location_access', $staff['status'], null, $csv);
 
         return $this->ok('Location access updated.');
     }

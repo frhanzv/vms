@@ -252,9 +252,13 @@ class VisitorReport extends BaseController
 
     private function hostReportWhereSql($db): string
     {
+        // Shared product: only this client's visitors / those at its gates.
+        helper('client_visibility');
+        $clientSql = visibility_scope_applies() ? ' AND ' . visibility_invitation_sql((int) current_client_id(), 'i') : '';
+
         helper('role');
         if (! role_matches(session()->get('role'), 'host')) {
-            return '';
+            return $clientSql;
         }
 
         $refs = array_values(array_unique(array_filter([
@@ -275,6 +279,6 @@ class VisitorReport extends BaseController
             $parts[] = "i.invited_by = {$escaped}";
         }
 
-        return ' AND (' . implode(' OR ', $parts) . ')';
+        return $clientSql . ' AND (' . implode(' OR ', $parts) . ')';
     }
 }

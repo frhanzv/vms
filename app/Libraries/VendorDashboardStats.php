@@ -22,6 +22,10 @@ use CodeIgniter\Database\BaseConnection;
  * Closed (suspended / terminated). Precedence: closed > active > issuance >
  * printing > process.
  */
+if (! function_exists('vendor_client_scope_sql')) {
+    require_once __DIR__ . '/../Helpers/vendor_client_scope_helper.php';
+}
+
 class VendorDashboardStats
 {
     public const STAGES = ['Draft', 'Pending', 'Rejected', 'Process', 'Printing', 'Issuance', 'Active', 'Closed'];
@@ -37,7 +41,8 @@ class VendorDashboardStats
                 return $b;
             }
             if ($clientId !== null) {
-                $b->where('company_id', $clientId);
+                // Shared product: a pass counts for every client owning one of its locations.
+                $b->where(vendor_client_scope_sql($clientId, 'vendors'), null, false);
             }
             if ($regNo !== null) {
                 $b->where('vendor_company_reg_id', $regNo);

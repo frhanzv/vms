@@ -18,6 +18,8 @@
             <p class="text-xs text-gray-500 dark:text-gray-400 mb-6">
                 The "Location Access" choices offered on the Vendor Pass request form, the detail page, Card Info, and
                 Process Detail. Add one here and it appears everywhere immediately — no other page needs changing.
+                <strong>Each location belongs to one client.</strong> A vendor pass is seen and approved by every client that owns
+                one of its selected locations<?= ! empty($isSuperadmin) ? ' (<a class="text-primary underline" href="' . base_url('config/client-links') . '">Client links &amp; sharing</a>)' : '' ?>.
             </p>
 
             <div id="flashMsg" class="hidden mb-4 text-sm px-4 py-2 rounded-lg"></div>
@@ -27,6 +29,15 @@
                     <label class="block text-xs font-semibold mb-1">Location Name</label>
                     <input id="newLabel" name="label" class="border border-gray-300 dark:border-gray-600 dark:bg-gray-900 rounded px-3 py-2 text-sm w-64" placeholder="e.g. Warehouse 27" required/>
                 </div>
+                <?php if (! empty($isSuperadmin)): ?>
+                <div>
+                    <label class="block text-xs font-semibold mb-1">Owner client</label>
+                    <select id="newClient" class="border border-gray-300 dark:border-gray-600 dark:bg-gray-900 rounded px-3 py-2 text-sm w-44">
+                        <option value="">— not assigned —</option>
+                        <?php foreach ($clients as $c): ?><option value="<?= (int) $c['id'] ?>"><?= esc($c['name']) ?></option><?php endforeach; ?>
+                    </select>
+                </div>
+                <?php endif; ?>
                 <div>
                     <label class="block text-xs font-semibold mb-1">Code <span class="text-gray-400 font-normal">(optional)</span></label>
                     <input id="newCode" name="code" class="border border-gray-300 dark:border-gray-600 dark:bg-gray-900 rounded px-3 py-2 text-sm w-40" placeholder="auto from name"/>
@@ -39,17 +50,30 @@
                     <tr class="bg-gray-50 dark:bg-gray-700 font-bold uppercase">
                         <th class="p-3 border-b">Name</th>
                         <th class="p-3 border-b">Code</th>
+                        <th class="p-3 border-b">Owner client</th>
                         <th class="p-3 border-b">Status</th>
                         <th class="p-3 border-b">Action</th>
                     </tr>
                 </thead>
                 <tbody id="locationsBody">
                     <?php if (empty($locations)): ?>
-                    <tr><td colspan="4" class="p-6 text-center text-gray-500">No locations yet — add the first one above.</td></tr>
+                    <tr><td colspan="5" class="p-6 text-center text-gray-500">No locations yet — add the first one above.</td></tr>
                     <?php else: foreach ($locations as $loc): ?>
                     <tr class="border-b border-gray-100 dark:border-gray-700" data-id="<?= (int) $loc['id'] ?>">
                         <td class="p-3 font-semibold label-cell"><?= esc($loc['label']) ?></td>
                         <td class="p-3 font-mono text-gray-500"><?= esc($loc['code']) ?></td>
+                        <td class="p-3">
+                            <?php if (! empty($isSuperadmin)): ?>
+                            <select class="border border-gray-300 dark:border-gray-600 dark:bg-gray-900 rounded px-2 py-1 text-xs" onchange="setOwner(<?= (int) $loc['id'] ?>, this.value)">
+                                <option value="">— not assigned —</option>
+                                <?php foreach ($clients as $c): ?><option value="<?= (int) $c['id'] ?>" <?= (int) ($loc['client_id'] ?? 0) === (int) $c['id'] ? 'selected' : '' ?>><?= esc($c['name']) ?></option><?php endforeach; ?>
+                            </select>
+                            <?php elseif (! empty($loc['client_id'])): ?>
+                            <?= esc($clientNames[$loc['client_id']] ?? '') ?>
+                            <?php else: ?>
+                            <span class="text-amber-600">Not assigned</span>
+                            <?php endif; ?>
+                        </td>
                         <td class="p-3">
                             <?php if ((int) $loc['is_active'] === 1): ?>
                             <span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">Active</span>
@@ -98,7 +122,7 @@
             const label = document.getElementById('newLabel').value.trim();
             const code = document.getElementById('newCode').value.trim();
             if (!label) return;
-            postForm(`${baseUrl}/vendors/locations/create`, { label, code }).then(res => {
+            const owner = document.getElementById('newClient'); postForm(`${baseUrl}/vendors/locations/create`, { label, code, client_id: owner ? owner.value : '' }).then(res => {
                 showFlash(res.message || (res.success ? 'Added.' : 'Failed.'), res.success);
                 if (res.success) location.reload();
             }).catch(() => showFlash('Network error while adding the location.', false));
@@ -113,6 +137,12 @@
                 showFlash(res.message || (res.success ? 'Updated.' : 'Failed.'), res.success);
                 if (res.success) location.reload();
             }).catch(() => showFlash('Network error while renaming.', false));
+        }
+
+        function setOwner(id, clientId) {
+            postForm(`${baseUrl}/vendors/locations/update/${id}`, { client_id: clientId }).then(res => {
+                showFlash(res.message || (res.success ? 'Updated.' : 'Failed.'), res.success);
+            }).catch(() => showFlash('Network error while updating.', false));
         }
 
         function toggleLocation(id, active) {

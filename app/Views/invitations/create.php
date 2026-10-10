@@ -222,10 +222,9 @@ History
 <?php endif; ?>
 
 <!-- Location -->
-<?php if ($isFieldEnabled('location')): ?>
 <div class="flex flex-col gap-2">
-<label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Location</label>
-<select name="location" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white">
+<label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Location <span class="text-red-500">*</span></label>
+<select name="location" required class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white">
 <option value="">Select location...</option>
 <?php if (isset($locations) && !empty($locations)): ?>
     <?php foreach ($locations as $location): ?>
@@ -234,7 +233,6 @@ History
 <?php endif; ?>
 </select>
 </div>
-<?php endif; ?>
 </div>
 </section>
 

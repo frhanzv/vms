@@ -71,6 +71,12 @@
             <!-- Login Form -->
             <form action="<?= base_url('auth/attemptLogin') ?>" method="post" class="flex flex-col gap-6 w-full max-w-[480px]">
                 <?= csrf_field() ?>
+                <?php if (! empty($clientLink)): ?>
+                <input type="hidden" name="client_code" value="<?= esc($clientLink['code']) ?>"/>
+                <div class="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-slate-700 dark:text-slate-200">
+                    Signing in to <strong><?= esc($clientLink['name']) ?></strong>
+                </div>
+                <?php endif; ?>
                 
                 <!-- Username/Email Field -->
                 <div class="flex flex-col gap-2">
@@ -148,7 +154,7 @@
                     <?= esc($lp['contact_prompt'] ?? "Don't have an account?") ?> <a class="font-semibold text-primary hover:text-blue-600 underline decoration-transparent hover:decoration-current transition-all" href="#"><?= esc($lp['contact_link_text'] ?? 'Contact Administrator') ?></a>
                 </p>
                 <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                    Vendor company? <a class="font-semibold text-primary hover:text-blue-600 underline decoration-transparent hover:decoration-current transition-all" href="<?= base_url('register') ?>">Register your company</a>
+                    Vendor company? <a class="font-semibold text-primary hover:text-blue-600 underline decoration-transparent hover:decoration-current transition-all" href="<?= ! empty($clientLink) ? base_url('c/' . rawurlencode($clientLink['code']) . '/register') : base_url('register') ?>">Register your company</a>
                 </p>
             </div>
         </div>

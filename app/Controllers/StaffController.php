@@ -124,6 +124,14 @@ class StaffController extends BaseController
             'email'          => 'Email',
         ];
 
+        // Location Access is mandatory and must be gates this client may use (own + site group + unassigned).
+        helper('client_visibility');
+        $allowedGates = array_column(visibility_filter_locations((new \App\Models\LocationModel())->getAllActive()), 'location_access');
+        $resolveGates = static function (?string $cell) use ($allowedGates): array {
+            $cells = array_values(array_filter(array_map('trim', explode(',', (string) $cell)), static fn($v) => $v !== ''));
+            return array_values(array_unique(array_intersect($cells, $allowedGates)));
+        };
+
         // --- Validation pass: check all rows before inserting anything ---
         $validationErrors = [];
         $seenInFile = []; // track IC/Passport values within the file itself
@@ -153,6 +161,9 @@ class StaffController extends BaseController
 
             if (!empty($missing)) {
                 $validationErrors[] = "Row {$rowNum}: missing " . implode(', ', $missing) . '.';
+            }
+            if ($resolveGates($get('location_access')) === []) {
+                $validationErrors[] = "Row {$rowNum}: Location Access is mandatory and must match a location you can use.";
             }
 
             // Duplicate check — IC/Passport against DB and within the file
@@ -192,6 +203,7 @@ class StaffController extends BaseController
                 continue;
             }
 
+            $importLoc = implode(',', $resolveGates($get('location_access')));
             $record = [
                 'app_no'                       => $get('app_no') ?? ($batchTag . '-' . str_pad($counter, 3, '0', STR_PAD_LEFT)),
                 'full_name'                    => $get('full_name'),
@@ -215,7 +227,7 @@ class StaffController extends BaseController
                 'sub_type'                     => $get('sub_type'),
                 'type_of_application'          => $get('type_of_application'),
                 'date_of_application'          => $this->parseDate($get('date_of_application')) ?? $get('date_of_application') ?? $today,
-                'location_access'              => $get('location_access'),
+                'location_access'              => $importLoc,
                 // KPK upload-staff-record: HR's sheet is the source of truth, so an
                 // imported staff pass skips approval (KPK puts it straight to
                 // CLOSED). Here it lands as Approved so the card can be printed
@@ -246,6 +258,14 @@ class StaffController extends BaseController
             $fields = $db->getFieldNames('staff');
             $db->table('staff')->insert(array_intersect_key($record, array_flip($fields)));
             $staffId = (int) $db->insertID();
+
+            // Imported passes are already Approved (HR sheet), so every client owning one of the gates is Approved too.
+            if ($db->tableExists('staff_client_approvals')) {
+                \App\Libraries\StaffClientApprovals::sync($db, $staffId, (string) $record['location_access']);
+                if (\App\Libraries\StaffClientApprovals::hasRows($db, $staffId)) {
+                    \App\Libraries\StaffClientApprovals::decide($db, $staffId, null, 'Approved', 'import');
+                }
+            }
 
             if (($record['license_class'] || $record['license_expiry']) && $db->tableExists('staff_driving_licenses')) {
                 $db->table('staff_driving_licenses')->insert([

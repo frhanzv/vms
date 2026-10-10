@@ -44,9 +44,9 @@ class VendorReport extends BaseController
                 WHERE DATE(v.created_at) BETWEEN ? AND ?";
         $params = [$from, $to];
 
-        if (! is_platform_superadmin()) {
-            $sql .= " AND v.company_id = ?";
-            $params[] = current_company_id();
+        helper('vendor_client_scope');
+        if (! is_platform_superadmin() && ! (function_exists('is_vendor_admin') && is_vendor_admin())) {
+            $sql .= " AND " . vendor_client_scope_sql((int) current_company_id(), 'v');
         }
         if ($status !== 'all') {
             $sql .= " AND v.status = ?";

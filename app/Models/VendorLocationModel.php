@@ -20,7 +20,7 @@ class VendorLocationModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['code', 'label', 'sort_order', 'is_active'];
+    protected $allowedFields    = ['code', 'label', 'sort_order', 'is_active', 'client_id'];
 
     protected $useTimestamps = true;
     protected $dateFormat    = 'datetime';
@@ -46,6 +46,62 @@ class VendorLocationModel extends Model
         $options = [];
         foreach ($rows as $row) {
             $options[$row['code']] = $row['label'];
+        }
+
+        return $options;
+    }
+
+    /**
+     * Client ids whose locations the current user may pick from: its own
+     * client plus every client in the same site_group (the clients sharing one
+     * building). Null = no restriction (platform superadmin).
+     *
+     * @return list<int>|null
+     */
+    public static function visibleClientIds(?int $clientId = null): ?array
+    {
+        helper(['feature', 'role']);
+        if (is_platform_superadmin()) {
+            return null;
+        }
+        $clientId = $clientId ?? (int) current_company_id();
+        $db       = \Config\Database::connect();
+        $me       = $db->table('clients')->select('site_group')->where('id', $clientId)->get()->getRowArray();
+        $ids      = [$clientId];
+        if ($me && trim((string) ($me['site_group'] ?? '')) !== '') {
+            $rows = $db->table('clients')->select('id')->where('site_group', $me['site_group'])->get()->getResultArray();
+            foreach ($rows as $r) {
+                $ids[] = (int) $r['id'];
+            }
+        }
+
+        return array_values(array_unique($ids));
+    }
+
+    /**
+     * Active locations the current user may choose (code => label), in display
+     * order: own client + site-group siblings + locations nobody owns yet.
+     * $withClient appends the owning client's name when several clients share
+     * the choices, so a vendor can tell "Gate 1 (KSB)" from "Gate 1 (KPK)".
+     */
+    public function getOptionsForUser(bool $withClient = false, ?array $clientIds = null): array
+    {
+        $clientIds = $clientIds ?? self::visibleClientIds();
+        $b = $this->db->table($this->table . ' l')->select('l.code, l.label, l.client_id, c.name AS client_name')
+            ->join('clients c', 'c.id = l.client_id', 'left')->where('l.is_active', 1);
+        if ($clientIds !== null) {
+            $b->groupStart()->where('l.client_id IS NULL', null, false)->orWhereIn('l.client_id', $clientIds ?: [0])->groupEnd();
+        }
+        $rows = $b->orderBy('l.sort_order', 'ASC')->orderBy('l.label', 'ASC')->get()->getResultArray();
+
+        $multi   = count(array_unique(array_filter(array_column($rows, 'client_id')))) > 1;
+        $options = [];
+        foreach ($rows as $row) {
+            $label = $row['label'];
+            if ($withClient && $multi && ! empty($row['client_name'])) {
+                $label .= ' (' . $row['client_name'] . ')';
+            }
+            $options[$row['code']] = $label;
         }
 
         return $options;

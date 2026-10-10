@@ -7452,6 +7452,16 @@
             return '<span class="inline-flex items-center gap-1 text-red-500 font-semibold" title="Vendor has not registered yet"><span class="material-symbols-outlined text-[18px]">cancel</span><span class="text-xs">Not yet</span></span>';
         }
 
+        function sendCompanyInvite(id) {
+            if (!confirm('Email the registration link to this vendor?')) return;
+            const body = new URLSearchParams();
+            body.set('<?= csrf_token() ?>', '<?= csrf_hash() ?>');
+            fetch(`<?= base_url('config/companies/invite') ?>/${id}`, { method: 'POST', body })
+                .then(r => r.json())
+                .then(res => alert(res.message || (res.success ? 'Sent.' : 'Could not send.')))
+                .catch(() => alert('Network error while sending the invite.'));
+        }
+
         function renderCompanyTable(companies, pagination) {
             const tbody = document.getElementById('companyTableBody');
 
@@ -7481,6 +7491,7 @@
                     <td class="px-4 py-3 text-center">${registrationBadge(company.registration_state)}</td>
                     <td class="px-4 py-3">${new Date(company.created_at).toLocaleDateString()}</td>
                     <td class="px-4 py-3">
+                        ${company.registration_state === 'not_registered' && company.email ? `<button onclick="sendCompanyInvite(${company.id})" class="text-amber-600 hover:text-amber-500 mr-2" title="Email the registration link to this vendor"><span class="material-symbols-outlined text-base">forward_to_inbox</span></button>` : ''}
                         <button onclick="openEditCompanyModal(${company.id})" class="text-primary hover:text-primary/80 mr-2" title="Edit">
                             <span class="material-symbols-outlined text-base">edit</span>
                         </button>

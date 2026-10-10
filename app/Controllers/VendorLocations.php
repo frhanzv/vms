@@ -28,11 +28,25 @@ class VendorLocations extends BaseController
             return $denied;
         }
 
+        helper(['feature', 'role']);
         $model = new VendorLocationModel();
+        $all   = $model->getAllOrdered();
+        $isSa  = is_platform_superadmin();
+
+        // A client admin manages its own client's locations (plus sees the ones nobody owns yet).
+        if (! $isSa) {
+            $me  = (int) current_company_id();
+            $all = array_values(array_filter($all, static fn($l) => empty($l['client_id']) || (int) $l['client_id'] === $me));
+        }
+
+        $clients = $isSa ? \Config\Database::connect()->table('clients')->select('id, name')->orderBy('name')->get()->getResultArray() : [];
 
         return view('vendors/locations', [
-            'pageTitle' => 'Vendor Locations - SafeG',
-            'locations' => $model->getAllOrdered(),
+            'pageTitle'    => 'Vendor Locations - SafeG',
+            'locations'    => $all,
+            'clients'      => $clients,
+            'isSuperadmin' => $isSa,
+            'clientNames'  => array_column(\Config\Database::connect()->table('clients')->select('id, name')->get()->getResultArray(), 'name', 'id'),
         ]);
     }
 
@@ -68,7 +82,15 @@ class VendorLocations extends BaseController
 
         $maxOrder = (int) ($model->selectMax('sort_order')->first()['sort_order'] ?? 0);
 
+        helper(['feature', 'role']);
+        // Each location belongs to exactly one client. A client admin always creates
+        // for its own client; the platform superadmin picks (blank = not owned yet).
+        $ownerId = is_platform_superadmin()
+            ? ((int) $this->request->getPost('client_id') ?: null)
+            : (int) current_company_id();
+
         $ok = $model->insert([
+            'client_id'  => $ownerId,
             'code'       => $code,
             'label'      => $label,
             'sort_order' => $maxOrder + 1,
@@ -107,11 +129,33 @@ class VendorLocations extends BaseController
             $update['is_active'] = ((int) $this->request->getPost('is_active')) ? 1 : 0;
         }
 
+        helper(['feature', 'role']);
+        if ($this->request->getPost('client_id') !== null) {
+            if (! is_platform_superadmin()) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Only the platform administrator can change which client owns a location.']);
+            }
+            $update['client_id'] = ((int) $this->request->getPost('client_id')) ?: null;
+        }
+        // A client admin may only edit its own client's locations.
+        if (! is_platform_superadmin() && ! empty($location['client_id']) && (int) $location['client_id'] !== (int) current_company_id()) {
+            return $this->response->setJSON(['success' => false, 'message' => 'That location belongs to another client.']);
+        }
+
         if (empty($update)) {
             return $this->response->setJSON(['success' => false, 'message' => 'Nothing to update.']);
         }
 
         $model->update((int) $id, $update);
+
+        // Changing the owner changes which clients are involved in passes using this location.
+        if (array_key_exists('client_id', $update)) {
+            $db = \Config\Database::connect();
+            foreach ($db->table('vendors')->select('id, location_access')->like('location_access', $location['code'])->get()->getResultArray() as $v) {
+                if (in_array($location['code'], array_map('trim', explode(',', (string) $v['location_access'])), true)) {
+                    \App\Libraries\VendorClientApprovals::sync($db, (int) $v['id'], (string) $v['location_access']);
+                }
+            }
+        }
 
         return $this->response->setJSON(['success' => true, 'message' => 'Location updated.']);
     }
@@ -127,6 +171,11 @@ class VendorLocations extends BaseController
         $location = $model->find((int) $id);
         if (! $location) {
             return $this->response->setJSON(['success' => false, 'message' => 'Location not found.']);
+        }
+
+        helper(['feature', 'role']);
+        if (! is_platform_superadmin() && ! empty($location['client_id']) && (int) $location['client_id'] !== (int) current_company_id()) {
+            return $this->response->setJSON(['success' => false, 'message' => 'That location belongs to another client.']);
         }
 
         // Soft-disable instead of a hard delete — a vendor record that

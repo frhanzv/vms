@@ -56,7 +56,19 @@ class Auth extends BaseController
         return base_url(ltrim($path, '/'));
     }
 
-    public function login()
+    /** /c/{CODE}/login — the same login page, branded and bound to one client. */
+    public function clientLogin($code = '')
+    {
+        helper('client_link');
+        $client = client_by_code((string) $code);
+        if (! $client) {
+            return redirect()->to(base_url('login'))->with('error', 'That client link is not valid.');
+        }
+
+        return $this->login($client);
+    }
+
+    public function login(?array $clientLink = null)
     {
         // If user is already logged in, redirect to dashboard
         if (session()->get('isLoggedIn')) {
@@ -79,7 +91,7 @@ class Auth extends BaseController
         $template = strtolower((string) ($settings['template'] ?? 'default'));
         $view = $template === 'gxo' ? 'auth/login_gxo' : 'auth/login';
 
-        return view($view, ['loginPageSettings' => $settings]);
+        return view($view, ['loginPageSettings' => $settings, 'clientLink' => $clientLink]);
     }
 
     public function attemptLogin()
@@ -98,8 +110,20 @@ class Auth extends BaseController
         $user = $userModel->verifyPassword($usernameOrEmail, $password);
 
         if ($user) {
-            helper('role');
+            helper(['role', 'client_link']);
             $role = normalize_role_slug($user['role']);
+
+            // Signed in through a client's own link: the account must belong to that client.
+            // The platform owner and vendor company accounts (which may work with several
+            // clients sharing one site) can use any client's link.
+            $linkCode = trim((string) $this->request->getPost('client_code'));
+            if ($linkCode !== '') {
+                $linkClient = client_by_code($linkCode);
+                $exempt     = in_array($role, ['superadmin', normalize_role_slug('vendor_admin')], true);
+                if ($linkClient && ! $exempt && (int) $user['client_id'] !== (int) $linkClient['id']) {
+                    return redirect()->back()->with('error', 'This account does not belong to ' . $linkClient['name'] . '. Please use your own login link.')->withInput();
+                }
+            }
 
             // Set session data
             $sessionData = [
@@ -172,14 +196,28 @@ class Auth extends BaseController
     // pass requests — only ever for its own company.
     // =========================================================================
 
-    public function register()
+    /** /c/{CODE}/register — registration with the client fixed by the link. */
+    public function clientRegister($code = '')
+    {
+        helper('client_link');
+        $client = client_by_code((string) $code);
+        if (! $client) {
+            return redirect()->to(base_url('register'))->with('error', 'That client link is not valid. Please choose your client below.');
+        }
+
+        return $this->register($client);
+    }
+
+    public function register(?array $clientLink = null)
     {
         if (session()->get('isLoggedIn')) {
             return redirect()->to('/dashboard');
         }
 
         return view('auth/register', [
-            'pageTitle' => 'Register Your Company - SafeG',
+            'pageTitle'  => 'Register Your Company - SafeG',
+            'clientLink' => $clientLink,
+            'prefillSsm' => trim((string) $this->request->getGet('ssm')),
         ]);
     }
 
@@ -239,14 +277,22 @@ class Auth extends BaseController
             'success'   => true,
             'name'      => $company['name'],
             'pass_name' => ($company['pass_name'] ?? '') !== '' ? $company['pass_name'] : $company['name'],
+            'email'     => (string) ($company['email'] ?? ''),
+            'contact_no' => (string) ($company['contact_no'] ?? ''),
             'clients'   => $this->activeClientOptions(),
         ]);
     }
 
-    public function doRegister()
+    public function doRegister($linkCode = '')
     {
+        helper('client_link');
         $ssmNo        = trim((string) $this->request->getPost('ssm_no'));
         $clientId     = (int) $this->request->getPost('client_id');
+        // Registering through a client's own link: the client is the link's, not a free choice.
+        $linkClient   = $linkCode !== '' ? client_by_code((string) $linkCode) : null;
+        if ($linkClient) {
+            $clientId = (int) $linkClient['id'];
+        }
         $password     = (string) $this->request->getPost('password');
         $email        = trim((string) $this->request->getPost('email'));
         $fullName     = trim((string) $this->request->getPost('full_name'));
@@ -304,7 +350,14 @@ class Auth extends BaseController
             return redirect()->back()->withInput()->with('error', 'Could not complete registration: ' . implode(' ', $userModel->errors() ?: ['Please check your details and try again.']));
         }
 
-        return redirect()->to(base_url('login'))->with('success', 'Registration received. Your account now needs to be verified by the administrator. Once it is verified you can log in with your company SSM No as the username.');
+        // Remind the client that this vendor is waiting for approval.
+        try {
+            \App\Libraries\VendorInviteMailer::registered($company, $client, ['full_name' => $fullName, 'email' => $email]);
+        } catch (\Throwable $e) {
+            log_message('error', 'Registration reminder failed: ' . $e->getMessage());
+        }
+
+        return redirect()->to($linkClient ? client_link_url($linkClient, 'login') : base_url('login'))->with('success', 'Registration received. Your account now needs to be verified by the administrator. Once it is verified you can log in with your company SSM No as the username.');
     }
 
     public function forgotPassword()

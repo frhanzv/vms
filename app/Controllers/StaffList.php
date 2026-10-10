@@ -68,8 +68,21 @@ class StaffList extends StaffPassBase
 
         $list   = [];
         $offset = ($pagination['current_page'] - 1) * $perPage;
+
+        // Shared product: which clients still have to approve each pass on this page.
+        $approvalRows = $this->approvalsReady()
+            ? \App\Libraries\StaffClientApprovals::rowsForVendors($this->db(), array_map('intval', array_column($rows, 'id')))
+            : [];
+        $myClientId = is_platform_superadmin() ? null : (int) current_client_id();
+
         foreach ($rows as $i => $row) {
             $rowStatus = $row['status'] ?: 'Pending';
+            $cRows     = $approvalRows[(int) $row['id']] ?? [];
+            $awaitingText = $awaiting[$row['next_action'] ?? ''] ?? null;
+            if ($cRows) {
+                $names = array_column(array_filter($cRows, static fn($r) => $r['status'] !== 'Approved'), 'client_name');
+                $awaitingText = ($names && $rowStatus === 'Pending') ? 'Awaiting ' . implode(' & ', $names) . ' approval' : null;
+            }
             $list[] = [
                 'id'           => (int) $row['id'],
                 'no'           => $offset + $i + 1,
@@ -81,13 +94,16 @@ class StaffList extends StaffPassBase
                 'staff_no'     => $row['staff_no'] ?: '-',
                 'department'   => $row['department'] ?: '-',
                 'status'       => $rowStatus,
-                'awaiting'     => $awaiting[$row['next_action'] ?? ''] ?? null,
+                'awaiting'     => $awaitingText,
+                'client_approvals' => $cRows,
                 'reject_reason'=> $row['reject_reason'] ?? null,
                 'card_status'  => $row['card_status'] ?: 'Inactive',
                 'card_expiry'  => $this->fmtDate($row['card_expiry'] ?? null),
                 'is_active'    => (int) ($row['is_active'] ?? 1) === 1,
-                'can_approve'  => $showApprove && in_array($rowStatus, ['Pending', 'Rejected'], true) && $this->canActOn($row, 'approve'),
-                'can_reject'   => $showReject && in_array($rowStatus, ['Pending', 'Approved', 'Rejected'], true) && $this->canActOn($row, 'reject'),
+                'can_approve'  => $showApprove && in_array($rowStatus, ['Pending', 'Rejected'], true)
+                    && ($cRows ? $this->canActPerClient($cRows, $myClientId, 'approve') : $this->canActOn($row, 'approve')),
+                'can_reject'   => $showReject && in_array($rowStatus, ['Pending', 'Approved', 'Rejected'], true)
+                    && ($cRows ? $this->canActPerClient($cRows, $myClientId, 'reject') : $this->canActOn($row, 'reject')),
                 'can_edit_row' => in_array($rowStatus, ['Draft', 'Pending', 'Rejected'], true) || is_platform_superadmin() || is_client_superadmin(),
             ];
         }
@@ -232,7 +248,14 @@ class StaffList extends StaffPassBase
         if (! $staff) {
             return $this->fail('Staff pass record not found.');
         }
-        if (! $this->canActOn($staff, 'approve')) {
+        $db0       = $this->db();
+        $perClient = $this->approvalsReady() && \App\Libraries\StaffClientApprovals::hasRows($db0, (int) $staff['id']);
+        $myClient  = is_platform_superadmin() ? null : (int) current_client_id();
+        if ($perClient) {
+            if (! $this->canActPerClient(\App\Libraries\StaffClientApprovals::rows($db0, (int) $staff['id']), $myClient, 'approve')) {
+                return $this->fail('You cannot approve this pass: none of its locations belong to your client, or your client has already approved it.');
+            }
+        } elseif (! $this->canActOn($staff, 'approve')) {
             return $this->fail($this->notAllowedMessage($staff, 'approve'));
         }
         if (! in_array($staff['status'], ['Pending', 'Rejected'], true)) {
@@ -246,6 +269,10 @@ class StaffList extends StaffPassBase
             if ($hit > 0) {
                 return $this->fail('IC / Passport is Blacklisted. This pass cannot be approved.');
             }
+        }
+
+        if ($perClient) {
+            return $this->approvePerClient($staff, $myClient, $remark);
         }
 
         $tiers  = $this->approverTiers('approve');
@@ -304,7 +331,14 @@ class StaffList extends StaffPassBase
         if (! $staff) {
             return $this->fail('Staff pass record not found.');
         }
-        if (! $this->canActOn($staff, 'reject')) {
+        $db0       = $this->db();
+        $perClient = $this->approvalsReady() && \App\Libraries\StaffClientApprovals::hasRows($db0, (int) $staff['id']);
+        $myClient  = is_platform_superadmin() ? null : (int) current_client_id();
+        if ($perClient) {
+            if (! $this->canActPerClient(\App\Libraries\StaffClientApprovals::rows($db0, (int) $staff['id']), $myClient, 'reject')) {
+                return $this->fail('You cannot reject this pass: none of its locations belong to your client.');
+            }
+        } elseif (! $this->canActOn($staff, 'reject')) {
             return $this->fail($this->notAllowedMessage($staff, 'reject'));
         }
         if (! in_array($staff['status'], ['Pending', 'Approved', 'Rejected'], true)) {
@@ -334,9 +368,92 @@ class StaffList extends StaffPassBase
         if (! $this->applyTransition($staff, $update)) {
             return $this->fail('This record has already been processed by another user. Please refresh the page.');
         }
+        if ($perClient) {
+            \App\Libraries\StaffClientApprovals::decide($db0, (int) $staff['id'], $myClient, 'Rejected', $this->actor(), $reasonText);
+            $remark = trim(($myClient === null ? '[All clients] ' : '[' . $this->clientName($db0, $myClient) . '] ') . $remark);
+        }
         $this->logAction($staff, 'reject', 'Rejected', null, $remark, $reasonText);
 
         return $this->ok('Staff pass rejected successfully.');
+    }
+
+    // ------------------------------------------------------------------
+    //  Shared product: each client approves its own gates
+    // ------------------------------------------------------------------
+
+    /** Approve as one client (or, with $clientId null, as platform superadmin for every involved client). */
+    private function approvePerClient(array $staff, ?int $clientId, string $remark)
+    {
+        $db = $this->db();
+        $id = (int) $staff['id'];
+        [$ok, $msg, $all] = \App\Libraries\StaffClientApprovals::decide($db, $id, $clientId, 'Approved', $this->actor(), $remark);
+        if (! $ok) {
+            return $this->fail($msg);
+        }
+
+        $overall = \App\Libraries\StaffClientApprovals::overallStatus($db, $id) ?? 'Pending';
+        $update  = ['status' => $overall, 'next_action' => null, 'remark' => $remark !== '' ? $remark : ($staff['remark'] ?? null)];
+        $message = $all
+            ? 'Staff pass approved by every involved client.'
+            : 'Your client has approved. ' . (\App\Libraries\StaffClientApprovals::awaitingLabel($db, $id) ?? '');
+
+        if ($overall === 'Approved') {
+            $update['reject_reason'] = null;
+            // Renewal: a new card goes through Printing / Issuance again.
+            $hadCard = ! empty($staff['receipt_no']) || in_array($staff['card_status'] ?? '', ['Active', 'Terminated'], true);
+            if (strtoupper((string) ($staff['type_of_application'] ?? 'NEW')) !== 'NEW' && $hadCard) {
+                $update['receipt_no']  = null;
+                $update['card_status'] = 'Inactive';
+                $message .= ' Sent to Process List for a new card.';
+            }
+            if ($this->cfg('direct_close')) {
+                $update['card_status'] = 'Active';
+                $update['issued_at']   = date('Y-m-d H:i:s');
+                $update['issued_by']   = $this->actor();
+                $message .= ' Card activated (direct close).';
+            }
+        }
+
+        if (! $this->applyTransition($staff, $update)) {
+            return $this->fail('This record has already been processed by another user. Please refresh the page.');
+        }
+        $label = $clientId === null ? '[All clients] ' : '[' . $this->clientName($db, $clientId) . '] ';
+        $this->logAction($staff, $all ? 'approve' : 'client_approve', $overall, null, trim($label . $remark));
+
+        return $this->ok($message);
+    }
+
+    /**
+     * May this user approve/reject given the clients involved in the pass?
+     * Platform superadmin (clientId null) always may. A client user needs the usual
+     * approve/reject permission (any tier) AND an involved client row; to approve,
+     * that row must not already be Approved.
+     *
+     * @param list<array{client_id:int,status:string}> $rows
+     */
+    private function canActPerClient(array $rows, ?int $clientId, string $action): bool
+    {
+        if ($clientId === null) {
+            return true;
+        }
+        $t = $this->approverTiers($action);
+        if (! ($t['super'] || $t['generic'] || $t['ksb'] || $t['kpk'])) {
+            return false;
+        }
+        foreach ($rows as $r) {
+            if ((int) $r['client_id'] === $clientId) {
+                return $action === 'reject' || in_array($r['status'], ['Pending', 'Rejected'], true);
+            }
+        }
+
+        return false;
+    }
+
+    private function clientName($db, int $clientId): string
+    {
+        $row = $db->table('clients')->select('name')->where('id', $clientId)->get()->getRowArray();
+
+        return (string) ($row['name'] ?? ('Client ' . $clientId));
     }
 
     // ------------------------------------------------------------------

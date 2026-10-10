@@ -276,6 +276,10 @@ class InvitationList extends BaseController
 
     private function applyInvitationListScope($builder)
     {
+        // Shared product: a client sees invitations created under it or held at one of its gates.
+        helper('client_visibility');
+        visibility_scope_invitations($builder, 'invitations');
+
         $builder->groupStart()
             ->where('registration_source !=', 'kiosk')
             ->orWhere('registration_source IS NULL', null, false)
@@ -481,7 +485,9 @@ class InvitationList extends BaseController
             : [];
         
         // Get locations from database  
-        $locations = $this->locationModel->findAll();
+        // Shared product: only the gates this client (and its site-group siblings) may use.
+        helper('client_visibility');
+        $locations = visibility_filter_locations($this->locationModel->findAll());
         
         // Get active companies from database
         $companyModel = new \App\Models\CompanyModel();
@@ -678,6 +684,11 @@ class InvitationList extends BaseController
 
     private function hostCanAccessInvitation(array $invitation): bool
     {
+        helper('client_visibility');
+        if (! empty($invitation['id']) && ! visibility_invitation_allowed((int) $invitation['id'])) {
+            return false;
+        }
+
         $refs = $this->currentHostRefs();
         if ($refs === []) {
             return true;
@@ -734,6 +745,15 @@ class InvitationList extends BaseController
         if ($isEnabled('staff_id'))       { $rules['staff_id']       = 'required|max_length[50]'; }
         if ($isEnabled('host_contact'))  { $rules['host_contact']    = 'required|max_length[20]'; }
         if ($isEnabled('link_expiry'))    { $rules['link_expiry']    = 'required'; }
+        // Location is mandatory: it decides which client the visit belongs to.
+        $rules['location'] = 'required|max_length[100]';
+
+        helper('client_visibility');
+        $allowedLocations = array_column(visibility_filter_locations($this->locationModel->findAll()), 'client_id', 'location_access');
+        $postedLocation   = trim((string) $this->request->getPost('location'));
+        if ($postedLocation !== '' && ! array_key_exists($postedLocation, $allowedLocations)) {
+            return redirect()->back()->withInput()->with('errors', ['location' => 'Please choose a location from the list.']);
+        }
 
         $visitorTypeCount = $this->invitationsSupportVisitorType()
             ? $this->visitorTypeModel->countAllResults()
@@ -830,7 +850,8 @@ class InvitationList extends BaseController
             log_message('info', 'Invitation POST data: ' . print_r($this->request->getPost(), true));
 
             $shared = [
-                'client_id'          => current_client_id() ?: null,
+                // Created under the user's client; the platform superadmin's visit belongs to the client owning the location.
+                'client_id'          => current_client_id() ?: (($allowedLocations[$postedLocation] ?? null) ?: null),
                 'ic_passport'         => null,
                 'vehicle_registration' => null,
                 'invited_by'          => $currentUser,
@@ -838,7 +859,7 @@ class InvitationList extends BaseController
                 'registration_source' => 'Invitation',
                 'company'             => $isEnabled('company_visited') ? $this->request->getPost('company_visited') : null,
                 'company_visited'     => $isEnabled('company_visited') ? $this->request->getPost('company_visited') : null,
-                'location'            => $isEnabled('location')        ? $this->request->getPost('location')        : null,
+                'location'            => $postedLocation,
                 'reason'              => $isEnabled('reason')          ? $this->request->getPost('reason')          : '',
                 'other_reason'        => $isEnabled('reason')          ? $this->request->getPost('other_reason')    : null,
                 'link_expiry'         => $linkExpiry,

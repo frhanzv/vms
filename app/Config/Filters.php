@@ -85,6 +85,7 @@ class Filters extends BaseFilters
                 'auth/*',
                 'register',
                 'register/*',
+                'c/*',
                 'activate/*',
                 'forgot-password',
                 'visitor-registration',

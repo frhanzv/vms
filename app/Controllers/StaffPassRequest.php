@@ -37,6 +37,12 @@ class StaffPassRequest extends StaffPassBase
             return redirect()->back()->withInput()->with('error', "Another staff pass exists for IC / Passport '{$data['ic_passport']}'.");
         }
 
+        // Location Access is mandatory: it decides which client(s) receive the pass for approval.
+        $data['location_access'] = $this->resolveLocationCsv($this->request->getPost('location_access'));
+        if (! $isDraft && $data['location_access'] === '') {
+            return redirect()->back()->withInput()->with('error', 'Please choose at least one Location Access. It decides which client(s) receive this pass for approval.');
+        }
+
         helper('feature');
         $db = $this->db();
         $data['app_no']     = $this->nextAppNo();
@@ -49,6 +55,7 @@ class StaffPassRequest extends StaffPassBase
         $db->table('staff')->insert($this->onlyColumns($data));
         $id = (int) $db->insertID();
         $this->saveLicenses($id, false);
+        $this->syncApprovals($id, (string) $data['location_access'], $isDraft);
         $this->logAction(['id' => $id, 'status' => null], $isDraft ? 'draft' : 'submit', $data['status']);
 
         return redirect()->to(base_url('staffs'))
@@ -119,6 +126,11 @@ class StaffPassRequest extends StaffPassBase
             $data['reject_reason'] = null;
         }
 
+        $data['location_access'] = $this->resolveLocationCsv($this->request->getPost('location_access'), (string) ($current['location_access'] ?? ''));
+        if (! $isDraft && $data['location_access'] === '') {
+            return redirect()->back()->withInput()->with('error', 'Please choose at least one Location Access. It decides which client(s) receive this pass for approval.');
+        }
+
         if (! $isDraft && ($missing = $this->missingRequired($data))) {
             return redirect()->back()->withInput()->with('error', 'Please complete the following mandatory field(s): ' . implode(', ', $missing) . '.');
         }
@@ -130,6 +142,11 @@ class StaffPassRequest extends StaffPassBase
         $this->handleUploads($data);
         $this->db()->table('staff')->where('id', (int) $id)->update($this->onlyColumns($data));
         $this->saveLicenses((int) $id, false);
+        $this->syncApprovals((int) $id, (string) ($data['location_access'] ?? $current['location_access'] ?? ''), $isDraft);
+        // A rejected pass that is edited and resubmitted starts a fresh round for every client.
+        if (! $isDraft && ($current['status'] ?? '') === 'Rejected' && ($data['status'] ?? '') === 'Pending' && $this->approvalsReady()) {
+            \App\Libraries\StaffClientApprovals::resetAll($this->db(), (int) $id);
+        }
         $this->logAction($current, 'edit', $data['status'] ?? $current['status']);
 
         return redirect()->to(base_url('staffs'))
@@ -177,6 +194,10 @@ class StaffPassRequest extends StaffPassBase
         }
 
         $data = $this->collect(false);
+        $data['location_access'] = $this->resolveLocationCsv($this->request->getPost('location_access'), (string) ($staff['location_access'] ?? ''));
+        if ($data['location_access'] === '') {
+            return redirect()->back()->withInput()->with('error', 'Please choose at least one Location Access.');
+        }
         // KPK renewPortPassStaff keeps the identity fields as they are.
         unset($data['full_name'], $data['ic_passport'], $data['staff_no'], $data['resident'], $data['date_of_birth']);
         $data['type_of_application'] = 'RENEWAL';
@@ -200,6 +221,10 @@ class StaffPassRequest extends StaffPassBase
             return redirect()->to(base_url('staffs/closed-list'))->with('error', 'Fail to renew. This pass has already been renewed by someone else. Please refresh.');
         }
         $this->saveLicenses((int) $id, true);
+        $this->syncApprovals((int) $id, (string) $data['location_access']);
+        if ($this->approvalsReady()) {
+            \App\Libraries\StaffClientApprovals::resetAll($db, (int) $id); // a renewal needs every client's approval again
+        }
         $this->logAction($staff, 'renew', 'Pending');
 
         return redirect()->to(base_url('staffs'))->with('success', 'Staff pass renewal submitted — it is now Pending approval.');

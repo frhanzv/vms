@@ -37,18 +37,54 @@ abstract class StaffPassBase extends BaseController
      */
     protected function scope($builder, string $alias = '')
     {
-        helper(['feature', 'role']);
+        helper(['feature', 'role', 'client_visibility']);
         if (is_platform_superadmin()) {
             return $builder;
         }
-        $col = ($alias !== '' ? $alias . '.' : '') . 'company_id';
-        if ($this->hasColumn('company_id')) {
-            $builder->groupStart()
-                ->where($col, current_company_id())
-                ->orWhere($col . ' IS NULL', null, false)
-                ->groupEnd();
+        if (! $this->hasColumn('company_id')) {
+            return $builder;
         }
+        // Shared product: a client sees staff passes of its own company AND every pass
+        // using a gate it owns (per-client approval rows). See client_visibility_helper.
+        if ($this->approvalsReady()) {
+            $builder->where(visibility_staff_sql((int) current_client_id(), $alias !== '' ? $alias : 'staff'), null, false);
+            return $builder;
+        }
+        $col = ($alias !== '' ? $alias . '.' : '') . 'company_id';
+        $builder->groupStart()
+            ->where($col, current_company_id())
+            ->orWhere($col . ' IS NULL', null, false)
+            ->groupEnd();
         return $builder;
+    }
+
+    /** False until the multi-client migration has been run (keeps the old company rule meanwhile). */
+    protected function approvalsReady(): bool
+    {
+        static $ready = null;
+        return $ready ??= $this->db()->tableExists('staff_client_approvals');
+    }
+
+    /**
+     * Location Access for a staff pass: the posted gates the user may use + any
+     * gates of other clients already on the pass (an edit never drops those).
+     * Returns the comma list, '' when nothing is left.
+     */
+    protected function resolveLocationCsv($posted, string $existingCsv = ''): string
+    {
+        $allowed = $this->locationValues();
+        $chosen  = array_values(array_intersect(array_map('strval', array_map('trim', (array) $posted)), $allowed));
+        $hidden  = array_filter(array_map('trim', explode(',', $existingCsv)), static fn($c) => $c !== '' && ! in_array($c, $allowed, true));
+
+        return implode(',', array_values(array_unique(array_merge($chosen, $hidden))));
+    }
+
+    /** Keep staff_client_approvals in step with the pass's gates (no-op before the migration). */
+    protected function syncApprovals(int $staffId, ?string $locationCsv, bool $draft = false): void
+    {
+        if ($this->approvalsReady()) {
+            \App\Libraries\StaffClientApprovals::sync($this->db(), $staffId, $draft ? '' : (string) $locationCsv);
+        }
     }
 
     protected function loadScopedStaff(int $id): ?array
@@ -275,7 +311,9 @@ abstract class StaffPassBase extends BaseController
     {
         $groups = [];
         try {
-            $locations = (new \App\Models\LocationModel())->getAllActive();
+            helper('client_visibility');
+            // Shared product: own gates + site-group siblings + gates nobody owns yet.
+            $locations = visibility_filter_locations((new \App\Models\LocationModel())->getAllActive());
         } catch (\Throwable $e) {
             return [];
         }

@@ -182,6 +182,10 @@ $loginButtonText = $lp['login_button_text'] ?? 'Sign In';
 
                     <form method="post" action="<?= base_url('auth/attemptLogin') ?>" class="mt-9 space-y-6">
                         <?= csrf_field() ?>
+                        <?php if (! empty($clientLink)): ?>
+                        <input type="hidden" name="client_code" value="<?= esc($clientLink['code']) ?>"/>
+                        <div class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700">Signing in to <strong><?= esc($clientLink['name']) ?></strong></div>
+                        <?php endif; ?>
 
                         <div>
                             <label for="username" class="mb-3 block text-sm font-bold text-slate-950"><?= esc($usernameLabel) ?></label>
@@ -217,7 +221,7 @@ $loginButtonText = $lp['login_button_text'] ?? 'Sign In';
                     </form>
 
                     <div class="mt-4 text-sm font-medium text-slate-600">
-                        Vendor company? <a href="<?= base_url('register') ?>" class="font-semibold text-[#ff3d0b] hover:text-[#d93108]">Register your company</a>
+                        Vendor company? <a href="<?= ! empty($clientLink) ? base_url('c/' . rawurlencode($clientLink['code']) . '/register') : base_url('register') ?>" class="font-semibold text-[#ff3d0b] hover:text-[#d93108]">Register your company</a>
                     </div>
 
                     <div class="mt-3 text-right text-sm font-semibold text-slate-500">V1.1</div>

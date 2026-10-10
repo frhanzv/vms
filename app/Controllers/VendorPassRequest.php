@@ -33,7 +33,7 @@ class VendorPassRequest extends BaseController
             'countries'       => $countries,
             'fields'          => $this->vendorFieldToggles(),
             'required'        => $this->vendorFieldRequired(),
-            'locationOptions' => (new VendorLocationModel())->getActiveOptions(),
+            'locationOptions' => (new VendorLocationModel())->getOptionsForUser(true),
             'stateOptions'    => self::STATE_OPTIONS,
             'lockedCompany'   => $this->vendorAccountCompany(),
         ];
@@ -82,6 +82,12 @@ class VendorPassRequest extends BaseController
                 ->with('error', "A vendor pass record with IC/Passport '{$icOrPassport}' already exists.");
         }
 
+        // Location Access is mandatory: it decides which client(s) see and approve the pass.
+        if (! $isDraft && trim((string) $formData['location_access']) === '') {
+            return redirect()->back()->withInput()
+                ->with('error', 'Please choose at least one Location Access. It decides which client(s) receive this pass for approval.');
+        }
+
         $formData['company_id'] = current_company_id();
         $formData['created_at'] = date('Y-m-d H:i:s');
 
@@ -91,6 +97,7 @@ class VendorPassRequest extends BaseController
         $vendorId = $db->insertID();
 
         $this->saveDrivingLicenses($vendorId);
+        \App\Libraries\VendorClientApprovals::sync($db, (int) $vendorId, $isDraft ? '' : (string) $formData['location_access']);
 
         return redirect()->to(base_url('vendors'))
             ->with('success', $isDraft ? 'Vendor pass request saved as draft.' : 'Vendor pass request submitted successfully.');
@@ -113,7 +120,7 @@ class VendorPassRequest extends BaseController
             'fields'          => $this->vendorFieldToggles(),
             'required'        => $this->vendorFieldRequired(),
             'licenses'        => $licenses,
-            'locationOptions' => (new VendorLocationModel())->getActiveOptions(),
+            'locationOptions' => (new VendorLocationModel())->getOptionsForUser(true),
         ]);
     }
 
@@ -149,7 +156,7 @@ class VendorPassRequest extends BaseController
             'fields'          => $this->vendorFieldToggles(),
             'required'        => $this->vendorFieldRequired(),
             'licenses'        => $licenses,
-            'locationOptions' => (new VendorLocationModel())->getActiveOptions(),
+            'locationOptions' => (new VendorLocationModel())->getOptionsForUser(true),
             'stateOptions'    => self::STATE_OPTIONS,
             'lockedCompany'   => $this->vendorAccountCompany(),
         ]);
@@ -188,6 +195,18 @@ class VendorPassRequest extends BaseController
             }
         }
 
+        // Keep locations of other clients that this user cannot see in the picker
+        // (so editing a pass never silently drops another client's location).
+        $visible = array_keys((new VendorLocationModel())->getOptionsForUser(true));
+        $kept    = array_values(array_filter(array_map('trim', explode(',', (string) ($current['location_access'] ?? ''))), static fn($c) => $c !== '' && ! in_array($c, $visible, true)));
+        if ($kept) {
+            $formData['location_access'] = implode(',', array_unique(array_merge(array_filter(explode(',', (string) $formData['location_access'])), $kept)));
+        }
+        if (! $isDraft && trim((string) $formData['location_access']) === '') {
+            return redirect()->back()->withInput()
+                ->with('error', 'Please choose at least one Location Access. It decides which client(s) receive this pass for approval.');
+        }
+
         $icOrPassport = $formData['ic_no'] ?: $formData['passport_no'];
         $column       = $formData['ic_no'] ? 'ic_no' : 'passport_no';
         if (! $isDraft && $icOrPassport && $db->table('vendors')->where($column, $icOrPassport)->where('id !=', (int) $id)->countAllResults() > 0) {
@@ -204,6 +223,12 @@ class VendorPassRequest extends BaseController
         // that page once it's needed.
         $this->saveDrivingLicenses((int) $id);
 
+        \App\Libraries\VendorClientApprovals::sync($db, (int) $id, $isDraft ? '' : (string) $formData['location_access']);
+        // A rejected pass that is edited and resubmitted starts a fresh round for every client.
+        if (! $isDraft && ($current['status'] ?? '') === 'Rejected' && ($formData['status'] ?? '') === 'Pending') {
+            \App\Libraries\VendorClientApprovals::resetAll($db, (int) $id);
+        }
+
         return redirect()->to(base_url('vendors'))
             ->with('success', $isDraft ? 'Vendor pass request saved as draft.' : 'Vendor pass record updated successfully.');
     }
@@ -217,7 +242,7 @@ class VendorPassRequest extends BaseController
         $r = fn(string $key) => $this->request->getPost($key);
 
         $locations = (array) ($this->request->getPost('location_access') ?? []);
-        $locations = array_values(array_intersect($locations, array_keys((new VendorLocationModel())->getActiveOptions())));
+        $locations = array_values(array_intersect($locations, array_keys((new VendorLocationModel())->getOptionsForUser(true))));
 
         return $this->lockForVendorAccount([
             'app_no'                        => $appNo,
@@ -301,9 +326,8 @@ class VendorPassRequest extends BaseController
         helper(['feature', 'vendor_company']);
 
         $builder = \Config\Database::connect()->table('vendors')->where('id', $id);
-        if (! is_platform_superadmin()) {
-            $builder->where('company_id', current_company_id());
-        }
+        helper('vendor_client_scope');
+        vendor_client_scope($builder);
         apply_vendor_company_scope($builder);
 
         return $builder->get()->getRowArray() ?: null;
@@ -475,6 +499,7 @@ class VendorPassRequest extends BaseController
                 $required[$row['field_key']] = (bool) $row['is_required'];
             }
         }
+        $required['location_access'] = true; // always mandatory — it decides which client approves
         return $required;
     }
 

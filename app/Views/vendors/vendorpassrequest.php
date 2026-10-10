@@ -84,7 +84,7 @@
 
                     // Config-driven field/section toggles — set by Config > Dynamic Form Fields >
                     // Vendor Pass Request. Absence of a key means enabled (same default as everywhere else).
-                    $on = fn(string $key) => $fields[$key] ?? true;
+                    $on = fn(string $key) => $key === 'location_access' ? true : ($fields[$key] ?? true);
 
                     // Config-driven "Mandatory" toggle for the same fields. $req() returns the
                     // red asterisk markup, $reqAttr() returns the HTML `required` attribute —

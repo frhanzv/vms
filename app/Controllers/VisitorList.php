@@ -408,6 +408,10 @@ class VisitorList extends BaseController
 
     private function applyHostVisitorScope($builder): void
     {
+        // Shared product: only this client's visitors / those at its gates (alias `i` = invitations).
+        helper('client_visibility');
+        visibility_scope_invitations($builder, 'i');
+
         helper('role');
         if (! role_matches(session()->get('role'), 'host')) {
             return;

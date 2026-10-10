@@ -46,9 +46,8 @@ class VendorPrintingList extends BaseController
                 ->orWhere('receipt_no', '')
             ->groupEnd();
 
-        if (! is_platform_superadmin()) {
-            $builder->where('company_id', current_company_id());
-        }
+        helper('vendor_client_scope');
+        vendor_client_scope($builder);
         if ($searchTerm !== '') {
             // Matches KPK's search bar: IC / Passport / Full Name / App No / Company / Receipt No.
             $builder->groupStart()
@@ -131,9 +130,8 @@ class VendorPrintingList extends BaseController
 
         $db = \Config\Database::connect();
         $builder = $db->table('vendors')->where('id', (int) $id);
-        if (! is_platform_superadmin()) {
-            $builder->where('company_id', current_company_id());
-        }
+        helper('vendor_client_scope');
+        vendor_client_scope($builder);
         $vendor = $builder->get()->getRowArray();
 
         if (! $vendor) {

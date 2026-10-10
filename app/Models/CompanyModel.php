@@ -57,7 +57,7 @@ class CompanyModel extends Model
     // Callbacks
     protected $allowCallbacks = true;
     protected $beforeInsert   = [];
-    protected $afterInsert    = [];
+    protected $afterInsert    = ['sendVendorInvitation'];
     protected $beforeUpdate   = [];
     protected $afterUpdate    = [];
     protected $beforeFind     = [];
@@ -133,6 +133,42 @@ class CompanyModel extends Model
             . "WHEN EXISTS (SELECT 1 FROM users vu WHERE vu.company_id = companies.id AND vu.role = 'vendor_admin' AND vu.is_active = 1) THEN 'registered' "
             . "WHEN EXISTS (SELECT 1 FROM users vu WHERE vu.company_id = companies.id AND vu.role = 'vendor_admin') THEN 'pending' "
             . "ELSE 'not_registered' END";
+    }
+
+    /** 'registered' | 'pending' | 'not_registered' for one company. */
+    public function registrationState(int $companyId): string
+    {
+        $row = $this->db->table('companies')->select($this->registrationStateSql() . ' AS st', false)->where('id', $companyId)->get()->getRowArray();
+
+        return (string) ($row['st'] ?? 'not_registered');
+    }
+
+    /**
+     * afterInsert: a vendor company that is added with an email address is
+     * invited to register straight away, with the adding client's own link
+     * (no client in the session = platform superadmin = generic link).
+     * Mail problems are logged, never raised.
+     */
+    protected function sendVendorInvitation(array $data): array
+    {
+        try {
+            $id = (int) ($data['id'] ?? 0);
+            if ($id > 0 && trim((string) ($data['data']['email'] ?? '')) !== '') {
+                helper(['feature', 'role']);
+                $client = null;
+                if (! is_platform_superadmin()) {
+                    $client = (new ClientModel())->find((int) current_company_id()) ?: null;
+                }
+                $company = $this->find($id);
+                if ($company) {
+                    \App\Libraries\VendorInviteMailer::invite($company, $client);
+                }
+            }
+        } catch (\Throwable $e) {
+            log_message('error', 'Vendor invitation not sent: ' . $e->getMessage());
+        }
+
+        return $data;
     }
 
     /** Optional ?registered=registered|pending|not_registered filter from the list page. */

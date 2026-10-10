@@ -26,7 +26,7 @@ class Dashboard extends BaseController
         $yesterday = date('Y-m-d', strtotime('-1 day'));
         
         // Expected Today: approved invitations with at least one schedule slice overlapping today (no double-count, no "gap" days between disjoint visits)
-        $expectedToday = (int) ($db->query(
+        $expectedToday = (int) ($this->scopedQuery($db, 
             'SELECT COUNT(*) AS c
              FROM invitations i
              WHERE i.status = ?
@@ -44,7 +44,7 @@ class Dashboard extends BaseController
         )->getRow()->c ?? 0);
 
         // Yesterday's expected count for trend
-        $expectedYesterday = (int) ($db->query(
+        $expectedYesterday = (int) ($this->scopedQuery($db, 
             'SELECT COUNT(*) AS c
              FROM invitations i
              WHERE i.status = ?
@@ -66,6 +66,7 @@ class Dashboard extends BaseController
         // Currently On-Site: checked in but not checked out
         $currentlyOnSite = $db->table('invitation_visitors iv')
             ->join('invitations i', 'i.id = iv.invitation_id')
+            ->where($this->visibilitySql('i'), null, false)
             ->where('i.status', 'Approved')
             ->where('iv.check_in_time IS NOT NULL')
             ->where('iv.check_out_time IS NULL')
@@ -74,12 +75,13 @@ class Dashboard extends BaseController
         // Checked Out today (approved invitations only)
         $checkedOut = $db->table('invitation_visitors iv')
             ->join('invitations i', 'i.id = iv.invitation_id')
+            ->where($this->visibilitySql('i'), null, false)
             ->where('i.status', 'Approved')
             ->where('DATE(iv.check_out_time)', $today)
             ->countAllResults();
 
         // Out of Window: on-site visitors whose latest schedule end has passed (avoids duplicate rows from multiple schedule rows)
-        $outOfWindow = (int) ($db->query(
+        $outOfWindow = (int) ($this->scopedQuery($db, 
             'SELECT COUNT(*) AS c
              FROM invitation_visitors iv
              INNER JOIN invitations i ON i.id = iv.invitation_id
@@ -120,7 +122,7 @@ class Dashboard extends BaseController
                 continue;
             }
 
-            $slot['count'] = (int) ($db->query(
+            $slot['count'] = (int) ($this->scopedQuery($db, 
                 "SELECT COUNT(*) AS c
                  FROM invitation_visitors iv
                  INNER JOIN invitations i ON i.id = iv.invitation_id
@@ -218,7 +220,7 @@ class Dashboard extends BaseController
         }
 
         $activityQuery = 'SELECT * FROM (' . implode(' UNION ALL ', $activityParts) . ') act ORDER BY act.time DESC LIMIT 30';
-        $activityData = $db->query($activityQuery, $activityParams)->getResultArray();
+        $activityData = $this->scopedQuery($db, $activityQuery, $activityParams)->getResultArray();
 
         $recentActivity = [];
         foreach ($activityData as $activity) {
@@ -343,7 +345,7 @@ class Dashboard extends BaseController
                                 AND iv.check_out_time IS NULL
                                 ORDER BY iv.check_in_time DESC
                                 LIMIT 50";
-        $onSiteVisitorsData = $db->query($onSiteVisitorsQuery)->getResultArray();
+        $onSiteVisitorsData = $this->scopedQuery($db, $onSiteVisitorsQuery)->getResultArray();
         
         $onSiteVisitors = [];
         foreach ($onSiteVisitorsData as $v) {
@@ -367,7 +369,7 @@ class Dashboard extends BaseController
                                       AND DATE(s.date_to) >= ?
                                       ORDER BY s.date_from ASC
                                       LIMIT 10";
-        $upcomingAppointmentsData = $db->query($upcomingAppointmentsQuery, [$now, $today])->getResultArray();
+        $upcomingAppointmentsData = $this->scopedQuery($db, $upcomingAppointmentsQuery, [$now, $today])->getResultArray();
         
         $upcomingAppointments = [];
         foreach ($upcomingAppointmentsData as $appt) {
@@ -397,7 +399,7 @@ class Dashboard extends BaseController
                                    AND DATE(s.date_from) <= ? AND DATE(s.date_to) >= ?
                                    ORDER BY s.date_from ASC
                                    LIMIT 20";
-        $todayAppointmentsData = $db->query($todayAppointmentsQuery, [$today, $today])->getResultArray();
+        $todayAppointmentsData = $this->scopedQuery($db, $todayAppointmentsQuery, [$today, $today])->getResultArray();
         
         $todayAppointments = [];
         foreach ($todayAppointmentsData as $appt) {
@@ -421,7 +423,7 @@ class Dashboard extends BaseController
         }
         
         // Visitor traffic: card scans + check-ins (seed/demo data often has check-ins without card logs)
-        $trafficData = $db->query(
+        $trafficData = $this->scopedQuery($db, 
             "SELECT HOUR(event_at) AS hour, COUNT(*) AS count
              FROM (" . $this->getTrafficEventsSubquery() . ") traffic_events
              WHERE DATE(event_at) = ?
@@ -494,9 +496,8 @@ class Dashboard extends BaseController
         $db = \Config\Database::connect();
     
         $builder = $db->table('vendors');
-        if (! is_platform_superadmin()) {
-            $builder->where('company_id', current_company_id());
-        }
+        helper('vendor_client_scope');
+        vendor_client_scope($builder);
     
         $total    = (clone $builder)->countAllResults(false);
         $pending  = (clone $builder)->where('status', 'Pending')->countAllResults(false);
@@ -553,7 +554,7 @@ class Dashboard extends BaseController
         }
 
         $now = date('Y-m-d H:i:s');
-        $outOfWindow = (int) ($db->query(
+        $outOfWindow = (int) ($this->scopedQuery($db, 
             'SELECT COUNT(*) AS c
              FROM invitation_visitors iv
              INNER JOIN invitations i ON i.id = iv.invitation_id
@@ -580,7 +581,7 @@ class Dashboard extends BaseController
         
         $db = \Config\Database::connect();
         
-        $trafficData = $db->query(
+        $trafficData = $this->scopedQuery($db, 
             "SELECT DATE(event_at) AS date, HOUR(event_at) AS hour, COUNT(*) AS count
              FROM (" . $this->getTrafficEventsSubquery() . ") traffic_events
              WHERE DATE(event_at) >= ?
@@ -664,7 +665,7 @@ class Dashboard extends BaseController
 
         $alerts = [];
         if ($db->tableExists('security_alerts')) {
-            $alerts = $db->query(
+            $alerts = $this->scopedQuery($db, 
                 "SELECT sa.id, sa.incident_type, sa.severity, sa.visitor_name,
                         sa.location, sa.description, sa.is_acknowledged,
                         sa.created_at, sa.acknowledged_at,
@@ -694,7 +695,7 @@ class Dashboard extends BaseController
         $db = \Config\Database::connect();
         $now = date('Y-m-d H:i:s');
 
-        $physicalOverstays = $db->query(
+        $physicalOverstays = $this->scopedQuery($db, 
             "SELECT iv.id, COALESCE(i.full_name, iv.full_name) as visitor_name,
                     COALESCE(i.invited_by, 'N/A') as host_name,
                     iv.check_in_time, COALESCE(i.location, 'N/A') as location,
@@ -725,7 +726,7 @@ class Dashboard extends BaseController
         $db = \Config\Database::connect();
         $alert = null;
         if ($db->tableExists('security_alerts')) {
-            $alert = $db->query(
+            $alert = $this->scopedQuery($db, 
                 "SELECT sa.*, u.full_name as acknowledged_by_name
                  FROM security_alerts sa
                  LEFT JOIN users u ON u.id = sa.acknowledged_by
@@ -747,7 +748,7 @@ class Dashboard extends BaseController
     public function onSiteData()
     {
         $db = \Config\Database::connect();
-        $visitors = $db->query(
+        $visitors = $this->scopedQuery($db, 
             "SELECT iv.id, COALESCE(i.full_name, iv.full_name) as visitor_name,
                     i.ic_passport as ic_number,
                     i.company, COALESCE(i.invited_by, 'N/A') as host_name,
@@ -789,7 +790,7 @@ class Dashboard extends BaseController
         $db = \Config\Database::connect();
         $today = date('Y-m-d');
 
-        $visitors = $db->query(
+        $visitors = $this->scopedQuery($db, 
             "SELECT i.full_name, i.visitor_email, i.company,
                     i.contact as contact_no, i.ic_passport as ic_no,
                     iv.check_in_time, iv.check_out_time,
@@ -819,7 +820,7 @@ class Dashboard extends BaseController
         $db = \Config\Database::connect();
         $today = date('Y-m-d');
 
-        $visitors = $db->query(
+        $visitors = $this->scopedQuery($db, 
             "SELECT iv.id, COALESCE(i.full_name, iv.full_name) as visitor_name,
                     COALESCE(iv.contact, i.contact) as contact_no,
                     COALESCE(iv.ic_passport, i.ic_passport) as ic_no,
@@ -853,6 +854,7 @@ class Dashboard extends BaseController
                           COALESCE(iv.ic_passport, i.ic_passport) as ic_no, 
                           h.full_name as host_name');
         $builder->join('invitations i', 'i.id = sa.invitation_id', 'left');
+        $builder->groupStart()->where('sa.invitation_id IS NULL', null, false)->orWhere($this->visibilitySql('i'), null, false)->groupEnd();
         $builder->join('invitation_visitors iv', 'iv.invitation_id = sa.invitation_id AND iv.full_name = sa.visitor_name', 'left');
         $builder->join('staff h', 'h.id = i.staff_id', 'left');
         $builder->orderBy('sa.is_acknowledged', 'ASC');
@@ -959,7 +961,7 @@ class Dashboard extends BaseController
 
         for ($attempt = 0; $attempt <= $maxRetries; $attempt++) {
             try {
-                $rows = $db->query($sql)->getResultArray();
+                $rows = $this->scopedQuery($db, $sql)->getResultArray();
                 $lastSqlError = null;
                 break;
             } catch (\Throwable $e) {
@@ -1166,7 +1168,7 @@ class Dashboard extends BaseController
         $db = \Config\Database::connect();
         $now = date('Y-m-d H:i:s');
 
-        $outOfWindow = (int) ($db->query(
+        $outOfWindow = (int) ($this->scopedQuery($db, 
             'SELECT COUNT(*) AS c
              FROM invitation_visitors iv
              INNER JOIN invitations i ON i.id = iv.invitation_id
@@ -1201,7 +1203,7 @@ class Dashboard extends BaseController
         $activeSecurityAlertCount = 0;
 
         if ($db->tableExists('security_alerts')) {
-            $criticalAlertsData = $db->query(
+            $criticalAlertsData = $this->scopedQuery($db, 
                 "SELECT * FROM security_alerts 
                  WHERE is_acknowledged = 0 
                  AND severity IN ('high', 'critical')
@@ -1224,7 +1226,7 @@ class Dashboard extends BaseController
 
             $since24h = date('Y-m-d H:i:s', strtotime('-24 hours'));
 
-            $accessDeniedCount = (int) ($db->query(
+            $accessDeniedCount = (int) ($this->scopedQuery($db, 
                 "SELECT COUNT(*) AS c FROM security_alerts
                  WHERE created_at >= ?
                  AND is_acknowledged = 1
@@ -1365,7 +1367,7 @@ class Dashboard extends BaseController
             $params[] = $since;
         }
 
-        $rows = $db->query(
+        $rows = $this->scopedQuery($db, 
             'SELECT * FROM (' . implode(' UNION ALL ', $parts) . ') act ORDER BY act.time DESC LIMIT 100',
             $params
         )->getResultArray();
@@ -2055,7 +2057,7 @@ class Dashboard extends BaseController
         $today = date('Y-m-d');
         $now = date('Y-m-d H:i:s');
 
-        $expectedToday = (int) ($db->query(
+        $expectedToday = (int) ($this->scopedQuery($db, 
             'SELECT COUNT(*) AS c
              FROM invitations i
              WHERE i.status = ?
@@ -2072,7 +2074,7 @@ class Dashboard extends BaseController
             ['Approved', $today, $today, $today]
         )->getRow()->c ?? 0);
 
-        $onSite = $db->query(
+        $onSite = $this->scopedQuery($db, 
             "SELECT COALESCE(i.full_name, iv.full_name) as visitor_name,
                     COALESCE(iv.contact, i.contact, 'N/A') as contact,
                     COALESCE(i.invited_by, 'N/A') as host_name,
@@ -2089,7 +2091,7 @@ class Dashboard extends BaseController
              LIMIT 25"
         )->getResultArray();
 
-        $checkedOutToday = (int) ($db->query(
+        $checkedOutToday = (int) ($this->scopedQuery($db, 
             'SELECT COUNT(*) AS c
              FROM invitation_visitors iv
              JOIN invitations i ON i.id = iv.invitation_id
@@ -2098,7 +2100,7 @@ class Dashboard extends BaseController
             ['Approved', $today]
         )->getRow()->c ?? 0);
 
-        $overstays = $db->query(
+        $overstays = $this->scopedQuery($db, 
             "SELECT COALESCE(i.full_name, iv.full_name) as visitor_name,
                     COALESCE(i.invited_by, 'N/A') as host_name,
                     COALESCE(i.location, 'N/A') as location,
@@ -2115,7 +2117,7 @@ class Dashboard extends BaseController
             [$now]
         )->getResultArray();
 
-        $expectedRows = $db->query(
+        $expectedRows = $this->scopedQuery($db, 
             "SELECT i.full_name as visitor_name,
                     COALESCE(i.invited_by, 'N/A') as host_name,
                     COALESCE(i.location, 'N/A') as location,
@@ -2139,11 +2141,11 @@ class Dashboard extends BaseController
         $alerts = [];
         $activeAlertCount = 0;
         if ($db->tableExists('security_alerts')) {
-            $activeAlertCount = (int) ($db->query(
+            $activeAlertCount = (int) ($this->scopedQuery($db, 
                 'SELECT COUNT(*) AS c FROM security_alerts WHERE is_acknowledged = 0'
             )->getRow()->c ?? 0);
 
-            $alerts = $db->query(
+            $alerts = $this->scopedQuery($db, 
                 "SELECT incident_type, severity, visitor_name, location, created_at, is_acknowledged
                  FROM security_alerts
                  ORDER BY is_acknowledged ASC, created_at DESC
@@ -2151,7 +2153,7 @@ class Dashboard extends BaseController
             )->getResultArray();
         }
 
-        $trafficByHour = $db->query(
+        $trafficByHour = $this->scopedQuery($db, 
             "SELECT HOUR(iv.check_in_time) AS hour, COUNT(*) AS count
              FROM invitation_visitors iv
              JOIN invitations i ON i.id = iv.invitation_id
@@ -2302,6 +2304,30 @@ class Dashboard extends BaseController
         return str_replace('T', ' ', $value);
     }
 
+    /** SQL condition limiting an invitations alias to what the current client may see ('1 = 1' = no limit). */
+    private function visibilitySql(string $alias = 'i'): string
+    {
+        helper('client_visibility');
+
+        return visibility_scope_applies() ? visibility_invitation_sql((int) current_client_id(), $alias) : '1 = 1';
+    }
+
+    /**
+     * Runs a dashboard query; every `FROM|JOIN invitations i` is narrowed to the
+     * invitations this client may see (shared product: created under it, or held at
+     * one of its gates), so all dashboard numbers follow the same rule as the lists.
+     */
+    private function scopedQuery($db, string $sql, $binds = null)
+    {
+        helper('client_visibility');
+        if (visibility_scope_applies()) {
+            $sub = '(SELECT * FROM invitations WHERE ' . visibility_invitation_sql((int) current_client_id(), 'invitations') . ') i';
+            $sql = preg_replace('/\b(FROM|JOIN)\s+invitations\s+i\b/i', '$1 ' . str_replace('$', '\\$', $sub), $sql);
+        }
+
+        return $binds === null ? $db->query($sql) : $db->query($sql, $binds);
+    }
+
     private function occupancySlotEndTime(string $today, int $hourEnd): string
     {
         if ($hourEnd >= 24) {
@@ -2359,7 +2385,7 @@ class Dashboard extends BaseController
         $db = \Config\Database::connect();
         $today = date('Y-m-d');
 
-        $row = $db->query(
+        $row = $this->scopedQuery($db, 
             "SELECT
                 COUNT(*) AS total_all,
                 SUM(CASE WHEN iv.check_in_time IS NULL THEN 1 ELSE 0 END) AS pre_arrival,
@@ -2462,7 +2488,7 @@ class Dashboard extends BaseController
 
         $countQuery = "SELECT COUNT(*) AS c
                        " . $this->getHostVisitorBaseFromSql() . $extraWhere;
-        $total = (int) ($db->query($countQuery, $params)->getRow()->c ?? 0);
+        $total = (int) ($this->scopedQuery($db, $countQuery, $params)->getRow()->c ?? 0);
 
         $totalPages = $total > 0 ? (int) ceil($total / $perPage) : 1;
         if ($page > $totalPages) {
@@ -2481,7 +2507,7 @@ class Dashboard extends BaseController
                       LIMIT ? OFFSET ?";
 
         $listParams = array_merge($params, [$perPage, $offset]);
-        $visitorsData = $db->query($listQuery, $listParams)->getResultArray();
+        $visitorsData = $this->scopedQuery($db, $listQuery, $listParams)->getResultArray();
 
         $visitors = [];
         foreach ($visitorsData as $visitor) {

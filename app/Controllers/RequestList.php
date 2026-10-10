@@ -270,7 +270,9 @@ class RequestList extends BaseController
     private function applyClientRequestScope($query, int $clientId): void
     {
         if ($clientId > 0) {
-            $query->where('client_id', $clientId);
+            // Shared product: requests created under this client OR held at one of its gates.
+            helper('client_visibility');
+            $query->where(visibility_invitation_sql($clientId, 'invitations'), null, false);
         }
     }
 
@@ -334,6 +336,11 @@ class RequestList extends BaseController
 
     private function hostCanAccessInvitation(array $invitation): bool
     {
+        helper('client_visibility');
+        if (! empty($invitation['id']) && ! visibility_invitation_allowed((int) $invitation['id'])) {
+            return false;
+        }
+
         $refs = $this->currentHostRefs();
         if ($refs === []) {
             return true;

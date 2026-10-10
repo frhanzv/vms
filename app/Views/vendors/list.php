@@ -412,7 +412,7 @@
                 </button>
             </div>
             <div class="p-6">
-                <?php $reminderLocationLabels = implode(', ', (new \App\Models\VendorLocationModel())->getActiveOptions()); ?>
+                <?php $reminderLocationLabels = implode(', ', (new \App\Models\VendorLocationModel())->getOptionsForUser(true)); ?>
                 <ul class="list-disc pl-5 space-y-2 text-sm text-gray-700 dark:text-gray-300">
                     <li>Do not use dashes (-) in IC Number or Phone Number. Use only numbers.</li>
                     <li>Resident must be <strong>Malaysian</strong> or <strong>Non-Malaysian</strong>.</li>

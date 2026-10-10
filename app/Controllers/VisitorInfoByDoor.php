@@ -67,6 +67,9 @@ class VisitorInfoByDoor extends BaseController
             $doorCondition = "(vcl.lane_id IN ({$lanePlaceholders}) OR vcl.sub_location_id = " . (int) $subLocationId . ")";
         }
 
+        helper('client_visibility');
+        $visSql = visibility_scope_applies() ? visibility_invitation_sql((int) current_client_id(), 'i') : '1 = 1';
+
         $sql = "SELECT
                     i.id              AS invitation_id,
                     i.full_name       AS visitor_name,
@@ -85,6 +88,7 @@ class VisitorInfoByDoor extends BaseController
                   AND DATE(vcl.scanned_at) >= ?
                   AND DATE(vcl.scanned_at) <= ?
                   AND {$doorCondition}
+                  AND {$visSql}
                 ORDER BY vcl.scanned_at ASC";
 
         $rows = $db->query($sql, [$fromDate, $toDate])->getResultArray();

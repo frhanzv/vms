@@ -89,8 +89,19 @@ class VendorList extends BaseController
         $rowOffset  = ($page - 1) * $perPage;
         $vendorList = [];
 
+        // Shared product: which clients still have to approve each pass on this page.
+        helper(['feature', 'role']);
+        $approvalRows = \App\Libraries\VendorClientApprovals::rowsForVendors($db, array_map('intval', array_column($results, 'id')));
+        $myClientId   = is_platform_superadmin() ? null : (int) current_company_id();
+
         foreach ($results as $index => $row) {
             $rowStatus = $row['status'] ?? 'Pending';
+            $vRows     = $approvalRows[(int) $row['id']] ?? [];
+            $awaiting  = $awaitingLabels[$row['next_action'] ?? ''] ?? null;
+            if ($vRows) {
+                $names = array_column(array_filter($vRows, static fn($r) => $r['status'] !== 'Approved'), 'client_name');
+                $awaiting = ($names && $rowStatus === 'Pending') ? 'Awaiting ' . implode(' & ', $names) . ' approval' : null;
+            }
 
             $vendorList[] = [
                 'id'                   => $row['id'],
@@ -101,7 +112,8 @@ class VendorList extends BaseController
                 'ic_passport'          => $row['ic_no'] ?: ($row['passport_no'] ?? ''),
                 'vendor_company_name'  => $row['vendor_company_name'] ?? 'N/A',
                 'status'               => $rowStatus,
-                'awaiting'             => $awaitingLabels[$row['next_action'] ?? ''] ?? null,
+                'awaiting'             => $awaiting,
+                'client_approvals'     => $vRows,
                 'access_branch'        => $row['access_branch'] ?? null,
                 'reject_reason'        => $row['reject_reason'] ?? null,
                 'pass_expiry'          => $row['pass_expiry'] ? date('d/m/Y', strtotime($row['pass_expiry'])) : '-',
@@ -109,10 +121,10 @@ class VendorList extends BaseController
                 // Per-row: the right branch approver sees the buttons, others don't (KPK enableBtns()).
                 'can_approve'          => $showApproveBtn
                     && in_array($rowStatus, ['Pending', 'Rejected'], true)
-                    && $this->canActOn($row, 'approve'),
+                    && ($vRows ? $this->canActPerClient($vRows, $myClientId, 'approve') : $this->canActOn($row, 'approve')),
                 'can_reject'           => $showRejectBtn
                     && in_array($rowStatus, ['Pending', 'Approved', 'Rejected'], true)
-                    && $this->canActOn($row, 'reject'),
+                    && ($vRows ? $this->canActPerClient($vRows, $myClientId, 'reject') : $this->canActOn($row, 'reject')),
             ];
         }
 
@@ -172,9 +184,8 @@ class VendorList extends BaseController
         $builder = $db->table('vendors')->select('*');
 
         // Client-scoped, like every other module here — superadmin sees all.
-        if (! is_platform_superadmin()) {
-            $builder->where('company_id', current_company_id());
-        }
+        helper('vendor_client_scope');
+        vendor_client_scope($builder);
 
         // A vendor company's own account only ever sees its own company's passes.
         helper('vendor_company');
@@ -430,6 +441,27 @@ class VendorList extends BaseController
         $validationErrors = [];
         $seenInFile        = [];
 
+        // Location Access is mandatory: a cell may hold codes or names, separated by , or ;
+        $importLocOptions = (new \App\Models\VendorLocationModel())->getOptionsForUser(false);
+        $importLocLookup  = [];
+        foreach ($importLocOptions as $code => $label) {
+            $importLocLookup[strtolower($code)]  = $code;
+            $importLocLookup[strtolower($label)] = $code;
+        }
+        $resolveLocations = static function (?string $cell) use ($importLocLookup): array {
+            $found = [];
+            foreach (preg_split('/[,;]+/', (string) $cell) ?: [] as $loc) {
+                $k = strtolower(trim($loc));
+                $k2 = str_replace(' ', '_', $k);
+                if (isset($importLocLookup[$k])) {
+                    $found[] = $importLocLookup[$k];
+                } elseif (isset($importLocLookup[$k2])) {
+                    $found[] = $importLocLookup[$k2];
+                }
+            }
+            return array_values(array_unique($found));
+        };
+
         foreach (array_slice($rows, 1) as $i => $row) {
             $get = fn(string $field) => isset($fieldIndex[$field])
                 ? (trim((string) ($row[$fieldIndex[$field]] ?? '')) ?: null)
@@ -456,6 +488,9 @@ class VendorList extends BaseController
             }
             if (! empty($missing)) {
                 $validationErrors[] = "Row {$rowNum}: missing " . implode(', ', $missing) . '.';
+            }
+            if ($resolveLocations($get('location_access')) === []) {
+                $validationErrors[] = "Row {$rowNum}: Location Access is mandatory and must match a location you can use.";
             }
 
             $ic = $get('ic_passport') ?? (
@@ -494,7 +529,7 @@ class VendorList extends BaseController
 
         $inserted = 0;
         $counter  = 1;
-        $activeLocationOptions = (new \App\Models\VendorLocationModel())->getActiveOptions();
+        $activeLocationOptions = (new \App\Models\VendorLocationModel())->getOptionsForUser(true);
 
         foreach (array_slice($rows, 1) as $row) {
             $get = fn(string $field) => isset($fieldIndex[$field])
@@ -526,16 +561,7 @@ class VendorList extends BaseController
                 $cardType   = in_array($normalized, ['Permanent', 'Temporary'], true) ? $normalized : null;
             }
 
-            $locations = [];
-            if ($get('location_access') !== null) {
-                $raw = preg_split('/[,;]+/', (string) $get('location_access')) ?: [];
-                foreach ($raw as $loc) {
-                    $key = str_replace(' ', '_', strtolower(trim($loc)));
-                    if (array_key_exists($key, $activeLocationOptions)) {
-                        $locations[] = $key;
-                    }
-                }
-            }
+            $locations = $resolveLocations($get('location_access'));
 
             $record = [
                 'company_id'                    => $companyId,
@@ -581,6 +607,7 @@ class VendorList extends BaseController
 
             $db->table('vendors')->insert($record);
             $vendorId = (int) $db->insertID();
+            \App\Libraries\VendorClientApprovals::sync($db, $vendorId, implode(',', $locations));
 
             // Driving License (template's optional "License Class" / "License
             // Expiry" columns) — same vendor_driving_licenses table the Card
@@ -652,7 +679,15 @@ class VendorList extends BaseController
             return $this->fail('Vendor pass record not found.');
         }
 
-        if (! $this->canActOn($vendor, 'approve')) {
+        $db0       = \Config\Database::connect();
+        $perClient = \App\Libraries\VendorClientApprovals::hasRows($db0, $id);
+        $myClient  = is_platform_superadmin() ? null : (int) current_company_id();
+
+        if ($perClient) {
+            if (! $this->canActPerClient(\App\Libraries\VendorClientApprovals::rows($db0, $id), $myClient, 'approve')) {
+                return $this->fail('You cannot approve this pass: either none of its locations belong to your client, or your client has already approved it.');
+            }
+        } elseif (! $this->canActOn($vendor, 'approve')) {
             return $this->fail($this->notAllowedMessage($vendor, 'approve'));
         }
 
@@ -673,6 +708,10 @@ class VendorList extends BaseController
             if ($hit > 0) {
                 return $this->fail('IC / Passport is Blacklisted. This pass cannot be approved.');
             }
+        }
+
+        if ($perClient) {
+            return $this->approvePerClient($db0, $vendor, $myClient, $remark);
         }
 
         $tiers  = $this->approverTiers('approve');
@@ -742,7 +781,15 @@ class VendorList extends BaseController
             return $this->fail('Vendor pass record not found.');
         }
 
-        if (! $this->canActOn($vendor, 'reject')) {
+        $db0       = \Config\Database::connect();
+        $perClient = \App\Libraries\VendorClientApprovals::hasRows($db0, $id);
+        $myClient  = is_platform_superadmin() ? null : (int) current_company_id();
+
+        if ($perClient) {
+            if (! $this->canActPerClient(\App\Libraries\VendorClientApprovals::rows($db0, $id), $myClient, 'reject')) {
+                return $this->fail('You cannot reject this pass: none of its locations belong to your client.');
+            }
+        } elseif (! $this->canActOn($vendor, 'reject')) {
             return $this->fail($this->notAllowedMessage($vendor, 'reject'));
         }
 
@@ -777,9 +824,94 @@ class VendorList extends BaseController
             return $this->fail('This record has already been processed by another user. Please refresh the page.');
         }
 
+        if ($perClient) {
+            \App\Libraries\VendorClientApprovals::decide($db0, $id, $myClient, 'Rejected', $this->actorName(), $reasonText);
+            $remark = trim(($myClient === null ? '[All clients] ' : '[' . $this->clientName($db0, $myClient) . '] ') . $remark);
+        }
+
         $this->logAction($vendor, 'reject', 'Rejected', null, $remark, $reasonText);
 
         return $this->ok('Vendor pass rejected successfully.');
+    }
+
+    // =====================================================================
+    //  Shared product: each client approves its own locations
+    // =====================================================================
+
+    /** Approve as one client (or, with $clientId null, as platform superadmin for all clients). */
+    private function approvePerClient($db, array $vendor, ?int $clientId, string $remark)
+    {
+        $vid = (int) $vendor['id'];
+        [$ok, $msg, $all] = \App\Libraries\VendorClientApprovals::decide($db, $vid, $clientId, 'Approved', $this->actorName(), $remark);
+        if (! $ok) {
+            return $this->fail($msg);
+        }
+
+        $overall = \App\Libraries\VendorClientApprovals::overallStatus($db, $vid) ?? 'Pending';
+        $update  = [
+            'status'      => $overall,
+            'next_action' => null,
+            'remark'      => $remark !== '' ? $remark : ($vendor['remark'] ?? null),
+        ];
+        $message = $all
+            ? 'Vendor pass approved by every involved client.'
+            : 'Your client has approved. ' . (\App\Libraries\VendorClientApprovals::awaitingLabel($db, $vid) ?? '');
+
+        if ($overall === 'Approved') {
+            $update['reject_reason'] = null;
+            $cfgModel = new \App\Models\ClientFormFieldModel();
+            if ($cfgModel->isEnabled((int) ($vendor['company_id'] ?? 0) ?: (int) current_company_id(), 'vendor_pass_request', 'direct_close')) {
+                $update['card_status'] = 'Active';
+                $message .= ' Card activated (direct close).';
+            }
+        }
+
+        if (! $this->applyTransition($vendor, $update)) {
+            return $this->fail('This record has already been processed by another user. Please refresh the page.');
+        }
+
+        $label = $clientId === null ? '[All clients] ' : '[' . $this->clientName($db, $clientId) . '] ';
+        $this->logAction($vendor, $all ? 'approve' : 'client_approve', $overall, null, trim($label . $remark), null);
+
+        return $this->ok($message);
+    }
+
+    /**
+     * May this user approve/reject, given the clients involved in the pass?
+     * Platform superadmin (clientId null) always may. A client user needs the
+     * usual approve/reject permission (any tier) AND an involved client row; to
+     * approve, that row must not already be Approved.
+     *
+     * @param list<array{client_id:int,status:string}> $rows
+     */
+    private function canActPerClient(array $rows, ?int $clientId, string $action): bool
+    {
+        if ($clientId === null) {
+            return true;
+        }
+        $t = $this->approverTiers($action);
+        if (! ($t['super'] || $t['generic'] || $t['ksb'] || $t['kpk'])) {
+            return false;
+        }
+        foreach ($rows as $r) {
+            if ((int) $r['client_id'] === $clientId) {
+                return $action === 'reject' || in_array($r['status'], ['Pending', 'Rejected'], true);
+            }
+        }
+
+        return false;
+    }
+
+    private function actorName(): string
+    {
+        return (string) (session()->get('full_name') ?: session()->get('username'));
+    }
+
+    private function clientName($db, int $clientId): string
+    {
+        $row = $db->table('clients')->select('name')->where('id', $clientId)->get()->getRowArray();
+
+        return (string) ($row['name'] ?? ('Client ' . $clientId));
     }
 
     // =====================================================================
@@ -882,9 +1014,8 @@ class VendorList extends BaseController
         helper(['feature', 'role']);
         $builder = \Config\Database::connect()->table('vendors')->where('id', $id);
 
-        if (! is_platform_superadmin()) {
-            $builder->where('company_id', current_company_id());
-        }
+        helper('vendor_client_scope');
+        vendor_client_scope($builder);
 
         return $builder->get()->getRowArray() ?: null;
     }

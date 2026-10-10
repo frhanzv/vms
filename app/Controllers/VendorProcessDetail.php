@@ -21,9 +21,8 @@ class VendorProcessDetail extends BaseController
     {
         $db      = \Config\Database::connect();
         $builder = $db->table('vendors')->where('id', (int) $id);
-        if (! is_platform_superadmin()) {
-            $builder->where('company_id', current_company_id());
-        }
+        helper('vendor_client_scope');
+        vendor_client_scope($builder);
         return $builder->get()->getRowArray() ?: null;
     }
 
@@ -73,7 +72,7 @@ class VendorProcessDetail extends BaseController
             'printLogs'       => $printLogs,
             'boundCard'       => $card,
             'licenses'        => $licenses,
-            'locationOptions' => (new VendorLocationModel())->getActiveOptions(),
+            'locationOptions' => (new VendorLocationModel())->getOptionsForUser(true),
             'stateOptions'    => VendorPassRequest::STATE_OPTIONS,
             'selectedLocations' => array_filter(explode(',', (string) ($vendor['location_access'] ?? ''))),
             'rejectReasons'   => $rejectReasons,
@@ -115,8 +114,13 @@ class VendorProcessDetail extends BaseController
             }
         }
         if (isset($body['location_access']) && is_array($body['location_access'])) {
-            $codes = array_values(array_intersect($body['location_access'], array_keys((new VendorLocationModel())->getActiveOptions())));
-            $update['location_access'] = ! empty($codes) ? implode(',', $codes) : null;
+            $visible = array_keys((new VendorLocationModel())->getOptionsForUser(true));
+            $codes   = array_values(array_intersect($body['location_access'], $visible));
+            $csv     = \App\Libraries\VendorClientApprovals::mergeLocations((string) ($vendor['location_access'] ?? ''), $codes, $visible);
+            if ($csv === '') {
+                return $this->response->setJSON(['success' => false, 'message' => 'Location Access is mandatory — choose at least one.']);
+            }
+            $update['location_access'] = $csv;
         }
         if (empty($update)) {
             return $this->response->setJSON(['success' => false, 'message' => 'Nothing to update.']);
@@ -125,7 +129,11 @@ class VendorProcessDetail extends BaseController
             unset($update['card_type']);
         }
 
-        \Config\Database::connect()->table('vendors')->where('id', (int) $id)->update($update);
+        $dbc = \Config\Database::connect();
+        $dbc->table('vendors')->where('id', (int) $id)->update($update);
+        if (isset($update['location_access'])) {
+            \App\Libraries\VendorClientApprovals::sync($dbc, (int) $id, (string) $update['location_access']);
+        }
 
         return $this->response->setJSON(['success' => true, 'message' => 'Details saved.']);
     }

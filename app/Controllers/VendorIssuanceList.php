@@ -42,9 +42,8 @@ class VendorIssuanceList extends BaseController
             ->where('card_status', 'Inactive')
             ->where('receipt_no IS NOT NULL', null, false);
 
-        if (! is_platform_superadmin()) {
-            $builder->where('company_id', current_company_id());
-        }
+        helper('vendor_client_scope');
+        vendor_client_scope($builder);
         if ($searchTerm !== '') {
             // Matches KPK's search bar: IC / Passport / Full Name / App No / Company / Receipt No.
             $builder->groupStart()
@@ -116,9 +115,8 @@ class VendorIssuanceList extends BaseController
 
         $db      = \Config\Database::connect();
         $builder = $db->table('vendors')->where('id', (int) $id);
-        if (! is_platform_superadmin()) {
-            $builder->where('company_id', current_company_id());
-        }
+        helper('vendor_client_scope');
+        vendor_client_scope($builder);
         $vendor = $builder->get()->getRowArray();
         if (! $vendor) {
             return $this->response->setJSON(['success' => false, 'message' => 'Record not found.']);

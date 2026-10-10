@@ -75,7 +75,10 @@ class VisitorChronology extends BaseController
         }
 
         // 1. Grouped Visitor Summary
-        $whereGrouped  = ['i.id IS NOT NULL'];
+        // Shared product: only this client's visitors / those at its gates.
+        helper('client_visibility');
+        $visSql = visibility_scope_applies() ? visibility_invitation_sql((int) current_client_id(), 'i') : '1 = 1';
+        $whereGrouped  = ['i.id IS NOT NULL', $visSql];
         $joinGrouped   = ['vcl.invitation_id = i.id', 'vcl.scanned_at >= ?', 'vcl.scanned_at <= ?'];
         $paramsGrouped = [$fromDatetime, $toDatetime];
 
@@ -220,7 +223,7 @@ class VisitorChronology extends BaseController
         }
 
         // 2. Full Chronology
-        $whereChron  = ['vcl.scanned_at >= ?', 'vcl.scanned_at <= ?', 'i.id IS NOT NULL'];
+        $whereChron  = ['vcl.scanned_at >= ?', 'vcl.scanned_at <= ?', 'i.id IS NOT NULL', $visSql];
         $paramsChron = [$fromDatetime, $toDatetime];
 
         if (!empty($laneIds)) {
@@ -350,7 +353,9 @@ class VisitorChronology extends BaseController
         $db = db_connect();
 
         // 1. Get Invitation Details
-        $invitation = $db->table('invitations')->where('id', (int)$invitationId)->get()->getRowArray();
+        helper('client_visibility');
+        $visSql = visibility_scope_applies() ? visibility_invitation_sql((int) current_client_id(), 'invitations') : '1 = 1';
+        $invitation = $db->table('invitations')->where('id', (int)$invitationId)->where($visSql, null, false)->get()->getRowArray();
         if (!$invitation) {
             return $this->response->setJSON(['success' => false, 'message' => 'Record not found.']);
         }

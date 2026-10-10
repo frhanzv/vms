@@ -48,9 +48,8 @@ class VendorProcessList extends BaseController
                 ->orWhere('receipt_no', '')
             ->groupEnd();
 
-        if (! is_platform_superadmin()) {
-            $builder->where('company_id', current_company_id());
-        }
+        helper('vendor_client_scope');
+        vendor_client_scope($builder);
         if ($searchTerm !== '') {
             // Matches KPK's search bar: IC / Passport / Company / Sub Company / Full Name / Receipt No / Card ID.
             $builder->groupStart()

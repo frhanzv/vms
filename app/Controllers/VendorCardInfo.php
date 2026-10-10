@@ -22,9 +22,8 @@ class VendorCardInfo extends BaseController
     {
         $db      = \Config\Database::connect();
         $builder = $db->table('vendors')->where('id', (int) $id);
-        if (! is_platform_superadmin()) {
-            $builder->where('company_id', current_company_id());
-        }
+        helper('vendor_client_scope');
+        vendor_client_scope($builder);
         return $builder->get()->getRowArray() ?: null;
     }
 
@@ -66,7 +65,7 @@ class VendorCardInfo extends BaseController
             'licenses'          => $licenses,
             'printLogs'         => $printLogs,
             'boundCard'         => $boundCard,
-            'locationOptions'   => (new VendorLocationModel())->getActiveOptions(),
+            'locationOptions'   => (new VendorLocationModel())->getOptionsForUser(true),
             'selectedLocations' => $selectedLocations,
             'canEdit'           => $canEditBase,
             'canAddLicense'     => $canEditBase && $cfg('card_info_add_license_button'),
@@ -121,11 +120,16 @@ class VendorCardInfo extends BaseController
         }
 
         $body     = $this->request->getJSON(true) ?? [];
-        $selected = array_values(array_intersect((array) ($body['locations'] ?? []), array_keys((new VendorLocationModel())->getActiveOptions())));
+        $visible  = array_keys((new VendorLocationModel())->getOptionsForUser(true));
+        $selected = array_values(array_intersect((array) ($body['locations'] ?? []), $visible));
+        $csv      = \App\Libraries\VendorClientApprovals::mergeLocations((string) ($vendor['location_access'] ?? ''), $selected, $visible);
+        if ($csv === '') {
+            return $this->response->setJSON(['success' => false, 'message' => 'Location Access is mandatory — choose at least one.']);
+        }
 
-        \Config\Database::connect()->table('vendors')->where('id', (int) $id)->update([
-            'location_access' => implode(',', $selected),
-        ]);
+        $db = \Config\Database::connect();
+        $db->table('vendors')->where('id', (int) $id)->update(['location_access' => $csv]);
+        \App\Libraries\VendorClientApprovals::sync($db, (int) $id, $csv);
 
         return $this->response->setJSON(['success' => true, 'message' => 'Location access updated.']);
     }

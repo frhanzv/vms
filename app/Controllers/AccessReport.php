@@ -73,6 +73,9 @@ class AccessReport extends BaseController
             ? implode(',', array_fill(0, count($laneIds), '?'))
             : 'NULL';
 
+        helper('client_visibility');
+        $visSql = visibility_scope_applies() ? visibility_invitation_sql((int) current_client_id(), 'i') : '1 = 1';
+
         $sql = "SELECT 
                     i.id               AS invitation_id,
                     i.full_name        AS visitor_name,
@@ -121,7 +124,7 @@ class AccessReport extends BaseController
                 LEFT JOIN visitor_card_logs vcl ON vcl.invitation_id = i.id
                 LEFT JOIN lanes la ON la.id = vcl.lane_id
                 LEFT JOIN sub_locations sl ON sl.location_id = la.location_id
-                WHERE (
+                WHERE {$visSql} AND (
                     ((la.id IN ({$lanePlaceholders}) OR vcl.lane_id IS NULL) AND vcl.scanned_at >= ? AND vcl.scanned_at <= ?)
                     OR
                     (vcl.id IS NULL AND iv.check_in_time >= ? AND iv.check_in_time <= ?)

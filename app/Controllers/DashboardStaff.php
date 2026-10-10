@@ -20,7 +20,12 @@ class DashboardStaff extends BaseController
             return redirect()->to(base_url('dashboard'))->with('error', 'You are not allowed to view the staff dashboard.');
         }
 
-        $stats = StaffDashboardStats::collect(\Config\Database::connect());
+        helper(['role', 'client_visibility']);
+        $db = \Config\Database::connect();
+        // Platform superadmin sees every client; anyone else only their client's staff
+        // (per-client approval rows, once the multi-client migration has run).
+        $scoped = visibility_scope_applies() && $db->tableExists('staff_client_approvals');
+        $stats = StaffDashboardStats::collect($db, null, $scoped ? (int) current_client_id() : null);
 
         return view('dashboard/staff', $stats + [
             'pageTitle'   => 'Staff Dashboard - SafeG',

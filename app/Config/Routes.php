@@ -25,6 +25,10 @@ $routes->get('vendor-pass-qr/(:any)', 'VendorPassQr::show/$1');
 $routes->get('register', 'Auth::register');
 $routes->post('register/search-company', 'Auth::searchCompany');
 $routes->post('register', 'Auth::doRegister');
+// Per-client product links (code in the URL) - public
+$routes->get('c/(:segment)/login', 'Auth::clientLogin/$1');
+$routes->get('c/(:segment)/register', 'Auth::clientRegister/$1');
+$routes->post('c/(:segment)/register', 'Auth::doRegister/$1');
 $routes->get('activate/(:segment)', 'Auth::activate/$1');
 $routes->get('forgot-password', 'Auth::forgotPassword');
 $routes->post('forgot-password', 'Auth::doForgotPassword');
@@ -268,6 +272,13 @@ $routes->get('dashboard/staff',  'DashboardStaff::index',  ['filter' => 'client_
 $routes->get('dashboard/vendor', 'DashboardVendor::index', ['filter' => 'client_feature:vendor_pass']);
 $routes->get('config/list-columns',        'ListColumnConfig::index', ['filter' => 'role:superadmin,clientsuperadmin']);
 $routes->post('config/list-columns/save',  'ListColumnConfig::save',  ['filter' => 'role:superadmin,clientsuperadmin']);
+
+// Multi-client sharing: client codes / site groups / gate owners (platform superadmin only)
+$routes->get('config/client-links',                    'ClientLinks::index',        ['filter' => 'role:superadmin']);
+$routes->post('config/client-links/save/(:num)',       'ClientLinks::save/$1',      ['filter' => 'role:superadmin']);
+$routes->post('config/client-links/gate-owner/(:num)', 'ClientLinks::setGateOwner/$1', ['filter' => 'role:superadmin']);
+// Re-send the registration invite to a vendor company (Config > Company)
+$routes->post('config/companies/invite/(:num)',        'CompanyInvite::send/$1',    ['filter' => 'role:superadmin,clientsuperadmin,admin']);
 $routes->get('config/dashboard-cards',       'DashboardCards::index',  ['filter' => 'role:superadmin,clientsuperadmin']);
 $routes->post('config/dashboard-cards/save', 'DashboardCards::save',   ['filter' => 'role:superadmin,clientsuperadmin']);
 $routes->post('dashboard/cards/mine',        'DashboardCards::saveMine');

@@ -47,9 +47,8 @@ class VendorClosedList extends BaseController
 
         $builder = $db->table('vendors')->whereIn('card_status', ['Active', 'Terminated']);
 
-        if (! is_platform_superadmin()) {
-            $builder->where('company_id', current_company_id());
-        }
+        helper('vendor_client_scope');
+        vendor_client_scope($builder);
         if ($issueDateFrom !== '') {
             $builder->where('DATE(created_at) >=', $issueDateFrom);
         }
