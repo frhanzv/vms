@@ -133,7 +133,16 @@
                             <?php endif; ?>
                             <div class="space-y-2">
                                 <label class="<?= $labelClass ?>">Designation<?= $req('designation') ?></label>
-                                <input name="designation" value="<?= $v('designation') ?>" class="<?= $inputClass ?>" type="text" maxlength="50" <?= $reqAttr('designation') ?>/>
+                                <?php $desig = (string) old('designation', $s['designation'] ?? ''); $designations = $designations ?? []; ?>
+                                <select name="designation" class="<?= $inputClass ?>" <?= $reqAttr('designation') ?>>
+                                    <option value="">-- Select --</option>
+                                    <?php foreach ($designations as $dn): ?>
+                                    <option value="<?= esc($dn) ?>" <?= $desig === $dn ? 'selected' : '' ?>><?= esc($dn) ?></option>
+                                    <?php endforeach; ?>
+                                    <?php if ($desig !== '' && ! in_array($desig, $designations, true)): ?>
+                                    <option value="<?= esc($desig) ?>" selected><?= esc($desig) ?></option>
+                                    <?php endif; ?>
+                                </select>
                             </div>
                         </div>
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -397,31 +406,6 @@
                     </template>
                 </section>
 
-                <?php if ($on('visit_details')): ?>
-                <!-- Visit Details (VMS addition, kept beyond KPK's own request form) -->
-                <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 p-6 sm:p-8">
-                    <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
-                        <div class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-primary">
-                            <span class="material-symbols-outlined">location_on</span>
-                        </div>
-                        <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Visit Details</h2>
-                    </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <div class="space-y-2">
-                            <label class="<?= $labelClass ?>">Name Of Person Visited</label>
-                            <input name="name_of_person_visited" value="<?= $v('name_of_person_visited') ?>" class="<?= $inputClass ?>" type="text" maxlength="100"/>
-                        </div>
-                        <div class="space-y-2">
-                            <label class="<?= $labelClass ?>">Contact No. Of Person Visited</label>
-                            <input name="contact_no_of_person_visited" value="<?= $v('contact_no_of_person_visited') ?>" class="<?= $inputClass ?>" type="tel" maxlength="14"/>
-                        </div>
-                        <div class="space-y-2">
-                            <label class="<?= $labelClass ?>">Location Visited</label>
-                            <input name="location_visited" value="<?= $v('location_visited') ?>" class="<?= $inputClass ?>" type="text" maxlength="100"/>
-                        </div>
-                    </div>
-                </section>
-                <?php endif; ?>
 
                 <?php if ($on('csp_number') || $on('evetting')): ?>
                 <!-- CSP & E-Vetting (VMS addition, kept beyond KPK's own request form) -->
@@ -459,32 +443,6 @@
                                 <label class="<?= $labelClass ?>">E-Vetting Result</label>
                                 <input name="evetting_result" value="<?= $v('evetting_result') ?>" class="<?= $inputClass ?>" type="text" maxlength="20"/>
                             </div>
-                        </div>
-                        <?php endif; ?>
-                    </div>
-                </section>
-                <?php endif; ?>
-
-                <?php if ($on('pass_expiry') || $on('remark')): ?>
-                <!-- Pass -->
-                <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 p-6 sm:p-8">
-                    <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
-                        <div class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-primary">
-                            <span class="material-symbols-outlined">badge</span>
-                        </div>
-                        <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Pass</h2>
-                    </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        <?php if ($on('pass_expiry')): ?>
-                        <div class="space-y-2">
-                            <label class="<?= $labelClass ?>">Pass Expiry<?= $req('pass_expiry') ?></label>
-                            <input name="pass_expiry" value="<?= $v('pass_expiry') ?>" class="<?= $inputClass ?>" type="date" <?= $reqAttr('pass_expiry') ?>/>
-                        </div>
-                        <?php endif; ?>
-                        <?php if ($on('remark')): ?>
-                        <div class="space-y-2">
-                            <label class="<?= $labelClass ?>">Remark<?= $req('remark') ?></label>
-                            <input name="remark" value="<?= $v('remark') ?>" class="<?= $inputClass ?>" type="text" <?= $reqAttr('remark') ?>/>
                         </div>
                         <?php endif; ?>
                     </div>

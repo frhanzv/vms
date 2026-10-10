@@ -36,6 +36,7 @@ class VendorPassRequest extends BaseController
             'locationOptions' => (new VendorLocationModel())->getOptionsForUser(true),
             'stateOptions'    => self::STATE_OPTIONS,
             'lockedCompany'   => $this->vendorAccountCompany(),
+            'designations'    => $this->designationOptions(),
         ];
 
         return view('vendors/vendorpassrequest', $data);
@@ -159,6 +160,7 @@ class VendorPassRequest extends BaseController
             'locationOptions' => (new VendorLocationModel())->getOptionsForUser(true),
             'stateOptions'    => self::STATE_OPTIONS,
             'lockedCompany'   => $this->vendorAccountCompany(),
+            'designations'    => $this->designationOptions(),
         ]);
     }
 
@@ -313,7 +315,25 @@ class VendorPassRequest extends BaseController
     private function vendorAccountCompany(): ?array
     {
         helper('vendor_company');
-        return is_vendor_admin() ? current_vendor_company() : null;
+        if (is_vendor_admin()) {
+            return current_vendor_company();
+        }
+
+        // Admin / superadmin: their own company record, shown read-only like KPK.
+        $companyId = (int) ((new \App\Models\UserModel())->find((int) session()->get('user_id'))['company_id'] ?? 0);
+        return $companyId > 0 ? ((new \App\Models\CompanyModel())->find($companyId) ?: null) : null;
+    }
+
+    /** Active designation names for the Designation drop-down (Config > Designation). */
+    private function designationOptions(): array
+    {
+        try {
+            $rows = \Config\Database::connect()->table('designations')
+                ->select('name')->whereIn('status', ['active', 'Active'])->orderBy('name', 'ASC')->get()->getResultArray();
+            return array_column($rows, 'name');
+        } catch (\Throwable $e) {
+            return [];
+        }
     }
 
     /**
@@ -361,7 +381,21 @@ class VendorPassRequest extends BaseController
     private function lockForVendorAccount(array $formData, bool $isDraft): array
     {
         helper('vendor_company');
+
+        // Visit Details and Pass (expiry / remark) are filled in on the Process List,
+        // not on the request form, so a request never overwrites what was set there.
+        foreach (['name_of_person_visited', 'contact_no_of_person_visited', 'location_visited', 'pass_expiry', 'remark'] as $key) {
+            if ($this->request->getPost($key) === null) {
+                unset($formData[$key]);
+            }
+        }
+
         if (! is_vendor_admin()) {
+            // Admin accounts: the company on the form is the account's own company.
+            if ($own = $this->vendorAccountCompany()) {
+                $formData['vendor_company_reg_id'] = $own['registration_no'];
+                $formData['vendor_company_name']   = $own['name'];
+            }
             return $formData;
         }
 
@@ -564,6 +598,9 @@ class VendorPassRequest extends BaseController
             }
             if (isset($toggles[$key]) && ! $toggles[$key]) {
                 continue; // disabled fields can't be mandatory
+            }
+            if (in_array($key, ['pass_expiry', 'remark'], true)) {
+                continue; // filled in on the Process List
             }
 
             $names  = $postKeys[$key] ?? [];
