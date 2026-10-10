@@ -42,11 +42,8 @@
     <div class="flex flex-col w-full lg:w-[45%] xl:w-[40%] bg-background-light dark:bg-background-dark h-screen overflow-y-auto relative z-10 shadow-xl">
         <div class="flex flex-col justify-center flex-grow px-8 sm:px-12 md:px-16 lg:px-20 py-12">
             <!-- Logo -->
-            <div class="flex items-center gap-3 mb-10">
-                <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-primary text-white shadow-lg shadow-primary/30">
-                    <span class="material-symbols-outlined text-2xl">shield_person</span>
-                </div>
-                <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white"><?= esc($lp['brand_name'] ?? 'SafeG') ?></h1>
+            <div class="mb-10">
+                <img src="<?= base_url('assets/images/safeg-logo.svg') ?>" alt="<?= esc($lp['brand_name'] ?? 'SafeG') ?>" class="h-16 w-auto"/>
             </div>
 
             <!-- Header -->
