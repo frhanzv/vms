@@ -296,6 +296,46 @@ class VendorList extends BaseController
     //  same idea as VisitorList::export().
     // =====================================================================
 
+    /**
+     * Show/Hide Columns popup on the Vendor List / Request List. Saves to the same place
+     * as Config > Page Settings (client_list_columns), so both always agree.
+     */
+    public function saveColumnSettings()
+    {
+        helper(['feature', 'list_columns']);
+        $page     = (string) $this->request->getPost('list');
+        $registry = list_column_registry();
+        $clientId = (int) current_client_id();
+
+        if (! in_array($page, ['vendor_pass_list', 'vendor_request_list'], true) || ! isset($registry[$page])) {
+            return redirect()->back()->with('error', 'Unknown list.');
+        }
+        if ($clientId <= 0) {
+            return redirect()->back()->with('error', 'Columns are set per client - use Config > Page Settings and choose a client.');
+        }
+
+        $posted = $this->request->getPost('columns');
+        $posted = is_array($posted) ? $posted : [];
+        $db     = \Config\Database::connect();
+        $now    = date('Y-m-d H:i:s');
+
+        foreach ($registry[$page]['columns'] as $key => $def) {
+            if (! empty($def['locked'])) {
+                continue;
+            }
+            $where  = ['client_id' => $clientId, 'list_key' => $page, 'column_key' => $key];
+            $data   = ['is_visible' => array_key_exists($key, $posted) ? 1 : 0, 'updated_at' => $now];
+            if ($db->table('client_list_columns')->where($where)->countAllResults() > 0) {
+                $db->table('client_list_columns')->where($where)->update($data);
+            } else {
+                $db->table('client_list_columns')->insert($where + $data + ['created_at' => $now]);
+            }
+        }
+
+        return redirect()->to(base_url($page === 'vendor_request_list' ? 'vendors/request-list' : 'vendors'))
+            ->with('success', 'Columns updated.');
+    }
+
     public function export()
     {
         helper(['feature', 'privacy', 'role']);
@@ -384,7 +424,8 @@ class VendorList extends BaseController
             return redirect()->back()->with('error', 'Failed to read the Excel file: ' . $e->getMessage());
         }
 
-        $sheet = $spreadsheet->getActiveSheet();
+        // The official template keeps its dropdown lists on hidden sheets; the data is on "Registration Data".
+        $sheet = $spreadsheet->getSheetByName('Registration Data') ?? $spreadsheet->getSheet(0);
         $rows  = $sheet->toArray(null, true, true, false);
 
         if (count($rows) < 2) {
@@ -398,8 +439,8 @@ class VendorList extends BaseController
         $columnAliases = [
             'app_no'                       => ['app no', 'app_no', 'application no', 'application number'],
             'full_name'                    => ['full name', 'full_name', 'name'],
-            'name_on_vendor_pass'          => ['name on vendor pass', 'name_on_vendor_pass', 'pass name'],
-            'ic_passport'                  => ['ic/passport', 'ic / passport', 'ic no. / passport', 'ic_passport', 'ic no.', 'ic no', 'ic', 'passport no.', 'passport no', 'passport', 'ic/passport no'],
+            'name_on_vendor_pass'          => ['name on vendor pass', 'name on vendorpass', 'name_on_vendor_pass', 'pass name'],
+            'ic_passport'                  => ['ic/passport', 'ic / passport', 'ic no. / passport', 'ic_passport', 'ic number', 'ic no.', 'ic no', 'ic', 'passport no.', 'passport no', 'passport', 'ic/passport no'],
             'vendor_company_reg_id'        => ['ssm no', 'ssm no.', 'vendor company reg id', 'registration id', 'reg id'],
             'vendor_company_name'          => ['vendor company', 'vendor company name', 'company', 'company name'],
             'designation'                  => ['designation', 'position'],
@@ -414,7 +455,7 @@ class VendorList extends BaseController
             'type_of_registration'         => ['type of registration', 'type_of_registration'],
             'payment'                      => ['payment'],
             'card_type'                    => ['worker type', 'worker_type', 'card type', 'card_type'],
-            'in_out_bound'                 => ['in/out bound', 'in out bound', 'in_out_bound'],
+            'in_out_bound'                 => ['in / out bound', 'in/out bound', 'in out bound', 'in_out_bound'],
             'address_1'                    => ['address 1', 'address_1', 'address1', 'address'],
             'address_2'                    => ['address 2', 'address_2', 'address2'],
             'address_3'                    => ['address 3', 'address_3', 'address3'],
@@ -422,7 +463,7 @@ class VendorList extends BaseController
             'state'                        => ['state'],
             'city'                         => ['city'],
             'postcode'                     => ['postal code', 'postcode', 'postal_code', 'zip'],
-            'vehicle_registration'         => ['vehicle registration', 'vehicle reg', 'vehicle_registration', 'vehicle no'],
+            'vehicle_registration'         => ['vehicle registration number', 'vehicle registration', 'vehicle reg', 'vehicle_registration', 'vehicle no'],
             'name_of_person_visited'       => ['person visited', 'name of person visited'],
             'contact_no_of_person_visited' => ['contact of person visited', 'contact no of person visited'],
             'location_visited'             => ['location visited'],
@@ -430,6 +471,7 @@ class VendorList extends BaseController
             'pass_expiry'                  => ['pass expiry', 'pass_expiry', 'pass expiry date'],
             'license_class'                => ['license class', 'license_class', 'driving license class', 'licence class'],
             'license_expiry'               => ['license expiry', 'license_expiry', 'driving license expiry', 'licence expiry'],
+            'visa_expiry'                  => ['visa expiry', 'visa_expiry'],
             'remark'                       => ['remark', 'remarks', 'notes'],
         ];
 
@@ -446,8 +488,8 @@ class VendorList extends BaseController
         $passportFallbackIndex = null;
         if (isset($fieldIndex['ic_passport'])) {
             $icHeader = $rawHeaders[$fieldIndex['ic_passport']] ?? '';
-            if (in_array($icHeader, ['ic no.', 'ic no', 'ic'], true)) {
-                foreach (['passport no.', 'passport no', 'passport'] as $passAlias) {
+            if (in_array($icHeader, ['ic no.', 'ic no', 'ic', 'ic number'], true)) {
+                foreach (['passport number', 'passport no.', 'passport no', 'passport'] as $passAlias) {
                     if (isset($headerMap[$passAlias])) {
                         $passportFallbackIndex = $headerMap[$passAlias];
                         break;
@@ -474,14 +516,47 @@ class VendorList extends BaseController
             }
         }
 
+        // ---- Official template rules (VendorPassTemplate.xlsx) -------------------
+        // Every column marked * in the template is mandatory. IC Number and
+        // Passport Number are both starred, but a person has one or the other.
         $requiredFields = [
-            'full_name'           => 'Full Name',
-            'ic_passport'         => 'IC No. / Passport',
-            'vendor_company_name' => 'Vendor Company Name',
-            'contact_no'          => 'Contact No.',
-            'email'               => 'Email',
-            'resident'            => 'Resident',
+            'type_of_registration' => 'Type of Registration',
+            'designation'          => 'Designation',
+            'card_type'            => 'Worker Type',
+            'resident'             => 'Resident',
+            'location_access'      => 'Location Access',
+            'in_out_bound'         => 'In / Out Bound',
+            'dob'                  => 'Date of birth',
+            'sex'                  => 'Sex',
+            'full_name'            => 'Full Name',
         ];
+        // Dropdown lists exactly as in the template (value => value stored by the app).
+        $allowed = [
+            'type_of_registration' => ['STAFF' => 'STAFF', 'TENANT' => 'TENANT'],
+            'card_type'            => ['CONTRACT' => 'Temporary', 'PERMANENT' => 'Permanent', 'FAMILY PASS' => 'Family Pass'],
+            'resident'             => ['LOCAL' => 'Malaysian', 'FOREIGNER' => 'Non-Malaysian'],
+            'in_out_bound'         => ['INSIDE' => 'INSIDE', 'OUTSIDE' => 'OUTSIDE', 'INSIDE/OUTSIDE' => 'INSIDE/OUTSIDE'],
+            'sex'                  => ['MALE' => 'MALE', 'FEMALE' => 'FEMALE'],
+        ];
+        $allowedLabels = [
+            'type_of_registration' => 'Type of Registration', 'card_type' => 'Worker Type', 'resident' => 'Resident',
+            'in_out_bound' => 'In / Out Bound', 'sex' => 'Sex',
+        ];
+        $dateFields = ['dob' => 'Date of birth', 'visa_expiry' => 'Visa Expiry', 'license_expiry' => 'License Expiry'];
+
+        // The header row itself must match the template.
+        $missingHeaders = [];
+        foreach (['type_of_registration', 'designation', 'card_type', 'resident', 'location_access', 'in_out_bound', 'ic_passport', 'dob', 'sex', 'full_name'] as $f) {
+            if (! isset($fieldIndex[$f])) {
+                $missingHeaders[] = $f === 'ic_passport' ? 'Ic Number' : ($requiredFields[$f] ?? $f);
+            }
+        }
+        if ($passportFallbackIndex === null) {
+            $missingHeaders[] = 'Passport Number';
+        }
+        if (! empty($missingHeaders)) {
+            return redirect()->back()->with('error', 'This file does not follow the template. Missing column(s): ' . implode(', ', $missingHeaders) . '. Please download the Template again and use it as is.');
+        }
 
         $validationErrors = [];
         $seenInFile        = [];
@@ -520,49 +595,70 @@ class VendorList extends BaseController
             $rowNum  = $i + 2;
             $missing = [];
             foreach ($requiredFields as $field => $label) {
-                if ($lockedCompany && $field === 'vendor_company_name') {
-                    continue; // stamped from the registered company below
-                }
-                $value = $get($field);
-                if ($field === 'ic_passport' && $value === null && $passportFallbackIndex !== null) {
-                    $value = trim((string) ($row[$passportFallbackIndex] ?? '')) ?: null;
-                }
-                if ($value === null) {
+                if ($get($field) === null) {
                     $missing[] = $label;
                 }
+            }
+            $icCell   = $get('ic_passport');
+            $passCell = $passportFallbackIndex !== null ? (trim((string) ($row[$passportFallbackIndex] ?? '')) ?: null) : null;
+            if ($icCell === null && $passCell === null) {
+                $missing[] = 'Ic Number or Passport Number';
             }
             if (! empty($missing)) {
                 $validationErrors[] = "Row {$rowNum}: missing " . implode(', ', $missing) . '.';
             }
-            if ($resolveLocations($get('location_access')) === []) {
-                $validationErrors[] = "Row {$rowNum}: Location Access is mandatory and must match a location you can use.";
+
+            // Dropdown columns accept only the template's values.
+            foreach ($allowed as $field => $map) {
+                $val = $get($field);
+                if ($val !== null && ! isset($map[strtoupper($val)])) {
+                    $validationErrors[] = "Row {$rowNum}: {$allowedLabels[$field]} \"{$val}\" is not allowed. Use: " . implode(', ', array_keys($map)) . '.';
+                }
+            }
+            if ($get('location_access') !== null) {
+                foreach (preg_split('/[,;]+/', (string) $get('location_access')) ?: [] as $loc) {
+                    if (trim($loc) !== '' && $resolveLocations($loc) === []) {
+                        $validationErrors[] = "Row {$rowNum}: Location Access \"" . trim($loc) . '" is not a valid location.';
+                    }
+                }
+            }
+            foreach ($dateFields as $field => $label) {
+                $val = $get($field);
+                if ($val !== null && $this->parseDate($val) === null) {
+                    $validationErrors[] = "Row {$rowNum}: {$label} \"{$val}\" is not a valid date. Use dd/mm/yyyy.";
+                }
+            }
+            if ($icCell !== null && str_contains($icCell, '-')) {
+                $validationErrors[] = "Row {$rowNum}: do not use dashes (-) in the IC Number.";
+            }
+            $phone = $get('contact_no');
+            if ($phone !== null && preg_match('/^\d+$/', $phone) !== 1) {
+                $validationErrors[] = "Row {$rowNum}: Contact No. must contain numbers only (no dashes or spaces).";
             }
 
-            $ic = $get('ic_passport') ?? (
-                $passportFallbackIndex !== null
-                    ? (trim((string) ($row[$passportFallbackIndex] ?? '')) ?: null)
-                    : null
-            );
-            if ($ic !== null) {
-                // Normalise the same way the insert pass does, so "900101-10-1234"
-                // and "900101101234" are recognised as the same IC.
-                $icDigits    = str_replace('-', '', $ic);
-                $looksLikeIc = preg_match('/^\d+$/', $icDigits) === 1;
-                if ($looksLikeIc && strlen($icDigits) !== 12) {
-                    $validationErrors[] = "Row {$rowNum}: IC number must be exactly 12 digits (got \"{$ic}\").";
-                }
-                $dedupeKey = $looksLikeIc ? $icDigits : $ic;
-
-                if (isset($seenInFile[$dedupeKey])) {
-                    $validationErrors[] = "Row {$rowNum}: IC/Passport '{$ic}' is duplicated in the file (first seen on row {$seenInFile[$dedupeKey]}).";
+            // IC (12 digits) and Passport are separate columns in the template.
+            $keys = [];
+            if ($icCell !== null) {
+                if (preg_match('/^\d{12}$/', $icCell) !== 1) {
+                    $validationErrors[] = "Row {$rowNum}: Ic Number must be exactly 12 digits, numbers only (got \"{$icCell}\").";
                 } else {
-                    $seenInFile[$dedupeKey] = $rowNum;
-                    $exists = $db->table('vendors')
-                        ->groupStart()->where('ic_no', $dedupeKey)->orWhere('passport_no', $dedupeKey)->groupEnd()
-                        ->countAllResults();
-                    if ($exists > 0) {
-                        $validationErrors[] = "Row {$rowNum}: IC/Passport '{$ic}' already exists in the system.";
-                    }
+                    $keys[] = $icCell;
+                }
+            }
+            if ($passCell !== null) {
+                $keys[] = $passCell;
+            }
+            foreach ($keys as $dedupeKey) {
+                if (isset($seenInFile[$dedupeKey])) {
+                    $validationErrors[] = "Row {$rowNum}: IC/Passport '{$dedupeKey}' is duplicated in the file (first seen on row {$seenInFile[$dedupeKey]}).";
+                    continue;
+                }
+                $seenInFile[$dedupeKey] = $rowNum;
+                $exists = $db->table('vendors')
+                    ->groupStart()->where('ic_no', $dedupeKey)->orWhere('passport_no', $dedupeKey)->groupEnd()
+                    ->countAllResults();
+                if ($exists > 0) {
+                    $validationErrors[] = "Row {$rowNum}: IC/Passport '{$dedupeKey}' already exists in the system.";
                 }
             }
         }
@@ -574,6 +670,7 @@ class VendorList extends BaseController
 
         $inserted = 0;
         $counter  = 1;
+        $hasVisaColumn = $db->fieldExists('visa_expiry', 'vendors');
         $activeLocationOptions = (new \App\Models\VendorLocationModel())->getOptionsForUser(true);
 
         foreach (array_slice($rows, 1) as $row) {
@@ -586,25 +683,15 @@ class VendorList extends BaseController
                 continue;
             }
 
-            $icValue = $get('ic_passport') ?? (
-                $passportFallbackIndex !== null
-                    ? (trim((string) ($row[$passportFallbackIndex] ?? '')) ?: null)
-                    : null
-            );
+            $icValue   = $get('ic_passport');
+            $passValue = $passportFallbackIndex !== null ? (trim((string) ($row[$passportFallbackIndex] ?? '')) ?: null) : null;
 
-            // The template merges IC/Passport into one column — split it back
-            // into the two real DB columns the rest of the app reads (a
-            // 12-digit number, dashes allowed, is an IC; anything else is
-            // treated as a passport number).
-            $icDigitsOnly = $icValue !== null ? str_replace('-', '', $icValue) : null;
-            $isIcNumber   = $icDigitsOnly !== null && preg_match('/^\d{12}$/', $icDigitsOnly) === 1;
-
-            // Keep Worker Type to the values the rest of the app expects.
-            $cardType = $get('card_type');
-            if ($cardType !== null) {
-                $normalized = ucfirst(strtolower($cardType));
-                $cardType   = in_array($normalized, ['Permanent', 'Temporary'], true) ? $normalized : null;
-            }
+            // Template dropdown value -> value the app stores.
+            $mapValue = static function (?string $v, array $map): ?string {
+                return $v === null ? null : ($map[strtoupper($v)] ?? null);
+            };
+            $cardType = $mapValue($get('card_type'), ['CONTRACT' => 'Temporary', 'PERMANENT' => 'Permanent', 'FAMILY PASS' => 'Family Pass']);
+            $resident = $mapValue($get('resident'), ['LOCAL' => 'Malaysian', 'FOREIGNER' => 'Non-Malaysian']);
 
             $locations = $resolveLocations($get('location_access'));
 
@@ -614,20 +701,20 @@ class VendorList extends BaseController
                 'date_of_application'            => $today,
                 'type_of_application'            => $get('type_of_application'),
                 'sub_type'                       => $get('sub_type'),
-                'type_of_registration'           => $get('type_of_registration'),
+                'type_of_registration'           => strtoupper((string) $get('type_of_registration')) ?: null,
                 'payment'                        => $get('payment'),
-                'resident'                       => $get('resident'),
+                'resident'                       => $resident,
                 'card_type'                      => $cardType,
                 'location_access'                => implode(',', $locations),
                 'vendor_company_reg_id'          => $lockedCompany ? $lockedCompany['registration_no'] : $get('vendor_company_reg_id'),
                 'vendor_company_name'            => $lockedCompany ? $lockedCompany['name'] : $get('vendor_company_name'),
-                'in_out_bound'                   => $get('in_out_bound'),
+                'in_out_bound'                   => strtoupper((string) $get('in_out_bound')) ?: null,
                 'full_name'                      => $get('full_name'),
                 'name_on_vendor_pass'            => $get('name_on_vendor_pass'),
-                'ic_no'                          => $isIcNumber ? $icDigitsOnly : null,
-                'passport_no'                    => ! $isIcNumber ? $icValue : null,
+                'ic_no'                          => $icValue,
+                'passport_no'                    => $passValue,
                 'dob'                            => $this->parseDate($get('dob')),
-                'sex'                            => $get('sex'),
+                'sex'                            => $mapValue($get('sex'), ['MALE' => 'Male', 'FEMALE' => 'Female']),
                 'contact_no'                     => $get('contact_no'),
                 'email'                          => $get('email'),
                 'staff_no'                       => $get('staff_no'),
@@ -650,6 +737,9 @@ class VendorList extends BaseController
                 'created_at'                     => $now,
             ];
 
+            if ($hasVisaColumn) {
+                $record['visa_expiry'] = $this->parseDate($get('visa_expiry'));
+            }
             $db->table('vendors')->insert($record);
             $vendorId = (int) $db->insertID();
             \App\Libraries\VendorClientApprovals::sync($db, $vendorId, implode(',', $locations));

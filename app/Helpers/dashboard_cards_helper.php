@@ -34,6 +34,9 @@ if (! function_exists('dash_card_registry')) {
             'vendor' => [
                 'title' => 'Vendor Dashboard',
                 'cards' => [
+                    'summary'           => ['label' => 'Summary (KPK-style tiles)', 'group' => 'Summary'],
+                    'chart_location'    => ['label' => 'By location', 'group' => 'Charts'],
+                    'gate_summary'      => ['label' => 'Check IN / Check OUT / Out of window', 'group' => 'Summary'],
                     'kpi_total'         => ['label' => 'Total applications', 'group' => 'Number tiles'],
                     'kpi_active'        => ['label' => 'Active passes', 'group' => 'Number tiles'],
                     'kpi_expiring'      => ['label' => 'Expiring ≤ 30 days', 'group' => 'Number tiles'],

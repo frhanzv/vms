@@ -5,56 +5,34 @@ namespace App\Models;
 use CodeIgniter\Model;
 
 /**
- * Admin-editable replacement for the old hardcoded LOCATION_OPTIONS const
- * that was duplicated across VendorPassRequest and VendorCardInfo (and read
- * from the former by VendorList / VendorProcessDetail). A new location
- * added through VendorLocations::create() shows up immediately on every
- * page that reads getActiveOptions() — the request form, the detail page,
- * Card Info, and Process Detail.
+ * Vendor "Location Access" choices. There is ONE list of gates for the whole
+ * product - the `locations` table (Config > Location Access Management) - used
+ * by visitors, staff and vendors alike. A vendor pass stores each chosen gate as
+ * a code = slug of its location_access name (e.g. "CHANGING ROOM 1 IN" ->
+ * changing_room_1_in), so the comma separated value never contains spaces.
+ *
+ * The owner of a gate is locations.client_id (set from the Client dropdown;
+ * BOTH = no single owner = every client).
  */
 class VendorLocationModel extends Model
 {
-    protected $table            = 'vendor_locations';
+    protected $table            = 'locations';
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['code', 'label', 'sort_order', 'is_active', 'client_id'];
+    protected $allowedFields    = [];
 
-    protected $useTimestamps = true;
-    protected $dateFormat    = 'datetime';
-    protected $createdField  = 'created_at';
-    protected $updatedField  = 'updated_at';
-
-    protected $validationRules = [
-        'code'  => 'required|max_length[50]|is_unique[vendor_locations.code,id,{id}]',
-        'label' => 'required|max_length[150]',
-    ];
-
-    /**
-     * code => label map of active locations, in display order. This is the
-     * drop-in replacement for LOCATION_OPTIONS everywhere it was used.
-     */
+    /** code => label of active gates, in display order. */
     public function getActiveOptions(): array
     {
-        $rows = $this->where('is_active', 1)
-            ->orderBy('sort_order', 'ASC')
-            ->orderBy('label', 'ASC')
-            ->findAll();
-
-        $options = [];
-        foreach ($rows as $row) {
-            $options[$row['code']] = $row['label'];
-        }
-
-        return $options;
+        return $this->options($this->db->table('locations')->where('status', 'active')->orderBy('location_access', 'ASC')->get()->getResultArray());
     }
 
     /**
-     * Client ids whose locations the current user may pick from: its own
-     * client plus every client in the same site_group (the clients sharing one
-     * building). Null = no restriction (platform superadmin).
+     * Client ids whose gates the current user may pick from: its own client (and any
+     * site group it was put in before). Null = no restriction (platform superadmin).
      *
      * @return list<int>|null
      */
@@ -66,11 +44,10 @@ class VendorLocationModel extends Model
         }
         $clientId = $clientId ?? (int) current_company_id();
         $db       = \Config\Database::connect();
-        $me       = $db->table('clients')->select('site_group')->where('id', $clientId)->get()->getRowArray();
+        $me       = $db->fieldExists('site_group', 'clients') ? $db->table('clients')->select('site_group')->where('id', $clientId)->get()->getRowArray() : null;
         $ids      = [$clientId];
         if ($me && trim((string) ($me['site_group'] ?? '')) !== '') {
-            $rows = $db->table('clients')->select('id')->where('site_group', $me['site_group'])->get()->getResultArray();
-            foreach ($rows as $r) {
+            foreach ($db->table('clients')->select('id')->where('site_group', $me['site_group'])->get()->getResultArray() as $r) {
                 $ids[] = (int) $r['id'];
             }
         }
@@ -79,64 +56,63 @@ class VendorLocationModel extends Model
     }
 
     /**
-     * Active locations the current user may choose (code => label), in display
-     * order: own client + site-group siblings + locations nobody owns yet.
-     * $withClient appends the owning client's name when several clients share
-     * the choices, so a vendor can tell "Gate 1 (KSB)" from "Gate 1 (KPK)".
+     * Active gates the current user may choose (code => label): its own client's,
+     * plus the ones set to BOTH. $withClient appends the owner's name when the user
+     * can see gates of several clients (platform admin).
      */
     public function getOptionsForUser(bool $withClient = false, ?array $clientIds = null): array
     {
         $clientIds = $clientIds ?? self::visibleClientIds();
-        $b = $this->db->table($this->table . ' l')->select('l.code, l.label, l.client_id, c.name AS client_name')
-            ->join('clients c', 'c.id = l.client_id', 'left')->where('l.is_active', 1);
+        $b = $this->db->table('locations l')->select('l.location_access, l.client_id, c.name AS client_name')
+            ->join('clients c', 'c.id = l.client_id', 'left')->where('l.status', 'active');
         if ($clientIds !== null) {
             $b->groupStart()->where('l.client_id IS NULL', null, false)->orWhereIn('l.client_id', $clientIds ?: [0])->groupEnd();
         }
-        $rows = $b->orderBy('l.sort_order', 'ASC')->orderBy('l.label', 'ASC')->get()->getResultArray();
+        $rows = $b->orderBy('l.location_access', 'ASC')->get()->getResultArray();
 
         $multi   = count(array_unique(array_filter(array_column($rows, 'client_id')))) > 1;
         $options = [];
         foreach ($rows as $row) {
-            $label = $row['label'];
+            $code = self::slugifyCode((string) $row['location_access']);
+            if ($code === '' || isset($options[$code])) {
+                continue;
+            }
+            $label = (string) $row['location_access'];
             if ($withClient && $multi && ! empty($row['client_name'])) {
                 $label .= ' (' . $row['client_name'] . ')';
             }
-            $options[$row['code']] = $label;
+            $options[$code] = $label;
         }
 
         return $options;
     }
 
-    /** All rows (active + inactive) for the management page — inactive ones stay visible there so they can be re-enabled, just not offered as a choice elsewhere. */
-    public function getAllOrdered(): array
-    {
-        return $this->orderBy('sort_order', 'ASC')->orderBy('label', 'ASC')->findAll();
-    }
-
-    /**
-     * code => label for EVERY row, active or not. Used wherever an already
-     * -saved location_access value needs to be shown back as a label (the
-     * read-only detail page, Card Info) — a vendor record saved against a
-     * location that's since been deactivated should still show its real
-     * name instead of silently dropping it.
-     */
+    /** code => label for EVERY gate, active or not (shows an already-saved value back by name). */
     public function getAllLabelMap(): array
     {
-        $rows = $this->orderBy('sort_order', 'ASC')->orderBy('label', 'ASC')->findAll();
-
-        $options = [];
-        foreach ($rows as $row) {
-            $options[$row['code']] = $row['label'];
-        }
-
-        return $options;
+        return $this->options($this->db->table('locations')->orderBy('location_access', 'ASC')->get()->getResultArray());
     }
 
-    /** Turns a free-typed code into a safe slug (lowercase, underscores) so it matches cleanly against stored comma-separated location_access values. */
+    /** @param list<array> $rows rows of `locations` */
+    private function options(array $rows): array
+    {
+        $out = [];
+        foreach ($rows as $r) {
+            $code = self::slugifyCode((string) $r['location_access']);
+            if ($code !== '' && ! isset($out[$code])) {
+                $out[$code] = (string) $r['location_access'];
+            }
+        }
+
+        return $out;
+    }
+
+    /** Name -> safe code (lowercase, underscores). */
     public static function slugifyCode(string $code): string
     {
         $slug = strtolower(trim($code));
         $slug = preg_replace('/[^a-z0-9]+/', '_', $slug);
-        return trim($slug, '_');
+
+        return trim((string) $slug, '_');
     }
 }

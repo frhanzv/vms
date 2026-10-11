@@ -25,10 +25,6 @@ $routes->get('vendor-pass-qr/(:any)', 'VendorPassQr::show/$1');
 $routes->get('register', 'Auth::register');
 $routes->post('register/search-company', 'Auth::searchCompany');
 $routes->post('register', 'Auth::doRegister');
-// Per-client product links (code in the URL) - public
-$routes->get('c/(:segment)/login', 'Auth::clientLogin/$1');
-$routes->get('c/(:segment)/register', 'Auth::clientRegister/$1');
-$routes->post('c/(:segment)/register', 'Auth::doRegister/$1');
 $routes->get('activate/(:segment)', 'Auth::activate/$1');
 $routes->get('forgot-password', 'Auth::forgotPassword');
 $routes->post('forgot-password', 'Auth::doForgotPassword');
@@ -127,6 +123,7 @@ $routes->delete('config/deleteClient/(:num)', 'Config::deleteClient/$1');
 $routes->get('config/getCompanies', 'Config::getCompanies');
 $routes->get('config/getCompany/(:num)', 'Config::getCompany/$1');
 $routes->post('config/createCompany', 'Config::createCompany');
+$routes->get('config/company-locations', 'Config::companyLocations');
 $routes->post('config/updateCompany/(:num)', 'Config::updateCompany/$1');
 $routes->delete('config/deleteCompany/(:num)', 'Config::deleteCompany/$1');
 $routes->get('config/getAllCompanies', 'Config::getAllCompanies');
@@ -275,10 +272,6 @@ $routes->get('config/list-columns', static fn () => redirect()->to(base_url('con
 $routes->get('config/page-settings/data',  'PageSettings::data', ['filter' => 'role:superadmin,clientsuperadmin']);
 $routes->post('config/page-settings/save', 'PageSettings::save', ['filter' => 'role:superadmin,clientsuperadmin']);
 
-// Multi-client sharing: client codes / site groups / gate owners (platform superadmin only)
-$routes->get('config/client-links',                    'ClientLinks::index',        ['filter' => 'role:superadmin']);
-$routes->post('config/client-links/save/(:num)',       'ClientLinks::save/$1',      ['filter' => 'role:superadmin']);
-$routes->post('config/client-links/gate-owner/(:num)', 'ClientLinks::setGateOwner/$1', ['filter' => 'role:superadmin']);
 // Re-send the registration invite to a vendor company (Config > Company)
 $routes->post('config/companies/invite/(:num)',        'CompanyInvite::send/$1',    ['filter' => 'role:superadmin,clientsuperadmin,admin']);
 $routes->get('config/dashboard-cards',       'DashboardCards::index',  ['filter' => 'role:superadmin,clientsuperadmin']);
@@ -435,6 +428,7 @@ $routes->group('', ['filter' => [$plusAdminOfficerVendor, 'client_feature:vendor
     $routes->get('vendors', 'VendorList::index');
     $routes->get('vendors/request-list', 'VendorList::requestList');
     $routes->get('vendors/export', 'VendorList::export');
+    $routes->post('vendors/saveColumnSettings', 'VendorList::saveColumnSettings');
     $routes->post('vendors/import', 'VendorList::import');
 
     $routes->get('vendors/vendorpassrequest', 'VendorPassRequest::index');
@@ -452,6 +446,7 @@ $routes->group('', ['filter' => [$plusAdminOfficerVendor, 'client_feature:vendor
 $routes->group('', ['filter' => [$plusAdminOfficerVendor, 'client_feature:vendor_pass']], function ($routes) {
     $routes->get('vendors', 'VendorList::index');
     $routes->get('vendors/export', 'VendorList::export');
+    $routes->post('vendors/saveColumnSettings', 'VendorList::saveColumnSettings');
     $routes->post('vendors/import', 'VendorList::import');
 
     $routes->get('vendors/vendorpassrequest', 'VendorPassRequest::index');
@@ -521,10 +516,6 @@ $routes->group('', ['filter' => [$plusAdminOfficer, 'client_feature:vendor_pass'
     $routes->post('vendors/card-info/update/(:num)', 'VendorCardInfo::update/$1');
 
     // Locations — the Location Access choices offered everywhere above.
-    $routes->get('vendors/locations', 'VendorLocations::index');
-    $routes->post('vendors/locations/create', 'VendorLocations::create');
-    $routes->post('vendors/locations/update/(:num)', 'VendorLocations::update/$1');
-    $routes->post('vendors/locations/delete/(:num)', 'VendorLocations::delete/$1');
 
     // --- Report ---
     $routes->get('report/vendor', 'VendorReport::index');

@@ -5,8 +5,8 @@ namespace App\Libraries;
 /**
  * The two automatic emails of the vendor onboarding flow:
  *
- *  1. invite()     — client B adds vendor D under Config > Company: D gets B's
- *                    own link and is asked to register (company pre-filled).
+ *  1. invite()     — client B adds vendor D under Config > Company: D gets
+ *                    the link to this production and is asked to register (company pre-filled).
  *  2. registered() — D registered: B's admins are reminded to approve it.
  *
  * Never throws: a mail problem must not block creating a company or a
@@ -66,6 +66,22 @@ class VendorInviteMailer
         return [$anyOk, $anyOk ? 'Reminder sent.' : 'Could not send the reminder email.'];
     }
 
+    /** A short, readable reason for a failed send (the full SMTP log goes to writable/logs). */
+    private static function reason(string $debug, $cfg): string
+    {
+        if (trim((string) $cfg->SMTPUser) === '' || trim((string) $cfg->SMTPPass) === '') {
+            return 'the mail account is not set up. Put MAIL_HOST, MAIL_PORT, MAIL_USERNAME, MAIL_PASSWORD and MAIL_FROM_ADDRESS in your .env file (for Gmail, use an App Password).';
+        }
+        if (stripos($debug, 'Username and Password not accepted') !== false || stripos($debug, '535') !== false) {
+            return 'the mail server rejected the username or password (for Gmail, use an App Password).';
+        }
+        if (stripos($debug, 'Unable to connect') !== false || stripos($debug, 'smtp server') !== false || stripos($debug, 'fsockopen') !== false) {
+            return 'could not connect to the mail server ' . $cfg->SMTPHost . ':' . $cfg->SMTPPort . '. Check MAIL_HOST / MAIL_PORT and your internet.';
+        }
+
+        return mb_substr($debug !== '' ? $debug : 'unknown error', 0, 220) . ' (see writable/logs for details)';
+    }
+
     /** @return array{0:bool,1:string} */
     private static function send(string $to, string $subject, string $html): array
     {
@@ -77,14 +93,18 @@ class VendorInviteMailer
             $email->setTo($to);
             $email->setSubject($subject);
             $email->setMessage($html);
-            if ($email->send()) {
+            if ($email->send(false)) {
                 return [true, 'Email sent to ' . $to . '.'];
             }
-            log_message('error', 'VendorInviteMailer: send failed to ' . $to);
+            $debug = trim(preg_replace('/\s+/', ' ', strip_tags($email->printDebugger([]))));
+            log_message('error', 'VendorInviteMailer: send failed to ' . $to . ' - ' . $debug);
+            $reason = self::reason($debug, $cfg);
+            $email->clear();
         } catch (\Throwable $e) {
             log_message('error', 'VendorInviteMailer: ' . $e->getMessage());
+            $reason = $e->getMessage();
         }
 
-        return [false, 'The email could not be sent. Check the mail settings.'];
+        return [false, 'The email could not be sent: ' . $reason];
     }
 }

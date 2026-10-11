@@ -1181,19 +1181,91 @@ class Config extends BaseController
     /**
      * Create new company
      */
+    /**
+     * Location Access choices for the Create/Edit Company form. A vendor company is
+     * placed under the client that owns the chosen location. A client admin only sees
+     * its own locations (plus the ones nobody owns yet); the platform admin sees all.
+     */
+    public function companyLocations()
+    {
+        helper(['feature', 'role']);
+        $db = \Config\Database::connect();
+        $qb = $db->table('locations l')
+            ->select('l.id, l.branch, l.location_access, l.client_id, c.name AS client_name')
+            ->join('clients c', 'c.id = l.client_id', 'left')
+            ->where('l.status', 'active');
+        if (! is_platform_superadmin()) {
+            $cid = current_client_id();
+            $qb->groupStart()->where('l.client_id', $cid)->orWhere('l.client_id IS NULL', null, false)->groupEnd();
+        }
+        $rows = $qb->orderBy('l.location_access')->get()->getResultArray();
+
+        return $this->response->setJSON(['success' => true, 'data' => array_map(static fn($r) => [
+            'id'     => (int) $r['id'],
+            'label'  => (string) $r['location_access'] . ($r['branch'] !== '' && $r['branch'] !== null ? ' (' . $r['branch'] . ')' : ''),
+            'client' => '',
+        ], $rows)]);
+    }
+
+    /**
+     * Turns the chosen Location Access into the company's client: the location's owner,
+     * or (for a gate nobody owns yet) the client admin who is creating the company.
+     * Returns an error message, or null when $data was filled in.
+     */
+    private function resolveCompanyLocation(array &$data, bool $required): ?string
+    {
+        helper(['feature', 'role']);
+        $locationId = (int) ($data['location_id'] ?? 0);
+        unset($data['client_id']);
+        if ($locationId <= 0) {
+            unset($data['location_id']);
+
+            return $required ? 'Please choose the Location Access for this company.' : null;
+        }
+
+        $loc = \Config\Database::connect()->table('locations')->where('id', $locationId)->get()->getRowArray();
+        if (! $loc) {
+            return 'Location Access not found.';
+        }
+        $owner = (int) ($loc['client_id'] ?? 0);
+        if (! is_platform_superadmin()) {
+            $mine = current_client_id();
+            if ($owner > 0 && $owner !== $mine) {
+                return 'That Location Access belongs to another client.';
+            }
+            $owner = $owner > 0 ? $owner : $mine;
+        }
+        if ($owner <= 0) {
+            return 'This Location Access is set to BOTH clients, so the company cannot be placed under one client. Choose a location of a single client.';
+        }
+
+        $data['location_id'] = $locationId;
+        $data['client_id']   = $owner;
+
+        return null;
+    }
+
     public function createCompany()
     {
         try {
             $data = $this->request->getJSON(true);
+
+            if ($err = $this->resolveCompanyLocation($data, true)) {
+                return $this->response->setJSON(['success' => false, 'message' => $err, 'errors' => ['location_id' => $err]])->setStatusCode(400);
+            }
 
             if ($this->companyModel->insert($data)) {
                 $newId   = $this->companyModel->getInsertID();
                 $newName = $data['name'] ?? 'Unknown';
                 (new \App\Services\PlatformNotificationService())->notifyNewCompany((int) $newId, (string) $newName);
 
+                // The registration email goes out automatically when the company has an email address.
+                $mail = \App\Models\CompanyModel::$lastInvite;
+                $note = $mail ? ($mail[0] ? ' ' . $mail[1] : ' But the registration email was not sent. ' . $mail[1]) : '';
+
                 return $this->response->setJSON([
                     'success' => true,
-                    'message' => 'Company created successfully',
+                    'message' => 'Company created successfully.' . $note,
                     'data' => ['id' => $newId]
                 ]);
             }
@@ -1229,6 +1301,10 @@ class Config extends BaseController
 
             $data = $input;
             unset($data['version'], $data['id']);
+
+            if ($err = $this->resolveCompanyLocation($data, false)) {
+                return $this->response->setJSON(['success' => false, 'message' => $err, 'errors' => ['location_id' => $err]])->setStatusCode(400);
+            }
 
             $error = $this->versionedUpdate($this->companyModel, $id, $data, $input, 'company');
             if ($error) {
@@ -2422,9 +2498,48 @@ class Config extends BaseController
     /**
      * Create location
      */
+    /**
+     * Location Access "Client" dropdown (stored in `branch`): a client's name makes that
+     * client the owner of the gate, BOTH leaves it with no single owner (shared by every
+     * client). Returns [error|null, ownerClientId|null]; owner 0 = old free-text branch, leave as is.
+     */
+    private function locationOwnerFromBranch(string $branch): array
+    {
+        helper(['feature', 'role']);
+        $branch = trim($branch);
+        if (strcasecmp($branch, 'BOTH') === 0) {
+            return [null, null];
+        }
+        $client = \Config\Database::connect()->table('clients')->where('LOWER(name)', strtolower($branch))->get()->getRowArray();
+        if (! $client) {
+            return [null, 0];
+        }
+        if (! is_platform_superadmin() && (int) $client['id'] !== current_client_id()) {
+            return ['You can only add locations for your own client.', null];
+        }
+
+        return [null, (int) $client['id']];
+    }
+
+    private function saveLocationOwner(int $locationId, ?int $owner): void
+    {
+        if ($owner === 0) {
+            return;
+        }
+        $db = \Config\Database::connect();
+        if ($db->fieldExists('client_id', 'locations')) {
+            $db->table('locations')->where('id', $locationId)->update(['client_id' => $owner]);
+        }
+    }
+
     public function createLocation()
     {
         $data = $this->request->getJSON(true);
+
+        [$ownerErr, $owner] = $this->locationOwnerFromBranch((string) ($data['branch'] ?? ''));
+        if ($ownerErr) {
+            return $this->response->setJSON(['success' => false, 'message' => $ownerErr, 'errors' => ['branch' => $ownerErr]])->setStatusCode(400);
+        }
 
         // Hash password if provided
         if (!empty($data['adam_password'])) {
@@ -2438,6 +2553,8 @@ class Config extends BaseController
                 'errors' => $this->locationModel->errors()
             ])->setStatusCode(400);
         }
+
+        $this->saveLocationOwner((int) $this->locationModel->getInsertID(), $owner);
 
         return $this->response->setJSON([
             'success' => true,
@@ -2473,10 +2590,19 @@ class Config extends BaseController
             unset($data['adam_password']);
         }
 
+        $owner = 0;
+        if (isset($data['branch'])) {
+            [$ownerErr, $owner] = $this->locationOwnerFromBranch((string) $data['branch']);
+            if ($ownerErr) {
+                return $this->response->setJSON(['success' => false, 'message' => $ownerErr, 'errors' => ['branch' => $ownerErr]])->setStatusCode(400);
+            }
+        }
+
         $error = $this->versionedUpdate($this->locationModel, $id, $data, $input, 'location');
         if ($error) {
             return $error;
         }
+        $this->saveLocationOwner((int) $id, $owner);
 
         return $this->response->setJSON([
             'success' => true,

@@ -10,15 +10,13 @@
     <script>tailwind.config = { theme: { extend: { colors: { primary: "#137fec" }, fontFamily: { sans: ["Montserrat","sans-serif"] } } } };</script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
-<body class="bg-gray-50 dark:bg-gray-900 font-sans text-gray-800 dark:text-gray-200 h-screen flex">
-<?php helper('client_link'); ?>
-<?= view('partials/sidebar', ['current' => 'config/client-links']) ?>
-<main class="flex-1 overflow-y-auto p-4 md:p-8">
+<body class="font-sans text-gray-800 dark:text-gray-200 <?= !empty($embed) ? 'bg-transparent' : 'bg-gray-50 dark:bg-gray-900 h-screen flex' ?>">
+<?php if (empty($embed)) echo view('partials/sidebar', ['current' => 'config/client-links']); ?>
+<main class="<?= !empty($embed) ? 'p-2' : 'flex-1 overflow-y-auto p-4 md:p-8' ?>">
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mx-auto max-w-5xl">
-        <h1 class="text-xl font-bold uppercase mb-2">Client Links &amp; Sharing</h1>
+        <h1 class="text-xl font-bold uppercase mb-2">Site Sharing</h1>
         <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
-            Give each client its own link: <code>/c/CODE/login</code> for staff and <code>/c/CODE/register</code> for its vendors.
-            Everything stays in this one product; you still see and manage all clients.
+            Only needed when this installation serves more than one client. Everything stays in this one product; you still see and manage all clients.
         </p>
         <p class="text-xs text-gray-500 dark:text-gray-400 mb-6">
             <strong>Site group</strong>: clients that share one building (for example KSB and KPK) get the same group name.
@@ -27,6 +25,26 @@
             Which client owns which location is set under <a class="text-primary underline" href="<?= base_url('vendors/locations') ?>">Vendor Locations</a>.
         </p>
 
+        <?php if (! empty($groups) || ! empty($ungrouped)): ?>
+        <div class="mb-6 rounded-lg border border-gray-200 dark:border-gray-700 p-4 text-xs space-y-2">
+            <p class="font-bold uppercase">Sharing status</p>
+            <?php foreach ($groups as $g => $names): ?>
+                <?php if (count($names) > 1): ?>
+                <p class="text-emerald-700 dark:text-emerald-400"><strong><?= esc(implode(' + ', $names)) ?></strong> share one product (site group <strong><?= esc($g) ?></strong>).
+                    A vendor who registers can choose the locations of both.</p>
+                <?php else: ?>
+                <p class="text-amber-700 dark:text-amber-400"><strong><?= esc($names[0]) ?></strong> is the only client in site group <strong><?= esc($g) ?></strong> - nothing is shared yet. Give another client the same group name to share.</p>
+                <?php endif; ?>
+            <?php endforeach; ?>
+            <?php if (! empty($ungrouped) && count($ungrouped) < count($clients)): ?>
+                <p class="text-amber-700 dark:text-amber-400">Not in any group (shares nothing): <strong><?= esc(implode(', ', $ungrouped)) ?></strong>.</p>
+            <?php elseif (! empty($ungrouped)): ?>
+                <p class="text-gray-500">No site groups yet. To share a building, type the same Site group (for example KLANG-1) for each client below and press Save.</p>
+            <?php endif; ?>
+            <p class="text-gray-600 dark:text-gray-400"><?= (int) $sharedPasses ?> vendor pass(es) currently belong to more than one client.</p>
+        </div>
+        <?php endif; ?>
+
         <div id="flashMsg" class="hidden mb-4 text-sm px-4 py-2 rounded-lg"></div>
 
         <div class="overflow-x-auto">
@@ -34,10 +52,8 @@
             <thead>
                 <tr class="bg-gray-50 dark:bg-gray-700 font-bold uppercase">
                     <th class="p-3 border-b">Client</th>
-                    <th class="p-3 border-b">Code</th>
                     <th class="p-3 border-b">Site group</th>
                     <th class="p-3 border-b">Locations</th>
-                    <th class="p-3 border-b">Links</th>
                     <th class="p-3 border-b"></th>
                 </tr>
             </thead>
@@ -45,15 +61,8 @@
             <?php foreach ($clients as $c): $id = (int) $c['id']; ?>
                 <tr class="border-b border-gray-100 dark:border-gray-700" data-id="<?= $id ?>">
                     <td class="p-3 font-semibold"><?= esc($c['name']) ?><?= strtolower((string) $c['status']) !== 'active' ? ' <span class="text-gray-400 font-normal">(inactive)</span>' : '' ?></td>
-                    <td class="p-3"><input class="code border border-gray-300 dark:border-gray-600 dark:bg-gray-900 rounded px-2 py-1 w-28 font-mono uppercase" value="<?= esc($c['code']) ?>"/></td>
                     <td class="p-3"><input class="grp border border-gray-300 dark:border-gray-600 dark:bg-gray-900 rounded px-2 py-1 w-32" value="<?= esc($c['site_group']) ?>" placeholder="e.g. KLANG-1"/></td>
                     <td class="p-3"><?= (int) ($locCounts[$id] ?? 0) ?></td>
-                    <td class="p-3 space-y-1">
-                        <div><a class="text-primary hover:underline login-link" href="<?= esc(client_link_url((string) $c['code'], 'login')) ?>" target="_blank">Login link</a>
-                            <button type="button" class="ml-1 text-gray-500 hover:text-primary" onclick="copyLink(this.previousElementSibling)">copy</button></div>
-                        <div><a class="text-primary hover:underline reg-link" href="<?= esc(client_link_url((string) $c['code'], 'register')) ?>" target="_blank">Register link</a>
-                            <button type="button" class="ml-1 text-gray-500 hover:text-primary" onclick="copyLink(this.previousElementSibling)">copy</button></div>
-                    </td>
                     <td class="p-3"><button type="button" class="px-3 py-1.5 rounded-lg bg-primary text-white font-semibold" onclick="saveClient(<?= $id ?>)">Save</button></td>
                 </tr>
             <?php endforeach; ?>
@@ -102,10 +111,6 @@
         el.textContent = m;
         el.className = 'mb-4 text-sm px-4 py-2 rounded-lg ' + (ok ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700');
     }
-    function copyLink(a) {
-        const url = a.href;
-        (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(() => flash('Copied: ' + url, true)).catch(() => prompt('Copy this link:', url));
-    }
     function setGateOwner(id, clientId) {
         const body = new URLSearchParams({ client_id: clientId });
         body.set(csrfName, csrfToken);
@@ -114,15 +119,10 @@
     }
     function saveClient(id) {
         const row = document.querySelector(`tr[data-id="${id}"]`);
-        const body = new URLSearchParams({ code: row.querySelector('.code').value, site_group: row.querySelector('.grp').value });
+        const body = new URLSearchParams({ site_group: row.querySelector('.grp').value });
         body.set(csrfName, csrfToken);
         fetch(`${baseUrl}/config/client-links/save/${id}`, { method: 'POST', body }).then(r => r.json()).then(res => {
             flash(res.message || 'Done.', !!res.success);
-            if (res.success) {
-                row.querySelector('.code').value = res.code;
-                row.querySelector('.login-link').href = res.login;
-                row.querySelector('.reg-link').href = res.register;
-            }
         }).catch(() => flash('Network error.', false));
     }
 </script>

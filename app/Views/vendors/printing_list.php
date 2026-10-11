@@ -137,61 +137,9 @@
     </main>
 
     <!-- Hidden print area: filled just before window.print() -->
-    <div id="print-section"></div>
+    <script src="<?= base_url('assets/js/vendor-card-print.js') ?>"></script>
 
     <script>
-        function cardMarkup(card) {
-            const typeClass = String(card.card_type).toLowerCase() === 'permanent' ? 'type-permanent' : 'type-temporary';
-            return `
-                <div class="card-page ${typeClass}">
-                    <div style="padding:4mm; display:flex; flex-direction:column; align-items:center; height:100%; box-sizing:border-box;">
-                        <div style="font-size:2.6mm; letter-spacing:0.5mm; opacity:.85; margin-bottom:2mm;">SAFEG VENDOR PASS</div>
-                        <img src="${card.photo_url}" style="width:22mm; height:22mm; object-fit:cover; border-radius:2mm; border:0.5mm solid rgba(255,255,255,.8);" />
-                        <div style="margin-top:3mm; font-size:3.6mm; font-weight:700; text-align:center;">${card.full_name}</div>
-                        <div style="font-size:2.8mm; opacity:.9; margin-top:1mm; font-family:'Courier New',monospace;">${card.ic_no}</div>
-                        <div style="font-size:2.4mm; opacity:.85; margin-top:1mm; text-align:center;">${card.company}</div>
-                        <div style="margin-top:auto; width:100%; text-align:center; font-size:2.6mm; font-weight:700; text-transform:uppercase; letter-spacing:0.3mm;">${card.card_type}</div>
-                        <div style="font-size:2.4mm; font-family:'Courier New',monospace; margin-top:0.5mm;">Valid Until: ${card.valid_until}</div>
-                        <div style="font-size:2.2mm; opacity:.75; margin-top:0.5mm; font-family:'Courier New',monospace;">${card.receipt_no}</div>
-                    </div>
-                </div>` + cardBackMarkup(card);
-        }
-
-        /*
-         * Back of the card — matches KPK's real print job, which prints
-         * every card as TWO pages: front (photo) + back (terms &
-         * conditions and a signature line). We don't have KPK's actual
-         * back-of-card artwork or legal wording (proprietary/government
-         * text), so this is an original layout at the same size with
-         * placeholder terms — replace TERMS_TEXT below with your
-         * company's actual wording.
-         */
-        const TERMS_TEXT = [
-            "This pass remains the property of the issuing company and must be returned upon request or on expiry.",
-            "This pass must be worn visibly at all times while on the premises.",
-            "Loss of this pass must be reported to security immediately.",
-            "This pass is not transferable and may only be used by the person named on it.",
-        ];
-
-        function cardBackMarkup(card) {
-            const typeClass = String(card.card_type).toLowerCase() === 'permanent' ? 'type-permanent' : 'type-temporary';
-            const terms = TERMS_TEXT.map((t, i) => `<li style="margin-bottom:1.5mm;">${i + 1}. ${t}</li>`).join('');
-            return `
-                <div class="card-page ${typeClass}" style="background:#fff; color:#1f2937; border:0.3mm solid #d1d5db;">
-                    <div style="padding:4mm; display:flex; flex-direction:column; height:100%; box-sizing:border-box;">
-                        <div style="font-size:2.6mm; font-weight:700; text-align:center; margin-bottom:2mm; text-transform:uppercase;">Terms &amp; Conditions</div>
-                        <ol style="list-style:none; padding:0; margin:0; font-size:2.2mm; line-height:1.3;">
-                            ${terms}
-                        </ol>
-                        <div style="margin-top:auto; text-align:center; font-size:2.2mm;">
-                            <div style="font-size:2mm; opacity:.7;">${card.company}</div>
-                            <div style="border-top:0.2mm solid #9ca3af; width:80%; margin:6mm auto 1mm;"></div>
-                            <div style="font-size:2mm;">Authorized Signature</div>
-                        </div>
-                    </div>
-                </div>`;
-        }
-
         function csrfHeaders() {
             return { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '<?= csrf_hash() ?>' };
         }
@@ -209,8 +157,7 @@
         function printOne(id) {
             generateSerial(id).then(d => {
                 if (!d.success) { alert(d.message); return; }
-                document.getElementById('print-section').innerHTML = cardMarkup(d.card);
-                setTimeout(() => { window.print(); location.reload(); }, 150);
+                VendorCardPrint.print([d.card], () => location.reload());
             }).catch(() => alert('Could not reach the server. Please check your connection and try again.'));
         }
 
@@ -234,8 +181,7 @@
             const cards = [];
             (function next(i) {
                 if (i >= ids.length) {
-                    document.getElementById('print-section').innerHTML = cards.map(cardMarkup).join('');
-                    setTimeout(() => { window.print(); location.reload(); }, 150);
+                    VendorCardPrint.print(cards, () => location.reload());
                     return;
                 }
                 generateSerial(ids[i]).then(d => {

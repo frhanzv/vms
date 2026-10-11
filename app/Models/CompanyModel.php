@@ -15,7 +15,7 @@ class CompanyModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['name', 'pass_name', 'registration_no', 'address', 'contact_no', 'email', 'status', 'version'];
+    protected $allowedFields    = ['name', 'pass_name', 'registration_no', 'address', 'contact_no', 'email', 'status', 'location_id', 'client_id', 'version'];
 
     protected bool $allowEmptyInserts = false;
     protected bool $updateOnlyChanged = true;
@@ -145,23 +145,24 @@ class CompanyModel extends Model
 
     /**
      * afterInsert: a vendor company that is added with an email address is
-     * invited to register straight away, with the adding client's own link
-     * (no client in the session = platform superadmin = generic link).
+     * invited to register straight away, with a link to this production's register page
+     * (the same link whoever adds the company).
      * Mail problems are logged, never raised.
      */
+    /** Result of the registration email sent by the last insert: [sent, message] (empty = none was tried). */
+    public static array $lastInvite = [];
+
     protected function sendVendorInvitation(array $data): array
     {
         try {
             $id = (int) ($data['id'] ?? 0);
             if ($id > 0 && trim((string) ($data['data']['email'] ?? '')) !== '') {
                 helper(['feature', 'role']);
-                $client = null;
-                if (! is_platform_superadmin()) {
-                    $client = (new ClientModel())->find((int) current_company_id()) ?: null;
-                }
                 $company = $this->find($id);
+                // The client is the owner of the company's Location Access.
+                $client = ! empty($company['client_id']) ? ((new ClientModel())->find((int) $company['client_id']) ?: null) : null;
                 if ($company) {
-                    \App\Libraries\VendorInviteMailer::invite($company, $client);
+                    self::$lastInvite = \App\Libraries\VendorInviteMailer::invite($company, $client);
                 }
             }
         } catch (\Throwable $e) {

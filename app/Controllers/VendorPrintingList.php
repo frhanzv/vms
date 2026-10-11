@@ -141,11 +141,18 @@ class VendorPrintingList extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'This record has no card type assigned yet — send it through Process List first.']);
         }
 
-        $isReprint = ! empty($vendor['receipt_no']);
-        $serial    = $vendor['receipt_no'];
+        // From the Process Detail page the receipt no is only saved when Finish
+        // (Scan Card) is pressed, so printing there keeps the record in Process List.
+        $defer = ! empty(($this->request->getJSON(true) ?? [])['defer']);
+
+        $lastLog = $db->table('vendor_card_print_logs')->where('vendor_id', (int) $id)->orderBy('id', 'DESC')->get()->getRowArray();
+        $serial  = $vendor['receipt_no'] ?: ($defer ? ($lastLog['receipt_no'] ?? null) : null);
+        $isReprint = ! empty($serial);
         if (empty($serial)) {
             $serial = $this->nextSerialNo($db);
-            $db->table('vendors')->where('id', (int) $id)->update(['receipt_no' => $serial]);
+            if (! $defer) {
+                $db->table('vendors')->where('id', (int) $id)->update(['receipt_no' => $serial]);
+            }
         }
 
         // KPK logs every print/reprint (viewReprintHistoryDetails) — do the same here.
@@ -173,6 +180,11 @@ class VendorPrintingList extends BaseController
                 'card_type'   => $vendor['card_type'],
                 'receipt_no'  => $serial,
                 'valid_until' => $vendor['pass_expiry'] ? date('d M Y', strtotime($vendor['pass_expiry'])) : '-',
+                'valid_until_upper' => $vendor['pass_expiry'] ? strtoupper(date('d M Y', strtotime($vendor['pass_expiry']))) : '-',
+                'type_label'  => ['permanent' => 'TETAP', 'temporary' => 'SEMENTARA'][strtolower((string) $vendor['card_type'])] ?? strtoupper((string) $vendor['card_type']),
+                'ic_display'  => $this->formatIc((string) ($vendor['ic_no'] ?: ($vendor['passport_no'] ?? ''))),
+                'access_code' => $this->accessLabels((string) ($vendor['location_access'] ?? '')),
+                'issuer'      => (string) (function_exists('current_client_name') ? (current_client_name() ?: '') : ''),
                 'photo_url'   => $photoUrl,
             ],
         ]);
@@ -184,13 +196,37 @@ class VendorPrintingList extends BaseController
      * month and is derived from however many serials already exist for
      * this month, rather than a separate sequence table.
      */
+    /** 12-digit IC shown as 710619-11-5677; anything else (passport) unchanged. */
+    private function formatIc(string $v): string
+    {
+        return preg_match('/^\d{12}$/', $v) === 1 ? substr($v, 0, 6) . '-' . substr($v, 6, 2) . '-' . substr($v, 8) : $v;
+    }
+
+    /** Location access as the readable names, e.g. "KPK GATE / PHASE 1". */
+    private function accessLabels(string $csv): string
+    {
+        $labels = (new \App\Models\VendorLocationModel())->getAllLabelMap();
+        $out = [];
+        foreach (array_filter(array_map('trim', explode(',', $csv))) as $code) {
+            $out[] = $labels[$code] ?? $code;
+        }
+
+        return implode(' / ', $out);
+    }
+
     private function nextSerialNo($db): string
     {
         $prefix = date('Ym');
-        $count  = (int) $db->table('vendors')
-            ->like('receipt_no', $prefix, 'after')
-            ->countAllResults();
+        // Highest serial already used this month - on a pass or in the print log
+        // (a serial printed from Process Detail is not on the pass until Finish).
+        $max = 0;
+        foreach (['vendors', 'vendor_card_print_logs'] as $table) {
+            $row = $db->table($table)->select('MAX(receipt_no) AS m', false)->like('receipt_no', $prefix, 'after')->get()->getRowArray();
+            if (! empty($row['m'])) {
+                $max = max($max, (int) substr((string) $row['m'], strlen($prefix)));
+            }
+        }
 
-        return $prefix . str_pad((string) ($count + 1), 4, '0', STR_PAD_LEFT);
+        return $prefix . str_pad((string) ($max + 1), 4, '0', STR_PAD_LEFT);
     }
 }

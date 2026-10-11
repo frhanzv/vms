@@ -2334,8 +2334,8 @@
                                         <select id="locationSortSelect" onchange="sortLocations()"
                                             class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm appearance-none focus:ring-primary focus:border-primary text-gray-700 dark:text-gray-300">
                                             <option value="">Sort By</option>
-                                            <option value="branch_asc">Branch (A-Z)</option>
-                                            <option value="branch_desc">Branch (Z-A)</option>
+                                            <option value="branch_asc">Client (A-Z)</option>
+                                            <option value="branch_desc">Client (Z-A)</option>
                                             <option value="location_asc">Location (A-Z)</option>
                                             <option value="location_desc">Location (Z-A)</option>
                                             <option value="status">Status</option>
@@ -2357,7 +2357,7 @@
                                     <thead
                                         class="text-xs text-gray-600 dark:text-slate-400 uppercase border-b border-gray-200 dark:border-slate-700">
                                         <tr>
-                                            <th class="px-4 py-3">Branch</th>
+                                            <th class="px-4 py-3">Client</th>
                                             <th class="px-4 py-3">Location Access</th>
                                             <th class="px-4 py-3">Adam IP</th>
                                             <th class="px-4 py-3">Mobile APP</th>
@@ -4711,31 +4711,7 @@
                 </div>
                 <?php endif; ?>
 
-                <?php if (function_exists('has_access') && has_access('vendor_pass_list', 'manage_locations')): ?>
-                <!-- Vendor Locations (moved here from the sidebar) -->
-                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
-                    <button onclick="toggleSection('vendorlocations'); loadVendorLocationsFrame();"
-                        class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
-                        <div class="flex items-center gap-4">
-                            <div class="p-2 bg-primary/10 rounded-lg">
-                                <span class="material-symbols-outlined text-primary text-xl">pin_drop</span>
-                            </div>
-                            <div class="text-left">
-                                <h3 class="text-base font-bold text-gray-800 dark:text-white">Vendor Locations</h3>
-                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">The Location Access choices offered on vendor pass forms, and which client owns each one.</p>
-                            </div>
-                        </div>
-                        <span id="vendorlocations-icon" class="material-symbols-outlined text-gray-400 dark:text-slate-400 transition-transform">expand_more</span>
-                    </button>
-                    <div id="vendorlocations-content" class="hidden border-t border-gray-200 dark:border-slate-700">
-                        <div class="p-4 bg-gray-50 dark:bg-slate-800/50">
-                            <iframe id="vendorlocations-frame" title="Vendor Locations" data-src="<?= base_url('vendors/locations?embed=1') ?>"
-                                class="w-full border-0 bg-transparent" style="min-height:420px"
-                                onload="try { this.style.height = (this.contentDocument.documentElement.scrollHeight + 8) + 'px'; } catch (e) {}"></iframe>
-                        </div>
-                    </div>
-                </div>
-                <?php endif; ?>
+
 
                 <!-- Scanner Management -->
                 <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
@@ -7708,18 +7684,17 @@
                                 <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Name printed on the pass. Leave blank to use the Company Name.</p>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Address</label>
-                                <textarea id="companyAddress" name="address" rows="3"
-                                    class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2 focus:ring-primary focus:border-primary"></textarea>
-                                <div id="companyAddressError" class="text-red-500 text-sm mt-1 hidden"></div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+                                    Location Access <span class="text-red-500">*</span>
+                                </label>
+                                <select id="companyLocation" name="location_id"
+                                    class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2 focus:ring-primary focus:border-primary">
+                                    <option value="">Loading...</option>
+                                </select>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">The vendor is placed under the client that owns this location. It cannot choose a client when it registers.</p>
+                                <div id="companyLocation_idError" class="text-red-500 text-sm mt-1 hidden"></div>
                             </div>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Contact Number</label>
-                                    <input type="text" id="companyContactNo" name="contact_no"
-                                        class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2 focus:ring-primary focus:border-primary">
-                                    <div id="companyContactNoError" class="text-red-500 text-sm mt-1 hidden"></div>
-                                </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Email</label>
                                     <input type="email" id="companyEmail" name="email"
@@ -7753,6 +7728,22 @@
                 </div>
             `;
             document.body.insertAdjacentHTML('beforeend', modalHTML);
+            loadCompanyLocations(null);
+        }
+
+        // Location Access dropdown of the company form (client admin: own locations only).
+        function loadCompanyLocations(selectedId) {
+            const sel = document.getElementById('companyLocation');
+            if (!sel) return;
+            fetch(`<?= base_url('config/company-locations') ?>`)
+                .then(r => r.json())
+                .then(res => {
+                    const rows = res.data || [];
+                    sel.innerHTML = '<option value="">Select location access</option>' + rows.map(l =>
+                        `<option value="${l.id}">${escapeHtml(l.label)}${l.client ? ' - ' + escapeHtml(l.client) : ''}</option>`).join('');
+                    if (selectedId) sel.value = String(selectedId);
+                })
+                .catch(() => { sel.innerHTML = '<option value="">Could not load locations</option>'; });
         }
 
         function openEditCompanyModal(companyId) {
@@ -7792,18 +7783,17 @@
                                             <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Name printed on the pass. Leave blank to use the Company Name.</p>
                                         </div>
                                         <div>
-                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Address</label>
-                                            <textarea id="companyAddress" name="address" rows="3"
-                                                class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2 focus:ring-primary focus:border-primary">${escapeHtml(data.data.address || '')}</textarea>
-                                            <div id="companyAddressError" class="text-red-500 text-sm mt-1 hidden"></div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+                                                Location Access <span class="text-red-500">*</span>
+                                            </label>
+                                            <select id="companyLocation" name="location_id"
+                                                class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2 focus:ring-primary focus:border-primary">
+                                                <option value="">Loading...</option>
+                                            </select>
+                                            <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">The vendor is placed under the client that owns this location. It cannot choose a client when it registers.</p>
+                                            <div id="companyLocation_idError" class="text-red-500 text-sm mt-1 hidden"></div>
                                         </div>
                                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div>
-                                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Contact Number</label>
-                                                <input type="text" id="companyContactNo" name="contact_no" value="${escapeHtml(data.data.contact_no || '')}"
-                                                    class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2 focus:ring-primary focus:border-primary">
-                                                <div id="companyContactNoError" class="text-red-500 text-sm mt-1 hidden"></div>
-                                            </div>
                                             <div>
                                                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Email</label>
                                                 <input type="email" id="companyEmail" name="email" value="${escapeHtml(data.data.email || '')}"
@@ -7837,6 +7827,7 @@
                             </div>
                         `;
                         document.body.insertAdjacentHTML('beforeend', modalHTML);
+                        loadCompanyLocations(data.data.location_id);
                     } else {
                         showNotification('Failed to load company data', 'error');
                     }
@@ -7855,7 +7846,7 @@
         }
 
         function clearCompanyErrors() {
-            ['companyName', 'companyRegistrationNo', 'companyAddress', 'companyContactNo', 'companyEmail', 'companyStatus'].forEach(field => {
+            ['companyName', 'companyRegistrationNo', 'companyEmail', 'companyStatus', 'companyLocation_id'].forEach(field => {
                 const errorEl = document.getElementById(field + 'Error');
                 if (errorEl) {
                     errorEl.classList.add('hidden');
@@ -7872,10 +7863,9 @@
                 name: document.getElementById('companyName').value,
                 registration_no: document.getElementById('companyRegistrationNo').value,
                 pass_name: document.getElementById('companyPassName').value,
-                address: document.getElementById('companyAddress').value,
-                contact_no: document.getElementById('companyContactNo').value,
                 email: document.getElementById('companyEmail').value,
-                status: document.getElementById('companyStatus').value
+                status: document.getElementById('companyStatus').value,
+                location_id: document.getElementById('companyLocation').value
             };
 
             const url = companyId
@@ -10886,6 +10876,30 @@
             loadLocations(1, currentLocationSearch, sortBy);
         }
 
+        // Location Access "Client" dropdown: each client, plus BOTH (shared by every client).
+        // Stored in the same `branch` column; the server turns it into the owner client.
+        function loadLocationClientOptions(selected) {
+            const sel = document.getElementById('locationBranch');
+            if (!sel) return;
+            const fill = (names) => {
+                names.push('BOTH');
+                sel.innerHTML = '<option value="">Select client</option>' + names.map(n =>
+                    `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+                if (selected) {
+                    const hit = Array.from(sel.options).find(o => o.value.toLowerCase() === String(selected).toLowerCase());
+                    if (hit) { sel.value = hit.value; }
+                    else { const o = document.createElement('option'); o.value = selected; o.textContent = selected + ' (old branch)'; sel.appendChild(o); sel.value = selected; }
+                }
+            };
+            if (!canManageAllClientCompanies && scopedClientCompanyId) {
+                fill([scopedClientCompanyName || 'Current client']);
+                return;
+            }
+            fetch(`${configBaseUrl}/getAllClients`).then(r => r.json())
+                .then(res => fill((res.data || []).map(c => c.name)))
+                .catch(() => fill([]));
+        }
+
         function openCreateLocationModal() {
             const modalHtml = `
                 <div id="locationModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
@@ -10900,8 +10914,8 @@
                             <input type="hidden" id="locationId" value="">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Branch <span class="text-red-500">*</span></label>
-                                    <input id="locationBranch" type="text" class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2.5 focus:ring-primary focus:border-primary" placeholder="Enter branch name"/>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Client <span class="text-red-500">*</span></label>
+                                    <select id="locationBranch" class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2.5 focus:ring-primary focus:border-primary"><option value="">Select client</option></select>
                                     <span id="locationBranchError" class="text-red-500 text-xs mt-1 hidden"></span>
                                 </div>
                                 <div>
@@ -10983,6 +10997,7 @@
             `;
             document.body.insertAdjacentHTML('beforeend', modalHtml);
             document.getElementById('locationForm').addEventListener('submit', saveLocation);
+            loadLocationClientOptions(null);
         }
 
         function openEditLocationModal(locationId) {
@@ -11005,8 +11020,8 @@
                                         <input type="hidden" id="locationId" value="${loc.id}">
                                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div>
-                                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Branch <span class="text-red-500">*</span></label>
-                                                <input id="locationBranch" type="text" value="${escapeHtml(loc.branch)}" class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2.5 focus:ring-primary focus:border-primary" placeholder="Enter branch name"/>
+                                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Client <span class="text-red-500">*</span></label>
+                                                <select id="locationBranch" class="w-full border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2.5 focus:ring-primary focus:border-primary"><option value="">Select client</option></select>
                                                 <span id="locationBranchError" class="text-red-500 text-xs mt-1 hidden"></span>
                                             </div>
                                             <div>
@@ -11088,6 +11103,7 @@
                         `;
                         document.body.insertAdjacentHTML('beforeend', modalHtml);
                         document.getElementById('locationForm').addEventListener('submit', saveLocation);
+                        loadLocationClientOptions(loc.branch);
                     } else {
                         showNotification(data.message || 'Failed to load location', 'error');
                     }
@@ -18305,11 +18321,6 @@
                 }
             });
         });
-
-        function loadVendorLocationsFrame() {
-            const f = document.getElementById('vendorlocations-frame');
-            if (f && !f.getAttribute('src')) f.setAttribute('src', f.dataset.src);
-        }
 
         // Buttons and sections that now live in Page Settings are not shown in the form-field tabs.
         const dffPageManagedKeys = <?= json_encode(page_managed_button_keys()) ?>;

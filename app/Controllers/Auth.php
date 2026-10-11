@@ -56,19 +56,7 @@ class Auth extends BaseController
         return base_url(ltrim($path, '/'));
     }
 
-    /** /c/{CODE}/login — the same login page, branded and bound to one client. */
-    public function clientLogin($code = '')
-    {
-        helper('client_link');
-        $client = client_by_code((string) $code);
-        if (! $client) {
-            return redirect()->to(base_url('login'))->with('error', 'That client link is not valid.');
-        }
-
-        return $this->login($client);
-    }
-
-    public function login(?array $clientLink = null)
+    public function login()
     {
         // If user is already logged in, redirect to dashboard
         if (session()->get('isLoggedIn')) {
@@ -91,7 +79,7 @@ class Auth extends BaseController
         $template = strtolower((string) ($settings['template'] ?? 'default'));
         $view = $template === 'gxo' ? 'auth/login_gxo' : 'auth/login';
 
-        return view($view, ['loginPageSettings' => $settings, 'clientLink' => $clientLink]);
+        return view($view, ['loginPageSettings' => $settings]);
     }
 
     public function attemptLogin()
@@ -110,20 +98,8 @@ class Auth extends BaseController
         $user = $userModel->verifyPassword($usernameOrEmail, $password);
 
         if ($user) {
-            helper(['role', 'client_link']);
+            helper('role');
             $role = normalize_role_slug($user['role']);
-
-            // Signed in through a client's own link: the account must belong to that client.
-            // The platform owner and vendor company accounts (which may work with several
-            // clients sharing one site) can use any client's link.
-            $linkCode = trim((string) $this->request->getPost('client_code'));
-            if ($linkCode !== '') {
-                $linkClient = client_by_code($linkCode);
-                $exempt     = in_array($role, ['superadmin', normalize_role_slug('vendor_admin')], true);
-                if ($linkClient && ! $exempt && (int) $user['client_id'] !== (int) $linkClient['id']) {
-                    return redirect()->back()->with('error', 'This account does not belong to ' . $linkClient['name'] . '. Please use your own login link.')->withInput();
-                }
-            }
 
             // Set session data
             $sessionData = [
@@ -196,19 +172,7 @@ class Auth extends BaseController
     // pass requests — only ever for its own company.
     // =========================================================================
 
-    /** /c/{CODE}/register — registration with the client fixed by the link. */
-    public function clientRegister($code = '')
-    {
-        helper('client_link');
-        $client = client_by_code((string) $code);
-        if (! $client) {
-            return redirect()->to(base_url('register'))->with('error', 'That client link is not valid. Please choose your client below.');
-        }
-
-        return $this->register($client);
-    }
-
-    public function register(?array $clientLink = null)
+    public function register()
     {
         if (session()->get('isLoggedIn')) {
             return redirect()->to('/dashboard');
@@ -216,20 +180,24 @@ class Auth extends BaseController
 
         return view('auth/register', [
             'pageTitle'  => 'Register Your Company - SafeG',
-            'clientLink' => $clientLink,
             'prefillSsm' => trim((string) $this->request->getGet('ssm')),
         ]);
     }
 
-    /** Active clients a vendor can choose to register with: [{id, name}]. */
-    private function activeClientOptions(): array
+    /**
+     * The client a vendor company belongs to: the owner of the Location Access it was
+     * created under. A company made before that existed falls back to the only active
+     * client, if there is exactly one.
+     */
+    private function clientForCompany(array $company): ?array
     {
-        $rows = (new ClientModel())->where('status', 'active')->orderBy('name', 'ASC')->findAll();
+        $clients = new ClientModel();
+        if (! empty($company['client_id'])) {
+            return $clients->where('id', (int) $company['client_id'])->where('status', 'active')->first() ?: null;
+        }
+        $all = $clients->where('status', 'active')->findAll();
 
-        return array_map(
-            static fn(array $c) => ['id' => (int) $c['id'], 'name' => (string) $c['name']],
-            $rows
-        );
+        return count($all) === 1 ? $all[0] : null;
     }
 
     /** True when this company already has a vendor account (by SSM username or by company link). */
@@ -279,20 +247,13 @@ class Auth extends BaseController
             'pass_name' => ($company['pass_name'] ?? '') !== '' ? $company['pass_name'] : $company['name'],
             'email'     => (string) ($company['email'] ?? ''),
             'contact_no' => (string) ($company['contact_no'] ?? ''),
-            'clients'   => $this->activeClientOptions(),
         ]);
     }
 
-    public function doRegister($linkCode = '')
+    public function doRegister()
     {
         helper('client_link');
         $ssmNo        = trim((string) $this->request->getPost('ssm_no'));
-        $clientId     = (int) $this->request->getPost('client_id');
-        // Registering through a client's own link: the client is the link's, not a free choice.
-        $linkClient   = $linkCode !== '' ? client_by_code((string) $linkCode) : null;
-        if ($linkClient) {
-            $clientId = (int) $linkClient['id'];
-        }
         $password     = (string) $this->request->getPost('password');
         $email        = trim((string) $this->request->getPost('email'));
         $fullName     = trim((string) $this->request->getPost('full_name'));
@@ -314,9 +275,10 @@ class Auth extends BaseController
             $errors[] = 'We could not find a company with that SSM No. Please contact the administrator to have your company registered first.';
         }
 
-        $client = $clientId > 0 ? (new ClientModel())->where('id', $clientId)->where('status', 'active')->first() : null;
-        if (! $client) {
-            $errors[] = 'Please choose the client you are registering with.';
+        // No client choice: the vendor is under the client that owns its company's Location Access.
+        $client = $company ? $this->clientForCompany($company) : null;
+        if ($company && ! $client) {
+            $errors[] = 'Your company has no Location Access assigned yet. Please contact the administrator.';
         }
 
         $userModel = new UserModel();
@@ -357,7 +319,7 @@ class Auth extends BaseController
             log_message('error', 'Registration reminder failed: ' . $e->getMessage());
         }
 
-        return redirect()->to($linkClient ? client_link_url($linkClient, 'login') : base_url('login'))->with('success', 'Registration received. Your account now needs to be verified by the administrator. Once it is verified you can log in with your company SSM No as the username.');
+        return redirect()->to(base_url('login'))->with('success', 'Registration received. Your account now needs to be verified by the administrator. Once it is verified you can log in with your company SSM No as the username.');
     }
 
     public function forgotPassword()

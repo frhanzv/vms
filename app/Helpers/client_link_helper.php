@@ -1,44 +1,20 @@
 <?php
 
 /**
- * Per-client product links.
- *
- *   /c/{CODE}/login      the client's own login page (shows the client's name)
- *   /c/{CODE}/register   vendor company registration, client fixed to {CODE}
- *                        (add ?ssm=... to pre-fill the company)
- *
- * clients.code is the {CODE} (unique, upper-case letters/digits/-/_).
+ * Links in emails. This product has ONE address: the vendor registration and
+ * login links always point to this installation (no per-client links). Which
+ * client a vendor registers with is chosen on the register form.
  */
 
 if (! function_exists('client_link_url')) {
-    /** @param array|string $client client row (needs 'code') or the code itself */
-    function client_link_url($client, string $page = 'login', ?string $ssm = null): string
+    /**
+     * @param mixed $client unused - kept so existing callers keep working
+     */
+    function client_link_url($client = null, string $page = 'login', ?string $ssm = null): string
     {
-        $code = is_array($client) ? (string) ($client['code'] ?? '') : (string) $client;
-        if ($code === '') {
-            $url = base_url($page === 'register' ? 'register' : 'login');
-        } else {
-            $url = base_url('c/' . rawurlencode($code) . '/' . ($page === 'register' ? 'register' : 'login'));
-        }
+        $url = base_url($page === 'register' ? 'register' : 'login');
 
         return $ssm !== null && $ssm !== '' ? $url . '?ssm=' . rawurlencode($ssm) : $url;
-    }
-}
-
-if (! function_exists('client_by_code')) {
-    /** Active client row for a link code (case-insensitive), or null. */
-    function client_by_code(string $code): ?array
-    {
-        $code = trim($code);
-        if ($code === '') {
-            return null;
-        }
-        $row = \Config\Database::connect()->table('clients')
-            ->where('UPPER(code)', strtoupper($code))
-            ->where('LOWER(status)', 'active')
-            ->get()->getRowArray();
-
-        return $row ?: null;
     }
 }
 

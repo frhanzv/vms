@@ -79,6 +79,9 @@ class VendorProcessDetail extends BaseController
             'canEdit'         => has_access('vendor_pass_list', 'edit') && $cfg('process_update_button'),
             'canReject'       => has_access('vendor_pass_list', 'edit') && $cfg('process_reject_button'),
             'canUploadPhoto'  => $cfg('process_upload_photo_button'),
+            // Pass No shown in the Finish (Scan Card) box: the number printed on the card,
+            // else the receipt no, else staff no / application no.
+            'passNoDefault'   => (string) (($printLogs[0]['receipt_no'] ?? '') ?: ($vendor['receipt_no'] ?? '') ?: ($vendor['staff_no'] ?? '') ?: ($vendor['app_no'] ?? '')),
             'showRfidSection' => $cfg('process_rfid_section'),
             'showPrintingSection' => $cfg('process_card_printing_section'),
         ]);
@@ -265,10 +268,31 @@ class VendorProcessDetail extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'Record not found.']);
         }
 
-        $body = $this->request->getJSON(true) ?? [];
-        $epc  = trim((string) ($body['card_epc'] ?? ''));
+        $body   = $this->request->getJSON(true) ?? [];
+        $epc    = trim((string) ($body['card_epc'] ?? ''));
+        $finish = ! empty($body['finish']);
+        $passNo = trim((string) ($body['pass_no'] ?? ''));
         if ($epc === '') {
-            return $this->response->setJSON(['success' => false, 'message' => 'Please tap or enter a card EPC.']);
+            return $this->response->setJSON(['success' => false, 'message' => 'Please tap or enter the Card ID.']);
+        }
+
+        // Finish = end of the Process List: needs the expiry date (Card Details),
+        // a worker type and a Pass No; the Pass No becomes the receipt no, which is
+        // what moves the record on to the Issuance List.
+        if ($finish) {
+            if (empty($vendor['pass_expiry'])) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Please set the Expiry Date in Card Details first.']);
+            }
+            if (empty($vendor['card_type'])) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Please choose the Worker Type and press Update first.']);
+            }
+            if ($passNo === '') {
+                return $this->response->setJSON(['success' => false, 'message' => 'Pass No is required.']);
+            }
+            $dup = \Config\Database::connect()->table('vendors')->where('receipt_no', $passNo)->where('id !=', (int) $id)->countAllResults();
+            if ($dup > 0) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Pass No ' . $passNo . ' is already used by another pass.']);
+            }
         }
 
         $db = \Config\Database::connect();
@@ -297,14 +321,22 @@ class VendorProcessDetail extends BaseController
         }
 
         $db->table('visitor_cards')->where('id', (int) $locked['id'])->update(['status' => 'in_use']);
-        $db->table('vendors')->where('id', (int) $id)->update(['card_id' => (int) $locked['id']]);
+        $vendorUpdate = ['card_id' => (int) $locked['id']];
+        if ($finish) {
+            $vendorUpdate['receipt_no'] = $passNo;
+        }
+        $db->table('vendors')->where('id', (int) $id)->update($vendorUpdate);
 
         $db->transComplete();
         if (! $db->transStatus()) {
             return $this->response->setJSON(['success' => false, 'message' => 'Could not bind the card — please try again.']);
         }
 
-        return $this->response->setJSON(['success' => true, 'message' => 'Card ' . $epc . ' bound to this pass.']);
+        return $this->response->setJSON([
+            'success'  => true,
+            'finished' => $finish,
+            'message'  => $finish ? 'Card ' . $epc . ' linked — moved to Issuance List.' : 'Card ' . $epc . ' bound to this pass.',
+        ]);
     }
 
     /** printLogs() — KPK's viewReprintHistoryDetails(). */

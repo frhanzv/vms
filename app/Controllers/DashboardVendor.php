@@ -34,7 +34,11 @@ class DashboardVendor extends BaseController
             $regNo   = $locked ? '' : $regNo;
         }
 
-        $stats = VendorDashboardStats::collect(\Config\Database::connect(), $clientId, $regNo, $locked);
+        $stats = VendorDashboardStats::collect(\Config\Database::connect(), $clientId, $regNo, $locked, null, [
+            'location' => (string) $this->request->getGet('location'),
+            'from'     => (string) $this->request->getGet('from'),
+            'to'       => (string) $this->request->getGet('to'),
+        ]);
 
         return view('dashboard/vendor', $stats + [
             'pageTitle'       => 'Vendor Dashboard - SafeG',

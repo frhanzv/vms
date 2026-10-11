@@ -175,13 +175,7 @@
                         No physical card bound yet.
                     <?php endif; ?>
                 </p>
-                <?php if ($canEdit ?? false): ?>
-                <div class="flex gap-2 items-center flex-wrap">
-                    <input id="cardEpcInput" placeholder="Tap RFID card or type EPC, then press Enter" class="border border-gray-300 dark:border-gray-600 dark:bg-gray-900 rounded px-3 py-2 text-sm w-80" onkeydown="if(event.key==='Enter'){readCard();}"/>
-                    <button onclick="readCard()" class="h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold">Bind Card</button>
-                    <span class="text-[11px] text-gray-400">Most USB/RFID readers act like a keyboard — tap a card while this box is focused.</span>
-                </div>
-                <?php endif; ?>
+                <p class="text-[11px] text-gray-400">The card is linked when you press <strong>Finish</strong> and scan it.</p>
             </div>
             <?php endif; ?>
 
@@ -200,9 +194,9 @@
                     <h2 class="text-sm font-bold uppercase">Card Printing</h2>
                     <?php if ($canEdit ?? false): ?>
                     <div class="flex gap-2">
-                        <a href="<?= base_url('vendors/card-info/view/' . $vendor['id']) ?>" class="h-8 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-xs font-semibold flex items-center">Card Details</a>
+                        <button onclick="openCardDetails()" class="h-8 px-3 rounded-lg bg-indigo-600 text-white text-xs font-semibold">Card Details</button>
                         <button onclick="printCard()" class="h-8 px-3 rounded-lg bg-primary text-white text-xs font-semibold">Print</button>
-                        <button onclick="finishAndIssue()" class="h-8 px-3 rounded-lg bg-emerald-600 text-white text-xs font-semibold">Finish (Issue Card)</button>
+                        <button onclick="openScanCard()" class="h-8 px-3 rounded-lg bg-emerald-600 text-white text-xs font-semibold">Finish</button>
                     </div>
                     <?php endif; ?>
                 </div>
@@ -234,6 +228,46 @@
 
         </div>
     </main>
+
+    <!-- Card Details Modal: expiry date of the card -->
+    <div id="cardDetailsModal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
+                <h3 class="text-lg font-bold uppercase">Card Details</h3>
+                <button onclick="closeCardDetails()" class="h-8 w-8 rounded-full bg-gray-700 text-white">&times;</button>
+            </div>
+            <div class="p-4">
+                <label class="block text-sm mb-1">Expiry Date <span class="text-red-500">(*)</span></label>
+                <input id="cd_expiry" type="date" value="<?= esc($vendor['pass_expiry'] ?? '') ?>" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-900 rounded px-3 py-2 text-sm"/>
+            </div>
+            <div class="flex justify-end p-4 border-t dark:border-gray-700">
+                <button onclick="saveCardDetails()" class="h-9 px-5 rounded-lg bg-indigo-600 text-white text-sm font-semibold">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scan Card Modal: Finish = link the real card and end the Process List -->
+    <div id="scanCardModal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
+                <h3 class="text-lg font-bold">Scan Card</h3>
+                <button onclick="closeScanCard()" class="h-7 w-7 border border-gray-400 text-sm">&times;</button>
+            </div>
+            <div class="p-4 space-y-4">
+                <div>
+                    <label class="block text-sm mb-1"><span class="text-red-500">*</span>Pass No</label>
+                    <input id="sc_pass_no" value="<?= esc($passNoDefault ?? '') ?>" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-900 rounded px-3 py-2 text-sm"/>
+                </div>
+                <div>
+                    <label class="block text-sm mb-1"><span class="text-red-500">*</span>Card ID</label>
+                    <input id="sc_card_id" autocomplete="off" placeholder="Tap the card on the reader" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-900 rounded px-3 py-2 text-sm" onkeydown="if(event.key==='Enter'){finishReadCard();}"/>
+                </div>
+            </div>
+            <div class="flex justify-end p-4 border-t dark:border-gray-700">
+                <button onclick="finishReadCard()" class="h-9 px-5 rounded-lg bg-emerald-500 text-white text-sm font-semibold">Read Card</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Reject Modal -->
     <div id="rejectModal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50">
@@ -275,7 +309,7 @@
         </div>
     </div>
 
-    <div id="print-section"></div>
+    <script src="<?= base_url('assets/js/vendor-card-print.js') ?>"></script>
 
     <script>
         const VENDOR_ID = <?= (int) $vendor['id'] ?>;
@@ -415,53 +449,47 @@
                 .catch(netErr);
         }
 
-        // --- RFID card ---
-        function readCard() {
-            const epc = document.getElementById('cardEpcInput').value.trim();
-            if (!epc) return;
-            postJson('<?= base_url('vendors/process-list/detail/read-card/') ?>' + VENDOR_ID, { card_epc: epc })
-                .then(d => { alert(d.message); if (d.success) location.reload(); })
+        // --- Card Details (expiry date) ---
+        function openCardDetails() { document.getElementById('cardDetailsModal').classList.remove('hidden'); }
+        function closeCardDetails() { document.getElementById('cardDetailsModal').classList.add('hidden'); }
+        function saveCardDetails() {
+            const d = document.getElementById('cd_expiry').value;
+            if (!d) { alert('Expiry Date is required.'); return; }
+            postJson('<?= base_url('vendors/process-list/detail/update/') ?>' + VENDOR_ID, { pass_expiry: d })
+                .then(r => { alert(r.message); if (r.success) location.reload(); })
+                .catch(netErr);
+        }
+
+        // --- Finish: scan the real card, link it and end the Process List ---
+        function openScanCard() {
+            document.getElementById('scanCardModal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('sc_card_id').focus(), 50);
+        }
+        function closeScanCard() { document.getElementById('scanCardModal').classList.add('hidden'); }
+        function finishReadCard() {
+            const epc = document.getElementById('sc_card_id').value.trim();
+            const passNo = document.getElementById('sc_pass_no').value.trim();
+            if (!passNo || !epc) { alert('Pass No and Card ID are required.'); return; }
+            postJson('<?= base_url('vendors/process-list/detail/read-card/') ?>' + VENDOR_ID, { card_epc: epc, pass_no: passNo, finish: true })
+                .then(d => {
+                    alert(d.message);
+                    if (d.success) location.href = '<?= base_url('vendors/process-list') ?>';
+                })
                 .catch(netErr);
         }
 
 
-        // --- Card print ---
-        function cardMarkup(card) {
-            const typeClass = String(card.card_type).toLowerCase() === 'permanent' ? 'background:linear-gradient(160deg,#0f3d91,#137fec,#1e2a5e);' : 'background:linear-gradient(160deg,#92400e,#f59e0b,#78350f);';
-            return `<div style="width:54mm;height:85.6mm;position:relative;overflow:hidden;border-radius:3mm;color:#fff;font-family:'Montserrat',sans-serif;${typeClass}">
-                <div style="padding:4mm;display:flex;flex-direction:column;align-items:center;height:100%;box-sizing:border-box;">
-                    <div style="font-size:2.6mm;letter-spacing:0.5mm;opacity:.85;margin-bottom:2mm;">SAFEG VENDOR PASS</div>
-                    <img src="${card.photo_url}" style="width:22mm;height:22mm;object-fit:cover;border-radius:2mm;border:0.5mm solid rgba(255,255,255,.8);" />
-                    <div style="margin-top:3mm;font-size:3.6mm;font-weight:700;text-align:center;">${card.full_name}</div>
-                    <div style="font-size:2.8mm;opacity:.9;margin-top:1mm;font-family:'Courier New',monospace;">${card.ic_no}</div>
-                    <div style="font-size:2.4mm;opacity:.85;margin-top:1mm;text-align:center;">${card.company}</div>
-                    <div style="margin-top:auto;width:100%;text-align:center;font-size:2.6mm;font-weight:700;text-transform:uppercase;">${card.card_type}</div>
-                    <div style="font-size:2.4mm;font-family:'Courier New',monospace;margin-top:0.5mm;">Valid Until: ${card.valid_until}</div>
-                    <div style="font-size:2.2mm;opacity:.75;margin-top:0.5mm;font-family:'Courier New',monospace;">${card.receipt_no}</div>
-                </div>
-            </div>`;
-        }
+        // --- Card print (front + back, cards only - see assets/js/vendor-card-print.js) ---
         function fetchCard() {
-            return postJson('<?= base_url('vendors/printing-list/generate-serial/') ?>' + VENDOR_ID, {});
+            return postJson('<?= base_url('vendors/printing-list/generate-serial/') ?>' + VENDOR_ID, { defer: true });
         }
         function printCard() {
             fetchCard().then(d => {
                 if (!d.success) { alert(d.message); return; }
-                document.getElementById('print-section').innerHTML = cardMarkup(d.card);
-                setTimeout(() => { window.print(); location.reload(); }, 150);
+                VendorCardPrint.print([d.card], () => location.reload());
             }).catch(netErr);
         }
 
-        // --- Finish / Issue ---
-        function finishAndIssue() {
-            const name = prompt("Collector's full name:");
-            if (!name) return;
-            const ic = prompt("Collector's IC / Passport No:");
-            if (!ic) return;
-            postJson('<?= base_url('vendors/issuance-list/issue/') ?>' + VENDOR_ID, { collector_name: name, collector_ic_passport: ic })
-                .then(d => { alert(d.message); if (d.success) location.href = '<?= base_url('vendors/closed-list') ?>'; })
-                .catch(netErr);
-        }
     </script>
 </body>
 </html>

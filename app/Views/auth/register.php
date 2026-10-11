@@ -55,15 +55,9 @@
         </div>
         <?php endif; ?>
 
-        <?php if (! empty($clientLink)): ?>
-        <div class="mb-6 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm">
-            You are registering with <strong><?= esc($clientLink['name']) ?></strong>. Your passes will be submitted to this client.
-        </div>
-        <?php endif; ?>
-
         <div id="searchMsg" class="hidden mb-6 p-4 rounded-lg text-sm"></div>
 
-        <form action="<?= ! empty($clientLink) ? base_url('c/' . rawurlencode($clientLink['code']) . '/register') : base_url('register') ?>" method="post" class="bg-white dark:bg-[#1a2632] border border-slate-200 dark:border-slate-700 rounded-xl p-6 sm:p-8 flex flex-col gap-6">
+        <form action="<?= base_url('register') ?>" method="post" class="bg-white dark:bg-[#1a2632] border border-slate-200 dark:border-slate-700 rounded-xl p-6 sm:p-8 flex flex-col gap-6">
             <?= csrf_field() ?>
 
             <!-- Company lookup -->
@@ -85,17 +79,6 @@
                     <label class="text-sm font-semibold">Company Name In Port Pass <span class="text-red-500">*</span></label>
                     <input id="company_pass_name" class="form-input rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#101922] h-12 px-4 text-base" type="text" value="" readonly placeholder="Found after searching"/>
                 </div>
-            </div>
-
-            <?php if (! empty($clientLink)): ?>
-            <input type="hidden" name="client_id" value="<?= (int) $clientLink['id'] ?>"/>
-            <?php endif; ?>
-            <div id="clientWrap" class="hidden flex flex-col gap-2">
-                <label class="text-sm font-semibold" for="client_id">Client you are working with <span class="text-red-500">*</span></label>
-                <select class="form-select rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#101922] h-12 px-4 text-base" id="client_id" name="client_id">
-                    <option value="">Select client</option>
-                </select>
-                <p class="text-xs text-slate-500 dark:text-slate-400">The passes you request will be submitted to this client.</p>
             </div>
 
             <hr class="border-slate-200 dark:border-slate-700"/>
@@ -147,12 +130,8 @@
     const baseUrl = '<?= rtrim(base_url(), '/') ?>';
     const csrfToken = '<?= csrf_hash() ?>';
     const csrfName = '<?= csrf_token() ?>';
-    const linkClient = <?= ! empty($clientLink) ? 'true' : 'false' ?>;
-    const previousClientId = '<?= esc((string) old('client_id'), 'js') ?>';
 
     const msg = document.getElementById('searchMsg');
-    const clientWrap = document.getElementById('clientWrap');
-    const clientSelect = document.getElementById('client_id');
 
     function showMsg(text, ok) {
         msg.textContent = text;
@@ -165,8 +144,6 @@
     function clearCompany() {
         document.getElementById('company_name').value = '';
         document.getElementById('company_pass_name').value = '';
-        clientWrap.classList.add('hidden');
-        clientSelect.innerHTML = '<option value="">Select client</option>';
     }
 
     function fillIfEmpty(id, value) {
@@ -200,25 +177,6 @@
                 fillIfEmpty('email', res.email);
                 fillIfEmpty('contact_no', res.contact_no);
 
-                if (linkClient) {
-                    if (!quiet) showMsg('Company found: ' + res.name, true);
-                    return;
-                }
-
-                clientSelect.innerHTML = '<option value="">Select client</option>';
-                (res.clients || []).forEach(c => {
-                    const opt = document.createElement('option');
-                    opt.value = c.id;
-                    opt.textContent = c.name;
-                    clientSelect.appendChild(opt);
-                });
-                if ((res.clients || []).length === 1) {
-                    clientSelect.value = res.clients[0].id;
-                } else if (previousClientId) {
-                    clientSelect.value = previousClientId;
-                }
-                clientWrap.classList.remove('hidden');
-
                 if (!quiet) showMsg('Company found: ' + res.name, true);
             })
             .catch(() => {
@@ -228,7 +186,7 @@
 
     document.getElementById('searchCompanyBtn').addEventListener('click', () => searchCompany(false));
 
-    // Coming back from a failed submit: refill the company + client choices.
+    // Coming back from a failed submit: refill the company details.
     if (document.getElementById('ssm_no').value.trim() !== '') {
         searchCompany(true);
     }

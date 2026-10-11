@@ -3,9 +3,8 @@
 namespace App\Controllers;
 
 /**
- * Platform superadmin only: each client's own link code and "site group".
+ * Platform superadmin only: "site group" sharing and gate owners.
  *
- *  - code        -> /c/{CODE}/login and /c/{CODE}/register
  *  - site_group  -> clients with the same group share one building / product:
  *                   their users and vendors can pick each other's locations,
  *                   which is how one vendor ends up under several clients.
@@ -16,7 +15,7 @@ class ClientLinks extends BaseController
     {
         helper(['feature', 'role']);
         if (! is_platform_superadmin()) {
-            return redirect()->to(base_url('dashboard'))->with('error', 'Only the platform administrator can manage client links.');
+            return redirect()->to(base_url('dashboard'))->with('error', 'Only the platform administrator can manage site sharing.');
         }
 
         return null;
@@ -29,7 +28,22 @@ class ClientLinks extends BaseController
         }
 
         $db      = \Config\Database::connect();
-        $clients = $db->table('clients')->select('id, name, code, site_group, status')->orderBy('name')->get()->getResultArray();
+
+        $clients = $db->table('clients')->select('id, name, site_group, status')->orderBy('name')->get()->getResultArray();
+
+        // Sharing status: which clients are grouped, and how many passes already span more than one client.
+        $groups = [];
+        foreach ($clients as $c) {
+            $g = trim((string) ($c['site_group'] ?? ''));
+            if ($g !== '') {
+                $groups[$g][] = $c['name'];
+            }
+        }
+        $ungrouped = array_values(array_map(static fn($c) => $c['name'], array_filter($clients, static fn($c) => trim((string) ($c['site_group'] ?? '')) === '')));
+        $sharedPasses = 0;
+        if ($db->tableExists('vendor_client_approvals')) {
+            $sharedPasses = (int) count($db->query('SELECT vendor_id FROM vendor_client_approvals GROUP BY vendor_id HAVING COUNT(DISTINCT client_id) > 1')->getResultArray());
+        }
         $locs    = [];
         foreach ($db->table('vendor_locations')->select('client_id, COUNT(*) AS n', false)->where('client_id IS NOT NULL', null, false)->groupBy('client_id')->get()->getResultArray() as $r) {
             $locs[(int) $r['client_id']] = (int) $r['n'];
@@ -40,10 +54,14 @@ class ClientLinks extends BaseController
             : [];
 
         return view('config/client_links', [
-            'pageTitle' => 'Client Links & Sharing - SafeG',
+            'pageTitle' => 'Site Sharing - SafeG',
             'clients'   => $clients,
             'locCounts' => $locs,
             'gates'     => $gates,
+            'groups'    => $groups,
+            'ungrouped' => $ungrouped,
+            'sharedPasses' => $sharedPasses,
+            'embed'     => (bool) $this->request->getGet('embed'),
         ]);
     }
 
@@ -59,30 +77,17 @@ class ClientLinks extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'Client not found.']);
         }
 
-        $code  = strtoupper(trim((string) $this->request->getPost('code')));
         $group = trim((string) $this->request->getPost('site_group'));
 
-        if ($code === '' || ! preg_match('/^[A-Z0-9_-]{2,30}$/', $code)) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Code must be 2-30 letters, digits, - or _.']);
-        }
-        $dupe = $db->table('clients')->where('UPPER(code)', $code)->where('id !=', (int) $id)->countAllResults();
-        if ($dupe > 0) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Another client already uses that code.']);
-        }
         if (strlen($group) > 50) {
             return $this->response->setJSON(['success' => false, 'message' => 'Site group is too long.']);
         }
 
-        $db->table('clients')->where('id', (int) $id)->update(['code' => $code, 'site_group' => $group !== '' ? $group : null]);
-
-        helper('client_link');
+        $db->table('clients')->where('id', (int) $id)->update(['site_group' => $group !== '' ? $group : null]);
 
         return $this->response->setJSON([
             'success'  => true,
             'message'  => 'Saved.',
-            'code'     => $code,
-            'login'    => client_link_url($code, 'login'),
-            'register' => client_link_url($code, 'register'),
         ]);
     }
 

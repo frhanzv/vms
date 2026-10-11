@@ -17,10 +17,9 @@ use CodeIgniter\Database\BaseConnection;
  *                number is zero.
  *
  * Pipeline stages (same rules as the Process / Printing / Issuance / Closed
- * lists): Draft, Pending, Rejected, Process (approved, no card type yet),
- * Printing (card type set), Issuance (receipt no. set), Active (card active),
- * Closed (suspended / terminated). Precedence: closed > active > issuance >
- * printing > process.
+ * lists): Draft, Pending, Rejected, Process (approved, no receipt no. - this is also
+ * the Printing List), Issuance (receipt no. set), Active (card active),
+ * Closed (terminated / suspended).
  */
 if (! function_exists('vendor_client_scope_sql')) {
     require_once __DIR__ . '/../Helpers/vendor_client_scope_helper.php';
@@ -28,14 +27,26 @@ if (! function_exists('vendor_client_scope_sql')) {
 
 class VendorDashboardStats
 {
-    public const STAGES = ['Draft', 'Pending', 'Rejected', 'Process', 'Printing', 'Issuance', 'Active', 'Closed'];
+    public const STAGES = ['Draft', 'Pending', 'Rejected', 'Process', 'Issuance', 'Active', 'Closed'];
 
-    public static function collect(BaseConnection $db, ?int $clientId, ?string $regNo, bool $locked = false, ?string $today = null): array
+    /**
+     * @param array{location?:string,from?:string,to?:string} $filters
+     *        location = location code (slug of locations.location_access), from/to = Y-m-d (application / check-in date range)
+     */
+    public static function collect(BaseConnection $db, ?int $clientId, ?string $regNo, bool $locked = false, ?string $today = null, array $filters = []): array
     {
         $today = $today ?: date('Y-m-d');
         $in30  = date('Y-m-d', strtotime($today . ' +30 days'));
 
-        $scope = static function ($b) use ($clientId, $regNo, $locked) {
+        $isDate = static fn($d) => is_string($d) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $d) && strtotime($d) !== false;
+        $from   = $isDate($filters['from'] ?? null) ? $filters['from'] : date('Y-m-d', strtotime($today . ' -30 days'));
+        $to     = $isDate($filters['to'] ?? null) ? $filters['to'] : $today;
+        if ($from > $to) {
+            [$from, $to] = [$to, $from];
+        }
+        $locCode = trim((string) ($filters['location'] ?? ''));
+
+        $scope = static function ($b) use ($clientId, $regNo, $locked, $locCode, $db) {
             if ($locked) {
                 $b->where('1 = 0', null, false);
                 return $b;
@@ -46,6 +57,14 @@ class VendorDashboardStats
             }
             if ($regNo !== null) {
                 $b->where('vendor_company_reg_id', $regNo);
+            }
+            if ($locCode !== '') {
+                // location_access is a comma separated list of location codes (slug of locations.location_access)
+                $col = "REPLACE(" . $db->prefixTable('vendors') . ".location_access, ' ', '')";
+                $b->where('(' . $col . ' = ' . $db->escape($locCode)
+                    . ' OR ' . $col . ' LIKE ' . $db->escape($locCode . ',%')
+                    . ' OR ' . $col . ' LIKE ' . $db->escape('%,' . $locCode)
+                    . ' OR ' . $col . ' LIKE ' . $db->escape('%,' . $locCode . ',%') . ')', null, false);
             }
             return $b;
         };
@@ -120,7 +139,81 @@ class VendorDashboardStats
             ->select('id, full_name, app_no, vendor_company_name, status, created_at'))
             ->orderBy('id', 'DESC')->limit(8)->get()->getResultArray();
 
+        // ---- KPK-style summary -----------------------------------------------
+        $inRange = static fn($b) => $b->where('vendors.created_at >=', $from . ' 00:00:00')->where('vendors.created_at <=', $to . ' 23:59:59');
+
+        $newApplications = (int) $inRange($scope($db->table('vendors')))->countAllResults();
+        $approved        = (int) $inRange($scope($db->table('vendors')))->where("LOWER(status) = 'approved'", null, false)->countAllResults();
+        $issuance        = (int) $inRange($scope($db->table('vendors')))->where("LOWER(status) = 'approved'", null, false)
+            ->where("TRIM(COALESCE(receipt_no, '')) <> ''", null, false)->countAllResults();
+
+        $activeCompanies = (int) ($activeBase()->select('COUNT(DISTINCT vendor_company_reg_id) AS c', false)
+            ->where("TRIM(COALESCE(vendor_company_reg_id, '')) <> ''", null, false)->get()->getRowArray()['c'] ?? 0);
+        $activePasses = $stages['Active'];
+
+        // ---- By location -----------------------------------------------------
+        $locLabels = [];
+        try {
+            foreach ($db->table('locations')->select('location_access')->where('status', 'active')->orderBy('location_access', 'ASC')->get()->getResultArray() as $l) {
+                $code = \App\Models\VendorLocationModel::slugifyCode((string) $l['location_access']);
+                if ($code !== '' && ! isset($locLabels[$code])) {
+                    $locLabels[$code] = (string) $l['location_access'];
+                }
+            }
+        } catch (\Throwable $e) {
+            log_message('error', 'VendorDashboardStats locations: ' . $e->getMessage());
+        }
+        $locCounts = [];
+        $lr = $scope($db->table('vendors')->select('location_access, COUNT(*) AS c', false))
+            ->groupBy('location_access')->get()->getResultArray();
+        foreach ($lr as $r) {
+            foreach (array_filter(array_map('trim', explode(',', (string) ($r['location_access'] ?? '')))) as $code) {
+                $locCounts[$code] = ($locCounts[$code] ?? 0) + (int) $r['c'];
+            }
+        }
+        arsort($locCounts);
+        $byLocation = [];
+        foreach ($locCounts as $code => $n) {
+            $byLocation[] = ['code' => $code, 'label' => $locLabels[$code] ?? $code, 'c' => $n];
+        }
+
+        // ---- Check IN / OUT / out of window (gate visits) ---------------------
+        $gate = ['checkIn' => 0, 'checkOut' => 0, 'outOfWindow' => 0, 'nearOutOfWindow' => 0, 'available' => false];
+        try {
+            if ($db->tableExists('vendor_visits')) {
+                $visits = static fn() => $scope($db->table('vendor_visits')->join('vendors', 'vendors.id = vendor_visits.vendor_id'));
+                $gate['available'] = true;
+                $gate['checkIn'] = (int) $visits()->where('vendor_visits.check_in_time >=', $from . ' 00:00:00')
+                    ->where('vendor_visits.check_in_time <=', $to . ' 23:59:59')->countAllResults();
+                $gate['checkOut'] = (int) $visits()->where('vendor_visits.check_out_time >=', $from . ' 00:00:00')
+                    ->where('vendor_visits.check_out_time <=', $to . ' 23:59:59')->countAllResults();
+                $onSite = static fn() => $visits()->select('COUNT(DISTINCT ' . $db->prefixTable('vendor_visits') . '.vendor_id) AS c', false)
+                    ->where('vendor_visits.check_in_time IS NOT NULL')->where('vendor_visits.check_out_time IS NULL');
+                $gate['outOfWindow'] = (int) ($onSite()->where('vendors.pass_expiry IS NOT NULL')
+                    ->where('vendors.pass_expiry <', $today)->get()->getRowArray()['c'] ?? 0);
+                $gate['nearOutOfWindow'] = (int) ($onSite()->where('vendors.pass_expiry >=', $today)
+                    ->where('vendors.pass_expiry <=', date('Y-m-d', strtotime($today . ' +7 days')))->get()->getRowArray()['c'] ?? 0);
+            }
+        } catch (\Throwable $e) {
+            log_message('error', 'VendorDashboardStats gate: ' . $e->getMessage());
+        }
+
         return [
+            'summary' => [
+                'newApplications' => $newApplications,
+                'approved'        => $approved,
+                'issuance'        => $issuance,
+                'expired'         => $expired,
+                'expiring'        => $expiring,
+                'activePasses'    => $activePasses,
+                'activeCompanies' => $activeCompanies,
+                'avgPerCompany'   => $activeCompanies > 0 ? round($activePasses / $activeCompanies, 1) : 0,
+                'asAt'            => date('d M Y, g:i A'),
+            ],
+            'byLocation'    => $byLocation,
+            'locationList'  => $locLabels,
+            'gate'          => $gate,
+            'filters'       => ['location' => $locCode, 'from' => $from, 'to' => $to],
             'total'         => $total,
             'stages'        => $stages,
             'activePasses'  => $stages['Active'],
@@ -142,15 +235,17 @@ class VendorDashboardStats
         $status = strtolower(trim((string) ($r['status'] ?? '')));
         $card   = strtolower(trim((string) ($r['card_status'] ?? '')));
 
-        if (in_array($status, ['suspended', 'terminated'], true)) {
+        // Same rules as the lists: Closed List = card_status Active / Terminated;
+        // Process List and Printing List = the same set (approved, no receipt no. yet);
+        // Issuance List = approved, receipt no. set, card not active yet.
+        if ($card === 'terminated' || in_array($status, ['suspended', 'terminated'], true)) {
             return 'Closed';
         }
+        if ($card === 'active')     return 'Active';
         if ($status === 'draft')    return 'Draft';
         if ($status === 'rejected') return 'Rejected';
         if ($status === 'approved') {
-            if ($card === 'active')                                   return 'Active';
-            if (trim((string) ($r['receipt_no'] ?? '')) !== '')       return 'Issuance';
-            if (trim((string) ($r['card_type'] ?? '')) !== '')        return 'Printing';
+            if (trim((string) ($r['receipt_no'] ?? '')) !== '') return 'Issuance';
             return 'Process';
         }
         return 'Pending';

@@ -210,7 +210,7 @@
         </div>
     </div>
 
-    <div id="print-section"></div>
+    <script src="<?= base_url('assets/js/vendor-card-print.js') ?>"></script>
 
     <script>
         const VENDOR_ID = <?= (int) $vendor['id'] ?>;
@@ -286,46 +286,10 @@
         }
 
         // --- Reprint (front + back, same design as Printing List) ---
-        const TERMS_TEXT = [
-            "This pass remains the property of the issuing company and must be returned upon request or on expiry.",
-            "This pass must be worn visibly at all times while on the premises.",
-            "Loss of this pass must be reported to security immediately.",
-            "This pass is not transferable and may only be used by the person named on it.",
-        ];
-        function cardMarkup(card) {
-            const typeClass = String(card.card_type).toLowerCase() === 'permanent' ? 'background:linear-gradient(160deg,#0f3d91,#137fec,#1e2a5e);' : 'background:linear-gradient(160deg,#92400e,#f59e0b,#78350f);';
-            return `<div class="card-page" style="width:54mm;height:85.6mm;position:relative;overflow:hidden;border-radius:3mm;color:#fff;font-family:'Montserrat',sans-serif;${typeClass}">
-                <div style="padding:4mm;display:flex;flex-direction:column;align-items:center;height:100%;box-sizing:border-box;">
-                    <div style="font-size:2.6mm;letter-spacing:0.5mm;opacity:.85;margin-bottom:2mm;">SAFEG VENDOR PASS</div>
-                    <img src="${card.photo_url}" style="width:22mm;height:22mm;object-fit:cover;border-radius:2mm;border:0.5mm solid rgba(255,255,255,.8);" />
-                    <div style="margin-top:3mm;font-size:3.6mm;font-weight:700;text-align:center;">${card.full_name}</div>
-                    <div style="font-size:2.8mm;opacity:.9;margin-top:1mm;font-family:'Courier New',monospace;">${card.ic_no}</div>
-                    <div style="font-size:2.4mm;opacity:.85;margin-top:1mm;text-align:center;">${card.company}</div>
-                    <div style="margin-top:auto;width:100%;text-align:center;font-size:2.6mm;font-weight:700;text-transform:uppercase;">${card.card_type}</div>
-                    <div style="font-size:2.4mm;font-family:'Courier New',monospace;margin-top:0.5mm;">Valid Until: ${card.valid_until}</div>
-                    <div style="font-size:2.2mm;opacity:.75;margin-top:0.5mm;font-family:'Courier New',monospace;">${card.receipt_no}</div>
-                </div>
-            </div>` + cardBackMarkup(card);
-        }
-        function cardBackMarkup(card) {
-            const terms = TERMS_TEXT.map((t, i) => `<li style="margin-bottom:1.5mm;">${i + 1}. ${t}</li>`).join('');
-            return `<div class="card-page" style="width:54mm;height:85.6mm;position:relative;overflow:hidden;border-radius:3mm;background:#fff;color:#1f2937;border:0.3mm solid #d1d5db;font-family:'Montserrat',sans-serif;">
-                <div style="padding:4mm;display:flex;flex-direction:column;height:100%;box-sizing:border-box;">
-                    <div style="font-size:2.6mm;font-weight:700;text-align:center;margin-bottom:2mm;text-transform:uppercase;">Terms &amp; Conditions</div>
-                    <ol style="list-style:none;padding:0;margin:0;font-size:2.2mm;line-height:1.3;">${terms}</ol>
-                    <div style="margin-top:auto;text-align:center;font-size:2.2mm;">
-                        <div style="font-size:2mm;opacity:.7;">${card.company}</div>
-                        <div style="border-top:0.2mm solid #9ca3af;width:80%;margin:6mm auto 1mm;"></div>
-                        <div style="font-size:2mm;">Authorized Signature</div>
-                    </div>
-                </div>
-            </div>`;
-        }
         function reprintCard() {
             postJson('<?= base_url('vendors/printing-list/generate-serial/') ?>' + VENDOR_ID, {}).then(d => {
                 if (!d.success) { alert(d.message); return; }
-                document.getElementById('print-section').innerHTML = cardMarkup(d.card);
-                setTimeout(() => { window.print(); location.reload(); }, 150);
+                VendorCardPrint.print([d.card], () => location.reload());
             }).catch(netErr);
         }
     </script>

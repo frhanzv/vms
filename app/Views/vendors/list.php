@@ -55,6 +55,11 @@
                     <?= ($requestMode ?? false) ? 'Request List' : 'Vendor List' ?>
                 </h1>
                 <div class="flex flex-wrap gap-2">
+                    <button type="button" onclick="document.getElementById('vendorColumnsModal').classList.remove('hidden')"
+                        class="bg-[#535dec] hover:bg-[#4853e0] text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
+                        <span class="material-icons text-sm mr-1">visibility</span>
+                        Show/Hide Columns
+                    </button>
                     <?php if ($canImport ?? false): ?>
                     <button onclick="document.getElementById('uploadModal').classList.toggle('hidden')" class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
                         <span class="material-icons text-sm mr-1">add</span>
@@ -430,18 +435,14 @@
                 </button>
             </div>
             <div class="p-6">
-                <?php $reminderLocationLabels = implode(', ', (new \App\Models\VendorLocationModel())->getOptionsForUser(true)); ?>
                 <ul class="list-disc pl-5 space-y-2 text-sm text-gray-700 dark:text-gray-300">
                     <li>Do not use dashes (-) in IC Number or Phone Number. Use only numbers.</li>
-                    <li>Resident must be <strong>Malaysian</strong> or <strong>Non-Malaysian</strong>.</li>
-                    <li>Worker Type must be <strong>Permanent</strong> or <strong>Temporary</strong>.</li>
-                    <li>For Date of Birth and License Expiry, use the slash ( / ) format only (e.g., 24/06/2025). Do not use dots ( . ).</li>
-                    <li>Individual License Class Format (eg,B). Multiple License Class Format (eg,B,C,D).</li>
-                    <li>Location Access accepts one or more of: <?= esc($reminderLocationLabels) ?> — separate multiple values with a comma.</li>
+                    <li>For Date of Birth and License Expiry, use the slash ( / ) format only (e.g., 24/06/2025). Do not use dots ( . )</li>
+                    <li>Individual License Class Format (eg.,B). Multiple License Class Format (eg.,B,C,D).</li>
                 </ul>
             </div>
             <div class="flex justify-end gap-2 p-4 border-t dark:border-slate-700">
-                <a href="<?= base_url('files/VendorTemplateNew.xlsx') ?>" download="VendorTemplateNew.xlsx"
+                <a href="<?= base_url('files/VendorPassTemplate.xlsx') ?>" download="VendorPassTemplate.xlsx"
                     class="bg-primary hover:bg-indigo-700 text-white px-6 py-2 rounded text-sm font-medium flex items-center transition-colors">
                     <span class="material-icons text-sm mr-1">file_download</span>
                     Download
@@ -450,6 +451,43 @@
         </div>
     </div>
     <?php endif; ?>
+
+    <!-- Show/Hide Columns (same settings as Config > Page Settings) -->
+    <div id="vendorColumnsModal" class="hidden fixed inset-0 z-[120] flex items-center justify-center p-4">
+        <div onclick="closeModal('vendorColumnsModal')" class="absolute inset-0 bg-slate-900/55 dark:bg-black/65 cursor-pointer"></div>
+        <form method="POST" action="<?= base_url('vendors/saveColumnSettings') ?>" class="relative flex w-full max-w-[600px] flex-col rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+            <?= csrf_field() ?>
+            <input type="hidden" name="list" value="<?= esc($listKey) ?>"/>
+            <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4 dark:border-slate-700">
+                <h2 class="text-lg font-bold tracking-tight text-[#3b5998] dark:text-white">Show/Hide Columns</h2>
+                <button type="button" onclick="closeModal('vendorColumnsModal')" class="text-slate-300 hover:text-slate-500">
+                    <span class="material-icons text-[20px]">close</span>
+                </button>
+            </div>
+            <div class="px-6 py-5 overflow-y-auto max-h-[60vh]">
+                <div class="mb-5 flex items-center gap-2">
+                    <input type="checkbox" id="selectAllVendorColumns" onchange="document.querySelectorAll('.vendor-column-toggle:not(:disabled)').forEach(c => c.checked = this.checked)" class="rounded border-slate-300 text-[#535dec] focus:ring-[#535dec] h-4 w-4 cursor-pointer">
+                    <label for="selectAllVendorColumns" class="text-sm font-bold text-slate-700 dark:text-slate-300 cursor-pointer">Select All Columns</label>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-4">
+                    <?php foreach ((list_column_registry()[$listKey]['columns'] ?? []) as $ckey => $cdef): $locked = ! empty($cdef['locked']); ?>
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" id="vendor_col_<?= esc($ckey) ?>" <?= $locked ? 'disabled' : 'name="columns[' . esc($ckey) . ']" value="1"' ?>
+                               class="vendor-column-toggle rounded border-slate-300 text-[#535dec] focus:ring-[#535dec] h-4 w-4 <?= $locked ? 'opacity-60' : 'cursor-pointer' ?>"
+                               <?= $col($ckey) ? 'checked' : '' ?>>
+                        <label for="vendor_col_<?= esc($ckey) ?>" class="text-sm text-slate-600 dark:text-slate-300 uppercase <?= $locked ? '' : 'cursor-pointer' ?>">
+                            <?= esc($cdef['label']) ?><?= $locked ? ' <span class="normal-case text-xs text-slate-400">(always shown)</span>' : '' ?>
+                        </label>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 border-t-2 border-slate-100 bg-white px-6 py-4 dark:border-slate-700 dark:bg-slate-900 rounded-b-xl">
+                <button type="button" onclick="closeModal('vendorColumnsModal')" class="rounded-md border border-slate-400 bg-slate-500 hover:bg-slate-600 px-5 py-2 text-sm font-semibold text-white transition-colors">Close</button>
+                <button type="submit" class="rounded-md bg-[#535dec] hover:bg-[#4853e0] px-5 py-2 text-sm font-semibold text-white shadow-md transition-colors">Apply Changes</button>
+            </div>
+        </form>
+    </div>
 
     <!-- Approve Modal -->
     <div id="approveModal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">

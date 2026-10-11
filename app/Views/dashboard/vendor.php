@@ -80,6 +80,130 @@ $st = $stages;
                 <p class="rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">No cards are switched on. Use <strong>Customize</strong> to show some.</p>
             <?php endif; ?>
 
+            <div class="mx-auto flex max-w-7xl flex-col gap-6">
+
+            <!-- Filters -->
+            <form method="get" style="order: 0" class="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-surface-light px-4 py-3 shadow-sm dark:border-slate-700 dark:bg-surface-dark">
+                <span class="material-symbols-outlined text-[20px] text-slate-400">tune</span>
+                <?php if (! empty($locationList)): ?>
+                <select name="location" aria-label="Location" class="h-9 rounded-full border-slate-200 bg-slate-50 px-4 text-sm font-medium dark:border-slate-600 dark:bg-slate-800">
+                    <option value="">All locations</option>
+                    <?php foreach ($locationList as $code => $label): ?>
+                    <option value="<?= esc($code, 'attr') ?>" <?= ($filters['location'] ?? '') === (string) $code ? 'selected' : '' ?>><?= esc($label) ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <?php endif; ?>
+                <input type="date" name="from" aria-label="From" value="<?= esc($filters['from'], 'attr') ?>" class="h-9 rounded-full border-slate-200 bg-slate-50 px-4 text-sm dark:border-slate-600 dark:bg-slate-800"/>
+                <span class="text-xs text-slate-400">to</span>
+                <input type="date" name="to" aria-label="To" value="<?= esc($filters['to'], 'attr') ?>" class="h-9 rounded-full border-slate-200 bg-slate-50 px-4 text-sm dark:border-slate-600 dark:bg-slate-800"/>
+                <button type="submit" class="h-9 rounded-full bg-primary px-5 text-sm font-bold text-white hover:bg-primary-dark">Apply</button>
+                <a href="<?= base_url('dashboard/vendor') ?>" class="px-2 text-sm font-semibold text-slate-500 hover:text-primary">Reset</a>
+                <span class="ml-auto text-xs text-slate-400">As at <?= esc($summary['asAt']) ?></span>
+            </form>
+
+            <?php if (dash_card('vendor', 'summary')): ?>
+            <!-- Summary hero -->
+            <section style="order: <?= dash_card_pos('vendor', 'summary') ?>" aria-label="Summary"
+                     class="overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-blue-600 to-indigo-700 text-white shadow-lg">
+                <div class="grid gap-6 p-6 lg:grid-cols-5 lg:p-8">
+                    <div class="lg:col-span-2">
+                        <p class="text-xs font-bold uppercase tracking-widest text-white/70">Total Active Pass</p>
+                        <p class="mt-2 text-6xl font-black leading-none"><?= dash_fmt($summary['activePasses']) ?></p>
+                        <p class="mt-3 text-sm text-white/80">across <strong><?= dash_fmt($summary['activeCompanies']) ?></strong> companies &middot; avg <strong><?= esc((string) $summary['avgPerCompany']) ?></strong> per company</p>
+                    </div>
+                    <div class="grid grid-cols-3 gap-3 lg:col-span-3">
+                        <?php foreach ([
+                            ['New Application', $summary['newApplications'], 'note_add'],
+                            ['Approved', $summary['approved'], 'check_circle'],
+                            ['Pass Issuance', $summary['issuance'], 'receipt_long'],
+                        ] as [$lbl, $val, $ico]): ?>
+                        <div class="rounded-xl bg-white/15 p-4 backdrop-blur-sm">
+                            <span class="material-symbols-outlined text-[22px] text-white/80"><?= $ico ?></span>
+                            <p class="mt-2 text-3xl font-black"><?= dash_fmt($val) ?></p>
+                            <p class="mt-1 text-xs font-semibold text-white/80"><?= esc($lbl) ?></p>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-3 border-t border-white/20 bg-black/10 px-6 py-3 text-sm lg:px-8">
+                    <span class="inline-flex items-center gap-2 rounded-full bg-red-500/90 px-3 py-1 font-semibold"><span class="material-symbols-outlined text-[18px]">event_busy</span><?= dash_fmt($summary['expired']) ?> Expired</span>
+                    <span class="inline-flex items-center gap-2 rounded-full bg-amber-400 px-3 py-1 font-semibold text-amber-950"><span class="material-symbols-outlined text-[18px]">event_upcoming</span><?= dash_fmt($summary['expiring']) ?> Expiring in 30 days</span>
+                    <span class="ml-auto text-xs text-white/70 self-center"><?= esc($filters['from']) ?> &rarr; <?= esc($filters['to']) ?></span>
+                </div>
+            </section>
+            <?php endif; ?>
+
+            <?php if (dash_card('vendor', 'gate_summary') && ! empty($gate['available'])): ?>
+            <!-- Gate activity -->
+            <section style="order: <?= dash_card_pos('vendor', 'gate_summary') ?>" aria-label="Gate activity" class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                <?php foreach ([
+                    ['Total Check IN',       $gate['checkIn'],         'login',         'emerald'],
+                    ['Total Check Out',      $gate['checkOut'],        'logout',        'sky'],
+                    ['Near Out Of Window',   $gate['nearOutOfWindow'], 'hourglass_top', 'amber'],
+                    ['Out Of Window',        $gate['outOfWindow'],     'warning',       'red'],
+                ] as [$lbl, $val, $ico, $c]):
+                    $cls = [
+                        'emerald' => 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800',
+                        'sky'     => 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-900/20 dark:text-sky-300 dark:border-sky-800',
+                        'amber'   => 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800',
+                        'red'     => 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800',
+                    ][$c]; ?>
+                <div class="flex items-center gap-4 rounded-2xl border p-4 <?= $cls ?>">
+                    <span class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-white/70 dark:bg-white/10"><span class="material-symbols-outlined text-[26px]"><?= $ico ?></span></span>
+                    <div><p class="text-3xl font-black leading-none"><?= dash_fmt($val) ?></p><p class="mt-1 text-xs font-semibold"><?= esc($lbl) ?></p></div>
+                </div>
+                <?php endforeach; ?>
+            </section>
+            <?php endif; ?>
+
+            <!-- Charts -->
+            <section class="grid grid-cols-1 gap-6 xl:grid-cols-2" style="order: 20">
+                <?php if (dash_card('vendor', 'chart_location')): ?>
+                <div class="rounded-2xl border border-slate-200 bg-surface-light p-6 shadow-sm dark:border-slate-700 dark:bg-surface-dark" style="order: <?= dash_card_pos('vendor', 'chart_location') ?>">
+                    <h3 class="text-base font-bold">By Location</h3>
+                    <p class="mb-4 text-xs text-slate-500 dark:text-slate-400">Passes by location access</p>
+                    <?php
+                    $li = [];
+                    foreach ($byLocation as $l) {
+                        $li[] = ['label' => $l['label'], 'value' => (int) $l['c']];
+                    }
+                    echo $li ? dash_hbars($li, 'passes', 'Passes by location') : '<p class="text-sm text-slate-500">No location data yet.</p>';
+                    ?>
+                </div>
+                <?php endif; ?>
+                <?php if (dash_card('vendor', 'chart_pipeline')): ?>
+                <div>
+                <div class="rounded-xl border border-slate-200 bg-surface-light p-5 shadow-sm dark:border-slate-700 dark:bg-surface-dark">
+                    <h3 class="mb-1 text-sm font-bold">Pass pipeline</h3>
+                    <p class="mb-3 text-xs text-slate-500 dark:text-slate-400">Where every application is right now</p>
+                    <?php
+                    $stageLinks = $isVendorAccount ? [] : [
+                        'Process'  => base_url('vendors/process-list'),
+                        'Issuance' => base_url('vendors/issuance-list'),
+                        'Active'   => base_url('vendors/closed-list'),
+                        'Closed'   => base_url('vendors/closed-list') . '?card_status=Terminated',
+                    ];
+                    $tones = ['Draft' => 1, 'Pending' => 1, 'Rejected' => 1, 'Process' => 2, 'Issuance' => 4, 'Active' => 4, 'Closed' => 1];
+                    $items = [];
+                    foreach (\App\Libraries\VendorDashboardStats::STAGES as $s) {
+                        $items[] = ['label' => $s, 'value' => $st[$s], 'tone' => $tones[$s], 'href' => $stageLinks[$s] ?? null];
+                    }
+                    echo dash_hbars($items, 'applications', 'Applications by pipeline stage');
+                    ?>
+                </div>
+                </div>
+                <?php endif; ?>
+
+
+            </section>
+
+            <!-- Everything from the previous dashboard -->
+            <details style="order: 30" class="group rounded-2xl border border-slate-200 bg-surface-light shadow-sm dark:border-slate-700 dark:bg-surface-dark">
+                <summary class="flex cursor-pointer list-none items-center justify-between px-6 py-4 text-sm font-bold">
+                    <span class="flex items-center gap-2"><span class="material-symbols-outlined text-primary">dashboard_customize</span>More charts &amp; lists</span>
+                    <span class="material-symbols-outlined transition-transform group-open:rotate-180">expand_more</span>
+                </summary>
+                <div class="border-t border-slate-100 p-6 dark:border-slate-800">
             <section class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Key numbers">
                 <?php if (dash_card('vendor', 'kpi_total')): ?>
                 <div class="[&>*]:h-full" style="order: <?= dash_card_pos('vendor', 'kpi_total') ?>">
@@ -104,29 +228,6 @@ $st = $stages;
             </section>
 
             <section class="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
-                <?php if (dash_card('vendor', 'chart_pipeline')): ?>
-                <div class="[&>*]:h-full" style="order: <?= dash_card_pos('vendor', 'chart_pipeline') ?>">
-                <div class="rounded-xl border border-slate-200 bg-surface-light p-5 shadow-sm dark:border-slate-700 dark:bg-surface-dark">
-                    <h3 class="mb-1 text-sm font-bold">Pass pipeline</h3>
-                    <p class="mb-3 text-xs text-slate-500 dark:text-slate-400">Where every application is right now</p>
-                    <?php
-                    $stageLinks = $isVendorAccount ? [] : [
-                        'Process'  => base_url('vendors/process-list'),
-                        'Printing' => base_url('vendors/printing-list'),
-                        'Issuance' => base_url('vendors/issuance-list'),
-                        'Active'   => base_url('vendors/closed-list'),
-                    ];
-                    $tones = ['Draft' => 1, 'Pending' => 1, 'Rejected' => 1, 'Process' => 2, 'Printing' => 3, 'Issuance' => 4, 'Active' => 4, 'Closed' => 1];
-                    $items = [];
-                    foreach (\App\Libraries\VendorDashboardStats::STAGES as $s) {
-                        $items[] = ['label' => $s, 'value' => $st[$s], 'tone' => $tones[$s], 'href' => $stageLinks[$s] ?? null];
-                    }
-                    echo dash_hbars($items, 'applications', 'Applications by pipeline stage');
-                    ?>
-                </div>
-                </div>
-                <?php endif; ?>
-
                 <?php if (dash_card('vendor', 'chart_monthly')): ?>
                 <div class="[&>*]:h-full" style="order: <?= dash_card_pos('vendor', 'chart_monthly') ?>">
                 <div class="rounded-xl border border-slate-200 bg-surface-light p-5 shadow-sm dark:border-slate-700 dark:bg-surface-dark">
@@ -203,6 +304,9 @@ $st = $stages;
                 </div>
                 <?php endforeach; ?>
             </section>
+                </div>
+            </details>
+            </div>
             <?php endif; ?>
         </div>
     </main>

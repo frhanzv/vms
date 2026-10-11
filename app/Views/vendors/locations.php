@@ -20,7 +20,7 @@
                 The "Location Access" choices offered on the Vendor Pass request form, the detail page, Card Info, and
                 Process Detail. Add one here and it appears everywhere immediately — no other page needs changing.
                 <strong>Each location belongs to one client.</strong> A vendor pass is seen and approved by every client that owns
-                one of its selected locations<?= ! empty($isSuperadmin) ? ' (<a class="text-primary underline" target="_top" href="' . base_url('config/client-links') . '">Client links &amp; sharing</a>)' : '' ?>.
+                one of its selected locations.
             </p>
 
             <div id="flashMsg" class="hidden mb-4 text-sm px-4 py-2 rounded-lg"></div>

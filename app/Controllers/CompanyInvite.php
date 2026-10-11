@@ -8,7 +8,7 @@ use App\Models\UserModel;
 
 /**
  * "Send invite" button in Config > Company: (re)sends the registration email
- * to the vendor, carrying the CURRENT client's link. The same email goes out
+ * to the vendor, carrying the link to this production. The same email goes out
  * automatically when a company is created (CompanyModel afterInsert).
  */
 class CompanyInvite extends BaseController

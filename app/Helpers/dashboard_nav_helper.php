@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Which dashboards the logged-in user may open: Visitor, Staff, Vendor.
+ * Which dashboards the logged-in user may open: Visitor and Vendor.
  * One source of truth for the tab bar, the sidebar and the controllers.
  *
  *  - Visitor / Staff / Vendor tabs for staff-side roles need the existing
@@ -29,9 +29,8 @@ if (! function_exists('dashboard_tabs')) {
             $tabs[] = ['key' => 'visitor', 'label' => 'Visitor', 'url' => base_url('dashboard'), 'icon' => 'groups'];
         }
 
-        if ($staffSide && client_feature_enabled('staff_pass') && has_access('staff_pass_list', 'view')) {
-            $tabs[] = ['key' => 'staff', 'label' => 'Staff', 'url' => base_url('dashboard/staff'), 'icon' => 'badge'];
-        }
+        // No Staff dashboard: staff passes are managed from the Staff Pass List only.
+        // (dashboard/staff now redirects to the main dashboard because the tab is not allowed.)
 
         if (($staffSide || is_vendor_admin()) && client_feature_enabled('vendor_pass') && has_access('vendor_pass_list', 'view')) {
             $tabs[] = ['key' => 'vendor', 'label' => 'Vendor', 'url' => base_url('dashboard/vendor'), 'icon' => 'local_shipping'];

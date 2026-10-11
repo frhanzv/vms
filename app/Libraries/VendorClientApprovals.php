@@ -8,7 +8,7 @@ use CodeIgniter\Database\BaseConnection;
  * Which clients are involved in a vendor pass, and what each has decided.
  *
  * A pass carries Location Access codes; each location is owned by ONE client
- * (vendor_locations.client_id). Every client that owns at least one selected
+ * (locations.client_id). Every client that owns at least one selected
  * location gets a row in vendor_client_approvals: it sees the pass and
  * approves / rejects its own part. The pass as a whole is Approved only when
  * every involved client has approved.
@@ -27,8 +27,15 @@ class VendorClientApprovals
     /** Rows of the table that map a location code to its owning client. */
     protected static function ownerRows(BaseConnection $db, array $codes): array
     {
-        return $db->table('vendor_locations')->select('client_id')->whereIn('code', $codes)
-            ->where('client_id IS NOT NULL', null, false)->get()->getResultArray();
+        // Gates come from `locations`; a pass stores each as the slug of its name.
+        $out = [];
+        foreach ($db->table('locations')->select('location_access, client_id')->where('client_id IS NOT NULL', null, false)->get()->getResultArray() as $r) {
+            if (in_array(\App\Models\VendorLocationModel::slugifyCode((string) $r['location_access']), $codes, true)) {
+                $out[] = ['client_id' => $r['client_id']];
+            }
+        }
+
+        return $out;
     }
 
     /** @return list<int> client ids owning at least one of the location codes */
