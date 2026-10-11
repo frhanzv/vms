@@ -12,25 +12,164 @@
  */
 
 if (! function_exists('list_column_registry')) {
-    /** @return array<string, array{title:string, columns:array<string, array{label:string, locked?:bool}>}> */
+    /**
+     * Every page that Config > Page Settings can control.
+     *
+     * 'columns' => [key => ['label', 'locked'?]]   table columns (locked = always shown)
+     * 'buttons' => [key => label]                  buttons / sections on the page; the key is
+     *                                              the same flag the controllers already read,
+     *                                              so no controller needs to know about this.
+     *
+     * @return array<string, array{title:string, group:string, columns:array<string, array{label:string, locked?:bool}>, buttons:array<string,string>}>
+     */
     function list_column_registry(): array
     {
+        $vendorCols = [
+            'no'                  => ['label' => 'No', 'locked' => true],
+            'action'              => ['label' => 'Action', 'locked' => true],
+            'date'                => ['label' => 'Date'],
+            'app_no'              => ['label' => 'App No'],
+            'full_name'           => ['label' => 'Full Name', 'locked' => true],
+            'ic_passport'         => ['label' => 'IC / Passport No'],
+            'vendor_company_name' => ['label' => 'Vendor Company'],
+            'status'              => ['label' => 'Status', 'locked' => true],
+            'pass_expiry'         => ['label' => 'Pass Expiry'],
+        ];
+
         return [
+            // 'vendor_pass_list' keeps its old key so columns saved under Config > List Columns carry over.
             'vendor_pass_list' => [
-                'title'   => 'Vendor Pass List',
+                'title'   => 'Vendor List',
+                'group'   => 'Vendor Pass',
+                'columns' => $vendorCols + ['current_location' => ['label' => 'Current Location']],
+                'buttons' => [
+                    'request_button'  => 'Request button',
+                    'import_button'   => 'Import button',
+                    'template_button' => 'Template button',
+                    'export_button'   => 'Export button',
+                ],
+            ],
+            'vendor_request_list' => [
+                'title'   => 'Request List',
+                'group'   => 'Vendor Pass',
+                'columns' => $vendorCols,
+                'buttons' => [
+                    'approve_button' => 'Approve action',
+                    'reject_button'  => 'Reject action',
+                    'edit_button'    => 'Edit action',
+                    'delete_button'  => 'Delete action',
+                ],
+            ],
+            'vendor_process_list' => [
+                'title'   => 'Process List',
+                'group'   => 'Vendor Pass',
+                'columns' => [
+                    'no'                  => ['label' => 'No', 'locked' => true],
+                    'app_no'              => ['label' => 'App No'],
+                    'full_name'           => ['label' => 'Full Name', 'locked' => true],
+                    'vendor_company_name' => ['label' => 'Vendor Company'],
+                    'ic_passport'         => ['label' => 'IC / Passport'],
+                    'card_type'           => ['label' => 'Worker Type'],
+                    'pass_expiry'         => ['label' => 'Pass Expiry'],
+                    'action'              => ['label' => 'Action', 'locked' => true],
+                ],
+                'buttons' => [],
+            ],
+            'vendor_process_detail' => [
+                'title'   => 'Process Detail (opened from Process List)',
+                'group'   => 'Vendor Pass',
+                'columns' => [],
+                'buttons' => [
+                    'process_update_button'         => 'Update button',
+                    'process_reject_button'         => 'Reject button',
+                    'process_upload_photo_button'   => 'Upload Photo button',
+                    'process_rfid_section'          => 'Physical Card / RFID section',
+                    'process_card_printing_section' => 'Card Printing section',
+                ],
+            ],
+            'vendor_printing_list' => [
+                'title'   => 'Printing List',
+                'group'   => 'Vendor Pass',
+                'columns' => [
+                    'select'              => ['label' => 'Select (checkbox)', 'locked' => true],
+                    'no'                  => ['label' => 'No', 'locked' => true],
+                    'photo'               => ['label' => 'Photo'],
+                    'full_name'           => ['label' => 'Full Name', 'locked' => true],
+                    'vendor_company_name' => ['label' => 'Vendor Company'],
+                    'ic_passport'         => ['label' => 'IC / Passport'],
+                    'card_type'           => ['label' => 'Card Type'],
+                    'action'              => ['label' => 'Action', 'locked' => true],
+                ],
+                'buttons' => ['printing_generate_button' => 'Print / Generate Serial buttons'],
+            ],
+            'vendor_issuance_list' => [
+                'title'   => 'Issuance List',
+                'group'   => 'Vendor Pass',
+                'columns' => [
+                    'no'                  => ['label' => 'No', 'locked' => true],
+                    'app_no'              => ['label' => 'App No'],
+                    'receipt_no'          => ['label' => 'Receipt No'],
+                    'full_name'           => ['label' => 'Full Name', 'locked' => true],
+                    'vendor_company_name' => ['label' => 'Vendor Company'],
+                    'card_type'           => ['label' => 'Card Type'],
+                    'action'              => ['label' => 'Action', 'locked' => true],
+                ],
+                'buttons' => ['issuance_issue_button' => 'Issue Card button'],
+            ],
+            'vendor_closed_list' => [
+                'title'   => 'Closed List',
+                'group'   => 'Vendor Pass',
                 'columns' => [
                     'no'                  => ['label' => 'No', 'locked' => true],
                     'action'              => ['label' => 'Action', 'locked' => true],
-                    'date'                => ['label' => 'Date'],
                     'app_no'              => ['label' => 'App No'],
+                    'receipt_no'          => ['label' => 'Receipt No'],
+                    'app_date'            => ['label' => 'App Date'],
+                    'vendor_company_name' => ['label' => 'Vendor Company'],
                     'full_name'           => ['label' => 'Full Name', 'locked' => true],
                     'ic_passport'         => ['label' => 'IC / Passport No'],
-                    'vendor_company_name' => ['label' => 'Vendor Company'],
-                    'status'              => ['label' => 'Status', 'locked' => true],
-                    'pass_expiry'         => ['label' => 'Pass Expiry'],
+                    'vehicle_registration' => ['label' => 'Vehicle Registration'],
+                    'card_type'           => ['label' => 'Card Type'],
+                    'card_id'             => ['label' => 'Card ID'],
+                    'card_status'         => ['label' => 'Card Status'],
+                    'card_expiry'         => ['label' => 'Card Expiry'],
+                    'collected_by'        => ['label' => 'Collected By'],
+                    'issued_at'           => ['label' => 'Issued At'],
+                ],
+                'buttons' => [
+                    'closed_export_button'       => 'Export button',
+                    'closed_card_details_button' => 'Card Details action',
+                    'qr_button'                  => 'QR / Vendor Detail action',
+                ],
+            ],
+            'vendor_card_info' => [
+                'title'   => 'Card Info (opened from Closed List)',
+                'group'   => 'Vendor Pass',
+                'columns' => [],
+                'buttons' => [
+                    'card_info_add_license_button'   => 'Add License button',
+                    'card_info_edit_location_button' => 'Edit Location Access button',
+                    'card_info_upload_photo_button'  => 'Upload Photo button',
+                    'card_info_activate_button'      => 'Activate Card button',
+                    'card_info_terminate_button'     => 'Terminate Card button',
                 ],
             ],
         ];
+    }
+}
+
+if (! function_exists('page_managed_button_keys')) {
+    /** Every button/section flag that now lives in Page Settings (hidden from the form-field tabs). */
+    function page_managed_button_keys(): array
+    {
+        $keys = [];
+        foreach (list_column_registry() as $page) {
+            foreach (array_keys($page['buttons'] ?? []) as $k) {
+                $keys[] = $k;
+            }
+        }
+
+        return $keys;
     }
 }
 

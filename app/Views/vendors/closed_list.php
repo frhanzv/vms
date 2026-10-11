@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<?php helper('list_columns'); ?><!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8"/>
@@ -108,24 +108,24 @@
                         <tr class="bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold uppercase tracking-wide">
                             <th class="p-3 border-b dark:border-gray-600">No</th>
                             <th class="p-3 border-b dark:border-gray-600">Action</th>
-                            <th class="p-3 border-b dark:border-gray-600">App No</th>
-                            <th class="p-3 border-b dark:border-gray-600">Receipt No</th>
-                            <th class="p-3 border-b dark:border-gray-600">App Date</th>
-                            <th class="p-3 border-b dark:border-gray-600">Vendor Company</th>
+                            <?php if (list_col('vendor_closed_list', 'app_no')): ?><th class="p-3 border-b dark:border-gray-600">App No</th><?php endif; ?>
+                            <?php if (list_col('vendor_closed_list', 'receipt_no')): ?><th class="p-3 border-b dark:border-gray-600">Receipt No</th><?php endif; ?>
+                            <?php if (list_col('vendor_closed_list', 'app_date')): ?><th class="p-3 border-b dark:border-gray-600">App Date</th><?php endif; ?>
+                            <?php if (list_col('vendor_closed_list', 'vendor_company_name')): ?><th class="p-3 border-b dark:border-gray-600">Vendor Company</th><?php endif; ?>
                             <th class="p-3 border-b dark:border-gray-600">Full Name</th>
-                            <th class="p-3 border-b dark:border-gray-600">IC / Passport No</th>
-                            <th class="p-3 border-b dark:border-gray-600">Vehicle Registration</th>
-                            <th class="p-3 border-b dark:border-gray-600">Card Type</th>
-                            <th class="p-3 border-b dark:border-gray-600">Card ID</th>
-                            <th class="p-3 border-b dark:border-gray-600">Card Status</th>
-                            <th class="p-3 border-b dark:border-gray-600">Card Expiry</th>
-                            <th class="p-3 border-b dark:border-gray-600">Collected By</th>
-                            <th class="p-3 border-b dark:border-gray-600">Issued At</th>
+                            <?php if (list_col('vendor_closed_list', 'ic_passport')): ?><th class="p-3 border-b dark:border-gray-600">IC / Passport No</th><?php endif; ?>
+                            <?php if (list_col('vendor_closed_list', 'vehicle_registration')): ?><th class="p-3 border-b dark:border-gray-600">Vehicle Registration</th><?php endif; ?>
+                            <?php if (list_col('vendor_closed_list', 'card_type')): ?><th class="p-3 border-b dark:border-gray-600">Card Type</th><?php endif; ?>
+                            <?php if (list_col('vendor_closed_list', 'card_id')): ?><th class="p-3 border-b dark:border-gray-600">Card ID</th><?php endif; ?>
+                            <?php if (list_col('vendor_closed_list', 'card_status')): ?><th class="p-3 border-b dark:border-gray-600">Card Status</th><?php endif; ?>
+                            <?php if (list_col('vendor_closed_list', 'card_expiry')): ?><th class="p-3 border-b dark:border-gray-600">Card Expiry</th><?php endif; ?>
+                            <?php if (list_col('vendor_closed_list', 'collected_by')): ?><th class="p-3 border-b dark:border-gray-600">Collected By</th><?php endif; ?>
+                            <?php if (list_col('vendor_closed_list', 'issued_at')): ?><th class="p-3 border-b dark:border-gray-600">Issued At</th><?php endif; ?>
                         </tr>
                     </thead>
                     <tbody class="text-gray-600 dark:text-gray-300">
                         <?php if (empty($closedList)): ?>
-                        <tr><td colspan="15" class="p-8 text-center text-gray-500">No closed vendor pass records found.</td></tr>
+                        <tr><td colspan="<?= list_col_count('vendor_closed_list') ?>" class="p-8 text-center text-gray-500">No closed vendor pass records found.</td></tr>
                         <?php else: foreach ($closedList as $row): ?>
                         <tr class="border-b border-gray-100 dark:border-gray-700">
                             <td class="p-3"><?= $row['no'] ?></td>
@@ -144,21 +144,23 @@
                                     <?php endif; ?>
                                 </div>
                             </td>
-                            <td class="p-3"><?= esc($row['app_no']) ?></td>
-                            <td class="p-3"><?= esc($row['receipt_no']) ?></td>
-                            <td class="p-3"><?= esc($row['app_date']) ?></td>
-                            <td class="p-3"><?= esc($row['vendor_company_name']) ?></td>
+                            <?php if (list_col('vendor_closed_list', 'app_no')): ?><td class="p-3"><?= esc($row['app_no']) ?></td><?php endif; ?>
+                            <?php if (list_col('vendor_closed_list', 'receipt_no')): ?><td class="p-3"><?= esc($row['receipt_no']) ?></td><?php endif; ?>
+                            <?php if (list_col('vendor_closed_list', 'app_date')): ?><td class="p-3"><?= esc($row['app_date']) ?></td><?php endif; ?>
+                            <?php if (list_col('vendor_closed_list', 'vendor_company_name')): ?><td class="p-3"><?= esc($row['vendor_company_name']) ?></td><?php endif; ?>
                             <td class="p-3 font-semibold text-gray-800 dark:text-white"><?= esc($row['full_name']) ?></td>
-                            <td class="p-3"><?= esc($row['ic_passport_masked']) ?></td>
-                            <td class="p-3"><?= esc($row['vehicle_registration']) ?></td>
-                            <td class="p-3"><?= esc($row['card_type']) ?></td>
-                            <td class="p-3"><?= esc($row['card_id']) ?></td>
+                            <?php if (list_col('vendor_closed_list', 'ic_passport')): ?><td class="p-3"><?= esc($row['ic_passport_masked']) ?></td><?php endif; ?>
+                            <?php if (list_col('vendor_closed_list', 'vehicle_registration')): ?><td class="p-3"><?= esc($row['vehicle_registration']) ?></td><?php endif; ?>
+                            <?php if (list_col('vendor_closed_list', 'card_type')): ?><td class="p-3"><?= esc($row['card_type']) ?></td><?php endif; ?>
+                            <?php if (list_col('vendor_closed_list', 'card_id')): ?><td class="p-3"><?= esc($row['card_id']) ?></td><?php endif; ?>
+                            <?php if (list_col('vendor_closed_list', 'card_status')): ?>
                             <td class="p-3">
                                 <span class="px-2 py-0.5 rounded-full text-[10px] font-bold <?= $row['card_status'] === 'Active' ? 'bg-emerald-50 text-emerald-700' : ($row['card_status'] === 'Terminated' ? 'bg-red-50 text-red-700' : 'bg-gray-100 text-gray-700') ?>"><?= esc($row['card_status']) ?></span>
                             </td>
-                            <td class="p-3"><?= esc($row['card_expiry']) ?></td>
-                            <td class="p-3"><?= esc($row['collector_name']) ?></td>
-                            <td class="p-3"><?= esc($row['issued_at']) ?></td>
+                            <?php endif; ?>
+                            <?php if (list_col('vendor_closed_list', 'card_expiry')): ?><td class="p-3"><?= esc($row['card_expiry']) ?></td><?php endif; ?>
+                            <?php if (list_col('vendor_closed_list', 'collected_by')): ?><td class="p-3"><?= esc($row['collector_name']) ?></td><?php endif; ?>
+                            <?php if (list_col('vendor_closed_list', 'issued_at')): ?><td class="p-3"><?= esc($row['issued_at']) ?></td><?php endif; ?>
                         </tr>
                         <?php endforeach; endif; ?>
                     </tbody>

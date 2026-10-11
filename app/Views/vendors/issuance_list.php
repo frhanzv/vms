@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<?php helper('list_columns'); ?><!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8"/>
@@ -30,21 +30,21 @@
             <table class="w-full text-left text-xs border-collapse">
                 <thead>
                     <tr class="bg-gray-50 dark:bg-gray-700 font-bold uppercase">
-                        <th class="p-3 border-b">No</th><th class="p-3 border-b">App No</th><th class="p-3 border-b">Receipt No</th>
-                        <th class="p-3 border-b">Full Name</th><th class="p-3 border-b">Vendor Company</th><th class="p-3 border-b">Card Type</th><th class="p-3 border-b">Action</th>
+                        <th class="p-3 border-b">No</th><?php if (list_col('vendor_issuance_list', 'app_no')): ?><th class="p-3 border-b">App No</th><?php endif; ?><?php if (list_col('vendor_issuance_list', 'receipt_no')): ?><th class="p-3 border-b">Receipt No</th><?php endif; ?>
+                        <th class="p-3 border-b">Full Name</th><?php if (list_col('vendor_issuance_list', 'vendor_company_name')): ?><th class="p-3 border-b">Vendor Company</th><?php endif; ?><?php if (list_col('vendor_issuance_list', 'card_type')): ?><th class="p-3 border-b">Card Type</th><?php endif; ?><th class="p-3 border-b">Action</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (empty($list)): ?>
-                    <tr><td colspan="7" class="p-6 text-center text-gray-500">No printed cards awaiting issuance.</td></tr>
+                    <tr><td colspan="<?= list_col_count('vendor_issuance_list') ?>" class="p-6 text-center text-gray-500">No printed cards awaiting issuance.</td></tr>
                     <?php else: foreach ($list as $row): ?>
                     <tr class="border-b border-gray-100 dark:border-gray-700">
                         <td class="p-3"><?= $row['no'] ?></td>
-                        <td class="p-3"><?= esc($row['app_no']) ?></td>
-                        <td class="p-3 font-mono"><?= esc($row['receipt_no']) ?></td>
+                        <?php if (list_col('vendor_issuance_list', 'app_no')): ?><td class="p-3"><?= esc($row['app_no']) ?></td><?php endif; ?>
+                        <?php if (list_col('vendor_issuance_list', 'receipt_no')): ?><td class="p-3 font-mono"><?= esc($row['receipt_no']) ?></td><?php endif; ?>
                         <td class="p-3 font-semibold"><?= esc($row['full_name']) ?></td>
-                        <td class="p-3"><?= esc($row['vendor_company_name']) ?></td>
-                        <td class="p-3"><?= esc($row['card_type']) ?></td>
+                        <?php if (list_col('vendor_issuance_list', 'vendor_company_name')): ?><td class="p-3"><?= esc($row['vendor_company_name']) ?></td><?php endif; ?>
+                        <?php if (list_col('vendor_issuance_list', 'card_type')): ?><td class="p-3"><?= esc($row['card_type']) ?></td><?php endif; ?>
                         <td class="p-3">
                             <?php if ($canIssue ?? false): ?>
                             <button onclick="openIssue(this)" data-id="<?= $row['id'] ?>" data-name="<?= esc($row['full_name'], 'attr') ?>"

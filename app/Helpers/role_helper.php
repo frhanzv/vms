@@ -44,6 +44,7 @@ if (!function_exists('role_display_name')) {
             'host'             => 'Host',
             'receptionist'     => 'Receptionist',
             'viewer'           => 'Viewer',
+            'vendoradmin'      => 'Vendor Admin',
         ];
 
         return $labels[$slug] ?? ucfirst($slug);
@@ -235,6 +236,13 @@ if (!function_exists('role_management_name')) {
     function role_management_name(?string $roleSlug): string
     {
         $role = find_role_by_slug($roleSlug);
-        return $role['name'] ?? role_display_name($roleSlug);
+        $name = $role['name'] ?? '';
+
+        // A role stored as a slug (e.g. vendor_admin) is shown as words (Vendor Admin).
+        if ($name !== '' && preg_match('/^[a-z0-9]+(_[a-z0-9]+)+$/', $name)) {
+            return ucwords(str_replace('_', ' ', $name));
+        }
+
+        return $name !== '' ? $name : role_display_name($roleSlug);
     }
 }

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<?php helper('list_columns'); ?><!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8"/>
@@ -77,23 +77,23 @@
                 <table class="w-full text-left text-xs border-collapse">
                     <thead>
                         <tr class="bg-gray-50 dark:bg-gray-700 font-bold uppercase">
-                            <th class="p-3 border-b">No</th><th class="p-3 border-b">App No</th><th class="p-3 border-b">Full Name</th>
-                            <th class="p-3 border-b">Vendor Company</th><th class="p-3 border-b">IC/Passport</th>
-                            <th class="p-3 border-b">Worker Type</th><th class="p-3 border-b">Pass Expiry</th><th class="p-3 border-b">Action</th>
+                            <th class="p-3 border-b">No</th><?php if (list_col('vendor_process_list', 'app_no')): ?><th class="p-3 border-b">App No</th><?php endif; ?><th class="p-3 border-b">Full Name</th>
+                            <?php if (list_col('vendor_process_list', 'vendor_company_name')): ?><th class="p-3 border-b">Vendor Company</th><?php endif; ?><?php if (list_col('vendor_process_list', 'ic_passport')): ?><th class="p-3 border-b">IC/Passport</th><?php endif; ?>
+                            <?php if (list_col('vendor_process_list', 'card_type')): ?><th class="p-3 border-b">Worker Type</th><?php endif; ?><?php if (list_col('vendor_process_list', 'pass_expiry')): ?><th class="p-3 border-b">Pass Expiry</th><?php endif; ?><th class="p-3 border-b">Action</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (empty($list)): ?>
-                        <tr><td colspan="8" class="p-6 text-center text-gray-500">No approved passes waiting to be printed.</td></tr>
+                        <tr><td colspan="<?= list_col_count('vendor_process_list') ?>" class="p-6 text-center text-gray-500">No approved passes waiting to be printed.</td></tr>
                         <?php else: foreach ($list as $row): ?>
                         <tr class="border-b border-gray-100 dark:border-gray-700">
                             <td class="p-3"><?= $row['no'] ?></td>
-                            <td class="p-3"><?= esc($row['app_no']) ?></td>
+                            <?php if (list_col('vendor_process_list', 'app_no')): ?><td class="p-3"><?= esc($row['app_no']) ?></td><?php endif; ?>
                             <td class="p-3 font-semibold"><?= esc($row['full_name']) ?></td>
-                            <td class="p-3"><?= esc($row['vendor_company_name']) ?></td>
-                            <td class="p-3"><?= esc($row['ic_passport_masked']) ?></td>
-                            <td class="p-3"><?= esc($row['card_type']) ?></td>
-                            <td class="p-3"><?= esc($row['pass_expiry']) ?></td>
+                            <?php if (list_col('vendor_process_list', 'vendor_company_name')): ?><td class="p-3"><?= esc($row['vendor_company_name']) ?></td><?php endif; ?>
+                            <?php if (list_col('vendor_process_list', 'ic_passport')): ?><td class="p-3"><?= esc($row['ic_passport_masked']) ?></td><?php endif; ?>
+                            <?php if (list_col('vendor_process_list', 'card_type')): ?><td class="p-3"><?= esc($row['card_type']) ?></td><?php endif; ?>
+                            <?php if (list_col('vendor_process_list', 'pass_expiry')): ?><td class="p-3"><?= esc($row['pass_expiry']) ?></td><?php endif; ?>
                             <td class="p-3">
                                 <a href="<?= base_url('vendors/process-list/detail/view/' . $row['id']) ?>" class="text-primary hover:underline text-xs font-semibold">View Details</a>
                             </td>

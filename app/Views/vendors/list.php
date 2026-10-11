@@ -1,4 +1,4 @@
-<?php helper('list_columns'); $col = static fn(string $k): bool => list_col('vendor_pass_list', $k); ?>
+<?php helper('list_columns'); $listKey = ($requestMode ?? false) ? 'vendor_request_list' : 'vendor_pass_list'; $col = static fn(string $k): bool => list_col($listKey, $k); ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -52,7 +52,7 @@
             <!-- Header -->
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                 <h1 class="text-xl md:text-2xl font-bold tracking-tight text-gray-800 dark:text-white uppercase">
-                    Vendor Pass List
+                    <?= ($requestMode ?? false) ? 'Request List' : 'Vendor List' ?>
                 </h1>
                 <div class="flex flex-wrap gap-2">
                     <?php if ($canImport ?? false): ?>
@@ -120,7 +120,7 @@
             <?php endif; ?>
 
             <!-- Filter -->
-            <form id="vendorSearchForm" method="get" action="<?= base_url('vendors') ?>" class="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
+            <form id="vendorSearchForm" method="get" action="<?= $listUrl ?? base_url('vendors') ?>" class="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
                 <div class="flex shadow-sm w-full max-w-lg">
                     <input name="search" value="<?= esc($searchTerm ?? '') ?>"
                         class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-xs focus:ring-primary focus:border-primary outline-none"
@@ -150,7 +150,7 @@
             <div class="mb-4 text-xs text-gray-500 dark:text-gray-400">
                 Showing results for <strong class="text-gray-800 dark:text-white"><?= esc($searchTerm) ?></strong>
                 — <?= number_format($pagination['total'] ?? count($vendorList)) ?> match<?= ($pagination['total'] ?? count($vendorList)) === 1 ? '' : 'es' ?>
-                <a href="<?= base_url('vendors') ?>" class="ml-2 text-primary hover:underline">Clear</a>
+                <a href="<?= $listUrl ?? base_url('vendors') ?>" class="ml-2 text-primary hover:underline">Clear</a>
             </div>
             <?php endif; ?>
 
@@ -186,12 +186,15 @@
                             <?php if ($col('pass_expiry')): ?>
                             <th class="p-4 border-b dark:border-gray-600">Pass Expiry</th>
                             <?php endif; ?>
+                            <?php if (! ($requestMode ?? false) && $col('current_location')): ?>
+                            <th class="p-4 border-b dark:border-gray-600">Current Location</th>
+                            <?php endif; ?>
                         </tr>
                     </thead>
                     <tbody class="text-xs text-gray-600 dark:text-gray-300 font-medium">
                         <?php if (empty($vendorList)): ?>
                         <tr>
-                            <td colspan="<?= list_col_count('vendor_pass_list') ?>" class="p-8 text-center">
+                            <td colspan="<?= list_col_count($listKey) ?>" class="p-8 text-center">
                                 <div class="flex flex-col items-center justify-center gap-3">
                                     <div class="bg-gray-100 dark:bg-gray-800 rounded-full p-4">
                                         <span class="material-symbols-outlined text-4xl text-gray-400 dark:text-gray-500">folder_off</span>
@@ -231,7 +234,7 @@
                                             // lookup (not a pass-verification code) and only makes sense once
                                             // the card has actually been issued — it lives in Closed List now.
                                         ?>
-                                        <?php if ($vendor['can_approve'] ?? false): ?>
+                                        <?php if (($requestMode ?? false) && ($vendor['can_approve'] ?? false)): ?>
                                         <button type="button"
                                             data-id="<?= (int) $vendor['id'] ?>" data-name="<?= esc($vendor['full_name'], 'attr') ?>" data-app="<?= esc($vendor['app_no'], 'attr') ?>"
                                             onclick="event.stopPropagation(); openApprove(this)"
@@ -239,7 +242,7 @@
                                             <span class="material-symbols-outlined text-[20px]">check_circle</span>
                                         </button>
                                         <?php endif; ?>
-                                        <?php if ($vendor['can_reject'] ?? false): ?>
+                                        <?php if (($requestMode ?? false) && ($vendor['can_reject'] ?? false)): ?>
                                         <button type="button"
                                             data-id="<?= (int) $vendor['id'] ?>" data-name="<?= esc($vendor['full_name'], 'attr') ?>" data-app="<?= esc($vendor['app_no'], 'attr') ?>"
                                             onclick="event.stopPropagation(); openReject(this)"
@@ -288,6 +291,21 @@
                                 <?php if ($col('pass_expiry')): ?>
                                 <td class="p-4"><?= esc($vendor['pass_expiry']) ?></td>
                                 <?php endif; ?>
+                                <?php if (! ($requestMode ?? false) && $col('current_location')): ?>
+                                <?php
+                                    $stageTone = [
+                                        'amber'  => 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+                                        'blue'   => 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+                                        'purple' => 'bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+                                        'red'    => 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+                                        'gray'   => 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400',
+                                    ];
+                                    $stage = $vendor['stage'] ?? ['label' => '-', 'tone' => 'gray'];
+                                ?>
+                                <td class="p-4">
+                                    <span class="px-2.5 py-1 rounded-full text-[11px] font-bold whitespace-nowrap <?= $stageTone[$stage['tone']] ?? $stageTone['gray'] ?>"><?= esc($stage['label']) ?></span>
+                                </td>
+                                <?php endif; ?>
                             </tr>
                             <?php endforeach; ?>
                         <?php endif; ?>
@@ -311,7 +329,7 @@
                 if ($pp !== 10) $params['per_page'] = $pp;
                 if ($pg > 1) $params['page'] = $pg;
                 $qs = http_build_query($params);
-                return base_url('vendors') . ($qs ? '?' . $qs : '');
+                return ($listUrl ?? base_url('vendors')) . ($qs ? '?' . $qs : '');
             };
 
             $pgNumbers = [];

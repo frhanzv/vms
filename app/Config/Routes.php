@@ -270,8 +270,10 @@ $routes->get('/', 'Dashboard::index');
 $routes->get('dashboard', 'Dashboard::index');
 $routes->get('dashboard/staff',  'DashboardStaff::index',  ['filter' => 'client_feature:staff_pass']);
 $routes->get('dashboard/vendor', 'DashboardVendor::index', ['filter' => 'client_feature:vendor_pass']);
-$routes->get('config/list-columns',        'ListColumnConfig::index', ['filter' => 'role:superadmin,clientsuperadmin']);
-$routes->post('config/list-columns/save',  'ListColumnConfig::save',  ['filter' => 'role:superadmin,clientsuperadmin']);
+// List Columns moved into Config > Page Settings (old link just goes to Config).
+$routes->get('config/list-columns', static fn () => redirect()->to(base_url('config')));
+$routes->get('config/page-settings/data',  'PageSettings::data', ['filter' => 'role:superadmin,clientsuperadmin']);
+$routes->post('config/page-settings/save', 'PageSettings::save', ['filter' => 'role:superadmin,clientsuperadmin']);
 
 // Multi-client sharing: client codes / site groups / gate owners (platform superadmin only)
 $routes->get('config/client-links',                    'ClientLinks::index',        ['filter' => 'role:superadmin']);
@@ -431,6 +433,7 @@ $routes->group('', ['filter' => [$plusAdminOfficer, 'client_feature:staff_pass']
 
 $routes->group('', ['filter' => [$plusAdminOfficerVendor, 'client_feature:vendor_pass']], function ($routes) {
     $routes->get('vendors', 'VendorList::index');
+    $routes->get('vendors/request-list', 'VendorList::requestList');
     $routes->get('vendors/export', 'VendorList::export');
     $routes->post('vendors/import', 'VendorList::import');
 

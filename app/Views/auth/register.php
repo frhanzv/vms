@@ -68,7 +68,7 @@
 
             <!-- Company lookup -->
             <div class="flex flex-col gap-2">
-                <label class="text-sm font-semibold" for="ssm_no">Company SSM No</label>
+                <label class="text-sm font-semibold" for="ssm_no">Company SSM No <span class="text-red-500">*</span></label>
                 <div class="flex gap-2">
                     <input class="form-input flex-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#101922] h-12 px-4 text-base" id="ssm_no" name="ssm_no" type="text" value="<?= esc(old('ssm_no') ?: ($prefillSsm ?? '')) ?>" placeholder="e.g. 201901012345" required/>
                     <button type="button" id="searchCompanyBtn" class="h-12 px-5 rounded-lg bg-slate-700 hover:bg-slate-800 text-white text-sm font-semibold whitespace-nowrap">Search</button>
@@ -78,11 +78,11 @@
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div class="flex flex-col gap-2">
-                    <label class="text-sm font-semibold">Company Name</label>
+                    <label class="text-sm font-semibold">Company Name <span class="text-red-500">*</span></label>
                     <input id="company_name" class="form-input rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#101922] h-12 px-4 text-base" type="text" value="" readonly placeholder="Found after searching"/>
                 </div>
                 <div class="flex flex-col gap-2">
-                    <label class="text-sm font-semibold">Company Name In Port Pass</label>
+                    <label class="text-sm font-semibold">Company Name In Port Pass <span class="text-red-500">*</span></label>
                     <input id="company_pass_name" class="form-input rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#101922] h-12 px-4 text-base" type="text" value="" readonly placeholder="Found after searching"/>
                 </div>
             </div>
@@ -91,7 +91,7 @@
             <input type="hidden" name="client_id" value="<?= (int) $clientLink['id'] ?>"/>
             <?php endif; ?>
             <div id="clientWrap" class="hidden flex flex-col gap-2">
-                <label class="text-sm font-semibold" for="client_id">Client you are working with</label>
+                <label class="text-sm font-semibold" for="client_id">Client you are working with <span class="text-red-500">*</span></label>
                 <select class="form-select rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#101922] h-12 px-4 text-base" id="client_id" name="client_id">
                     <option value="">Select client</option>
                 </select>
@@ -102,34 +102,34 @@
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div class="flex flex-col gap-2">
-                    <label class="text-sm font-semibold" for="password">Password</label>
+                    <label class="text-sm font-semibold" for="password">Password <span class="text-red-500">*</span></label>
                     <input class="form-input rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#101922] h-12 px-4 text-base" id="password" name="password" type="password" minlength="6" required/>
                 </div>
                 <div class="flex flex-col gap-2">
-                    <label class="text-sm font-semibold" for="email">Email</label>
+                    <label class="text-sm font-semibold" for="email">Email <span class="text-red-500">*</span></label>
                     <input class="form-input rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#101922] h-12 px-4 text-base" id="email" name="email" type="email" value="<?= old('email') ?>" required/>
                 </div>
                 <div class="flex flex-col gap-2">
-                    <label class="text-sm font-semibold" for="country">Country</label>
+                    <label class="text-sm font-semibold" for="country">Country <span class="text-red-500">*</span></label>
                     <input class="form-input rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#101922] h-12 px-4 text-base" id="country" name="country" type="text" value="<?= old('country', 'Malaysia') ?>"/>
                 </div>
                 <div class="flex flex-col gap-2">
-                    <label class="text-sm font-semibold" for="full_name">Administrator's Full Name</label>
+                    <label class="text-sm font-semibold" for="full_name">Administrator's Full Name <span class="text-red-500">*</span></label>
                     <input class="form-input rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#101922] h-12 px-4 text-base" id="full_name" name="full_name" type="text" value="<?= old('full_name') ?>" required/>
                 </div>
                 <div class="flex flex-col gap-2">
-                    <label class="text-sm font-semibold" for="ic_number">IC Number</label>
+                    <label class="text-sm font-semibold" for="ic_number">IC Number <span class="text-red-500">*</span></label>
                     <input class="form-input rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#101922] h-12 px-4 text-base" id="ic_number" name="ic_number" type="text" value="<?= old('ic_number') ?>" placeholder="Numbers only, no dashes" required/>
                 </div>
                 <div class="flex flex-col gap-2">
-                    <label class="text-sm font-semibold" for="contact_no">Contact Number</label>
+                    <label class="text-sm font-semibold" for="contact_no">Contact Number <span class="text-red-500">*</span></label>
                     <input class="form-input rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#101922] h-12 px-4 text-base" id="contact_no" name="contact_no" type="text" value="<?= old('contact_no') ?>" placeholder="Numbers only, no dashes" required/>
                 </div>
             </div>
 
             <label class="flex items-start gap-3 cursor-pointer">
                 <input class="w-4 h-4 mt-0.5 rounded border-slate-300 text-primary focus:ring-primary/20" type="checkbox" name="agree_terms" value="1" required/>
-                <span class="text-sm text-slate-600 dark:text-slate-300">I agree to the Terms &amp; Conditions and confirm the details above are correct.</span>
+                <span class="text-sm text-slate-600 dark:text-slate-300">I agree to the Terms &amp; Conditions and confirm the details above are correct. <span class="text-red-500">*</span></span>
             </label>
 
             <button type="submit" class="flex w-full items-center justify-center rounded-lg bg-primary h-14 px-4 text-base font-bold text-white shadow-md shadow-primary/20 hover:bg-blue-600 transition-all">

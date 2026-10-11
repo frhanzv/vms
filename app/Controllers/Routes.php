@@ -1,0 +1,916 @@
+<?php
+
+use CodeIgniter\Router\RouteCollection;
+
+/**
+ * @var RouteCollection $routes
+ */
+
+// Role filter string aliases for readability
+$superadmins            = 'role:superadmin,clientsuperadmin';
+$plusAdmin              = 'role:superadmin,clientsuperadmin,admin';
+$plusOfficer            = 'role:superadmin,clientsuperadmin,officer';
+$plusAdminOfficer       = 'role:superadmin,clientsuperadmin,admin,officer';
+$plusHost               = 'role:superadmin,clientsuperadmin,officer,host';
+$plusAdminHost          = 'role:superadmin,clientsuperadmin,admin,host';
+$plusAdminOfficerVendor = 'role:superadmin,clientsuperadmin,admin,officer,vendor_admin';
+// ===========================
+// Public Routes (no auth)
+// ===========================
+
+$routes->get('login', 'Auth::login');
+$routes->post('auth/attemptLogin', 'Auth::attemptLogin');
+$routes->get('auth/logout', 'Auth::logout');
+$routes->get('vendor-pass-qr/(:any)', 'VendorPassQr::show/$1');
+$routes->get('register', 'Auth::register');
+$routes->post('register/search-company', 'Auth::searchCompany');
+$routes->post('register', 'Auth::doRegister');
+// Per-client product links (code in the URL) - public
+$routes->get('c/(:segment)/login', 'Auth::clientLogin/$1');
+$routes->get('c/(:segment)/register', 'Auth::clientRegister/$1');
+$routes->post('c/(:segment)/register', 'Auth::doRegister/$1');
+$routes->get('activate/(:segment)', 'Auth::activate/$1');
+$routes->get('forgot-password', 'Auth::forgotPassword');
+$routes->post('forgot-password', 'Auth::doForgotPassword');
+
+$routes->group('api/rfid', function($routes) {
+    $routes->get('scan', 'RFID::scan');
+    $routes->get('scan-lane', 'RFID::scanLane');
+    $routes->get('status', 'RFID::status');
+    $routes->get('test-connection', 'RFID::testConnection');
+    $routes->get('api/vendor-rfid/scan', 'VendorRFID::scan');
+});
+
+$routes->post('api/receive-worker-count', 'Api\WorkerCountReceiver::receive');
+
+$routes->post('api/sync/trigger', 'Api\SyncWebhook::trigger');
+
+$routes->group('api/qr', function($routes) {
+    $routes->get('scan', 'QRCode::scan');
+    $routes->get('scan-lane', 'QRCode::scanLane');
+    $routes->get('status', 'QRCode::status');
+});
+
+$routes->get('scanner', 'Scanner::index');
+$routes->get('scanner/lanes', 'Scanner::getLanes');
+
+$routes->get('visitor-registration', 'VisitorRegistration::index');
+$routes->post('visitor-registration/submit', 'VisitorRegistration::submit');
+$routes->post('visitor-registration/processMyKad', 'VisitorRegistration::processMyKad');
+$routes->post('visitor-registration/updateEmail', 'VisitorRegistration::updateEmail');
+$routes->post('visitor-registration/inviteAdditionalGuests', 'VisitorRegistration::inviteAdditionalGuests');
+
+$routes->get('uploads/(:segment)/(:segment)', 'FileServer::serve/$1/$2');
+
+$routes->get('security/briefing', 'SecurityBriefing::index');
+$routes->post('security/validateCompletion', 'SecurityBriefing::validateCompletion');
+$routes->get('security/facial-verification', 'SecurityBriefing::facialVerification');
+$routes->post('security/facial-complete', 'SecurityBriefing::facialComplete');
+$routes->get('security/completed', 'SecurityBriefing::completed');
+$routes->get('security/checkin', 'SecurityBriefing::checkin');
+$routes->post('security/confirmCheckin', 'SecurityBriefing::confirmCheckin');
+$routes->get('config', 'Config::index');
+$routes->get('config/getLogs', 'Config::getLogs');
+$routes->get('config/exportLogs', 'Config::exportLogs');
+// Client Feature Flag Routes
+$routes->get('config/getClientFeatures/(:num)', 'Config::getClientFeatures/$1');
+$routes->post('config/saveClientFeatures/(:num)', 'Config::saveClientFeatures/$1');
+
+// Notification Settings Routes
+$routes->get('config/getNotificationSettings/(:num)', 'Config::getNotificationSettings/$1');
+$routes->post('config/saveNotificationSettings/(:num)', 'Config::saveNotificationSettings/$1');
+$routes->get('config/getMessagingCredentials/(:num)/(:alpha)', 'Config::getMessagingCredentials/$1/$2');
+$routes->post('config/saveMessagingCredentials/(:num)/(:alpha)', 'Config::saveMessagingCredentials/$1/$2');
+$routes->get('config/getWhatsappTemplates/(:num)', 'Config::getWhatsappTemplates/$1');
+$routes->post('config/saveWhatsappTemplates/(:num)', 'Config::saveWhatsappTemplates/$1');
+
+// Dynamic Form Field Routes
+$routes->get('config/getClientFormFields/(:num)', 'Config::getClientFormFields/$1');
+$routes->post('config/saveClientFormFields/(:num)', 'Config::saveClientFormFields/$1');
+
+// Alert Priority Management Routes
+$routes->get('config/getAlertPriorities', 'Config::getAlertPriorities');
+$routes->post('config/updateAlertPriority/(:num)', 'Config::updateAlertPriority/$1');
+
+// Mobile Kiosk Settings
+$routes->get('config/kioskSettings', 'Config::getKioskSettings');
+$routes->post('config/saveKioskSettings', 'Config::saveKioskSettings');
+
+// App Config Routes
+$routes->get('config/getAppConfigs',          'AppConfig::getAll');
+$routes->get('config/getAppConfig/(:num)',     'AppConfig::get/$1');
+$routes->post('config/updateAppConfig/(:num)', 'AppConfig::update/$1');
+
+// Role Management Routes
+$routes->get('config/getRoles', 'Config::getRoles');
+$routes->get('config/getRole/(:num)', 'Config::getRole/$1');
+$routes->post('config/createRole', 'Config::createRole');
+$routes->post('config/updateRole/(:num)', 'Config::updateRole/$1');
+$routes->delete('config/deleteRole/(:num)', 'Config::deleteRole/$1');
+
+// User Management Routes
+$routes->get('config/getUsers', 'Config::getUsers');
+$routes->get('config/getUser/(:num)', 'Config::getUser/$1');
+$routes->post('config/createUser', 'Config::createUser');
+$routes->post('config/updateUser/(:num)', 'Config::updateUser/$1');
+$routes->delete('config/deleteUser/(:num)', 'Config::deleteUser/$1');
+$routes->get('config/getAllRoles', 'Config::getAllRoles');
+
+$routes->get('config/getAllClients', 'Config::getAllClients');
+$routes->get('config/getClients', 'Config::getClients');
+$routes->get('config/getClient/(:num)', 'Config::getClient/$1');
+$routes->post('config/createClient', 'Config::createClient');
+$routes->post('config/updateClient/(:num)', 'Config::updateClient/$1');
+$routes->delete('config/deleteClient/(:num)', 'Config::deleteClient/$1');
+
+// Company Management Routes (visitor contractor companies — invitations)
+$routes->get('config/getCompanies', 'Config::getCompanies');
+$routes->get('config/getCompany/(:num)', 'Config::getCompany/$1');
+$routes->post('config/createCompany', 'Config::createCompany');
+$routes->post('config/updateCompany/(:num)', 'Config::updateCompany/$1');
+$routes->delete('config/deleteCompany/(:num)', 'Config::deleteCompany/$1');
+$routes->get('config/getAllCompanies', 'Config::getAllCompanies');
+
+// Sub Company Management Routes
+$routes->get('config/getSubCompanies', 'Config::getSubCompanies');
+$routes->get('config/getSubCompany/(:num)', 'Config::getSubCompany/$1');
+$routes->post('config/createSubCompany', 'Config::createSubCompany');
+$routes->post('config/updateSubCompany/(:num)', 'Config::updateSubCompany/$1');
+$routes->delete('config/deleteSubCompany/(:num)', 'Config::deleteSubCompany/$1');
+
+// Country Management Routes
+$routes->get('config/getCountries', 'Config::getCountries');
+$routes->get('config/getCountry/(:num)', 'Config::getCountry/$1');
+$routes->post('config/createCountry', 'Config::createCountry');
+$routes->post('config/updateCountry/(:num)', 'Config::updateCountry/$1');
+$routes->delete('config/deleteCountry/(:num)', 'Config::deleteCountry/$1');
+$routes->get('config/getAllCountries', 'Config::getAllCountries');
+
+// State Management Routes
+$routes->get('config/getStates', 'Config::getStates');
+$routes->get('config/getState/(:num)', 'Config::getState/$1');
+$routes->post('config/createState', 'Config::createState');
+$routes->put('config/updateState/(:num)', 'Config::updateState/$1');
+$routes->delete('config/deleteState/(:num)', 'Config::deleteState/$1');
+$routes->get('config/getAllStates', 'Config::getAllStates');
+
+// City Management Routes
+$routes->get('config/getCities', 'Config::getCities');
+$routes->get('config/getCity/(:num)', 'Config::getCity/$1');
+$routes->post('config/createCity', 'Config::createCity');
+$routes->put('config/updateCity/(:num)', 'Config::updateCity/$1');
+$routes->delete('config/deleteCity/(:num)', 'Config::deleteCity/$1');
+
+// Department Management Routes
+$routes->get('config/getDepartments', 'Config::getDepartments');
+$routes->get('config/getDepartment/(:num)', 'Config::getDepartment/$1');
+$routes->post('config/createDepartment', 'Config::createDepartment');
+$routes->put('config/updateDepartment/(:num)', 'Config::updateDepartment/$1');
+$routes->delete('config/deleteDepartment/(:num)', 'Config::deleteDepartment/$1');
+
+// Designation Management Routes
+$routes->get('config/getDesignations', 'Config::getDesignations');
+$routes->get('config/getDesignation/(:num)', 'Config::getDesignation/$1');
+$routes->post('config/createDesignation', 'Config::createDesignation');
+$routes->put('config/updateDesignation/(:num)', 'Config::updateDesignation/$1');
+$routes->delete('config/deleteDesignation/(:num)', 'Config::deleteDesignation/$1');
+
+// Location Management Routes
+$routes->get('config/getLocations', 'Config::getLocations');
+$routes->get('config/getLocation/(:num)', 'Config::getLocation/$1');
+$routes->post('config/createLocation', 'Config::createLocation');
+$routes->put('config/updateLocation/(:num)', 'Config::updateLocation/$1');
+$routes->delete('config/deleteLocation/(:num)', 'Config::deleteLocation/$1');
+
+// Lane Management Routes
+$routes->get('config/getLanes', 'Config::getLanes');
+$routes->get('config/getLane/(:num)', 'Config::getLane/$1');
+$routes->post('config/createLane', 'Config::createLane');
+$routes->put('config/updateLane/(:num)', 'Config::updateLane/$1');
+$routes->delete('config/deleteLane/(:num)', 'Config::deleteLane/$1');
+
+// Reject Reason Management Routes
+$routes->get('config/getRejectReasons', 'Config::getRejectReasons');
+$routes->get('config/getRejectReason/(:num)', 'Config::getRejectReason/$1');
+$routes->post('config/createRejectReason', 'Config::createRejectReason');
+$routes->put('config/updateRejectReason/(:num)', 'Config::updateRejectReason/$1');
+$routes->delete('config/deleteRejectReason/(:num)', 'Config::deleteRejectReason/$1');
+
+
+// Visitor Card Management Routes
+$routes->group('', ['filter' => 'client_feature:visitor_card'], function($routes) {
+    $routes->get('config/getVisitorCards', 'Config::getVisitorCards');
+    $routes->get('config/getVisitorCard/(:num)', 'Config::getVisitorCard/$1');
+    $routes->post('config/createVisitorCard', 'Config::createVisitorCard');
+    $routes->put('config/updateVisitorCard/(:num)', 'Config::updateVisitorCard/$1');
+    $routes->delete('config/deleteVisitorCard/(:num)', 'Config::deleteVisitorCard/$1');
+    $routes->get('config/generateVisitorCardQr/(:any)', 'Config::generateVisitorCardQr/$1');
+});
+
+// Video Management Routes
+$routes->get('config/getVideos', 'Config::getVideos');
+$routes->get('config/getVideo/(:num)', 'Config::getVideo/$1');
+$routes->post('config/createVideo', 'Config::createVideo');
+$routes->post('config/updateVideo/(:num)', 'Config::updateVideo/$1');
+$routes->delete('config/deleteVideo/(:num)', 'Config::deleteVideo/$1');
+
+// Visit Reason Management Routes
+$routes->get('config/getVisitReasons', 'Config::getVisitReasons');
+$routes->post('config/createVisitReason', 'Config::createVisitReason');
+$routes->post('config/updateVisitReason/(:num)', 'Config::updateVisitReason/$1');
+$routes->delete('config/deleteVisitReason/(:num)', 'Config::deleteVisitReason/$1');
+$routes->get('config/getLocationVisited', 'Config::getLocationVisited');
+$routes->post('config/createLocationVisited', 'Config::createLocationVisited');
+$routes->post('config/updateLocationVisited/(:num)', 'Config::updateLocationVisited/$1');
+$routes->delete('config/deleteLocationVisited/(:num)', 'Config::deleteLocationVisited/$1');
+
+$routes->get('config/getVisitorTypes', 'Config::getVisitorTypes');
+$routes->get('config/getVisitorType/(:num)', 'Config::getVisitorType/$1');
+$routes->post('config/createVisitorType', 'Config::createVisitorType');
+$routes->post('config/updateVisitorType/(:num)', 'Config::updateVisitorType/$1');
+$routes->delete('config/deleteVisitorType/(:num)', 'Config::deleteVisitorType/$1');
+// Device Assignments Routes
+$routes->get('config/getDeviceAssignments', 'Config::getDeviceAssignments');
+$routes->get('config/getDeviceAssignment/(:num)', 'Config::getDeviceAssignment/$1');
+$routes->post('config/checkDeviceStatus/(:num)', 'Config::checkDeviceStatus/$1');
+$routes->post('config/createDeviceAssignment', 'Config::createDeviceAssignment');
+$routes->post('config/updateDeviceAssignment/(:num)', 'Config::updateDeviceAssignment/$1');
+$routes->post('config/deleteDeviceAssignment/(:num)', 'Config::deleteDeviceAssignment/$1');
+
+// IP Range Settings
+$routes->get('config/getIpRangeSettings', 'Config::getIpRangeSettings');
+$routes->post('config/saveIpRangeSettings', 'Config::saveIpRangeSettings');
+$routes->get('config/getLoginPageSettings', 'Config::getLoginPageSettings');
+$routes->post('config/saveLoginPageSettings', 'Config::saveLoginPageSettings');
+$routes->get('config/getCompanyLogoSettings', 'Config::getCompanyLogoSettings');
+$routes->post('config/saveCompanyLogoSettings', 'Config::saveCompanyLogoSettings');
+$routes->get('config/getEmailTemplateFormSettings', 'Config::getEmailTemplateFormSettings');
+$routes->post('config/saveEmailTemplateFormSettings', 'Config::saveEmailTemplateFormSettings');
+$routes->get('config/getInvitationEmailTemplateSettings', 'Config::getInvitationEmailTemplateSettings');
+$routes->post('config/saveInvitationEmailTemplateSettings', 'Config::saveInvitationEmailTemplateSettings');
+$routes->get('config/getEmailTemplates', 'Config::getEmailTemplates');
+$routes->get('config/getEmailTemplate/(:num)', 'Config::getEmailTemplate/$1');
+$routes->get('config/previewEmailTemplate/(:num)', 'Config::previewEmailTemplate/$1');
+$routes->post('config/createEmailTemplate', 'Config::createEmailTemplate');
+$routes->post('config/updateEmailTemplate/(:num)', 'Config::updateEmailTemplate/$1');
+$routes->post('config/createEmailTemplateFormField', 'Config::createEmailTemplateFormField');
+$routes->post('config/updateEmailTemplateFormField/(:num)', 'Config::updateEmailTemplateFormField/$1');
+$routes->post('config/deleteEmailTemplateFormField/(:num)', 'Config::deleteEmailTemplateFormField/$1');
+$routes->post('config/reorderEmailTemplateFormFields', 'Config::reorderEmailTemplateFormFields');
+$routes->get('config/generateVisitorQr', 'Config::generateVisitorQr');
+
+
+$routes->get('config/generateVisitorQr', 'Config::generateVisitorQr');
+
+// ===========================
+// Protected Routes — All Roles
+// ===========================
+
+$routes->get('/', 'Dashboard::index');
+$routes->get('dashboard', 'Dashboard::index');
+$routes->get('dashboard/staff',  'DashboardStaff::index',  ['filter' => 'client_feature:staff_pass']);
+$routes->get('dashboard/vendor', 'DashboardVendor::index', ['filter' => 'client_feature:vendor_pass']);
+// List Columns moved into Config > Page Settings (old link just goes to Config).
+$routes->get('config/list-columns', static fn () => redirect()->to(base_url('config')));
+$routes->get('config/page-settings/data',  'PageSettings::data', ['filter' => 'role:superadmin,clientsuperadmin']);
+$routes->post('config/page-settings/save', 'PageSettings::save', ['filter' => 'role:superadmin,clientsuperadmin']);
+
+// Multi-client sharing: client codes / site groups / gate owners (platform superadmin only)
+$routes->get('config/client-links',                    'ClientLinks::index',        ['filter' => 'role:superadmin']);
+$routes->post('config/client-links/save/(:num)',       'ClientLinks::save/$1',      ['filter' => 'role:superadmin']);
+$routes->post('config/client-links/gate-owner/(:num)', 'ClientLinks::setGateOwner/$1', ['filter' => 'role:superadmin']);
+// Re-send the registration invite to a vendor company (Config > Company)
+$routes->post('config/companies/invite/(:num)',        'CompanyInvite::send/$1',    ['filter' => 'role:superadmin,clientsuperadmin,admin']);
+$routes->get('config/dashboard-cards',       'DashboardCards::index',  ['filter' => 'role:superadmin,clientsuperadmin']);
+$routes->post('config/dashboard-cards/save', 'DashboardCards::save',   ['filter' => 'role:superadmin,clientsuperadmin']);
+$routes->post('dashboard/cards/mine',        'DashboardCards::saveMine');
+$routes->post('dashboard/acknowledgeAlert', 'Dashboard::acknowledgeAlert');
+$routes->get('dashboard/trafficData', 'Dashboard::trafficData');
+$routes->get('dashboard/hostVisitorsData', 'Dashboard::hostVisitorsData');
+$routes->get('dashboard/accessDeniedData', 'Dashboard::accessDeniedData');
+$routes->get('dashboard/overstayData', 'Dashboard::overstayData');
+$routes->get('dashboard/alertDetailData/(:num)', 'Dashboard::alertDetailData/$1');
+$routes->get('dashboard/onSiteData', 'Dashboard::onSiteData');
+$routes->get('dashboard/expectedTodayData', 'Dashboard::expectedTodayData');
+$routes->get('dashboard/checkedOutData', 'Dashboard::checkedOutData');
+$routes->get('dashboard/activeAlertsData', 'Dashboard::activeAlertsData');
+$routes->get('dashboard/widgetSnapshot', 'Dashboard::widgetSnapshot');
+$routes->get('dashboard/recentActivityData', 'Dashboard::recentActivityData');
+$routes->post('dashboard/quickCheckIn', 'Dashboard::quickCheckIn');
+$routes->post('dashboard/assistantAsk', 'Dashboard::assistantAsk');
+$routes->get('dashboard/assistantHistory', 'Dashboard::assistantHistory');
+$routes->post('dashboard/assistantChatCreate', 'Dashboard::assistantChatCreate');
+$routes->post('dashboard/assistantChatRename', 'Dashboard::assistantChatRename');
+$routes->post('dashboard/assistantChatDelete', 'Dashboard::assistantChatDelete');
+$routes->post('dashboard/assistantChatClear', 'Dashboard::assistantChatClear');
+$routes->get('dashboard/widgetPreferences', 'Dashboard::getWidgetPreferences');
+$routes->post('dashboard/saveWidgetPreferences', 'Dashboard::saveWidgetPreferences');
+$routes->post('dashboard/uploadPosterImage', 'Dashboard::uploadPosterImage');
+
+// ===========================
+// E-Map
+// Live view: superadmin, client superadmin, admin, officer
+// Designer writes are additionally checked inside the controller.
+// ===========================
+$routes->group('', ['filter' => [$plusAdminOfficer, 'client_feature:emap']], function($routes) {
+    $routes->get('e-map', 'Emap::index');
+    $routes->get('api/e-map/bootstrap', 'Emap::bootstrap');
+    $routes->get('api/e-map/live', 'Emap::live');
+    $routes->put('api/e-map/maps/(:num)', 'Emap::update/$1');
+});
+
+$routes->get('settings', 'Settings::index');
+$routes->post('settings/updateProfile', 'Settings::updateProfile');
+$routes->post('settings/updatePassword', 'Settings::updatePassword');
+$routes->post('settings/updatePhoto', 'Settings::updatePhoto');
+$routes->post('settings/removePhoto', 'Settings::removePhoto');
+
+// ===========================
+// Invitations + Visitors
+// Access is managed in Config > Role Management.
+// ===========================
+
+$routes->group('', ['filter' => ['permission:visitor_pass_list,invitations', 'client_feature:invitations']], function($routes) {
+    $routes->get('invitations', 'InvitationList::index');
+    $routes->get('invitations/data', 'InvitationList::data');
+    $routes->get('invitations/export', 'InvitationList::export');
+    $routes->post('invitations/saveColumnSettings', 'InvitationList::saveColumnSettings');
+    $routes->get('invitations/create', 'InvitationList::create');
+    $routes->post('invitations/store', 'InvitationList::store');
+    $routes->post('invitations/resend/(:num)', 'InvitationList::resend/$1');
+    $routes->get('invitations/history-rows', 'InvitationList::historyRows');
+    $routes->get('invitations/history-for-form/(:num)', 'InvitationList::historyForForm/$1');
+});
+
+$routes->group('', ['filter' => 'permission:visitor_pass_list,visitors_list'], function($routes) {
+    $routes->get('visitors', 'VisitorList::index');
+    $routes->get('visitors/export', 'VisitorList::export');
+    $routes->post('visitors/saveColumnSettings', 'VisitorList::saveColumnSettings');
+    $routes->post('visitors/update', 'VisitorList::updateVisitor');
+    $routes->post('visitors/updateVisitDate', 'VisitorList::updateVisitDate');
+    $routes->get('visitors/generateQr/(:num)', 'VisitorList::generateQr/$1');
+});
+
+$routes->group('', ['filter' => ['permission:visitor_pass_list,visitors_list', 'client_feature:visitor_card']], function($routes) {
+    $routes->post('visitors/bindCard', 'VisitorList::bindCard');
+    $routes->post('visitors/unbindCard', 'VisitorList::unbindCard');
+    $routes->post('visitors/batchUnbindCards', 'VisitorList::batchUnbindCards');
+});
+
+// ===========================
+// Request List — View
+// superadmin, clientsuperadmin, admin, host
+// ===========================
+
+$routes->group('', ['filter' => [$plusAdminHost, 'client_feature:auto_approve_after_workflow,disabled']], function($routes) {
+    $routes->get('requests', 'RequestList::index');
+    $routes->post('requests/pastVisits', 'RequestList::pastVisits');
+});
+
+// ===========================
+// Request List — Approve/Reject Actions
+// superadmin, clientsuperadmin, admin, host
+// ===========================
+
+$routes->group('', ['filter' => [$plusAdmin, 'client_feature:auto_approve_after_workflow,disabled']], function($routes) {
+    $routes->post('requests/view-settings', 'RequestList::saveViewSettings');
+});
+
+$routes->group('', ['filter' => [$plusAdminHost, 'client_feature:auto_approve_after_workflow,disabled']], function($routes) {
+    $routes->post('requests/approve', 'RequestList::approve');
+    $routes->post('requests/batchApprove', 'RequestList::batchApprove');
+    $routes->post('requests/reject', 'RequestList::reject');
+});
+
+// ===========================
+// Staff Pass
+// superadmin, clientsuperadmin, admin, officer
+// ===========================
+
+$routes->group('', ['filter' => [$plusAdminOfficer, 'client_feature:staff_pass']], function($routes) {
+    // --- Staff List (active / inactive) + approve / reject ---
+    $routes->get('staffs', 'StaffList::index');
+    $routes->get('staffs/export', 'StaffList::export');
+    $routes->post('staffs/delete/(:num)', 'StaffList::delete/$1');
+    $routes->post('staffs/approve', 'StaffList::approve');
+    $routes->post('staffs/reject', 'StaffList::reject');
+    $routes->post('staffs/set-active/(:num)', 'StaffList::setActive/$1');
+    $routes->post('staffs/change-staff-no/(:num)', 'StaffList::changeStaffNo/$1');
+
+    // --- Request / draft / edit / renew ---
+    $routes->get('staffs/staffpassrequest', 'StaffPassRequest::index');
+    $routes->post('staffs/staffpassrequest/store', 'StaffPassRequest::store');
+    $routes->post('staff-pass/import', 'StaffController::import');
+    $routes->get('staffpassrequest/view/(:num)', 'StaffPassRequest::view/$1');
+    $routes->get('staffpassrequest/edit/(:num)', 'StaffPassRequest::edit/$1');
+    $routes->post('staffpassrequest/update/(:num)', 'StaffPassRequest::update/$1');
+    $routes->get('staffs/renew/(:num)', 'StaffPassRequest::renew/$1');
+    $routes->post('staffs/renew/(:num)', 'StaffPassRequest::renewStore/$1');
+
+    // --- Card pipeline (KPK process / printing / issuance / closed lists) ---
+    $routes->get('staffs/process-list', 'StaffPipeline::processList');
+    $routes->get('staffs/printing-list', 'StaffPipeline::printingList');
+    $routes->post('staffs/printing-list/generate-serial/(:num)', 'StaffPipeline::generateSerial/$1');
+    $routes->get('staffs/issuance-list', 'StaffPipeline::issuanceList');
+    $routes->post('staffs/issuance-list/issue/(:num)', 'StaffPipeline::issue/$1');
+    $routes->get('staffs/closed-list', 'StaffPipeline::closedList');
+    $routes->get('staffs/closed-list/export', 'StaffPipeline::closedExport');
+
+    // --- Pass detail / Card Info ---
+    $routes->get('staffs/card-info/(:num)', 'StaffCardInfo::view/$1');
+    $routes->post('staffs/card-info/update/(:num)', 'StaffCardInfo::update/$1');
+    $routes->post('staffs/card-info/reject/(:num)', 'StaffCardInfo::reject/$1');
+    $routes->post('staffs/card-info/upload-photo/(:num)', 'StaffCardInfo::uploadPhoto/$1');
+    $routes->post('staffs/card-info/read-card/(:num)', 'StaffCardInfo::readCard/$1');
+    $routes->post('staffs/card-info/add-license/(:num)', 'StaffCardInfo::addLicense/$1');
+    $routes->post('staffs/card-info/delete-license/(:num)/(:num)', 'StaffCardInfo::deleteLicense/$1/$2');
+    $routes->post('staffs/card-info/location-access/(:num)', 'StaffCardInfo::updateLocationAccess/$1');
+    $routes->post('staffs/card-info/activate/(:num)', 'StaffCardInfo::activate/$1');
+    $routes->post('staffs/card-info/terminate/(:num)', 'StaffCardInfo::terminate/$1');
+    $routes->post('staffs/card-info/suspend/(:num)', 'StaffCardInfo::suspend/$1');
+    $routes->post('staffs/card-info/unsuspend/(:num)', 'StaffCardInfo::unsuspend/$1');
+});
+
+$routes->group('', ['filter' => [$plusAdminOfficerVendor, 'client_feature:vendor_pass']], function ($routes) {
+    $routes->get('vendors', 'VendorList::index');
+    $routes->get('vendors/request-list', 'VendorList::requestList');
+    $routes->get('vendors/export', 'VendorList::export');
+    $routes->post('vendors/import', 'VendorList::import');
+
+    $routes->get('vendors/vendorpassrequest', 'VendorPassRequest::index');
+    $routes->post('vendors/vendorpassrequest/store', 'VendorPassRequest::store');
+    $routes->get('vendorpassrequest/view/(:any)', 'VendorPassRequest::view/$1');
+    $routes->get('vendorpassrequest/edit/(:num)', 'VendorPassRequest::edit/$1');
+    $routes->post('vendorpassrequest/update/(:num)', 'VendorPassRequest::update/$1');
+});
+
+// ===========================
+// Vendor Pass — shared with a self-registered vendor company account
+// (their own "Online Vendor List" + Request form only)
+// ===========================
+
+$routes->group('', ['filter' => [$plusAdminOfficerVendor, 'client_feature:vendor_pass']], function ($routes) {
+    $routes->get('vendors', 'VendorList::index');
+    $routes->get('vendors/export', 'VendorList::export');
+    $routes->post('vendors/import', 'VendorList::import');
+
+    $routes->get('vendors/vendorpassrequest', 'VendorPassRequest::index');
+    $routes->post('vendors/vendorpassrequest/store', 'VendorPassRequest::store');
+    $routes->get('vendorpassrequest/view/(:any)', 'VendorPassRequest::view/$1');
+    $routes->get('vendorpassrequest/edit/(:num)', 'VendorPassRequest::edit/$1');
+    $routes->post('vendorpassrequest/update/(:num)', 'VendorPassRequest::update/$1');
+});
+
+// ===========================
+// Vendor Pass — KPK staff only (approve/reject, processing pipeline,
+// Card Info, Locations, Report). A vendor company account cannot reach
+// any of these, even though some share the same 'edit' permission flag —
+// the route filter below is what actually keeps them out.
+// ===========================
+
+$routes->group('', ['filter' => [$plusAdminOfficer, 'client_feature:vendor_pass']], function ($routes) {
+
+    $routes->post('vendors/delete/(:num)', 'VendorList::delete/$1');
+    $routes->post('vendors/approve', 'VendorList::approve');
+    $routes->post('vendors/reject', 'VendorList::reject');
+
+    // --- QR pass (staff-side generation) ---
+    $routes->get('vendors/qr/(:num)', 'VendorPassQr::generate/$1');
+
+    // --- Pipeline stages ---
+
+    // Process List (Approved, not yet printed). Worker Type (card_type) is
+    // chosen once at intake on the request form — Process List no longer
+    // assigns it, so there is no assign-card-type route here anymore.
+    $routes->get('vendors/process-list', 'VendorProcessList::index');
+
+    // Process List — detail view (full KPK feature-parity page: view/update,
+    // reject, photo upload/live camera, RFID card bind, urine test history,
+    // and (from here) the same printing + finish-and-issue actions as the
+    // dedicated Printing List / Issuance List pages).
+    $routes->get('vendors/process-list/detail/view/(:num)', 'VendorProcessDetail::view/$1');
+    $routes->post('vendors/process-list/detail/update/(:num)', 'VendorProcessDetail::update/$1');
+    $routes->post('vendors/process-list/detail/reject/(:num)', 'VendorProcessDetail::reject/$1');
+    $routes->post('vendors/process-list/detail/upload-photo/(:num)', 'VendorProcessDetail::uploadPhoto/$1');
+    $routes->post('vendors/process-list/detail/read-card/(:num)', 'VendorProcessDetail::readCard/$1');
+    $routes->post('vendors/process-list/detail/add-urine-test/(:num)', 'VendorProcessDetail::addUrineTest/$1');
+    // Optional — only needed if you later switch the urine-test/print-log
+    // tables on the detail page to load over AJAX instead of server-side:
+    $routes->get('vendors/process-list/detail/urine-tests/(:num)', 'VendorProcessDetail::urineTests/$1');
+    $routes->get('vendors/process-list/detail/print-logs/(:num)', 'VendorProcessDetail::printLogs/$1');
+
+    // Printing List (card type chosen, not yet printed)
+    $routes->get('vendors/printing-list', 'VendorPrintingList::index');
+    $routes->post('vendors/printing-list/generate-serial/(:num)', 'VendorPrintingList::generateSerial/$1');
+
+    // Issuance List (printed, waiting to be handed to the collector)
+    $routes->get('vendors/issuance-list', 'VendorIssuanceList::index');
+    $routes->post('vendors/issuance-list/issue/(:num)', 'VendorIssuanceList::issue/$1');
+
+    // Closed List (issued / completed)
+    $routes->get('vendors/closed-list', 'VendorClosedList::index');
+
+    // Card Info panel (reachable from Closed List's "Card Details" link AND
+    // from Process Detail's "Card Details" button — same screen either way)
+    $routes->get('vendors/card-info/view/(:num)', 'VendorCardInfo::view/$1');
+    $routes->post('vendors/card-info/add-license/(:num)', 'VendorCardInfo::addLicense/$1');
+    $routes->post('vendors/card-info/update-location-access/(:num)', 'VendorCardInfo::updateLocationAccess/$1');
+    $routes->post('vendors/card-info/upload-photo/(:num)', 'VendorCardInfo::uploadPhoto/$1');
+    $routes->post('vendors/card-info/activate/(:num)', 'VendorCardInfo::activateCard/$1');
+    $routes->post('vendors/card-info/terminate/(:num)', 'VendorCardInfo::terminateCard/$1');
+    $routes->post('vendors/card-info/update/(:num)', 'VendorCardInfo::update/$1');
+
+    // Locations — the Location Access choices offered everywhere above.
+    $routes->get('vendors/locations', 'VendorLocations::index');
+    $routes->post('vendors/locations/create', 'VendorLocations::create');
+    $routes->post('vendors/locations/update/(:num)', 'VendorLocations::update/$1');
+    $routes->post('vendors/locations/delete/(:num)', 'VendorLocations::delete/$1');
+
+    // --- Report ---
+    $routes->get('report/vendor', 'VendorReport::index');
+    $routes->post('report/vendor/generate', 'VendorReport::generate');
+});
+
+// ===========================
+// Visitor Pass Request
+// superadmin, clientsuperadmin, officer
+// ===========================
+
+$routes->group('', ['filter' => $plusOfficer], function($routes) {
+    $routes->get('visitor-pass-request', 'VisitorPassRequest::index');
+    $routes->post('visitor-pass-request/store', 'VisitorPassRequest::store');
+});
+
+// ===========================
+// Visitor Workflow
+// Access is managed in Config > Role Management.
+// ===========================
+
+$routes->group('', ['filter' => 'permission:visitor_workflow,view'], function($routes) {
+    $routes->get('workflow', 'VisitorWorkflow::index');
+    $routes->get('workflow/create', 'VisitorWorkflow::create');
+    $routes->post('workflow/save', 'VisitorWorkflow::save');
+    $routes->post('workflow/toggleActive/(:num)', 'VisitorWorkflow::toggleActive/$1');
+    $routes->post('workflow/edit/(:num)', 'VisitorWorkflow::editWorkflow/$1');
+    $routes->post('workflow/delete/(:num)', 'VisitorWorkflow::deleteWorkflow/$1');
+});
+
+// ===========================
+// Blacklist — View
+// superadmin, clientsuperadmin, officer
+// ===========================
+
+$routes->group('blacklist', ['filter' => [$plusOfficer, 'client_feature:blacklist']], function($routes) {
+    $routes->get('blacklistrequest', 'BlacklistRequest::index');
+    $routes->get('entry', 'BlacklistEntry::index');
+    $routes->get('entry/search', 'BlacklistEntry::search');
+    $routes->get('closedlist', 'BlacklistClosedList::index');
+    $routes->get('closedlist/export', 'BlacklistClosedList::export');
+    $routes->get('closedlist/view/(:num)', 'BlacklistClosedList::view/$1');
+});
+
+// ===========================
+// Blacklist — Write
+// superadmin, clientsuperadmin only
+// ===========================
+
+$routes->group('blacklist', ['filter' => [$superadmins, 'client_feature:blacklist']], function($routes) {
+    $routes->get('entry/proceed', 'BlacklistEntry::proceed');
+    $routes->post('entry/store', 'BlacklistEntry::store');
+    $routes->post('closedlist/release/(:num)', 'BlacklistClosedList::release/$1');
+});
+
+// ===========================
+// Reports
+// superadmin, clientsuperadmin, admin, officer
+// ===========================
+
+$routes->group('', ['filter' => $plusAdminOfficer], function($routes) {
+    $routes->get('report/access', 'AccessReport::index');
+    $routes->post('report/access/generate', 'AccessReport::generate');
+    $routes->post('report/access/movementHistory', 'AccessReport::movementHistory');
+    $routes->get('report/visitor', 'VisitorReport::index');
+    $routes->post('report/visitor/generate', 'VisitorReport::generate');
+    $routes->post('report/visitor/saveColumnSettings', 'VisitorReport::saveColumnSettings');
+    $routes->get('report/chronology', 'VisitorChronology::index');
+    $routes->post('report/chronology/generate', 'VisitorChronology::generate');
+    $routes->get('report/bydoor', 'VisitorInfoByDoor::index');
+    $routes->post('report/bydoor/generate', 'VisitorInfoByDoor::generate');
+    $routes->get('report/visitor/details/(:num)', 'VisitorChronology::details/$1');
+    $routes->get('report/visitor/chronology-print/(:num)', 'VisitorChronology::chronologyPrint/$1');
+    $routes->post('report/visitor/movement', 'VisitorChronology::movementTimeline');
+    $routes->get('report/vendor', 'VendorReport::index'); 
+    $routes->post('report/vendor/generate', 'VendorReport::generate');
+});
+
+// ===========================
+// Config — User Management
+// superadmin, clientsuperadmin, admin
+// (controller enforces admin can only manage host-role users)
+// ===========================
+
+$routes->group('config', ['filter' => $plusAdmin], function($routes) {
+    $routes->get('lookupUserStaff', 'Config::lookupUserStaff');
+    $routes->get('getUsers', 'Config::getUsers');
+    $routes->get('getUser/(:num)', 'Config::getUser/$1');
+    $routes->post('createUser', 'Config::createUser');
+    $routes->post('updateUser/(:num)', 'Config::updateUser/$1');
+    $routes->delete('deleteUser/(:num)', 'Config::deleteUser/$1');
+    $routes->get('getAllRoles', 'Config::getAllRoles');
+});
+
+// ===========================
+// Config — Client Level
+// superadmin, clientsuperadmin
+// ===========================
+
+// Recipient configuration is also available to client admins. Controller
+// authorization keeps non-platform users within their own client.
+$routes->group('config', ['filter' => $plusAdmin], function($routes) {
+    $routes->get('/', 'Config::index');
+    $routes->get('getEmailRecipientRolesConfig', 'Config::getEmailRecipientRolesConfig');
+    $routes->post('saveEmailRecipientRolesConfig', 'Config::saveEmailRecipientRolesConfig');
+});
+
+$routes->group('config', ['filter' => $superadmins], function($routes) {
+    $routes->get('getLogs', 'Config::getLogs');
+    $routes->get('exportLogs', 'Config::exportLogs');
+
+    // Roles
+    $routes->get('getRoles', 'Config::getRoles');
+    $routes->get('getRole/(:num)', 'Config::getRole/$1');
+    $routes->post('createRole', 'Config::createRole');
+    $routes->post('updateRole/(:num)', 'Config::updateRole/$1');
+    $routes->delete('deleteRole/(:num)', 'Config::deleteRole/$1');
+
+    // Companies
+    $routes->get('getCompanies', 'Config::getCompanies');
+    $routes->get('getCompany/(:num)', 'Config::getCompany/$1');
+    $routes->post('createCompany', 'Config::createCompany');
+    $routes->post('updateCompany/(:num)', 'Config::updateCompany/$1');
+    $routes->delete('deleteCompany/(:num)', 'Config::deleteCompany/$1');
+    $routes->get('getAllCompanies', 'Config::getAllCompanies');
+
+    // Sub Companies
+    $routes->get('getSubCompanies', 'Config::getSubCompanies');
+    $routes->get('getSubCompany/(:num)', 'Config::getSubCompany/$1');
+    $routes->post('createSubCompany', 'Config::createSubCompany');
+    $routes->post('updateSubCompany/(:num)', 'Config::updateSubCompany/$1');
+    $routes->delete('deleteSubCompany/(:num)', 'Config::deleteSubCompany/$1');
+
+    // Countries
+    $routes->get('getCountries', 'Config::getCountries');
+    $routes->get('getCountry/(:num)', 'Config::getCountry/$1');
+    $routes->post('createCountry', 'Config::createCountry');
+    $routes->post('updateCountry/(:num)', 'Config::updateCountry/$1');
+    $routes->delete('deleteCountry/(:num)', 'Config::deleteCountry/$1');
+    $routes->get('getAllCountries', 'Config::getAllCountries');
+
+    // States
+    $routes->get('getStates', 'Config::getStates');
+    $routes->get('getState/(:num)', 'Config::getState/$1');
+    $routes->post('createState', 'Config::createState');
+    $routes->put('updateState/(:num)', 'Config::updateState/$1');
+    $routes->delete('deleteState/(:num)', 'Config::deleteState/$1');
+    $routes->get('getAllStates', 'Config::getAllStates');
+
+    // Cities
+    $routes->get('getCities', 'Config::getCities');
+    $routes->get('getCity/(:num)', 'Config::getCity/$1');
+    $routes->post('createCity', 'Config::createCity');
+    $routes->put('updateCity/(:num)', 'Config::updateCity/$1');
+    $routes->delete('deleteCity/(:num)', 'Config::deleteCity/$1');
+
+    // Departments
+    $routes->get('getDepartments', 'Config::getDepartments');
+    $routes->get('getDepartment/(:num)', 'Config::getDepartment/$1');
+    $routes->post('createDepartment', 'Config::createDepartment');
+    $routes->put('updateDepartment/(:num)', 'Config::updateDepartment/$1');
+    $routes->delete('deleteDepartment/(:num)', 'Config::deleteDepartment/$1');
+
+    // Designations
+    $routes->get('getDesignations', 'Config::getDesignations');
+    $routes->get('getDesignation/(:num)', 'Config::getDesignation/$1');
+    $routes->post('createDesignation', 'Config::createDesignation');
+    $routes->put('updateDesignation/(:num)', 'Config::updateDesignation/$1');
+    $routes->delete('deleteDesignation/(:num)', 'Config::deleteDesignation/$1');
+
+    // Locations
+    $routes->get('getLocations', 'Config::getLocations');
+    $routes->get('getLocation/(:num)', 'Config::getLocation/$1');
+    $routes->post('createLocation', 'Config::createLocation');
+    $routes->put('updateLocation/(:num)', 'Config::updateLocation/$1');
+    $routes->delete('deleteLocation/(:num)', 'Config::deleteLocation/$1');
+
+    // Lanes
+    $routes->get('getLanes', 'Config::getLanes');
+    $routes->get('getLane/(:num)', 'Config::getLane/$1');
+    $routes->post('createLane', 'Config::createLane');
+    $routes->put('updateLane/(:num)', 'Config::updateLane/$1');
+    $routes->delete('deleteLane/(:num)', 'Config::deleteLane/$1');
+    $routes->get('getLanesForDeviceAssignment', 'Config::getLanesForDeviceAssignment');
+    $routes->get('getDeviceAssignmentFormOptions', 'Config::getDeviceAssignmentFormOptions');
+
+    // Reject Reasons
+    $routes->get('getRejectReasons', 'Config::getRejectReasons');
+    $routes->get('getRejectReason/(:num)', 'Config::getRejectReason/$1');
+    $routes->post('createRejectReason', 'Config::createRejectReason');
+    $routes->put('updateRejectReason/(:num)', 'Config::updateRejectReason/$1');
+    $routes->delete('deleteRejectReason/(:num)', 'Config::deleteRejectReason/$1');
+
+    // Videos
+    $routes->get('getVideos', 'Config::getVideos');
+    $routes->get('getVideo/(:num)', 'Config::getVideo/$1');
+    $routes->post('createVideo', 'Config::createVideo');
+    $routes->post('updateVideo/(:num)', 'Config::updateVideo/$1');
+    $routes->delete('deleteVideo/(:num)', 'Config::deleteVideo/$1');
+
+    // Visit Reasons
+    $routes->get('getVisitReasons', 'Config::getVisitReasons');
+    $routes->post('createVisitReason', 'Config::createVisitReason');
+    $routes->post('updateVisitReason/(:num)', 'Config::updateVisitReason/$1');
+    $routes->delete('deleteVisitReason/(:num)', 'Config::deleteVisitReason/$1');
+
+    // Location Visited
+    $routes->get('getLocationVisited', 'Config::getLocationVisited');
+    $routes->post('createLocationVisited', 'Config::createLocationVisited');
+    $routes->post('updateLocationVisited/(:num)', 'Config::updateLocationVisited/$1');
+    $routes->delete('deleteLocationVisited/(:num)', 'Config::deleteLocationVisited/$1');
+
+    // Visitor Types
+    $routes->get('getVisitorTypes', 'Config::getVisitorTypes');
+    $routes->get('getVisitorType/(:num)', 'Config::getVisitorType/$1');
+    $routes->post('createVisitorType', 'Config::createVisitorType');
+    $routes->post('updateVisitorType/(:num)', 'Config::updateVisitorType/$1');
+    $routes->delete('deleteVisitorType/(:num)', 'Config::deleteVisitorType/$1');
+
+    // Login Page Settings
+    $routes->get('getLoginPageSettings', 'Config::getLoginPageSettings');
+    $routes->post('saveLoginPageSettings', 'Config::saveLoginPageSettings');
+    $routes->get('getCompanyLogoSettings', 'Config::getCompanyLogoSettings');
+    $routes->post('saveCompanyLogoSettings', 'Config::saveCompanyLogoSettings');
+
+    // Email Templates
+    $routes->get('getEmailTemplateFormSettings', 'Config::getEmailTemplateFormSettings');
+    $routes->post('saveEmailTemplateFormSettings', 'Config::saveEmailTemplateFormSettings');
+    $routes->get('getInvitationEmailTemplateSettings', 'Config::getInvitationEmailTemplateSettings');
+    $routes->post('saveInvitationEmailTemplateSettings', 'Config::saveInvitationEmailTemplateSettings');
+    $routes->get('getEmailTemplates', 'Config::getEmailTemplates');
+    $routes->get('getEmailTemplate/(:num)', 'Config::getEmailTemplate/$1');
+    $routes->get('previewEmailTemplate/(:num)', 'Config::previewEmailTemplate/$1');
+    $routes->post('createEmailTemplate', 'Config::createEmailTemplate');
+    $routes->post('updateEmailTemplate/(:num)', 'Config::updateEmailTemplate/$1');
+    $routes->post('createEmailTemplateFormField', 'Config::createEmailTemplateFormField');
+    $routes->post('updateEmailTemplateFormField/(:num)', 'Config::updateEmailTemplateFormField/$1');
+    $routes->post('deleteEmailTemplateFormField/(:num)', 'Config::deleteEmailTemplateFormField/$1');
+    $routes->post('reorderEmailTemplateFormFields', 'Config::reorderEmailTemplateFormFields');
+
+    // Pathways
+    $routes->get('getPathways', 'Config::getPathways');
+    $routes->get('getPathway/(:num)', 'Config::getPathway/$1');
+    $routes->post('createPathway', 'Config::createPathway');
+    $routes->post('updatePathway/(:num)', 'Config::updatePathway/$1');
+    $routes->delete('deletePathway/(:num)', 'Config::deletePathway/$1');
+    $routes->get('getAllLanes', 'Config::getAllLanes');
+
+    // Sub Location Access
+    $routes->get('getSubLocations', 'Config::getSubLocations');
+    $routes->get('getSubLocation/(:num)', 'Config::getSubLocation/$1');
+    $routes->post('createSubLocation', 'Config::createSubLocation');
+    $routes->post('updateSubLocation/(:num)', 'Config::updateSubLocation/$1');
+    $routes->delete('deleteSubLocation/(:num)', 'Config::deleteSubLocation/$1');
+    $routes->get('getActiveSubLocations', 'Config::getActiveSubLocations');
+
+    $routes->get('getAllLocations', 'Config::getAllLocations');
+
+    // Registration Types
+    $routes->get('getRegTypes', 'Config::getRegTypes');
+    $routes->get('getRegType/(:num)', 'Config::getRegType/$1');
+    $routes->post('createRegType', 'Config::createRegType');
+    $routes->post('updateRegType/(:num)', 'Config::updateRegType/$1');
+    $routes->post('deleteRegType/(:num)', 'Config::deleteRegType/$1');
+
+    // Blacklist Config
+    $routes->post('saveBlacklistReason', 'BlacklistReasonCreate::save');
+    $routes->get('getBlacklistReason/(:num)', 'Config::getBlacklistReason/$1');
+
+    // Business Type
+    $routes->post('createBusinessType', 'Config::createBusinessType');
+    $routes->post('updateBusinessType', 'Config::updateBusinessType');
+});
+
+// ===========================
+// Config — System Level
+// superadmin only
+// ===========================
+
+$routes->group('config', ['filter' => 'role:superadmin'], function($routes) {
+    // Client Feature Flags
+    $routes->get('getClientFeatures/(:num)', 'Config::getClientFeatures/$1');
+    $routes->post('saveClientFeatures/(:num)', 'Config::saveClientFeatures/$1');
+
+    // Dynamic VMS Form
+    $routes->get('getClientFormFields/(:num)', 'Config::getClientFormFields/$1');
+    $routes->post('saveClientFormFields/(:num)', 'Config::saveClientFormFields/$1');
+
+    // App Config
+    $routes->get('getAppConfigs', 'AppConfig::getAll');
+    $routes->get('getAppConfig/(:num)', 'AppConfig::get/$1');
+    $routes->post('updateAppConfig/(:num)', 'AppConfig::update/$1');
+
+    // Device Assignments
+    $routes->get('getDeviceAssignments', 'Config::getDeviceAssignments');
+    $routes->get('getDeviceAssignment/(:num)', 'Config::getDeviceAssignment/$1');
+    $routes->post('checkDeviceStatus/(:num)', 'Config::checkDeviceStatus/$1');
+    $routes->post('createDeviceAssignment', 'Config::createDeviceAssignment');
+    $routes->post('updateDeviceAssignment/(:num)', 'Config::updateDeviceAssignment/$1');
+    $routes->post('deleteDeviceAssignment/(:num)', 'Config::deleteDeviceAssignment/$1');
+
+    // IP Range Settings
+    $routes->get('getIpRangeSettings', 'Config::getIpRangeSettings');
+    $routes->post('saveIpRangeSettings', 'Config::saveIpRangeSettings');
+
+    // API Key Management
+    $routes->get('getApiKeys', 'Api\ApiManagement::getApiKeys');
+    $routes->get('getApiKey/(:num)', 'Api\ApiManagement::getApiKey/$1');
+    $routes->post('createApiKey', 'Api\ApiManagement::createApiKey');
+    $routes->post('updateApiKey/(:num)', 'Api\ApiManagement::updateApiKey/$1');
+    $routes->delete('deleteApiKey/(:num)', 'Api\ApiManagement::deleteApiKey/$1');
+    $routes->post('syncApiKeys', 'Api\ApiManagement::syncApiKeys');
+    $routes->post('callExternalApi', 'Api\ApiManagement::callExternalApi');
+    $routes->post('saveLaravelBaseUrl', 'Api\ApiManagement::saveLaravelBaseUrl');
+    $routes->get('getLaravelBaseUrl', 'Api\ApiManagement::getLaravelBaseUrl');
+    
+    // Inbound API token generation (Protected by superadmin)
+    $routes->post('generateInboundToken', 'Api\InboundApi::generateToken');
+
+    // Cloud data sync (Jetson ↔ cloud)
+    $routes->get('getDataSyncStatus', 'Config::getDataSyncStatus');
+    $routes->post('runDataSync', 'Config::runDataSync');
+    // Scanner Management
+    $routes->get('getScannerSettings', 'Config::getScannerSettings');
+    $routes->post('saveScannerSettings', 'Config::saveScannerSettings');
+});
+
+// ===========================
+// Kiosk Mobile API (Public — no auth)
+// Mirrors the Java/Spring URL scheme used by the MNR Android kiosk app.
+// ===========================
+
+$routes->group('api/admin', function($routes) {
+    $routes->get('locationAccess/active',        'Api\KioskApi::getActiveLocations');
+    $routes->get('subLocationAccess/active',     'Api\KioskApi::getActiveSubLocations');
+    $routes->get('country/active',               'Api\KioskApi::getActiveCountries');
+    $routes->get('state/country/(:num)',         'Api\KioskApi::getStatesByCountry/$1');
+    $routes->get('city/state/(:num)',            'Api\KioskApi::getCitiesByState/$1');
+    $routes->get('vinType/active/all',           'Api\KioskApi::getActiveVehicleTypes');
+    $routes->get('licenseClass/active',          'Api\KioskApi::getActiveLicenseClasses');
+    $routes->get('vaccineType/active',           'Api\KioskApi::getActiveVaccineTypes');
+    $routes->get('moduleConfig/getByProject',   'Api\KioskApi::getModuleConfig');
+    $routes->get('clients/all',                  'Api\KioskApi::getAllClients');
+    $routes->get('campanies/all',                'Api\KioskApi::getAllCompanies');
+});
+
+$routes->group('api/vendorpass', function($routes) {
+    $routes->get('getVisitReasonList',           'Api\KioskApi::getVisitReasonList');
+    $routes->post('checkICExist',                'Api\KioskApi::checkICExist');
+    $routes->post('doVisitorPassReqMobile',      'Api\KioskApi::doVisitorPassReqMobile');
+    $routes->post('insertVendorPassCard',        'Api\KioskApi::insertVendorPassCard');
+    $routes->post('uploadVendorPassPhotoMobile', 'Api\KioskApi::uploadVendorPassPhotoMobile');
+});
+
+$routes->group('api/guard', function($routes) {
+    $routes->post('login',                    'Api\GuardApi::login');
+    $routes->get('visitors/qr/(:any)',        'Api\GuardApi::visitorByQr/$1');
+    $routes->post('visitors/check-in',        'Api\GuardApi::checkIn');
+    $routes->post('visitors/checkIn',         'Api\GuardApi::checkIn');
+    $routes->post('visitor/check-in',         'Api\GuardApi::checkIn');
+    $routes->post('check-in',                 'Api\GuardApi::checkIn');
+    $routes->post('visitors/reject',          'Api\GuardApi::reject');
+    $routes->get('config',                    'Api\GuardApi::config');
+    $routes->get('approvals',                 'Api\GuardApi::approvals');
+    $routes->post('approvals/approve',        'Api\GuardApi::approveRequest');
+    $routes->post('approvals/reject',         'Api\GuardApi::rejectRequest');
+});
+
+$routes->group('api/user', function($routes) {
+    $routes->get('getStaffPassByStaffNoOrName',   'Api\KioskApi::getStaffPassByStaffNoOrName');
+    $routes->post('getStaffPassByStaffNoOrName',  'Api\KioskApi::getStaffPassByStaffNoOrName');
+    $routes->get('getVisitorPassByStaffNoOrName', 'Api\KioskApi::getVisitorPassByStaffNoOrName');
+    $routes->post('getVisitorPassByStaffNoOrName', 'Api\KioskApi::getVisitorPassByStaffNoOrName');
+});
+
+// laravel_url routes (served here at any port VMS is running on)
+$routes->post('decrypt',             'Api\KioskApi::decrypt');
+$routes->get('vms/api/visitor-types', 'Api\KioskApi::getVisitorTypes');
+
+// ===========================
+// Inbound API (Webhooks)
+// Protected by Bearer Token Filter
+// ===========================
+
+$routes->group('api/v1', ['filter' => 'inbound_api_auth'], function($routes) {
+    $routes->post('receive', 'Api\InboundApi::receive');
+    $routes->post('visitor-qr/verify', 'Api\VisitorQr::verify');
+
+});

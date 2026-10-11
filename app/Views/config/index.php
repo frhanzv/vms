@@ -4631,6 +4631,112 @@
                 </div>
                 <?php endif; ?>
 
+                <?php helper(['role', 'list_columns']); $psAllowed = is_platform_superadmin(session()->get('role')) || is_client_superadmin(); ?>
+                <?php if ($psAllowed): ?>
+                <!-- Page Settings (columns + buttons per page; Dynamic Form Fields above is for forms only) -->
+                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                    <button onclick="toggleSection('pagesettings')"
+                        class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                        <div class="flex items-center gap-4">
+                            <div class="p-2 bg-primary/10 rounded-lg">
+                                <span class="material-symbols-outlined text-primary text-xl">view_column</span>
+                            </div>
+                            <div class="text-left">
+                                <h3 class="text-base font-bold text-gray-800 dark:text-white">Page Settings</h3>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Choose, per client and per page, which table columns and which buttons are shown. (Dynamic Form Fields is for forms only.)</p>
+                            </div>
+                        </div>
+                        <span id="pagesettings-icon" class="material-symbols-outlined text-gray-400 dark:text-slate-400 transition-transform">expand_more</span>
+                    </button>
+                    <div id="pagesettings-content" class="hidden border-t border-gray-200 dark:border-slate-700">
+                        <div class="p-6 bg-gray-50 dark:bg-slate-800/50">
+                            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
+                                <div class="flex items-center gap-3 w-full sm:w-auto">
+                                    <label class="text-sm font-semibold text-gray-700 dark:text-slate-300 whitespace-nowrap font-brand">Select Client:</label>
+                                    <select id="ps-client" onchange="psLoad()"
+                                        class="w-full sm:w-72 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm font-brand">
+                                        <option value="">-- Select a client --</option>
+                                    </select>
+                                </div>
+                                <div class="flex items-center gap-3 w-full sm:w-auto">
+                                    <label class="text-sm font-semibold text-gray-700 dark:text-slate-300 whitespace-nowrap font-brand">Select Page:</label>
+                                    <select id="ps-page" onchange="psLoad()"
+                                        class="w-full sm:w-72 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm font-brand">
+                                        <option value="">-- Select a page --</option>
+                                        <?php
+                                        $psGroups = [];
+                                        foreach (list_column_registry() as $psKey => $psDef) {
+                                            $psGroups[$psDef['group'] ?? 'Pages'][$psKey] = $psDef['title'];
+                                        }
+                                        foreach ($psGroups as $psGroup => $psItems): ?>
+                                        <optgroup label="<?= esc($psGroup) ?>">
+                                            <?php foreach ($psItems as $psKey => $psTitle): ?>
+                                            <option value="<?= esc($psKey) ?>"><?= esc($psTitle) ?></option>
+                                            <?php endforeach; ?>
+                                        </optgroup>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div id="ps-loading" class="hidden text-center py-6">
+                                <div class="inline-block animate-spin rounded-full h-7 w-7 border-b-2 border-primary"></div>
+                            </div>
+
+                            <div id="ps-panel" class="hidden">
+                                <div id="ps-columns-wrap" class="mb-6">
+                                    <h4 class="text-sm font-bold text-gray-700 dark:text-slate-200 mb-3 font-brand">Columns</h4>
+                                    <div id="ps-columns" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+                                </div>
+                                <div id="ps-buttons-wrap" class="mb-6">
+                                    <h4 class="text-sm font-bold text-gray-700 dark:text-slate-200 mb-3 font-brand">Buttons &amp; actions</h4>
+                                    <div id="ps-buttons" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+                                </div>
+                                <p id="ps-nothing" class="hidden text-sm text-gray-500 dark:text-slate-400 mb-6">This page has nothing that can be switched on or off.</p>
+                                <div class="flex justify-end">
+                                    <button onclick="psSave()"
+                                        class="px-5 py-2.5 rounded-lg bg-primary hover:bg-blue-600 text-white font-medium text-sm flex items-center gap-2 transition-colors font-brand">
+                                        <span class="material-symbols-outlined text-base">save</span>
+                                        Save Changes
+                                    </button>
+                                </div>
+                            </div>
+
+                            <p id="ps-error" class="hidden text-sm text-red-600 text-center py-4"></p>
+                            <div id="ps-empty" class="text-sm text-gray-500 dark:text-slate-400 text-center py-4">
+                                Select a client and a page to manage its columns and buttons.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+
+                <?php if (function_exists('has_access') && has_access('vendor_pass_list', 'manage_locations')): ?>
+                <!-- Vendor Locations (moved here from the sidebar) -->
+                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                    <button onclick="toggleSection('vendorlocations'); loadVendorLocationsFrame();"
+                        class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                        <div class="flex items-center gap-4">
+                            <div class="p-2 bg-primary/10 rounded-lg">
+                                <span class="material-symbols-outlined text-primary text-xl">pin_drop</span>
+                            </div>
+                            <div class="text-left">
+                                <h3 class="text-base font-bold text-gray-800 dark:text-white">Vendor Locations</h3>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">The Location Access choices offered on vendor pass forms, and which client owns each one.</p>
+                            </div>
+                        </div>
+                        <span id="vendorlocations-icon" class="material-symbols-outlined text-gray-400 dark:text-slate-400 transition-transform">expand_more</span>
+                    </button>
+                    <div id="vendorlocations-content" class="hidden border-t border-gray-200 dark:border-slate-700">
+                        <div class="p-4 bg-gray-50 dark:bg-slate-800/50">
+                            <iframe id="vendorlocations-frame" title="Vendor Locations" data-src="<?= base_url('vendors/locations?embed=1') ?>"
+                                class="w-full border-0 bg-transparent" style="min-height:420px"
+                                onload="try { this.style.height = (this.contentDocument.documentElement.scrollHeight + 8) + 'px'; } catch (e) {}"></iframe>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+
                 <!-- Scanner Management -->
                 <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('scanner'); if(!scannerSettingsLoaded) loadScannerSettings();"
@@ -18013,6 +18119,7 @@
                     dffFields[formType] = {};
                     dffLabels[formType] = {};
                     res.fields.forEach(f => {
+                        if (formType === 'vendor_pass_request' && dffPageManagedKeys.includes(f.field_key)) return;
                         dffFields[formType][f.field_key] = {
                             enabled:    f.is_enabled == 1,
                             required:   f.is_required == 1,
@@ -18098,6 +18205,114 @@
             })
             .catch(() => alert('Network error while saving form fields.'));
         }
+
+        // ── Page Settings (columns + buttons per page) ───────────────
+        const psBase = '<?= rtrim(base_url('config/page-settings'), '/') ?>';
+        let psState = null;   // { client, page, columns: {key: bool}, buttons: {key: bool} }
+
+        function psToggleHtml(group, key, on, disabled) {
+            return `<button type="button" onclick="psToggle('${group}', '${key}')" ${disabled ? 'disabled' : ''}
+                class="relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} ${on ? 'bg-primary' : 'bg-gray-300 dark:bg-slate-500'}"
+                role="switch" aria-checked="${on}">
+                <span class="pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition duration-200 ${on ? 'translate-x-5' : 'translate-x-0'}"></span>
+            </button>`;
+        }
+
+        function psCard(group, item, on, disabled, caption) {
+            return `<div class="bg-white dark:bg-slate-700 rounded-lg border border-gray-200 dark:border-slate-600 p-4 flex items-center justify-between gap-3">
+                <span class="text-sm font-medium text-gray-700 dark:text-slate-300 font-brand">${item.label}${disabled ? ' <span class="text-xs text-gray-400">(always shown)</span>' : ''}</span>
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    <span class="text-xs text-gray-500 dark:text-slate-400">${caption}</span>
+                    ${psToggleHtml(group, item.key, on, disabled)}
+                </div>
+            </div>`;
+        }
+
+        function psFetchData(clientId, page) {
+            const qs = new URLSearchParams({ client_id: clientId || '', page: page || '' });
+            return fetch(`${psBase}/data?${qs}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } }).then(r => {
+                if (!r.ok) throw new Error('HTTP ' + r.status);
+                return r.json();
+            });
+        }
+
+        function psLoad() {
+            const clientId = document.getElementById('ps-client').value;
+            const page     = document.getElementById('ps-page').value;
+            const panel = document.getElementById('ps-panel');
+            const empty = document.getElementById('ps-empty');
+            psState = null;
+            if (!clientId || !page) { panel.classList.add('hidden'); empty.classList.remove('hidden'); return; }
+            empty.classList.add('hidden');
+            panel.classList.add('hidden');
+            document.getElementById('ps-loading').classList.remove('hidden');
+            const err = document.getElementById('ps-error');
+            err.classList.add('hidden');
+            psFetchData(clientId, page).then(res => {
+                document.getElementById('ps-loading').classList.add('hidden');
+                if (!res.success || !res.page) { err.textContent = res.message || 'Nothing could be loaded for this page.'; err.classList.remove('hidden'); return; }
+                psState = { client: clientId, page: page, data: res.page, columns: {}, buttons: {} };
+                res.page.columns.forEach(c => psState.columns[c.key] = !!c.visible);
+                res.page.buttons.forEach(b => psState.buttons[b.key] = !!b.enabled);
+                psRender();
+                panel.classList.remove('hidden');
+            }).catch(e => {
+                document.getElementById('ps-loading').classList.add('hidden');
+                err.textContent = 'Could not load this page\'s settings (' + e.message + '). Check that Controllers/PageSettings.php and the config/page-settings routes are installed.';
+                err.classList.remove('hidden');
+            });
+        }
+
+        function psRender() {
+            const d = psState.data;
+            document.getElementById('ps-columns').innerHTML = d.columns.map(c => psCard('columns', c, c.locked ? true : psState.columns[c.key], c.locked, 'Visible')).join('');
+            document.getElementById('ps-buttons').innerHTML = d.buttons.map(b => psCard('buttons', b, psState.buttons[b.key], false, 'Enabled')).join('');
+            document.getElementById('ps-columns-wrap').classList.toggle('hidden', d.columns.length === 0);
+            document.getElementById('ps-buttons-wrap').classList.toggle('hidden', d.buttons.length === 0);
+            document.getElementById('ps-nothing').classList.toggle('hidden', d.columns.length + d.buttons.length > 0);
+        }
+
+        function psToggle(group, key) {
+            if (!psState) return;
+            psState[group][key] = !psState[group][key];
+            psRender();
+        }
+
+        function psSave() {
+            if (!psState) return;
+            fetch(`${psBase}/save`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '<?= csrf_hash() ?>'
+                },
+                body: JSON.stringify({ client_id: psState.client, page: psState.page, columns: psState.columns, buttons: psState.buttons })
+            })
+            .then(r => r.json())
+            .then(res => {
+                const msg = res.message || (res.success ? 'Saved' : 'Could not save');
+                if (typeof showToast === 'function') showToast(msg, res.success ? 'success' : 'error'); else alert(msg);
+            })
+            .catch(() => alert('Network error while saving page settings.'));
+        }
+
+        // Client list comes from the same source the other Config sections use.
+        document.addEventListener('DOMContentLoaded', function () {
+            populateScopedCompanySelect(document.getElementById('ps-client'), () => {
+                if (!canManageAllClientCompanies && scopedClientCompanyId) {
+                    psLoad();
+                }
+            });
+        });
+
+        function loadVendorLocationsFrame() {
+            const f = document.getElementById('vendorlocations-frame');
+            if (f && !f.getAttribute('src')) f.setAttribute('src', f.dataset.src);
+        }
+
+        // Buttons and sections that now live in Page Settings are not shown in the form-field tabs.
+        const dffPageManagedKeys = <?= json_encode(page_managed_button_keys()) ?>;
 
         // ── Client Features ──────────────────────────────────────────
         let cfCompanyId = null;

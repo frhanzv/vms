@@ -10,16 +10,17 @@
     <script>tailwind.config = { theme: { extend: { colors: { primary: "#137fec" }, fontFamily: { sans: ["Montserrat","sans-serif"] } } } };</script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
-<body class="bg-gray-50 dark:bg-gray-900 font-sans text-gray-800 dark:text-gray-200 h-screen flex">
-    <?= view('partials/sidebar') ?>
-    <main class="flex-1 overflow-y-auto p-4 md:p-8">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mx-auto max-w-3xl">
-            <h1 class="text-xl font-bold uppercase mb-2">Vendor Locations</h1>
+<?php $embed = (bool) service('request')->getGet('embed'); // shown inside Config > Vendor Locations ?>
+<body class="font-sans text-gray-800 dark:text-gray-200 <?= $embed ? 'bg-transparent' : 'bg-gray-50 dark:bg-gray-900 h-screen flex' ?>">
+    <?php if (! $embed) echo view('partials/sidebar'); ?>
+    <main class="<?= $embed ? 'p-2' : 'flex-1 overflow-y-auto p-4 md:p-8' ?>">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mx-auto <?= $embed ? 'max-w-full' : 'max-w-3xl' ?>">
+            <?php if (! $embed): ?><h1 class="text-xl font-bold uppercase mb-2">Vendor Locations</h1><?php endif; ?>
             <p class="text-xs text-gray-500 dark:text-gray-400 mb-6">
                 The "Location Access" choices offered on the Vendor Pass request form, the detail page, Card Info, and
                 Process Detail. Add one here and it appears everywhere immediately — no other page needs changing.
                 <strong>Each location belongs to one client.</strong> A vendor pass is seen and approved by every client that owns
-                one of its selected locations<?= ! empty($isSuperadmin) ? ' (<a class="text-primary underline" href="' . base_url('config/client-links') . '">Client links &amp; sharing</a>)' : '' ?>.
+                one of its selected locations<?= ! empty($isSuperadmin) ? ' (<a class="text-primary underline" target="_top" href="' . base_url('config/client-links') . '">Client links &amp; sharing</a>)' : '' ?>.
             </p>
 
             <div id="flashMsg" class="hidden mb-4 text-sm px-4 py-2 rounded-lg"></div>

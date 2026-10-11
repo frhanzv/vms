@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<?php helper('list_columns'); ?><!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8"/>
@@ -71,17 +71,17 @@
                             <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this.checked)"/>
                         </th>
                         <th class="p-3 border-b">No</th>
-                        <th class="p-3 border-b">Photo</th>
+                        <?php if (list_col('vendor_printing_list', 'photo')): ?><th class="p-3 border-b">Photo</th><?php endif; ?>
                         <th class="p-3 border-b">Full Name</th>
-                        <th class="p-3 border-b">Vendor Company</th>
-                        <th class="p-3 border-b">IC/Passport</th>
-                        <th class="p-3 border-b">Card Type</th>
+                        <?php if (list_col('vendor_printing_list', 'vendor_company_name')): ?><th class="p-3 border-b">Vendor Company</th><?php endif; ?>
+                        <?php if (list_col('vendor_printing_list', 'ic_passport')): ?><th class="p-3 border-b">IC/Passport</th><?php endif; ?>
+                        <?php if (list_col('vendor_printing_list', 'card_type')): ?><th class="p-3 border-b">Card Type</th><?php endif; ?>
                         <th class="p-3 border-b">Action</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (empty($list)): ?>
-                    <tr><td colspan="8" class="p-6 text-center text-gray-500">No approved passes waiting to be printed.</td></tr>
+                    <tr><td colspan="<?= list_col_count('vendor_printing_list') ?>" class="p-6 text-center text-gray-500">No approved passes waiting to be printed.</td></tr>
                     <?php else: foreach ($list as $row): ?>
                     <tr class="border-b border-gray-100 dark:border-gray-700"
                         data-id="<?= $row['id'] ?>"
@@ -95,6 +95,7 @@
                             <?php endif; ?>
                         </td>
                         <td class="p-3"><?= $row['no'] ?></td>
+                        <?php if (list_col('vendor_printing_list', 'photo')): ?>
                         <td class="p-3">
                             <?php if ($row['photo_url']): ?>
                                 <img src="<?= esc($row['photo_url']) ?>" class="w-8 h-8 rounded object-cover border border-gray-200 dark:border-gray-600" alt=""/>
@@ -102,10 +103,11 @@
                                 <span class="w-8 h-8 rounded bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-[10px] text-gray-500">N/A</span>
                             <?php endif; ?>
                         </td>
+                        <?php endif; ?>
                         <td class="p-3 font-semibold"><?= esc($row['full_name']) ?></td>
-                        <td class="p-3"><?= esc($row['vendor_company_name']) ?></td>
-                        <td class="p-3"><?= esc($row['ic_passport_masked']) ?></td>
-                        <td class="p-3"><?= esc($row['card_type']) ?></td>
+                        <?php if (list_col('vendor_printing_list', 'vendor_company_name')): ?><td class="p-3"><?= esc($row['vendor_company_name']) ?></td><?php endif; ?>
+                        <?php if (list_col('vendor_printing_list', 'ic_passport')): ?><td class="p-3"><?= esc($row['ic_passport_masked']) ?></td><?php endif; ?>
+                        <?php if (list_col('vendor_printing_list', 'card_type')): ?><td class="p-3"><?= esc($row['card_type']) ?></td><?php endif; ?>
                         <td class="p-3">
                             <div class="flex items-center gap-2">
                                 <a href="<?= base_url('vendors/process-list/detail/view/' . $row['id']) ?>" class="text-primary hover:underline text-xs font-semibold">View Details</a>

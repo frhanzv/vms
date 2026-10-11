@@ -32,6 +32,16 @@ class VendorList extends BaseController
 {
     private array $tierCache = [];
 
+    /** True on the Request List page (same list, without Import/Template/Export/Request). */
+    private bool $requestMode = false;
+
+    public function requestList()
+    {
+        $this->requestMode = true;
+
+        return $this->index();
+    }
+
     public function index()
     {
         helper(['access', 'feature', 'privacy', 'role']);
@@ -113,6 +123,7 @@ class VendorList extends BaseController
                 'vendor_company_name'  => $row['vendor_company_name'] ?? 'N/A',
                 'status'               => $rowStatus,
                 'awaiting'             => $awaiting,
+                'stage'                => $this->currentStage($row, $rowStatus),
                 'client_approvals'     => $vRows,
                 'access_branch'        => $row['access_branch'] ?? null,
                 'reject_reason'        => $row['reject_reason'] ?? null,
@@ -140,7 +151,9 @@ class VendorList extends BaseController
         }
 
         return view('vendors/list', [
-            'pageTitle'     => 'Vendor Pass List - SafeG',
+            'pageTitle'     => ($this->requestMode ? 'Request List' : 'Vendor List') . ' - SafeG',
+            'requestMode'   => $this->requestMode,
+            'listUrl'       => base_url($this->requestMode ? 'vendors/request-list' : 'vendors'),
             'stats'         => [
                 'total'    => $totalCount,
                 'pending'  => $pendingCount,
@@ -148,18 +161,19 @@ class VendorList extends BaseController
             ],
             'vendorList'    => $vendorList,
             'rejectReasons' => $rejectReasons,
-            'canEdit'       => has_access('vendor_pass_list', 'edit') && $cfg('edit_button'),
-            'canDelete'     => has_access('vendor_pass_list', 'delete') && $cfg('delete_button'),
+            // Vendor List is view-only; edit / delete / approve / reject live on Request List.
+            'canEdit'       => $this->requestMode && has_access('vendor_pass_list', 'edit') && $cfg('edit_button'),
+            'canDelete'     => $this->requestMode && has_access('vendor_pass_list', 'delete') && $cfg('delete_button'),
             // Import/Export/Template — KPK's real Vendor Pass List has these
             // next to "Request" (same row as the +Request button). Gated on
             // the same 'edit' permission as everything else that writes
             // vendor records, since importing is just bulk-creating them,
             // AND on their own Config > Dynamic Form Fields toggle so each
             // button can be switched off per company independently.
-            'canImport'     => has_access('vendor_pass_list', 'edit') && $cfg('import_button'),
-            'canExport'     => $cfg('export_button'),
-            'canTemplate'   => $cfg('template_button'),
-            'canRequest'    => $cfg('request_button'),
+            'canImport'     => ! $this->requestMode && has_access('vendor_pass_list', 'edit') && $cfg('import_button'),
+            'canExport'     => ! $this->requestMode && $cfg('export_button'),
+            'canTemplate'   => ! $this->requestMode && $cfg('template_button'),
+            'canRequest'    => ! $this->requestMode && $cfg('request_button'),
             'canPrint'      => $cfg('print_button'),
             // No 'canQr' here on purpose — the QR action moved to Closed List
             // (it's a vendor-detail lookup, not a pass-verification code, so
@@ -174,6 +188,37 @@ class VendorList extends BaseController
                 'per_page'     => $perPage,
             ],
         ]);
+    }
+
+    /**
+     * Where this person is in the pass pipeline right now (for the Vendor List's
+     * "Current Location" column): Request List -> Process/Printing List ->
+     * Issuance List -> Closed List. Mirrors the filters those pages use.
+     *
+     * @return array{label:string,tone:string}
+     */
+    private function currentStage(array $row, string $rowStatus): array
+    {
+        $card = (string) ($row['card_status'] ?? '');
+        if ($card === 'Terminated') {
+            return ['label' => 'Closed List (Terminated)', 'tone' => 'gray'];
+        }
+        if ($card === 'Active') {
+            return ['label' => 'Closed List', 'tone' => 'gray'];
+        }
+        if ($rowStatus === 'Rejected') {
+            return ['label' => 'Rejected', 'tone' => 'red'];
+        }
+        if ($rowStatus === 'Suspended') {
+            return ['label' => 'Suspended', 'tone' => 'gray'];
+        }
+        if ($rowStatus === 'Approved') {
+            return trim((string) ($row['receipt_no'] ?? '')) === ''
+                ? ['label' => 'Process List / Printing List', 'tone' => 'blue']
+                : ['label' => 'Issuance List', 'tone' => 'purple'];
+        }
+
+        return ['label' => 'Request List (awaiting approval)', 'tone' => 'amber'];
     }
 
     /**
