@@ -19,7 +19,8 @@ class DashboardVendor extends BaseController
         helper(['dashboard_nav', 'dashboard_chart', 'access', 'feature', 'vendor_company']);
 
         if (! dashboard_tab_allowed('vendor')) {
-            return redirect()->to(base_url('dashboard'))->with('error', 'You are not allowed to view the vendor dashboard.');
+            $fallback = is_vendor_admin() ? 'vendors' : 'dashboard';
+            return redirect()->to(base_url($fallback))->with('error', 'You are not allowed to view the vendor dashboard.');
         }
 
         $isVendorAccount = is_vendor_admin();

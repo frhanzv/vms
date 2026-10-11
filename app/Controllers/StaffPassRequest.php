@@ -33,8 +33,8 @@ class StaffPassRequest extends StaffPassBase
         if (! $isDraft && ($missing = $this->missingRequired($data))) {
             return redirect()->back()->withInput()->with('error', 'Please complete the following mandatory field(s): ' . implode(', ', $missing) . '.');
         }
-        if (! $isDraft && $this->duplicateIcExists((string) $data['ic_passport'])) {
-            return redirect()->back()->withInput()->with('error', "Another staff pass exists for IC / Passport '{$data['ic_passport']}'.");
+        if (! $isDraft && ($icMsg = \App\Libraries\PassIdentity::check($this->db(), (string) $data['ic_passport']))) {
+            return redirect()->back()->withInput()->with('error', $icMsg);
         }
 
         // Location Access is mandatory: it decides which client(s) receive the pass for approval.
@@ -134,8 +134,8 @@ class StaffPassRequest extends StaffPassBase
         if (! $isDraft && ($missing = $this->missingRequired($data))) {
             return redirect()->back()->withInput()->with('error', 'Please complete the following mandatory field(s): ' . implode(', ', $missing) . '.');
         }
-        if (! $isDraft && $this->duplicateIcExists((string) $data['ic_passport'], (int) $id)) {
-            return redirect()->back()->withInput()->with('error', "Another staff pass exists for IC / Passport '{$data['ic_passport']}'.");
+        if (! $isDraft && ($icMsg = \App\Libraries\PassIdentity::check($this->db(), (string) $data['ic_passport'], 'staff', (int) $id))) {
+            return redirect()->back()->withInput()->with('error', $icMsg);
         }
 
         $data['updated_at'] = date('Y-m-d H:i:s');

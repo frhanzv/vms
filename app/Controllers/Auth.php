@@ -135,6 +135,11 @@ class Auth extends BaseController
                 'vendoradmin'      => '/dashboard/vendor', // normalize_role_slug() strips underscores
             ];
             $destination = $redirectMap[$role] ?? '/dashboard';
+            if ($role === 'vendoradmin') {
+                // Land on the dashboard only if the role is allowed it.
+                helper('dashboard_nav');
+                $destination = dashboard_tab_allowed('vendor') ? '/dashboard/vendor' : '/vendors';
+            }
             return redirect()->to($destination)->with('success', 'Login successful!');
         } else {
             // Tell a freshly registered vendor why they can't log in yet.

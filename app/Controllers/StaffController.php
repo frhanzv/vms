@@ -177,8 +177,8 @@ class StaffController extends BaseController
                     $validationErrors[] = "Row {$rowNum}: IC/Passport '{$ic}' is duplicated in the file (first seen on row {$seenInFile[$ic]}).";
                 } else {
                     $seenInFile[$ic] = $rowNum;
-                    if ($db->table('staff')->where('ic_passport', $ic)->countAllResults() > 0) {
-                        $validationErrors[] = "Row {$rowNum}: IC/Passport '{$ic}' already exists in the system.";
+                    if ($icMsg = \App\Libraries\PassIdentity::check($db, (string) $ic)) {
+                        $validationErrors[] = "Row {$rowNum}: " . $icMsg;
                     }
                 }
             }

@@ -7,8 +7,8 @@
  *  - Visitor / Staff / Vendor tabs for staff-side roles need the existing
  *    "Dashboard" menu permission plus the module's own permission and the
  *    client's feature toggle.
- *  - A vendor company account (role vendor_admin) has no staff-side dashboard
- *    permission at all; it gets exactly one dashboard: its own Vendor one.
+ *  - A vendor company account (role vendor_admin) gets its own Vendor
+ *    dashboard only when its role has Dashboard > Vendor Pass ticked.
  */
 
 if (! function_exists('dashboard_tabs')) {
@@ -32,7 +32,10 @@ if (! function_exists('dashboard_tabs')) {
         // No Staff dashboard: staff passes are managed from the Staff Pass List only.
         // (dashboard/staff now redirects to the main dashboard because the tab is not allowed.)
 
-        if (($staffSide || is_vendor_admin()) && client_feature_enabled('vendor_pass') && has_access('vendor_pass_list', 'view')) {
+        // The Vendor dashboard follows the role's Dashboard > Vendor Pass tick,
+        // for staff roles and vendor company accounts alike.
+        if (($staffSide || is_vendor_admin()) && client_feature_enabled('vendor_pass')
+            && has_access('dashboard', 'vendor_pass') && has_access('vendor_pass_list', 'view')) {
             $tabs[] = ['key' => 'vendor', 'label' => 'Vendor', 'url' => base_url('dashboard/vendor'), 'icon' => 'local_shipping'];
         }
 

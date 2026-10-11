@@ -607,6 +607,7 @@ $routes->group('config', ['filter' => $plusAdmin], function($routes) {
     $routes->post('createUser', 'Config::createUser');
     $routes->post('updateUser/(:num)', 'Config::updateUser/$1');
     $routes->delete('deleteUser/(:num)', 'Config::deleteUser/$1');
+    $routes->post('verifyVendorAccount/(:num)', 'VendorAccountVerify::verify/$1');
     $routes->get('getAllRoles', 'Config::getAllRoles');
 });
 

@@ -78,9 +78,8 @@ class VendorPassRequest extends BaseController
         // Skipped for drafts, which are commonly saved with fields still missing.
         $icOrPassport = $formData['ic_no'] ?: $formData['passport_no'];
         $column       = $formData['ic_no'] ? 'ic_no' : 'passport_no';
-        if (! $isDraft && $icOrPassport && $db->table('vendors')->where($column, $icOrPassport)->countAllResults() > 0) {
-            return redirect()->back()->withInput()
-                ->with('error', "A vendor pass record with IC/Passport '{$icOrPassport}' already exists.");
+        if (! $isDraft && $icOrPassport && ($icMsg = \App\Libraries\PassIdentity::check($db, (string) $icOrPassport))) {
+            return redirect()->back()->withInput()->with('error', $icMsg);
         }
 
         // Location Access is mandatory: it decides which client(s) see and approve the pass.
@@ -211,9 +210,8 @@ class VendorPassRequest extends BaseController
 
         $icOrPassport = $formData['ic_no'] ?: $formData['passport_no'];
         $column       = $formData['ic_no'] ? 'ic_no' : 'passport_no';
-        if (! $isDraft && $icOrPassport && $db->table('vendors')->where($column, $icOrPassport)->where('id !=', (int) $id)->countAllResults() > 0) {
-            return redirect()->back()->withInput()
-                ->with('error', "A vendor pass record with IC/Passport '{$icOrPassport}' already exists.");
+        if (! $isDraft && $icOrPassport && ($icMsg = \App\Libraries\PassIdentity::check($db, (string) $icOrPassport, 'vendor', (int) $id))) {
+            return redirect()->back()->withInput()->with('error', $icMsg);
         }
 
         $this->handleUploads($formData);

@@ -28,6 +28,7 @@
         .card-page.type-permanent { background: linear-gradient(160deg, #0f3d91 0%, #137fec 55%, #1e2a5e 100%); }
         .card-page.type-temporary { background: linear-gradient(160deg, #92400e 0%, #f59e0b 55%, #78350f 100%); }
     </style>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 font-sans text-gray-800 dark:text-gray-200 h-screen flex">
     <?= view('partials/sidebar') ?>

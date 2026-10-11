@@ -37,6 +37,11 @@ class VendorList extends BaseController
 
     public function requestList()
     {
+        helper('access');
+        if (! has_access('vendor_pass', 'request_list')) {
+            return redirect()->to(base_url('vendors'))->with('error', 'You are not allowed to view the Request List.');
+        }
+
         $this->requestMode = true;
 
         return $this->index();
@@ -654,11 +659,8 @@ class VendorList extends BaseController
                     continue;
                 }
                 $seenInFile[$dedupeKey] = $rowNum;
-                $exists = $db->table('vendors')
-                    ->groupStart()->where('ic_no', $dedupeKey)->orWhere('passport_no', $dedupeKey)->groupEnd()
-                    ->countAllResults();
-                if ($exists > 0) {
-                    $validationErrors[] = "Row {$rowNum}: IC/Passport '{$dedupeKey}' already exists in the system.";
+                if ($icMsg = \App\Libraries\PassIdentity::check($db, (string) $dedupeKey)) {
+                    $validationErrors[] = "Row {$rowNum}: " . $icMsg;
                 }
             }
         }
