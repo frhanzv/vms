@@ -15,7 +15,7 @@ class CompanyModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['name', 'pass_name', 'registration_no', 'address', 'contact_no', 'email', 'status', 'location_id', 'client_id', 'version'];
+    protected $allowedFields    = ['name', 'pass_name', 'registration_no', 'address', 'contact_no', 'email', 'status', 'location_id', 'location_ids', 'client_id', 'version'];
 
     protected bool $allowEmptyInserts = false;
     protected bool $updateOnlyChanged = true;

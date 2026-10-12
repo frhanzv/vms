@@ -1215,34 +1215,64 @@ class Config extends BaseController
     private function resolveCompanyLocation(array &$data, bool $required): ?string
     {
         helper(['feature', 'role']);
-        $locationId = (int) ($data['location_id'] ?? 0);
-        unset($data['client_id']);
-        if ($locationId <= 0) {
-            unset($data['location_id']);
+        $raw = $data['location_ids'] ?? ($data['location_id'] ?? []);
+        $ids = is_array($raw) ? $raw : explode(',', (string) $raw);
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids), static fn($i) => $i > 0)));
+        unset($data['client_id'], $data['location_ids'], $data['location_id']);
 
+        if ($ids === []) {
             return $required ? 'Please choose the Location Access for this company.' : null;
         }
 
-        $loc = \Config\Database::connect()->table('locations')->where('id', $locationId)->get()->getRowArray();
-        if (! $loc) {
-            return 'Location Access not found.';
-        }
-        $owner = (int) ($loc['client_id'] ?? 0);
-        if (! is_platform_superadmin()) {
-            $mine = current_client_id();
-            if ($owner > 0 && $owner !== $mine) {
-                return 'That Location Access belongs to another client.';
-            }
-            $owner = $owner > 0 ? $owner : $mine;
-        }
-        if ($owner <= 0) {
-            return 'This Location Access is set to BOTH clients, so the company cannot be placed under one client. Choose a location of a single client.';
+        $rows = \Config\Database::connect()->table('locations')->whereIn('id', $ids)->get()->getResultArray();
+        if (count($rows) !== count($ids)) {
+            return 'A chosen Location Access was not found.';
         }
 
-        $data['location_id'] = $locationId;
-        $data['client_id']   = $owner;
+        $mine   = is_platform_superadmin() ? 0 : current_client_id();
+        $owners = [];
+        foreach ($rows as $loc) {
+            $owner = (int) ($loc['client_id'] ?? 0);
+            if ($mine > 0 && $owner > 0 && $owner !== $mine) {
+                return 'A chosen Location Access belongs to another client.';
+            }
+            if ($owner > 0) {
+                $owners[$owner] = true;
+            }
+        }
+        if (count($owners) > 1) {
+            return 'The chosen locations belong to different clients. A vendor company is placed under one client, so choose locations of one client only.';
+        }
+        $owner = $owners ? (int) array_key_first($owners) : $mine;
+        if ($owner <= 0) {
+            return 'These Location Access choices are set to BOTH clients, so the company cannot be placed under one client. Include a location of a single client.';
+        }
+
+        $data['location_ids'] = implode(',', $ids);
+        $data['location_id']  = $ids[0];
+        $data['client_id']    = $owner;
 
         return null;
+    }
+
+    /** Company Name In Port Pass is the only optional field; returns [field => message] of what is missing. */
+    private function companyRequiredErrors(array $data): array
+    {
+        $e = [];
+        if (trim((string) ($data['name'] ?? '')) === '') {
+            $e['name'] = 'Company Name is required.';
+        }
+        if (trim((string) ($data['registration_no'] ?? '')) === '') {
+            $e['registrationNo'] = 'Registration Number (SSM No) is required.';
+        }
+        $mail = trim((string) ($data['email'] ?? ''));
+        if ($mail === '') {
+            $e['email'] = 'Email is required.';
+        } elseif (! filter_var($mail, FILTER_VALIDATE_EMAIL)) {
+            $e['email'] = 'Enter a valid email address.';
+        }
+
+        return $e;
     }
 
     public function createCompany()
@@ -1250,6 +1280,9 @@ class Config extends BaseController
         try {
             $data = $this->request->getJSON(true);
 
+            if ($missing = $this->companyRequiredErrors($data)) {
+                return $this->response->setJSON(['success' => false, 'message' => reset($missing), 'errors' => $missing])->setStatusCode(400);
+            }
             if ($err = $this->resolveCompanyLocation($data, true)) {
                 return $this->response->setJSON(['success' => false, 'message' => $err, 'errors' => ['location_id' => $err]])->setStatusCode(400);
             }
@@ -1302,7 +1335,10 @@ class Config extends BaseController
             $data = $input;
             unset($data['version'], $data['id']);
 
-            if ($err = $this->resolveCompanyLocation($data, false)) {
+            if ($missing = $this->companyRequiredErrors($data)) {
+                return $this->response->setJSON(['success' => false, 'message' => reset($missing), 'errors' => $missing])->setStatusCode(400);
+            }
+            if ($err = $this->resolveCompanyLocation($data, true)) {
                 return $this->response->setJSON(['success' => false, 'message' => $err, 'errors' => ['location_id' => $err]])->setStatusCode(400);
             }
 
@@ -4541,6 +4577,7 @@ class Config extends BaseController
     {
         $clientId = $this->resolveEmailTemplateClientId($this->request->getGet('client_id'));
         $this->ensurePendingApprovalEmailTemplate($clientId);
+        \App\Libraries\VendorEmailTemplates::ensure($clientId);
         $builder = $this->emailTemplateModel;
         $builder = $clientId === null ? $builder->where('client_id', null) : $builder->where('client_id', $clientId);
         $rows = $builder
@@ -4607,6 +4644,17 @@ class Config extends BaseController
         }
         if (! $this->canManageEmailTemplateForClient($row)) {
             return $this->response->setJSON(['success' => false, 'message' => 'You are not allowed to preview this client template'])->setStatusCode(403);
+        }
+
+        // Vendor emails (invitation / registration reminder) have their own layout.
+        if (\App\Libraries\VendorEmailTemplates::isVendorCode((string) ($row['code'] ?? ''))) {
+            $vCode = (string) $row['code'];
+            $mail  = \App\Libraries\VendorEmailTemplates::render($vCode, isset($row['client_id']) && (int) $row['client_id'] > 0 ? (int) $row['client_id'] : null, \App\Libraries\VendorEmailTemplates::sampleContext($vCode));
+            // Show the saved row being edited, not a fallback.
+            return $this->response->setJSON(['success' => true, 'data' => [
+                'id' => (int) $row['id'], 'code' => $vCode, 'subject' => $mail['subject'],
+                'html' => $this->injectBaseHref($mail['html'], rtrim(base_url('/'), '/') . '/'), 'process' => 'vendor', 'view' => 'emails/vendor_template',
+            ]]);
         }
 
         $emailTemplateService = new EmailTemplateService();

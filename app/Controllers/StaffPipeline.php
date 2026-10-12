@@ -182,6 +182,7 @@ class StaffPipeline extends StaffPassBase
             'ic_no'       => $staff['ic_passport'] ?? '',
             'department'  => $staff['department'] ?? '',
             'designation' => $staff['designation'] ?? '',
+            'card_type'   => strtoupper((string) ($staff['sub_type'] ?? '')) === 'PERMANENT' ? 'Permanent' : 'Temporary',
             'receipt_no'  => $serial,
             'valid_until' => ! empty($staff['card_expiry']) ? date('d M Y', strtotime($staff['card_expiry'])) : '-',
             'photo_url'   => $this->photoUrl($staff) ?? base_url('assets/images/avatar-placeholder.png'),

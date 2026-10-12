@@ -173,27 +173,56 @@
                                     <option value="Permanent" <?= $sel('card_type', 'Permanent') ?>>Permanent</option>
                                     <option value="Temporary" <?= $sel('card_type', 'Temporary') ?>>Temporary (Contract)</option>
                                 </select>
-                                <p class="text-xs text-text-sub">This decides the pass/card type printed for this person — it's no longer chosen later in Process List.</p>
                             </div>
                             <?php endif; ?>
                         </div>
                         <?php if ($on('location_access')): ?>
-                        <div class="space-y-2" x-data="{ selected: <?= json_encode($selectedLocations) ?> }">
-                            <div class="flex items-center gap-3">
-                                <label class="<?= $labelClass ?>">Location Access<?= $req('location_access') ?></label>
-                                <label class="flex items-center gap-1.5 text-sm text-text-sub">
-                                    <input type="checkbox" @change="selected = $event.target.checked ? <?= json_encode(array_keys($locationOptions)) ?> : []"
-                                        :checked="selected.length === <?= count($locationOptions) ?>"/>
-                                    Select All
+                        <?php $locLabels = array_map('strval', $locationOptions); ?>
+                        <div class="space-y-2 relative"
+                             x-data="{ open: false, q: '', selected: <?= esc(json_encode(array_values(array_filter($selectedLocations))), 'attr') ?>, labels: <?= esc(json_encode($locLabels), 'attr') ?>,
+                                       get codes() { return Object.keys(this.labels); },
+                                       get shown() { const q = this.q.toLowerCase(); return this.codes.filter(c => this.labels[c].toLowerCase().includes(q)); },
+                                       get allOn() { return this.codes.length > 0 && this.selected.length === this.codes.length; },
+                                       toggleAll() { this.selected = this.allOn ? [] : [...this.codes]; },
+                                       remove(c) { this.selected = this.selected.filter(x => x !== c); } }"
+                             @click.outside="open = false" @keydown.escape.window="open = false">
+                            <label class="<?= $labelClass ?>">Location Access<?= $req('location_access') ?></label>
+
+                            <template x-for="c in selected" :key="c"><input type="hidden" name="location_access[]" :value="c"></template>
+
+                            <button type="button" @click="open = !open"
+                                class="w-full min-h-[3rem] flex items-center justify-between gap-2 rounded-lg border border-border-color dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-left text-sm focus:ring-2 focus:ring-primary/30">
+                                <span class="flex flex-wrap gap-1.5 items-center">
+                                    <span x-show="selected.length === 0" class="text-text-sub">-- Select location(s) --</span>
+                                    <template x-for="c in selected" :key="c">
+                                        <span class="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2.5 py-0.5 text-xs font-medium">
+                                            <span x-text="labels[c] || c"></span>
+                                            <span class="cursor-pointer font-bold leading-none" @click.stop="remove(c)" title="Remove">&times;</span>
+                                        </span>
+                                    </template>
+                                </span>
+                                <span class="material-symbols-outlined text-text-sub transition-transform" :class="open ? 'rotate-180' : ''">expand_more</span>
+                            </button>
+
+                            <div x-show="open" x-transition.opacity
+                                 class="absolute z-30 mt-1 w-full rounded-lg border border-border-color dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg">
+                                <div class="p-2 border-b border-border-color dark:border-gray-700">
+                                    <input type="text" x-model="q" placeholder="Search location..."
+                                        class="w-full rounded-md border border-border-color dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm"/>
+                                </div>
+                                <label class="flex items-center gap-2 px-3 py-2 text-sm font-semibold border-b border-border-color dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
+                                    <input type="checkbox" :checked="allOn" @change="toggleAll()"/>
+                                    Select All <span class="text-text-sub font-normal" x-text="'(' + selected.length + '/' + codes.length + ')'"></span>
                                 </label>
-                            </div>
-                            <div class="flex flex-wrap gap-6 pt-1">
-                                <?php foreach ($locationOptions as $code => $label): ?>
-                                <label class="flex items-center gap-2 text-sm">
-                                    <input type="checkbox" name="location_access[]" value="<?= esc($code) ?>" x-model="selected"/>
-                                    <?= esc($label) ?>
-                                </label>
-                                <?php endforeach; ?>
+                                <div class="max-h-64 overflow-y-auto py-1">
+                                    <template x-for="c in shown" :key="c">
+                                        <label class="flex items-center gap-2 px-3 py-1.5 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
+                                            <input type="checkbox" :value="c" x-model="selected"/>
+                                            <span x-text="labels[c]"></span>
+                                        </label>
+                                    </template>
+                                    <p x-show="shown.length === 0" class="px-3 py-2 text-sm text-text-sub">No location found.</p>
+                                </div>
                             </div>
                         </div>
                         <?php endif; ?>

@@ -88,13 +88,17 @@
                 <!-- Location Access -->
                 <div class="mt-2 mb-4">
                     <label class="block text-xs font-semibold mb-2">Location Access</label>
-                    <div class="flex flex-wrap gap-4">
-                        <?php foreach ($locationOptions as $code => $label): ?>
-                        <label class="flex items-center gap-1.5 text-sm">
-                            <input type="checkbox" class="loc-checkbox" value="<?= esc($code) ?>" <?= in_array($code, $selectedLocations, true) ? 'checked' : '' ?> disabled/>
-                            <?= esc($label) ?>
-                        </label>
+                    <?php // only the gates this pass has; "Edit Location Access" lists every available one ?>
+                    <div class="flex flex-wrap gap-2">
+                        <?php foreach ($selectedLocations as $code): $code = trim((string) $code); if ($code === '') { continue; } ?>
+                        <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 text-sm font-medium">
+                            <span class="material-symbols-outlined text-[16px]">check_circle</span>
+                            <?= esc($locationOptions[$code] ?? ucwords(str_replace('_', ' ', $code))) ?>
+                        </span>
                         <?php endforeach; ?>
+                        <?php if (array_filter(array_map('trim', $selectedLocations)) === []): ?>
+                        <span class="text-sm text-gray-500">No location access.</span>
+                        <?php endif; ?>
                     </div>
                 </div>
 

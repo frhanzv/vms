@@ -23,17 +23,15 @@ class VendorInviteMailer
             return [false, 'This company has no valid email address.'];
         }
 
-        $link   = client_link_url($client ?? '', 'register', (string) ($company['registration_no'] ?? ''));
-        $byName = $client['name'] ?? 'the site administrator';
-        $name   = esc((string) $company['name']);
+        $link = client_link_url($client ?? '', 'register', (string) ($company['registration_no'] ?? ''));
+        $mail = VendorEmailTemplates::render(VendorEmailTemplates::INVITATION, isset($client['id']) ? (int) $client['id'] : null, [
+            'company_name'  => (string) ($company['name'] ?? ''),
+            'client_name'   => (string) ($client['name'] ?? 'the site administrator'),
+            'ssm_no'        => (string) ($company['registration_no'] ?? ''),
+            'register_link' => $link,
+        ]);
 
-        $html = '<p>Hello ' . $name . ',</p>'
-            . '<p><strong>' . esc($byName) . '</strong> has added your company to its vendor list in SafeG. '
-            . 'Please register your company account so you can submit and track your vendor pass requests online.</p>'
-            . '<p><a href="' . $link . '" style="background:#137fec;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none;">Register your company</a></p>'
-            . '<p style="font-size:12px;color:#64748b;">Or open this link: ' . $link . '<br>Your company details are already filled in. After you register, ' . esc($byName) . ' will verify your account and you can log in.</p>';
-
-        return self::send($to, 'Please register your company on SafeG - ' . $byName, $html);
+        return self::send($to, $mail['subject'], $mail['html']);
     }
 
     /**
@@ -50,16 +48,19 @@ class VendorInviteMailer
             return [false, 'No admin with an email address found for ' . ($client['name'] ?? 'the client') . '.'];
         }
 
-        $html = '<p>Hello,</p>'
-            . '<p><strong>' . esc((string) $company['name']) . '</strong> (SSM No ' . esc((string) ($company['registration_no'] ?? '')) . ') has registered a vendor account '
-            . 'under <strong>' . esc((string) $client['name']) . '</strong> and is waiting for your approval.</p>'
-            . '<p>Contact: ' . esc((string) ($user['full_name'] ?? '')) . ' &middot; ' . esc((string) ($user['email'] ?? '')) . '</p>'
-            . '<p>Please open <strong>Config &gt; User</strong>, find the account and press <strong>Verify</strong>.</p>'
-            . '<p><a href="' . client_link_url($client, 'login') . '">Open SafeG</a></p>';
+        $mail = VendorEmailTemplates::render(VendorEmailTemplates::REGISTERED, (int) $client['id'], [
+            'company_name'  => (string) ($company['name'] ?? ''),
+            'client_name'   => (string) ($client['name'] ?? ''),
+            'ssm_no'        => (string) ($company['registration_no'] ?? ''),
+            'contact_name'  => (string) ($user['full_name'] ?? ''),
+            'contact_email' => (string) ($user['email'] ?? ''),
+            'login_link'    => client_link_url($client, 'login'),
+        ]);
+        $html = $mail['html'];
 
         $anyOk = false;
         foreach ($recipients as $r) {
-            [$ok] = self::send($r['email'], 'Vendor registration waiting for approval - ' . $company['name'], $html);
+            [$ok] = self::send($r['email'], $mail['subject'], $html);
             $anyOk = $anyOk || $ok;
         }
 

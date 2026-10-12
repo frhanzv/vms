@@ -1,0 +1,122 @@
+/*
+ * Staff pass card printing (front + back) - same method as the vendor cards.
+ *
+ *   StaffCardPrint.print([card, ...], done)
+ *
+ * The card artwork is a pre-made image (public/assets/images/template/);
+ * only the person's details are printed on top of it, at the same millimetre
+ * positions KPK uses. Each card is two pages of exactly 54 x 85.6 mm (CR-80):
+ * front, then back. Only the cards are printed, never the page you are on.
+ *
+ * `card` is what staffs/printing-list/generate-serial returns.
+ */
+(function (global) {
+    'use strict';
+
+    // .../assets/js/staff-card-print.js  ->  .../assets/images/template/
+    var script = document.currentScript;
+    var IMG = (script && script.src ? script.src.replace(/js\/staff-card-print\.js.*$/, '') : '/assets/') + 'images/template/';
+
+    function esc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+    }
+
+    var NAME_FONT = "Calibri,Carlito,Arial,sans-serif";
+    var MONO_FONT = "'Courier New',Courier,monospace";
+
+    function abs(top, height, inner) {
+        return '<div style="height:' + height + 'mm;margin-top:' + top + 'mm;position:absolute;width:100%;text-align:center;">' + inner + '</div>';
+    }
+    function span(size, color, font, text, extra) {
+        return '<span class="pasDetails" style="font-size:' + size + 'mm;color:' + color + ';font-family:' + font + ';font-weight:bold;' + (extra || '') + '">' + text + '</span>';
+    }
+
+    // PERMANENT -> blue card, TEMPORARY / CONTRACT -> orange card (same millimetre grid as the vendor cards)
+    var LAYOUT = {
+        permanent: { bg: 'staff_permanent.jpg', photoPad: 8, photoH: 36, photoImg: 'max-height:35mm;', name: 56, id: 63, until: 66, nameColor: '#fff', untilColor: '#fff', idColor: '#fff' },
+        temporary: { bg: 'staff_temporary.jpg', photoPad: 8, photoH: 36, photoImg: 'max-height:35mm;', name: 56, id: 63, until: 66, nameColor: '#111', untilColor: '#111', idColor: '#111' }
+    };
+
+    function kindOf(card) {
+        return String(card.card_type || '').toLowerCase() === 'permanent' ? 'permanent' : 'temporary';
+    }
+
+    function bgImg(file) {
+        return '<img src="' + IMG + file + '" width="219" height="351" style="position:absolute;pointer-events:none;object-fit:scale-down;margin-left:-2mm;margin-top:-2.2mm;margin-right:-3.5mm;margin-bottom:-4mm;">';
+    }
+
+    function front(card) {
+        var L = LAYOUT[kindOf(card)];
+        var name = esc(card.full_name);
+        var id = esc(card.staff_no || card.ic_no);
+        var until = 'Sah Sehingga : ' + esc(String(card.valid_until || '-').toUpperCase());
+        var h = '<div class="wrap"><div class="fix">';
+        h += bgImg(L.bg) + '<div style="height:15mm;position:relative;"></div>';
+        h += '<div style="height:' + L.photoH + 'mm;padding-top:' + L.photoPad + 'mm;position:absolute;width:100%;text-align:center;">' +
+             '<img src="' + esc(card.photo_url) + '" style="max-width:95%;' + L.photoImg + 'object-fit:contain;display:block;margin:auto;"/></div>';
+        h += abs(L.name, 3.5, span(4, L.nameColor, NAME_FONT, name));
+        h += abs(L.id, 4, span(3, L.idColor, MONO_FONT, id));
+        h += abs(L.until, 4, span(3, L.untilColor, MONO_FONT, until));
+        return h + '</div></div>';
+    }
+
+    function back(card) {
+        var h = '<div class="wrap"><div class="fix">';
+        h += '<img src="' + IMG + 'template_back.jpg" style="width:100%;height:100%;position:absolute;">';
+        h += '<img src="' + IMG + 'sign.png" style="width:65%;height:8mm;left:8%;margin-top:68mm;position:absolute;text-align:center;">';
+        return h + '</div></div>';
+    }
+
+    function documentHtml(cards) {
+        var body = cards.map(function (c) { return front(c) + back(c); }).join('');
+        return '<!doctype html><html><head><meta charset="utf-8"><title>Staff Pass</title><style>' +
+            '@page{size:54mm 85.6mm;margin:0;}' +
+            '*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;}' +
+            'html,body{margin:0;padding:0;}' +
+            '.wrap{width:54mm;height:85.6mm;position:relative;margin:0;padding:0;overflow:hidden;page-break-after:always;break-after:page;}' +
+            '.wrap:last-child{page-break-after:auto;break-after:auto;}' +
+            '.fix{padding:0;}' +
+            '.pasDetails{font-weight:750;text-shadow:0.2px 0 black;}' +
+            '</style></head><body>' + body + '</body></html>';
+    }
+
+    function print(cards, done) {
+        cards = (cards || []).filter(Boolean);
+        if (!cards.length) { if (done) done(); return; }
+
+        var frame = document.createElement('iframe');
+        frame.setAttribute('aria-hidden', 'true');
+        frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;';
+        document.body.appendChild(frame);
+
+        var doc = frame.contentWindow.document;
+        doc.open();
+        doc.write(documentHtml(cards));
+        doc.close();
+
+        var finished = false;
+        function run() {
+            if (finished) return;
+            finished = true;
+            try { frame.contentWindow.focus(); frame.contentWindow.print(); } catch (e) { /* ignore */ }
+            setTimeout(function () {
+                if (frame.parentNode) frame.parentNode.removeChild(frame);
+                if (done) done();
+            }, 300);
+        }
+
+        // wait for the artwork and photos, but never hang on a broken one
+        var imgs = Array.prototype.slice.call(doc.images);
+        var pending = imgs.length;
+        if (!pending) { setTimeout(run, 100); return; }
+        function one() { pending--; if (pending <= 0) setTimeout(run, 100); }
+        imgs.forEach(function (im) {
+            if (im.complete) { one(); } else { im.onload = one; im.onerror = one; }
+        });
+        setTimeout(run, 5000);
+    }
+
+    global.StaffCardPrint = { print: print };
+})(window);

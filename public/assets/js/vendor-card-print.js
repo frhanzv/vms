@@ -1,22 +1,21 @@
 /*
- * Vendor pass card printing (front + back), shared by Process Detail,
- * Printing List and Card Info.
+ * Vendor pass card printing (front + back) - same method as KPK.
  *
  *   VendorCardPrint.print([card, ...], done)
  *
- * Prints ONLY the cards - never the page you are on: every card is built in a
- * hidden frame and printed from there. Each card is two sheets, front then
- * back, with the card in the top-left corner (same as the old KPK print job).
- * `card` is the object returned by vendors/printing-list/generate-serial.
+ * The card artwork is a pre-made image (public/assets/images/template/);
+ * only the person's details are printed on top of it, at the same millimetre
+ * positions KPK uses. Each card is two pages of exactly 54 x 85.6 mm (CR-80):
+ * front, then back. Only the cards are printed, never the page you are on.
+ *
+ * `card` is what vendors/printing-list/generate-serial returns.
  */
 (function (global) {
     'use strict';
 
-    var THEMES = {
-        temporary: { a: '#f59e0b', b: '#fb923c', c: '#fde047', bar: '#8a6a4b' },
-        permanent: { a: '#137fec', b: '#38bdf8', c: '#a5f3fc', bar: '#1e3a8a' },
-        family:    { a: '#10b981', b: '#34d399', c: '#bef264', bar: '#166534' }
-    };
+    // .../assets/js/vendor-card-print.js  ->  .../assets/images/template/
+    var script = document.currentScript;
+    var IMG = (script && script.src ? script.src.replace(/js\/vendor-card-print\.js.*$/, '') : '/assets/') + 'images/template/';
 
     function esc(s) {
         return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -24,76 +23,83 @@
         });
     }
 
-    function themeOf(card) {
+    var NAME_FONT = "Calibri,Carlito,Arial,sans-serif";
+    var MONO_FONT = "'Courier New',Courier,monospace";
+
+    function abs(top, height, inner) {
+        return '<div style="height:' + height + 'mm;margin-top:' + top + 'mm;position:absolute;width:100%;text-align:center;">' + inner + '</div>';
+    }
+    function span(size, color, font, text, extra) {
+        return '<span class="pasDetails" style="font-size:' + size + 'mm;color:' + color + ';font-family:' + font + ';font-weight:bold;' + (extra || '') + '">' + text + '</span>';
+    }
+
+    // layout per card kind; numbers are KPK's (process-list print markup)
+    var LAYOUT = {
+        permanent: { bg: 'vendor_permanent.jpg', photoPad: 8, photoH: 36, photoImg: 'max-height:35mm;', name: 56, id: 63, until: 66, untilInner: 0 },
+        temporary: { bg: 'vendor_temporary.jpg', photoPad: 8, photoH: 36, photoImg: 'height:35mm;',     name: 56, id: 62, until: 66, untilInner: 0 }
+    };
+
+    function kindOf(card) {
         var t = String(card.card_type || '').toLowerCase();
-        if (t === 'permanent') return THEMES.permanent;
-        if (t.indexOf('family') === 0) return THEMES.family;
-        return THEMES.temporary;
+        if (t === 'permanent') return 'permanent';
+        if (t.indexOf('family') === 0) return 'family';
+        return 'temporary';
     }
 
-    function waves(th, id) {
-        return '<svg viewBox="0 0 54 85.6" preserveAspectRatio="none" style="position:absolute;left:0;top:0;width:54mm;height:85.6mm;">' +
-            '<defs><linearGradient id="g' + id + '" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="' + th.c + '"/><stop offset=".5" stop-color="' + th.b + '"/><stop offset="1" stop-color="' + th.a + '"/></linearGradient></defs>' +
-            '<rect width="54" height="85.6" fill="#fff"/>' +
-            '<path d="M0 0H54V16C40 22 24 8 0 20Z" fill="url(#g' + id + ')"/>' +
-            '<path d="M0 59C14 52 30 66 54 56V85.6H0Z" fill="url(#g' + id + ')"/>' +
-            '<path d="M0 62C16 56 32 69 54 60" fill="none" stroke="#fff" stroke-width=".8" opacity=".7"/>' +
-            '</svg>';
+    function bgImg(file) {
+        return '<img src="' + IMG + file + '" width="219" height="351" style="position:absolute;pointer-events:none;object-fit:scale-down;margin-left:-2mm;margin-top:-2.2mm;margin-right:-3.5mm;margin-bottom:-4mm;">';
     }
 
-    function front(card, i) {
-        var th = themeOf(card);
-        return '<div class="card">' + waves(th, 'f' + i) +
-            '<div class="inner" style="align-items:center;text-align:center;">' +
-              '<div style="margin-top:2.2mm;font-size:5.2mm;font-weight:900;letter-spacing:.3mm;color:#0f172a;">SAFE<span style="color:' + th.bar + ';">G</span></div>' +
-              '<div style="font-size:1.7mm;font-weight:700;letter-spacing:.2mm;color:#0f172a;text-transform:uppercase;max-width:46mm;">' + esc(card.issuer || '') + '</div>' +
-              '<img class="photo" src="' + esc(card.photo_url) + '" style="margin-top:3.2mm;width:21mm;height:27mm;object-fit:cover;background:#fff;border:.3mm solid #e5e7eb;"/>' +
-              '<div style="margin-top:2mm;font-size:3.3mm;font-weight:800;color:#111827;letter-spacing:.2mm;">' + esc(card.type_label || card.card_type) + '</div>' +
-              '<div style="margin-top:1mm;min-width:20mm;max-width:46mm;padding:.6mm 2mm;background:' + th.bar + ';color:#fff;font-size:2.1mm;font-weight:800;letter-spacing:.1mm;text-transform:uppercase;">' + esc(card.access_code || '-') + '</div>' +
-              '<div style="margin-top:auto;margin-bottom:10mm;width:100%;">' +
-                '<div style="font-size:3mm;font-weight:800;color:#111827;text-transform:uppercase;line-height:1.15;">' + esc(card.full_name) + '</div>' +
-                '<div style="margin-top:.8mm;font-size:2.5mm;font-weight:700;font-family:\'Courier New\',monospace;color:#111827;">' + esc(card.ic_display || card.ic_no) + '</div>' +
-                '<div style="margin-top:.8mm;font-size:2.3mm;font-weight:700;font-family:\'Courier New\',monospace;color:#111827;">Sah Sehingga : ' + esc(card.valid_until_upper || card.valid_until) + '</div>' +
-              '</div>' +
-            '</div></div>';
+    function front(card) {
+        var kind = kindOf(card);
+        var name = esc(card.display_name || card.full_name);
+        var ic = esc(card.ic_display || card.ic_no);
+        var until = 'Sah Sehingga : ' + esc(card.valid_until_upper || card.valid_until);
+        var h = '<div class="wrap"><div class="fix">';
+
+        if (kind === 'family') {
+            h += bgImg('family_type.png') + '<div style="height:15mm;position:relative;"></div>';
+            h += abs(49, 3.5, span(4, '#000', NAME_FONT, name));
+            h += '<div style="height:4mm;position:absolute;width:100%;text-align:center;"><div style="height:5mm;margin-top:66mm;">' +
+                 span(3, '#000', MONO_FONT, until, 'position:relative;top:-1mm;') + '</div></div>';
+        } else {
+            var L = LAYOUT[kind];
+            h += bgImg(L.bg) + '<div style="height:15mm;position:relative;"></div>';
+            h += '<div style="height:' + L.photoH + 'mm;padding-top:' + L.photoPad + 'mm;position:absolute;width:100%;text-align:center;">' +
+                 '<img src="' + esc(card.photo_url) + '" style="max-width:95%;' + L.photoImg + 'object-fit:contain;display:block;margin:auto;"/></div>';
+            h += abs(L.name, 3.5, span(4, '#fff', NAME_FONT, name));
+            h += abs(L.id, 4, span(3, '#fff', MONO_FONT, ic));
+            if (L.untilInner) {
+                h += '<div style="height:4mm;margin-top:' + L.until + 'mm;position:absolute;width:100%;text-align:center;"><div style="height:5mm;margin-top:' + L.untilInner + 'mm;">' +
+                     span(3, '#000', MONO_FONT, until, 'position:relative;top:-1mm;') + '</div></div>';
+            } else {
+                h += abs(L.until, 4, span(3, '#000', MONO_FONT, until));
+            }
+        }
+        return h + '</div></div>';
     }
 
-    function back(card, i) {
-        var th = themeOf(card);
-        var issuer = esc(card.issuer || 'pihak pengurusan');
-        var terms = [
-            'Paskad ini adalah surat rasmi yang dikeluarkan oleh ' + issuer + '.',
-            'Paskad ini hendaklah sentiasa dipamerkan sepanjang masa berada dalam tempat/kawasan yang berkenaan dan hendaklah ditunjukkan jikalau dikehendaki oleh pegawai yang berkuasa memeriksanya.',
-            'Paskad ini hendaklah dikembalikan kepada pejabat yang mengeluarkannya apabila pemegangnya telah berhenti daripada jawatan atau pekerjaan yang menyebabkan paskad ini dikeluarkan.',
-            'Kehilangan paskad ini mestilah dilaporkan dengan segera kepada pejabat yang mengeluarkannya.',
-            'Sesiapa yang menjumpai paskad ini hendaklah menyerahkannya kepada ' + issuer + '.'
-        ];
-        var li = terms.map(function (t, n) { return '<li style="display:flex;gap:1mm;margin-bottom:1.2mm;"><span>' + (n + 1) + '.</span><span>' + t + '</span></li>'; }).join('');
-        return '<div class="card" style="background:#fff;">' +
-            '<div class="inner">' +
-              '<ol style="list-style:none;margin:2mm 0 0;padding:0;font-size:2mm;line-height:1.25;text-align:justify;color:#111827;">' + li + '</ol>' +
-              '<div style="margin-top:auto;margin-bottom:9mm;text-align:center;">' +
-                '<div style="font-size:4.2mm;font-weight:800;font-family:\'Courier New\',monospace;color:#111827;">' + esc(card.receipt_no) + '</div>' +
-                '<div style="display:inline-block;margin-top:.6mm;min-width:16mm;padding:.5mm 2mm;background:' + th.bar + ';color:#fff;font-size:2.4mm;font-weight:800;text-transform:uppercase;">' + esc(card.access_code || '-') + '</div>' +
-                '<div style="border-top:.2mm dashed #6b7280;width:85%;margin:6mm auto 1mm;"></div>' +
-                '<div style="font-size:1.9mm;font-weight:700;text-transform:uppercase;">Pegawai Yang Dibenarkan</div>' +
-              '</div>' +
-            '</div></div>';
+    function back(card) {
+        var h = '<div class="wrap"><div class="fix">';
+        h += '<img src="' + IMG + 'template_back.jpg" style="width:100%;height:100%;position:absolute;">';
+        if (card.company) {
+            h += abs(64, 3.5, span(2.5, '#000', NAME_FONT, esc(card.company)));
+        }
+        h += '<img src="' + IMG + 'sign.png" style="width:65%;height:8mm;left:8%;margin-top:68mm;position:absolute;text-align:center;">';
+        return h + '</div></div>';
     }
 
     function documentHtml(cards) {
-        var sheets = cards.map(function (c, i) {
-            return '<div class="sheet">' + front(c, i) + '</div><div class="sheet">' + back(c, i) + '</div>';
-        }).join('');
+        var body = cards.map(function (c) { return front(c) + back(c); }).join('');
         return '<!doctype html><html><head><meta charset="utf-8"><title>Vendor Pass</title><style>' +
-            '@page{size:A4 portrait;margin:8mm;}' +
+            '@page{size:54mm 85.6mm;margin:0;}' +
             '*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;}' +
-            'html,body{margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;}' +
-            '.sheet{page-break-after:always;break-after:page;width:54mm;height:85.6mm;}' +
-            '.sheet:last-child{page-break-after:auto;break-after:auto;}' +
-            '.card{position:relative;width:54mm;height:85.6mm;overflow:hidden;border:.2mm solid #d1d5db;}' +
-            '.inner{position:absolute;left:0;top:0;width:54mm;height:85.6mm;padding:3mm;display:flex;flex-direction:column;}' +
-            '</style></head><body>' + sheets + '</body></html>';
+            'html,body{margin:0;padding:0;}' +
+            '.wrap{width:54mm;height:85.6mm;position:relative;margin:0;padding:0;overflow:hidden;page-break-after:always;break-after:page;}' +
+            '.wrap:last-child{page-break-after:auto;break-after:auto;}' +
+            '.fix{padding:0;}' +
+            '.pasDetails{font-weight:750;text-shadow:0.2px 0 black;}' +
+            '</style></head><body>' + body + '</body></html>';
     }
 
     function print(cards, done) {
@@ -121,7 +127,7 @@
             }, 300);
         }
 
-        // wait for the photos, but never hang on a broken one
+        // wait for the artwork and photos, but never hang on a broken one
         var imgs = Array.prototype.slice.call(doc.images);
         var pending = imgs.length;
         if (!pending) { setTimeout(run, 100); return; }
@@ -129,7 +135,7 @@
         imgs.forEach(function (im) {
             if (im.complete) { one(); } else { im.onload = one; im.onerror = one; }
         });
-        setTimeout(run, 4000);
+        setTimeout(run, 5000);
     }
 
     global.VendorCardPrint = { print: print };

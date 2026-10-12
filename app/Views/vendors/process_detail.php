@@ -194,10 +194,17 @@
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="text-sm font-bold uppercase">Card Printing</h2>
                     <?php if ($canEdit ?? false): ?>
+                    <?php
+                    // Steps in order: 1 card photo -> 2 Card Details (expiry saved) -> 3 Print -> 4 Finish.
+                    $stepPhoto   = ! empty($vendor['facial_photo']) || ! empty($vendor['photo']);
+                    $stepDetails = $stepPhoto && ! empty($vendor['pass_expiry']);
+                    $stepPrinted = $stepDetails && ! empty($printLogs);
+                    $lock = static fn(bool $ok) => $ok ? '' : ' opacity-50 cursor-not-allowed';
+                    ?>
                     <div class="flex gap-2">
-                        <button onclick="openCardDetails()" class="h-8 px-3 rounded-lg bg-indigo-600 text-white text-xs font-semibold">Card Details</button>
-                        <button onclick="printCard()" class="h-8 px-3 rounded-lg bg-primary text-white text-xs font-semibold">Print</button>
-                        <button onclick="openScanCard()" class="h-8 px-3 rounded-lg bg-emerald-600 text-white text-xs font-semibold">Finish</button>
+                        <button onclick="stepGo(<?= $stepPhoto ? 'true' : 'false' ?>, 'Upload the card photo first.', openCardDetails)" class="h-8 px-3 rounded-lg bg-indigo-600 text-white text-xs font-semibold<?= $lock($stepPhoto) ?>" title="<?= $stepPhoto ? '' : 'Upload the card photo first' ?>">Card Details</button>
+                        <button onclick="stepGo(<?= $stepDetails ? 'true' : 'false' ?>, '<?= $stepPhoto ? 'Save the expiry date in Card Details first.' : 'Upload the card photo first.' ?>', printCard)" class="h-8 px-3 rounded-lg bg-primary text-white text-xs font-semibold<?= $lock($stepDetails) ?>" title="<?= $stepDetails ? '' : 'Complete the earlier steps first' ?>">Print</button>
+                        <button onclick="stepGo(<?= $stepPrinted ? 'true' : 'false' ?>, '<?= $stepDetails ? 'Print the card first.' : ($stepPhoto ? 'Save the expiry date in Card Details first.' : 'Upload the card photo first.') ?>', openScanCard)" class="h-8 px-3 rounded-lg bg-emerald-600 text-white text-xs font-semibold<?= $lock($stepPrinted) ?>" title="<?= $stepPrinted ? '' : 'Complete the earlier steps first' ?>">Finish</button>
                     </div>
                     <?php endif; ?>
                 </div>
@@ -373,7 +380,7 @@
             const fd = new FormData();
             fd.append('photo', file);
             postForm('<?= base_url('vendors/process-list/detail/upload-photo/') ?>' + VENDOR_ID, fd)
-                .then(d => { if (d.success) document.getElementById('currentPhoto').src = d.photo_url; else alert(d.message); })
+                .then(d => { if (d.success) { document.getElementById('currentPhoto').src = d.photo_url; location.reload(); } else alert(d.message); })
                 .catch(netErr);
         }
 
@@ -446,8 +453,14 @@
         }
         function usePhoto() {
             postJson('<?= base_url('vendors/process-list/detail/upload-photo/') ?>' + VENDOR_ID, { photo_data: capturedDataUrl })
-                .then(d => { if (d.success) { document.getElementById('currentPhoto').src = d.photo_url; closeCamera(); } else alert(d.message); })
+                .then(d => { if (d.success) { document.getElementById('currentPhoto').src = d.photo_url; closeCamera(); location.reload(); } else alert(d.message); })
                 .catch(netErr);
+        }
+
+        // A step button that is not ready yet looks faded and explains what to do first.
+        function stepGo(ready, message, action) {
+            if (!ready) { alert(message); return; }
+            action();
         }
 
         // --- Card Details (expiry date) ---

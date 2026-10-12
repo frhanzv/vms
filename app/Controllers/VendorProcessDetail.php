@@ -280,6 +280,12 @@ class VendorProcessDetail extends BaseController
         // a worker type and a Pass No; the Pass No becomes the receipt no, which is
         // what moves the record on to the Issuance List.
         if ($finish) {
+            if (empty($vendor['facial_photo']) && empty($vendor['photo'])) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Upload the card photo first.']);
+            }
+            if (\Config\Database::connect()->table('vendor_card_print_logs')->where('vendor_id', (int) $id)->countAllResults() === 0) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Print the card first.']);
+            }
             if (empty($vendor['pass_expiry'])) {
                 return $this->response->setJSON(['success' => false, 'message' => 'Please set the Expiry Date in Card Details first.']);
             }

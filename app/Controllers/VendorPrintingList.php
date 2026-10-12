@@ -141,6 +141,13 @@ class VendorPrintingList extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'This record has no card type assigned yet — send it through Process List first.']);
         }
 
+        if (empty($vendor['facial_photo']) && empty($vendor['photo'])) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Upload the card photo first.']);
+        }
+        if (empty($vendor['pass_expiry'])) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Save the expiry date in Card Details first.']);
+        }
+
         // From the Process Detail page the receipt no is only saved when Finish
         // (Scan Card) is pressed, so printing there keeps the record in Process List.
         $defer = ! empty(($this->request->getJSON(true) ?? [])['defer']);
@@ -175,6 +182,7 @@ class VendorPrintingList extends BaseController
             'card'    => [
                 'id'          => $vendor['id'],
                 'full_name'   => $vendor['full_name'] ?? '',
+                'display_name' => trim((string) ($vendor['name_on_vendor_pass'] ?? '')) !== '' ? $vendor['name_on_vendor_pass'] : ($vendor['full_name'] ?? ''),
                 'ic_no'       => $vendor['ic_no'] ?: ($vendor['passport_no'] ?? ''),
                 'company'     => $vendor['vendor_company_name'] ?? '',
                 'card_type'   => $vendor['card_type'],

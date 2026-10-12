@@ -3522,6 +3522,7 @@
                                         <div>
                                             <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase mb-1.5">Body</label>
                                             <textarea id="emailTemplateCrudBody" rows="12" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-primary focus:border-primary text-sm p-2.5 shadow-sm custom-scrollbar" required></textarea>
+                                            <p id="emailTemplateCrudBodyHint" class="hidden mt-1.5 text-xs text-slate-500 dark:text-slate-400"></p>
                                         </div>
                                         <div class="flex justify-end gap-2 pt-2">
                                             <button type="button" onclick="closeEmailTemplateCrudModal()" class="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200">Back</button>
@@ -7672,7 +7673,7 @@
                                 <div id="companyNameError" class="text-red-500 text-sm mt-1 hidden"></div>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Registration Number (SSM No)</label>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Registration Number (SSM No) <span class="text-red-500">*</span></label>
                                 <input type="text" id="companyRegistrationNo" name="registration_no"
                                     class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2 focus:ring-primary focus:border-primary">
                                 <div id="companyRegistrationNoError" class="text-red-500 text-sm mt-1 hidden"></div>
@@ -7687,16 +7688,13 @@
                                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                                     Location Access <span class="text-red-500">*</span>
                                 </label>
-                                <select id="companyLocation" name="location_id"
-                                    class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2 focus:ring-primary focus:border-primary">
-                                    <option value="">Loading...</option>
-                                </select>
-                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">The vendor is placed under the client that owns this location. It cannot choose a client when it registers.</p>
+                                <div id="companyLocationBox" class="relative"></div>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Tick one or more locations. The vendor is placed under the client that owns them (all ticked locations must belong to one client). It cannot choose a client when it registers.</p>
                                 <div id="companyLocation_idError" class="text-red-500 text-sm mt-1 hidden"></div>
                             </div>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Email</label>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Email <span class="text-red-500">*</span></label>
                                     <input type="email" id="companyEmail" name="email"
                                         class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2 focus:ring-primary focus:border-primary">
                                     <div id="companyEmailError" class="text-red-500 text-sm mt-1 hidden"></div>
@@ -7731,20 +7729,69 @@
             loadCompanyLocations(null);
         }
 
-        // Location Access dropdown of the company form (client admin: own locations only).
-        function loadCompanyLocations(selectedId) {
-            const sel = document.getElementById('companyLocation');
-            if (!sel) return;
+        // Location Access of the company form: a multi-select dropdown (client admin: own locations only).
+        window.companyLoc = { rows: [], selected: [], open: false, q: '' };
+
+        function loadCompanyLocations(selected) {
+            const box = document.getElementById('companyLocationBox');
+            if (!box) return;
+            const ids = Array.isArray(selected) ? selected : String(selected || '').split(',').filter(Boolean);
+            companyLoc.selected = ids.map(String);
+            companyLoc.open = false;
+            companyLoc.q = '';
+            box.innerHTML = '<div class="text-sm text-gray-500 px-1 py-2">Loading...</div>';
             fetch(`<?= base_url('config/company-locations') ?>`)
                 .then(r => r.json())
-                .then(res => {
-                    const rows = res.data || [];
-                    sel.innerHTML = '<option value="">Select location access</option>' + rows.map(l =>
-                        `<option value="${l.id}">${escapeHtml(l.label)}${l.client ? ' - ' + escapeHtml(l.client) : ''}</option>`).join('');
-                    if (selectedId) sel.value = String(selectedId);
-                })
-                .catch(() => { sel.innerHTML = '<option value="">Could not load locations</option>'; });
+                .then(res => { companyLoc.rows = (res.data || []).map(l => ({ id: String(l.id), label: l.label })); renderCompanyLoc(); })
+                .catch(() => { box.innerHTML = '<div class="text-sm text-red-500 px-1 py-2">Could not load locations</div>'; });
         }
+
+        function renderCompanyLoc() {
+            const box = document.getElementById('companyLocationBox');
+            if (!box) return;
+            const st = companyLoc, labelOf = id => (st.rows.find(r => r.id === id) || {}).label || id;
+            const q = st.q.toLowerCase();
+            const shown = st.rows.filter(r => r.label.toLowerCase().includes(q));
+            const allOn = st.rows.length > 0 && st.selected.length === st.rows.length;
+            const tags = st.selected.length
+                ? st.selected.map(id => `<span class="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2.5 py-0.5 text-xs font-medium">${escapeHtml(labelOf(id))}<span class="cursor-pointer font-bold leading-none" onclick="event.stopPropagation(); toggleCompanyLoc('${id}')" title="Remove">&times;</span></span>`).join('')
+                : '<span class="text-gray-400 text-sm">Select location access</span>';
+            box.innerHTML = `
+                <button type="button" onclick="companyLoc.open = !companyLoc.open; renderCompanyLoc();"
+                    class="w-full min-h-[2.75rem] flex items-center justify-between gap-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-left">
+                    <span class="flex flex-wrap gap-1.5 items-center">${tags}</span>
+                    <span class="material-symbols-outlined text-gray-400 ${st.open ? 'rotate-180' : ''}">expand_more</span>
+                </button>
+                ${st.open ? `
+                <div class="absolute z-30 mt-1 w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800 shadow-lg">
+                    <div class="p-2 border-b border-gray-200 dark:border-slate-700">
+                        <input id="companyLocSearch" type="text" value="${escapeHtml(st.q)}" placeholder="Search location..." oninput="companyLoc.q = this.value; renderCompanyLoc(); const i = document.getElementById('companyLocSearch'); i.focus(); i.setSelectionRange(i.value.length, i.value.length);"
+                            class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md px-3 py-1.5 text-sm">
+                    </div>
+                    <label class="flex items-center gap-2 px-3 py-2 text-sm font-semibold border-b border-gray-200 dark:border-slate-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700">
+                        <input type="checkbox" ${allOn ? 'checked' : ''} onchange="toggleAllCompanyLoc()"> Select All <span class="font-normal text-gray-500">(${st.selected.length}/${st.rows.length})</span>
+                    </label>
+                    <div class="max-h-60 overflow-y-auto py-1">
+                        ${shown.map(r => `<label class="flex items-center gap-2 px-3 py-1.5 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700"><input type="checkbox" ${st.selected.includes(r.id) ? 'checked' : ''} onchange="toggleCompanyLoc('${r.id}')"> ${escapeHtml(r.label)}</label>`).join('') || '<p class="px-3 py-2 text-sm text-gray-500">No location found.</p>'}
+                    </div>
+                </div>` : ''}`;
+        }
+
+        function toggleCompanyLoc(id) {
+            const i = companyLoc.selected.indexOf(id);
+            if (i >= 0) companyLoc.selected.splice(i, 1); else companyLoc.selected.push(id);
+            renderCompanyLoc();
+            if (companyLoc.open) { const el = document.getElementById('companyLocSearch'); if (el) el.focus(); }
+        }
+        function toggleAllCompanyLoc() {
+            companyLoc.selected = (companyLoc.selected.length === companyLoc.rows.length) ? [] : companyLoc.rows.map(r => r.id);
+            renderCompanyLoc();
+        }
+        document.addEventListener('click', e => {
+            const box = document.getElementById('companyLocationBox');
+            // composedPath keeps the clicked node even after the panel re-rendered it away
+            if (box && companyLoc.open && !e.composedPath().includes(box)) { companyLoc.open = false; renderCompanyLoc(); }
+        });
 
         function openEditCompanyModal(companyId) {
             fetch(`<?= base_url('config/getCompany') ?>/${companyId}`)
@@ -7771,7 +7818,7 @@
                                             <div id="companyNameError" class="text-red-500 text-sm mt-1 hidden"></div>
                                         </div>
                                         <div>
-                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Registration Number (SSM No)</label>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Registration Number (SSM No) <span class="text-red-500">*</span></label>
                                             <input type="text" id="companyRegistrationNo" name="registration_no" value="${escapeHtml(data.data.registration_no || '')}"
                                                 class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2 focus:ring-primary focus:border-primary">
                                             <div id="companyRegistrationNoError" class="text-red-500 text-sm mt-1 hidden"></div>
@@ -7786,16 +7833,13 @@
                                             <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                                                 Location Access <span class="text-red-500">*</span>
                                             </label>
-                                            <select id="companyLocation" name="location_id"
-                                                class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2 focus:ring-primary focus:border-primary">
-                                                <option value="">Loading...</option>
-                                            </select>
-                                            <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">The vendor is placed under the client that owns this location. It cannot choose a client when it registers.</p>
+                                            <div id="companyLocationBox" class="relative"></div>
+                                            <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Tick one or more locations. The vendor is placed under the client that owns them (all ticked locations must belong to one client). It cannot choose a client when it registers.</p>
                                             <div id="companyLocation_idError" class="text-red-500 text-sm mt-1 hidden"></div>
                                         </div>
                                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div>
-                                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Email</label>
+                                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Email <span class="text-red-500">*</span></label>
                                                 <input type="email" id="companyEmail" name="email" value="${escapeHtml(data.data.email || '')}"
                                                     class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2 focus:ring-primary focus:border-primary">
                                                 <div id="companyEmailError" class="text-red-500 text-sm mt-1 hidden"></div>
@@ -7827,7 +7871,7 @@
                             </div>
                         `;
                         document.body.insertAdjacentHTML('beforeend', modalHTML);
-                        loadCompanyLocations(data.data.location_id);
+                        loadCompanyLocations(data.data.location_ids || data.data.location_id);
                     } else {
                         showNotification('Failed to load company data', 'error');
                     }
@@ -7865,8 +7909,21 @@
                 pass_name: document.getElementById('companyPassName').value,
                 email: document.getElementById('companyEmail').value,
                 status: document.getElementById('companyStatus').value,
-                location_id: document.getElementById('companyLocation').value
+                location_ids: companyLoc.selected.slice()
             };
+
+            // everything is mandatory except "Company Name In Port Pass"
+            const need = [];
+            const fail = (id, msg) => { const el = document.getElementById(id); if (el) { el.textContent = msg; el.classList.remove('hidden'); } need.push(msg); };
+            if (!formData.name.trim()) fail('companyNameError', 'Company Name is required.');
+            if (!formData.registration_no.trim()) fail('companyRegistrationNoError', 'Registration Number (SSM No) is required.');
+            if (!formData.email.trim()) fail('companyEmailError', 'Email is required.');
+            else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) fail('companyEmailError', 'Enter a valid email address.');
+            if (!formData.location_ids.length) fail('companyLocation_idError', 'Choose at least one Location Access.');
+            if (need.length) {
+                showNotification(need[0], 'error');
+                return;
+            }
 
             const url = companyId
                 ? `<?= base_url('config/updateCompany') ?>/${companyId}`
@@ -15657,6 +15714,7 @@
             document.getElementById('emailTemplateCrudContentBgColor').value = '#F8F9FA';
             document.getElementById('emailTemplateCrudTextColor').value = '#333333';
             document.getElementById('emailTemplateCrudBody').value = '';
+            document.getElementById('emailTemplateCrudBodyHint')?.classList.add('hidden');
 
             document.getElementById('emailTemplateCrudLogo').value = '';
             document.getElementById('emailTemplateCrudLogoPreview').classList.add('hidden');
@@ -15695,6 +15753,16 @@
                     document.getElementById('emailTemplateCrudContentBgColor').value = row.content_bg_color || '#F8F9FA';
                     document.getElementById('emailTemplateCrudTextColor').value = row.text_color || '#333333';
                     document.getElementById('emailTemplateCrudBody').value = row.body || '';
+                    const bodyHint = document.getElementById('emailTemplateCrudBodyHint');
+                    const vendorHints = {
+                        VENDOR_INVITATION: ['company_name', 'client_name', 'register_link'],
+                        VENDOR_REGISTERED: ['company_name', 'ssm_no', 'client_name', 'contact_name', 'contact_email', 'login_link']
+                    };
+                    const hintKeys = vendorHints[String(row.code || '').toUpperCase()];
+                    if (bodyHint) {
+                        bodyHint.textContent = hintKeys ? 'You can use: ' + hintKeys.map(k => '{{' + k + '}}').join('  ') : '';
+                        bodyHint.classList.toggle('hidden', !hintKeys);
+                    }
 
                     document.getElementById('emailTemplateCrudLogo').value = '';
                     if (row.logo_url) {
