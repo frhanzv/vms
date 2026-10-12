@@ -84,6 +84,9 @@ class VendorProcessDetail extends BaseController
             'passNoDefault'   => (string) (($printLogs[0]['receipt_no'] ?? '') ?: ($vendor['receipt_no'] ?? '') ?: ($vendor['staff_no'] ?? '') ?: ($vendor['app_no'] ?? '')),
             'showRfidSection' => $cfg('process_rfid_section'),
             'showPrintingSection' => $cfg('process_card_printing_section'),
+            // Vendor Workflow: optional steps this client has switched off
+            'needPhoto'       => \App\Libraries\VendorWorkflow::enabled(\Config\Database::connect(), (int) current_company_id(), 'card_photo'),
+            'needPrint'       => \App\Libraries\VendorWorkflow::enabled(\Config\Database::connect(), (int) current_company_id(), 'card_printing'),
         ]);
     }
 
@@ -280,10 +283,11 @@ class VendorProcessDetail extends BaseController
         // a worker type and a Pass No; the Pass No becomes the receipt no, which is
         // what moves the record on to the Issuance List.
         if ($finish) {
-            if (empty($vendor['facial_photo']) && empty($vendor['photo'])) {
+            $wfDb = \Config\Database::connect();
+            if (\App\Libraries\VendorWorkflow::enabled($wfDb, (int) current_company_id(), 'card_photo') && empty($vendor['facial_photo']) && empty($vendor['photo'])) {
                 return $this->response->setJSON(['success' => false, 'message' => 'Upload the card photo first.']);
             }
-            if (\Config\Database::connect()->table('vendor_card_print_logs')->where('vendor_id', (int) $id)->countAllResults() === 0) {
+            if (\App\Libraries\VendorWorkflow::enabled($wfDb, (int) current_company_id(), 'card_printing') && \Config\Database::connect()->table('vendor_card_print_logs')->where('vendor_id', (int) $id)->countAllResults() === 0) {
                 return $this->response->setJSON(['success' => false, 'message' => 'Print the card first.']);
             }
             if (empty($vendor['pass_expiry'])) {

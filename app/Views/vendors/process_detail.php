@@ -9,6 +9,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>tailwind.config = { theme: { extend: { colors: { primary: "#137fec" }, fontFamily: { sans: ["Montserrat","sans-serif"] } } } };</script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>[x-cloak]{display:none !important}</style>
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 font-sans text-gray-800 dark:text-gray-200 min-h-screen flex">
     <?= view('partials/sidebar') ?>
@@ -53,15 +54,50 @@
                         <textarea id="f_remark" rows="2" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-900 rounded px-3 py-2 text-sm" <?= ($canEdit ?? false) ? '' : 'disabled' ?>><?= esc($vendor['remark'] ?? '') ?></textarea>
                     </div>
                 </div>
-                <div class="mt-4">
+                <?php
+                    $locSel    = array_values(array_filter(array_map('trim', (array) ($selectedLocations ?? []))));
+                    $locLabels = array_map('strval', $locationOptions);
+                ?>
+                <div class="mt-4 relative"
+                     x-data="{ open: false, q: '', selected: <?= esc(json_encode($locSel), 'attr') ?>, labels: <?= esc(json_encode($locLabels), 'attr') ?>, editable: <?= ($canEdit ?? false) ? 'true' : 'false' ?>,
+                               get codes() { return Object.keys(this.labels); },
+                               get shown() { const q = this.q.toLowerCase(); return this.codes.filter(c => this.labels[c].toLowerCase().includes(q)); },
+                               get allOn() { return this.codes.length > 0 && this.selected.length === this.codes.length; },
+                               toggleAll() { this.selected = this.allOn ? [] : [...this.codes]; },
+                               remove(c) { if (this.editable) this.selected = this.selected.filter(x => x !== c); },
+                               init() { window.getLocationAccess = () => this.selected; } }"
+                     @click.outside="open = false" @keydown.escape.window="open = false">
                     <label class="block text-xs font-semibold mb-2">Location Access</label>
-                    <div class="flex flex-wrap gap-4">
-                        <?php foreach ($locationOptions as $code => $labelText): ?>
-                        <label class="flex items-center gap-1.5 text-sm">
-                            <input type="checkbox" class="f_location_access" value="<?= esc($code) ?>" <?= in_array($code, $selectedLocations ?? [], true) ? 'checked' : '' ?> <?= ($canEdit ?? false) ? '' : 'disabled' ?>/>
-                            <?= esc($labelText) ?>
+                    <button type="button" @click="editable && (open = !open)" :class="editable ? 'cursor-pointer' : 'cursor-default bg-gray-50 dark:bg-gray-900'"
+                        class="w-full min-h-[2.75rem] flex items-center justify-between gap-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-900 px-3 py-2 text-left text-sm">
+                        <span class="flex flex-wrap gap-1.5 items-center">
+                            <span x-show="selected.length === 0" class="text-gray-400" x-text="editable ? '-- Select location(s) --' : 'No location access.'"></span>
+                            <template x-for="c in selected" :key="c">
+                                <span class="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2.5 py-0.5 text-xs font-medium">
+                                    <span x-text="labels[c] || c"></span>
+                                    <span x-show="editable" class="cursor-pointer font-bold leading-none" @click.stop="remove(c)" title="Remove">&times;</span>
+                                </span>
+                            </template>
+                        </span>
+                        <span x-show="editable" class="material-symbols-outlined text-gray-400 transition-transform" :class="open ? 'rotate-180' : ''">expand_more</span>
+                    </button>
+                    <div x-show="open" x-cloak class="absolute z-30 mt-1 w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 shadow-lg">
+                        <div class="p-2 border-b border-gray-200 dark:border-gray-700">
+                            <input type="text" x-model="q" placeholder="Search location..." class="w-full rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 px-3 py-1.5 text-sm"/>
+                        </div>
+                        <label class="flex items-center gap-2 px-3 py-2 text-sm font-semibold border-b border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
+                            <input type="checkbox" :checked="allOn" @change="toggleAll()"/>
+                            Select All <span class="text-gray-400 font-normal" x-text="'(' + selected.length + '/' + codes.length + ')'"></span>
                         </label>
-                        <?php endforeach; ?>
+                        <div class="max-h-64 overflow-y-auto py-1">
+                            <template x-for="c in shown" :key="c">
+                                <label class="flex items-center gap-2 px-3 py-1.5 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
+                                    <input type="checkbox" :value="c" x-model="selected"/>
+                                    <span x-text="labels[c]"></span>
+                                </label>
+                            </template>
+                            <p x-show="shown.length === 0" class="px-3 py-2 text-sm text-gray-500">No location found.</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -196,9 +232,10 @@
                     <?php if ($canEdit ?? false): ?>
                     <?php
                     // Steps in order: 1 card photo -> 2 Card Details (expiry saved) -> 3 Print -> 4 Finish.
-                    $stepPhoto   = ! empty($vendor['facial_photo']) || ! empty($vendor['photo']);
+                    // Vendor Workflow: a step switched off in Vendor Workflow no longer blocks the next one.
+                    $stepPhoto   = ! ($needPhoto ?? true) || ! empty($vendor['facial_photo']) || ! empty($vendor['photo']);
                     $stepDetails = $stepPhoto && ! empty($vendor['pass_expiry']);
-                    $stepPrinted = $stepDetails && ! empty($printLogs);
+                    $stepPrinted = $stepDetails && (! ($needPrint ?? true) || ! empty($printLogs));
                     $lock = static fn(bool $ok) => $ok ? '' : ' opacity-50 cursor-not-allowed';
                     ?>
                     <div class="flex gap-2">
@@ -336,7 +373,7 @@
         // --- Save details ---
         function val(id) { const el = document.getElementById(id); return el ? el.value : ''; }
         function saveDetails() {
-            const locationAccess = Array.from(document.querySelectorAll('.f_location_access:checked')).map(el => el.value);
+            const locationAccess = typeof window.getLocationAccess === 'function' ? Array.from(window.getLocationAccess()) : [];
             postJson('<?= base_url('vendors/process-list/detail/update/') ?>' + VENDOR_ID, {
                 vendor_company_name: val('f_vendor_company_name'),
                 full_name: val('f_full_name'),

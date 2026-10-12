@@ -317,6 +317,14 @@ class Auth extends BaseController
             return redirect()->back()->withInput()->with('error', 'Could not complete registration: ' . implode(' ', $userModel->errors() ?: ['Please check your details and try again.']));
         }
 
+        // Vendor Workflow: when the client has switched "Account Verification" off, the account is
+        // active straight away - no staff verification and no reminder email.
+        if (! \App\Libraries\VendorWorkflow::enabled(\Config\Database::connect(), (int) $client['id'], 'account_verification')) {
+            $userModel->skipValidation(true)->update((int) $ok, ['is_active' => 1, 'verified_at' => date('Y-m-d H:i:s')]);
+
+            return redirect()->to($linkClient ? client_link_url($linkClient, 'login') : base_url('login'))->with('success', 'Registration complete. You can now log in with your company SSM No as the username.');
+        }
+
         // Remind the client that this vendor is waiting for approval.
         try {
             \App\Libraries\VendorInviteMailer::registered($company, $client, ['full_name' => $fullName, 'email' => $email]);

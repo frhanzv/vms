@@ -34,7 +34,6 @@ $routes->group('api/rfid', function($routes) {
     $routes->get('scan-lane', 'RFID::scanLane');
     $routes->get('status', 'RFID::status');
     $routes->get('test-connection', 'RFID::testConnection');
-    $routes->get('staff-scan', 'RFID::staffScan'); // KPK staff pass gate in/out
     $routes->get('api/vendor-rfid/scan', 'VendorRFID::scan');
 });
 
@@ -270,9 +269,8 @@ $routes->get('dashboard/staff',  'DashboardStaff::index',  ['filter' => 'client_
 $routes->get('dashboard/vendor', 'DashboardVendor::index', ['filter' => 'client_feature:vendor_pass']);
 // List Columns moved into Config > Page Settings (old link just goes to Config).
 $routes->get('config/list-columns', static fn () => redirect()->to(base_url('config')));
-// Access: superadmin, or Role Management > Config > Page Settings (own client) — checked in PageSettings.
-$routes->get('config/page-settings/data',  'PageSettings::data');
-$routes->post('config/page-settings/save', 'PageSettings::save');
+$routes->get('config/page-settings/data',  'PageSettings::data', ['filter' => 'role:superadmin,clientsuperadmin']);
+$routes->post('config/page-settings/save', 'PageSettings::save', ['filter' => 'role:superadmin,clientsuperadmin']);
 
 // Re-send the registration invite to a vendor company (Config > Company)
 $routes->post('config/companies/invite/(:num)',        'CompanyInvite::send/$1',    ['filter' => 'role:superadmin,clientsuperadmin,admin']);
@@ -292,6 +290,35 @@ $routes->group('config/import-template', ['filter' => 'role:superadmin,clientsup
     $routes->get('download', 'ImportTemplateConfig::download');
     $routes->post('upload', 'ImportTemplateConfig::upload');
     $routes->post('reset', 'ImportTemplateConfig::reset');
+});
+// Vendor Workflow (steps of a vendor pass, who does them, optional steps on/off)
+$routes->group('', ['filter' => ['role:superadmin,clientsuperadmin,admin', 'client_feature:vendor_pass']], function ($routes) {
+    $routes->get('vendor-workflow', 'VendorWorkflowConfig::index');
+    $routes->post('vendor-workflow/toggle/(:segment)', 'VendorWorkflowConfig::toggle/$1');
+    $routes->post('vendor-workflow/edit/(:segment)', 'VendorWorkflowConfig::edit/$1');
+    $routes->post('vendor-workflow/reset', 'VendorWorkflowConfig::reset');
+});
+// Vehicle Types (Config)
+$routes->group('config/vehicle-types', ['filter' => 'role:superadmin,clientsuperadmin'], function ($routes) {
+    $routes->get('/', 'VehicleTypeConfig::index');
+    $routes->post('save', 'VehicleTypeConfig::save');
+    $routes->post('(:num)/delete', 'VehicleTypeConfig::delete/$1');
+});
+// Vehicle Pass (annual). Page access is checked inside the controller with the Role > Vehicle keys.
+$routes->group('', ['filter' => [$plusAdminOfficer, 'client_feature:vehicle_pass']], function ($routes) {
+    $routes->get('vehicles', 'VehiclePass::listing/all');
+    $routes->get('vehicles/request-list', 'VehiclePass::listing/request');
+    $routes->get('vehicles/approved-list', 'VehiclePass::listing/approved');
+    $routes->get('vehicles/reject-list', 'VehiclePass::listing/reject');
+    $routes->get('vehicles/closed-list', 'VehiclePass::listing/closed');
+    $routes->get('vehicles/request', 'VehiclePass::create');
+    $routes->post('vehicles/store', 'VehiclePass::store');
+    $routes->get('vehicles/edit/(:num)', 'VehiclePass::edit/$1');
+    $routes->post('vehicles/update/(:num)', 'VehiclePass::update/$1');
+    $routes->get('vehicles/view/(:num)', 'VehiclePass::view/$1');
+    $routes->post('vehicles/(:num)/(submit|approve|reject|issue|terminate|delete)', 'VehiclePass::action/$1/$2');
+    $routes->post('vehicles/(:num)/pay', 'VehiclePass::pay/$1');
+    $routes->get('vehicles/payment-return/(:num)', 'VehiclePass::paymentReturn/$1');
 });
 $routes->post('dashboard/cards/mine',        'DashboardCards::saveMine');
 $routes->post('dashboard/acknowledgeAlert', 'Dashboard::acknowledgeAlert');
@@ -400,8 +427,6 @@ $routes->group('', ['filter' => [$plusAdminHost, 'client_feature:auto_approve_af
 $routes->group('', ['filter' => [$plusAdminOfficer, 'client_feature:staff_pass']], function($routes) {
     // --- Staff List (active / inactive) + approve / reject ---
     $routes->get('staffs', 'StaffList::index');
-    $routes->get('staffs/request-list', 'StaffList::requestList');
-    $routes->post('staffs/saveColumnSettings', 'StaffList::saveColumnSettings');
     $routes->get('staffs/export', 'StaffList::export');
     $routes->post('staffs/delete/(:num)', 'StaffList::delete/$1');
     $routes->post('staffs/approve', 'StaffList::approve');
@@ -441,10 +466,6 @@ $routes->group('', ['filter' => [$plusAdminOfficer, 'client_feature:staff_pass']
     $routes->post('staffs/card-info/terminate/(:num)', 'StaffCardInfo::terminate/$1');
     $routes->post('staffs/card-info/suspend/(:num)', 'StaffCardInfo::suspend/$1');
     $routes->post('staffs/card-info/unsuspend/(:num)', 'StaffCardInfo::unsuspend/$1');
-
-    // --- Staff Report (KPK Staff Report + Staff In-Premise + Staff Out-of-Window) ---
-    $routes->get('report/staff', 'StaffReport::index');
-    $routes->post('report/staff/generate', 'StaffReport::generate');
 });
 
 $routes->group('', ['filter' => [$plusAdminOfficerVendor, 'client_feature:vendor_pass']], function ($routes) {
