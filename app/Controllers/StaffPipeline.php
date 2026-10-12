@@ -187,6 +187,7 @@ class StaffPipeline extends StaffPassBase
             'valid_until' => ! empty($staff['card_expiry']) ? date('d M Y', strtotime($staff['card_expiry'])) : '-',
             'photo_url'   => $this->photoUrl($staff) ?? base_url('assets/images/avatar-placeholder.png'),
             'reprint'     => $isReprint,
+            'templates'   => \App\Libraries\CardTemplates::resolveAll($db, 'staff', (int) current_client_id() ?: null),
         ]]);
     }
 

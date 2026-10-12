@@ -276,6 +276,14 @@ $routes->post('config/page-settings/save', 'PageSettings::save', ['filter' => 'r
 $routes->post('config/companies/invite/(:num)',        'CompanyInvite::send/$1',    ['filter' => 'role:superadmin,clientsuperadmin,admin']);
 $routes->get('config/dashboard-cards',       'DashboardCards::index',  ['filter' => 'role:superadmin,clientsuperadmin']);
 $routes->post('config/dashboard-cards/save', 'DashboardCards::save',   ['filter' => 'role:superadmin,clientsuperadmin']);
+// Card Template Management (artwork cards are printed on)
+$routes->group('config/card-templates', ['filter' => 'role:superadmin,clientsuperadmin'], function ($routes) {
+    $routes->get('/', 'CardTemplateConfig::index');
+    $routes->post('upload', 'CardTemplateConfig::upload');
+    $routes->post('use-default', 'CardTemplateConfig::useDefault');
+    $routes->post('(:num)/activate', 'CardTemplateConfig::activate/$1');
+    $routes->post('(:num)/delete', 'CardTemplateConfig::delete/$1');
+});
 $routes->post('dashboard/cards/mine',        'DashboardCards::saveMine');
 $routes->post('dashboard/acknowledgeAlert', 'Dashboard::acknowledgeAlert');
 $routes->get('dashboard/trafficData', 'Dashboard::trafficData');

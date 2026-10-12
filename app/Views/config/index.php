@@ -2195,6 +2195,51 @@
                     </div>
                 </div>
 
+                <!-- Card Template Management -->
+                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                    <button onclick="toggleSection('cardtemplate')"
+                        class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                        <div class="flex items-center gap-4">
+                            <div class="p-2 bg-primary/10 rounded-lg">
+                                <span class="material-symbols-outlined text-primary text-xl">badge</span>
+                            </div>
+                            <div class="text-left">
+                                <h3 class="text-base font-bold text-gray-800 dark:text-white">Card Template Management</h3>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Add or delete the card artwork used when printing passes</p>
+                            </div>
+                        </div>
+                        <span id="cardtemplate-icon" class="material-symbols-outlined text-gray-400 dark:text-slate-400 transition-transform">expand_more</span>
+                    </button>
+                    <div id="cardtemplate-content" class="hidden border-t border-gray-200 dark:border-slate-700">
+                        <div class="p-6 bg-gray-50 dark:bg-slate-800/50 space-y-6">
+                            <div class="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4">
+                                <h4 class="text-sm font-bold text-gray-800 dark:text-white mb-3">Add New Template</h4>
+                                <form id="cardTemplateForm" onsubmit="uploadCardTemplate(event)" class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+                                    <div>
+                                        <label class="block text-xs font-semibold text-gray-600 dark:text-slate-300 mb-1">Pass Type</label>
+                                        <select id="ctModule" onchange="fillCardTemplateSlots()" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm"></select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-gray-600 dark:text-slate-300 mb-1">Card Side / Type</label>
+                                        <select id="ctSlot" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm"></select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-gray-600 dark:text-slate-300 mb-1">Name</label>
+                                        <input id="ctName" type="text" maxlength="120" placeholder="e.g. 2027 Staff Blue" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-gray-600 dark:text-slate-300 mb-1">Image</label>
+                                        <input id="ctImage" type="file" accept=".jpg,.jpeg,.png,.webp,image/*" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-2 py-1.5 text-sm">
+                                    </div>
+                                    <button type="submit" id="ctUploadBtn" class="px-4 py-2 rounded-lg bg-primary text-white hover:bg-blue-600 text-sm font-semibold">Upload</button>
+                                </form>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-2">Portrait card image like 459 x 729 pixels (JPG, PNG or WEBP, max 5 MB). The new image is used for printing straight away.</p>
+                            </div>
+                            <div id="cardTemplateList" class="space-y-6"><p class="text-sm text-gray-500">Loading...</p></div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Designation Management -->
                 <div
                     class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
@@ -5738,6 +5783,9 @@
                 if (section === 'user') {
                     loadUsers();
                 }
+                if (section === 'cardtemplate') {
+                    loadCardTemplates();
+                }
                 // Load email templates when Email Template section is opened
                 if (section === 'email-template') {
                     fetchEmailTemplates();
@@ -7792,6 +7840,84 @@
             // composedPath keeps the clicked node even after the panel re-rendered it away
             if (box && companyLoc.open && !e.composedPath().includes(box)) { companyLoc.open = false; renderCompanyLoc(); }
         });
+
+
+        // ---------------- Card Template Management ----------------
+        let cardTemplateData = { data: [], defaults: [], modules: {}, slots: {} };
+        const ctHeaders = () => ({ 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '<?= csrf_hash() ?>' });
+
+        function loadCardTemplates() {
+            fetch(`<?= base_url('config/card-templates') ?>`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(r => r.json())
+                .then(res => {
+                    if (!res.success) { document.getElementById('cardTemplateList').innerHTML = '<p class="text-sm text-red-500">Could not load templates.</p>'; return; }
+                    cardTemplateData = res;
+                    const mod = document.getElementById('ctModule');
+                    if (mod && !mod.options.length) {
+                        mod.innerHTML = Object.entries(res.modules).map(([k, v]) => `<option value="${k}">${escapeHtml(v)}</option>`).join('');
+                        fillCardTemplateSlots();
+                    }
+                    renderCardTemplates();
+                })
+                .catch(() => { document.getElementById('cardTemplateList').innerHTML = '<p class="text-sm text-red-500">Could not load templates.</p>'; });
+        }
+
+        function fillCardTemplateSlots() {
+            const m = document.getElementById('ctModule').value;
+            const slots = (cardTemplateData.slots || {})[m] || {};
+            document.getElementById('ctSlot').innerHTML = Object.entries(slots).map(([k, v]) => `<option value="${k}">${escapeHtml(v)}</option>`).join('');
+        }
+
+        function renderCardTemplates() {
+            const box = document.getElementById('cardTemplateList');
+            const d = cardTemplateData;
+            box.innerHTML = Object.entries(d.modules).map(([module, mLabel]) => {
+                const cards = Object.entries(d.slots[module]).map(([slot, sLabel]) => {
+                    const def = d.defaults.find(x => x.module === module && x.slot === slot);
+                    const mine = d.data.filter(x => x.module === module && x.slot === slot);
+                    const anyActive = mine.some(x => x.is_active);
+                    const tile = (img, title, badge, actions) => `
+                        <div class="w-36 shrink-0">
+                            <div class="relative"><img src="${img}" alt="" class="w-36 h-56 object-cover rounded-md border border-gray-200 dark:border-slate-600 bg-white">${badge}</div>
+                            <p class="mt-1 text-xs font-medium text-gray-700 dark:text-slate-200 truncate" title="${escapeHtml(title)}">${escapeHtml(title)}</p>
+                            <div class="flex flex-wrap gap-1 mt-1">${actions}</div>
+                        </div>`;
+                    const inUse = '<span class="absolute top-1 left-1 text-[10px] font-bold bg-emerald-600 text-white rounded px-1.5 py-0.5">IN USE</span>';
+                    const btn = (cls, label, fn) => `<button type="button" onclick="${fn}" class="text-[11px] px-2 py-0.5 rounded border ${cls}">${label}</button>`;
+                    const tiles = [tile(def.url, 'Built-in default', anyActive ? '' : inUse,
+                        anyActive ? btn('border-gray-300 text-gray-700 dark:text-slate-200', 'Use', `useBuiltInCardTemplate('${module}','${slot}')`) : '')];
+                    mine.forEach(t => tiles.push(tile(t.url, t.name, t.is_active ? inUse : '',
+                        (t.is_active ? '' : btn('border-gray-300 text-gray-700 dark:text-slate-200', 'Use', `activateCardTemplate(${t.id})`)) +
+                        btn('border-red-300 text-red-600', 'Delete', `deleteCardTemplate(${t.id})`))));
+                    return `<div><p class="text-xs font-bold uppercase text-gray-500 dark:text-slate-400 mb-2">${escapeHtml(sLabel)}</p><div class="flex flex-wrap gap-4">${tiles.join('')}</div></div>`;
+                }).join('');
+                return `<div class="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 space-y-5"><h4 class="text-sm font-bold text-gray-800 dark:text-white">${escapeHtml(mLabel)}</h4>${cards}</div>`;
+            }).join('');
+        }
+
+        function ctPost(url, body, okCb) {
+            return fetch(url, { method: 'POST', headers: ctHeaders(), body })
+                .then(r => r.json())
+                .then(res => { showNotification(res.message || (res.success ? 'Done.' : 'Failed.'), res.success ? 'success' : 'error'); if (res.success) { loadCardTemplates(); if (okCb) okCb(); } })
+                .catch(() => showNotification('Something went wrong. Please try again.', 'error'));
+        }
+
+        function uploadCardTemplate(e) {
+            e.preventDefault();
+            const fd = new FormData();
+            fd.append('module', document.getElementById('ctModule').value);
+            fd.append('slot', document.getElementById('ctSlot').value);
+            fd.append('name', document.getElementById('ctName').value);
+            const f = document.getElementById('ctImage').files[0];
+            if (!f) { showNotification('Choose an image file to upload.', 'error'); return; }
+            fd.append('image', f);
+            const btn = document.getElementById('ctUploadBtn'); btn.disabled = true; btn.textContent = 'Uploading...';
+            ctPost(`<?= base_url('config/card-templates/upload') ?>`, fd, () => { document.getElementById('cardTemplateForm').reset(); fillCardTemplateSlots(); })
+                .finally(() => { btn.disabled = false; btn.textContent = 'Upload'; });
+        }
+        function activateCardTemplate(id) { ctPost(`<?= base_url('config/card-templates') ?>/${id}/activate`, new FormData()); }
+        function useBuiltInCardTemplate(module, slot) { const fd = new FormData(); fd.append('module', module); fd.append('slot', slot); ctPost(`<?= base_url('config/card-templates/use-default') ?>`, fd); }
+        function deleteCardTemplate(id) { if (confirm('Delete this template? Cards will print on the built-in template if it was in use.')) ctPost(`<?= base_url('config/card-templates') ?>/${id}/delete`, new FormData()); }
 
         function openEditCompanyModal(companyId) {
             fetch(`<?= base_url('config/getCompany') ?>/${companyId}`)

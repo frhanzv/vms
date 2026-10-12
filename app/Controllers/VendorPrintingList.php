@@ -194,6 +194,7 @@ class VendorPrintingList extends BaseController
                 'access_code' => $this->accessLabels((string) ($vendor['location_access'] ?? '')),
                 'issuer'      => (string) (function_exists('current_client_name') ? (current_client_name() ?: '') : ''),
                 'photo_url'   => $photoUrl,
+                'templates'   => \App\Libraries\CardTemplates::resolveAll($db, 'vendor', function_exists('current_client_id') ? (int) current_client_id() ?: null : null),
             ],
         ]);
     }
