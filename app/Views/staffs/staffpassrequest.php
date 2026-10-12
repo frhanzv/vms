@@ -208,10 +208,14 @@
                             }">
                                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                     <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Location Access <span class="text-red-500">*</span></label>
+                                    <?php if (! empty($lockLocations)): ?>
+                                    <span class="text-xs text-text-sub dark:text-gray-400 font-brand">Changing Location Access on an approved pass needs the Manage Locations permission.</span>
+                                    <?php else: ?>
                                     <div class="flex gap-2">
                                         <button type="button" @click="selectAll()" class="text-xs px-3 py-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 font-brand font-semibold transition-colors">Select All</button>
                                         <button type="button" @click="clearAll()" class="text-xs px-3 py-1.5 rounded-md bg-gray-100 dark:bg-gray-800 text-text-sub dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 font-brand font-semibold transition-colors">Clear All</button>
                                     </div>
+                                    <?php endif; ?>
                                 </div>
 
                                 <!-- Search -->
@@ -245,12 +249,12 @@
                                             <div class="flex items-center gap-4 flex-shrink-0">
                                                 <label class="flex items-center justify-center cursor-pointer w-8">
                                                     <?php if ($loc['in'] !== null): ?>
-                                                    <input data-group="<?= $groupId ?>" name="location_access[]" value="<?= esc($loc['in']) ?>" class="form-checkbox rounded text-primary border-2 border-gray-300 dark:border-gray-600 focus:ring-primary h-5 w-5 cursor-pointer" type="checkbox" <?= $chkd($loc['in']) ?>/>
+                                                    <input data-group="<?= $groupId ?>" name="location_access[]" value="<?= esc($loc['in']) ?>" class="form-checkbox rounded text-primary border-2 border-gray-300 dark:border-gray-600 focus:ring-primary h-5 w-5 cursor-pointer" type="checkbox" <?= $chkd($loc['in']) ?> <?= ! empty($lockLocations) ? 'disabled' : '' ?>/>
                                                     <?php endif; ?>
                                                 </label>
                                                 <label class="flex items-center justify-center cursor-pointer w-8">
                                                     <?php if ($loc['out'] !== null): ?>
-                                                    <input data-group="<?= $groupId ?>" name="location_access[]" value="<?= esc($loc['out']) ?>" class="form-checkbox rounded text-primary border-2 border-gray-300 dark:border-gray-600 focus:ring-primary h-5 w-5 cursor-pointer" type="checkbox" <?= $chkd($loc['out']) ?>/>
+                                                    <input data-group="<?= $groupId ?>" name="location_access[]" value="<?= esc($loc['out']) ?>" class="form-checkbox rounded text-primary border-2 border-gray-300 dark:border-gray-600 focus:ring-primary h-5 w-5 cursor-pointer" type="checkbox" <?= $chkd($loc['out']) ?> <?= ! empty($lockLocations) ? 'disabled' : '' ?>/>
                                                     <?php endif; ?>
                                                 </label>
                                             </div>

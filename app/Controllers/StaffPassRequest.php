@@ -99,6 +99,9 @@ class StaffPassRequest extends StaffPassBase
             'licenses'   => $this->licenses((int) $id),
             'formAction' => 'staffpassrequest/update/' . (int) $id,
             'isEdit'     => true,
+            // Approved / suspended pass + no Manage Locations: Location Access is shown read-only.
+            'lockLocations' => ! in_array($staff['status'] ?? '', ['Draft', 'Pending', 'Rejected', ''], true)
+                && ! has_access('staff_pass_list', 'manage_locations'),
         ]));
     }
 
@@ -115,18 +118,25 @@ class StaffPassRequest extends StaffPassBase
             return redirect()->to(base_url('staffs'))->with('error', $blocked);
         }
 
-        $isDraft = (bool) $this->request->getPost('save_as_draft');
+        $processed = ! in_array($current['status'], ['Draft', 'Pending', 'Rejected', null, ''], true);
+        // A processed (approved / suspended) pass can't go back to Draft — that would drop its client approvals.
+        $isDraft = ! $processed && (bool) $this->request->getPost('save_as_draft');
         $data    = $this->collect($isDraft);
 
-        // Editing a processed pass (admins only) never changes its workflow status.
-        if (! in_array($current['status'], ['Draft', 'Pending', 'Rejected', null, ''], true)) {
+        // Editing a processed pass never changes its workflow status.
+        if ($processed) {
             unset($data['status']);
         } elseif ($current['status'] === 'Rejected' && ! $isDraft) {
             $data['status']        = 'Pending'; // KPK: resubmitting a rejected pass sends it back for approval
             $data['reject_reason'] = null;
         }
 
-        $data['location_access'] = $this->resolveLocationCsv($this->request->getPost('location_access'), (string) ($current['location_access'] ?? ''));
+        // On a processed pass, changing Location Access needs Staff Pass List > Manage Locations (as on Card Info).
+        if ($processed && ! has_access('staff_pass_list', 'manage_locations')) {
+            $data['location_access'] = (string) ($current['location_access'] ?? '');
+        } else {
+            $data['location_access'] = $this->resolveLocationCsv($this->request->getPost('location_access'), (string) ($current['location_access'] ?? ''));
+        }
         if (! $isDraft && $data['location_access'] === '') {
             return redirect()->back()->withInput()->with('error', 'Please choose at least one Location Access. It decides which client(s) receive this pass for approval.');
         }
@@ -239,15 +249,13 @@ class StaffPassRequest extends StaffPassBase
         return null;
     }
 
+    /**
+     * Any status can be edited by a role with Staff Pass List > Edit (same as the
+     * Vendor Pass List). Editing a processed pass never changes its workflow
+     * status — see update().
+     */
     private function editBlock(array $staff): ?string
     {
-        helper('role');
-        if (is_platform_superadmin() || is_client_superadmin()) {
-            return null;
-        }
-        if (! in_array((string) ($staff['status'] ?? ''), ['', 'Draft', 'Pending', 'Rejected'], true)) {
-            return 'This staff pass has already been processed and can no longer be edited here. Use Process List or Card Info instead.';
-        }
         return null;
     }
 

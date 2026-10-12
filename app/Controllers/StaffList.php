@@ -135,7 +135,8 @@ class StaffList extends StaffPassBase
                     && ($cRows ? $this->canActPerClient($cRows, $myClientId, 'approve') : $this->canActOn($row, 'approve')),
                 'can_reject'   => $showReject && in_array($rowStatus, ['Pending', 'Approved', 'Rejected'], true)
                     && ($cRows ? $this->canActPerClient($cRows, $myClientId, 'reject') : $this->canActOn($row, 'reject')),
-                'can_edit_row' => in_array($rowStatus, ['Draft', 'Pending', 'Rejected'], true) || is_platform_superadmin() || is_client_superadmin(),
+                // Like the Vendor Request List: a role with Staff Pass List > Edit can edit any pass.
+                'can_edit_row' => true,
             ];
         }
 
