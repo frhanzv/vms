@@ -556,9 +556,7 @@ class VendorList extends BaseController
                 $missingHeaders[] = $f === 'ic_passport' ? 'Ic Number' : ($requiredFields[$f] ?? $f);
             }
         }
-        if ($passportFallbackIndex === null) {
-            $missingHeaders[] = 'Passport Number';
-        }
+        // Passport Number column is optional (only IC Number is required).
         if (! empty($missingHeaders)) {
             return redirect()->back()->with('error', 'This file does not follow the template. Missing column(s): ' . implode(', ', $missingHeaders) . '. Please download the Template again and use it as is.');
         }
