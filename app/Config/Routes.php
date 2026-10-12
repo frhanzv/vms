@@ -284,6 +284,13 @@ $routes->group('config/card-templates', ['filter' => 'role:superadmin,clientsupe
     $routes->post('(:num)/activate', 'CardTemplateConfig::activate/$1');
     $routes->post('(:num)/delete', 'CardTemplateConfig::delete/$1');
 });
+// Import Template (Excel file vendors download for bulk import)
+$routes->group('config/import-template', ['filter' => 'role:superadmin,clientsuperadmin'], function ($routes) {
+    $routes->get('/', 'ImportTemplateConfig::index');
+    $routes->get('download', 'ImportTemplateConfig::download');
+    $routes->post('upload', 'ImportTemplateConfig::upload');
+    $routes->post('reset', 'ImportTemplateConfig::reset');
+});
 $routes->post('dashboard/cards/mine',        'DashboardCards::saveMine');
 $routes->post('dashboard/acknowledgeAlert', 'Dashboard::acknowledgeAlert');
 $routes->get('dashboard/trafficData', 'Dashboard::trafficData');
@@ -438,6 +445,7 @@ $routes->group('', ['filter' => [$plusAdminOfficerVendor, 'client_feature:vendor
     $routes->get('vendors/export', 'VendorList::export');
     $routes->post('vendors/saveColumnSettings', 'VendorList::saveColumnSettings');
     $routes->post('vendors/import', 'VendorList::import');
+    $routes->get('vendors/import-template', 'ImportTemplateConfig::vendorDownload');
 
     $routes->get('vendors/vendorpassrequest', 'VendorPassRequest::index');
     $routes->post('vendors/vendorpassrequest/store', 'VendorPassRequest::store');

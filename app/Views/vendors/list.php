@@ -442,7 +442,7 @@
                 </ul>
             </div>
             <div class="flex justify-end gap-2 p-4 border-t dark:border-slate-700">
-                <a href="<?= base_url('files/VendorPassTemplate.xlsx') ?>" download="VendorPassTemplate.xlsx"
+                <a href="<?= base_url('vendors/import-template') ?>" download="VendorPassTemplate.xlsx"
                     class="bg-primary hover:bg-indigo-700 text-white px-6 py-2 rounded text-sm font-medium flex items-center transition-colors">
                     <span class="material-icons text-sm mr-1">file_download</span>
                     Download

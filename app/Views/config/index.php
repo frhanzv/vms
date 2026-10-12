@@ -2240,6 +2240,41 @@
                     </div>
                 </div>
 
+                <!-- Import Template -->
+                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                    <button onclick="toggleSection('importtemplate')"
+                        class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                        <div class="flex items-center gap-4">
+                            <div class="p-2 bg-primary/10 rounded-lg">
+                                <span class="material-symbols-outlined text-primary text-xl">table_view</span>
+                            </div>
+                            <div class="text-left">
+                                <h3 class="text-base font-bold text-gray-800 dark:text-white">Vendor Import Template</h3>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Replace the Excel file vendors download for bulk import</p>
+                            </div>
+                        </div>
+                        <span id="importtemplate-icon" class="material-symbols-outlined text-gray-400 dark:text-slate-400 transition-transform">expand_more</span>
+                    </button>
+                    <div id="importtemplate-content" class="hidden border-t border-gray-200 dark:border-slate-700">
+                        <div class="p-6 bg-gray-50 dark:bg-slate-800/50 space-y-4">
+                            <div id="importTemplateStatus" class="text-sm text-gray-600 dark:text-slate-300">Loading...</div>
+                            <div class="flex flex-wrap gap-2">
+                                <a href="<?= base_url('config/import-template/download') ?>" class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700">Download current template</a>
+                                <a href="<?= base_url('config/import-template/download?which=builtin') ?>" class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700">Download built-in template</a>
+                                <button type="button" id="itResetBtn" onclick="resetImportTemplate()" class="hidden px-3 py-2 rounded-lg border border-red-300 text-red-600 text-sm hover:bg-red-50">Use default again</button>
+                            </div>
+                            <form id="importTemplateForm" onsubmit="uploadImportTemplate(event)" class="flex flex-wrap items-end gap-3 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-600 dark:text-slate-300 mb-1">New template (.xlsx)</label>
+                                    <input id="itFile" type="file" accept=".xlsx" class="border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-2 py-1.5 text-sm">
+                                </div>
+                                <button type="submit" id="itUploadBtn" class="px-4 py-2 rounded-lg bg-primary text-white hover:bg-blue-600 text-sm font-semibold">Upload</button>
+                            </form>
+                            <p class="text-xs text-gray-500 dark:text-slate-400">Download the current template, edit it in Excel (examples, dropdown lists, reminder notes, Text format for IC), then upload it here. Keep the column headings in row 1 of the first sheet exactly as they are: Type of Registration, Designation, Worker Type, Resident, Location Access, In / Out Bound, Ic Number, Date of birth, Sex, Full Name. Extra columns are ignored. Max 5 MB.</p>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Designation Management -->
                 <div
                     class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
@@ -5786,6 +5821,9 @@
                 if (section === 'cardtemplate') {
                     loadCardTemplates();
                 }
+                if (section === 'importtemplate') {
+                    loadImportTemplate();
+                }
                 // Load email templates when Email Template section is opened
                 if (section === 'email-template') {
                     fetchEmailTemplates();
@@ -7918,6 +7956,35 @@
         function activateCardTemplate(id) { ctPost(`<?= base_url('config/card-templates') ?>/${id}/activate`, new FormData()); }
         function useBuiltInCardTemplate(module, slot) { const fd = new FormData(); fd.append('module', module); fd.append('slot', slot); ctPost(`<?= base_url('config/card-templates/use-default') ?>`, fd); }
         function deleteCardTemplate(id) { if (confirm('Delete this template? Cards will print on the built-in template if it was in use.')) ctPost(`<?= base_url('config/card-templates') ?>/${id}/delete`, new FormData()); }
+
+        // ---------------- Vendor Import Template ----------------
+        function loadImportTemplate() {
+            fetch(`<?= base_url('config/import-template') ?>`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(r => r.json())
+                .then(res => {
+                    const st = document.getElementById('importTemplateStatus');
+                    st.textContent = res.custom ? `Using your uploaded template (updated ${res.updated_at}, ${res.size_kb} KB).`
+                        : (res.inherits ? 'Using the platform template.' : 'Using the built-in default template.');
+                    document.getElementById('itResetBtn').classList.toggle('hidden', !res.custom);
+                })
+                .catch(() => { document.getElementById('importTemplateStatus').textContent = 'Could not load.'; });
+        }
+        function itPost(url, body) {
+            return fetch(url, { method: 'POST', headers: ctHeaders(), body })
+                .then(r => r.json())
+                .then(res => { showNotification(res.message || (res.success ? 'Done.' : 'Failed.'), res.success ? 'success' : 'error'); if (res.success) loadImportTemplate(); return res; })
+                .catch(() => showNotification('Something went wrong. Please try again.', 'error'));
+        }
+        function uploadImportTemplate(e) {
+            e.preventDefault();
+            const f = document.getElementById('itFile').files[0];
+            if (!f) { showNotification('Choose an Excel (.xlsx) file to upload.', 'error'); return; }
+            const fd = new FormData(); fd.append('template', f);
+            const btn = document.getElementById('itUploadBtn'); btn.disabled = true; btn.textContent = 'Uploading...';
+            itPost(`<?= base_url('config/import-template/upload') ?>`, fd).then(res => { if (res && res.success) document.getElementById('importTemplateForm').reset(); })
+                .finally(() => { btn.disabled = false; btn.textContent = 'Upload'; });
+        }
+        function resetImportTemplate() { if (confirm('Go back to the default template?')) itPost(`<?= base_url('config/import-template/reset') ?>`, new FormData()); }
 
         function openEditCompanyModal(companyId) {
             fetch(`<?= base_url('config/getCompany') ?>/${companyId}`)
