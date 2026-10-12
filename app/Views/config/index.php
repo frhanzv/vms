@@ -4689,7 +4689,7 @@
                             </div>
                             <div class="text-left">
                                 <h3 class="text-base font-bold text-gray-800 dark:text-white">Page Settings</h3>
-                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Choose, per client and per page, which table columns and which buttons are shown. (Dynamic Form Fields is for forms only.)</p>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Choose, per client and per page, which table columns and which buttons are shown.</p>
                             </div>
                         </div>
                         <span id="pagesettings-icon" class="material-symbols-outlined text-gray-400 dark:text-slate-400 transition-transform">expand_more</span>
@@ -18346,29 +18346,29 @@
             const fields = dffFields[formType] || {};
             const labels = dffLabels[formType] || {};
             document.getElementById('dff-grid').innerHTML = Object.entries(fields).map(([key, f]) => `
-                <div class="bg-white dark:bg-slate-700 rounded-lg border border-gray-200 dark:border-slate-600 p-4 flex items-center justify-between gap-3">
-                    <span class="text-sm font-medium text-gray-700 dark:text-slate-300 font-brand">${labels[key] || key}</span>
-                    <div class="flex items-center gap-4 flex-shrink-0">
+                <div class="bg-white dark:bg-slate-700 rounded-lg border border-gray-200 dark:border-slate-600 p-3 flex flex-col gap-2 min-w-0">
+                    <span class="text-sm font-medium text-gray-700 dark:text-slate-300 font-brand break-words">${labels[key] || key}</span>
+                    <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5">
                         ${f.requirable ? `
-                        <label class="flex items-center gap-2 cursor-pointer select-none" title="Mandatory">
-                            <span class="text-xs text-gray-500 dark:text-slate-400">Mandatory</span>
+                        <label class="flex items-center gap-1.5 cursor-pointer select-none" title="Mandatory">
+                            <span class="text-[11px] text-gray-500 dark:text-slate-400">Mandatory</span>
                             <button type="button"
                                 id="dff-required-${formType}-${key}"
                                 onclick="dffToggle('${formType}', '${key}', 'required')"
                                 ${f.enabled ? '' : 'disabled'}
-                                class="relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${f.enabled ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'} ${f.required ? 'bg-amber-500' : 'bg-gray-300 dark:bg-slate-500'}"
+                                class="relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${f.enabled ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'} ${f.required ? 'bg-amber-500' : 'bg-gray-300 dark:bg-slate-500'}"
                                 role="switch" aria-checked="${f.required}">
-                                <span class="pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition duration-200 ${f.required ? 'translate-x-5' : 'translate-x-0'}"></span>
+                                <span class="pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transform transition duration-200 ${f.required ? 'translate-x-4' : 'translate-x-0'}"></span>
                             </button>
                         </label>` : ''}
-                        <label class="flex items-center gap-2 cursor-pointer select-none" title="Enabled">
-                            <span class="text-xs text-gray-500 dark:text-slate-400">Enabled</span>
+                        <label class="flex items-center gap-1.5 cursor-pointer select-none" title="Enabled">
+                            <span class="text-[11px] text-gray-500 dark:text-slate-400">Enabled</span>
                             <button type="button"
                                 id="dff-toggle-${formType}-${key}"
                                 onclick="dffToggle('${formType}', '${key}', 'enabled')"
-                                class="relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 cursor-pointer focus:outline-none ${f.enabled ? 'bg-primary' : 'bg-gray-300 dark:bg-slate-500'}"
+                                class="relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 cursor-pointer focus:outline-none ${f.enabled ? 'bg-primary' : 'bg-gray-300 dark:bg-slate-500'}"
                                 role="switch" aria-checked="${f.enabled}">
-                                <span class="pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition duration-200 ${f.enabled ? 'translate-x-5' : 'translate-x-0'}"></span>
+                                <span class="pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transform transition duration-200 ${f.enabled ? 'translate-x-4' : 'translate-x-0'}"></span>
                             </button>
                         </label>
                     </div>
