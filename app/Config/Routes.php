@@ -270,8 +270,9 @@ $routes->get('dashboard/staff',  'DashboardStaff::index',  ['filter' => 'client_
 $routes->get('dashboard/vendor', 'DashboardVendor::index', ['filter' => 'client_feature:vendor_pass']);
 // List Columns moved into Config > Page Settings (old link just goes to Config).
 $routes->get('config/list-columns', static fn () => redirect()->to(base_url('config')));
-$routes->get('config/page-settings/data',  'PageSettings::data', ['filter' => 'role:superadmin,clientsuperadmin']);
-$routes->post('config/page-settings/save', 'PageSettings::save', ['filter' => 'role:superadmin,clientsuperadmin']);
+// Access: superadmin, or Role Management > Config > Page Settings (own client) — checked in PageSettings.
+$routes->get('config/page-settings/data',  'PageSettings::data');
+$routes->post('config/page-settings/save', 'PageSettings::save');
 
 // Re-send the registration invite to a vendor company (Config > Company)
 $routes->post('config/companies/invite/(:num)',        'CompanyInvite::send/$1',    ['filter' => 'role:superadmin,clientsuperadmin,admin']);

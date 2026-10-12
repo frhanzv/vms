@@ -28,7 +28,7 @@ class PageSettings extends BaseController
     {
         helper(['role', 'feature']);
         $clientId = is_platform_superadmin() ? (int) $requested : (int) current_client_id();
-        if ($clientId <= 0 || ! client_company_config_allowed($clientId)) {
+        if ($clientId <= 0 || ! client_config_section_allowed('page_settings', $clientId)) {
             return 0;
         }
 
@@ -49,6 +49,9 @@ class PageSettings extends BaseController
     private function loadData()
     {
         helper(['role', 'feature', 'list_columns']);
+        if (! client_config_section_allowed('page_settings')) {
+            return $this->json(['success' => false, 'message' => 'You are not allowed to use Page Settings.'], 403);
+        }
 
         $registry = list_column_registry();
         $pages    = [];
@@ -118,6 +121,9 @@ class PageSettings extends BaseController
         $registry = list_column_registry();
         $clientId = $this->targetClientId($input['client_id'] ?? 0);
 
+        if ($clientId <= 0 && ! client_config_section_allowed('page_settings')) {
+            return $this->json(['success' => false, 'message' => 'You are not allowed to use Page Settings.'], 403);
+        }
         if ($clientId <= 0 || ! isset($registry[$page])) {
             return $this->json(['success' => false, 'message' => 'Choose a client and a page first.'], 400);
         }

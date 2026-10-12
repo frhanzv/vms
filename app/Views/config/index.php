@@ -4566,7 +4566,8 @@
                 </div>
                 <?php endif; ?>
 
-                <?php if (is_platform_superadmin(session()->get('role'))): ?>
+                <?php helper(['role', 'access']); ?>
+                <?php if (client_config_section_allowed('client_features')): ?>
                 <!-- Client Features -->
                 <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('clientfeatures')"
@@ -4620,6 +4621,9 @@
                     </div>
                 </div>
 
+                <?php endif; ?>
+
+                <?php if (client_config_section_allowed('dynamic_form_fields')): ?>
                 <!-- Dynamic Form Fields -->
                 <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('dynformfields')"
@@ -4712,7 +4716,7 @@
                 </div>
                 <?php endif; ?>
 
-                <?php helper(['role', 'list_columns']); $psAllowed = is_platform_superadmin(session()->get('role')) || is_client_superadmin(); ?>
+                <?php helper(['role', 'list_columns']); $psAllowed = client_config_section_allowed('page_settings'); ?>
                 <?php if ($psAllowed): ?>
                 <!-- Page Settings (columns + buttons per page; Dynamic Form Fields above is for forms only) -->
                 <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
@@ -5428,6 +5432,15 @@
                                     </label>
                                     <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                                         <input type="checkbox" name="access[config][reject_reason]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Reject Reason
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[config][client_features]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Client Features
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[config][dynamic_form_fields]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Dynamic Form Fields
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[config][page_settings]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Page Settings
                                     </label>
                                 </div>
                             </div>

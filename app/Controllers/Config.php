@@ -5992,7 +5992,7 @@ class Config extends BaseController
     public function getClientFeatures(int $clientId)
     {
         helper('role');
-        if (!client_company_config_allowed($clientId)) {
+        if (!client_config_section_allowed('client_features', $clientId)) {
             return $this->response->setStatusCode(403)->setJSON(['success' => false, 'message' => 'Not authorized for this client']);
         }
 
@@ -6010,7 +6010,7 @@ class Config extends BaseController
     public function saveClientFeatures(int $clientId)
     {
         helper('role');
-        if (!client_company_config_allowed($clientId)) {
+        if (!client_config_section_allowed('client_features', $clientId)) {
             return $this->response->setStatusCode(403)->setJSON(['success' => false, 'message' => 'Not authorized for this client']);
         }
 
@@ -6040,7 +6040,7 @@ class Config extends BaseController
     public function getClientFormFields(int $clientId)
     {
         helper('role');
-        if (!client_company_config_allowed($clientId)) {
+        if (!client_config_section_allowed('dynamic_form_fields', $clientId)) {
             return $this->response->setStatusCode(403)->setJSON(['success' => false, 'message' => 'Not authorized for this client']);
         }
 
@@ -6063,7 +6063,7 @@ class Config extends BaseController
     public function saveClientFormFields(int $clientId)
     {
         helper('role');
-        if (!client_company_config_allowed($clientId)) {
+        if (!client_config_section_allowed('dynamic_form_fields', $clientId)) {
             return $this->response->setStatusCode(403)->setJSON(['success' => false, 'message' => 'Not authorized for this client']);
         }
 

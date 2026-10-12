@@ -159,6 +159,32 @@ if (!function_exists('can_manage_target_user')) {
     }
 }
 
+if (!function_exists('client_config_section_allowed')) {
+    /**
+     * Config > Client Features / Dynamic Form Fields / Page Settings.
+     *
+     * The platform superadmin may configure any client. Any other role needs the
+     * matching Role Management > Config permission (client_features,
+     * dynamic_form_fields, page_settings) and may only configure its own client.
+     */
+    function client_config_section_allowed(string $section, ?int $clientId = null): bool
+    {
+        helper(['role', 'access', 'feature']);
+        if (is_platform_superadmin()) {
+            return true;
+        }
+        if (! has_access('config', $section)) {
+            return false;
+        }
+        if ($clientId === null) {
+            return true; // may open the section; each client is checked on load / save
+        }
+        $own = (int) current_client_id();
+
+        return $own > 0 && $clientId === $own;
+    }
+}
+
 if (!function_exists('can_manage_client_company_config')) {
     /**
      * Client Features / Dynamic Form Fields admin — platform superadmin only.
