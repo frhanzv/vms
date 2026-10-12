@@ -673,6 +673,40 @@ class VendorList extends BaseController
         $hasVisaColumn = $db->fieldExists('visa_expiry', 'vendors');
         $activeLocationOptions = (new \App\Models\VendorLocationModel())->getOptionsForUser(true);
 
+        // Company by location: a company is registered against its Location Access (Config > Company),
+        // so a row's company is the one that owns the chosen location(s).
+        $companyByLocation = [];
+        if ($db->tableExists('companies') && $db->tableExists('locations')) {
+            $idToCode = [];
+            foreach ($db->table('locations')->select('id, location_access')->get()->getResultArray() as $l) {
+                $idToCode[(int) $l['id']] = \App\Models\VendorLocationModel::slugifyCode((string) $l['location_access']);
+            }
+            foreach ($db->table('companies')->where('status', 'active')->orderBy('id', 'ASC')->get()->getResultArray() as $c) {
+                $ids = array_filter(array_map('intval', explode(',', (string) ($c['location_ids'] ?: ($c['location_id'] ?? '')))));
+                $codes = array_values(array_filter(array_map(static fn($i) => $idToCode[$i] ?? '', $ids)));
+                if ($codes !== []) {
+                    $companyByLocation[] = ['company' => $c, 'codes' => $codes];
+                }
+            }
+        }
+        $companyFor = static function (array $rowCodes) use ($companyByLocation): ?array {
+            $best = null;
+            $bestScore = 0;
+            foreach ($companyByLocation as $e) {
+                $hit = count(array_intersect($rowCodes, $e['codes']));
+                if ($hit === 0) {
+                    continue;
+                }
+                // prefer a company that covers every chosen location, then the most overlap
+                $score = $hit + (array_diff($rowCodes, $e['codes']) === [] ? 100 : 0);
+                if ($score > $bestScore) {
+                    $bestScore = $score;
+                    $best = $e['company'];
+                }
+            }
+            return $best;
+        };
+
         foreach (array_slice($rows, 1) as $row) {
             $get = fn(string $field) => isset($fieldIndex[$field])
                 ? (trim((string) ($row[$fieldIndex[$field]] ?? '')) ?: null)
@@ -694,6 +728,7 @@ class VendorList extends BaseController
             $resident = $mapValue($get('resident'), ['LOCAL' => 'Malaysian', 'FOREIGNER' => 'Non-Malaysian']);
 
             $locations = $resolveLocations($get('location_access'));
+            $byLoc     = $lockedCompany ? null : $companyFor($locations);
 
             $record = [
                 'company_id'                    => $companyId,
@@ -706,8 +741,8 @@ class VendorList extends BaseController
                 'resident'                       => $resident,
                 'card_type'                      => $cardType,
                 'location_access'                => implode(',', $locations),
-                'vendor_company_reg_id'          => $lockedCompany ? $lockedCompany['registration_no'] : $get('vendor_company_reg_id'),
-                'vendor_company_name'            => $lockedCompany ? $lockedCompany['name'] : $get('vendor_company_name'),
+                'vendor_company_reg_id'          => $lockedCompany ? $lockedCompany['registration_no'] : ($get('vendor_company_reg_id') ?? ($byLoc['registration_no'] ?? null)),
+                'vendor_company_name'            => $lockedCompany ? $lockedCompany['name'] : ($get('vendor_company_name') ?? ($byLoc['name'] ?? null)),
                 'in_out_bound'                   => strtoupper((string) $get('in_out_bound')) ?: null,
                 'full_name'                      => $get('full_name'),
                 'name_on_vendor_pass'            => $get('name_on_vendor_pass'),

@@ -102,12 +102,13 @@
                         <?php if (empty($selectedLocations)): ?>
                             <p class="text-sm text-text-sub dark:text-gray-400">No Record</p>
                         <?php else: ?>
-                            <div class="flex flex-wrap gap-x-6 gap-y-2">
-                                <?php foreach ($locationLabelMap as $code => $labelText): ?>
-                                <label class="flex items-center gap-2 text-sm text-text-main dark:text-gray-200">
-                                    <input type="checkbox" disabled <?= in_array($code, $selectedLocations, true) ? 'checked' : '' ?> class="rounded border-border-color"/>
-                                    <?= esc($labelText) ?>
-                                </label>
+                            <?php // only the gates this pass has access to ?>
+                            <div class="flex flex-wrap gap-2">
+                                <?php foreach ($selectedLocations as $code): $code = trim((string) $code); ?>
+                                <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800 px-3 py-1 text-sm font-medium">
+                                    <span class="material-symbols-outlined text-[16px]">check_circle</span>
+                                    <?= esc($locationLabelMap[$code] ?? ucwords(str_replace('_', ' ', $code))) ?>
+                                </span>
                                 <?php endforeach; ?>
                             </div>
                         <?php endif; ?>
