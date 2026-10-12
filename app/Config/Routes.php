@@ -34,6 +34,7 @@ $routes->group('api/rfid', function($routes) {
     $routes->get('scan-lane', 'RFID::scanLane');
     $routes->get('status', 'RFID::status');
     $routes->get('test-connection', 'RFID::testConnection');
+    $routes->get('staff-scan', 'RFID::staffScan'); // KPK staff pass gate in/out
     $routes->get('api/vendor-rfid/scan', 'VendorRFID::scan');
 });
 
@@ -398,6 +399,8 @@ $routes->group('', ['filter' => [$plusAdminHost, 'client_feature:auto_approve_af
 $routes->group('', ['filter' => [$plusAdminOfficer, 'client_feature:staff_pass']], function($routes) {
     // --- Staff List (active / inactive) + approve / reject ---
     $routes->get('staffs', 'StaffList::index');
+    $routes->get('staffs/request-list', 'StaffList::requestList');
+    $routes->post('staffs/saveColumnSettings', 'StaffList::saveColumnSettings');
     $routes->get('staffs/export', 'StaffList::export');
     $routes->post('staffs/delete/(:num)', 'StaffList::delete/$1');
     $routes->post('staffs/approve', 'StaffList::approve');
@@ -437,6 +440,10 @@ $routes->group('', ['filter' => [$plusAdminOfficer, 'client_feature:staff_pass']
     $routes->post('staffs/card-info/terminate/(:num)', 'StaffCardInfo::terminate/$1');
     $routes->post('staffs/card-info/suspend/(:num)', 'StaffCardInfo::suspend/$1');
     $routes->post('staffs/card-info/unsuspend/(:num)', 'StaffCardInfo::unsuspend/$1');
+
+    // --- Staff Report (KPK Staff Report + Staff In-Premise + Staff Out-of-Window) ---
+    $routes->get('report/staff', 'StaffReport::index');
+    $routes->post('report/staff/generate', 'StaffReport::generate');
 });
 
 $routes->group('', ['filter' => [$plusAdminOfficerVendor, 'client_feature:vendor_pass']], function ($routes) {

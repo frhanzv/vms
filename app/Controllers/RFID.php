@@ -80,6 +80,13 @@ class RFID extends ResourceController
 
             if (!$invitation) {
                 $db->transRollback();
+
+                // Not a visitor card — it may be a KPK staff pass card.
+                $staffResult = $this->handleStaffCard($card, null, 'Security');
+                if ($staffResult !== null) {
+                    return $this->respond($staffResult);
+                }
+
                 $this->insertSecurityAlert(
                     'Unauthorized Access',
                     'high',
@@ -269,6 +276,13 @@ class RFID extends ResourceController
             if (!$invitation) {
                 $db->transRollback();
                 $laneName = $laneId ? ($db->table('lanes')->where('id', $laneId)->get()->getRowArray()['lane'] ?? '') : '';
+
+                // Not a visitor card — it may be a KPK staff pass card.
+                $staffResult = $this->handleStaffCard($card, $laneId ? (int) $laneId : null, $laneName ?: 'Security');
+                if ($staffResult !== null) {
+                    return $this->respond($staffResult);
+                }
+
                 $this->insertSecurityAlert(
                     'Unauthorized Access',
                     'high',
@@ -665,6 +679,69 @@ class RFID extends ResourceController
     /**
      * Insert a row into security_alerts.
      */
+    /**
+     * Staff pass gate in / out (KPK staff module). Null when the card is not a
+     * staff card. A refused staff pass raises a medium alert — the card is
+     * known, unlike an unassigned card.
+     */
+    protected function handleStaffCard(array $card, ?int $laneId, string $location): ?array
+    {
+        $result = \App\Libraries\StaffGate::scan(\Config\Database::connect(), $card, $laneId);
+        if ($result === null) {
+            return null;
+        }
+        if (! empty($result['alert'])) {
+            $this->insertSecurityAlert('Unauthorized Access', 'medium', (string) ($result['staff_name'] ?? 'Staff'), $location, $result['alert']);
+        }
+        unset($result['alert']);
+
+        return $result;
+    }
+
+    /**
+     * Staff-only scan endpoint, for a reader dedicated to staff lanes.
+     * GET /api/rfid/staff-scan?card_epc=...&lane_id=...
+     */
+    public function staffScan()
+    {
+        $cardEpc = (string) $this->request->getGet('card_epc');
+        $laneId  = $this->request->getGet('lane_id');
+        if ($cardEpc === '') {
+            return $this->failValidationError('Card EPC is required');
+        }
+
+        $card = $this->visitorCardModel->where('card_id', $cardEpc)->first();
+        if (! $card) {
+            return $this->respond(['success' => false, 'message' => 'Card not registered in system', 'card_epc' => $cardEpc]);
+        }
+        if ($card['status'] !== 'active' && $card['status'] !== 'in_use') {
+            return $this->respond(['success' => false, 'message' => 'Card is ' . $card['status'], 'card_epc' => $cardEpc]);
+        }
+
+        try {
+            $laneName = '';
+            if ($laneId) {
+                $laneName = (string) (\Config\Database::connect()->table('lanes')->where('id', (int) $laneId)->get()->getRowArray()['lane'] ?? '');
+            }
+            $result = $this->handleStaffCard($card, $laneId ? (int) $laneId : null, $laneName ?: 'Security');
+        } catch (\Throwable $e) {
+            log_message('error', 'RFID::staffScan error: ' . $e->getMessage());
+            return $this->respond(['success' => false, 'message' => 'Scan failed, please try again.', 'card_epc' => $cardEpc], 500);
+        }
+
+        if ($result === null) {
+            return $this->respond([
+                'success'        => false,
+                'access_granted' => false,
+                'action'         => 'denied',
+                'message'        => 'Access denied: Card is not assigned to any staff pass.',
+                'card_epc'       => $cardEpc,
+            ]);
+        }
+
+        return $this->respond($result);
+    }
+
     protected function insertSecurityAlert(string $type, string $severity, string $visitorName, string $location, string $description): void
     {
         $db = \Config\Database::connect();

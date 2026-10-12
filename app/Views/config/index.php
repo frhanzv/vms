@@ -5312,6 +5312,9 @@
                                         <input type="checkbox" name="access[report][vendor_report]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Vendor Report
                                     </label>
                                     <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[report][staff_report]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Staff Report
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                                         <input type="checkbox" name="access[report][vehicle_sticker_summary]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Vehicle Sticker Summary Report
                                     </label>
                                     <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">

@@ -55,6 +55,7 @@
             ];
             $activeTab = $activeTab ?? '';
             ?>
+            <?php if ($showTabs ?? true): ?>
             <nav class="no-print flex flex-wrap gap-1 mb-6 border-b border-gray-200 dark:border-gray-700 -mt-2">
                 <?php foreach ($staffTabs as $path => [$label, $icon]): ?>
                 <a href="<?= base_url($path) ?>"
@@ -63,6 +64,7 @@
                 </a>
                 <?php endforeach; ?>
             </nav>
+            <?php endif; ?>
 
             <?php if (session()->getFlashdata('success')): ?>
                 <div class="mb-4 flex items-center gap-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 text-green-800 dark:text-green-300 text-sm rounded-lg px-4 py-3">

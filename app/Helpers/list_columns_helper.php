@@ -36,7 +36,35 @@ if (! function_exists('list_column_registry')) {
             'pass_expiry'         => ['label' => 'Pass Expiry'],
         ];
 
+        $staffCols = [
+            'no'          => ['label' => 'No', 'locked' => true],
+            'action'      => ['label' => 'Action', 'locked' => true],
+            'date'        => ['label' => 'Date'],
+            'app_no'      => ['label' => 'App No'],
+            'type'        => ['label' => 'Type'],
+            'staff_no'    => ['label' => 'Staff No'],
+            'full_name'   => ['label' => 'Full Name', 'locked' => true],
+            'ic_passport' => ['label' => 'IC / Passport No'],
+            'department'  => ['label' => 'Department'],
+            'status'      => ['label' => 'Status', 'locked' => true],
+            'pass_expiry' => ['label' => 'Pass Expiry'],
+        ];
+
         return [
+            // Staff Pass: columns only. Its buttons stay under Dynamic Form Fields
+            // (form staff_pass_request) — Page Settings buttons write the vendor form.
+            'staff_pass_list' => [
+                'title'   => 'Staff List',
+                'group'   => 'Staff Pass',
+                'columns' => $staffCols + ['current_location' => ['label' => 'Current Location']],
+                'buttons' => [],
+            ],
+            'staff_request_list' => [
+                'title'   => 'Staff Request List',
+                'group'   => 'Staff Pass',
+                'columns' => $staffCols,
+                'buttons' => [],
+            ],
             // 'vendor_pass_list' keeps its old key so columns saved under Config > List Columns carry over.
             'vendor_pass_list' => [
                 'title'   => 'Vendor List',

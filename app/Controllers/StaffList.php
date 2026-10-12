@@ -22,6 +22,13 @@ class StaffList extends StaffPassBase
 {
     private array $tierCache = [];
 
+    /**
+     * True on the staff Request List — same list as Staff List, with the
+     * approve / reject / edit / delete / active actions, and without
+     * Import / Template / Export / Request. Mirrors VendorList.
+     */
+    private bool $requestMode = false;
+
     private const SORTS = [
         'date_desc'     => ['created_at', 'DESC'],
         'date_asc'      => ['created_at', 'ASC'],
@@ -32,6 +39,28 @@ class StaffList extends StaffPassBase
     ];
 
     private const STATUSES = ['all', 'Draft', 'Pending', 'Approved', 'Rejected', 'Suspended'];
+
+    /** Anyone who can act on a staff pass (approve / reject / edit / delete / active) gets the Request List. */
+    public static function canSeeRequestList(): bool
+    {
+        helper('access');
+        foreach (['edit', 'approve', 'reject', 'delete', 'manage_status'] as $action) {
+            if (has_access('staff_pass_list', $action)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public function requestList()
+    {
+        if (! self::canSeeRequestList()) {
+            return redirect()->to(base_url('staffs'))->with('error', 'You are not allowed to view the Request List.');
+        }
+        $this->requestMode = true;
+
+        return $this->index();
+    }
 
     public function index()
     {
@@ -62,8 +91,8 @@ class StaffList extends StaffPassBase
         [$sortField, $sortDir] = self::SORTS[$sortBy];
         [$rows, $pagination] = $this->paginate($builder, $page, $perPage, $sortField, $sortDir);
 
-        $showApprove = $this->cfg('approve_button');
-        $showReject  = $this->cfg('reject_button');
+        $showApprove = $this->requestMode && $this->cfg('approve_button');
+        $showReject  = $this->requestMode && $this->cfg('reject_button');
         $awaiting    = ['ksb_approve' => 'Awaiting KSB approval', 'kpk_approve' => 'Awaiting KPK approval'];
 
         $list   = [];
@@ -99,6 +128,7 @@ class StaffList extends StaffPassBase
                 'reject_reason'=> $row['reject_reason'] ?? null,
                 'card_status'  => $row['card_status'] ?: 'Inactive',
                 'card_expiry'  => $this->fmtDate($row['card_expiry'] ?? null),
+                'stage'        => $this->currentStage($row, $rowStatus),
                 'is_active'    => (int) ($row['is_active'] ?? 1) === 1,
                 'can_approve'  => $showApprove && in_array($rowStatus, ['Pending', 'Rejected'], true)
                     && ($cRows ? $this->canActPerClient($cRows, $myClientId, 'approve') : $this->canActOn($row, 'approve')),
@@ -109,31 +139,108 @@ class StaffList extends StaffPassBase
         }
 
         $count = fn(string $t, string $s) => (int) $this->listQuery($t, '', $s, 'ALL')->countAllResults();
+        $rm    = $this->requestMode;
 
         return view('staffs/list', [
-            'pageTitle'     => 'Staff Pass List - SafeG',
+            'pageTitle'     => ($rm ? 'Staff Request List' : 'Staff Pass List') . ' - SafeG',
+            'requestMode'   => $rm,
+            'listUrl'       => base_url($rm ? 'staffs/request-list' : 'staffs'),
             'tab'           => $tab,
             'stats'         => [
-                'total'    => $count('active', 'all'),
-                'pending'  => $count('active', 'Pending'),
-                'approved' => $count('active', 'Approved'),
-                'inactive' => $count('inactive', 'all'),
+                'total'    => $count($tab, 'all'),
+                'pending'  => $count($tab, 'Pending'),
+                'approved' => $count($tab, 'Approved'),
             ],
             'staffList'     => $list,
-            'rejectReasons' => $this->rejectReasons(),
-            'canRequest'    => $this->cfg('request_button'),
-            'canEdit'       => $this->canEdit() && $this->cfg('edit_button'),
-            'canDelete'     => has_access('staff_pass_list', 'delete') && $this->cfg('delete_button'),
-            'canImport'     => $this->canEdit() && $this->cfg('import_button'),
-            'canExport'     => $this->cfg('export_button'),
-            'canManage'     => $this->canManageStatus(),
-            'showPrintButton' => $this->cfg('print_button') && has_access('staff_pass_list', 'print'),
+            'rejectReasons' => $rm ? $this->rejectReasons() : [],
+            // Like the Vendor List: Staff List is view-only, the actions live on Request List.
+            'canEdit'       => $rm && $this->canEdit() && $this->cfg('edit_button'),
+            'canDelete'     => $rm && has_access('staff_pass_list', 'delete') && $this->cfg('delete_button'),
+            'canManage'     => $rm && $this->canManageStatus(),
+            'canRequest'    => ! $rm && $this->cfg('request_button'),
+            'canImport'     => ! $rm && $this->canEdit() && $this->cfg('import_button'),
+            'canTemplate'   => ! $rm && $this->canEdit() && $this->cfg('import_button'),
+            'canExport'     => ! $rm && $this->cfg('export_button'),
+            'showPrintButton' => ! $rm && $this->cfg('print_button') && has_access('staff_pass_list', 'print'),
             'searchTerm'    => $search,
             'status'        => $status,
             'type'          => $type,
             'sortBy'        => $sortBy,
             'pagination'    => $pagination,
         ]);
+    }
+
+    /**
+     * Where this pass is in the pipeline right now — the "Current Location"
+     * column, same labels as the Vendor List.
+     *
+     * @return array{label:string,tone:string}
+     */
+    private function currentStage(array $row, string $rowStatus): array
+    {
+        $card = (string) ($row['card_status'] ?? '');
+        if ($card === 'Terminated') {
+            return ['label' => 'Closed List (Terminated)', 'tone' => 'gray'];
+        }
+        if ($card === 'Active') {
+            return ['label' => 'Closed List', 'tone' => 'gray'];
+        }
+        if ($rowStatus === 'Draft') {
+            return ['label' => 'Draft', 'tone' => 'gray'];
+        }
+        if ($rowStatus === 'Rejected') {
+            return ['label' => 'Rejected', 'tone' => 'red'];
+        }
+        if ($rowStatus === 'Suspended') {
+            return ['label' => 'Suspended', 'tone' => 'gray'];
+        }
+        if ($rowStatus === 'Approved') {
+            return trim((string) ($row['receipt_no'] ?? '')) === ''
+                ? ['label' => 'Process List / Printing List', 'tone' => 'blue']
+                : ['label' => 'Issuance List', 'tone' => 'purple'];
+        }
+
+        return ['label' => 'Request List (awaiting approval)', 'tone' => 'amber'];
+    }
+
+    /**
+     * Show/Hide Columns popup on Staff List / Request List. Saves to the same
+     * place as Config > Page Settings (client_list_columns).
+     */
+    public function saveColumnSettings()
+    {
+        helper(['feature', 'list_columns']);
+        $page     = (string) $this->request->getPost('list');
+        $registry = list_column_registry();
+        $clientId = (int) current_client_id();
+        $back     = base_url($page === 'staff_request_list' ? 'staffs/request-list' : 'staffs');
+
+        if (! in_array($page, ['staff_pass_list', 'staff_request_list'], true) || ! isset($registry[$page])) {
+            return redirect()->to(base_url('staffs'))->with('error', 'Unknown list.');
+        }
+        if ($clientId <= 0) {
+            return redirect()->to($back)->with('error', 'Columns are set per client - use Config > Page Settings and choose a client.');
+        }
+
+        $posted = $this->request->getPost('columns');
+        $posted = is_array($posted) ? $posted : [];
+        $db     = $this->db();
+        $now    = date('Y-m-d H:i:s');
+
+        foreach ($registry[$page]['columns'] as $key => $def) {
+            if (! empty($def['locked'])) {
+                continue;
+            }
+            $where = ['client_id' => $clientId, 'list_key' => $page, 'column_key' => $key];
+            $data  = ['is_visible' => array_key_exists($key, $posted) ? 1 : 0, 'updated_at' => $now];
+            if ($db->table('client_list_columns')->where($where)->countAllResults() > 0) {
+                $db->table('client_list_columns')->where($where)->update($data);
+            } else {
+                $db->table('client_list_columns')->insert($where + $data + ['created_at' => $now]);
+            }
+        }
+
+        return redirect()->to($back)->with('success', 'Columns updated.');
     }
 
     private function listQuery(string $tab, string $search, string $status, string $type)
