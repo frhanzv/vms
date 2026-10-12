@@ -99,11 +99,13 @@ $selectCls = 'w-full md:w-40 border border-gray-300 dark:border-gray-600 dark:bg
                     </button>
                 </div>
                 <div class="flex flex-wrap md:flex-nowrap gap-3 w-full md:w-auto">
+                    <?php if (! $requestMode): ?>
                     <!-- KPK: Staff List vs Inactive Staff List -->
                     <select name="tab" onchange="this.form.submit()" class="<?= $selectCls ?>">
                         <option value="" <?= ! $isInactive ? 'selected' : '' ?>>Active Staff</option>
                         <option value="inactive" <?= $isInactive ? 'selected' : '' ?>>Inactive Staff</option>
                     </select>
+                    <?php endif; ?>
                     <select name="type" onchange="this.form.submit()" class="<?= $selectCls ?>">
                         <?php foreach (['ALL' => 'All Types', 'NEW' => 'New', 'RENEWAL' => 'Renewal', 'REPLACEMENT' => 'Replacement'] as $val => $label): ?>
                         <option value="<?= $val ?>" <?= $type === $val ? 'selected' : '' ?>><?= $label ?></option>
@@ -187,11 +189,6 @@ $selectCls = 'w-full md:w-40 border border-gray-300 dark:border-gray-600 dark:bg
                                     <a href="<?= base_url('staffpassrequest/edit/' . $s['id']) ?>" class="text-amber-500 hover:text-amber-700 transition-colors" title="Edit">
                                         <span class="material-symbols-outlined text-[20px]">edit</span>
                                     </a>
-                                    <?php endif; ?>
-                                    <?php if ($canManage): ?>
-                                    <button type="button" onclick="toggleActive(<?= $s['id'] ?>, <?= $s['is_active'] ? 0 : 1 ?>, this)" class="<?= $s['is_active'] ? 'text-gray-400 hover:text-gray-600' : 'text-emerald-500 hover:text-emerald-700' ?> transition-colors" title="<?= $s['is_active'] ? 'Move to Inactive' : 'Move back to Active' ?>">
-                                        <span class="material-symbols-outlined text-[20px]"><?= $s['is_active'] ? 'person_off' : 'person_check' ?></span>
-                                    </button>
                                     <?php endif; ?>
                                     <?php if ($canDelete): ?>
                                     <button type="button" onclick="confirmDelete(<?= $s['id'] ?>, this)" class="text-red-500 hover:text-red-700 transition-colors" title="Delete">
@@ -383,11 +380,6 @@ $selectCls = 'w-full md:w-40 border border-gray-300 dark:border-gray-600 dark:bg
             const reasonId = document.getElementById('rejectReasonId').value;
             if (!reasonId) { alert('Please select a reason for rejecting this staff pass.'); return; }
             staffPostReload('<?= base_url('staffs/reject') ?>', { id: activeId, reject_reason_id: reasonId, remark: document.getElementById('rejectRemark').value.trim() }, btn);
-        }
-        function toggleActive(id, active, btn) {
-            const msg = active ? 'Move this staff member back to the active list?' : 'Move this staff member to the inactive list? (e.g. resigned)';
-            if (!confirm(msg)) return;
-            staffPostReload('<?= base_url('staffs/set-active/') ?>' + id, { active: active }, btn);
         }
         function confirmDelete(id, btn) {
             if (!confirm('Are you sure you want to delete this staff record? This action cannot be undone.')) return;

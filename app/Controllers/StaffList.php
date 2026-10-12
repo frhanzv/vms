@@ -66,7 +66,8 @@ class StaffList extends StaffPassBase
     {
         helper(['access', 'feature', 'privacy', 'role']);
 
-        $tab     = $this->request->getGet('tab') === 'inactive' ? 'inactive' : 'active';
+        // Request List shows active staff only (no Active / Inactive filter there).
+        $tab     = ! $this->requestMode && $this->request->getGet('tab') === 'inactive' ? 'inactive' : 'active';
         $search  = trim((string) ($this->request->getGet('search') ?? ''));
         $status  = (string) ($this->request->getGet('status') ?? 'all');
         $type    = strtoupper((string) ($this->request->getGet('type') ?? 'ALL'));
@@ -156,7 +157,6 @@ class StaffList extends StaffPassBase
             // Like the Vendor List: Staff List is view-only, the actions live on Request List.
             'canEdit'       => $rm && $this->canEdit() && $this->cfg('edit_button'),
             'canDelete'     => $rm && has_access('staff_pass_list', 'delete') && $this->cfg('delete_button'),
-            'canManage'     => $rm && $this->canManageStatus(),
             'canRequest'    => ! $rm && $this->cfg('request_button'),
             'canImport'     => ! $rm && $this->canEdit() && $this->cfg('import_button'),
             'canTemplate'   => ! $rm && $this->canEdit() && $this->cfg('import_button'),
