@@ -58,7 +58,7 @@ class StaffCardInfo extends StaffPassBase
             'canPrint'          => $edit && $this->cfg('printing_generate_button') && $staff['status'] === 'Approved' && in_array($stage, ['process', 'issuance', 'closed'], true),
             'canBindCard'       => $edit && $this->cfg('process_rfid_section'),
             'canAddLicense'     => $edit && $this->cfg('card_info_add_license_button'),
-            'canEditLocation'   => $edit && $this->cfg('card_info_edit_location_button'),
+            'canEditLocation'   => $this->canManageLocations() && $this->cfg('card_info_edit_location_button'),
             'canActivate'       => $edit && $this->cfg('card_info_activate_button') && $stage === 'closed' && $staff['card_status'] !== 'Active' && $staff['status'] === 'Approved',
             'canTerminate'      => $edit && $this->cfg('card_info_terminate_button') && in_array($stage, ['closed', 'issuance'], true) && $staff['card_status'] !== 'Terminated',
             'canSuspend'        => $edit && $this->cfg('suspend_button') && $stage === 'closed' && $staff['status'] === 'Approved',
@@ -66,6 +66,13 @@ class StaffCardInfo extends StaffPassBase
             'canChangeStaffNo'  => $edit,
             'canRenew'          => $edit && $this->cfg('renew_button') && $stage === 'closed' && $staff['status'] === 'Approved',
         ]);
+    }
+
+    /** Role Management > Staff Pass List > Manage Locations: edit a pass's Location Access. */
+    private function canManageLocations(): bool
+    {
+        helper('access');
+        return has_access('staff_pass_list', 'manage_locations');
     }
 
     /** Which pipeline list this pass currently sits on. */
@@ -276,7 +283,7 @@ class StaffCardInfo extends StaffPassBase
     /** KPK editLocationAccess(). */
     public function updateLocationAccess($id)
     {
-        if (! $this->canEdit() || ! $this->cfg('card_info_edit_location_button')) {
+        if (! $this->canManageLocations() || ! $this->cfg('card_info_edit_location_button')) {
             return $this->fail('Not allowed.');
         }
         $staff = $this->loadScopedStaff((int) $id);

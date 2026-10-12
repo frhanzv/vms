@@ -5253,6 +5253,15 @@
                                         <input type="checkbox" name="access[staff_pass_list][delete]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Delete
                                     </label>
                                     <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[staff_pass_list][approve]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Approve
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[staff_pass_list][reject]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Reject
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[staff_pass_list][manage_locations]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Manage Locations
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                                         <input type="checkbox" name="access[staff_pass_list][print]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Print
                                     </label>
                                 </div>
