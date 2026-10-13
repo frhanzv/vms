@@ -10,7 +10,7 @@ use App\Libraries\VehicleRules;
  */
 class VehicleTypeConfig extends BaseController
 {
-    private const FLAGS = ['seater_req', 'working_height_req', 'working_load_req', 'truck_head_req', 'trailer_req', 'truck_weight_req', 'chassis_req', 'payment_required', 'duplicate_plate_ok'];
+    private const FLAGS = ['seater_req', 'working_height_req', 'working_load_req', 'truck_head_req', 'trailer_req', 'truck_weight_req', 'chassis_req', 'trailer_weight_req', 'trailer_type_req', 'payment_required', 'duplicate_plate_ok'];
 
     private function scope(): ?int
     {
@@ -73,8 +73,13 @@ class VehicleTypeConfig extends BaseController
         if ($db->fieldExists('vehicle_group', 'vehicle_types')) {
             $data['vehicle_group'] = in_array($p['vehicle_group'] ?? '', ['public', 'cnc', 'both'], true) ? $p['vehicle_group'] : 'both';
         }
+        if ($db->fieldExists('operation', 'vehicle_types')) {
+            $data['operation'] = in_array($p['operation'] ?? '', VehicleRules::OPERATIONS, true) ? $p['operation'] : null;
+        }
         foreach (self::FLAGS as $f) {
-            $data[$f] = ! empty($p[$f]) ? 1 : 0;
+            if ($db->fieldExists($f, 'vehicle_types')) {
+                $data[$f] = ! empty($p[$f]) ? 1 : 0;
+            }
         }
 
         if ($id) {

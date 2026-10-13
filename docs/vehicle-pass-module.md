@@ -1,7 +1,7 @@
 # Vehicle module (ported from Safe-G KPK) - Phase 2
 
 ```bash
-php spark migrate      # 2026-10-13-100000_CreateVehicleModule, 2026-10-13-130000_VehicleGroupsTransferDaily
+php spark migrate      # 2026-10-13-100000_CreateVehicleModule, 2026-10-13-130000_VehicleGroupsTransferDaily, 2026-10-13-140000_VehicleGroupColumnsRepair, 2026-10-13-150000_VehicleKpkAlignment
 ```
 Turn it on per client: **Config > Client > Features > Vehicle Pass** (off by default; the platform admin always sees it).
 Give roles access under **Config > Role > Vehicle**. The sidebar shows only what the role holds a key for.
@@ -23,7 +23,7 @@ Give roles access under **Config > Role > Vehicle**. The sidebar shows only what
 * **Staff** passes (New Staff Request) pick a person from the `staff` table; they show in My Vehicle Pass and in Staff Vehicle Pass.
 * **Vehicle Types** (Config) have a "Used for" setting: Public, Cargo | Non-Cargo, or both.
 * **Renew**: an Issued pass can be renewed within 90 days of expiry (or after). The renewal is a new application; when its sticker is issued the old pass is terminated.
-* **Transfer Ownership**: any user with the key files a transfer for an Issued pass (one pending per vehicle). A non-vendor user with the key approves or rejects; approval rewrites the owner on the pass and logs it. Sticker and expiry are kept.
+* **Transfer Ownership** (KPK): search another company's vehicle by plate; the company with the key takes it over immediately, no approval. A non-vendor user picks the receiving company. Expired passes cannot be taken over (apply for a new pass). Guarded against two companies grabbing the same vehicle (VEHICLE_ALREADY_CHANGED_OWNER). Every transfer is logged in `vehicle_transfers` (status Completed).
 * **Daily Pass** is built but OFF. To switch it on add `VEHICLE_DAILY_PASS=true` to `.env`; the routes and the sidebar group appear together.
 
 Flow: `Draft -> Pending -> Approved -> Issued -> Terminated` (Rejected can be edited and resubmitted).
@@ -49,3 +49,14 @@ Endpoints the Java app must offer (thin wrappers over its existing /api/fpx code
 
 After the browser returns to `vehicles/payment-return/{id}`, VMS calls `/status` and marks the pass Paid.
 Not yet in VMS: amount per vehicle type (the `amount` column exists but is not filled in yet).
+
+## KPK alignment (migration 150000)
+
+* **Request form**: Application For, sticker year (next year offered from October), vehicle Operation (Cargo | Non-Cargo) filters the vehicle types, trailer weight / trailer type (20, 40, 45 Ft) per type flags, staff ID / department / HOD for staff, terms checkbox.
+* **Plate rule** is checked per sticker year. An approver with the right key can edit a Pending request without changing its status.
+* **Issue sticker**: serial (unique), date of issuance, collector IC, payment type CASH (receipt no.) or LEDGER (only when `companies.ledger_acc_no` is set; no receipt). Next Action column: Pending Approval / Proceed Payment / Collect Sticker.
+* **Closed list tools** (Issued passes): Reissue (Damage / Lost / Stolen, history kept in `vehicle_reissues`), Change Serial No, Change Receipt, Change Vehicle Type, Change Locations. Routes `vehicles/(:num)/(reissue|change-serial|change-receipt|change-type|change-locations)`.
+* **Config > Vehicle Types**: Operation select and Trailer Weight / Trailer Type flags.
+* **Daily Pass** (still hidden): Individual or Staff, year made, colour, brand, road tax and insurance expiry, several visit dates (single day or range, stored as JSON in `visit_dates`), remark, terms.
+
+Not ported yet: company vehicle limit, company permit check, e-mail notifications, print slip, terms stored in the database, configurable renewal months. `companies.ledger_acc_no` has no Config screen yet (set it in the database).

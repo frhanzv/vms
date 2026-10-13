@@ -31,7 +31,7 @@ $slug = ['mine' => 'mine', 'request' => 'request-list', 'reject' => 'reject-list
                     <td class="p-3"><?= $r['app_date'] ? date('d/m/Y', strtotime($r['app_date'])) : '-' ?></td>
                     <td class="p-3 font-semibold"><?= esc($r['plate_no']) ?></td>
                     <td class="p-3"><?= esc($r['driver_name'] ?: '-') ?></td>
-                    <td class="p-3"><?= esc($r['company_name'] ?: '-') ?></td>
+                    <td class="p-3"><?= esc($r['company_name'] ?: ($r['department'] ?? '') ?: '-') ?></td>
                     <td class="p-3"><?= $r['visit_from'] ? date('d/m/Y', strtotime($r['visit_from'])) : '-' ?> - <?= $r['visit_to'] ? date('d/m/Y', strtotime($r['visit_to'])) : '-' ?></td>
                     <td class="p-3"><span class="px-2 py-0.5 rounded-full font-semibold <?= $badge[$r['status']] ?? '' ?>"><?= esc($r['status']) ?></span></td>
                     <td class="p-3"><a href="<?= base_url('vehicle-daily/view/' . $r['id']) ?>" class="text-primary font-semibold hover:underline">Details</a></td>

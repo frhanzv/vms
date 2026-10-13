@@ -8,6 +8,9 @@ $in  = 'w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 roun
 $lb  = 'block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1';
 $typeMeta = [];
 foreach ($types as $t) { $typeMeta[$t['id']] = array_map('intval', array_intersect_key($t, $typeFields)); }
+$typeList = array_map(static fn($t) => ['id' => (string) $t['id'], 'name' => $t['name'], 'operation' => $t['operation'] ?? ''], $types);
+$ops = \App\Libraries\VehicleRules::OPERATIONS;
+$yearNow = (int) date('Y');
 ?>
 <div class="bg-card-light dark:bg-card-dark rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
     <div class="flex items-center gap-3 mb-6">
@@ -17,7 +20,9 @@ foreach ($types as $t) { $typeMeta[$t['id']] = array_map('intval', array_interse
     </div>
 
     <form method="post" enctype="multipart/form-data" action="<?= base_url($isEdit ? 'vehicles/update/' . $v['id'] : 'vehicles/store') ?>"
-          x-data="{ type: '<?= $val('vehicle_type_id') ?>', meta: <?= esc(json_encode($typeMeta), 'attr') ?>, owner: '<?= $val('owner_type') === 'Company' ? 'Company' : 'Individual' ?>',
+          x-data="{ type: '<?= $val('vehicle_type_id') ?>', op: '<?= $val('vehicle_operation') ?: ($group === 'cnc' ? $ops[0] : '') ?>', typeList: <?= esc(json_encode($typeList), 'attr') ?>,
+                    get typesShown() { return this.typeList.filter(t => !this.op || !t.operation || t.operation === this.op); },
+                    meta: <?= esc(json_encode($typeMeta), 'attr') ?>, owner: '<?= $val('owner_type') === 'Company' ? 'Company' : 'Individual' ?>',
                     show(c) { return this.type && this.meta[this.type] && this.meta[this.type][c] === 1; },
                     open: false, q: '', selected: <?= esc(json_encode($selLocs), 'attr') ?>, labels: <?= esc(json_encode(array_map('strval', $locationOptions)), 'attr') ?>,
                     get codes() { return Object.keys(this.labels); },
@@ -31,6 +36,18 @@ foreach ($types as $t) { $typeMeta[$t['id']] = array_map('intval', array_interse
         <input type="hidden" name="pass_for" value="<?= esc($passFor) ?>"/>
         <?php if (! empty($v['renewed_from'])): ?><input type="hidden" name="renewed_from" value="<?= (int) $v['renewed_from'] ?>"/>
         <div class="mb-5 rounded border border-blue-200 bg-blue-50 text-blue-800 px-4 py-3 text-sm">Renewal of the current pass. When the new sticker is issued the old pass is closed automatically.</div><?php endif; ?>
+
+        <h2 class="text-sm font-bold uppercase text-gray-700 dark:text-gray-200 mb-3">Application Info</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div><label class="<?= $lb ?>">Date Of Application</label><input value="<?= esc(! empty($v['app_date']) ? date('d/m/Y', strtotime($v['app_date'])) : date('d/m/Y')) ?>" disabled class="<?= $in ?> bg-gray-100"/></div>
+            <div><label class="<?= $lb ?>">Type Of Application</label><input value="<?= ! empty($v['renewed_from']) || ($v['type_of_app'] ?? '') === 'Renewal' ? 'Renewal' : 'New' ?>" disabled class="<?= $in ?> bg-gray-100"/></div>
+            <div><label class="<?= $lb ?>">Sticker Year *</label>
+                <select name="sticker_year" class="<?= $in ?>"><?php $sy = (string) ($old['sticker_year'] ?? $v['sticker_year'] ?? ''); foreach ($stickerYears as $y): ?><option <?= $sy === $y ? 'selected' : '' ?>><?= $y ?></option><?php endforeach; ?></select></div>
+            <?php if ($group === 'cnc'): ?>
+            <div><label class="<?= $lb ?>">Vehicle Operation *</label>
+                <select name="vehicle_operation" x-model="op" @change="if (!typesShown.find(t => t.id === type)) type = ''" class="<?= $in ?>"><?php foreach ($ops as $o): ?><option><?= $o ?></option><?php endforeach; ?></select></div>
+            <?php endif; ?>
+        </div>
 
         <h2 class="text-sm font-bold uppercase text-gray-700 dark:text-gray-200 mb-3">Owner</h2>
         <?php if ($passFor === 'staff'): ?>
@@ -49,7 +66,11 @@ foreach ($types as $t) { $typeMeta[$t['id']] = array_map('intval', array_interse
                 <span x-text="sel ? sel.full_name + ' (' + sel.staff_no + ')' : ''"></span>
                 <?php if (! $isEdit): ?><button type="button" @click="sel = null" class="font-bold">&times;</button><?php endif; ?>
             </div>
-            <div class="mt-4 max-w-xs"><label class="<?= $lb ?>">Contact No.</label><input name="contact_no" value="<?= $val('contact_no') ?>" class="<?= $in ?>"/></div>
+            <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl">
+                <div><label class="<?= $lb ?>">Department</label><input name="department" value="<?= $val('department') ?: esc($staffRow['department'] ?? '') ?>" class="<?= $in ?>"/></div>
+                <div><label class="<?= $lb ?>">HOD</label><input name="hod" value="<?= $val('hod') ?>" class="<?= $in ?>"/></div>
+                <div><label class="<?= $lb ?>">Contact No.</label><input name="contact_no" value="<?= $val('contact_no') ?>" class="<?= $in ?>"/></div>
+            </div>
         </div>
         <?php else: $lockCo = ! empty($ownCompany) || $group === 'cnc'; ?>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -70,16 +91,19 @@ foreach ($types as $t) { $typeMeta[$t['id']] = array_map('intval', array_interse
             <div><label class="<?= $lb ?>">Vehicle Type *</label>
                 <select name="vehicle_type_id" x-model="type" class="<?= $in ?>">
                     <option value="">-- Select --</option>
-                    <?php foreach ($types as $t): ?><option value="<?= $t['id'] ?>"><?= esc($t['name']) ?></option><?php endforeach; ?>
+                    <template x-for="t in typesShown" :key="t.id"><option :value="t.id" :selected="t.id === type" x-text="t.name"></option></template>
                 </select></div>
             <div><label class="<?= $lb ?>">Plate Number *</label><input name="plate_no" value="<?= $val('plate_no') ?>" class="<?= $in ?> uppercase" placeholder="e.g. ABC1234"/></div>
-            <div><label class="<?= $lb ?>">Brand / Model</label><input name="brand" value="<?= $val('brand') ?>" class="<?= $in ?>"/></div>
-            <div><label class="<?= $lb ?>">Year Made</label><input name="year_made" maxlength="4" value="<?= $val('year_made') ?>" class="<?= $in ?>"/></div>
-            <div><label class="<?= $lb ?>">Colour</label><input name="colour" value="<?= $val('colour') ?>" class="<?= $in ?>"/></div>
+            <div><label class="<?= $lb ?>">Brand *</label><input name="brand" value="<?= $val('brand') ?>" class="<?= $in ?>"/></div>
+            <div><label class="<?= $lb ?>">Year Made</label>
+                <select name="year_made" class="<?= $in ?>"><?php $ym = (string) ($old['year_made'] ?? $v['year_made'] ?? ''); for ($y = $yearNow; $y > $yearNow - 60; $y--): ?><option <?= $ym === (string) $y ? 'selected' : '' ?>><?= $y ?></option><?php endfor; ?></select></div>
+            <div><label class="<?= $lb ?>">Colour *</label><input name="colour" value="<?= $val('colour') ?>" class="<?= $in ?>"/></div>
             <div><label class="<?= $lb ?>">Road Tax Expiry *</label><input name="road_tax_expiry" value="<?= $dt('road_tax_expiry') ?>" class="flatpickr <?= $in ?>" placeholder="dd/mm/yyyy"/></div>
             <div><label class="<?= $lb ?>">Insurance Expiry *</label><input name="insurance_expiry" value="<?= $dt('insurance_expiry') ?>" class="flatpickr <?= $in ?>" placeholder="dd/mm/yyyy"/></div>
             <?php foreach ($typeFields as $col => [$field, $label]): ?>
-            <div x-show="show('<?= $col ?>')" x-cloak><label class="<?= $lb ?>"><?= $label ?> *</label><input name="<?= $field ?>" value="<?= $val($field) ?>" class="<?= $in ?>"/></div>
+            <div x-show="show('<?= $col ?>')" x-cloak><label class="<?= $lb ?>"><?= $label ?> *</label>
+                <?php if ($field === 'trailer_type'): ?><select name="<?= $field ?>" class="<?= $in ?>"><?php foreach (\App\Libraries\VehicleRules::TRAILER_TYPES as $tv => $tl): ?><option value="<?= $tv ?>" <?= (string) ($old[$field] ?? $v[$field] ?? '20') === (string) $tv ? 'selected' : '' ?>><?= $tl ?></option><?php endforeach; ?></select>
+                <?php else: ?><input name="<?= $field ?>" value="<?= $val($field) ?>" class="<?= $in ?>"/><?php endif; ?></div>
             <?php endforeach; ?>
         </div>
 
@@ -106,7 +130,7 @@ foreach ($types as $t) { $typeMeta[$t['id']] = array_map('intval', array_interse
             </div>
         </div>
 
-        <h2 class="text-sm font-bold uppercase text-gray-700 dark:text-gray-200 mb-3">Documents</h2>
+        <h2 class="text-sm font-bold uppercase text-gray-700 dark:text-gray-200 mb-3">Upload Documents *</h2>
         <div class="mb-6">
             <?php foreach ($files as $f): ?>
             <label class="flex items-center gap-2 text-sm mb-1"><input type="checkbox" name="remove_file[]" value="<?= $f['id'] ?>"/>
@@ -118,10 +142,15 @@ foreach ($types as $t) { $typeMeta[$t['id']] = array_map('intval', array_interse
 
         <div class="mb-6"><label class="<?= $lb ?>">Remark</label><textarea name="remark" rows="2" class="<?= $in ?>"><?= $val('remark') ?></textarea></div>
 
+        <?php if (empty($asApprover)): ?>
+        <label class="flex items-start gap-2 text-sm mb-6 max-w-3xl"><input type="checkbox" name="tnc" value="1" class="mt-1"/>
+            <span>I declare that the information given is true, the vehicle is registered to the owner above, and I agree to follow the port's vehicle sticker terms and conditions. The sticker remains the property of the port and must be returned on request.</span></label>
+        <?php endif; ?>
+
         <div class="flex justify-end gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
             <a href="<?= base_url('vehicles/' . $group . ($passFor === 'staff' ? '/staff' : '')) ?>" class="px-4 py-2 rounded border border-gray-300 text-sm">Cancel</a>
-            <button name="action" value="draft" class="px-4 py-2 rounded border border-gray-300 text-sm font-medium">Save as Draft</button>
-            <button name="action" value="submit" class="px-4 py-2 rounded bg-primary text-white text-sm font-semibold">Submit</button>
+            <?php if (empty($asApprover)): ?><button name="action" value="draft" class="px-4 py-2 rounded border border-gray-300 text-sm font-medium">Save as Draft</button><?php endif; ?>
+            <button name="action" value="submit" class="px-4 py-2 rounded bg-primary text-white text-sm font-semibold"><?= ! empty($asApprover) ? 'Save Changes' : 'Submit' ?></button>
         </div>
     </form>
 </div>

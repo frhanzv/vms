@@ -67,15 +67,21 @@ class VehicleRules
      * Another live pass already holding this plate, or null. A plate is free when its pass is a
      * Draft, Rejected or Terminated, or Issued but past its expiry.
      */
-    /** @param int|int[]|null $ignoreId pass id(s) to leave out (itself, and the pass it renews) */
-    public static function plateHolder(BaseConnection $db, string $plate, $ignoreId = null): ?array
+    /**
+     * @param int|int[]|null $ignoreId pass id(s) to leave out (itself, and the pass it renews)
+     * @param string|null $stickerYear KPK checks the plate per sticker year: when given, only a pass of the same year (or with no year) blocks
+     */
+    public static function plateHolder(BaseConnection $db, string $plate, $ignoreId = null, ?string $stickerYear = null): ?array
     {
         $plate = static::normalizePlate($plate);
         if ($plate === '') {
             return null;
         }
-        $b = $db->table('vehicles')->select('id, app_no, status, pass_expiry, client_id, renewed_from')->where('plate_no', $plate)
+        $b = $db->table('vehicles')->select('id, app_no, status, pass_expiry, client_id, renewed_from, sticker_year')->where('plate_no', $plate)
             ->whereIn('status', ['Pending', 'Approved', 'Issued']);
+        if ($stickerYear !== null && $stickerYear !== '') {
+            $b->groupStart()->where('sticker_year', $stickerYear)->orWhere('sticker_year IS NULL', null, false)->orWhere('sticker_year', '')->groupEnd();
+        }
         $ignore = array_values(array_filter(array_map('intval', (array) $ignoreId)));
         if ($ignore) {
             $b->whereNotIn('id', $ignore);
@@ -94,7 +100,7 @@ class VehicleRules
 
     public static function plateMessage(string $plate, array $holder): string
     {
-        return "Plate number '" . static::normalizePlate($plate) . "' already has a vehicle pass ({$holder['app_no']}, status: {$holder['status']}). "
+        return "Plate number '" . static::normalizePlate($plate) . "' already has a vehicle pass ({$holder['app_no']}, status: {$holder['status']}) for this sticker year. "
             . 'Terminate or let that pass expire first, or ask for a vehicle type that allows duplicate plates.';
     }
 
@@ -121,5 +127,39 @@ class VehicleRules
         'trailer_req'        => ['trailer_number', 'Trailer Number'],
         'truck_weight_req'   => ['truck_weight', 'Truck Weight'],
         'chassis_req'        => ['chassis_number', 'Chassis Number'],
+        'trailer_weight_req' => ['trailer_weight', 'Trailer Weight'],
+        'trailer_type_req'   => ['trailer_type', 'Trailer Type'],
     ];
+
+    /** KPK "Vehicle Operation" (Cargo | Non-Cargo): narrows which vehicle types are offered. */
+    public const OPERATIONS = ['CONTAINER', 'CARGO AND NON-CARGO', 'NON-CARGO', 'CONTAINER, CARGO AND NON-CARGO'];
+
+    /** KPK trailer sizes. */
+    public const TRAILER_TYPES = ['20' => '20 Ft', '40' => '40 Ft', '45' => '45 Ft'];
+
+    /** KPK payment types at issuance; LEDGER only for a company that has a ledger account. */
+    public const PAYMENT_TYPES = ['CASH', 'LEDGER'];
+
+    public const REISSUE_REASONS = ['Damage', 'Lost', 'Stolen'];
+
+    /** Sticker years offered on a request: this year, plus next year from October (KPK). */
+    public static function stickerYears(): array
+    {
+        $y = (int) date('Y');
+
+        return ((int) date('n') >= 10) ? [(string) $y, (string) ($y + 1)] : [(string) $y];
+    }
+
+    /** Next-action text shown in the lists (KPK nextAction). */
+    public static function nextAction(array $v): string
+    {
+        switch ($v['status'] ?? '') {
+            case 'Pending':
+                return 'Pending Approval';
+            case 'Approved':
+                return ((int) ($v['payment_required'] ?? 0) === 1 && ($v['payment_status'] ?? '') !== 'Paid' && ($v['payment_type'] ?? '') !== 'LEDGER') ? 'Proceed Payment' : 'Collect Sticker';
+            default:
+                return '';
+        }
+    }
 }

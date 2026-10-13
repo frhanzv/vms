@@ -2303,6 +2303,9 @@
                                     <div><label class="block text-xs font-semibold text-gray-600 dark:text-slate-300 mb-1">Used for</label>
                                         <select id="vtGroup" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm">
                                             <option value="both">Public and Cargo | Non-Cargo</option><option value="public">Public only</option><option value="cnc">Cargo | Non-Cargo only</option></select></div>
+                                    <div><label class="block text-xs font-semibold text-gray-600 dark:text-slate-300 mb-1">Operation (Cargo | Non-Cargo)</label>
+                                        <select id="vtOperation" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm">
+                                            <option value="">Any operation</option><option>CONTAINER</option><option>CARGO AND NON-CARGO</option><option>NON-CARGO</option><option>CONTAINER, CARGO AND NON-CARGO</option></select></div>
                                     <div><label class="block text-xs font-semibold text-gray-600 dark:text-slate-300 mb-1">Status</label>
                                         <select id="vtStatus" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm">
                                             <option value="active">Active</option><option value="inactive">Inactive</option></select></div>
@@ -2317,6 +2320,8 @@
                                         <label class="flex items-center gap-2"><input type="checkbox" data-vt="trailer_req"> Trailer Number</label>
                                         <label class="flex items-center gap-2"><input type="checkbox" data-vt="truck_weight_req"> Truck Weight</label>
                                         <label class="flex items-center gap-2"><input type="checkbox" data-vt="chassis_req"> Chassis Number</label>
+                                        <label class="flex items-center gap-2"><input type="checkbox" data-vt="trailer_weight_req"> Trailer Weight</label>
+                                        <label class="flex items-center gap-2"><input type="checkbox" data-vt="trailer_type_req"> Trailer Type (20/40/45 Ft)</label>
                                     </div>
                                 </div>
                                 <div class="flex flex-wrap gap-6 text-sm text-gray-700 dark:text-slate-300">
@@ -8060,7 +8065,7 @@
         function renderVehicleTypes() {
             const box = document.getElementById('vtList');
             if (!vtRows.length) { box.innerHTML = '<p class="text-sm text-gray-500">No vehicle types yet. Add one above.</p>'; return; }
-            const extras = { seater_req: 'Seater', working_height_req: 'Height', working_load_req: 'Load', truck_head_req: 'Truck head', trailer_req: 'Trailer', truck_weight_req: 'Weight', chassis_req: 'Chassis' };
+            const extras = { seater_req: 'Seater', working_height_req: 'Height', working_load_req: 'Load', truck_head_req: 'Truck head', trailer_req: 'Trailer', truck_weight_req: 'Weight', chassis_req: 'Chassis', trailer_weight_req: 'Trailer wt', trailer_type_req: 'Trailer type' };
             box.innerHTML = `<div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800"><table class="w-full text-left text-sm">
                 <thead><tr class="bg-gray-50 dark:bg-slate-700 text-xs uppercase text-gray-600 dark:text-slate-200"><th class="p-3">Name</th><th class="p-3">Category</th><th class="p-3">Used for</th><th class="p-3">Extra details</th><th class="p-3">Payment</th><th class="p-3">Status</th><th class="p-3"></th></tr></thead><tbody>` +
                 vtRows.map(r => {
@@ -8077,7 +8082,7 @@
             const r = vtRows.find(x => +x.id === +id); if (!r) return;
             document.getElementById('vtId').value = r.id; document.getElementById('vtName').value = r.name;
             document.getElementById('vtCategory').value = r.category; document.getElementById('vtStatus').value = r.status;
-            document.getElementById('vtGroup').value = r.vehicle_group || 'both';
+            document.getElementById('vtGroup').value = r.vehicle_group || 'both'; document.getElementById('vtOperation').value = r.operation || '';
             vtFlags().forEach(c => c.checked = +r[c.dataset.vt] === 1);
             document.getElementById('vtFormTitle').textContent = 'Edit Vehicle Type';
             document.getElementById('vtName').focus();
@@ -8087,7 +8092,7 @@
             const fd = new FormData();
             fd.append('id', document.getElementById('vtId').value); fd.append('name', document.getElementById('vtName').value);
             fd.append('category', document.getElementById('vtCategory').value); fd.append('status', document.getElementById('vtStatus').value);
-            fd.append('vehicle_group', document.getElementById('vtGroup').value);
+            fd.append('vehicle_group', document.getElementById('vtGroup').value); fd.append('operation', document.getElementById('vtOperation').value);
             vtFlags().forEach(c => { if (c.checked) fd.append(c.dataset.vt, '1'); });
             fetch(`<?= base_url('config/vehicle-types/save') ?>`, { method: 'POST', headers: ctHeaders(), body: fd })
                 .then(r => r.json())

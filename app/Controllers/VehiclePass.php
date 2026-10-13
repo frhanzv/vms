@@ -127,6 +127,12 @@ class VehiclePass extends BaseController
         $search = trim((string) $this->request->getGet('search'));
         $status = trim((string) $this->request->getGet('status'));
         $page   = max(1, (int) $this->request->getGet('page'));
+        $appFor = trim((string) $this->request->getGet('app_for'));      // Individual / Company / Staff
+        $typeId = (int) $this->request->getGet('type_id');               // vehicle type
+        $appTyp = trim((string) $this->request->getGet('type_of_app'));  // New / Renewal
+        $sort   = trim((string) $this->request->getGet('sort'));
+        $per    = (int) $this->request->getGet('per_page');
+        $per    = in_array($per, [10, 20, 30, 40], true) ? $per : self::PER_PAGE;
 
         $b = $db->table('vehicles v')->select('v.*, t.name AS type_name')->join('vehicle_types t', 't.id = v.vehicle_type_id', 'left');
         $this->scope($b);
@@ -148,16 +154,31 @@ class VehiclePass extends BaseController
                 $b->where('v.status', $status);
             }
         }
-        if ($search !== '') {
-            $b->groupStart()->like('v.plate_no', VehicleRules::normalizePlate($search))->orLike('v.owner_name', $search)
-                ->orLike('v.company_name', $search)->orLike('v.app_no', $search)->orLike('v.sticker_serial', $search)->orLike('v.receipt_no', $search)->groupEnd();
+        if (in_array($appFor, ['Individual', 'Company', 'Staff'], true)) {
+            $b->where('v.owner_type', $appFor);
         }
+        if ($typeId > 0) {
+            $b->where('v.vehicle_type_id', $typeId);
+        }
+        if (in_array($appTyp, ['New', 'Renewal'], true)) {
+            $b->where('v.type_of_app', $appTyp);
+        }
+        if ($search !== '') {
+            $b->groupStart()->like('v.plate_no', VehicleRules::normalizePlate($search))->orLike('v.owner_name', $search)->orLike('v.owner_ic', $search)
+                ->orLike('v.company_name', $search)->orLike('v.department', $search)->orLike('v.staff_no', $search)
+                ->orLike('v.app_no', $search)->orLike('v.sticker_serial', $search)->orLike('v.receipt_no', $search)->groupEnd();
+        }
+        $sorts = ['app_asc' => ['v.app_no', 'ASC'], 'app_desc' => ['v.app_no', 'DESC'], 'reg_asc' => ['v.plate_no', 'ASC'], 'reg_desc' => ['v.plate_no', 'DESC'],
+            'date_asc' => ['v.id', 'ASC'], 'date_desc' => ['v.id', 'DESC'], 'name_asc' => ['v.owner_name', 'ASC'], 'name_desc' => ['v.owner_name', 'DESC'],
+            'company_asc' => ['v.company_name', 'ASC'], 'company_desc' => ['v.company_name', 'DESC'], 'collect_asc' => ['v.collect_date', 'ASC'], 'collect_desc' => ['v.collect_date', 'DESC']];
+        [$sortCol, $sortDir] = $sorts[$sort] ?? $sorts['date_desc'];
         $total = (clone $b)->countAllResults(false);
-        $rows  = $b->orderBy('v.id', 'DESC')->limit(self::PER_PAGE, ($page - 1) * self::PER_PAGE)->get()->getResultArray();
+        $rows  = $b->orderBy($sortCol, $sortDir)->limit($per, ($page - 1) * $per)->get()->getResultArray();
 
         return view('vehicles/list', [
             'pageTitle' => $title . ' - ' . VehicleRules::GROUPS[$group] . ' - SafeG', 'title' => VehicleRules::GROUPS[$group] . ' - ' . $title, 'group' => $group, 'stage' => $stage, 'rows' => $rows,
-            'search' => $search, 'status' => $status, 'page' => $page, 'pages' => max(1, (int) ceil($total / self::PER_PAGE)), 'total' => $total,
+            'search' => $search, 'status' => $status, 'page' => $page, 'pages' => max(1, (int) ceil($total / $per)), 'total' => $total,
+            'appFor' => $appFor, 'typeId' => $typeId, 'appTyp' => $appTyp, 'sort' => $sort, 'per' => $per, 'types' => $this->types($group),
             'filterable' => $filterable,
             'canCreate' => $this->allowed($group, 'create'),
             'canStaffRequest' => $group === 'public' && ! is_vendor_admin() && $this->allowed($group, 'staff_request'),
@@ -166,10 +187,22 @@ class VehiclePass extends BaseController
 
     // ------------------------------------------------------------------ form
 
-    /** A vendor account can only work with its own company's passes; staff are limited by their Role keys. */
+    /** The requester side: the owner of a Draft / Rejected / Pending pass, by the Role > Vehicle "my pass" keys. */
+    private function ownerMay(array $v): bool
+    {
+        return in_array($v['status'], ['Draft', 'Rejected', 'Pending'], true)
+            && $this->allowed($this->group($v['vehicle_group'] ?? 'public'), ($v['pass_for'] ?? 'vendor') === 'staff' && ! is_vendor_admin() ? 'staff_request' : 'create');
+    }
+
+    /** KPK lets the approver correct the details on the Request list (Pending) and Approved list (Approved) pages. */
+    private function approverMay(array $v): bool
+    {
+        return ($v['status'] === 'Pending' && $this->may($v, 'request')) || ($v['status'] === 'Approved' && $this->may($v, 'approved'));
+    }
+
     private function canEdit(array $v): bool
     {
-        return in_array($v['status'], ['Draft', 'Rejected', 'Pending'], true) && $this->allowed($this->group($v['vehicle_group'] ?? 'public'), ($v['pass_for'] ?? 'vendor') === 'staff' && ! is_vendor_admin() ? 'staff_request' : 'create');
+        return $this->ownerMay($v) || $this->approverMay($v);
     }
 
     public function create(string $group = 'public', string $kind = 'vendor')
@@ -210,7 +243,7 @@ class VehiclePass extends BaseController
         if ($err) {
             return $this->back('error', $err, 'vehicles/view/' . (int) $id);
         }
-        $new = array_diff_key($v, array_flip(['id', 'app_no', 'app_date', 'status', 'reject_reason', 'payment_status', 'payment_ref', 'payment_type', 'receipt_no', 'sticker_serial', 'sticker_year', 'pass_expiry', 'issued_at', 'issued_by', 'collector_name', 'approved_by', 'approved_at', 'created_at', 'updated_at']));
+        $new = array_diff_key($v, array_flip(['id', 'app_no', 'app_date', 'status', 'reject_reason', 'payment_status', 'payment_ref', 'payment_type', 'receipt_no', 'sticker_serial', 'sticker_year', 'pass_expiry', 'issued_at', 'issued_by', 'collector_name', 'approved_by', 'approved_at', 'created_at', 'updated_at', 'collect_date', 'issue_date', 'collector_ic', 'terminated_at']));
         $new['renewed_from'] = (int) $v['id'];
         $new['type_of_app']  = 'Renewal';
 
@@ -238,7 +271,8 @@ class VehiclePass extends BaseController
             'pageTitle' => (! empty($v['id']) ? 'Edit' : (! empty($v['renewed_from']) ? 'Renew' : 'New')) . ' Vehicle Pass - SafeG', 'v' => $v, 'types' => $this->types($group),
             'locationOptions' => (new VendorLocationModel())->getOptionsForUser(true), 'files' => $files,
             'typeFields' => VehicleRules::TYPE_FIELDS, 'old' => session()->getFlashdata('old') ?: [],
-            'group' => $group, 'passFor' => $v['pass_for'] ?? 'vendor', 'ownCompany' => $co,
+            'group' => $group, 'passFor' => $v['pass_for'] ?? 'vendor', 'ownCompany' => $co, 'stickerYears' => VehicleRules::stickerYears(),
+            'allTypes' => $this->types($group), 'asApprover' => ! empty($v['id']) && ! $this->ownerMay($v) && $this->approverMay($v),
             'staffRow' => ! empty($v['staff_id']) ? \Config\Database::connect()->table('staff')->where('id', (int) $v['staff_id'])->get()->getRowArray() : null,
         ]);
     }
@@ -283,7 +317,8 @@ class VehiclePass extends BaseController
             return $this->back('error', 'This vehicle pass can no longer be edited.');
         }
 
-        $p      = $this->request->getPost();
+        $p          = $this->request->getPost();
+        $asApprover = $cur && ! $this->ownerMay($cur) && $this->approverMay($cur); // approver fixing details: status never changes
         $group  = $this->group($cur['vehicle_group'] ?? ($p['vehicle_group'] ?? 'public'));
         $kind   = $cur['pass_for'] ?? (($p['pass_for'] ?? '') === 'staff' && $group === 'public' && ! is_vendor_admin() ? 'staff' : 'vendor');
         $orig   = null;
@@ -300,7 +335,7 @@ class VehiclePass extends BaseController
             return $this->back('error', 'You are not allowed to request a vehicle pass here.', 'dashboard');
         }
 
-        $submit = ($p['action'] ?? 'submit') === 'submit';
+        $submit = ($p['action'] ?? 'submit') === 'submit' || $asApprover;
         $errors = [];
         $get    = static fn(string $k): string => trim((string) ($p[$k] ?? ''));
 
@@ -311,6 +346,7 @@ class VehiclePass extends BaseController
             }
         }
         $plate = VehicleRules::normalizePlate($get('plate_no'));
+        $year  = in_array($get('sticker_year'), VehicleRules::stickerYears(), true) ? $get('sticker_year') : ($cur['sticker_year'] ?? VehicleRules::stickerYears()[0]);
         $locs  = array_values(array_filter(array_map('trim', (array) ($p['location_access'] ?? []))));
         $valid = array_keys((new VendorLocationModel())->getOptionsForUser(true));
         $locs  = array_values(array_intersect($locs, $valid));
@@ -324,7 +360,7 @@ class VehiclePass extends BaseController
                 $errors[] = 'Find and choose the staff member first.';
             } else {
                 $owner = ['owner_type' => 'Staff', 'owner_name' => (string) $st['full_name'], 'owner_ic' => (string) ($st['ic_passport'] ?? ''),
-                          'company_name' => '', 'contact_no' => $get('contact_no') ?: (string) ($st['contact_number'] ?? ''), 'staff_id' => (int) $st['id']];
+                          'company_name' => '', 'contact_no' => $get('contact_no') ?: (string) ($st['contact_number'] ?? ''), 'staff_id' => (int) $st['id'], 'staff_no' => (string) ($st['staff_no'] ?? ''), 'department' => (string) ($st['department'] ?? '')];
             }
         } elseif ($group === 'cnc' || $co) {
             $owner['owner_type'] = 'Company'; // Cargo | Non-Cargo and vendor accounts are company vehicles
@@ -333,6 +369,10 @@ class VehiclePass extends BaseController
             }
         }
 
+        $operation = in_array($get('vehicle_operation'), VehicleRules::OPERATIONS, true) ? $get('vehicle_operation') : null;
+        if ($group === 'cnc' && ! $operation) {
+            $errors[] = 'Choose the vehicle operation.';
+        }
         if ($plate === '') {
             $errors[] = 'Plate number is required.';
         }
@@ -345,10 +385,16 @@ class VehiclePass extends BaseController
                     $errors[] = "$label is required.";
                 }
             }
-            foreach (['road_tax_expiry' => 'Road tax expiry', 'insurance_expiry' => 'Insurance expiry'] as $k => $label) {
+            foreach (['road_tax_expiry' => 'Road tax expiry', 'insurance_expiry' => 'Insurance expiry', 'colour' => 'Colour', 'brand' => 'Brand'] as $k => $label) {
                 if ($get($k) === '') {
                     $errors[] = "$label is required.";
                 }
+            }
+            if ($this->docCount($id, $p) < 1) {
+                $errors[] = 'Upload at least one document (vehicle grant / road tax / insurance).';
+            }
+            if (! $asApprover && empty($p['tnc'])) {
+                $errors[] = 'Please accept the terms and conditions.';
             }
             if (! in_array($owner['owner_type'], ['Individual', 'Company', 'Staff'], true)) {
                 $errors[] = 'Choose the owner type.';
@@ -361,14 +407,14 @@ class VehiclePass extends BaseController
             }
             if ($type) {
                 foreach (VehicleRules::TYPE_FIELDS as $col => [$field, $label]) {
-                    if ((int) $type[$col] === 1 && $get($field) === '') {
+                    if ((int) ($type[$col] ?? 0) === 1 && $get($field) === '') {
                         $errors[] = "$label is required for {$type['name']}.";
                     }
                 }
             }
         }
         $ignore = array_filter([$id, $origId]);
-        if ($plate !== '' && $type && (int) $type['duplicate_plate_ok'] !== 1 && ($h = VehicleRules::plateHolder($db, $plate, $ignore))) {
+        if ($plate !== '' && $type && (int) $type['duplicate_plate_ok'] !== 1 && ($h = VehicleRules::plateHolder($db, $plate, $ignore, $year))) {
             $errors[] = VehicleRules::plateMessage($plate, $h);
         }
         foreach (['road_tax_expiry', 'insurance_expiry'] as $d) {
@@ -386,12 +432,15 @@ class VehiclePass extends BaseController
 
         $now  = date('Y-m-d H:i:s');
         $data = [
+            'staff_no' => $owner['staff_no'] ?? null,
             'owner_type' => $owner['owner_type'] ?: 'Individual', 'owner_name' => $owner['owner_name'], 'owner_ic' => $owner['owner_ic'] ?: null,
             'company_name' => $owner['company_name'] ?: null, 'contact_no' => $owner['contact_no'] ?: null, 'staff_id' => $owner['staff_id'],
             'vehicle_type_id' => $type ? (int) $type['id'] : null, 'plate_no' => $plate,
             'brand' => $get('brand') ?: null, 'year_made' => $get('year_made') ?: null, 'colour' => $get('colour') ?: null,
             'road_tax_expiry' => $this->toDate($get('road_tax_expiry')), 'insurance_expiry' => $this->toDate($get('insurance_expiry')),
-            'location_access' => implode(',', $locs), 'remark' => $get('remark') ?: null,
+            'location_access' => implode(',', $locs), 'remark' => $get('remark') ?: null, 'sticker_year' => $year,
+            'vehicle_operation' => $group === 'cnc' ? $operation : null,
+            'department' => $get('department') ?: ($owner['department'] ?? '') ?: ($cur['department'] ?? null), 'hod' => $get('hod') ?: ($cur['hod'] ?? null),
             'payment_required' => $type ? (int) $type['payment_required'] : 0, 'updated_at' => $now,
         ];
         foreach (VehicleRules::TYPE_FIELDS as [$field, $label]) {
@@ -402,13 +451,15 @@ class VehiclePass extends BaseController
         $db->transStart();
         if ($id) {
             $from = $cur['status'];
-            if ($submit && $from !== 'Pending') {
+            if ($submit && ! $asApprover && $from !== 'Pending') {
                 $data['status'] = 'Pending';
                 $data['reject_reason'] = null;
             }
             $db->table('vehicles')->where('id', $id)->update($data);
-            if ($submit && $from !== 'Pending') {
+            if ($submit && ! $asApprover && $from !== 'Pending') {
                 $this->log($id, $from, 'Pending', 'Submitted');
+            } elseif ($asApprover) {
+                $this->log($id, $from, $from, 'Details corrected by ' . $this->userName());
             }
         } else {
             $data += [
@@ -424,7 +475,29 @@ class VehiclePass extends BaseController
         $this->saveFiles($db, $id);
         $db->transComplete();
 
-        return $this->back('success', $submit ? 'Vehicle pass request submitted.' : 'Saved as draft.', 'vehicles/view/' . $id);
+        return $this->back('success', $asApprover ? 'Details updated.' : ($submit ? 'Vehicle pass request submitted.' : 'Saved as draft.'), 'vehicles/view/' . $id);
+    }
+
+    /** Documents the pass will have after this save: kept existing files plus valid new uploads. */
+    private function docCount(?int $id, array $p): int
+    {
+        $db   = \Config\Database::connect();
+        $kept = 0;
+        if ($id) {
+            $b = $db->table('vehicle_files')->where('vehicle_id', $id);
+            if (! empty($p['remove_file'])) {
+                $b->whereNotIn('id', array_map('intval', (array) $p['remove_file']));
+            }
+            $kept = $b->countAllResults();
+        }
+        $new = 0;
+        foreach ((array) ($this->request->getFiles()['documents'] ?? []) as $f) {
+            if ($f && $f->isValid() && ! $f->hasMoved()) {
+                $new++;
+            }
+        }
+
+        return $kept + $new;
     }
 
     private function saveFiles($db, int $id): void
@@ -534,28 +607,38 @@ class VehiclePass extends BaseController
             ? (has_access('vehicle', VehicleRules::KEYS['public']['staff_request']) || has_access('vehicle', VehicleRules::KEYS['public']['staff']))
             : $this->may($v, 'create');
 
-        $transferOpen = $db->tableExists('vehicle_transfers')
-            && $db->table('vehicle_transfers')->where('vehicle_id', $v['id'])->where('status', 'Pending')->countAllResults() > 0;
-
         return view('vehicles/view', [
             'pageTitle' => 'Vehicle Pass ' . $v['app_no'] . ' - SafeG', 'v' => $v, 'group' => $g,
             'files' => $db->table('vehicle_files')->where('vehicle_id', $v['id'])->get()->getResultArray(),
             'logs' => $db->table('vehicle_status_logs')->where('vehicle_id', $v['id'])->orderBy('id', 'DESC')->get()->getResultArray(),
+            'reissues' => $db->tableExists('vehicle_reissues') ? $db->table('vehicle_reissues')->where('vehicle_id', $v['id'])->orderBy('id', 'DESC')->get()->getResultArray() : [],
             'labels' => (new VendorLocationModel())->getAllLabelMap(), 'typeFields' => VehicleRules::TYPE_FIELDS,
+            'locationOptions' => (new VendorLocationModel())->getOptionsForUser(true), 'types' => $this->types($g), 'ledger' => $this->ledgerCode($v) !== '',
+            'rejectReasons' => $this->rejectReasons(),
             'listUrl' => $this->listUrl($g, ($v['pass_for'] ?? '') === 'staff' ? 'staff' : 'all'),
             'can' => [
-                'edit'      => $own && in_array($v['status'], ['Draft', 'Rejected', 'Pending'], true),
+                'edit'      => $this->canEdit($v),
                 'approve'   => $this->may($v, 'request'),
                 'issue'     => $this->may($v, 'approved'),
                 'terminate' => $this->may($v, 'closed'),
                 'delete'    => $this->canDelete($v),
                 'submit'    => $own && in_array($v['status'], ['Draft', 'Rejected'], true),
                 'renew'     => $own && $this->renewError($v) === null,
-                'transfer'  => $v['status'] === 'Issued' && ! $transferOpen && has_access('vehicle', 'transfer_ownership'),
+                'closedTools' => $this->may($v, 'closed') && $v['status'] === 'Issued',
+                'edit_approver' => $this->approverMay($v) && ! $this->ownerMay($v),
             ],
             'renewMsg'  => $own ? $this->renewError($v) : null,
             'payOnline' => VehiclePayment::enabled(),
         ]);
+    }
+
+    private function rejectReasons(): array
+    {
+        try {
+            return (new \App\Models\RejectReasonModel())->select('id, reason')->where('status', 'active')->orderBy('reason', 'ASC')->findAll();
+        } catch (\Throwable $e) {
+            return [];
+        }
     }
 
     private function canDelete(array $v): bool
@@ -609,12 +692,26 @@ class VehiclePass extends BaseController
             if (trim((string) $v['location_access']) === '') {
                 return $this->back('error', 'The pass has no Location Access.', $back);
             }
-            $upd += ['approved_by' => $this->userName(), 'approved_at' => date('Y-m-d H:i:s')];
-        } elseif ($action === 'reject') {
-            if ($note === '') {
-                return $this->back('error', 'Please give a reason for rejecting.', $back);
+            $cd = trim((string) $this->request->getPost('collect_date'));
+            if ($cd !== '' && ! $this->toDate($cd)) {
+                return $this->back('error', 'Use a valid collection date (dd/mm/yyyy).', $back);
             }
-            $upd['reject_reason'] = $note;
+            $upd += ['approved_by' => $this->userName(), 'approved_at' => date('Y-m-d H:i:s'), 'collect_date' => $cd !== '' ? $this->toDate($cd) : null];
+        } elseif ($action === 'reject') {
+            $reason = '';
+            if ((int) $this->request->getPost('reject_reason_id') > 0) {
+                try {
+                    $rr     = (new \App\Models\RejectReasonModel())->find((int) $this->request->getPost('reject_reason_id'));
+                    $reason = trim((string) ($rr['reason'] ?? ''));
+                } catch (\Throwable $e) {
+                    $reason = '';
+                }
+            }
+            if ($reason === '' && $note === '') {
+                return $this->back('error', 'Please choose a reason for rejecting.', $back);
+            }
+            $upd['reject_reason'] = trim($reason . ($reason !== '' && $note !== '' ? ' - ' : '') . $note);
+            $note = $upd['reject_reason'];
         } elseif ($action === 'issue') {
             if ($err = $this->issueFields($db, $v, $upd)) {
                 return $this->back('error', $err, $back);
@@ -646,32 +743,172 @@ class VehiclePass extends BaseController
         return $this->back('success', $msg, $dest);
     }
 
-    /** Validates the issuance form and fills $upd. Returns an error text or null. */
-    private function issueFields($db, array $v, array &$upd): ?string
+    /**
+     * Closed List tools (KPK): reissue a sticker (Damage / Lost / Stolen), change serial no, change receipt no,
+     * change vehicle type, change location access. They never change the pass status.
+     */
+    public function adjust($id, string $what)
+    {
+        $this->init();
+        $db   = \Config\Database::connect();
+        $v    = $this->find((int) $id);
+        $back = 'vehicles/view/' . (int) $id;
+        if (! $v) {
+            return $this->back('error', 'Vehicle pass not found.');
+        }
+        if (! $this->may($v, 'closed') || $v['status'] !== 'Issued') {
+            return $this->back('error', 'You cannot change this pass. Only an issued pass can be changed from the Closed List.', $back);
+        }
+        $g   = fn(string $k) => trim((string) $this->request->getPost($k));
+        $now = date('Y-m-d H:i:s');
+        $upd = ['updated_at' => $now];
+        $ok  = '';
+        $log = '';
+
+        if ($what === 'reissue') {
+            $reason = $g('reissue_reason');
+            if (! in_array($reason, VehicleRules::REISSUE_REASONS, true)) {
+                return $this->back('error', 'Choose the reason for the reissue.', $back);
+            }
+            [$err, $f] = $this->stickerFields($db, array_merge($v, ['payment_status' => 'Pending']), (int) $v['id']);
+            if ($err) {
+                return $this->back('error', $err, $back);
+            }
+            $db->transStart();
+            $db->table('vehicle_reissues')->insert([
+                'vehicle_id' => (int) $v['id'], 'reason' => $reason, 'old_serial' => $v['sticker_serial'], 'new_serial' => $f['sticker_serial'],
+                'issue_date' => $f['issue_date'], 'collector_ic' => $f['collector_ic'], 'payment_type' => $f['payment_type'] ?? null, 'receipt_no' => $f['receipt_no'] ?? null,
+                'remark' => $g('remark') ?: null, 'done_by' => $this->userName(), 'created_at' => $now,
+            ]);
+            $upd += array_intersect_key($f, array_flip(['sticker_serial', 'issue_date', 'collector_ic', 'collector_name', 'receipt_no', 'payment_type']));
+            $db->table('vehicles')->where('id', (int) $v['id'])->update($upd);
+            $this->saveFiles($db, (int) $v['id']);
+            $this->log((int) $v['id'], 'Issued', 'Issued', "Sticker reissued ({$reason}): {$v['sticker_serial']} -> {$f['sticker_serial']}");
+            $db->transComplete();
+
+            return $this->back('success', 'Reissue sticker completed.', $back);
+        }
+        if ($what === 'change-serial') {
+            $serial = $g('sticker_serial');
+            if ($serial === '') {
+                return $this->back('error', 'Enter the serial number.', $back);
+            }
+            if ($db->table('vehicles')->where('sticker_serial', $serial)->where('id !=', (int) $v['id'])->countAllResults() > 0) {
+                return $this->back('error', "Fail to update. Duplicated serial number '{$serial}' found.", $back);
+            }
+            $upd['sticker_serial'] = $serial;
+            $ok = 'Serial number updated.';
+            $log = "Serial number changed: {$v['sticker_serial']} -> {$serial}";
+        } elseif ($what === 'change-receipt') {
+            $type = strtoupper($g('payment_type') ?: 'CASH');
+            if (! in_array($type, VehicleRules::PAYMENT_TYPES, true) || ($type === 'LEDGER' && $this->ledgerCode($v) === '')) {
+                return $this->back('error', 'Choose a valid payment type.', $back);
+            }
+            if ($type !== 'LEDGER' && $g('receipt_no') === '') {
+                return $this->back('error', 'Enter the receipt number.', $back);
+            }
+            $upd += ['payment_type' => $type, 'receipt_no' => $type === 'LEDGER' ? null : $g('receipt_no'), 'payment_status' => 'Paid'];
+            $ok  = 'Receipt updated.';
+            $log = "Payment changed: {$type} " . ($type === 'LEDGER' ? '' : $g('receipt_no'));
+        } elseif ($what === 'change-type') {
+            $t = null;
+            foreach ($this->types($this->vGroup($v)) as $row) {
+                if ((int) $row['id'] === (int) $this->request->getPost('vehicle_type_id')) {
+                    $t = $row;
+                }
+            }
+            if (! $t) {
+                return $this->back('error', 'Choose the vehicle type.', $back);
+            }
+            $upd['vehicle_type_id'] = (int) $t['id'];
+            $ok  = 'Vehicle type updated.';
+            $log = 'Vehicle type changed to ' . $t['name'];
+        } elseif ($what === 'change-locations') {
+            $locs = array_values(array_intersect(array_filter(array_map('trim', (array) $this->request->getPost('location_access'))), array_keys((new VendorLocationModel())->getOptionsForUser(true))));
+            if ($locs === []) {
+                return $this->back('error', 'Choose at least one Location Access.', $back);
+            }
+            $upd['location_access'] = implode(',', $locs);
+            $ok  = 'Location access updated.';
+            $log = 'Location access changed';
+        } else {
+            return $this->back('error', 'Unknown action.', $back);
+        }
+
+        $db->transStart();
+        $db->table('vehicles')->where('id', (int) $v['id'])->update($upd);
+        $this->log((int) $v['id'], 'Issued', 'Issued', $log);
+        $db->transComplete();
+
+        return $this->back('success', $ok, $back);
+    }
+
+    /** Does the vehicle's company have a ledger account (then it may pay by LEDGER, no receipt)? */
+    private function ledgerCode(array $v): string
+    {
+        $db = \Config\Database::connect();
+        if (empty($v['vendor_company_id']) || ! $db->fieldExists('ledger_acc_no', 'companies')) {
+            return '';
+        }
+        $c = $db->table('companies')->select('ledger_acc_no')->where('id', (int) $v['vendor_company_id'])->get()->getRowArray();
+
+        return trim((string) ($c['ledger_acc_no'] ?? ''));
+    }
+
+    /**
+     * Shared by Issue and Reissue: serial, date of issuance, collector IC, payment type, receipt.
+     * Returns [error|null, fields].
+     */
+    private function stickerFields($db, array $v, int $ignoreId): array
     {
         $g      = fn(string $k) => trim((string) $this->request->getPost($k));
         $serial = $g('sticker_serial');
-        $expiry = $this->toDate($g('pass_expiry'));
+        $issued = $g('issue_date') === '' ? date('Y-m-d') : $this->toDate($g('issue_date'));
         if ($serial === '') {
-            return 'Enter the sticker serial number.';
+            return ['Enter the sticker serial number.', []];
         }
+        if (! $issued) {
+            return ['Enter a valid date of issuance (dd/mm/yyyy).', []];
+        }
+        if ($g('collector_ic') === '') {
+            return ["Enter the collector's IC / passport number.", []];
+        }
+        if ($db->table('vehicles')->where('sticker_serial', $serial)->where('id !=', $ignoreId)->countAllResults() > 0
+            || $db->table('vehicle_reissues')->where('new_serial', $serial)->countAllResults() > 0) {
+            return ["Duplicated serial number found: '{$serial}' is already used.", []];
+        }
+        $f = ['sticker_serial' => $serial, 'issue_date' => $issued, 'collector_ic' => $g('collector_ic'), 'collector_name' => $g('collector_name') ?: null];
+        if ((int) $v['payment_required'] === 1 && $v['payment_status'] !== 'Paid') {
+            $type = strtoupper($g('payment_type') ?: 'CASH');
+            if (! in_array($type, VehicleRules::PAYMENT_TYPES, true)) {
+                return ['Choose the payment type.', []];
+            }
+            if ($type === 'LEDGER' && $this->ledgerCode($v) === '') {
+                return ['This company has no ledger account, so LEDGER cannot be used.', []];
+            }
+            $receipt = $g('receipt_no');
+            if ($type !== 'LEDGER' && $receipt === '') {
+                return ['This vehicle type needs payment. Pay online, or enter the receipt number.', []];
+            }
+            $f += ['receipt_no' => $type === 'LEDGER' ? null : $receipt, 'payment_type' => $type, 'payment_status' => 'Paid'];
+        }
+
+        return [null, $f];
+    }
+
+    /** Validates the issuance form and fills $upd. Returns an error text or null. */
+    private function issueFields($db, array $v, array &$upd): ?string
+    {
+        [$err, $f] = $this->stickerFields($db, $v, (int) $v['id']);
+        if ($err) {
+            return $err;
+        }
+        $g      = fn(string $k) => trim((string) $this->request->getPost($k));
+        $expiry = $g('pass_expiry') !== '' ? $this->toDate($g('pass_expiry')) : (($v['sticker_year'] ?: date('Y')) . '-12-31');
         if (! $expiry || $expiry < date('Y-m-d')) {
             return 'Enter a pass expiry date that is today or later.';
         }
-        if ($db->table('vehicles')->where('sticker_serial', $serial)->where('id !=', (int) $v['id'])->countAllResults() > 0) {
-            return "Sticker serial number '{$serial}' is already used.";
-        }
-        if ((int) $v['payment_required'] === 1 && $v['payment_status'] !== 'Paid') {
-            $receipt = $g('receipt_no');
-            if ($receipt === '') {
-                return 'This vehicle type needs payment. Pay online, or enter the receipt number.';
-            }
-            $upd += ['receipt_no' => $receipt, 'payment_type' => $g('payment_type') ?: 'Manual', 'payment_status' => 'Paid'];
-        }
-        $upd += [
-            'sticker_serial' => $serial, 'sticker_year' => $g('sticker_year') ?: substr($expiry, 0, 4), 'pass_expiry' => $expiry,
-            'collector_name' => $g('collector_name') ?: null, 'issued_at' => date('Y-m-d H:i:s'), 'issued_by' => $this->userName(),
-        ];
+        $upd += $f + ['sticker_year' => $v['sticker_year'] ?: substr($expiry, 0, 4), 'pass_expiry' => $expiry, 'issued_at' => date('Y-m-d H:i:s'), 'issued_by' => $this->userName()];
 
         return null;
     }

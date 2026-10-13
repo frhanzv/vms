@@ -22,10 +22,23 @@ $btn = 'px-4 py-2 rounded text-sm font-semibold';
         </div>
     </div>
     <?php if ($d['status'] === 'Rejected' && $d['reject_reason']): ?><div class="mb-5 rounded border border-red-200 bg-red-50 text-red-800 px-4 py-3 text-sm"><strong>Rejected:</strong> <?= esc($d['reject_reason']) ?></div><?php endif; ?>
+    <?php $staff = ($d['app_for'] ?? 'Individual') === 'Staff'; ?>
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <?= $row('Company', $d['company_name']) ?><?= $row('Driver', $d['driver_name']) ?><?= $row('Driver IC / Passport', $d['driver_ic']) ?><?= $row('Contact No.', $d['contact_no']) ?>
-        <?= $row('Vehicle Type', $d['type_name']) ?><?= $row('Plate Number', $d['plate_no']) ?><?= $row('Purpose', $d['purpose']) ?><?= $row('Requested By', $d['requested_by']) ?>
-        <?= $row('Visit From', $dd($d['visit_from'])) ?><?= $row('Visit To', $dd($d['visit_to'])) ?><?= $row('Approved By', $d['approved_by']) ?><?= $row('Approved On', $dd($d['approved_at'])) ?>
+        <?= $row('Application For', $d['app_for'] ?? 'Individual') ?>
+        <?php if ($staff): ?><?= $row('Staff ID', $d['staff_no'] ?? '') ?><?= $row('Department', $d['department'] ?? '') ?><?= $row('HOD', $d['hod'] ?? '') ?>
+        <?php else: ?><?= $row('Company', $d['company_name']) ?><?php endif; ?>
+        <?= $row($staff ? 'Staff Name' : 'Name', $d['driver_name']) ?><?= $row('IC / Passport', $d['driver_ic']) ?><?= $row('Contact No.', $d['contact_no']) ?>
+        <?= $row('Vehicle Type', $d['type_name']) ?><?= $row('Plate Number', $d['plate_no']) ?><?= $row('Year Made', $d['year_made'] ?? '') ?><?= $row('Brand', $d['brand'] ?? '') ?>
+        <?= $row('Colour', $d['colour'] ?? '') ?><?= $row('Road Tax Expiry', $dd($d['road_tax_expiry'] ?? null)) ?><?= $row('Insurance Expiry', $dd($d['insurance_expiry'] ?? null)) ?>
+        <?= $row('Purpose', $d['purpose']) ?><?= $row('Requested By', $d['requested_by']) ?><?= $row('Approved By', $d['approved_by']) ?><?= $row('Approved On', $dd($d['approved_at'])) ?>
+        <?= $row('Remark', $d['remark'] ?? '') ?>
+    </div>
+    <h2 class="text-sm font-bold uppercase mb-3">Visit Dates</h2>
+    <div class="flex flex-wrap gap-2 mb-6">
+        <?php $vd = json_decode((string) ($d['visit_dates'] ?? ''), true);
+        if (! is_array($vd) || ! $vd) { $vd = $d['visit_from'] ? [['from' => $d['visit_from'], 'to' => $d['visit_to'] ?: $d['visit_from']]] : []; }
+        foreach ($vd as $r): ?><span class="rounded-full bg-gray-100 dark:bg-gray-700 px-3 py-1 text-sm"><?= $dd($r['from']) ?><?= $r['to'] !== $r['from'] ? ' - ' . $dd($r['to']) : '' ?></span><?php endforeach;
+        if (! $vd): ?><span class="text-sm text-gray-500">-</span><?php endif; ?>
     </div>
     <h2 class="text-sm font-bold uppercase mb-3">Location Access</h2>
     <div class="flex flex-wrap gap-2 mb-6">

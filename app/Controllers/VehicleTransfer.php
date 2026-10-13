@@ -5,10 +5,11 @@ namespace App\Controllers;
 use App\Libraries\VehicleRules;
 
 /**
- * Transfer Ownership: change the registered owner of an ISSUED vehicle pass.
- * A vendor account (or staff) files the request; a non-vendor user holding the same Role > Vehicle
- * "Transfer Ownership" key approves it, which rewrites the owner on the pass and logs the change.
- * The sticker and expiry stay as they are.
+ * Transfer Ownership (KPK behaviour): a company looks up another company's vehicle by plate number and
+ * takes it over straight away - no approval step. The pass keeps its sticker and expiry; only the
+ * company changes. A non-vendor user (admin / officer) picks the receiving company.
+ * An expired pass cannot be taken over: the plate is free, so a new request is made instead.
+ * Every transfer is logged in vehicle_transfers (status "Completed").
  */
 class VehicleTransfer extends BaseController
 {
@@ -35,30 +36,14 @@ class VehicleTransfer extends BaseController
         return has_access('vehicle', self::KEY);
     }
 
-    /** vehicles.* joined, limited to the user's client (and the vendor company for a vendor account) */
-    private function scopeVehicle($b, string $alias = 'v')
+    private function ownCompanyId(): int
     {
-        if (! is_platform_superadmin()) {
-            $b->where($alias . '.client_id', current_client_id());
-        }
-        if (is_vendor_admin()) {
-            $co = current_vendor_company();
-            $b->where($alias . '.vendor_company_id', (int) ($co['id'] ?? 0));
-        }
+        $co = current_vendor_company();
 
-        return $b;
+        return (int) ($co['id'] ?? 0);
     }
 
-    private function findTransfer(int $id): ?array
-    {
-        $b = \Config\Database::connect()->table('vehicle_transfers t')
-            ->select('t.*, v.plate_no, v.app_no AS pass_no, v.status AS pass_status, v.vehicle_group, v.pass_for, v.sticker_serial, v.pass_expiry')
-            ->join('vehicles v', 'v.id = t.vehicle_id')->where('t.id', $id);
-        $this->scopeVehicle($b);
-
-        return $b->get()->getRowArray() ?: null;
-    }
-
+    /** Transfer log, limited to the client; a vendor account only sees transfers its company gave or received. */
     public function index()
     {
         $this->init();
@@ -66,37 +51,65 @@ class VehicleTransfer extends BaseController
             return $this->back('error', 'You are not allowed to view this list.', 'dashboard');
         }
         $db     = \Config\Database::connect();
-        $status = trim((string) $this->request->getGet('status'));
         $search = trim((string) $this->request->getGet('search'));
         $page   = max(1, (int) $this->request->getGet('page'));
 
         $b = $db->table('vehicle_transfers t')->select('t.*, v.plate_no, v.vehicle_group')->join('vehicles v', 'v.id = t.vehicle_id');
-        $this->scopeVehicle($b);
-        if (in_array($status, ['Pending', 'Approved', 'Rejected'], true)) {
-            $b->where('t.status', $status);
+        if (! is_platform_superadmin()) {
+            $b->where('v.client_id', current_client_id());
+        }
+        if (is_vendor_admin()) {
+            $c = $this->ownCompanyId();
+            $b->groupStart()->where('t.from_company_id', $c)->orWhere('t.to_company_id', $c)->groupEnd();
         }
         if ($search !== '') {
             $b->groupStart()->like('v.plate_no', VehicleRules::normalizePlate($search))->orLike('t.transfer_no', $search)
-                ->orLike('t.from_owner_name', $search)->orLike('t.to_owner_name', $search)->groupEnd();
+                ->orLike('t.from_company', $search)->orLike('t.to_company', $search)->groupEnd();
         }
         $total = (clone $b)->countAllResults(false);
         $rows  = $b->orderBy('t.id', 'DESC')->limit(self::PER_PAGE, ($page - 1) * self::PER_PAGE)->get()->getResultArray();
 
         return view('vehicles/transfer_list', [
-            'pageTitle' => 'Transfer Ownership - SafeG', 'rows' => $rows, 'status' => $status, 'search' => $search, 'page' => $page,
+            'pageTitle' => 'Transfer Ownership - SafeG', 'rows' => $rows, 'search' => $search, 'page' => $page,
             'pages' => max(1, (int) ceil($total / self::PER_PAGE)), 'total' => $total,
         ]);
     }
 
-    /** Issued passes that can be transferred (no transfer already waiting). */
-    private function candidates(): array
+    /** Companies a non-vendor user can hand a vehicle to. */
+    private function companyOptions(): array
     {
-        $db = \Config\Database::connect();
-        $b  = $db->table('vehicles v')->select('v.id, v.plate_no, v.app_no, v.owner_name, v.vehicle_group')->where('v.status', 'Issued')
-            ->where('v.id NOT IN (SELECT vehicle_id FROM ' . $db->prefixTable('vehicle_transfers') . " WHERE status = 'Pending')", null, false);
-        $this->scopeVehicle($b);
+        if (is_vendor_admin()) {
+            return [];
+        }
 
-        return $b->orderBy('v.plate_no')->get()->getResultArray();
+        return \Config\Database::connect()->table('companies')->select('id, name')->where('status', 'active')->orderBy('name')->get()->getResultArray();
+    }
+
+    /**
+     * Search by plate: finds the live pass holding that plate that belongs to a company other than the
+     * receiving one. Returns [row|null, message|null].
+     */
+    private function lookup(string $plate): array
+    {
+        $plate = VehicleRules::normalizePlate($plate);
+        if ($plate === '') {
+            return [null, null];
+        }
+        $db = \Config\Database::connect();
+        $b  = $db->table('vehicles v')->select('v.*')->where('v.plate_no', $plate)->where('v.status', 'Issued')->whereNotNull('v.vendor_company_id');
+        if (! is_platform_superadmin()) {
+            $b->where('v.client_id', current_client_id());
+        }
+        if (is_vendor_admin()) {
+            $b->where('v.vendor_company_id !=', $this->ownCompanyId());
+        }
+        $v = $b->orderBy('v.id', 'DESC')->get()->getRowArray();
+        if (! $v) {
+            return [null, "No vehicle with plate number {$plate} was found under another company."];
+        }
+        $v['expired'] = ! empty($v['pass_expiry']) && $v['pass_expiry'] < date('Y-m-d');
+
+        return [$v, null];
     }
 
     public function create($vehicleId = 0)
@@ -105,51 +118,54 @@ class VehicleTransfer extends BaseController
         if (! $this->allowed()) {
             return $this->back('error', 'You are not allowed to transfer ownership.', 'dashboard');
         }
+        $plate = trim((string) $this->request->getGet('plate'));
+        [$v, $msg] = $this->lookup($plate);
 
         return view('vehicles/transfer_form', [
-            'pageTitle' => 'New Ownership Transfer - SafeG', 'cands' => $this->candidates(), 'pick' => (int) $vehicleId, 'old' => session()->getFlashdata('old') ?: [],
+            'pageTitle' => 'Transfer Ownership - SafeG', 'plate' => $plate, 'v' => $v, 'notFound' => $plate !== '' ? $msg : null,
+            'companies' => $this->companyOptions(), 'ownCompany' => current_vendor_company(),
         ]);
     }
 
+    /** Immediate takeover. */
     public function store()
     {
         $this->init();
         if (! $this->allowed()) {
             return $this->back('error', 'You are not allowed to transfer ownership.', 'dashboard');
         }
-        $db = \Config\Database::connect();
-        $p  = $this->request->getPost();
-        $g  = static fn(string $k): string => trim((string) ($p[$k] ?? ''));
+        $db   = \Config\Database::connect();
+        $id   = (int) $this->request->getPost('vehicle_id');
+        $self = 'vehicle-transfer/new';
 
-        $b = $db->table('vehicles v')->select('v.*')->where('v.id', (int) ($p['vehicle_id'] ?? 0));
-        $v = $this->scopeVehicle($b)->get()->getRowArray();
-        $errors = [];
-        if (! $v) {
-            $errors[] = 'Choose the vehicle pass to transfer.';
-        } elseif ($v['status'] !== 'Issued') {
-            $errors[] = 'Only an issued vehicle pass can be transferred.';
-        } elseif ($db->table('vehicle_transfers')->where('vehicle_id', $v['id'])->where('status', 'Pending')->countAllResults() > 0) {
-            $errors[] = 'This vehicle already has a transfer waiting for approval.';
+        $to = null;
+        if (is_vendor_admin()) {
+            $to = current_vendor_company();
+        } else {
+            $to = $db->table('companies')->where('id', (int) $this->request->getPost('to_company_id'))->where('status', 'active')->get()->getRowArray();
         }
-        $type = in_array($g('to_owner_type'), ['Individual', 'Company'], true) ? $g('to_owner_type') : '';
-        if ($type === '') {
-            $errors[] = 'Choose the new owner type.';
+        if (! $to) {
+            return $this->back('error', is_vendor_admin() ? 'Your company could not be found.' : 'Choose the company that takes over the vehicle.', $self);
         }
-        if ($g('to_owner_name') === '') {
-            $errors[] = 'New owner name is required.';
+
+        $v = $db->table('vehicles')->where('id', $id)->get()->getRowArray();
+        if (! $v || (! is_platform_superadmin() && (int) $v['client_id'] !== (int) current_client_id())) {
+            return $this->back('error', 'Vehicle not found.', $self);
         }
-        if ($type === 'Company' && $g('to_company') === '') {
-            $errors[] = 'New company name is required.';
+        $back = $self . '?plate=' . urlencode((string) $v['plate_no']);
+        if ($v['status'] !== 'Issued') {
+            return $this->back('error', 'VEHICLE_ALREADY_CHANGED_OWNER: this vehicle pass is no longer active, please search again.', $back);
         }
-        if ($g('to_contact_no') === '') {
-            $errors[] = 'New owner contact number is required.';
+        if (! empty($v['pass_expiry']) && $v['pass_expiry'] < date('Y-m-d')) {
+            return $this->back('error', 'This pass has expired. Please submit a new vehicle pass request for the plate instead.', $back);
         }
-        // a Cargo | Non-Cargo or vendor-account pass always belongs to a company
-        if ($v && $type === 'Individual' && ($v['vehicle_group'] === 'cnc' || is_vendor_admin())) {
-            $errors[] = 'This vehicle must be transferred to a company.';
+        if ((int) $v['vendor_company_id'] === (int) $to['id']) {
+            return $this->back('error', 'The vehicle already belongs to ' . $to['name'] . '.', $back);
         }
-        if ($errors) {
-            return redirect()->back()->withInput()->with('error', implode("\n", $errors))->with('old', $p);
+        // race guard: the owner shown on the search page must still be the owner now
+        $shown = (int) $this->request->getPost('from_company_id');
+        if ($shown !== (int) $v['vendor_company_id']) {
+            return $this->back('error', 'VEHICLE_ALREADY_CHANGED_OWNER: the vehicle has just changed owner. Please search again.', $back);
         }
 
         $now = date('Y-m-d H:i:s');
@@ -159,76 +175,31 @@ class VehicleTransfer extends BaseController
             $tno = $no . '-' . str_pad((string) $n++, 3, '0', STR_PAD_LEFT);
         } while ($db->table('vehicle_transfers')->where('transfer_no', $tno)->countAllResults() > 0);
 
-        $db->table('vehicle_transfers')->insert([
-            'client_id' => $v['client_id'], 'vehicle_id' => $v['id'], 'transfer_no' => $tno,
-            'from_owner_type' => $v['owner_type'], 'from_owner_name' => $v['owner_name'], 'from_owner_ic' => $v['owner_ic'], 'from_company' => $v['company_name'],
-            'to_owner_type' => $type, 'to_owner_name' => $g('to_owner_name'), 'to_owner_ic' => $g('to_owner_ic') ?: null,
-            'to_company' => $type === 'Company' ? $g('to_company') : null, 'to_contact_no' => $g('to_contact_no'),
-            'reason' => $g('reason') ?: null, 'status' => 'Pending', 'requested_by' => $this->userName(), 'created_at' => $now, 'updated_at' => $now,
-        ]);
-
-        return $this->back('success', "Transfer request {$tno} submitted for approval.", 'vehicle-transfer/view/' . $db->insertID());
-    }
-
-    public function view($id)
-    {
-        $this->init();
-        if (! $this->allowed()) {
-            return $this->back('error', 'You are not allowed to view this.', 'dashboard');
-        }
-        $t = $this->findTransfer((int) $id);
-        if (! $t) {
-            return $this->back('error', 'Transfer request not found.');
-        }
-
-        return view('vehicles/transfer_view', [
-            'pageTitle' => 'Transfer ' . $t['transfer_no'] . ' - SafeG', 't' => $t,
-            'canDecide' => $t['status'] === 'Pending' && ! is_vendor_admin(),
-        ]);
-    }
-
-    public function decide($id, string $action)
-    {
-        $this->init();
-        $to = 'vehicle-transfer/view/' . (int) $id;
-        if (! $this->allowed() || is_vendor_admin()) {
-            return $this->back('error', 'You are not allowed to do that.', $to);
-        }
-        $t = $this->findTransfer((int) $id);
-        if (! $t) {
-            return $this->back('error', 'Transfer request not found.');
-        }
-        if ($t['status'] !== 'Pending') {
-            return $this->back('error', 'This request has already been ' . strtolower($t['status']) . '.', $to);
-        }
-        $db   = \Config\Database::connect();
-        $now  = date('Y-m-d H:i:s');
-        $note = trim((string) $this->request->getPost('note'));
-
-        if ($action === 'reject') {
-            if ($note === '') {
-                return $this->back('error', 'Please give a reason for rejecting.', $to);
-            }
-            $db->table('vehicle_transfers')->where('id', $t['id'])->update(['status' => 'Rejected', 'reject_reason' => $note, 'decided_by' => $this->userName(), 'decided_at' => $now, 'updated_at' => $now]);
-
-            return $this->back('success', 'Transfer rejected.', $to);
-        }
-        if ($t['pass_status'] !== 'Issued') {
-            return $this->back('error', 'The vehicle pass is no longer issued, so it cannot be transferred.', $to);
-        }
-
         $db->transStart();
-        $db->table('vehicles')->where('id', $t['vehicle_id'])->update([
-            'owner_type' => $t['to_owner_type'], 'owner_name' => $t['to_owner_name'], 'owner_ic' => $t['to_owner_ic'],
-            'company_name' => $t['to_company'], 'contact_no' => $t['to_contact_no'], 'staff_id' => null, 'updated_at' => $now,
+        // update only if the owner is still the one shown (guards two companies grabbing at once)
+        $db->table('vehicles')->where('id', $id)->where('vendor_company_id', (int) $v['vendor_company_id'])->update([
+            'vendor_company_id' => (int) $to['id'], 'owner_type' => 'Company', 'owner_name' => $to['name'], 'owner_ic' => null,
+            'company_name' => $to['name'], 'staff_id' => null, 'updated_at' => $now,
         ]);
-        $db->table('vehicle_transfers')->where('id', $t['id'])->update(['status' => 'Approved', 'decided_by' => $this->userName(), 'decided_at' => $now, 'updated_at' => $now]);
-        $db->table('vehicle_status_logs')->insert([
-            'vehicle_id' => $t['vehicle_id'], 'from_status' => 'Issued', 'to_status' => 'Issued',
-            'note' => "Ownership transferred ({$t['transfer_no']}): {$t['from_owner_name']} -> {$t['to_owner_name']}", 'done_by' => $this->userName(), 'created_at' => $now,
-        ]);
+        $changed = $db->affectedRows() > 0;
+        if ($changed) {
+            $db->table('vehicle_transfers')->insert([
+                'client_id' => $v['client_id'], 'vehicle_id' => $id, 'transfer_no' => $tno,
+                'from_owner_type' => $v['owner_type'], 'from_owner_name' => $v['owner_name'], 'from_owner_ic' => $v['owner_ic'], 'from_company' => $v['company_name'], 'from_company_id' => $v['vendor_company_id'],
+                'to_owner_type' => 'Company', 'to_owner_name' => $to['name'], 'to_company' => $to['name'], 'to_company_id' => (int) $to['id'],
+                'status' => 'Completed', 'requested_by' => $this->userName(), 'decided_by' => $this->userName(), 'decided_at' => $now, 'created_at' => $now, 'updated_at' => $now,
+            ]);
+            $db->table('vehicle_status_logs')->insert([
+                'vehicle_id' => $id, 'from_status' => 'Issued', 'to_status' => 'Issued',
+                'note' => "Ownership transferred ({$tno}): {$v['company_name']} -> {$to['name']}", 'done_by' => $this->userName(), 'created_at' => $now,
+            ]);
+        }
         $db->transComplete();
 
-        return $this->back('success', 'Transfer approved. The vehicle pass now belongs to the new owner.', $to);
+        if (! $changed) {
+            return $this->back('error', 'VEHICLE_ALREADY_CHANGED_OWNER: the vehicle has just changed owner. Please search again.', $back);
+        }
+
+        return $this->back('success', "Vehicle {$v['plate_no']} now belongs to {$to['name']} ({$tno}).", 'vehicle-transfer');
     }
 }

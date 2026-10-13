@@ -193,32 +193,72 @@ class VehicleDailyPass extends BaseController
         $co     = current_vendor_company();
         $plate  = VehicleRules::normalizePlate($get('plate_no'));
         $locs   = array_values(array_intersect(array_filter(array_map('trim', (array) ($p['location_access'] ?? []))), array_keys((new VendorLocationModel())->getOptionsForUser(true))));
-        $from   = $this->toDate($get('visit_from'));
-        $to     = $this->toDate($get('visit_to'));
         $company = $co ? (string) $co['name'] : $get('company_name');
+        $appFor  = ($p['app_for'] ?? 'Individual') === 'Staff' ? 'Staff' : 'Individual';
+        if ($co) {
+            $appFor = 'Individual'; // a vendor account always applies for its own company
+        }
+        $road    = $this->toDate($get('road_tax_expiry'));
+        $ins     = $this->toDate($get('insurance_expiry'));
+
+        // KPK: one or more visit dates, each a single day or a date range
+        $visits = [];
+        $vf = (array) ($p['vd_from'] ?? []);
+        $vt = (array) ($p['vd_to'] ?? []);
+        $badDate = false;
+        foreach ($vf as $i => $f) {
+            $f = trim((string) $f);
+            $t = trim((string) ($vt[$i] ?? ''));
+            if ($f === '' && $t === '') {
+                continue;
+            }
+            $fd = $this->toDate($f);
+            $td = $t === '' ? $fd : $this->toDate($t);
+            if (! $fd || ! $td || $td < $fd) {
+                $badDate = true;
+                continue;
+            }
+            $visits[] = ['from' => $fd, 'to' => $td];
+        }
+        usort($visits, static fn($x, $y) => strcmp($x['from'], $y['from']));
+        $from = $visits ? $visits[0]['from'] : null;
+        $to   = $visits ? max(array_column($visits, 'to')) : null;
 
         $errors = [];
         if ($plate === '') {
             $errors[] = 'Plate number is required.';
         }
         if ($submit) {
-            foreach (['driver_name' => 'Driver name', 'contact_no' => 'Contact number', 'purpose' => 'Purpose'] as $k => $label) {
+            foreach (['driver_name' => $appFor === 'Staff' ? 'Staff name' : 'Name', 'contact_no' => 'Contact number', 'purpose' => 'Purpose', 'brand' => 'Brand', 'colour' => 'Colour', 'year_made' => 'Year made'] as $k => $label) {
                 if ($get($k) === '') {
                     $errors[] = "$label is required.";
                 }
             }
-            if ($company === '') {
+            if ($appFor === 'Staff') {
+                foreach (['staff_no' => 'Staff ID', 'department' => 'Department', 'hod' => 'HOD'] as $k => $label) {
+                    if ($get($k) === '') {
+                        $errors[] = "$label is required.";
+                    }
+                }
+            } elseif ($company === '') {
                 $errors[] = 'Company name is required.';
             }
-            if (! $from || ! $to) {
-                $errors[] = 'Enter the visit dates (dd/mm/yyyy).';
-            } elseif ($to < $from) {
-                $errors[] = 'Visit end date cannot be before the start date.';
-            } elseif ($from < date('Y-m-d')) {
-                $errors[] = 'Visit start date cannot be in the past.';
+            if (! $road) {
+                $errors[] = 'Road tax expiry date is required (dd/mm/yyyy).';
+            }
+            if (! $ins) {
+                $errors[] = 'Insurance expiry date is required (dd/mm/yyyy).';
+            }
+            if (! $visits || $badDate) {
+                $errors[] = 'Add at least one valid visit date (dd/mm/yyyy); the end date cannot be before the start date.';
+            } elseif ($visits[0]['from'] < date('Y-m-d')) {
+                $errors[] = 'Visit dates cannot be in the past.';
             }
             if ($locs === []) {
                 $errors[] = 'Choose at least one Location Access.';
+            }
+            if (empty($p['agree_terms'])) {
+                $errors[] = 'Please agree to the terms and conditions.';
             }
         }
         if ($errors) {
@@ -230,7 +270,13 @@ class VehicleDailyPass extends BaseController
             'company_name' => $company ?: null, 'driver_name' => $get('driver_name') ?: null, 'driver_ic' => $get('driver_ic') ?: null, 'contact_no' => $get('contact_no') ?: null,
             'vehicle_type_id' => (int) ($p['vehicle_type_id'] ?? 0) ?: null, 'plate_no' => $plate, 'purpose' => $get('purpose') ?: null,
             'visit_from' => $from, 'visit_to' => $to, 'location_access' => implode(',', $locs), 'updated_at' => $now,
+            'app_for' => $appFor, 'staff_no' => $appFor === 'Staff' ? ($get('staff_no') ?: null) : null, 'department' => $appFor === 'Staff' ? ($get('department') ?: null) : null,
+            'hod' => $appFor === 'Staff' ? ($get('hod') ?: null) : null, 'year_made' => $get('year_made') ?: null, 'colour' => $get('colour') ?: null, 'brand' => $get('brand') ?: null,
+            'road_tax_expiry' => $road, 'insurance_expiry' => $ins, 'visit_dates' => $visits ? json_encode($visits) : null, 'remark' => $get('remark') ?: null,
         ];
+        if ($appFor === 'Staff') {
+            $data['company_name'] = null;
+        }
         if ($submit) {
             $data['status'] = 'Pending';
             $data['reject_reason'] = null;
@@ -302,10 +348,13 @@ class VehicleDailyPass extends BaseController
             if (! in_array($d['status'], ['Draft', 'Rejected'], true)) {
                 return $this->back('error', 'This daily pass was already submitted.', $back);
             }
-            foreach (['driver_name', 'contact_no', 'purpose', 'visit_from', 'visit_to', 'location_access', 'company_name'] as $k) {
+            foreach (['driver_name', 'contact_no', 'purpose', 'visit_from', 'visit_to', 'location_access', 'brand', 'colour', 'year_made', 'road_tax_expiry', 'insurance_expiry'] as $k) {
                 if (trim((string) $d[$k]) === '') {
                     return $this->back('error', 'Complete the daily pass (Edit) before submitting.', $back);
                 }
+            }
+            if (($d['app_for'] ?? 'Individual') === 'Staff' ? trim((string) $d['staff_no']) === '' : trim((string) $d['company_name']) === '') {
+                return $this->back('error', 'Complete the daily pass (Edit) before submitting.', $back);
             }
             $db->table('vehicle_daily_passes')->where('id', $d['id'])->update(['status' => 'Pending', 'reject_reason' => null, 'updated_at' => $now]);
 
