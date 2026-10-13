@@ -298,6 +298,9 @@ $routes->group('', ['filter' => ['role:superadmin,clientsuperadmin,admin', 'clie
     $routes->get('vendor-workflow', 'VendorWorkflowConfig::index');
     $routes->post('vendor-workflow/toggle/(:segment)', 'VendorWorkflowConfig::toggle/$1');
     $routes->post('vendor-workflow/edit/(:segment)', 'VendorWorkflowConfig::edit/$1');
+    $routes->get('vendor-workflow/create', 'VendorWorkflowConfig::create');
+    $routes->post('vendor-workflow/save', 'VendorWorkflowConfig::saveSequence');
+    $routes->post('vendor-workflow/delete/(:segment)', 'VendorWorkflowConfig::delete/$1');
     $routes->post('vendor-workflow/reset', 'VendorWorkflowConfig::reset');
 });
 // Vehicle Types (Config)
