@@ -59,9 +59,6 @@ $selectedLocations = array_map('strval', $selectedLocations);
                 <?php if ($canUnsuspend): ?>
                 <button onclick="act('unsuspend', 'Lift the suspension and re-activate the card?')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded text-sm font-medium">Unsuspend</button>
                 <?php endif; ?>
-                <?php if ($canRenew): ?>
-                <a href="<?= base_url('staffs/renew/' . $id) ?>" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-1"><span class="material-icons text-sm">autorenew</span>Renew</a>
-                <?php endif; ?>
                 <?php if ($canReject): ?>
                 <button onclick="openModal('rejectModal')" class="border border-red-300 text-red-600 hover:bg-red-50 px-4 py-2 rounded text-sm font-medium">Reject</button>
                 <?php endif; ?>

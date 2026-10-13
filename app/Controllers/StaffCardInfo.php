@@ -13,7 +13,7 @@ namespace App\Controllers;
  *   Issuance (printed):              reprint, bind RFID card, card expiry.
  *   Closed (issued):                 reprint (lost card — no receipt needed
  *       for staff), activate / terminate card, suspend / unsuspend,
- *       change staff no, renew.
+ *       change staff no. (Renew is started from the Closed List.)
  */
 class StaffCardInfo extends StaffPassBase
 {
@@ -67,7 +67,6 @@ class StaffCardInfo extends StaffPassBase
             'canSuspend'        => $edit && $this->cfg('suspend_button') && $stage === 'closed' && $staff['status'] === 'Approved',
             'canUnsuspend'      => $edit && $this->cfg('suspend_button') && $staff['status'] === 'Suspended',
             'canChangeStaffNo'  => $edit,
-            'canRenew'          => $edit && $this->cfg('renew_button') && $stage === 'closed' && $staff['status'] === 'Approved',
         ]);
     }
 
