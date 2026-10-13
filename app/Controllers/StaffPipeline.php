@@ -24,6 +24,8 @@ class StaffPipeline extends StaffPassBase
         'name_desc'    => ['full_name', 'DESC'],
         'staffno_asc'  => ['staff_no', 'ASC'],
         'staffno_desc' => ['staff_no', 'DESC'],
+        'dept_asc'     => ['department', 'ASC'],
+        'dept_desc'    => ['department', 'DESC'],
     ];
 
     private function notPrinted()
@@ -290,11 +292,22 @@ class StaffPipeline extends StaffPassBase
         [$field, $dir] = self::SORTS[$sortBy];
         [$rows, $pagination] = $this->paginate($builder, $page, $perPage, $field, $dir);
 
+        // RFID card numbers (EPC) for the Card ID column — staff.card_id points at visitor_cards.
+        $cardIds = array_filter(array_map('intval', array_column($rows, 'card_id')));
+        $epc     = [];
+        if ($cardIds) {
+            foreach ($this->db()->table('visitor_cards')->select('id, card_id')->whereIn('id', $cardIds)->get()->getResultArray() as $c) {
+                $epc[(int) $c['id']] = $c['card_id'];
+            }
+        }
+
         $list = [];
         foreach ($rows as $i => $row) {
             $item = $this->rowBasics($row, ($pagination['current_page'] - 1) * $perPage + $i + 1);
             $item += [
                 'app_date'       => $this->fmtDate($row['created_at'] ?? null),
+                'card_type'      => ($row['sub_type'] ?? '') !== '' ? $row['sub_type'] : '-',
+                'card_id'        => $epc[(int) ($row['card_id'] ?? 0)] ?? '-',
                 'card_status'    => $row['card_status'],
                 'status'         => $row['status'],
                 'is_active'      => (int) ($row['is_active'] ?? 1) === 1,
@@ -311,6 +324,7 @@ class StaffPipeline extends StaffPassBase
             'canExport'      => $this->cfg('closed_export_button'),
             'canCardDetails' => $this->cfg('closed_card_details_button'),
             'canRenew'       => $this->canEdit() && $this->cfg('renew_button'),
+            'canRequest'     => $this->cfg('request_button'),
             'searchTerm'     => $search,
             'sortBy'         => $sortBy,
             'filters'        => $f,
@@ -355,10 +369,15 @@ class StaffPipeline extends StaffPassBase
             'issue_date_to'   => $g('issue_date_to'),
             'card_status'     => $g('card_status', 'all'),
             'card_expiry'     => $g('card_expiry'),
+            'app_date'        => $g('app_date'),
+            'resident'        => strtoupper($g('resident', 'all')),
             'department'      => $g('department'),
             'employee'        => $g('employee', 'all'),
         ];
-        foreach (['issue_date_from', 'issue_date_to', 'card_expiry'] as $k) {
+        if (! in_array($f['resident'], ['LOCAL', 'FOREIGN'], true)) {
+            $f['resident'] = 'all';
+        }
+        foreach (['issue_date_from', 'issue_date_to', 'card_expiry', 'app_date'] as $k) {
             if ($f[$k] !== '' && ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $f[$k])) {
                 $f[$k] = '';
             }
@@ -397,6 +416,12 @@ class StaffPipeline extends StaffPassBase
         }
         if ($f['card_expiry'] !== '') {
             $b->where('DATE(card_expiry)', $f['card_expiry']);
+        }
+        if ($f['app_date'] !== '') {
+            $b->where('DATE(created_at)', $f['app_date']);
+        }
+        if ($f['resident'] !== 'all') {
+            $b->where('UPPER(resident)', $f['resident']);
         }
         if ($f['department'] !== '') {
             $b->where('department', $f['department']);

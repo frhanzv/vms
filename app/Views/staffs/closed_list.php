@@ -1,127 +1,192 @@
-<?= view('staffs/_layout_top', ['pageTitle' => $pageTitle, 'activeTab' => 'staffs/closed-list']) ?>
+<?php helper('list_columns'); $col = static fn(string $k): bool => list_col('staff_closed_list', $k); ?>
+<?= view('staffs/_layout_top', ['pageTitle' => $pageTitle, 'activeTab' => 'staffs/closed-list', 'showTabs' => false]) ?>
 <?php
-$f = $filters;
-$cardCls = ['Active' => 'bg-emerald-50 text-emerald-700', 'Terminated' => 'bg-red-50 text-red-700', 'Inactive' => 'bg-gray-100 text-gray-600'];
-$exportQs = http_build_query(array_filter($f + ['search' => $searchTerm], fn($v) => $v !== '' && $v !== 'all'));
-$input = 'border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2 text-xs bg-white';
+$f        = $filters;
+$exportQs = http_build_query(array_filter($f + ['search' => $searchTerm, 'sort_by' => $sortBy], fn($v) => $v !== '' && $v !== 'all'));
+$input    = 'w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2 text-sm';
+$label    = 'block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1';
 ?>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                 <h1 class="text-xl md:text-2xl font-bold tracking-tight text-gray-800 dark:text-white uppercase">Staff Pass Closed List</h1>
-                <?php if ($canExport): ?>
-                <a href="<?= base_url('staffs/closed-list/export') . ($exportQs ? '?' . $exportQs : '') ?>" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow">
-                    <span class="material-icons text-sm mr-1">file_upload</span>Export
-                </a>
-                <?php endif; ?>
+                <div class="flex gap-2">
+                    <?php if ($canExport): ?>
+                    <a href="<?= base_url('staffs/closed-list/export') . ($exportQs ? '?' . $exportQs : '') ?>" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-1.5 shadow">
+                        <span class="material-symbols-outlined text-[18px]">download</span> Export
+                    </a>
+                    <?php endif; ?>
+                    <?php if ($canRequest ?? false): ?>
+                    <a href="<?= base_url('staffs/staffpassrequest') ?>" class="bg-primary hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-1.5 shadow">
+                        <span class="material-icons text-[18px]">add</span> Request
+                    </a>
+                    <?php endif; ?>
+                </div>
             </div>
 
-            <form method="get" action="<?= base_url('staffs/closed-list') ?>" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6 items-end">
+            <!-- Filters -->
+            <form method="get" action="<?= base_url('staffs/closed-list') ?>" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 <div class="lg:col-span-2">
-                    <label class="block text-[11px] font-semibold text-gray-500 mb-1">Search</label>
-                    <input name="search" value="<?= esc($searchTerm) ?>" placeholder="IC / NAME / STAFF NO / CARD SERIAL" class="w-full <?= $input ?>"/>
+                    <label class="<?= $label ?>">Search</label>
+                    <input name="search" value="<?= esc($searchTerm) ?>" class="<?= $input ?>" placeholder="IC / Passport / Full Name / Staff No / Receipt No / App No"/>
                 </div>
                 <div>
-                    <label class="block text-[11px] font-semibold text-gray-500 mb-1">Issued From</label>
-                    <input type="date" name="issue_date_from" value="<?= esc($f['issue_date_from']) ?>" class="w-full <?= $input ?>"/>
+                    <label class="<?= $label ?>">Issue Date From</label>
+                    <input name="issue_date_from" value="<?= esc($f['issue_date_from']) ?>" class="flatpickr <?= $input ?>" placeholder="dd/mm/yyyy"/>
                 </div>
                 <div>
-                    <label class="block text-[11px] font-semibold text-gray-500 mb-1">Issued To</label>
-                    <input type="date" name="issue_date_to" value="<?= esc($f['issue_date_to']) ?>" class="w-full <?= $input ?>"/>
+                    <label class="<?= $label ?>">Issue Date To</label>
+                    <input name="issue_date_to" value="<?= esc($f['issue_date_to']) ?>" class="flatpickr <?= $input ?>" placeholder="dd/mm/yyyy"/>
                 </div>
                 <div>
-                    <label class="block text-[11px] font-semibold text-gray-500 mb-1">Card Status</label>
-                    <select name="card_status" class="w-full <?= $input ?>">
-                        <?php foreach (['all' => 'All', 'Active' => 'Active', 'Terminated' => 'Terminated', 'Suspended' => 'Suspended'] as $v => $l): ?>
+                    <label class="<?= $label ?>">App Date</label>
+                    <input name="app_date" value="<?= esc($f['app_date']) ?>" class="flatpickr <?= $input ?>" placeholder="dd/mm/yyyy"/>
+                </div>
+                <div>
+                    <label class="<?= $label ?>">Resident</label>
+                    <select name="resident" class="<?= $input ?>">
+                        <?php foreach (['all' => 'All', 'LOCAL' => 'Local', 'FOREIGN' => 'Foreign'] as $v => $l): ?>
+                        <option value="<?= $v ?>" <?= $f['resident'] === $v ? 'selected' : '' ?>><?= $l ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div>
+                    <label class="<?= $label ?>">Card Status</label>
+                    <select name="card_status" class="<?= $input ?>">
+                        <?php foreach (['all' => 'All', 'Active' => 'Active', 'Suspended' => 'Suspended', 'Terminated' => 'Terminated'] as $v => $l): ?>
                         <option value="<?= $v ?>" <?= $f['card_status'] === $v ? 'selected' : '' ?>><?= $l ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-[11px] font-semibold text-gray-500 mb-1">Employee</label>
-                    <select name="employee" class="w-full <?= $input ?>">
-                        <?php foreach (['all' => 'All', 'active' => 'Active', 'inactive' => 'Inactive'] as $v => $l): ?>
-                        <option value="<?= $v ?>" <?= $f['employee'] === $v ? 'selected' : '' ?>><?= $l ?></option>
-                        <?php endforeach; ?>
-                    </select>
+                    <label class="<?= $label ?>">Card Expiry Date</label>
+                    <input name="card_expiry" value="<?= esc($f['card_expiry']) ?>" class="flatpickr <?= $input ?>" placeholder="dd/mm/yyyy"/>
                 </div>
                 <div>
-                    <label class="block text-[11px] font-semibold text-gray-500 mb-1">Card Expiry</label>
-                    <input type="date" name="card_expiry" value="<?= esc($f['card_expiry']) ?>" class="w-full <?= $input ?>"/>
-                </div>
-                <div>
-                    <label class="block text-[11px] font-semibold text-gray-500 mb-1">Department</label>
-                    <input name="department" value="<?= esc($f['department']) ?>" class="w-full <?= $input ?>"/>
-                </div>
-                <div>
-                    <label class="block text-[11px] font-semibold text-gray-500 mb-1">Sort</label>
-                    <select name="sort_by" class="w-full <?= $input ?>">
-                        <?php foreach (['date_desc' => 'Date (Newest)', 'date_asc' => 'Date (Oldest)', 'staffno_asc' => 'Staff No (A - Z)', 'staffno_desc' => 'Staff No (Z - A)', 'name_asc' => 'Name (A - Z)', 'name_desc' => 'Name (Z - A)'] as $v => $l): ?>
+                    <label class="<?= $label ?>">Sort By</label>
+                    <select name="sort_by" class="<?= $input ?>">
+                        <?php foreach ([
+                            'date_desc'    => 'Date (Newest First)',
+                            'date_asc'     => 'Date (Oldest First)',
+                            'name_asc'     => 'Full Name (A-Z)',
+                            'name_desc'    => 'Full Name (Z-A)',
+                            'dept_asc'     => 'Department (A-Z)',
+                            'dept_desc'    => 'Department (Z-A)',
+                            'staffno_asc'  => 'Staff No (A-Z)',
+                            'staffno_desc' => 'Staff No (Z-A)',
+                        ] as $v => $l): ?>
                         <option value="<?= $v ?>" <?= $sortBy === $v ? 'selected' : '' ?>><?= $l ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="flex gap-2">
-                    <button type="submit" class="bg-primary hover:bg-blue-700 text-white px-4 py-2 rounded text-xs font-semibold">Filter</button>
-                    <a href="<?= base_url('staffs/closed-list') ?>" class="px-4 py-2 rounded border border-gray-300 dark:border-gray-600 text-xs font-semibold">Reset</a>
+                <div class="flex items-end">
+                    <button type="submit" class="w-full h-[38px] bg-primary hover:bg-blue-700 text-white rounded text-sm font-medium">Filter</button>
                 </div>
             </form>
 
+            <!-- Table -->
             <div class="overflow-x-auto rounded border border-gray-200 dark:border-gray-700 mb-6">
-                <table class="w-full min-w-max text-left border-collapse">
+                <table class="w-full min-w-max text-left border-collapse text-xs">
                     <thead>
-                        <tr class="bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs font-bold uppercase tracking-wide">
-                            <th class="p-4 border-b dark:border-gray-600">No</th>
-                            <th class="p-4 border-b dark:border-gray-600">Action</th>
-                            <th class="p-4 border-b dark:border-gray-600">Card Serial</th>
-                            <th class="p-4 border-b dark:border-gray-600">Staff No</th>
-                            <th class="p-4 border-b dark:border-gray-600">Full Name</th>
-                            <th class="p-4 border-b dark:border-gray-600">IC / Passport</th>
-                            <th class="p-4 border-b dark:border-gray-600">Department</th>
-                            <th class="p-4 border-b dark:border-gray-600">Card Status</th>
-                            <th class="p-4 border-b dark:border-gray-600">Card Expiry</th>
-                            <th class="p-4 border-b dark:border-gray-600">Issued</th>
+                        <tr class="bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold uppercase tracking-wide">
+                            <th class="p-3 border-b dark:border-gray-600">No</th>
+                            <th class="p-3 border-b dark:border-gray-600">Action</th>
+                            <?php if ($col('app_no')): ?><th class="p-3 border-b dark:border-gray-600">App No</th><?php endif; ?>
+                            <?php if ($col('receipt_no')): ?><th class="p-3 border-b dark:border-gray-600">Receipt No</th><?php endif; ?>
+                            <?php if ($col('app_date')): ?><th class="p-3 border-b dark:border-gray-600">App Date</th><?php endif; ?>
+                            <?php if ($col('department')): ?><th class="p-3 border-b dark:border-gray-600">Department</th><?php endif; ?>
+                            <th class="p-3 border-b dark:border-gray-600">Full Name</th>
+                            <?php if ($col('ic_passport')): ?><th class="p-3 border-b dark:border-gray-600">IC / Passport No</th><?php endif; ?>
+                            <?php if ($col('staff_no')): ?><th class="p-3 border-b dark:border-gray-600">Staff No</th><?php endif; ?>
+                            <?php if ($col('card_type')): ?><th class="p-3 border-b dark:border-gray-600">Card Type</th><?php endif; ?>
+                            <?php if ($col('card_id')): ?><th class="p-3 border-b dark:border-gray-600">Card ID</th><?php endif; ?>
+                            <?php if ($col('card_status')): ?><th class="p-3 border-b dark:border-gray-600">Card Status</th><?php endif; ?>
+                            <?php if ($col('card_expiry')): ?><th class="p-3 border-b dark:border-gray-600">Card Expiry</th><?php endif; ?>
+                            <?php if ($col('collected_by')): ?><th class="p-3 border-b dark:border-gray-600">Collected By</th><?php endif; ?>
+                            <?php if ($col('issued_at')): ?><th class="p-3 border-b dark:border-gray-600">Issued At</th><?php endif; ?>
                         </tr>
                     </thead>
-                    <tbody class="text-xs text-gray-600 dark:text-gray-300 font-medium">
+                    <tbody class="text-gray-600 dark:text-gray-300">
                     <?php if (empty($closedList)): ?>
-                        <tr><td colspan="10" class="p-8 text-center text-gray-500">No closed staff passes found.</td></tr>
+                        <tr><td colspan="<?= list_col_count('staff_closed_list') ?>" class="p-8 text-center text-gray-500">No closed staff pass records found.</td></tr>
                     <?php else: foreach ($closedList as $r): ?>
                         <?php
-                        $label = $r['status'] === 'Suspended' ? 'Suspended' : $r['card_status'];
-                        $cls   = $r['status'] === 'Suspended' ? 'bg-amber-50 text-amber-700' : ($cardCls[$r['card_status']] ?? 'bg-gray-100 text-gray-600');
+                        $suspended = $r['status'] === 'Suspended';
+                        $cardLabel = $suspended ? 'Suspended' : $r['card_status'];
+                        $cardCls   = $suspended ? 'bg-amber-50 text-amber-700' : ($r['card_status'] === 'Active' ? 'bg-emerald-50 text-emerald-700' : ($r['card_status'] === 'Terminated' ? 'bg-red-50 text-red-700' : 'bg-gray-100 text-gray-700'));
+                        $showRenew = $canRenew && $r['can_renew'];
                         ?>
                         <tr class="border-b border-gray-100 dark:border-gray-700">
-                            <td class="p-4"><?= $r['no'] ?></td>
-                            <td class="p-4">
+                            <td class="p-3"><?= $r['no'] ?></td>
+                            <td class="p-3">
                                 <div class="flex items-center gap-2">
                                     <?php if ($canCardDetails): ?>
-                                    <a href="<?= base_url('staffs/card-info/' . $r['id']) ?>" class="text-primary hover:text-blue-700" title="Card Details"><span class="material-symbols-outlined text-[20px]">id_card</span></a>
+                                    <a href="<?= base_url('staffs/card-info/' . $r['id']) ?>" class="text-primary hover:underline text-xs font-semibold">Card Details</a>
                                     <?php endif; ?>
-                                    <?php if ($canRenew && $r['can_renew']): ?>
-                                    <a href="<?= base_url('staffs/renew/' . $r['id']) ?>" class="text-emerald-600 hover:text-emerald-800" title="Renew"><span class="material-symbols-outlined text-[20px]">autorenew</span></a>
+                                    <?php if ($canCardDetails && $showRenew): ?>
+                                    <span class="text-gray-300">|</span>
+                                    <?php endif; ?>
+                                    <?php if ($showRenew): ?>
+                                    <a href="<?= base_url('staffs/renew/' . $r['id']) ?>" class="text-emerald-600 hover:underline text-xs font-semibold">Renew</a>
                                     <?php endif; ?>
                                 </div>
                             </td>
-                            <td class="p-4 font-mono"><?= esc($r['receipt_no']) ?></td>
-                            <td class="p-4 font-semibold"><?= esc($r['staff_no']) ?></td>
-                            <td class="p-4 font-semibold text-gray-800 dark:text-white">
+                            <?php if ($col('app_no')): ?><td class="p-3"><?= esc($r['app_no']) ?></td><?php endif; ?>
+                            <?php if ($col('receipt_no')): ?><td class="p-3"><?= esc($r['receipt_no']) ?></td><?php endif; ?>
+                            <?php if ($col('app_date')): ?><td class="p-3"><?= esc($r['app_date']) ?></td><?php endif; ?>
+                            <?php if ($col('department')): ?><td class="p-3"><?= esc($r['department']) ?></td><?php endif; ?>
+                            <td class="p-3 font-semibold text-gray-800 dark:text-white">
                                 <?= esc($r['full_name']) ?>
-                                <?php if (! $r['is_active']): ?><span class="ml-1 text-[10px] text-gray-400">(inactive)</span><?php endif; ?>
-                                <?php if ($r['status'] === 'Pending'): ?><span class="ml-1 text-[10px] text-amber-500">(renewal pending)</span><?php endif; ?>
+                                <?php if (! $r['is_active']): ?><span class="ml-1 text-[10px] font-normal text-gray-400">(inactive)</span><?php endif; ?>
+                                <?php if ($r['status'] === 'Pending'): ?><span class="ml-1 text-[10px] font-normal text-amber-500">(renewal pending)</span><?php endif; ?>
                             </td>
-                            <td class="p-4"><?= esc($r['ic_passport_masked']) ?></td>
-                            <td class="p-4"><?= esc($r['department']) ?></td>
-                            <td class="p-4"><span class="px-2.5 py-1 rounded-full text-[11px] font-bold <?= $cls ?>"><?= esc($label) ?></span></td>
-                            <td class="p-4"><?= esc($r['card_expiry']) ?></td>
-                            <td class="p-4"><?= esc($r['issued_at']) ?><p class="text-[10px] text-gray-400"><?= esc($r['collector_name']) ?></p></td>
+                            <?php if ($col('ic_passport')): ?><td class="p-3"><?= esc($r['ic_passport_masked']) ?></td><?php endif; ?>
+                            <?php if ($col('staff_no')): ?><td class="p-3"><?= esc($r['staff_no'] !== '' ? $r['staff_no'] : '-') ?></td><?php endif; ?>
+                            <?php if ($col('card_type')): ?><td class="p-3"><?= esc($r['card_type']) ?></td><?php endif; ?>
+                            <?php if ($col('card_id')): ?><td class="p-3"><?= esc($r['card_id']) ?></td><?php endif; ?>
+                            <?php if ($col('card_status')): ?>
+                            <td class="p-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold <?= $cardCls ?>"><?= esc($cardLabel) ?></span></td>
+                            <?php endif; ?>
+                            <?php if ($col('card_expiry')): ?><td class="p-3"><?= esc($r['card_expiry']) ?></td><?php endif; ?>
+                            <?php if ($col('collected_by')): ?><td class="p-3"><?= esc($r['collector_name']) ?></td><?php endif; ?>
+                            <?php if ($col('issued_at')): ?><td class="p-3"><?= esc($r['issued_at']) ?></td><?php endif; ?>
                         </tr>
                     <?php endforeach; endif; ?>
                     </tbody>
                 </table>
             </div>
 
-            <?= view('staffs/_pager', ['pagination' => $pagination, 'baseUrl' => base_url('staffs/closed-list'), 'showPerPage' => true]) ?>
+            <!-- Pagination (same as Vendor Closed List) -->
+            <?php $p = $pagination; ?>
+            <div class="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
+                <span>Showing page <?= $p['current_page'] ?> of <?= $p['last_page'] ?> (<?= number_format($p['total']) ?> total)</span>
+                <div class="flex gap-1 flex-wrap justify-end">
+                    <?php
+                    $qs   = $_GET;
+                    $cur  = (int) $p['current_page'];
+                    $last = (int) $p['last_page'];
+                    $prev = 0;
+                    for ($i = 1; $i <= $last; $i++):
+                        // Same buttons as Vendor Closed List, but only first / last / around the current page.
+                        if ($i !== 1 && $i !== $last && abs($i - $cur) > 2) {
+                            continue;
+                        }
+                        if ($prev && $i - $prev > 1): ?>
+                    <span class="w-8 h-8 flex items-center justify-center">…</span>
+                        <?php endif;
+                        $prev = $i;
+                        $qs['page'] = $i;
+                        $url = base_url('staffs/closed-list') . '?' . http_build_query($qs);
+                    ?>
+                    <a href="<?= esc($url, 'attr') ?>" class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded <?= $i === $cur ? 'bg-primary text-white' : 'hover:bg-gray-50 dark:hover:bg-gray-800' ?>"><?= $i ?></a>
+                    <?php endfor; ?>
+                </div>
+            </div>
 
 <?= view('staffs/_layout_bottom') ?>
+    <script>
+        flatpickr('.flatpickr', { dateFormat: 'Y-m-d', allowInput: true });
+    </script>
 </body>
 </html>
