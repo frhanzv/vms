@@ -178,32 +178,7 @@ $label    = 'block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1';
                 </table>
             </div>
 
-            <!-- Pagination (same as Vendor Closed List) -->
-            <?php $p = $pagination; ?>
-            <div class="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
-                <span>Showing page <?= $p['current_page'] ?> of <?= $p['last_page'] ?> (<?= number_format($p['total']) ?> total)</span>
-                <div class="flex gap-1 flex-wrap justify-end">
-                    <?php
-                    $qs   = $_GET;
-                    $cur  = (int) $p['current_page'];
-                    $last = (int) $p['last_page'];
-                    $prev = 0;
-                    for ($i = 1; $i <= $last; $i++):
-                        // Same buttons as Vendor Closed List, but only first / last / around the current page.
-                        if ($i !== 1 && $i !== $last && abs($i - $cur) > 2) {
-                            continue;
-                        }
-                        if ($prev && $i - $prev > 1): ?>
-                    <span class="w-8 h-8 flex items-center justify-center">…</span>
-                        <?php endif;
-                        $prev = $i;
-                        $qs['page'] = $i;
-                        $url = base_url('staffs/closed-list') . '?' . http_build_query($qs);
-                    ?>
-                    <a href="<?= esc($url, 'attr') ?>" class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded <?= $i === $cur ? 'bg-primary text-white' : 'hover:bg-gray-50 dark:hover:bg-gray-800' ?>"><?= $i ?></a>
-                    <?php endfor; ?>
-                </div>
-            </div>
+            <?= view('staffs/_pager', ['pagination' => $pagination, 'baseUrl' => base_url('staffs/closed-list'), 'showPerPage' => true]) ?>
 
 <?= view('staffs/_layout_bottom') ?>
 

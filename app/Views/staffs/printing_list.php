@@ -72,7 +72,7 @@
                 </table>
             </div>
 
-            <?= view('staffs/_pager', ['pagination' => $pagination, 'baseUrl' => base_url('staffs/printing-list')]) ?>
+            <?= view('staffs/_pager', ['pagination' => $pagination, 'baseUrl' => base_url('staffs/printing-list'), 'showPerPage' => true]) ?>
 
 <?= view('staffs/_layout_bottom') ?>
 <?= view('staffs/_card_print') ?>

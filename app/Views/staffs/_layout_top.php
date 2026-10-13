@@ -35,6 +35,8 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <style>
         @media print { .no-print { display: none !important; } }
+        /* Every dropdown keeps room on the right for its arrow, so the text never runs under it. */
+        select:not([multiple]):not([size]) { padding-right: 2.5rem !important; background-position: right 0.5rem center !important; text-overflow: ellipsis; }
     </style>
 </head>
 <body class="bg-background-light dark:bg-background-dark font-sans text-gray-800 dark:text-gray-200 antialiased h-screen flex overflow-hidden transition-colors duration-200">

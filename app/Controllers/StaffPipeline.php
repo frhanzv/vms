@@ -28,6 +28,13 @@ class StaffPipeline extends StaffPassBase
         'dept_desc'    => ['department', 'DESC'],
     ];
 
+    /** Items per page chosen at the bottom of every staff list (10 / 25 / 50). */
+    private function perPage(): int
+    {
+        $pp = (int) ($this->request->getGet('per_page') ?? 10);
+        return in_array($pp, [10, 25, 50], true) ? $pp : 10;
+    }
+
     private function notPrinted()
     {
         $b = $this->db()->table('staff')
@@ -94,11 +101,11 @@ class StaffPipeline extends StaffPassBase
         }
 
         [$field, $dir] = self::SORTS[$sortBy];
-        [$rows, $pagination] = $this->paginate($builder, $page, 10, $field, $dir);
+        [$rows, $pagination] = $this->paginate($builder, $page, $this->perPage(), $field, $dir);
 
         $list = [];
         foreach ($rows as $i => $row) {
-            $item = $this->rowBasics($row, ($pagination['current_page'] - 1) * 10 + $i + 1);
+            $item = $this->rowBasics($row, ($pagination['current_page'] - 1) * $pagination['per_page'] + $i + 1);
             $item['ready']     = $item['photo_url'] !== null && $item['staff_no'] !== '';
             $item['card_type'] = ($row['sub_type'] ?? '') !== '' ? ucwords(strtolower($row['sub_type'])) : 'Not assigned';
             $list[] = $item;
@@ -123,11 +130,11 @@ class StaffPipeline extends StaffPassBase
         $builder = $this->notPrinted();
         $this->applySearch($builder, $search, ['department']);
         [$field, $dir] = self::SORTS[$sortBy];
-        [$rows, $pagination] = $this->paginate($builder, $page, 10, $field, $dir);
+        [$rows, $pagination] = $this->paginate($builder, $page, $this->perPage(), $field, $dir);
 
         $list = [];
         foreach ($rows as $i => $row) {
-            $item = $this->rowBasics($row, ($pagination['current_page'] - 1) * 10 + $i + 1);
+            $item = $this->rowBasics($row, ($pagination['current_page'] - 1) * $pagination['per_page'] + $i + 1);
             $item['ready']   = $item['photo_url'] !== null && $item['staff_no'] !== '';
             $item['blocker'] = $item['photo_url'] === null ? 'Photo missing' : ($item['staff_no'] === '' ? 'Staff No missing' : null);
             $list[] = $item;
@@ -256,11 +263,11 @@ class StaffPipeline extends StaffPassBase
         $this->scope($builder);
         $this->applySearch($builder, $search, ['receipt_no', 'department']);
         [$field, $dir] = self::SORTS[$sortBy];
-        [$rows, $pagination] = $this->paginate($builder, $page, 10, $field, $dir);
+        [$rows, $pagination] = $this->paginate($builder, $page, $this->perPage(), $field, $dir);
 
         $list = [];
         foreach ($rows as $i => $row) {
-            $list[] = $this->rowBasics($row, ($pagination['current_page'] - 1) * 10 + $i + 1);
+            $list[] = $this->rowBasics($row, ($pagination['current_page'] - 1) * $pagination['per_page'] + $i + 1);
         }
 
         return view('staffs/issuance_list', [

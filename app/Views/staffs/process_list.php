@@ -131,27 +131,9 @@ $select = 'border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:tex
                 </table>
             </div>
 
-            <?php if (($pagination['last_page'] ?? 1) > 1): ?>
-            <div class="flex justify-end gap-1 mt-4 flex-wrap">
-                <?php
-                $cur  = (int) $pagination['current_page'];
-                $last = (int) $pagination['last_page'];
-                $prev = 0;
-                for ($i = 1; $i <= $last; $i++):
-                    // First / last / around the current page, so a long list doesn't print every page number.
-                    if ($i !== 1 && $i !== $last && abs($i - $cur) > 2) {
-                        continue;
-                    }
-                    if ($prev && $i - $prev > 1): ?>
-                <span class="w-8 h-8 flex items-center justify-center text-xs">…</span>
-                    <?php endif;
-                    $prev = $i;
-                    $qs = array_merge($_GET, ['page' => $i]);
-                ?>
-                <a href="<?= base_url('staffs/process-list') . '?' . esc(http_build_query($qs), 'attr') ?>" class="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded text-xs <?= $i === $cur ? 'bg-primary text-white' : 'hover:bg-gray-50 dark:hover:bg-gray-800' ?>"><?= $i ?></a>
-                <?php endfor; ?>
+            <div class="mt-6">
+                <?= view('staffs/_pager', ['pagination' => $pagination, 'baseUrl' => base_url('staffs/process-list'), 'showPerPage' => true]) ?>
             </div>
-            <?php endif; ?>
         </div>
 
 <?= view('staffs/_layout_bottom') ?>
