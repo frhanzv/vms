@@ -66,7 +66,7 @@ $label    = 'block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1';
                 </div>
                 <div>
                     <label class="<?= $label ?>">Resident</label>
-                    <select name="resident" class="<?= $input ?>">
+                    <select name="resident" class="<?= $input ?> pr-9">
                         <?php foreach (['all' => 'All', 'LOCAL' => 'Local', 'FOREIGN' => 'Foreign'] as $v => $l): ?>
                         <option value="<?= $v ?>" <?= $f['resident'] === $v ? 'selected' : '' ?>><?= $l ?></option>
                         <?php endforeach; ?>
@@ -74,7 +74,7 @@ $label    = 'block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1';
                 </div>
                 <div>
                     <label class="<?= $label ?>">Card Status</label>
-                    <select name="card_status" class="<?= $input ?>">
+                    <select name="card_status" class="<?= $input ?> pr-9">
                         <?php foreach (['all' => 'All', 'Active' => 'Active', 'Suspended' => 'Suspended', 'Terminated' => 'Terminated'] as $v => $l): ?>
                         <option value="<?= $v ?>" <?= $f['card_status'] === $v ? 'selected' : '' ?>><?= $l ?></option>
                         <?php endforeach; ?>
@@ -86,7 +86,7 @@ $label    = 'block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1';
                 </div>
                 <div>
                     <label class="<?= $label ?>">Sort By</label>
-                    <select name="sort_by" class="<?= $input ?>">
+                    <select name="sort_by" class="<?= $input ?> pr-9">
                         <?php foreach ([
                             'date_desc'    => 'Date (Newest First)',
                             'date_asc'     => 'Date (Oldest First)',

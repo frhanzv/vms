@@ -1,7 +1,11 @@
 <?php helper('list_columns'); $col = static fn(string $k): bool => list_col('staff_process_list', $k); ?>
 <?= view('staffs/_layout_top', ['pageTitle' => $pageTitle, 'activeTab' => 'staffs/process-list', 'showTabs' => false]) ?>
 <style>[x-cloak] { display: none !important; }</style>
-<?php $field = 'border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white rounded px-3 py-2 text-sm'; ?>
+<?php
+$field  = 'border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white rounded px-3 py-2 text-sm';
+// Dropdowns keep room on the right for the arrow (forms plugin draws it at the right edge).
+$select = 'border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white rounded pl-3 pr-9 py-2 text-sm bg-white';
+?>
 
         <div x-data="{ view: (function () { try { return localStorage.getItem('staffProcessListView') || 'card'; } catch (e) { return 'card'; } })() }"
              x-init="$watch('view', v => { try { localStorage.setItem('staffProcessListView', v); } catch (e) {} })">
@@ -20,17 +24,17 @@
 
             <form method="get" action="<?= base_url('staffs/process-list') ?>" class="mb-4 flex flex-wrap gap-2 items-center">
                 <input name="search" value="<?= esc($searchTerm) ?>" class="<?= $field ?> w-80 max-w-full" placeholder="IC / Passport / Full Name / Staff No / App No / Department"/>
-                <select name="card_type" class="<?= $field ?>" onchange="this.form.submit()">
+                <select name="card_type" class="<?= $select ?>" onchange="this.form.submit()">
                     <?php foreach (['' => 'All Card Types', 'UNASSIGNED' => 'Not Assigned', 'PERMANENT' => 'Permanent', 'TEMPORARY' => 'Temporary', 'CONTRACT' => 'Contract'] as $v => $l): ?>
                     <option value="<?= $v ?>" <?= $cardType === $v ? 'selected' : '' ?>><?= $l ?></option>
                     <?php endforeach; ?>
                 </select>
-                <select name="missing" class="<?= $field ?>" onchange="this.form.submit()">
+                <select name="missing" class="<?= $select ?>" onchange="this.form.submit()">
                     <?php foreach (['' => 'Ready & Incomplete', 'photo' => 'Photo missing', 'staff_no' => 'Staff No missing'] as $v => $l): ?>
                     <option value="<?= $v ?>" <?= $missing === $v ? 'selected' : '' ?>><?= $l ?></option>
                     <?php endforeach; ?>
                 </select>
-                <select name="sort_by" class="<?= $field ?>" onchange="this.form.submit()">
+                <select name="sort_by" class="<?= $select ?>" onchange="this.form.submit()">
                     <?php foreach ([
                         'date_desc'    => 'Date (Newest First)',
                         'date_asc'     => 'Date (Oldest First)',
