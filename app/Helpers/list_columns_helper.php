@@ -69,7 +69,7 @@ if (! function_exists('list_column_registry')) {
                     'department'  => ['label' => 'Department'],
                     'ic_passport' => ['label' => 'IC / Passport'],
                     'staff_no'    => ['label' => 'Staff No'],
-                    'card_type'   => ['label' => 'Card Type'],
+                    'card_type'   => ['label' => 'Worker Type'],
                     'card_expiry' => ['label' => 'Card Expiry'],
                     'ready'       => ['label' => 'Ready To Print'],
                     'action'      => ['label' => 'Action', 'locked' => true],

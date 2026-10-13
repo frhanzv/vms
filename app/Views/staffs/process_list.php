@@ -25,7 +25,7 @@ $select = 'border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:tex
             <form method="get" action="<?= base_url('staffs/process-list') ?>" class="mb-4 flex flex-wrap gap-2 items-center">
                 <input name="search" value="<?= esc($searchTerm) ?>" class="<?= $field ?> w-80 max-w-full" placeholder="IC / Passport / Full Name / Staff No / App No / Department"/>
                 <select name="card_type" class="<?= $select ?>" onchange="this.form.submit()">
-                    <?php foreach (['' => 'All Card Types', 'UNASSIGNED' => 'Not Assigned', 'PERMANENT' => 'Permanent', 'TEMPORARY' => 'Temporary', 'CONTRACT' => 'Contract'] as $v => $l): ?>
+                    <?php foreach (['' => 'All Worker Types', 'CONTRACT' => 'Contract', 'PERMANENT' => 'Permanent', 'FAMILY PASS' => 'Family Pass'] as $v => $l): ?>
                     <option value="<?= $v ?>" <?= $cardType === $v ? 'selected' : '' ?>><?= $l ?></option>
                     <?php endforeach; ?>
                 </select>
@@ -94,7 +94,7 @@ $select = 'border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:tex
                             <?php if ($col('department')): ?><th class="p-3 border-b dark:border-gray-600">Department</th><?php endif; ?>
                             <?php if ($col('ic_passport')): ?><th class="p-3 border-b dark:border-gray-600">IC/Passport</th><?php endif; ?>
                             <?php if ($col('staff_no')): ?><th class="p-3 border-b dark:border-gray-600">Staff No</th><?php endif; ?>
-                            <?php if ($col('card_type')): ?><th class="p-3 border-b dark:border-gray-600">Card Type</th><?php endif; ?>
+                            <?php if ($col('card_type')): ?><th class="p-3 border-b dark:border-gray-600">Worker Type</th><?php endif; ?>
                             <?php if ($col('card_expiry')): ?><th class="p-3 border-b dark:border-gray-600">Card Expiry</th><?php endif; ?>
                             <?php if ($col('ready')): ?><th class="p-3 border-b dark:border-gray-600">Ready To Print</th><?php endif; ?>
                             <th class="p-3 border-b dark:border-gray-600">Action</th>

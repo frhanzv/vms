@@ -76,16 +76,15 @@ class StaffPipeline extends StaffPassBase
         [$search, $sortBy, $page] = $this->common();
         $missing  = (string) ($this->request->getGet('missing') ?? '');
         $cardType = strtoupper(trim((string) ($this->request->getGet('card_type') ?? '')));
-        if (! in_array($cardType, ['', 'UNASSIGNED', 'PERMANENT', 'TEMPORARY', 'CONTRACT'], true)) {
+        // Worker Type filter — same choices as the Vendor Process List.
+        if (! in_array($cardType, ['', 'CONTRACT', 'PERMANENT', 'FAMILY PASS'], true)) {
             $cardType = '';
         }
 
         $builder = $this->notPrinted();
         $this->applySearch($builder, $search, ['department', 'receipt_no']);
-        // Card Type = the staff Sub Type (same role as Worker Type on the Vendor Process List).
-        if ($cardType === 'UNASSIGNED') {
-            $builder->groupStart()->where('sub_type', null)->orWhere('sub_type', '')->groupEnd();
-        } elseif ($cardType !== '') {
+        // Worker Type = the staff Sub Type (same as Worker Type on the Vendor Process List).
+        if ($cardType !== '') {
             $builder->where('UPPER(sub_type)', $cardType);
         }
         if ($missing === 'photo') {
@@ -101,7 +100,7 @@ class StaffPipeline extends StaffPassBase
         foreach ($rows as $i => $row) {
             $item = $this->rowBasics($row, ($pagination['current_page'] - 1) * 10 + $i + 1);
             $item['ready']     = $item['photo_url'] !== null && $item['staff_no'] !== '';
-            $item['card_type'] = ($row['sub_type'] ?? '') !== '' ? ucfirst(strtolower($row['sub_type'])) : 'Not assigned';
+            $item['card_type'] = ($row['sub_type'] ?? '') !== '' ? ucwords(strtolower($row['sub_type'])) : 'Not assigned';
             $list[] = $item;
         }
 

@@ -181,6 +181,7 @@
                                         <option value="PERMANENT" <?= $sel('sub_type','PERMANENT') ?>>PERMANENT</option>
                                         <option value="TEMPORARY" <?= $sel('sub_type','TEMPORARY') ?>>TEMPORARY</option>
                                         <option value="CONTRACT" <?= $sel('sub_type','CONTRACT') ?>>CONTRACT</option>
+                                        <option value="FAMILY PASS" <?= $sel('sub_type','FAMILY PASS') ?>>FAMILY PASS</option>
                                     </select>
                                 </div>
                             </div>
