@@ -59,6 +59,23 @@ if (! function_exists('list_column_registry')) {
                 'columns' => $staffCols + ['current_location' => ['label' => 'Current Location']],
                 'buttons' => [],
             ],
+            'staff_process_list' => [
+                'title'   => 'Staff Process List (Table View)',
+                'group'   => 'Staff Pass',
+                'columns' => [
+                    'no'          => ['label' => 'No', 'locked' => true],
+                    'app_no'      => ['label' => 'App No'],
+                    'full_name'   => ['label' => 'Full Name', 'locked' => true],
+                    'department'  => ['label' => 'Department'],
+                    'ic_passport' => ['label' => 'IC / Passport'],
+                    'staff_no'    => ['label' => 'Staff No'],
+                    'card_type'   => ['label' => 'Card Type'],
+                    'card_expiry' => ['label' => 'Card Expiry'],
+                    'ready'       => ['label' => 'Ready To Print'],
+                    'action'      => ['label' => 'Action', 'locked' => true],
+                ],
+                'buttons' => [],
+            ],
             'staff_closed_list' => [
                 'title'   => 'Staff Closed List',
                 'group'   => 'Staff Pass',

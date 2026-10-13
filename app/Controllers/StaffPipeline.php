@@ -74,10 +74,20 @@ class StaffPipeline extends StaffPassBase
     {
         helper(['access', 'feature', 'role']);
         [$search, $sortBy, $page] = $this->common();
-        $missing = (string) ($this->request->getGet('missing') ?? '');
+        $missing  = (string) ($this->request->getGet('missing') ?? '');
+        $cardType = strtoupper(trim((string) ($this->request->getGet('card_type') ?? '')));
+        if (! in_array($cardType, ['', 'UNASSIGNED', 'PERMANENT', 'TEMPORARY', 'CONTRACT'], true)) {
+            $cardType = '';
+        }
 
         $builder = $this->notPrinted();
-        $this->applySearch($builder, $search, ['department']);
+        $this->applySearch($builder, $search, ['department', 'receipt_no']);
+        // Card Type = the staff Sub Type (same role as Worker Type on the Vendor Process List).
+        if ($cardType === 'UNASSIGNED') {
+            $builder->groupStart()->where('sub_type', null)->orWhere('sub_type', '')->groupEnd();
+        } elseif ($cardType !== '') {
+            $builder->where('UPPER(sub_type)', $cardType);
+        }
         if ($missing === 'photo') {
             $builder->groupStart()->where('photo', null)->orWhere('photo', '')->groupEnd();
         } elseif ($missing === 'staff_no') {
@@ -90,7 +100,8 @@ class StaffPipeline extends StaffPassBase
         $list = [];
         foreach ($rows as $i => $row) {
             $item = $this->rowBasics($row, ($pagination['current_page'] - 1) * 10 + $i + 1);
-            $item['ready'] = $item['photo_url'] !== null && $item['staff_no'] !== '';
+            $item['ready']     = $item['photo_url'] !== null && $item['staff_no'] !== '';
+            $item['card_type'] = ($row['sub_type'] ?? '') !== '' ? ucfirst(strtolower($row['sub_type'])) : 'Not assigned';
             $list[] = $item;
         }
 
@@ -99,6 +110,7 @@ class StaffPipeline extends StaffPassBase
             'list'       => $list,
             'searchTerm' => $search,
             'missing'    => $missing,
+            'cardType'   => $cardType,
             'sortBy'     => $sortBy,
             'pagination' => $pagination,
         ]);
