@@ -4,9 +4,11 @@ $current     = app_route_path($current ?? null); // report pages pass their own 
 $isDashboard = ($current === '' || $current === 'dashboard');
 $isEmap      = str_starts_with($current, 'e-map');
 $isStaff     = str_contains($current, 'staffs') || str_contains($current, 'staff-pass-request');
-$isVendor    = str_contains($current, 'vendors') || str_contains($current, 'vendorpassrequest') || $current === 'vendor-workflow';
+$isVendor    = str_contains($current, 'vendors') || str_contains($current, 'vendorpassrequest');
 $isVehicle   = str_starts_with($current, 'vehicles');
-$isWorkflow  = str_contains($current, 'workflow') && $current !== 'vendor-workflow';
+$isVendorWf  = str_starts_with($current, 'vendor-workflow');
+$isVisitorWf = str_contains($current, 'workflow') && ! $isVendorWf;
+$isWorkflow  = $isVendorWf || $isVisitorWf;
 $isConfig    = str_contains($current, 'config');
 $isSettings  = str_contains($current, 'settings');
 
@@ -219,13 +221,6 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
                         Request List
                     </a>
                     <?php endif; ?>
-                    <?php if (! is_vendor_admin() && (is_platform_superadmin() || is_client_superadmin() || normalize_role_slug((string) session()->get('role')) === 'admin')): ?>
-                    <a href="<?= base_url('vendor-workflow') ?>"
-                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'vendor-workflow' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
-                        <span class="w-1.5 h-1.5 rounded-full <?= $current == 'vendor-workflow' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
-                        Vendor Workflow
-                    </a>
-                    <?php endif; ?>
                     <?php helper('vendor_company'); if (! is_vendor_admin()): // staff-only pipeline pages ?>
                     <a href="<?= base_url('vendors/process-list') ?>"
                         class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'vendors/process-list' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
@@ -252,12 +247,37 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
             </div>
             <?php endif; ?>
 
-            <!-- Visitor Workflow -->
-            <?php if (has_access('visitor_workflow', 'view')): ?>
-            <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?= $isWorkflow ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white' ?> transition-colors group" href="<?= base_url('workflow') ?>">
-                <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">account_tree</span>
-                <p class="text-sm <?= $isWorkflow ? 'font-semibold' : 'font-medium' ?>">Visitor Workflow</p>
-            </a>
+            <!-- Workflow (Visitor Workflow, Vendor Workflow) -->
+            <?php
+            $showVisitorWf = has_access('visitor_workflow', 'view');
+            $showVendorWf  = client_feature_enabled('vendor_pass') && ! is_vendor_admin() && (is_platform_superadmin() || is_client_superadmin() || normalize_role_slug((string) session()->get('role')) === 'admin');
+            if ($showVisitorWf || $showVendorWf): ?>
+            <div x-data="{ openWorkflow: <?= $isWorkflow ? 'true' : 'false' ?> }">
+                <button type="button" @click="openWorkflow = !openWorkflow"
+                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= $isWorkflow ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
+                    <div class="flex items-center gap-3">
+                        <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">account_tree</span>
+                        <p class="text-sm <?= $isWorkflow ? 'font-semibold' : 'font-medium' ?>">Workflow</p>
+                    </div>
+                    <span class="material-symbols-outlined text-[18px] transition-transform duration-200" :class="openWorkflow ? 'rotate-180' : ''">expand_more</span>
+                </button>
+                <div x-show="openWorkflow" class="ml-4 mt-1 flex flex-col gap-1">
+                    <?php if ($showVisitorWf): ?>
+                    <a href="<?= base_url('workflow') ?>"
+                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $isVisitorWf ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
+                        <span class="w-1.5 h-1.5 rounded-full <?= $isVisitorWf ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
+                        Visitor Workflow
+                    </a>
+                    <?php endif; ?>
+                    <?php if ($showVendorWf): ?>
+                    <a href="<?= base_url('vendor-workflow') ?>"
+                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $isVendorWf ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
+                        <span class="w-1.5 h-1.5 rounded-full <?= $isVendorWf ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
+                        Vendor Workflow
+                    </a>
+                    <?php endif; ?>
+                </div>
+            </div>
             <?php endif; ?>
 
             <!-- Blacklist -->
