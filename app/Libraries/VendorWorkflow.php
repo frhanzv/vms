@@ -19,15 +19,13 @@ class VendorWorkflow
         'account_verification' => ['Account Verification', 'Staff',          'Staff verifies the vendor account so it can log in',             false, 'verified_user'],
         'pass_request'         => ['Pass Request',         'Vendor / Staff', 'Vendor requests its employee passes (staff can do it for them)', true,  'assignment'],
         'pass_approval'        => ['Pass Approval',        'Staff',          'Staff approve or reject the employee pass request',              true,  'fact_check'],
-        'card_photo'           => ['Card Photo',           'Staff',          'Staff upload or take the card photo on the Process List',        false, 'photo_camera'],
-        'card_details'         => ['Card Details',         'Staff',          'Staff save the card expiry and worker type',                      true,  'badge'],
-        'card_printing'        => ['Card Printing',        'Staff',          'Staff print the card',                                            false, 'print'],
+        'card_processing'      => ['Card Processing',      'Staff',          'Staff add the card photo, save the card details and print the card', true, 'badge'],
         'card_issuance'        => ['Card Issuance',        'Staff',          'Staff hand the card to the collector',                            true,  'qr_code_2'],
         'completion'           => ['Completion',           'Staff',          'Pass is closed and the card is active',                           true,  'check_circle'],
     ];
 
     /** Steps whose on/off really changes behaviour today. */
-    public const ENFORCED = ['account_verification', 'card_photo', 'card_printing'];
+    public const ENFORCED = ['account_verification'];
 
     private static array $cache = [];
 
