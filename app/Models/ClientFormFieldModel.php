@@ -33,30 +33,32 @@ class ClientFormFieldModel extends Model
     public static function staffPassFields(): array
     {
         return [
-            ['field_key' => 'type_of_application', 'label' => 'Type Of Application'],
-            ['field_key' => 'designation',          'label' => 'Designation'],
-            ['field_key' => 'resident',             'label' => 'Resident'],
-            ['field_key' => 'sub_type',             'label' => 'Sub Type'],
-            ['field_key' => 'location_access',      'label' => 'Location Access'],
-            ['field_key' => 'ic_number',            'label' => 'IC / Passport Number'],
-            ['field_key' => 'date_of_birth',        'label' => 'Date of Birth'],
-            ['field_key' => 'sex',                  'label' => 'Sex'],
-            ['field_key' => 'full_name',            'label' => 'Full Name'],
-            ['field_key' => 'name_on_staff_pass',   'label' => 'Name On Staff Pass'],
-            ['field_key' => 'staff_no',             'label' => 'Staff No'],
-            ['field_key' => 'contact_number',       'label' => 'Contact Number'],
-            ['field_key' => 'email',                'label' => 'Email Address'],
-            ['field_key' => 'department',           'label' => 'Department'],
-            ['field_key' => 'address_1',            'label' => 'Address 1'],
-            ['field_key' => 'address_2',            'label' => 'Address 2'],
-            ['field_key' => 'address_3',            'label' => 'Address 3'],
-            ['field_key' => 'country',              'label' => 'Country'],
-            ['field_key' => 'state',                'label' => 'State'],
-            ['field_key' => 'city',                 'label' => 'City'],
-            ['field_key' => 'postal_code',          'label' => 'Postal Code'],
+            // 'requirable' adds the "Mandatory" toggle (same as Vendor Pass Request).
+            // 'default_required' keeps what the form already insisted on before the toggle existed.
+            ['field_key' => 'type_of_application', 'label' => 'Type Of Application', 'requirable' => true],
+            ['field_key' => 'designation',          'label' => 'Designation', 'requirable' => true, 'default_required' => true],
+            ['field_key' => 'resident',             'label' => 'Resident', 'requirable' => true, 'default_required' => true],
+            ['field_key' => 'sub_type',             'label' => 'Sub Type', 'requirable' => true],
+            ['field_key' => 'location_access',      'label' => 'Location Access', 'requirable' => true, 'default_required' => true],
+            ['field_key' => 'ic_number',            'label' => 'IC / Passport Number', 'requirable' => true, 'default_required' => true],
+            ['field_key' => 'date_of_birth',        'label' => 'Date of Birth', 'requirable' => true, 'default_required' => true],
+            ['field_key' => 'sex',                  'label' => 'Sex', 'requirable' => true],
+            ['field_key' => 'full_name',            'label' => 'Full Name', 'requirable' => true, 'default_required' => true],
+            ['field_key' => 'name_on_staff_pass',   'label' => 'Name On Staff Pass', 'requirable' => true, 'default_required' => true],
+            ['field_key' => 'staff_no',             'label' => 'Staff No', 'requirable' => true, 'default_required' => true],
+            ['field_key' => 'contact_number',       'label' => 'Contact Number', 'requirable' => true, 'default_required' => true],
+            ['field_key' => 'email',                'label' => 'Email Address', 'requirable' => true, 'default_required' => true],
+            ['field_key' => 'department',           'label' => 'Department', 'requirable' => true, 'default_required' => true],
+            ['field_key' => 'address_1',            'label' => 'Address 1', 'requirable' => true, 'default_required' => true],
+            ['field_key' => 'address_2',            'label' => 'Address 2', 'requirable' => true],
+            ['field_key' => 'address_3',            'label' => 'Address 3', 'requirable' => true],
+            ['field_key' => 'country',              'label' => 'Country', 'requirable' => true],
+            ['field_key' => 'state',                'label' => 'State', 'requirable' => true, 'default_required' => true],
+            ['field_key' => 'city',                 'label' => 'City', 'requirable' => true, 'default_required' => true],
+            ['field_key' => 'postal_code',          'label' => 'Postal Code', 'requirable' => true, 'default_required' => true],
             ['field_key' => 'driving_license',      'label' => 'Driving License Section'],
             ['field_key' => 'document_upload',      'label' => 'Document Upload Section'],
-            ['field_key' => 'csp_number',           'label' => 'CSP Number & Expiry Date',       'default_enabled' => false],
+            ['field_key' => 'csp_number',           'label' => 'CSP Number & Expiry Date',       'default_enabled' => false, 'requirable' => true],
             ['field_key' => 'evetting',             'label' => 'E-Vetting Section',              'default_enabled' => false],
             ['field_key' => 'print_button',         'label' => 'Show Print Button (Staff List)', 'default_enabled' => false],
         ];
@@ -293,10 +295,15 @@ class ClientFormFieldModel extends Model
     {
         $definitions = $this->getDefinitions($formType);
         $requirableKeys = [];
+        $defaults       = [];
         foreach ($definitions as $def) {
             if (! empty($def['requirable'])) {
                 $requirableKeys[$def['field_key']] = true;
             }
+            $defaults[$def['field_key']] = [
+                'enabled'  => isset($def['default_enabled']) ? (int) $def['default_enabled'] : 1,
+                'required' => isset($def['default_required']) ? (int) $def['default_required'] : 0,
+            ];
         }
 
         foreach ($fields as $key => $value) {
@@ -318,9 +325,16 @@ class ClientFormFieldModel extends Model
                 $data['is_required'] = $required;
             }
 
+            // No row yet: store one whenever the choice differs from the field's
+            // default, so e.g. un-ticking "Mandatory" on a default-mandatory field
+            // (or enabling a default-off field) actually sticks.
+            $def = $defaults[$key] ?? ['enabled' => 1, 'required' => 0];
+            $differs = $enabled !== $def['enabled']
+                || (isset($requirableKeys[$key]) && (int) $data['is_required'] !== $def['required']);
+
             if ($existing) {
                 $this->update($existing['id'], $data);
-            } elseif ($enabled === 0 || ! empty($data['is_required'])) {
+            } elseif ($differs) {
                 $this->insert(array_merge([
                     'client_id' => $companyId,
                     'form_type' => $formType,

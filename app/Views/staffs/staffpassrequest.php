@@ -111,6 +111,10 @@
                         $s    = $staff ?? [];
                         $v    = fn($f, $db = null) => esc(old($f, $s[$db ?? $f] ?? ''));
                         $sel  = fn($f, $val) => ($s[$f] ?? '') === $val ? 'selected' : '';
+                        // Config > Dynamic Form Fields > Staff Pass Request > "Mandatory": red * and the browser's required check.
+                        $required = $required ?? [];
+                        $req      = fn(string $k) => ($required[$k] ?? false) ? ' <span class="text-red-500">*</span>' : '';
+                        $reqAttr  = fn(string $k) => ($required[$k] ?? false) ? 'required' : '';
                         $chkd = fn($val) => in_array($val, array_filter(explode(',', $s['location_access'] ?? ''))) ? 'checked' : '';
                     ?>
 
@@ -135,9 +139,9 @@
                                 </div>
                                 <?php if ($fs['type_of_application'] ?? true): ?>
                                 <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Type Of Application</label>
+                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Type Of Application<?= $req('type_of_application') ?></label>
                                     <?php if ($isRenew): ?>
-                                    <input type="hidden" name="type_of_application" value="RENEWAL"/>
+                                    <input <?= $reqAttr('type_of_application') ?> type="hidden" name="type_of_application" value="RENEWAL"/>
                                     <input value="RENEWAL" class="w-full h-12 rounded-lg border-border-color bg-gray-100 dark:bg-background-dark text-text-main dark:text-white px-4 outline-none font-brand" readonly/>
                                     <?php else: ?>
                                     <select name="type_of_application" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
@@ -150,8 +154,8 @@
                                 <?php endif; ?>
                                 <?php if ($fs['designation'] ?? true): ?>
                                 <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Designation <span class="text-red-500">*</span></label>
-                                    <select name="designation" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" required>
+                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Designation<?= $req('designation') ?></label>
+                                    <select <?= $reqAttr('designation') ?> name="designation" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
                                         <option value="">SELECT</option>
                                         <option value="PEN. LORI" <?= $sel('designation','PEN. LORI') ?>>PEN. LORI</option>
                                         <option value="OPERATOR" <?= $sel('designation','OPERATOR') ?>>OPERATOR</option>
@@ -163,8 +167,8 @@
                                 <?php endif; ?>
                                 <?php if ($fs['resident'] ?? true): ?>
                                 <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Resident</label>
-                                    <select name="resident" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
+                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Resident<?= $req('resident') ?></label>
+                                    <select <?= $reqAttr('resident') ?> name="resident" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
                                         <option value="LOCAL" <?= $sel('resident','LOCAL') ?>>LOCAL</option>
                                         <option value="FOREIGN" <?= $sel('resident','FOREIGN') ?>>FOREIGN</option>
                                     </select>
@@ -176,8 +180,8 @@
                             <?php if ($fs['sub_type'] ?? true): ?>
                             <div class="grid grid-cols-1 sm:grid-cols-4 gap-6">
                                 <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Sub Type</label>
-                                    <select name="sub_type" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
+                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Sub Type<?= $req('sub_type') ?></label>
+                                    <select <?= $reqAttr('sub_type') ?> name="sub_type" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
                                         <option value="PERMANENT" <?= $sel('sub_type','PERMANENT') ?>>PERMANENT</option>
                                         <option value="TEMPORARY" <?= $sel('sub_type','TEMPORARY') ?>>TEMPORARY</option>
                                         <option value="CONTRACT" <?= $sel('sub_type','CONTRACT') ?>>CONTRACT</option>
@@ -208,7 +212,7 @@
                                 }
                             }">
                                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Location Access <span class="text-red-500">*</span></label>
+                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Location Access<?= $req('location_access') ?></label>
                                     <?php if (! empty($lockLocations)): ?>
                                     <span class="text-xs text-text-sub dark:text-gray-400 font-brand">Changing Location Access on an approved pass needs the Manage Locations permission.</span>
                                     <?php else: ?>
@@ -303,14 +307,14 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <?php if ($fs['ic_number'] ?? true): ?>
                                 <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">IC / Passport Number <span class="text-red-500">*</span></label>
-                                    <input name="ic_number" value="<?= $v('ic_number', 'ic_passport') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="Enter IC / Passport Number" type="text" required <?= $lock ?>/>
+                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">IC / Passport Number<?= $req('ic_number') ?></label>
+                                    <input <?= $reqAttr('ic_number') ?> name="ic_number" value="<?= $v('ic_number', 'ic_passport') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="Enter IC / Passport Number" type="text" <?= $lock ?>/>
                                 </div>
                                 <?php endif; ?>
                                 <?php if ($fs['date_of_birth'] ?? true): ?>
                                 <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Date Of Birth <span class="text-red-500">*</span></label>
-                                    <input name="date_of_birth" value="<?= $v('date_of_birth') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="DD/MM/YYYY" type="date" required <?= $lock ?>/>
+                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Date Of Birth<?= $req('date_of_birth') ?></label>
+                                    <input <?= $reqAttr('date_of_birth') ?> name="date_of_birth" value="<?= $v('date_of_birth') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="DD/MM/YYYY" type="date" <?= $lock ?>/>
                                 </div>
                                 <?php endif; ?>
                             </div>
@@ -319,8 +323,8 @@
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <?php if ($fs['sex'] ?? true): ?>
                                 <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Sex</label>
-                                    <select name="sex" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
+                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Sex<?= $req('sex') ?></label>
+                                    <select <?= $reqAttr('sex') ?> name="sex" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
                                         <option value="MALE" <?= $sel('sex','MALE') ?>>MALE</option>
                                         <option value="FEMALE" <?= $sel('sex','FEMALE') ?>>FEMALE</option>
                                     </select>
@@ -328,14 +332,14 @@
                                 <?php endif; ?>
                                 <?php if ($fs['full_name'] ?? true): ?>
                                 <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Full Name <span class="text-red-500">*</span></label>
-                                    <input name="full_name" value="<?= $v('full_name') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="Full name as per ID" type="text" required <?= $lock ?>/>
+                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Full Name<?= $req('full_name') ?></label>
+                                    <input <?= $reqAttr('full_name') ?> name="full_name" value="<?= $v('full_name') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="Full name as per ID" type="text" <?= $lock ?>/>
                                 </div>
                                 <?php endif; ?>
                                 <?php if ($fs['name_on_staff_pass'] ?? true): ?>
                                 <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Name On Staff Pass <span class="text-red-500">*</span></label>
-                                    <input name="name_on_staff_pass" value="<?= $v('name_on_staff_pass') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text" required/>
+                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Name On Staff Pass<?= $req('name_on_staff_pass') ?></label>
+                                    <input <?= $reqAttr('name_on_staff_pass') ?> name="name_on_staff_pass" value="<?= $v('name_on_staff_pass') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
                                 </div>
                                 <?php endif; ?>
                             </div>
@@ -344,20 +348,20 @@
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <?php if ($fs['staff_no'] ?? true): ?>
                                 <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Staff No <span class="text-red-500">*</span></label>
-                                    <input name="staff_no" value="<?= $v('staff_no') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text" required <?= $lock ?>/>
+                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Staff No<?= $req('staff_no') ?></label>
+                                    <input <?= $reqAttr('staff_no') ?> name="staff_no" value="<?= $v('staff_no') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text" <?= $lock ?>/>
                                 </div>
                                 <?php endif; ?>
                                 <?php if ($fs['contact_number'] ?? true): ?>
                                 <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Contact Number <span class="text-red-500">*</span></label>
-                                    <input name="contact_number" value="<?= $v('contact_number') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="+60 1x-xxx xxxx" type="tel" required/>
+                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Contact Number<?= $req('contact_number') ?></label>
+                                    <input <?= $reqAttr('contact_number') ?> name="contact_number" value="<?= $v('contact_number') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="+60 1x-xxx xxxx" type="tel"/>
                                 </div>
                                 <?php endif; ?>
                                 <?php if ($fs['email'] ?? true): ?>
                                 <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Email Address <span class="text-red-500">*</span></label>
-                                    <input name="email" value="<?= $v('email') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="staff@example.com" type="email" required/>
+                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Email Address<?= $req('email') ?></label>
+                                    <input <?= $reqAttr('email') ?> name="email" value="<?= $v('email') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="staff@example.com" type="email"/>
                                 </div>
                                 <?php endif; ?>
                             </div>
@@ -366,8 +370,8 @@
                             <?php if ($fs['department'] ?? true): ?>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Department <span class="text-red-500">*</span></label>
-                                    <select name="department" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" required>
+                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Department<?= $req('department') ?></label>
+                                    <select <?= $reqAttr('department') ?> name="department" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
                                         <option value="">SELECT</option>
                                         <?php $deps = $departments ?? []; if (! empty($s['department']) && ! in_array($s['department'], $deps, true)) { $deps[] = $s['department']; } ?>
                                         <?php foreach ($deps as $dep): ?>
@@ -382,14 +386,14 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <?php if ($fs['address_1'] ?? true): ?>
                                 <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Address 1 <span class="text-red-500">*</span></label>
-                                    <input name="address_1" value="<?= $v('address_1') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text" required/>
+                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Address 1<?= $req('address_1') ?></label>
+                                    <input <?= $reqAttr('address_1') ?> name="address_1" value="<?= $v('address_1') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
                                 </div>
                                 <?php endif; ?>
                                 <?php if ($fs['address_2'] ?? true): ?>
                                 <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Address 2</label>
-                                    <input name="address_2" value="<?= $v('address_2') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
+                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Address 2<?= $req('address_2') ?></label>
+                                    <input <?= $reqAttr('address_2') ?> name="address_2" value="<?= $v('address_2') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
                                 </div>
                                 <?php endif; ?>
                             </div>
@@ -397,8 +401,8 @@
                             <!-- Row 6: Address 3 -->
                             <?php if ($fs['address_3'] ?? true): ?>
                             <div class="space-y-2">
-                                <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Address 3</label>
-                                <input name="address_3" value="<?= $v('address_3') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
+                                <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Address 3<?= $req('address_3') ?></label>
+                                <input <?= $reqAttr('address_3') ?> name="address_3" value="<?= $v('address_3') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
                             </div>
                             <?php endif; ?>
 
@@ -406,16 +410,16 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <?php if ($fs['city'] ?? true): ?>
                                 <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">City <span class="text-red-500">*</span></label>
-                                    <select name="city" id="staff-city" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" required disabled>
+                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">City<?= $req('city') ?></label>
+                                    <select <?= $reqAttr('city') ?> name="city" id="staff-city" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" disabled>
                                         <option value="">SELECT STATE FIRST</option>
                                     </select>
                                 </div>
                                 <?php endif; ?>
                                 <?php if ($fs['state'] ?? true): ?>
                                 <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">State <span class="text-red-500">*</span></label>
-                                    <select name="state" id="staff-state" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" required disabled>
+                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">State<?= $req('state') ?></label>
+                                    <select <?= $reqAttr('state') ?> name="state" id="staff-state" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" disabled>
                                         <option value="">SELECT COUNTRY FIRST</option>
                                     </select>
                                 </div>
@@ -426,14 +430,14 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <?php if ($fs['postal_code'] ?? true): ?>
                                 <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Postal Code <span class="text-red-500">*</span></label>
-                                    <input name="postal_code" value="<?= $v('postal_code') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text" required/>
+                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Postal Code<?= $req('postal_code') ?></label>
+                                    <input <?= $reqAttr('postal_code') ?> name="postal_code" value="<?= $v('postal_code') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
                                 </div>
                                 <?php endif; ?>
                                 <?php if ($fs['country'] ?? true): ?>
                                 <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Country</label>
-                                    <select name="country" id="staff-country" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
+                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Country<?= $req('country') ?></label>
+                                    <select <?= $reqAttr('country') ?> name="country" id="staff-country" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
                                         <option value="">SELECT</option>
                                         <?php
                                             $savedCountry = $s['country'] ?? '';
@@ -550,8 +554,8 @@
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div class="space-y-2">
-                                <label class="block text-sm font-semibold text-text-main dark:text-gray-200 font-brand">CSP Number</label>
-                                <input name="company_reg_id" value="<?= $v('company_reg_id', 'csp_number') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
+                                <label class="block text-sm font-semibold text-text-main dark:text-gray-200 font-brand">CSP Number<?= $req('csp_number') ?></label>
+                                <input <?= $reqAttr('csp_number') ?> name="company_reg_id" value="<?= $v('company_reg_id', 'csp_number') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
                             </div>
                             <div class="space-y-2">
                                 <label class="block text-sm font-semibold text-text-main dark:text-gray-200 font-brand">Expiry Date</label>

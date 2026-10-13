@@ -16,6 +16,8 @@ namespace App\Controllers;
  */
 class StaffPassRequest extends StaffPassBase
 {
+    private ?array $requiredCache = null;
+
     private const FALLBACK_DEPARTMENTS = ['EPIC', 'HR', 'FINANCE', 'OPERATIONS', 'IT', 'MAINTENANCE'];
 
     public function index()
@@ -37,9 +39,9 @@ class StaffPassRequest extends StaffPassBase
             return redirect()->back()->withInput()->with('error', $icMsg);
         }
 
-        // Location Access is mandatory: it decides which client(s) receive the pass for approval.
+        // Location Access decides which client(s) receive the pass for approval (mandatory unless switched off in Config).
         $data['location_access'] = $this->resolveLocationCsv($this->request->getPost('location_access'));
-        if (! $isDraft && $data['location_access'] === '') {
+        if (! $isDraft && $data['location_access'] === '' && $this->isMandatory('location_access')) {
             return redirect()->back()->withInput()->with('error', 'Please choose at least one Location Access. It decides which client(s) receive this pass for approval.');
         }
 
@@ -137,7 +139,7 @@ class StaffPassRequest extends StaffPassBase
         } else {
             $data['location_access'] = $this->resolveLocationCsv($this->request->getPost('location_access'), (string) ($current['location_access'] ?? ''));
         }
-        if (! $isDraft && $data['location_access'] === '') {
+        if (! $isDraft && $data['location_access'] === '' && $this->isMandatory('location_access')) {
             return redirect()->back()->withInput()->with('error', 'Please choose at least one Location Access. It decides which client(s) receive this pass for approval.');
         }
 
@@ -205,7 +207,7 @@ class StaffPassRequest extends StaffPassBase
 
         $data = $this->collect(false);
         $data['location_access'] = $this->resolveLocationCsv($this->request->getPost('location_access'), (string) ($staff['location_access'] ?? ''));
-        if ($data['location_access'] === '') {
+        if ($data['location_access'] === '' && $this->isMandatory('location_access')) {
             return redirect()->back()->withInput()->with('error', 'Please choose at least one Location Access.');
         }
         // KPK renewPortPassStaff keeps the identity fields as they are.
@@ -270,6 +272,7 @@ class StaffPassRequest extends StaffPassBase
 
         return $extra + [
             'fieldSettings'   => $this->fieldSettings(),
+            'required'        => $this->fieldRequired(),
             'countries'       => $countries,
             'locationGroups'  => $this->getLocationGroups(),
             'departments'     => $this->departmentOptions(),
@@ -345,20 +348,43 @@ class StaffPassRequest extends StaffPassBase
     }
 
     /** Mandatory on submit (KPK form validation); drafts skip this. */
+    /**
+     * Config > Dynamic Form Fields > Staff Pass Request > "Mandatory", for the
+     * current client: [field_key => bool]. A switched-off field is never mandatory.
+     */
+    private function fieldRequired(): array
+    {
+        if ($this->requiredCache !== null) {
+            return $this->requiredCache;
+        }
+        helper('feature');
+        $out = [];
+        foreach ((new \App\Models\ClientFormFieldModel())->getForCompanyForm(current_company_id(), self::FORM) as $f) {
+            $out[$f['field_key']] = ! empty($f['requirable']) && ! empty($f['is_required']) && ! empty($f['is_enabled']);
+        }
+        return $this->requiredCache = $out;
+    }
+
+    private function isMandatory(string $fieldKey): bool
+    {
+        return $this->fieldRequired()[$fieldKey] ?? false;
+    }
+
+    /** Labels of the mandatory fields left empty. Location Access is checked on its own (it is a list). */
     private function missingRequired(array $data): array
     {
-        $fs     = $this->fieldSettings();
-        $checks = [
-            'full_name'   => ['Full Name', true],
-            'ic_passport' => ['IC / Passport Number', $fs['ic_number'] ?? true],
-            'resident'    => ['Resident', $fs['resident'] ?? true],
-            'department'  => ['Department', $fs['department'] ?? true],
-            'email'       => ['Email Address', $fs['email'] ?? true],
-        ];
+        $dataKey = ['ic_number' => 'ic_passport']; // form field -> staff column, where they differ
+        $labels  = array_column(\App\Models\ClientFormFieldModel::staffPassFields(), 'label', 'field_key');
         $missing = [];
-        foreach ($checks as $field => [$label, $enabled]) {
-            if ($enabled && trim((string) ($data[$field] ?? '')) === '') {
-                $missing[] = $label;
+        if (trim((string) ($data['full_name'] ?? '')) === '') {
+            $missing[] = 'Full Name'; // a pass always needs a name
+        }
+        foreach ($this->fieldRequired() as $key => $isRequired) {
+            if (! $isRequired || in_array($key, ['location_access', 'full_name'], true)) {
+                continue;
+            }
+            if (trim((string) ($data[$dataKey[$key] ?? $key] ?? '')) === '') {
+                $missing[] = $labels[$key] ?? $key;
             }
         }
         return $missing;
