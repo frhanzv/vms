@@ -309,21 +309,49 @@ $routes->group('config/vehicle-types', ['filter' => 'role:superadmin,clientsuper
     $routes->post('save', 'VehicleTypeConfig::save');
     $routes->post('(:num)/delete', 'VehicleTypeConfig::delete/$1');
 });
-// Vehicle Pass (annual). Page access is checked inside the controller with the Role > Vehicle keys.
-$routes->group('', ['filter' => [$plusAdminOfficer, 'client_feature:vehicle_pass']], function ($routes) {
-    $routes->get('vehicles', 'VehiclePass::listing/all');
-    $routes->get('vehicles/request-list', 'VehiclePass::listing/request');
-    $routes->get('vehicles/approved-list', 'VehiclePass::listing/approved');
-    $routes->get('vehicles/reject-list', 'VehiclePass::listing/reject');
-    $routes->get('vehicles/closed-list', 'VehiclePass::listing/closed');
-    $routes->get('vehicles/request', 'VehiclePass::create');
+// Vehicle Pass (annual) - Public and Cargo | Non-Cargo. Page access is checked inside the controller with the Role > Vehicle keys.
+// vendor_admin is allowed in so a vendor can use its own "My Vehicle Pass"; the controller limits it to its own company.
+$routes->group('', ['filter' => [$plusAdminOfficerVendor, 'client_feature:vehicle_pass']], function ($routes) {
+    $routes->get('vehicles', 'VehiclePass::index');
+    $routes->get('vehicles/public/staff-request', 'VehiclePass::create/public/staff');
+    $routes->get('vehicles/public/staff-lookup', 'VehiclePass::staffLookup');
+    $routes->get('vehicles/public/staff', 'VehiclePass::listing/public/staff');
+    $routes->get('vehicles/(public|cnc)', 'VehiclePass::listing/$1/all');
+    $routes->get('vehicles/(public|cnc)/request-list', 'VehiclePass::listing/$1/request');
+    $routes->get('vehicles/(public|cnc)/reviewed-list', 'VehiclePass::listing/$1/reviewed');
+    $routes->get('vehicles/(public|cnc)/closed-list', 'VehiclePass::listing/$1/closed');
+    $routes->get('vehicles/(public|cnc)/request', 'VehiclePass::create/$1/vendor');
     $routes->post('vehicles/store', 'VehiclePass::store');
     $routes->get('vehicles/edit/(:num)', 'VehiclePass::edit/$1');
     $routes->post('vehicles/update/(:num)', 'VehiclePass::update/$1');
     $routes->get('vehicles/view/(:num)', 'VehiclePass::view/$1');
+    $routes->get('vehicles/renew/(:num)', 'VehiclePass::renew/$1');
     $routes->post('vehicles/(:num)/(submit|approve|reject|issue|terminate|delete)', 'VehiclePass::action/$1/$2');
     $routes->post('vehicles/(:num)/pay', 'VehiclePass::pay/$1');
     $routes->get('vehicles/payment-return/(:num)', 'VehiclePass::paymentReturn/$1');
+
+    // Transfer Ownership
+    $routes->get('vehicle-transfer', 'VehicleTransfer::index');
+    $routes->get('vehicle-transfer/new', 'VehicleTransfer::create');
+    $routes->get('vehicle-transfer/new/(:num)', 'VehicleTransfer::create/$1');
+    $routes->post('vehicle-transfer/store', 'VehicleTransfer::store');
+    $routes->get('vehicle-transfer/view/(:num)', 'VehicleTransfer::view/$1');
+    $routes->post('vehicle-transfer/(:num)/(approve|reject)', 'VehicleTransfer::decide/$1/$2');
+
+    // Daily Pass - built but OFF. These routes only exist when VEHICLE_DAILY_PASS=true in .env.
+    if (\App\Libraries\VehicleRules::dailyEnabled()) {
+        $routes->get('vehicle-daily', 'VehicleDailyPass::index');
+        $routes->get('vehicle-daily/mine', 'VehicleDailyPass::listing/mine');
+        $routes->get('vehicle-daily/request-list', 'VehicleDailyPass::listing/request');
+        $routes->get('vehicle-daily/reject-list', 'VehicleDailyPass::listing/reject');
+        $routes->get('vehicle-daily/list', 'VehicleDailyPass::listing/closed');
+        $routes->get('vehicle-daily/request', 'VehicleDailyPass::create');
+        $routes->post('vehicle-daily/store', 'VehicleDailyPass::store');
+        $routes->get('vehicle-daily/edit/(:num)', 'VehicleDailyPass::edit/$1');
+        $routes->post('vehicle-daily/update/(:num)', 'VehicleDailyPass::update/$1');
+        $routes->get('vehicle-daily/view/(:num)', 'VehicleDailyPass::view/$1');
+        $routes->post('vehicle-daily/(:num)/(submit|approve|reject|delete)', 'VehicleDailyPass::action/$1/$2');
+    }
 });
 $routes->post('dashboard/cards/mine',        'DashboardCards::saveMine');
 $routes->post('dashboard/acknowledgeAlert', 'Dashboard::acknowledgeAlert');
