@@ -237,11 +237,12 @@ $selectCls = 'w-full md:w-40 border border-gray-300 dark:border-gray-600 dark:bg
             </div>
             <form action="<?= base_url('staff-pass/import') ?>" method="post" enctype="multipart/form-data">
                 <?= csrf_field() ?>
+                <input type="hidden" name="return_to" value="staffs"/>
                 <div class="p-6">
                     <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">Choose Excel File</label>
                     <input name="upload_file" type="file" accept=".xlsx, .xls" required
                         class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none dark:bg-slate-700 dark:border-slate-600"/>
-                    <p class="mt-2 text-xs text-gray-500">Only .xlsx or .xls files allowed. Download the Template first to see the expected columns. Imported staff are treated as HR-approved (as in KPK) and go straight to the Process List; a "Status" column of Active / Inactive sets the employee status.</p>
+                    <p class="mt-2 text-xs text-gray-500">Only .xlsx or .xls files allowed. Download the Template first to see the expected columns. Imported staff are treated as HR-approved (as in KPK) and go straight to the Closed List with an active card; use Reprint Card on Card Info if a physical card is needed. A "Status" column of Active / Inactive sets the employee status.</p>
                 </div>
                 <div class="flex justify-end gap-2 p-4 border-t dark:border-slate-700">
                     <button type="button" onclick="document.getElementById('uploadModal').classList.add('hidden')" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200">Cancel</button>

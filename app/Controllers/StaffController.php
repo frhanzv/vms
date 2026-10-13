@@ -34,6 +34,9 @@ class StaffController extends BaseController
 
         $sheet = $spreadsheet->getActiveSheet();
         $rows  = $sheet->toArray(null, true, true, false);
+        // Unformatted values too: a date typed into Excel is stored as a serial
+        // number, and its display format (d/m or m/d) depends on the PC's locale.
+        $rawRows = $sheet->toArray(null, true, false, false);
 
         if (count($rows) < 2) {
             return redirect()->back()->with('error', 'The file has no data rows.');
@@ -136,6 +139,8 @@ class StaffController extends BaseController
         $validationErrors = [];
         $seenInFile = []; // track IC/Passport values within the file itself
 
+        $dateFields = ['date_of_birth' => 'Date of Birth', 'visa_expiry' => 'Visa Expiry', 'license_expiry' => 'License Expiry'];
+
         foreach (array_slice($rows, 1) as $i => $row) {
             $get = fn(string $field) => isset($fieldIndex[$field])
                 ? (trim((string) ($row[$fieldIndex[$field]] ?? '')) ?: null)
@@ -147,6 +152,11 @@ class StaffController extends BaseController
             }
 
             $rowNum  = $i + 2; // +1 for header, +1 for 1-based
+            foreach ($dateFields as $field => $label) {
+                if ($get($field) !== null && $this->cellDate($rawRows[$i + 1] ?? [], $fieldIndex[$field] ?? null) === null) {
+                    $validationErrors[] = "Row {$rowNum}: {$label} '" . $get($field) . "' is not a valid date (use dd/mm/yyyy).";
+                }
+            }
             $missing = [];
             foreach ($requiredFields as $field => $label) {
                 $value = $get($field);
@@ -192,8 +202,12 @@ class StaffController extends BaseController
         // --- Insert pass ---
         $inserted = 0;
         $counter  = 1;
+        $failed   = [];
+        $actor    = (string) (session()->get('full_name') ?: session()->get('username'));
+        $fields   = $db->getFieldNames('staff');
 
-        foreach (array_slice($rows, 1) as $row) {
+        foreach (array_slice($rows, 1) as $i => $row) {
+            $raw = $rawRows[$i + 1] ?? [];
             $get = fn(string $field) => isset($fieldIndex[$field])
                 ? (trim((string) ($row[$fieldIndex[$field]] ?? '')) ?: null)
                 : null;
@@ -214,10 +228,10 @@ class StaffController extends BaseController
                         : null
                 ),
                 'staff_no'                     => $get('staff_no'),
-                'visa_expiry'                  => $this->parseDate($get('visa_expiry')),
+                'visa_expiry'                  => $this->cellDate($raw, $fieldIndex['visa_expiry'] ?? null),
                 'license_class'                => $get('license_class'),
-                'license_expiry'               => $this->parseDate($get('license_expiry')),
-                'date_of_birth'                => $this->parseDate($get('date_of_birth')),
+                'license_expiry'               => $this->cellDate($raw, $fieldIndex['license_expiry'] ?? null),
+                'date_of_birth'                => $this->cellDate($raw, $fieldIndex['date_of_birth'] ?? null),
                 'sex'                          => $get('sex'),
                 'contact_number'               => $get('contact_number'),
                 'email'                        => $get('email'),
@@ -229,13 +243,17 @@ class StaffController extends BaseController
                 'date_of_application'          => $this->parseDate($get('date_of_application')) ?? $get('date_of_application') ?? $today,
                 'location_access'              => $importLoc,
                 // KPK upload-staff-record: HR's sheet is the source of truth, so an
-                // imported staff pass skips approval (KPK puts it straight to
-                // CLOSED). Here it lands as Approved so the card can be printed
-                // from Process List. The sheet's Status column is the employee
-                // flag (Active / Inactive), not the pass workflow.
+                // imported staff pass skips approval and goes straight to CLOSED
+                // (status 300005) — here: Approved with an Active card, so it shows
+                // on the Staff List and the Closed List. A physical card can be
+                // printed later with Reprint Card on its Card Info page.
+                // The sheet's Status column is the employee flag (Active /
+                // Inactive), not the pass workflow.
                 'status'                       => 'Approved',
                 'is_active'                    => strtolower((string) $get('status')) === 'inactive' ? 0 : 1,
-                'card_status'                  => 'Inactive',
+                'card_status'                  => 'Active',
+                'issued_at'                    => $now,
+                'issued_by'                    => $actor !== '' ? $actor : null,
                 'company_id'                   => current_company_id() ?: null,
                 'suspension_period'            => $get('suspension_period'),
                 'next_action'                  => null,
@@ -255,9 +273,18 @@ class StaffController extends BaseController
                 'created_at'                   => $now,
             ];
 
-            $fields = $db->getFieldNames('staff');
-            $db->table('staff')->insert(array_intersect_key($record, array_flip($fields)));
-            $staffId = (int) $db->insertID();
+            try {
+                $ok = $db->table('staff')->insert(array_intersect_key($record, array_flip($fields)));
+            } catch (\Throwable $e) {
+                log_message('error', 'Staff import insert failed: ' . $e->getMessage());
+                $ok = false;
+            }
+            $staffId = $ok ? (int) $db->insertID() : 0;
+            if ($staffId <= 0) {
+                $failed[] = ($record['full_name'] ?? '?') . ' (' . ($record['ic_passport'] ?? '?') . ')';
+                $counter++;
+                continue;
+            }
 
             // Imported passes are already Approved (HR sheet), so every client owning one of the gates is Approved too.
             if ($db->tableExists('staff_client_approvals')) {
@@ -279,7 +306,41 @@ class StaffController extends BaseController
             $counter++;
         }
 
-        return redirect()->to(base_url('staffs'))->with('success', "{$inserted} staff record(s) imported successfully.");
+        // Back to the list the import was started from (Staff List or Closed List).
+        $returnTo = (string) $this->request->getPost('return_to');
+        $target   = base_url(in_array($returnTo, ['staffs', 'staffs/closed-list'], true) ? $returnTo : 'staffs');
+
+        if ($failed !== []) {
+            $redirect = redirect()->to($target)->with('error', "These rows could not be saved (see writable/logs for the reason):\n" . implode("\n", $failed));
+            return $inserted > 0 ? $redirect->with('success', "{$inserted} staff record(s) imported.") : $redirect;
+        }
+
+        return redirect()->to($target)->with('success', "{$inserted} staff record(s) imported successfully — now on the Staff List and the Closed List.");
+    }
+
+    /**
+     * A date cell from the unformatted row: an Excel date (serial number) is
+     * converted directly; typed text must be dd/mm/yyyy (or yyyy-mm-dd).
+     * Returns Y-m-d, or null when empty / not a real date.
+     */
+    private function cellDate(array $rawRow, ?int $index): ?string
+    {
+        if ($index === null) {
+            return null;
+        }
+        $value = $rawRow[$index] ?? null;
+        if ($value instanceof \DateTimeInterface) {
+            return $value->format('Y-m-d');
+        }
+        if (is_int($value) || is_float($value)) {
+            try {
+                return \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject((float) $value)->format('Y-m-d');
+            } catch (\Throwable $e) {
+                return null;
+            }
+        }
+
+        return $this->parseDate(trim((string) $value));
     }
 
     private function parseDate(?string $value): ?string
@@ -298,11 +359,14 @@ class StaffController extends BaseController
             }
         }
 
-        // Try common date formats
-        $formats = ['d/m/Y', 'Y-m-d', 'd-m-Y', 'm/d/Y', 'd.m.Y'];
+        // Day first (Malaysian format). Strict: 31/02 or 6/24 are rejected
+        // instead of silently rolling over into another date.
+        $value = preg_replace('/\s+00:00(:00)?$/', '', $value);
+        $formats = ['!d/m/Y', '!Y-m-d', '!d-m-Y', '!d.m.Y', '!Y/m/d'];
         foreach ($formats as $format) {
             $dt = \DateTime::createFromFormat($format, $value);
-            if ($dt !== false) {
+            $errors = \DateTime::getLastErrors();
+            if ($dt !== false && ($errors === false || ($errors['warning_count'] === 0 && $errors['error_count'] === 0))) {
                 return $dt->format('Y-m-d');
             }
         }
