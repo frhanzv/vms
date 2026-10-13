@@ -11,12 +11,19 @@ use App\Models\ClientModel;
  *
  * Columns are stored in client_list_columns (as List Columns always did).
  * Buttons keep using the flags the controllers already read (client_form_fields,
- * form type vendor_pass_request), so a button switched off here disappears from
- * its page without any controller needing to change.
+ * under the page's 'form' — vendor_pass_request or staff_pass_request), so a
+ * button switched off here disappears from its page without any controller
+ * needing to change.
  */
 class PageSettings extends BaseController
 {
-    private const BUTTON_FORM = 'vendor_pass_request';
+    private const DEFAULT_BUTTON_FORM = 'vendor_pass_request';
+
+    /** Form type whose client_form_fields rows hold this page's button flags. */
+    private function buttonForm(array $def): string
+    {
+        return (string) ($def['form'] ?? self::DEFAULT_BUTTON_FORM);
+    }
 
     private function json(array $payload, int $status = 200)
     {
@@ -98,7 +105,7 @@ class PageSettings extends BaseController
         }
 
         $flags = [];
-        foreach ((new ClientFormFieldModel())->getForCompanyForm($clientId, self::BUTTON_FORM) as $row) {
+        foreach ((new ClientFormFieldModel())->getForCompanyForm($clientId, $this->buttonForm($def)) as $row) {
             $flags[$row['field_key']] = (int) $row['is_enabled'] === 1;
         }
         $buttons = [];
@@ -155,7 +162,7 @@ class PageSettings extends BaseController
             }
         }
         if ($buttons) {
-            (new ClientFormFieldModel())->saveForCompanyForm($clientId, self::BUTTON_FORM, $buttons);
+            (new ClientFormFieldModel())->saveForCompanyForm($clientId, $this->buttonForm($def), $buttons);
         }
 
         if (! $db->transStatus()) {

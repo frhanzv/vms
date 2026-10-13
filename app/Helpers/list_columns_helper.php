@@ -19,8 +19,9 @@ if (! function_exists('list_column_registry')) {
      * 'buttons' => [key => label]                  buttons / sections on the page; the key is
      *                                              the same flag the controllers already read,
      *                                              so no controller needs to know about this.
+     * 'form'    => form type the button flags are stored under (default vendor_pass_request)
      *
-     * @return array<string, array{title:string, group:string, columns:array<string, array{label:string, locked?:bool}>, buttons:array<string,string>}>
+     * @return array<string, array{title:string, group:string, form?:string, columns:array<string, array{label:string, locked?:bool}>, buttons:array<string,string>}>
      */
     function list_column_registry(): array
     {
@@ -51,17 +52,39 @@ if (! function_exists('list_column_registry')) {
         ];
 
         return [
-            // Staff Pass: columns only. Its buttons stay under Dynamic Form Fields
-            // (form staff_pass_request) — Page Settings buttons write the vendor form.
+            // Staff Pass — same pages as Vendor Pass. Buttons write the staff form
+            // (client_form_fields, form staff_pass_request), which the staff
+            // controllers read through StaffPassBase::cfg().
+            // Keys stay as before so column choices already saved carry over.
             'staff_pass_list' => [
                 'title'   => 'Staff List',
                 'group'   => 'Staff Pass',
+                'form'    => 'staff_pass_request',
                 'columns' => $staffCols + ['current_location' => ['label' => 'Current Location']],
-                'buttons' => [],
+                'buttons' => [
+                    'request_button'  => 'Request button',
+                    'import_button'   => 'Import button',
+                    'template_button' => 'Template button',
+                    'export_button'   => 'Export button',
+                    'print_button'    => 'Print button',
+                ],
+            ],
+            'staff_request_list' => [
+                'title'   => 'Request List',
+                'group'   => 'Staff Pass',
+                'form'    => 'staff_pass_request',
+                'columns' => $staffCols,
+                'buttons' => [
+                    'approve_button' => 'Approve action',
+                    'reject_button'  => 'Reject action',
+                    'edit_button'    => 'Edit action',
+                    'delete_button'  => 'Delete action',
+                ],
             ],
             'staff_process_list' => [
-                'title'   => 'Staff Process List (Table View)',
+                'title'   => 'Process List',
                 'group'   => 'Staff Pass',
+                'form'    => 'staff_pass_request',
                 'columns' => [
                     'no'          => ['label' => 'No', 'locked' => true],
                     'app_no'      => ['label' => 'App No'],
@@ -76,9 +99,54 @@ if (! function_exists('list_column_registry')) {
                 ],
                 'buttons' => [],
             ],
-            'staff_closed_list' => [
-                'title'   => 'Staff Closed List',
+            'staff_process_detail' => [
+                'title'   => 'Process Detail (opened from Process List)',
                 'group'   => 'Staff Pass',
+                'form'    => 'staff_pass_request',
+                'columns' => [],
+                'buttons' => [
+                    'process_update_button'       => 'Update button',
+                    'process_reject_button'       => 'Reject button',
+                    'process_upload_photo_button' => 'Upload Photo button',
+                    'process_rfid_section'        => 'Physical Card / RFID section',
+                ],
+            ],
+            'staff_printing_list' => [
+                'title'   => 'Printing List',
+                'group'   => 'Staff Pass',
+                'form'    => 'staff_pass_request',
+                'columns' => [
+                    'select'      => ['label' => 'Select (checkbox)', 'locked' => true],
+                    'no'          => ['label' => 'No', 'locked' => true],
+                    'photo'       => ['label' => 'Photo'],
+                    'staff_no'    => ['label' => 'Staff No'],
+                    'full_name'   => ['label' => 'Full Name', 'locked' => true],
+                    'ic_passport' => ['label' => 'IC / Passport'],
+                    'department'  => ['label' => 'Department'],
+                    'action'      => ['label' => 'Action', 'locked' => true],
+                ],
+                'buttons' => ['printing_generate_button' => 'Print / Generate Serial buttons'],
+            ],
+            'staff_issuance_list' => [
+                'title'   => 'Issuance List',
+                'group'   => 'Staff Pass',
+                'form'    => 'staff_pass_request',
+                'columns' => [
+                    'no'          => ['label' => 'No', 'locked' => true],
+                    'receipt_no'  => ['label' => 'Card Serial'],
+                    'app_no'      => ['label' => 'App No'],
+                    'staff_no'    => ['label' => 'Staff No'],
+                    'full_name'   => ['label' => 'Full Name', 'locked' => true],
+                    'department'  => ['label' => 'Department'],
+                    'card_expiry' => ['label' => 'Card Expiry'],
+                    'action'      => ['label' => 'Action', 'locked' => true],
+                ],
+                'buttons' => ['issuance_issue_button' => 'Issue Card button'],
+            ],
+            'staff_closed_list' => [
+                'title'   => 'Closed List',
+                'group'   => 'Staff Pass',
+                'form'    => 'staff_pass_request',
                 'columns' => [
                     'no'          => ['label' => 'No', 'locked' => true],
                     'action'      => ['label' => 'Action', 'locked' => true],
@@ -96,13 +164,24 @@ if (! function_exists('list_column_registry')) {
                     'collected_by' => ['label' => 'Collected By'],
                     'issued_at'   => ['label' => 'Issued At'],
                 ],
-                'buttons' => [],
+                'buttons' => [
+                    'closed_export_button'       => 'Export button',
+                    'closed_card_details_button' => 'Card Details action',
+                    'renew_button'               => 'Renew action',
+                ],
             ],
-            'staff_request_list' => [
-                'title'   => 'Staff Request List',
+            'staff_card_info' => [
+                'title'   => 'Card Info (opened from Closed List)',
                 'group'   => 'Staff Pass',
-                'columns' => $staffCols,
-                'buttons' => [],
+                'form'    => 'staff_pass_request',
+                'columns' => [],
+                'buttons' => [
+                    'card_info_add_license_button'   => 'Add License button',
+                    'card_info_edit_location_button' => 'Edit Location Access button',
+                    'card_info_activate_button'      => 'Activate Card button',
+                    'card_info_terminate_button'     => 'Terminate Card button',
+                    'suspend_button'                 => 'Suspend / Unsuspend button',
+                ],
             ],
             // 'vendor_pass_list' keeps its old key so columns saved under Config > List Columns carry over.
             'vendor_pass_list' => [
@@ -226,13 +305,18 @@ if (! function_exists('list_column_registry')) {
 }
 
 if (! function_exists('page_managed_button_keys')) {
-    /** Every button/section flag that now lives in Page Settings (hidden from the form-field tabs). */
+    /**
+     * Button/section flags that now live in Page Settings (hidden from the
+     * Dynamic Form Fields tabs), per form: [form_type => [field_key, ...]].
+     * Pages without a 'form' write the vendor form.
+     */
     function page_managed_button_keys(): array
     {
         $keys = [];
         foreach (list_column_registry() as $page) {
+            $form = $page['form'] ?? 'vendor_pass_request';
             foreach (array_keys($page['buttons'] ?? []) as $k) {
-                $keys[] = $k;
+                $keys[$form][] = $k;
             }
         }
 

@@ -1,3 +1,4 @@
+<?php helper('list_columns'); $col = static fn(string $k): bool => list_col('staff_printing_list', $k); ?>
 <?= view('staffs/_layout_top', ['pageTitle' => $pageTitle, 'activeTab' => 'staffs/printing-list']) ?>
 
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-2 gap-4">
@@ -29,30 +30,32 @@
                         <tr class="bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs font-bold uppercase tracking-wide">
                             <th class="p-4 border-b dark:border-gray-600"><?php if ($canPrint): ?><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this.checked)" class="rounded"/><?php endif; ?></th>
                             <th class="p-4 border-b dark:border-gray-600">No</th>
-                            <th class="p-4 border-b dark:border-gray-600">Photo</th>
-                            <th class="p-4 border-b dark:border-gray-600">Staff No</th>
+                            <?php if ($col('photo')): ?><th class="p-4 border-b dark:border-gray-600">Photo</th><?php endif; ?>
+                            <?php if ($col('staff_no')): ?><th class="p-4 border-b dark:border-gray-600">Staff No</th><?php endif; ?>
                             <th class="p-4 border-b dark:border-gray-600">Full Name</th>
-                            <th class="p-4 border-b dark:border-gray-600">IC / Passport</th>
-                            <th class="p-4 border-b dark:border-gray-600">Department</th>
+                            <?php if ($col('ic_passport')): ?><th class="p-4 border-b dark:border-gray-600">IC / Passport</th><?php endif; ?>
+                            <?php if ($col('department')): ?><th class="p-4 border-b dark:border-gray-600">Department</th><?php endif; ?>
                             <th class="p-4 border-b dark:border-gray-600">Action</th>
                         </tr>
                     </thead>
                     <tbody class="text-xs text-gray-600 dark:text-gray-300 font-medium">
                     <?php if (empty($list)): ?>
-                        <tr><td colspan="8" class="p-8 text-center text-gray-500">No cards waiting to be printed.</td></tr>
+                        <tr><td colspan="<?= list_col_count('staff_printing_list') ?>" class="p-8 text-center text-gray-500">No cards waiting to be printed.</td></tr>
                     <?php else: foreach ($list as $r): ?>
                         <tr class="border-b border-gray-100 dark:border-gray-700">
                             <td class="p-4"><?php if ($canPrint && $r['ready']): ?><input type="checkbox" class="row-check rounded" value="<?= $r['id'] ?>" onchange="onRowCheck()"/><?php endif; ?></td>
                             <td class="p-4"><?= $r['no'] ?></td>
+                            <?php if ($col('photo')): ?>
                             <td class="p-4">
                                 <?php if ($r['photo_url']): ?>
                                 <img src="<?= esc($r['photo_url'], 'attr') ?>" alt="" class="w-8 h-10 object-cover rounded border border-gray-200"/>
                                 <?php else: ?><span class="text-[10px] text-gray-400">N/A</span><?php endif; ?>
                             </td>
-                            <td class="p-4 font-semibold"><?= $r['staff_no'] !== '' ? esc($r['staff_no']) : '<span class="text-red-500">Missing</span>' ?></td>
+                            <?php endif; ?>
+                            <?php if ($col('staff_no')): ?><td class="p-4 font-semibold"><?= $r['staff_no'] !== '' ? esc($r['staff_no']) : '<span class="text-red-500">Missing</span>' ?></td><?php endif; ?>
                             <td class="p-4 font-semibold text-gray-800 dark:text-white"><?= esc($r['full_name']) ?></td>
-                            <td class="p-4"><?= esc($r['ic_passport_masked']) ?></td>
-                            <td class="p-4"><?= esc($r['department']) ?></td>
+                            <?php if ($col('ic_passport')): ?><td class="p-4"><?= esc($r['ic_passport_masked']) ?></td><?php endif; ?>
+                            <?php if ($col('department')): ?><td class="p-4"><?= esc($r['department']) ?></td><?php endif; ?>
                             <td class="p-4">
                                 <div class="flex items-center gap-2">
                                     <a href="<?= base_url('staffs/card-info/' . $r['id']) ?>" class="text-primary hover:underline font-semibold">View Details</a>

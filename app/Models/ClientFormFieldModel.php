@@ -61,6 +61,31 @@ class ClientFormFieldModel extends Model
             ['field_key' => 'csp_number',           'label' => 'CSP Number & Expiry Date',       'default_enabled' => false, 'requirable' => true],
             ['field_key' => 'evetting',             'label' => 'E-Vetting Section',              'default_enabled' => false],
             ['field_key' => 'print_button',         'label' => 'Show Print Button (Staff List)', 'default_enabled' => false],
+
+            // === Page buttons (Config > Page Settings > Staff Pass), same keys as Vendor Pass ===
+            ['field_key' => 'request_button',              'label' => 'Show Request Button (Staff List / Closed List)'],
+            ['field_key' => 'import_button',               'label' => 'Show Import Button (Staff List / Closed List)'],
+            ['field_key' => 'template_button',             'label' => 'Show Template Button (Staff List / Closed List)'],
+            ['field_key' => 'export_button',               'label' => 'Show Export Button (Staff List)'],
+            ['field_key' => 'approve_button',              'label' => 'Show Approve Button (Request List)'],
+            ['field_key' => 'reject_button',               'label' => 'Show Reject Button (Request List)'],
+            ['field_key' => 'edit_button',                 'label' => 'Show Edit Button (Request List)'],
+            ['field_key' => 'delete_button',               'label' => 'Show Delete Button (Request List)'],
+            ['field_key' => 'direct_close',                'label' => 'Direct Close (skip Printing/Issuance, activate card immediately on approval)', 'default_enabled' => false],
+            ['field_key' => 'process_update_button',       'label' => 'Show Update Button (Process Detail)'],
+            ['field_key' => 'process_reject_button',       'label' => 'Show Reject Button (Process Detail)'],
+            ['field_key' => 'process_upload_photo_button', 'label' => 'Show Upload Photo Button (Process Detail)'],
+            ['field_key' => 'process_rfid_section',        'label' => 'Show Physical Card / RFID Section (Process Detail)'],
+            ['field_key' => 'printing_generate_button',    'label' => 'Show Print / Generate Serial Buttons (Printing List)'],
+            ['field_key' => 'issuance_issue_button',       'label' => 'Show Issue Card Button (Issuance List)'],
+            ['field_key' => 'closed_export_button',        'label' => 'Show Export Button (Closed List)'],
+            ['field_key' => 'closed_card_details_button',  'label' => 'Show Card Details Button (Closed List)'],
+            ['field_key' => 'renew_button',                'label' => 'Show Renew Button (Closed List)'],
+            ['field_key' => 'card_info_add_license_button',   'label' => 'Show Add License Button (Card Info)'],
+            ['field_key' => 'card_info_edit_location_button', 'label' => 'Show Edit Location Access Button (Card Info)'],
+            ['field_key' => 'card_info_activate_button',      'label' => 'Show Activate Card Button (Card Info)'],
+            ['field_key' => 'card_info_terminate_button',     'label' => 'Show Terminate Card Button (Card Info)'],
+            ['field_key' => 'suspend_button',                 'label' => 'Show Suspend / Unsuspend Button (Card Info)'],
         ];
     }
 

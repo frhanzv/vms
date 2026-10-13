@@ -366,7 +366,7 @@ class StaffPipeline extends StaffPassBase
             'canRequest'     => $this->cfg('request_button'),
             // Same header buttons as the Staff List.
             'canImport'      => $this->canEdit() && $this->cfg('import_button'),
-            'canTemplate'    => $this->canEdit() && $this->cfg('import_button'),
+            'canTemplate'    => $this->canEdit() && $this->cfg('template_button'),
             'searchTerm'     => $search,
             'sortBy'         => $sortBy,
             'filters'        => $f,

@@ -17,7 +17,7 @@ use App\Models\ClientFormFieldModel;
  * Safe to re-run: uses ON DUPLICATE KEY UPDATE.
  *
  * Fields with default_enabled = false are seeded as is_enabled = 0:
- *   staff_pass_request  → csp_number, evetting, print_button
+ *   staff_pass_request  → csp_number, evetting, print_button, direct_close
  *   visitor_pass_request → company_details
  */
 class ClientFormFieldsSeeder extends Seeder

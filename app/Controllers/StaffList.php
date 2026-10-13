@@ -160,7 +160,7 @@ class StaffList extends StaffPassBase
             'canDelete'     => $rm && has_access('staff_pass_list', 'delete') && $this->cfg('delete_button'),
             'canRequest'    => ! $rm && $this->cfg('request_button'),
             'canImport'     => ! $rm && $this->canEdit() && $this->cfg('import_button'),
-            'canTemplate'   => ! $rm && $this->canEdit() && $this->cfg('import_button'),
+            'canTemplate'   => ! $rm && $this->canEdit() && $this->cfg('template_button'),
             'canExport'     => ! $rm && $this->cfg('export_button'),
             'showPrintButton' => ! $rm && $this->cfg('print_button') && has_access('staff_pass_list', 'print'),
             'searchTerm'    => $search,

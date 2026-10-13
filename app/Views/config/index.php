@@ -2275,70 +2275,6 @@
                     </div>
                 </div>
 
-                <!-- Vehicle Types -->
-                <?php helper('feature'); if (client_feature_enabled('vehicle_pass')): ?>
-                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
-                    <button onclick="toggleSection('vehicletype')"
-                        class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
-                        <div class="flex items-center gap-4">
-                            <div class="p-2 bg-primary/10 rounded-lg"><span class="material-symbols-outlined text-primary text-xl">directions_car</span></div>
-                            <div class="text-left">
-                                <h3 class="text-base font-bold text-gray-800 dark:text-white">Vehicle Types</h3>
-                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Add, edit or delete vehicle types and the extra details each one asks for</p>
-                            </div>
-                        </div>
-                        <span id="vehicletype-icon" class="material-symbols-outlined text-gray-400 dark:text-slate-400 transition-transform">expand_more</span>
-                    </button>
-                    <div id="vehicletype-content" class="hidden border-t border-gray-200 dark:border-slate-700">
-                        <div class="p-6 bg-gray-50 dark:bg-slate-800/50 space-y-5">
-                            <form id="vtForm" onsubmit="saveVehicleType(event)" class="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 space-y-3">
-                                <input type="hidden" id="vtId" value="">
-                                <h4 id="vtFormTitle" class="text-sm font-bold text-gray-800 dark:text-white">Add Vehicle Type</h4>
-                                <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-                                    <div><label class="block text-xs font-semibold text-gray-600 dark:text-slate-300 mb-1">Name</label>
-                                        <input id="vtName" maxlength="100" placeholder="e.g. Car" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm"></div>
-                                    <div><label class="block text-xs font-semibold text-gray-600 dark:text-slate-300 mb-1">Category</label>
-                                        <select id="vtCategory" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm">
-                                            <option value="car">Car</option><option value="motorbike">Motorbike</option><option value="van">Van</option><option value="truck">Truck / Lorry</option><option value="other">Other</option></select></div>
-                                    <div><label class="block text-xs font-semibold text-gray-600 dark:text-slate-300 mb-1">Used for</label>
-                                        <select id="vtGroup" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm">
-                                            <option value="both">Public and Cargo | Non-Cargo</option><option value="public">Public only</option><option value="cnc">Cargo | Non-Cargo only</option></select></div>
-                                    <div><label class="block text-xs font-semibold text-gray-600 dark:text-slate-300 mb-1">Operation (Cargo | Non-Cargo)</label>
-                                        <select id="vtOperation" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm">
-                                            <option value="">Any operation</option><option>CONTAINER</option><option>CARGO AND NON-CARGO</option><option>NON-CARGO</option><option>CONTAINER, CARGO AND NON-CARGO</option></select></div>
-                                    <div><label class="block text-xs font-semibold text-gray-600 dark:text-slate-300 mb-1">Status</label>
-                                        <select id="vtStatus" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm">
-                                            <option value="active">Active</option><option value="inactive">Inactive</option></select></div>
-                                </div>
-                                <div>
-                                    <p class="text-xs font-semibold text-gray-600 dark:text-slate-300 mb-2">Extra details required on the request form</p>
-                                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-gray-700 dark:text-slate-300">
-                                        <label class="flex items-center gap-2"><input type="checkbox" data-vt="seater_req"> Seater Number</label>
-                                        <label class="flex items-center gap-2"><input type="checkbox" data-vt="working_height_req"> Working Height</label>
-                                        <label class="flex items-center gap-2"><input type="checkbox" data-vt="working_load_req"> Working Load</label>
-                                        <label class="flex items-center gap-2"><input type="checkbox" data-vt="truck_head_req"> Truck Head Number</label>
-                                        <label class="flex items-center gap-2"><input type="checkbox" data-vt="trailer_req"> Trailer Number</label>
-                                        <label class="flex items-center gap-2"><input type="checkbox" data-vt="truck_weight_req"> Truck Weight</label>
-                                        <label class="flex items-center gap-2"><input type="checkbox" data-vt="chassis_req"> Chassis Number</label>
-                                        <label class="flex items-center gap-2"><input type="checkbox" data-vt="trailer_weight_req"> Trailer Weight</label>
-                                        <label class="flex items-center gap-2"><input type="checkbox" data-vt="trailer_type_req"> Trailer Type (20/40/45 Ft)</label>
-                                    </div>
-                                </div>
-                                <div class="flex flex-wrap gap-6 text-sm text-gray-700 dark:text-slate-300">
-                                    <label class="flex items-center gap-2"><input type="checkbox" data-vt="payment_required"> Payment required before the sticker is issued</label>
-                                    <label class="flex items-center gap-2"><input type="checkbox" data-vt="duplicate_plate_ok"> Allow the same plate number on more than one pass</label>
-                                </div>
-                                <div class="flex gap-2">
-                                    <button type="submit" id="vtSaveBtn" class="px-4 py-2 rounded-lg bg-primary text-white hover:bg-blue-600 text-sm font-semibold">Save</button>
-                                    <button type="button" onclick="resetVehicleTypeForm()" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-sm text-gray-700 dark:text-slate-200">Clear</button>
-                                </div>
-                            </form>
-                            <div id="vtList"><p class="text-sm text-gray-500">Loading...</p></div>
-                        </div>
-                    </div>
-                </div>
-                <?php endif; ?>
-
                 <!-- Designation Management -->
                 <div
                     class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
@@ -4630,7 +4566,8 @@
                 </div>
                 <?php endif; ?>
 
-                <?php if (is_platform_superadmin(session()->get('role'))): ?>
+                <?php helper(['role', 'access']); ?>
+                <?php if (client_config_section_allowed('client_features')): ?>
                 <!-- Client Features -->
                 <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('clientfeatures')"
@@ -4684,6 +4621,9 @@
                     </div>
                 </div>
 
+                <?php endif; ?>
+
+                <?php if (client_config_section_allowed('dynamic_form_fields')): ?>
                 <!-- Dynamic Form Fields -->
                 <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('dynformfields')"
@@ -4776,7 +4716,7 @@
                 </div>
                 <?php endif; ?>
 
-                <?php helper(['role', 'list_columns']); $psAllowed = is_platform_superadmin(session()->get('role')) || is_client_superadmin(); ?>
+                <?php helper(['role', 'list_columns']); $psAllowed = client_config_section_allowed('page_settings'); ?>
                 <?php if ($psAllowed): ?>
                 <!-- Page Settings (columns + buttons per page; Dynamic Form Fields above is for forms only) -->
                 <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
@@ -5317,6 +5257,15 @@
                                         <input type="checkbox" name="access[staff_pass_list][delete]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Delete
                                     </label>
                                     <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[staff_pass_list][approve]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Approve
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[staff_pass_list][reject]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Reject
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[staff_pass_list][manage_locations]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Manage Locations
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                                         <input type="checkbox" name="access[staff_pass_list][print]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Print
                                     </label>
                                 </div>
@@ -5374,6 +5323,9 @@
                                     </label>
                                     <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                                         <input type="checkbox" name="access[report][vendor_report]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Vendor Report
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[report][staff_report]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Staff Report
                                     </label>
                                     <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                                         <input type="checkbox" name="access[report][vehicle_sticker_summary]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Vehicle Sticker Summary Report
@@ -5480,6 +5432,15 @@
                                     </label>
                                     <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                                         <input type="checkbox" name="access[config][reject_reason]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Reject Reason
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[config][client_features]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Client Features
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[config][dynamic_form_fields]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Dynamic Form Fields
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[config][page_settings]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Page Settings
                                     </label>
                                 </div>
                             </div>
@@ -5887,9 +5848,6 @@
                 }
                 if (section === 'importtemplate') {
                     loadImportTemplate();
-                }
-                if (section === 'vehicletype') {
-                    loadVehicleTypes();
                 }
                 // Load email templates when Email Template section is opened
                 if (section === 'email-template') {
@@ -8052,60 +8010,6 @@
                 .finally(() => { btn.disabled = false; btn.textContent = 'Upload'; });
         }
         function resetImportTemplate() { if (confirm('Go back to the default template?')) itPost(`<?= base_url('config/import-template/reset') ?>`, new FormData()); }
-
-        // ---------------- Vehicle Types ----------------
-        let vtRows = [];
-        const vtFlags = () => Array.from(document.querySelectorAll('#vtForm [data-vt]'));
-        function loadVehicleTypes() {
-            fetch(`<?= base_url('config/vehicle-types') ?>`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(r => r.json())
-                .then(res => { vtRows = res.data || []; renderVehicleTypes(); })
-                .catch(() => { document.getElementById('vtList').innerHTML = '<p class="text-sm text-red-500">Could not load vehicle types.</p>'; });
-        }
-        function renderVehicleTypes() {
-            const box = document.getElementById('vtList');
-            if (!vtRows.length) { box.innerHTML = '<p class="text-sm text-gray-500">No vehicle types yet. Add one above.</p>'; return; }
-            const extras = { seater_req: 'Seater', working_height_req: 'Height', working_load_req: 'Load', truck_head_req: 'Truck head', trailer_req: 'Trailer', truck_weight_req: 'Weight', chassis_req: 'Chassis', trailer_weight_req: 'Trailer wt', trailer_type_req: 'Trailer type' };
-            box.innerHTML = `<div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800"><table class="w-full text-left text-sm">
-                <thead><tr class="bg-gray-50 dark:bg-slate-700 text-xs uppercase text-gray-600 dark:text-slate-200"><th class="p-3">Name</th><th class="p-3">Category</th><th class="p-3">Used for</th><th class="p-3">Extra details</th><th class="p-3">Payment</th><th class="p-3">Status</th><th class="p-3"></th></tr></thead><tbody>` +
-                vtRows.map(r => {
-                    const ex = Object.keys(extras).filter(k => +r[k] === 1).map(k => extras[k]).join(', ') || '-';
-                    const acts = r.editable ? `<button type="button" onclick="editVehicleType(${r.id})" class="text-primary text-xs font-semibold mr-3">Edit</button><button type="button" onclick="deleteVehicleType(${r.id})" class="text-red-600 text-xs font-semibold">Delete</button>` : '<span class="text-xs text-gray-400">Shared</span>';
-                    return `<tr class="border-t border-gray-100 dark:border-slate-700 text-gray-700 dark:text-slate-200"><td class="p-3 font-medium">${escapeHtml(r.name)}</td><td class="p-3">${escapeHtml(r.category)}</td><td class="p-3">${({public:'Public',cnc:'Cargo | Non-Cargo'})[r.vehicle_group] || 'Both'}</td><td class="p-3">${escapeHtml(ex)}</td><td class="p-3">${+r.payment_required ? 'Required' : '-'}</td><td class="p-3">${escapeHtml(r.status)}</td><td class="p-3 whitespace-nowrap">${acts}</td></tr>`;
-                }).join('') + '</tbody></table></div>';
-        }
-        function resetVehicleTypeForm() {
-            document.getElementById('vtForm').reset(); document.getElementById('vtId').value = '';
-            document.getElementById('vtFormTitle').textContent = 'Add Vehicle Type';
-        }
-        function editVehicleType(id) {
-            const r = vtRows.find(x => +x.id === +id); if (!r) return;
-            document.getElementById('vtId').value = r.id; document.getElementById('vtName').value = r.name;
-            document.getElementById('vtCategory').value = r.category; document.getElementById('vtStatus').value = r.status;
-            document.getElementById('vtGroup').value = r.vehicle_group || 'both'; document.getElementById('vtOperation').value = r.operation || '';
-            vtFlags().forEach(c => c.checked = +r[c.dataset.vt] === 1);
-            document.getElementById('vtFormTitle').textContent = 'Edit Vehicle Type';
-            document.getElementById('vtName').focus();
-        }
-        function saveVehicleType(e) {
-            e.preventDefault();
-            const fd = new FormData();
-            fd.append('id', document.getElementById('vtId').value); fd.append('name', document.getElementById('vtName').value);
-            fd.append('category', document.getElementById('vtCategory').value); fd.append('status', document.getElementById('vtStatus').value);
-            fd.append('vehicle_group', document.getElementById('vtGroup').value); fd.append('operation', document.getElementById('vtOperation').value);
-            vtFlags().forEach(c => { if (c.checked) fd.append(c.dataset.vt, '1'); });
-            fetch(`<?= base_url('config/vehicle-types/save') ?>`, { method: 'POST', headers: ctHeaders(), body: fd })
-                .then(r => r.json())
-                .then(res => { showNotification(res.message, res.success ? 'success' : 'error'); if (res.success) { resetVehicleTypeForm(); loadVehicleTypes(); } })
-                .catch(() => showNotification('Something went wrong. Please try again.', 'error'));
-        }
-        function deleteVehicleType(id) {
-            if (!confirm('Delete this vehicle type?')) return;
-            fetch(`<?= base_url('config/vehicle-types') ?>/${id}/delete`, { method: 'POST', headers: ctHeaders(), body: new FormData() })
-                .then(r => r.json())
-                .then(res => { showNotification(res.message, res.success ? 'success' : 'error'); if (res.success) loadVehicleTypes(); })
-                .catch(() => showNotification('Something went wrong. Please try again.', 'error'));
-        }
 
         function openEditCompanyModal(companyId) {
             fetch(`<?= base_url('config/getCompany') ?>/${companyId}`)
@@ -18517,7 +18421,7 @@
                     dffFields[formType] = {};
                     dffLabels[formType] = {};
                     res.fields.forEach(f => {
-                        if (formType === 'vendor_pass_request' && dffPageManagedKeys.includes(f.field_key)) return;
+                        if ((dffPageManagedKeys[formType] || []).includes(f.field_key)) return;
                         dffFields[formType][f.field_key] = {
                             enabled:    f.is_enabled == 1,
                             required:   f.is_required == 1,
