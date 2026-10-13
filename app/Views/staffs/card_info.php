@@ -42,7 +42,7 @@ $selectedLocations = array_map('strval', $selectedLocations);
             <div class="flex flex-wrap gap-2 mb-6">
                 <?php if ($canPrint): ?>
                     <?php if ($stage === 'process'): ?>
-                    <button onclick="staffPrintOne(<?= $id ?>)" class="bg-primary hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-1"><span class="material-icons text-sm">print</span>Print Card</button>
+                    <button onclick="staffPrintOne(<?= $id ?>, '', true)" class="bg-primary hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-1"><span class="material-icons text-sm">print</span>Print Card</button>
                     <?php else: ?>
                     <button onclick="openModal('reprintModal')" class="bg-primary hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-1"><span class="material-icons text-sm">print</span>Reprint Card</button>
                     <?php endif; ?>
@@ -64,6 +64,9 @@ $selectedLocations = array_map('strval', $selectedLocations);
                 <?php endif; ?>
                 <?php if ($canReject): ?>
                 <button onclick="openModal('rejectModal')" class="border border-red-300 text-red-600 hover:bg-red-50 px-4 py-2 rounded text-sm font-medium">Reject</button>
+                <?php endif; ?>
+                <?php if ($canFinish ?? false): ?>
+                <button onclick="openScanCard()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-1" title="Scan the printed card to finish — moves the pass to the Issuance List"><span class="material-icons text-sm">task_alt</span>Finish</button>
                 <?php endif; ?>
             </div>
 
@@ -319,6 +322,33 @@ $selectedLocations = array_map('strval', $selectedLocations);
     </div>
 
     <!-- Reject -->
+    <?php if ($canFinish ?? false): ?>
+    <!-- Scan Card: Finish = link the real card and end the Process List (as on the Vendor Process detail) -->
+    <div id="scanCardModal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg w-full max-w-md">
+            <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
+                <h3 class="text-lg font-bold text-gray-800 dark:text-white">Scan Card</h3>
+                <button onclick="closeModal('scanCardModal')" class="text-gray-400 hover:text-gray-600"><span class="material-icons">close</span></button>
+            </div>
+            <div class="p-4 space-y-4">
+                <div>
+                    <label class="block text-sm mb-1"><span class="text-red-500">*</span> Pass No</label>
+                    <input id="sc_pass_no" value="<?= esc($passNoDefault ?? '', 'attr') ?>" class="<?= $input ?>"/>
+                </div>
+                <div>
+                    <label class="block text-sm mb-1"><span class="text-red-500">*</span> Card ID</label>
+                    <input id="sc_card_id" autocomplete="off" placeholder="Tap the card on the reader" class="<?= $input ?>" onkeydown="if (event.key === 'Enter') { finishReadCard(document.getElementById('scFinishBtn')); }"/>
+                </div>
+                <p class="text-[11px] text-gray-400">Needs the photo, Staff No and Card Expiry, and the card printed. The pass then moves to the Issuance List.</p>
+            </div>
+            <div class="flex justify-end gap-2 p-4 border-t dark:border-gray-700">
+                <button onclick="closeModal('scanCardModal')" class="px-4 py-2 rounded border text-sm">Cancel</button>
+                <button id="scFinishBtn" onclick="finishReadCard(this)" class="px-5 py-2 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold">Read Card</button>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+
     <div id="rejectModal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg max-w-sm w-full p-6">
             <h3 class="text-lg font-bold mb-3">Reject Staff Pass</h3>
@@ -375,6 +405,19 @@ $selectedLocations = array_map('strval', $selectedLocations);
         function removeLicense(licId, btn) {
             if (!confirm('Remove this license?')) return;
             staffPostReload(BASE + '/delete-license/' + STAFF_ID + '/' + licId, {}, btn);
+        }
+        function openScanCard() {
+            openModal('scanCardModal');
+            setTimeout(() => document.getElementById('sc_card_id').focus(), 50);
+        }
+        function finishReadCard(btn) {
+            const epc = document.getElementById('sc_card_id').value.trim();
+            const passNo = document.getElementById('sc_pass_no').value.trim();
+            if (!passNo || !epc) { alert('Pass No and Card ID are required.'); return; }
+            staffPost(BASE + '/finish/' + STAFF_ID, { card_epc: epc, pass_no: passNo }, btn).then(d => {
+                if (d.message) alert(d.message);
+                if (d.success) location.href = d.redirect || '<?= base_url('staffs/process-list') ?>';
+            });
         }
         function bindCard(btn) {
             staffPostReload(BASE + '/read-card/' + STAFF_ID, { card_epc: document.getElementById('cardEpc').value.trim() }, btn);

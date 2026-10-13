@@ -168,15 +168,25 @@ class StaffPipeline extends StaffPassBase
             return $this->fail('Staff No Missing.');
         }
 
-        $db        = $this->db();
-        $isReprint = ! empty($staff['receipt_no']);
-        $serial    = $staff['receipt_no'];
-        if (! $isReprint) {
-            $serial = $this->nextSerialNo();
-            $db->table('staff')->where('id', (int) $id)->update($this->onlyColumns(['receipt_no' => $serial, 'updated_at' => date('Y-m-d H:i:s')]));
+        $db = $this->db();
+        // From the Process detail page (defer) the serial is only saved when Finish
+        // (Scan Card) is pressed, so printing there keeps the pass in the Process List —
+        // same as the Vendor Process detail. The Printing List saves it straight away.
+        $in      = $this->input();
+        $defer   = ! empty($in['defer']);
+        $lastLog = $db->tableExists('staff_card_print_logs')
+            ? $db->table('staff_card_print_logs')->where('staff_id', (int) $id)->orderBy('id', 'DESC')->get()->getRowArray()
+            : null;
+        $serial    = $staff['receipt_no'] ?: ($defer ? ($lastLog['receipt_no'] ?? null) : null);
+        $isReprint = ! empty($serial);
+        if (empty($serial)) {
+            $serial = $this->nextSerialNo((int) $id);
+            if (! $defer) {
+                $db->table('staff')->where('id', (int) $id)->update($this->onlyColumns(['receipt_no' => $serial, 'updated_at' => date('Y-m-d H:i:s')]));
+            }
         }
 
-        $reason = trim((string) ($this->input()['reason'] ?? ''));
+        $reason = trim((string) ($in['reason'] ?? ''));
         if ($db->tableExists('staff_card_print_logs')) {
             $db->table('staff_card_print_logs')->insert([
                 'staff_id'   => (int) $id,
@@ -205,16 +215,27 @@ class StaffPipeline extends StaffPassBase
     }
 
     /** <YYYYMM><running no> — same serial scheme as the vendor cards, own sequence. */
-    private function nextSerialNo(): string
+    private function nextSerialNo(int $forStaffId = 0): string
     {
         $prefix = 'S' . date('Ym');
         $count  = (int) $this->db()->table('staff')->like('receipt_no', $prefix, 'after')->countAllResults();
         $serial = $prefix . str_pad((string) ($count + 1), 4, '0', STR_PAD_LEFT);
-        while ($this->db()->table('staff')->where('receipt_no', $serial)->countAllResults() > 0) {
+        while ($this->serialTaken($serial, $forStaffId)) {
             $count++;
             $serial = $prefix . str_pad((string) ($count + 1), 4, '0', STR_PAD_LEFT);
         }
         return $serial;
+    }
+
+    /** A serial is taken if a pass holds it, or another pass printed it and has not finished yet. */
+    private function serialTaken(string $serial, int $forStaffId): bool
+    {
+        $db = $this->db();
+        if ($db->table('staff')->where('receipt_no', $serial)->countAllResults() > 0) {
+            return true;
+        }
+        return $db->tableExists('staff_card_print_logs')
+            && $db->table('staff_card_print_logs')->where('receipt_no', $serial)->where('staff_id !=', $forStaffId)->countAllResults() > 0;
     }
 
     // ------------------------------------------------------------------

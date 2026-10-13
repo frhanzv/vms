@@ -54,6 +54,9 @@ class StaffCardInfo extends StaffPassBase
             'departments'       => $this->departmentNames(),
             'canEdit'           => $edit && $this->cfg('process_update_button'),
             'canReject'         => $edit && $this->cfg('process_reject_button') && $stage === 'process',
+            // Finish (Scan Card) — end of the Process List, same as the Vendor Process detail.
+            'canFinish'         => $edit && $stage === 'process' && $staff['status'] === 'Approved',
+            'passNoDefault'     => $this->passNoDefault($staff),
             'canUploadPhoto'    => $edit && $this->cfg('process_upload_photo_button'),
             'canPrint'          => $edit && $this->cfg('printing_generate_button') && $staff['status'] === 'Approved' && in_array($stage, ['process', 'issuance', 'closed'], true),
             'canBindCard'       => $edit && $this->cfg('process_rfid_section'),
@@ -193,6 +196,90 @@ class StaffCardInfo extends StaffPassBase
         $this->db()->table('staff')->where('id', (int) $id)->update($this->onlyColumns(['photo' => $name, 'updated_at' => date('Y-m-d H:i:s')]));
 
         return $this->ok('Photo saved.', ['photo_url' => base_url('uploads/staff_photos/' . $name)]);
+    }
+
+    /** Pass No shown in the Scan Card box: the serial printed on the card, else staff no / app no. */
+    private function passNoDefault(array $staff): string
+    {
+        $logs = $this->printLogs((int) $staff['id']);
+        return (string) (($logs[0]['receipt_no'] ?? '') ?: ($staff['receipt_no'] ?? '') ?: ($staff['staff_no'] ?? '') ?: ($staff['app_no'] ?? ''));
+    }
+
+    /**
+     * Finish = end of the Process List (Vendor Process detail's Scan Card):
+     * needs the photo, Staff No, card expiry and a printed card; links the real
+     * RFID card and saves the Pass No, which moves the pass to the Issuance List.
+     */
+    public function finish($id)
+    {
+        if (! $this->canEdit()) {
+            return $this->fail('Not allowed.');
+        }
+        $staff = $this->loadScopedStaff((int) $id);
+        if (! $staff) {
+            return $this->fail('Record not found.');
+        }
+        if (($staff['status'] ?? '') !== 'Approved' || $this->stage($staff) !== 'process') {
+            return $this->fail('Only an approved pass that is still in the Process List can be finished.');
+        }
+        if (empty($staff['photo'])) {
+            return $this->fail('Upload the photo first.');
+        }
+        if (trim((string) ($staff['staff_no'] ?? '')) === '') {
+            return $this->fail('Staff No is missing.');
+        }
+        if (empty($staff['card_expiry']) || str_starts_with((string) $staff['card_expiry'], '0000')) {
+            return $this->fail('Please set the Card Expiry and press Update first.');
+        }
+        if (! $this->printLogs((int) $id)) {
+            return $this->fail('Print the card first.');
+        }
+
+        $in     = $this->input();
+        $epc    = trim((string) ($in['card_epc'] ?? ''));
+        $passNo = trim((string) ($in['pass_no'] ?? ''));
+        if ($passNo === '' || $epc === '') {
+            return $this->fail('Pass No and Card ID are required.');
+        }
+        $db = $this->db();
+        if ($db->table('staff')->where('receipt_no', $passNo)->where('id !=', (int) $id)->countAllResults() > 0) {
+            return $this->fail('Pass No ' . $passNo . ' is already used by another pass.');
+        }
+
+        $db->transStart();
+        $card = $db->table('visitor_cards')->where('card_id', $epc)->get()->getRowArray();
+        if (! $card) {
+            $db->table('visitor_cards')->insert([
+                'card_id'    => $epc,
+                'serial_no'  => 'AUTO-' . $epc,
+                'status'     => 'active',
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+            $card = $db->table('visitor_cards')->where('id', $db->insertID())->get()->getRowArray();
+        }
+        $locked = $db->query('SELECT * FROM visitor_cards WHERE id = ? FOR UPDATE', [$card['id']])->getRowArray();
+        if (! $locked || ($locked['status'] !== 'active' && (int) $locked['id'] !== (int) ($staff['card_id'] ?? 0))) {
+            $db->transRollback();
+            return $this->fail('This card is not available (status: ' . ($locked['status'] ?? 'unknown') . ').');
+        }
+        if (! empty($staff['card_id']) && (int) $staff['card_id'] !== (int) $locked['id']) {
+            $db->table('visitor_cards')->where('id', (int) $staff['card_id'])->where('status !=', 'lost')->update(['status' => 'active']);
+        }
+        $db->table('visitor_cards')->where('id', (int) $locked['id'])->update(['status' => 'in_use']);
+        $db->table('staff')->where('id', (int) $id)->update($this->onlyColumns([
+            'card_id'    => (int) $locked['id'],
+            'receipt_no' => $passNo,
+            'updated_at' => date('Y-m-d H:i:s'),
+        ]));
+        $db->transComplete();
+
+        if (! $db->transStatus()) {
+            return $this->fail('Could not finish — please try again.');
+        }
+        $this->logAction($staff, 'finish', $staff['status'], null, 'Pass No ' . $passNo . ', card ' . $epc);
+
+        return $this->ok('Card ' . $epc . ' linked — moved to Issuance List.', ['redirect' => base_url('staffs/process-list')]);
     }
 
     /** KPK readCard(): bind a physical RFID card from the shared visitor_cards pool. */

@@ -55,7 +55,7 @@
             ];
             $activeTab = $activeTab ?? '';
             ?>
-            <?php if ($showTabs ?? true): ?>
+            <?php if ($showTabs ?? false): // pipeline tabs removed — the sidebar has the same links (as on the Vendor pages) ?>
             <nav class="no-print flex flex-wrap gap-1 mb-6 border-b border-gray-200 dark:border-gray-700 -mt-2">
                 <?php foreach ($staffTabs as $path => [$label, $icon]): ?>
                 <a href="<?= base_url($path) ?>"

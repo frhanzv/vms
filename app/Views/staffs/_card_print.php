@@ -3,14 +3,15 @@
          only the person's details are printed on it. See public/assets/js/staff-card-print.js. */ ?>
 <script src="<?= base_url('assets/js/staff-card-print.js') ?>"></script>
 <script>
-    function staffGenerateSerial(id, reason) {
-        return staffPost('<?= base_url('staffs/printing-list/generate-serial/') ?>' + id, { reason: reason || '' });
+    // defer = print from the Process detail page: the serial is saved later by Finish.
+    function staffGenerateSerial(id, reason, defer) {
+        return staffPost('<?= base_url('staffs/printing-list/generate-serial/') ?>' + id, { reason: reason || '', defer: !!defer });
     }
     function staffPrintCards(cards) {
         StaffCardPrint.print(cards, () => location.reload());
     }
-    function staffPrintOne(id, reason) {
-        staffGenerateSerial(id, reason).then(d => {
+    function staffPrintOne(id, reason, defer) {
+        staffGenerateSerial(id, reason, defer).then(d => {
             if (!d.success) { if (d.message) alert(d.message); return; }
             staffPrintCards([d.card]);
         });
