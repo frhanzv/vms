@@ -292,15 +292,69 @@ class StaffPipeline extends StaffPassBase
         if ($name === '' || $ic === '') {
             return $this->fail('Please enter the collector\'s name and IC/passport before issuing the card.');
         }
-        $staff = $this->loadScopedStaff((int) $id);
-        if (! $staff) {
-            return $this->fail('Record not found.');
-        }
-        if (empty($staff['receipt_no'])) {
-            return $this->fail('This card has not been printed yet.');
+        $error = $this->issueOne((int) $id, $name, $ic);
+        if ($error !== null) {
+            return $this->fail($error);
         }
 
-        $this->db()->table('staff')->where('id', (int) $id)->update($this->onlyColumns([
+        return $this->ok('Card issued to ' . $name . ' — moved to Closed List.');
+    }
+
+    /**
+     * Confirm button (KPK issueCards()): issue every ticked card to one collector.
+     * Cards that can't be issued any more (already issued, not printed) are skipped
+     * and listed in the message.
+     */
+    public function issueSelected()
+    {
+        if (! $this->canEdit() || ! $this->cfg('issuance_issue_button')) {
+            return $this->fail('Not allowed.');
+        }
+        $in   = $this->input();
+        $name = trim((string) ($in['collector_name'] ?? ''));
+        $ic   = trim((string) ($in['collector_ic_passport'] ?? ''));
+        $ids  = array_values(array_unique(array_filter(array_map('intval', (array) ($in['ids'] ?? [])))));
+        if ($ids === []) {
+            return $this->fail('Please tick at least one card to issue.');
+        }
+        if ($name === '' || $ic === '') {
+            return $this->fail('Please enter the collector\'s name and IC/passport before issuing the cards.');
+        }
+
+        $issued  = 0;
+        $skipped = [];
+        foreach ($ids as $id) {
+            $error = $this->issueOne($id, $name, $ic);
+            if ($error === null) {
+                $issued++;
+            } else {
+                $skipped[] = '#' . $id . ': ' . $error;
+            }
+        }
+
+        $message = $issued . ' card' . ($issued === 1 ? '' : 's') . ' issued to ' . $name . ' — moved to Closed List.';
+        if ($skipped !== []) {
+            $message .= "\nSkipped:\n" . implode("\n", $skipped);
+        }
+
+        return $issued > 0 ? $this->ok($message, ['issued' => $issued, 'skipped' => count($skipped)]) : $this->fail($message);
+    }
+
+    /** Issue one printed card. Returns an error message, or null when issued. */
+    private function issueOne(int $id, string $name, string $ic): ?string
+    {
+        $staff = $this->loadScopedStaff($id);
+        if (! $staff) {
+            return 'Record not found.';
+        }
+        if (empty($staff['receipt_no'])) {
+            return 'This card has not been printed yet.';
+        }
+        if (($staff['status'] ?? '') !== 'Approved' || ($staff['card_status'] ?? '') !== 'Inactive') {
+            return 'This card is no longer waiting to be issued. Please refresh the list.';
+        }
+
+        $this->db()->table('staff')->where('id', $id)->update($this->onlyColumns([
             'card_status'           => 'Active',
             'collector_name'        => $name,
             'collector_ic_passport' => $ic,
@@ -312,7 +366,7 @@ class StaffPipeline extends StaffPassBase
         ]));
         $this->logAction($staff, 'issue', $staff['status'], null, 'Collected by ' . $name);
 
-        return $this->ok('Card issued to ' . $name . ' — moved to Closed List.');
+        return null;
     }
 
     // ------------------------------------------------------------------

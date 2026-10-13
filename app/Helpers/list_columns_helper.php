@@ -132,6 +132,7 @@ if (! function_exists('list_column_registry')) {
                 'group'   => 'Staff Pass',
                 'form'    => 'staff_pass_request',
                 'columns' => [
+                    'select'      => ['label' => 'Select (checkbox)', 'locked' => true],
                     'no'          => ['label' => 'No', 'locked' => true],
                     'receipt_no'  => ['label' => 'Card Serial'],
                     'app_no'      => ['label' => 'App No'],

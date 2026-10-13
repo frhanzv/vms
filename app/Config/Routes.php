@@ -457,6 +457,7 @@ $routes->group('', ['filter' => [$plusAdminOfficer, 'client_feature:staff_pass']
     $routes->post('staffs/printing-list/generate-serial/(:num)', 'StaffPipeline::generateSerial/$1');
     $routes->get('staffs/issuance-list', 'StaffPipeline::issuanceList');
     $routes->post('staffs/issuance-list/issue/(:num)', 'StaffPipeline::issue/$1');
+    $routes->post('staffs/issuance-list/issue-selected', 'StaffPipeline::issueSelected');
     $routes->get('staffs/closed-list', 'StaffPipeline::closedList');
     $routes->get('staffs/closed-list/export', 'StaffPipeline::closedExport');
 
