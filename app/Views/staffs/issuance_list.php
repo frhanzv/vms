@@ -90,16 +90,18 @@
     </div>
     <script>
         let issueIds = [];
-        function showIssueModal(ids, title, collector) {
+        // The collector is whoever comes to the counter (one person can collect for
+        // several staff), so both collector fields always start empty.
+        function showIssueModal(ids, title) {
             issueIds = ids;
             document.getElementById('issueFor').textContent = title;
-            document.getElementById('collectorName').value = collector;
+            document.getElementById('collectorName').value = '';
             document.getElementById('collectorIc').value = '';
             document.getElementById('issueModal').classList.remove('hidden');
+            document.getElementById('collectorName').focus();
         }
         function openIssue(btn) {
-            // Most staff collect their own card — prefill with the cardholder's name.
-            showIssueModal([btn.dataset.id], 'Card for ' + btn.dataset.name, btn.dataset.name);
+            showIssueModal([btn.dataset.id], 'Card for ' + btn.dataset.name);
         }
         // Confirm button: issue every ticked card to one collector (KPK issueCards()).
         function openIssueSelected() {
@@ -108,8 +110,7 @@
             const names = checked.map(cb => cb.dataset.name);
             showIssueModal(
                 checked.map(cb => cb.value),
-                checked.length === 1 ? 'Card for ' + names[0] : checked.length + ' cards: ' + names.join(', '),
-                checked.length === 1 ? names[0] : ''
+                checked.length === 1 ? 'Card for ' + names[0] : checked.length + ' cards: ' + names.join(', ')
             );
         }
         function submitIssue(btn) {
