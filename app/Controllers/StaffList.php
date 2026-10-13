@@ -214,9 +214,9 @@ class StaffList extends StaffPassBase
         $page     = (string) $this->request->getPost('list');
         $registry = list_column_registry();
         $clientId = (int) current_client_id();
-        $back     = base_url($page === 'staff_request_list' ? 'staffs/request-list' : 'staffs');
+        $back     = base_url(['staff_request_list' => 'staffs/request-list', 'staff_closed_list' => 'staffs/closed-list'][$page] ?? 'staffs');
 
-        if (! in_array($page, ['staff_pass_list', 'staff_request_list'], true) || ! isset($registry[$page])) {
+        if (! in_array($page, ['staff_pass_list', 'staff_request_list', 'staff_closed_list'], true) || ! isset($registry[$page])) {
             return redirect()->to(base_url('staffs'))->with('error', 'Unknown list.');
         }
         if ($clientId <= 0) {

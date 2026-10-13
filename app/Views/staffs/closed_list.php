@@ -11,15 +11,36 @@ $label    = 'block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1';
 
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                 <h1 class="text-xl md:text-2xl font-bold tracking-tight text-gray-800 dark:text-white uppercase">Staff Pass Closed List</h1>
-                <div class="flex gap-2">
+                <div class="no-print flex flex-wrap gap-2">
+                    <button type="button" onclick="document.getElementById('staffColumnsModal').classList.remove('hidden')"
+                        class="bg-[#535dec] hover:bg-[#4853e0] text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
+                        <span class="material-icons text-sm mr-1">visibility</span>
+                        Show/Hide Columns
+                    </button>
+                    <?php if ($canImport ?? false): ?>
+                    <button type="button" onclick="document.getElementById('uploadModal').classList.remove('hidden')" class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
+                        <span class="material-icons text-sm mr-1">add</span>
+                        Import
+                    </button>
+                    <?php endif; ?>
+                    <?php if ($canTemplate ?? false): ?>
+                    <button type="button" onclick="document.getElementById('reminderModal').classList.remove('hidden')"
+                        class="bg-primary hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
+                        <span class="material-icons text-sm mr-1">file_download</span>
+                        Template
+                    </button>
+                    <?php endif; ?>
                     <?php if ($canExport): ?>
-                    <a href="<?= base_url('staffs/closed-list/export') . ($exportQs ? '?' . $exportQs : '') ?>" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-1.5 shadow">
-                        <span class="material-symbols-outlined text-[18px]">download</span> Export
+                    <a href="<?= base_url('staffs/closed-list/export') . ($exportQs ? '?' . $exportQs : '') ?>"
+                        class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
+                        <span class="material-icons text-sm mr-1">file_upload</span>
+                        Export
                     </a>
                     <?php endif; ?>
                     <?php if ($canRequest ?? false): ?>
-                    <a href="<?= base_url('staffs/staffpassrequest') ?>" class="bg-primary hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-1.5 shadow">
-                        <span class="material-icons text-[18px]">add</span> Request
+                    <a href="<?= base_url('staffs/staffpassrequest') ?>" class="bg-primary hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
+                        <span class="material-icons text-sm mr-1">add</span>
+                        Request
                     </a>
                     <?php endif; ?>
                 </div>
@@ -185,8 +206,97 @@ $label    = 'block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1';
             </div>
 
 <?= view('staffs/_layout_bottom') ?>
+
+    <?php if ($canImport ?? false): ?>
+    <div id="uploadModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div class="flex items-center justify-between p-4 border-b dark:border-slate-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">UPLOAD FILE</h3>
+                <button onclick="document.getElementById('uploadModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600"><span class="material-icons">close</span></button>
+            </div>
+            <form action="<?= base_url('staff-pass/import') ?>" method="post" enctype="multipart/form-data">
+                <?= csrf_field() ?>
+                <div class="p-6">
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">Choose Excel File</label>
+                    <input name="upload_file" type="file" accept=".xlsx, .xls" required
+                        class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none dark:bg-slate-700 dark:border-slate-600"/>
+                    <p class="mt-2 text-xs text-gray-500">Only .xlsx or .xls files allowed. Download the Template first to see the expected columns. Imported staff are treated as HR-approved (as in KPK) and go straight to the Process List; a "Status" column of Active / Inactive sets the employee status.</p>
+                </div>
+                <div class="flex justify-end gap-2 p-4 border-t dark:border-slate-700">
+                    <button type="button" onclick="document.getElementById('uploadModal').classList.add('hidden')" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200">Cancel</button>
+                    <button type="submit" class="bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-2 rounded text-sm font-medium flex items-center transition-colors"><span class="material-icons text-sm mr-1">publish</span>Import</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <!-- Reminder Modal — shown before the Template downloads, same as the Vendor List. -->
+    <?php if ($canTemplate ?? false): ?>
+    <div id="reminderModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div class="flex items-center justify-between p-4 border-b dark:border-slate-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">REMINDER</h3>
+                <button onclick="document.getElementById('reminderModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600"><span class="material-icons">close</span></button>
+            </div>
+            <div class="p-6">
+                <ul class="list-disc pl-5 space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                    <li>Do not use dashes (-) in IC Number or Phone Number. Use only numbers.</li>
+                    <li>For Date of Birth and License Expiry, use the slash ( / ) format only (e.g., 24/06/2025). Do not use dots ( . )</li>
+                    <li>Location Access is mandatory and must match a location you can use.</li>
+                    <li>Each IC / Passport may appear only once, and not for a staff pass that already exists.</li>
+                    <li>Status column: Active or Inactive (blank = Active).</li>
+                </ul>
+            </div>
+            <div class="flex justify-end gap-2 p-4 border-t dark:border-slate-700">
+                <a href="<?= base_url('files/StaffTemplateNew.xlsx') ?>" download="StaffTemplateNew.xlsx" onclick="document.getElementById('reminderModal').classList.add('hidden')"
+                    class="bg-primary hover:bg-indigo-700 text-white px-6 py-2 rounded text-sm font-medium flex items-center transition-colors">
+                    <span class="material-icons text-sm mr-1">file_download</span>
+                    Download
+                </a>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <!-- Show/Hide Columns (same settings as Config > Page Settings) -->
+    <div id="staffColumnsModal" class="hidden fixed inset-0 z-[120] flex items-center justify-center p-4">
+        <div onclick="closeModal('staffColumnsModal')" class="absolute inset-0 bg-slate-900/55 dark:bg-black/65 cursor-pointer"></div>
+        <form method="POST" action="<?= base_url('staffs/saveColumnSettings') ?>" class="relative flex w-full max-w-[600px] flex-col rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+            <?= csrf_field() ?>
+            <input type="hidden" name="list" value="staff_closed_list"/>
+            <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4 dark:border-slate-700">
+                <h2 class="text-lg font-bold tracking-tight text-[#3b5998] dark:text-white">Show/Hide Columns</h2>
+                <button type="button" onclick="closeModal('staffColumnsModal')" class="text-slate-300 hover:text-slate-500"><span class="material-icons text-[20px]">close</span></button>
+            </div>
+            <div class="px-6 py-5 overflow-y-auto max-h-[60vh]">
+                <div class="mb-5 flex items-center gap-2">
+                    <input type="checkbox" id="selectAllStaffColumns" onchange="document.querySelectorAll('.staff-column-toggle:not(:disabled)').forEach(c => c.checked = this.checked)" class="rounded border-slate-300 text-[#535dec] focus:ring-[#535dec] h-4 w-4 cursor-pointer">
+                    <label for="selectAllStaffColumns" class="text-sm font-bold text-slate-700 dark:text-slate-300 cursor-pointer">Select All Columns</label>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-4">
+                    <?php foreach ((list_column_registry()['staff_closed_list']['columns'] ?? []) as $ckey => $cdef): $locked = ! empty($cdef['locked']); ?>
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" id="staff_col_<?= esc($ckey) ?>" <?= $locked ? 'disabled' : 'name="columns[' . esc($ckey) . ']" value="1"' ?>
+                               class="staff-column-toggle rounded border-slate-300 text-[#535dec] focus:ring-[#535dec] h-4 w-4 <?= $locked ? 'opacity-60' : 'cursor-pointer' ?>"
+                               <?= $col($ckey) ? 'checked' : '' ?>>
+                        <label for="staff_col_<?= esc($ckey) ?>" class="text-sm text-slate-600 dark:text-slate-300 uppercase <?= $locked ? '' : 'cursor-pointer' ?>">
+                            <?= esc($cdef['label']) ?><?= $locked ? ' <span class="normal-case text-xs text-slate-400">(always shown)</span>' : '' ?>
+                        </label>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 border-t-2 border-slate-100 bg-white px-6 py-4 dark:border-slate-700 dark:bg-slate-900 rounded-b-xl">
+                <button type="button" onclick="closeModal('staffColumnsModal')" class="rounded-md border border-slate-400 bg-slate-500 hover:bg-slate-600 px-5 py-2 text-sm font-semibold text-white transition-colors">Close</button>
+                <button type="submit" class="rounded-md bg-[#535dec] hover:bg-[#4853e0] px-5 py-2 text-sm font-semibold text-white shadow-md transition-colors">Apply Changes</button>
+            </div>
+        </form>
+    </div>
+
     <script>
         flatpickr('.flatpickr', { dateFormat: 'Y-m-d', allowInput: true });
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
     </script>
 </body>
 </html>

@@ -325,6 +325,9 @@ class StaffPipeline extends StaffPassBase
             'canCardDetails' => $this->cfg('closed_card_details_button'),
             'canRenew'       => $this->canEdit() && $this->cfg('renew_button'),
             'canRequest'     => $this->cfg('request_button'),
+            // Same header buttons as the Staff List.
+            'canImport'      => $this->canEdit() && $this->cfg('import_button'),
+            'canTemplate'    => $this->canEdit() && $this->cfg('import_button'),
             'searchTerm'     => $search,
             'sortBy'         => $sortBy,
             'filters'        => $f,
