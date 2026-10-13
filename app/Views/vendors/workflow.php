@@ -58,10 +58,14 @@ $table = function (array $rows, bool $on) use ($ownerCls) { ob_start(); ?>
                         <?php if (! $s['locked'] && ! $s['enforced']): ?><span class="ml-1 text-[11px] text-gray-400" title="Shown only for now">label only</span><?php endif; ?>
                     </td>
                     <td class="p-4"><div class="flex items-center gap-3">
-                        <button type="button" @click='edit = <?= esc(json_encode(['key' => $s['key'], 'name' => $s['name'], 'trigger' => $s['trigger']]), 'attr') ?>' class="text-gray-500 hover:text-primary" title="Edit"><span class="material-symbols-outlined text-[20px]">edit</span></button>
+                        <button type="button" @click='edit = <?= esc(json_encode(['key' => $s['key'], 'name' => $s['name'], 'trigger' => $s['trigger'], 'owner' => $s['owner'], 'custom' => $s['is_custom']]), 'attr') ?>' class="text-gray-500 hover:text-primary" title="Edit"><span class="material-symbols-outlined text-[20px]">edit</span></button>
                         <?php if (! $s['locked']): ?>
                         <form method="post" action="<?= base_url('vendor-workflow/toggle/' . $s['key']) ?>"><?= csrf_field() ?>
                             <button class="text-gray-500 hover:text-primary" title="<?= $on ? 'Turn off' : 'Turn on' ?>"><span class="material-symbols-outlined text-[24px]"><?= $on ? 'toggle_on' : 'toggle_off' ?></span></button></form>
+                        <?php endif; ?>
+                        <?php if ($s['is_custom'] && $s['own']): ?>
+                        <form method="post" action="<?= base_url('vendor-workflow/delete/' . $s['key']) ?>" onsubmit="return confirm('Delete this step?')"><?= csrf_field() ?>
+                            <button class="text-gray-500 hover:text-red-600" title="Delete"><span class="material-symbols-outlined text-[20px]">delete</span></button></form>
                         <?php endif; ?>
                     </div></td>
                 </tr>
@@ -78,8 +82,11 @@ $table = function (array $rows, bool $on) use ($ownerCls) { ob_start(); ?>
             <p class="text-gray-500 dark:text-gray-400 mt-1 max-w-2xl">The steps of a vendor pass, from company setup to the finished card, and who does each one.
                 <?= $platform ? 'You are editing the default used by every client without its own workflow.' : 'You are editing your own client\'s workflow.' ?></p>
         </div>
-        <form method="post" action="<?= base_url('vendor-workflow/reset') ?>" onsubmit="return confirm('Reset all steps to the default?')"><?= csrf_field() ?>
-            <button class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium">Reset to default</button></form>
+        <div class="flex items-center gap-2">
+            <form method="post" action="<?= base_url('vendor-workflow/reset') ?>" onsubmit="return confirm('Reset all steps to the default? Custom steps you added will be removed.')"><?= csrf_field() ?>
+                <button class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium">Reset to default</button></form>
+            <a href="<?= base_url('vendor-workflow/create') ?>" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-blue-700"><span class="material-symbols-outlined text-[18px]">edit</span>Edit Sequence</a>
+        </div>
     </div>
 
     <?php if (! $tableOk): ?><div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 text-amber-800 px-4 py-3 text-sm">Run <code>php spark migrate</code> first, so changes can be saved.</div><?php endif; ?>
@@ -96,12 +103,16 @@ $table = function (array $rows, bool $on) use ($ownerCls) { ob_start(); ?>
     <h2 class="text-xl font-bold mb-3">Inactive Workflows</h2>
     <div class="mb-8"><?= $table($inactive, false) ?></div>
     <?php endif; ?>
-    <p class="text-xs text-gray-500">The order is fixed because each step needs the one before it. Required steps cannot be turned off. Turning off <strong>Account Verification</strong> activates vendor accounts as soon as they register; turning off <strong>Card Photo</strong> or <strong>Card Printing</strong> stops the Process List from asking for them.</p>
+    <p class="text-xs text-gray-500">Use <strong>Edit Sequence</strong> to reorder the steps or add your own. The order is how the steps are listed and shown to the team; the vendor and staff pages themselves still follow the real flow (a card cannot be printed before it is approved). Steps you add are for tracking and do not block anything. Required steps cannot be turned off or deleted. Turning off <strong>Account Verification</strong> activates vendor accounts as soon as they register; turning off <strong>Card Photo</strong> or <strong>Card Printing</strong> stops the Process List from asking for them.</p>
 
     <div x-show="edit" x-cloak class="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
         <form method="post" :action="'<?= base_url('vendor-workflow/edit') ?>/' + (edit ? edit.key : '')" class="bg-white dark:bg-gray-800 rounded-xl shadow-lg w-full max-w-md p-6 space-y-3"><?= csrf_field() ?>
             <h3 class="text-lg font-bold">Edit Step</h3>
             <div><label class="block text-xs font-semibold mb-1">Name</label><input name="step_name" :value="edit && edit.name" maxlength="100" required class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded px-3 py-2 text-sm"/></div>
+            <div x-show="edit && edit.custom"><label class="block text-xs font-semibold mb-1">Done by</label>
+                <select name="owner" :disabled="!(edit && edit.custom)" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded px-3 py-2 text-sm">
+                    <?php foreach (\App\Libraries\VendorWorkflow::OWNERS as $o): ?><option value="<?= esc($o) ?>" :selected="edit && edit.owner === '<?= esc($o) ?>'"><?= esc($o) ?></option><?php endforeach; ?>
+                </select></div>
             <div><label class="block text-xs font-semibold mb-1">What happens</label><textarea name="trigger_event" rows="3" maxlength="255" x-text="edit && edit.trigger" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded px-3 py-2 text-sm"></textarea></div>
             <div class="flex justify-end gap-2 pt-2"><button type="button" @click="edit = null" class="px-4 py-2 rounded border border-gray-300 text-sm">Cancel</button><button class="px-4 py-2 rounded bg-primary text-white text-sm font-semibold">Save</button></div>
         </form>

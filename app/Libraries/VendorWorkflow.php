@@ -50,22 +50,42 @@ class VendorWorkflow
         self::$cache = [];
     }
 
-    /** Steps in order with the saved name / description / on-off applied. */
+    public const OWNERS = ['Staff', 'Vendor', 'Vendor / Staff'];
+
+    /** Steps in the saved sequence, with the saved name / description / on-off applied. Custom steps (added on Edit Sequence) are included. */
     public static function steps(BaseConnection $db, int $clientId): array
     {
         $own = $clientId > 0 ? self::rows($db, $clientId) : [];
         $def = self::rows($db, 0);
+        $keys = array_keys(self::STEPS);
+        foreach ([$def, $own] as $set) {
+            foreach ($set as $k => $r) {
+                if ((int) ($r['is_custom'] ?? 0) === 1 && ! in_array($k, $keys, true)) {
+                    $keys[] = $k;
+                }
+            }
+        }
         $out = [];
-        $n   = 0;
-        foreach (self::STEPS as $key => [$name, $owner, $trigger, $locked, $icon]) {
-            $row = $own[$key] ?? $def[$key] ?? null;
+        foreach ($keys as $i => $key) {
+            $row    = $own[$key] ?? $def[$key] ?? null;
+            $custom = ! isset(self::STEPS[$key]);
+            [$name, $owner, $trigger, $locked, $icon] = self::STEPS[$key] ?? ['', 'Staff', '', false, 'task_alt'];
+            $pick = static fn (string $f, $fallback) => (($own[$key][$f] ?? '') !== '' && ($own[$key][$f] ?? null) !== null) ? $own[$key][$f] : ((($def[$key][$f] ?? '') !== '' && ($def[$key][$f] ?? null) !== null) ? $def[$key][$f] : $fallback);
+            $sort = $own[$key]['sort_order'] ?? $def[$key]['sort_order'] ?? null;
             $out[] = [
-                'key' => $key, 'order' => ++$n, 'owner' => $owner, 'locked' => $locked, 'icon' => $icon, 'enforced' => in_array($key, self::ENFORCED, true),
-                'name' => ($own[$key]['step_name'] ?? '') !== '' ? $own[$key]['step_name'] : (($def[$key]['step_name'] ?? '') !== '' ? $def[$key]['step_name'] : $name),
-                'trigger' => ($own[$key]['trigger_event'] ?? '') !== '' ? $own[$key]['trigger_event'] : (($def[$key]['trigger_event'] ?? '') !== '' ? $def[$key]['trigger_event'] : $trigger),
+                'key' => $key, 'icon' => $icon, 'locked' => $locked, 'is_custom' => $custom, 'enforced' => in_array($key, self::ENFORCED, true),
+                'owner' => $custom ? $pick('owner', 'Staff') : $owner,
+                'name' => $pick('step_name', $name),
+                'trigger' => $pick('trigger_event', $trigger),
                 'is_active' => $locked ? true : (! $row || (int) $row['is_active'] === 1),
-                'custom' => $row !== null && ($own[$key] ?? null) !== null,
+                'own' => isset($own[$key]) || ($clientId === 0 && isset($def[$key])),
+                '_sort' => $sort === null ? $i + 1 : (int) $sort, '_i' => $i,
             ];
+        }
+        usort($out, static fn ($x, $y) => [$x['_sort'], $x['_i']] <=> [$y['_sort'], $y['_i']]);
+        foreach ($out as $n => &$r) {
+            $r['order'] = $n + 1;
+            unset($r['_sort'], $r['_i']);
         }
 
         return $out;
