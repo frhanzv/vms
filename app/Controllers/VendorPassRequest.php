@@ -21,9 +21,20 @@ class VendorPassRequest extends BaseController
         'Terengganu', 'W.P. Kuala Lumpur', 'W.P. Labuan', 'W.P. Putrajaya',
     ];
 
+    /** Vendor Workflow: with Pass Request off, vendor accounts cannot add passes (staff still can). */
+    private function requestClosed(): bool
+    {
+        helper('vendor_company');
+
+        return is_vendor_admin() && ! \App\Libraries\VendorWorkflow::enabled(\Config\Database::connect(), (int) current_company_id(), 'pass_request');
+    }
+
     public function index()
     {
         helper('feature');
+        if ($this->requestClosed()) {
+            return redirect()->to(base_url('vendors'))->with('error', 'Pass requests are turned off. Please contact the administrator.');
+        }
 
         $countryModel = new \App\Models\CountryModel();
         $countries    = $countryModel->where('status', 'Active')->orderBy('name', 'ASC')->findAll();
@@ -46,6 +57,9 @@ class VendorPassRequest extends BaseController
     {
         helper('feature');
         $db = \Config\Database::connect();
+        if ($this->requestClosed()) {
+            return redirect()->to(base_url('vendors'))->with('error', 'Pass requests are turned off. Please contact the administrator.');
+        }
 
         $appNo = trim($this->request->getPost('app_no') ?? '');
         if (empty($appNo)) {
@@ -99,8 +113,11 @@ class VendorPassRequest extends BaseController
         $this->saveDrivingLicenses($vendorId);
         \App\Libraries\VendorClientApprovals::sync($db, (int) $vendorId, $isDraft ? '' : (string) $formData['location_access']);
 
+        // Vendor Workflow: Pass Approval off -> approved the moment it is submitted.
+        $auto = ! $isDraft && \App\Libraries\VendorWorkflow::autoApprove($db, (int) $vendorId, (int) $formData['company_id']);
+
         return redirect()->to(base_url('vendors'))
-            ->with('success', $isDraft ? 'Vendor pass request saved as draft.' : 'Vendor pass request submitted successfully.');
+            ->with('success', $isDraft ? 'Vendor pass request saved as draft.' : ($auto ? 'Vendor pass request submitted and approved automatically.' : 'Vendor pass request submitted successfully.'));
     }
 
     public function view($id)
@@ -227,6 +244,10 @@ class VendorPassRequest extends BaseController
         // A rejected pass that is edited and resubmitted starts a fresh round for every client.
         if (! $isDraft && ($current['status'] ?? '') === 'Rejected' && ($formData['status'] ?? '') === 'Pending') {
             \App\Libraries\VendorClientApprovals::resetAll($db, (int) $id);
+        }
+        // Vendor Workflow: Pass Approval off -> a submitted pass is approved straight away.
+        if (! $isDraft && ($formData['status'] ?? '') === 'Pending') {
+            \App\Libraries\VendorWorkflow::autoApprove($db, (int) $id, (int) ($current['company_id'] ?? 0) ?: (int) current_company_id());
         }
 
         return redirect()->to(base_url('vendors'))

@@ -12,20 +12,20 @@ use CodeIgniter\Database\BaseConnection;
  */
 class VendorWorkflow
 {
-    /** key => [name, owner, trigger, locked (cannot be turned off), icon] — the order is fixed: each step needs the one before. */
+    /** key => [name, owner, trigger, locked (always false: every step can be turned off), icon]. The order only decides how the steps are listed. */
     public const STEPS = [
-        'company_setup'        => ['Company Setup',        'Staff',          'Staff creates the vendor company and invites it',               true,  'domain_add'],
-        'vendor_registration'  => ['Vendor Registration',  'Vendor',         'Vendor registers with its company link',                         true,  'how_to_reg'],
-        'account_verification' => ['Account Verification', 'Staff',          'Staff verifies the vendor account so it can log in',             false, 'verified_user'],
-        'pass_request'         => ['Pass Request',         'Vendor / Staff', 'Vendor requests its employee passes (staff can do it for them)', true,  'assignment'],
-        'pass_approval'        => ['Pass Approval',        'Staff',          'Staff approve or reject the employee pass request',              true,  'fact_check'],
-        'card_processing'      => ['Card Processing',      'Staff',          'Staff add the card photo, save the card details and print the card', true, 'badge'],
-        'card_issuance'        => ['Card Issuance',        'Staff',          'Staff hand the card to the collector',                            true,  'qr_code_2'],
-        'completion'           => ['Completion',           'Staff',          'Pass is closed and the card is active',                           true,  'check_circle'],
+        'company_setup'        => ['Company Setup',        'Staff',          'Staff creates the vendor company and invites it', false,  'domain_add'],
+        'vendor_registration'  => ['Vendor Registration',  'Vendor',         'Vendor registers with its company link', false,  'how_to_reg'],
+        'account_verification' => ['Account Verification', 'Staff',          'Staff verifies the vendor account so it can log in', false, 'verified_user'],
+        'pass_request'         => ['Pass Request',         'Vendor / Staff', 'Vendor requests its employee passes (staff can do it for them)', false, 'assignment'],
+        'pass_approval'        => ['Pass Approval',        'Staff',          'Staff approve or reject the employee pass request', false,  'fact_check'],
+        'card_processing'      => ['Card Processing',      'Staff',          'Staff add the card photo, save the card details and print the card', false, 'badge'],
+        'card_issuance'        => ['Card Issuance',        'Staff',          'Staff hand the card to the collector', false,  'qr_code_2'],
+        'completion'           => ['Completion',           'Staff',          'Pass is closed and the card is active', false,  'check_circle'],
     ];
 
-    /** Steps whose on/off really changes behaviour today. */
-    public const ENFORCED = ['account_verification'];
+    /** Steps whose on/off really changes behaviour (completion is only a label: every pass still ends in the Closed List). */
+    public const ENFORCED = ['company_setup', 'vendor_registration', 'account_verification', 'pass_request', 'pass_approval', 'card_processing', 'card_issuance'];
 
     private static array $cache = [];
 
@@ -98,5 +98,53 @@ class VendorWorkflow
         $row = (($clientId > 0 ? self::rows($db, $clientId)[$key] ?? null : null)) ?? (self::rows($db, 0)[$key] ?? null);
 
         return ! $row || (int) $row['is_active'] === 1;
+    }
+
+    /** Does the client use this step? (same as enabled(), named for readability at call sites) */
+    public static function on(BaseConnection $db, int $clientId, string $key): bool
+    {
+        return self::enabled($db, $clientId, $key);
+    }
+
+    /** Extra columns for a pass that has just been approved: with no card steps at all the pass is complete (card Active) right away. */
+    public static function approvedUpdate(BaseConnection $db, int $clientId): array
+    {
+        return (! self::enabled($db, $clientId, 'card_processing') && ! self::enabled($db, $clientId, 'card_issuance')) ? ['card_status' => 'Active'] : [];
+    }
+
+    /** Pass Approval switched off: a freshly submitted (Pending) pass is approved on the spot. */
+    public static function autoApprove(BaseConnection $db, int $vendorId, int $clientId): bool
+    {
+        if (self::enabled($db, $clientId, 'pass_approval')) {
+            return false;
+        }
+        $db->table('vendors')->where('id', $vendorId)->where('status', 'Pending')
+            ->update(['status' => 'Approved', 'next_action' => null, 'reject_reason' => null] + self::approvedUpdate($db, $clientId));
+        $db->table('vendor_client_approvals')->where('vendor_id', $vendorId)->update(['status' => 'Approved', 'updated_at' => date('Y-m-d H:i:s')]);
+
+        return true;
+    }
+
+    /**
+     * Card steps were switched off: move passes that are already in flight to where they now belong, so none is left
+     * waiting at a step that no longer exists. Turning a step back on never undoes this (an issued card stays issued).
+     * Safe to run again.
+     *
+     * @param int[] $clientIds
+     */
+    public static function settle(BaseConnection $db, array $clientIds): void
+    {
+        foreach ($clientIds as $cid) {
+            $proc = self::enabled($db, (int) $cid, 'card_processing');
+            $iss  = self::enabled($db, (int) $cid, 'card_issuance');
+            if ($iss) {
+                continue;
+            }
+            $b = $db->table('vendors')->where('company_id', (int) $cid)->where('status', 'Approved')->where('card_status', 'Inactive');
+            if ($proc) { // processing stays: only cards already printed skip the issuance step
+                $b->where("receipt_no IS NOT NULL AND receipt_no <> ''", null, false);
+            }
+            $b->update(['card_status' => 'Active']);
+        }
     }
 }

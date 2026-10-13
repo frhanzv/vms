@@ -285,6 +285,10 @@ class Auth extends BaseController
         if ($company && ! $client) {
             $errors[] = 'Your company has no Location Access assigned yet. Please contact the administrator.';
         }
+        // Vendor Workflow: the client has switched Vendor Registration off.
+        if ($client && ! \App\Libraries\VendorWorkflow::enabled(\Config\Database::connect(), (int) $client['id'], 'vendor_registration')) {
+            $errors[] = 'Vendor registration is not open. Please contact the administrator.';
+        }
 
         $userModel = new UserModel();
         if ($company && $this->companyHasAccount($company)) {

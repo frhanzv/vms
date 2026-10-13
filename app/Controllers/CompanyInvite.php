@@ -31,6 +31,9 @@ class CompanyInvite extends BaseController
         }
 
         $client = is_platform_superadmin() ? null : (new \App\Models\ClientModel())->find((int) current_company_id());
+        if (! \App\Libraries\VendorWorkflow::enabled(\Config\Database::connect(), (int) ($client['id'] ?? $company['client_id'] ?? 0), 'company_setup')) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Company Setup is turned off in Vendor Workflow, so invitations are not sent.']);
+        }
         [$ok, $msg] = VendorInviteMailer::invite($company, $client);
 
         return $this->response->setJSON(['success' => $ok, 'message' => $msg]);

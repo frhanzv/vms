@@ -45,6 +45,10 @@ class VendorPrintingList extends BaseController
                 ->where('receipt_no', null)
                 ->orWhere('receipt_no', '')
             ->groupEnd();
+        // Vendor Workflow: Card Processing off -> nothing waits here.
+        if (! \App\Libraries\VendorWorkflow::enabled($db, (int) current_company_id(), 'card_processing')) {
+            $builder->where('1 = 0', null, false);
+        }
 
         helper('vendor_client_scope');
         vendor_client_scope($builder);

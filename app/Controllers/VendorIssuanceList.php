@@ -39,8 +39,14 @@ class VendorIssuanceList extends BaseController
 
         $builder = $db->table('vendors')
             ->where('status', 'Approved')
-            ->where('card_status', 'Inactive')
-            ->where('receipt_no IS NOT NULL', null, false);
+            ->where('card_status', 'Inactive');
+        // Vendor Workflow: the card is printed first only when Card Processing is on; with it off (reusable cards) approved passes come straight here.
+        if (\App\Libraries\VendorWorkflow::enabled($db, (int) current_company_id(), 'card_processing')) {
+            $builder->where('receipt_no IS NOT NULL', null, false);
+        }
+        if (! \App\Libraries\VendorWorkflow::enabled($db, (int) current_company_id(), 'card_issuance')) {
+            $builder->where('1 = 0', null, false);
+        }
 
         helper('vendor_client_scope');
         vendor_client_scope($builder);

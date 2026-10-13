@@ -38,9 +38,9 @@
                         <span class="material-symbols-outlined text-[18px]">download</span> Export
                     </button>
                     <?php endif; ?>
-                    <a href="<?= base_url('vendors/vendorpassrequest') ?>" class="bg-primary hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-1.5 shadow">
+                    <?php helper('vendor_company'); if (! is_vendor_admin() || \App\Libraries\VendorWorkflow::enabled(\Config\Database::connect(), (int) current_company_id(), 'pass_request')): ?><a href="<?= base_url('vendors/vendorpassrequest') ?>" class="bg-primary hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-1.5 shadow">
                         <span class="material-icons text-[18px]">add</span> Request
-                    </a>
+                    </a><?php endif; ?>
                 </div>
             </div>
 

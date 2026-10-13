@@ -335,6 +335,11 @@ class VendorProcessDetail extends BaseController
         if ($finish) {
             $vendorUpdate['receipt_no'] = $passNo;
         }
+        // Vendor Workflow: Card Issuance off -> finishing the card activates it (no hand-over step).
+        $noIssuance = $finish && ! \App\Libraries\VendorWorkflow::enabled($db, (int) current_company_id(), 'card_issuance');
+        if ($noIssuance) {
+            $vendorUpdate['card_status'] = 'Active';
+        }
         $db->table('vendors')->where('id', (int) $id)->update($vendorUpdate);
 
         $db->transComplete();
@@ -345,7 +350,7 @@ class VendorProcessDetail extends BaseController
         return $this->response->setJSON([
             'success'  => true,
             'finished' => $finish,
-            'message'  => $finish ? 'Card ' . $epc . ' linked — moved to Issuance List.' : 'Card ' . $epc . ' bound to this pass.',
+            'message'   => $finish ? 'Card ' . $epc . ($noIssuance ? ' linked — card activated, moved to Closed List.' : ' linked — moved to Issuance List.') : 'Card ' . $epc . ' bound to this pass.',
         ]);
     }
 

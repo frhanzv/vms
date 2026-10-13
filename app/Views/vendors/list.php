@@ -81,10 +81,10 @@
                     </a>
                     <?php endif; ?>
                     <?php if ($canRequest ?? false): ?>
-                    <a href="<?= base_url('vendors/vendorpassrequest') ?>" class="bg-primary hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
+                    <?php helper('vendor_company'); if (! is_vendor_admin() || \App\Libraries\VendorWorkflow::enabled(\Config\Database::connect(), (int) current_company_id(), 'pass_request')): ?><a href="<?= base_url('vendors/vendorpassrequest') ?>" class="bg-primary hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center shadow transition-colors">
                         <span class="material-icons text-sm mr-1">add</span>
                         Request
-                    </a>
+                    </a><?php endif; ?>
                     <?php endif; ?>
                 </div>
             </div>

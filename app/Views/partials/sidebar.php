@@ -4,18 +4,16 @@ $current     = app_route_path($current ?? null); // report pages pass their own 
 $isDashboard = ($current === '' || $current === 'dashboard');
 $isEmap      = str_starts_with($current, 'e-map');
 $isStaff     = str_contains($current, 'staffs') || str_contains($current, 'staff-pass-request');
-$isVendor    = str_contains($current, 'vendors') || str_contains($current, 'vendorpassrequest');
-$isVehicle   = str_starts_with($current, 'vehicles');
-$isVendorWf  = str_starts_with($current, 'vendor-workflow');
-$isVisitorWf = str_contains($current, 'workflow') && ! $isVendorWf;
-$isWorkflow  = $isVendorWf || $isVisitorWf;
+$isVendor    = str_contains($current, 'vendors') || str_contains($current, 'vendorpassrequest') || $current === 'vendor-workflow';
+$isVehicle   = str_starts_with($current, 'vehicles') || str_starts_with($current, 'vehicle-');
+$isWorkflow  = str_contains($current, 'workflow');
 $isConfig    = str_contains($current, 'config');
 $isSettings  = str_contains($current, 'settings');
 
 $requestListAvailable = is_platform_superadmin() || ! client_feature_enabled('auto_approve_after_workflow');
 $hasVisitorPassAccess = has_access('visitor_pass_list', 'invitations') || ($requestListAvailable && has_access('visitor_pass_list', 'request_list')) || has_access('visitor_pass_list', 'visitors_list');
 $hasBlacklistAccess   = has_access('blacklist', 'request_list') || has_access('blacklist', 'closed_list') || has_access('blacklist', 'individual_request_list') || has_access('blacklist', 'individual_closed_list') || has_access('blacklist', 'company_request_list') || has_access('blacklist', 'company_closed_list');
-$hasReportAccess      = has_access('report', 'access_report') || has_access('report', 'visitor_report') || has_access('report', 'visitor_chronology') || has_access('report', 'visitor_info_by_door') || has_access('report', 'gate_in_out') || has_access('report', 'out_window_list') || has_access('report', 'port_pass_monthly') || has_access('report', 'port_pass_summary') || has_access('report', 'company_permit_ageing') || has_access('report', 'company_permit_monthly') || has_access('report', 'vehicle_sticker_summary') || has_access('report', 'blacklist_report') || has_access('report', 'attendance_report') || has_access('report', 'monitoring_report')  || has_access('report', 'vendor_report') || (client_feature_enabled('staff_pass') && has_access('report', 'staff_report'));
+$hasReportAccess      = has_access('report', 'access_report') || has_access('report', 'visitor_report') || has_access('report', 'visitor_chronology') || has_access('report', 'visitor_info_by_door') || has_access('report', 'gate_in_out') || has_access('report', 'out_window_list') || has_access('report', 'port_pass_monthly') || has_access('report', 'port_pass_summary') || has_access('report', 'company_permit_ageing') || has_access('report', 'company_permit_monthly') || has_access('report', 'vehicle_sticker_summary') || has_access('report', 'blacklist_report') || has_access('report', 'attendance_report') || has_access('report', 'monitoring_report')  || has_access('report', 'vendor_report');
 $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'alert_priority') || has_access('config', 'api_management') || has_access('config', 'general_settings') || has_access('config', 'application_settings') || has_access('config', 'role_management') || has_access('config', 'user_management') || has_access('config', 'company') || (is_client_superadmin() && current_client_id() > 0);
 ?>
 
@@ -143,47 +141,17 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
                     <span class="material-symbols-outlined text-[18px] transition-transform duration-200" :class="openStaff ? 'rotate-180' : ''">expand_more</span>
                 </button>
                 <div x-show="openStaff" class="ml-4 mt-1 flex flex-col gap-1">
-                    <?php foreach (array_filter([
+                    <?php foreach ([
                         'staffs'               => 'Staff List',
-                        'staffs/request-list'  => \App\Controllers\StaffList::canSeeRequestList() ? 'Request List' : null,
                         'staffs/process-list'  => 'Process List',
                         'staffs/printing-list' => 'Printing List',
                         'staffs/issuance-list' => 'Issuance List',
                         'staffs/closed-list'   => 'Closed List',
-                    ]) as $staffPath => $staffLabel): $on = $current === $staffPath; ?>
+                    ] as $staffPath => $staffLabel): $on = $current === $staffPath; ?>
                     <a href="<?= base_url($staffPath) ?>"
                         class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $on ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
                         <span class="w-1.5 h-1.5 rounded-full <?= $on ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
                         <?= $staffLabel ?>
-                    </a>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-            <?php endif; ?>
-
-            <!-- Vehicle Pass -->
-            <?php if (client_feature_enabled('vehicle_pass') && ! is_vendor_admin() && (has_access('vehicle', 'my_vehicle_pass') || has_access('vehicle', 'public_request_list') || has_access('vehicle', 'public_approved_list') || has_access('vehicle', 'public_reject_list') || has_access('vehicle', 'public_closed_list'))): ?>
-            <div x-data="{ openVehicle: <?= $isVehicle ? 'true' : 'false' ?> }">
-                <button type="button" @click="openVehicle = !openVehicle"
-                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= $isVehicle ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
-                    <div class="flex items-center gap-3">
-                        <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">directions_car</span>
-                        <p class="text-sm font-medium">Vehicle Pass</p>
-                    </div>
-                    <span class="material-symbols-outlined text-[18px] transition-transform duration-200" :class="openVehicle ? 'rotate-180' : ''">expand_more</span>
-                </button>
-                <div x-show="openVehicle" class="ml-4 mt-1 flex flex-col gap-1">
-                    <?php foreach ([
-                        ['vehicles', 'Vehicle List', 'my_vehicle_pass'],
-                        ['vehicles/request-list', 'Request List', 'public_request_list'],
-                        ['vehicles/approved-list', 'Approved List', 'public_approved_list'],
-                        ['vehicles/reject-list', 'Reject List', 'public_reject_list'],
-                        ['vehicles/closed-list', 'Closed List', 'public_closed_list'],
-                    ] as [$vPath, $vLabel, $vKey]): if (! has_access('vehicle', $vKey)) { continue; } ?>
-                    <a href="<?= base_url($vPath) ?>"
-                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == $vPath ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
-                        <span class="w-1.5 h-1.5 rounded-full <?= $current == $vPath ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
-                        <?= $vLabel ?>
                     </a>
                     <?php endforeach; ?>
                 </div>
@@ -221,6 +189,13 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
                         Request List
                     </a>
                     <?php endif; ?>
+                    <?php if (! is_vendor_admin() && (is_platform_superadmin() || is_client_superadmin() || normalize_role_slug((string) session()->get('role')) === 'admin')): ?>
+                    <a href="<?= base_url('vendor-workflow') ?>"
+                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'vendor-workflow' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
+                        <span class="w-1.5 h-1.5 rounded-full <?= $current == 'vendor-workflow' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
+                        Vendor Workflow
+                    </a>
+                    <?php endif; ?>
                     <?php helper('vendor_company'); if (! is_vendor_admin()): // staff-only pipeline pages ?>
                     <a href="<?= base_url('vendors/process-list') ?>"
                         class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'vendors/process-list' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
@@ -247,37 +222,93 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
             </div>
             <?php endif; ?>
 
-            <!-- Workflow (Visitor Workflow, Vendor Workflow) -->
+            <!-- Vehicle Pass -->
             <?php
-            $showVisitorWf = has_access('visitor_workflow', 'view');
-            $showVendorWf  = client_feature_enabled('vendor_pass') && ! is_vendor_admin() && (is_platform_superadmin() || is_client_superadmin() || normalize_role_slug((string) session()->get('role')) === 'admin');
-            if ($showVisitorWf || $showVendorWf): ?>
-            <div x-data="{ openWorkflow: <?= $isWorkflow ? 'true' : 'false' ?> }">
-                <button type="button" @click="openWorkflow = !openWorkflow"
-                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= $isWorkflow ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
+            $vDaily = \App\Libraries\VehicleRules::dailyEnabled(); // Daily Pass stays hidden until VEHICLE_DAILY_PASS=true
+            $vNoStaff = is_vendor_admin();
+            $vMenu = [
+                'Public' => ['pub', [
+                    ['vehicles/public', 'My Vehicle Pass', ['my_vehicle_pass']],
+                    ['vehicles/public/staff-request', 'New Staff Request', $vNoStaff ? [] : ['new_staff_request']],
+                    ['vehicles/public/staff', 'Staff Vehicle Pass', $vNoStaff ? [] : ['staff_vehicle_pass']],
+                    ['vehicles/public/request-list', 'Request List', ['public_request_list']],
+                    ['vehicles/public/reviewed-list', 'Approved / Reject List', ['public_approved_list', 'public_reject_list']],
+                    ['vehicles/public/closed-list', 'Closed List', ['public_closed_list']],
+                ]],
+                'Cargo | Non-Cargo' => ['cnc', [
+                    ['vehicles/cnc', 'My Vehicle Pass', ['cargo_my_vehicle_pass']],
+                    ['vehicles/cnc/request-list', 'Request List', ['cargo_request_list']],
+                    ['vehicles/cnc/reviewed-list', 'Approved / Reject List', ['cargo_approved_list', 'cargo_reject_list']],
+                    ['vehicles/cnc/closed-list', 'Closed List', ['cargo_closed_list']],
+                ]],
+            ];
+            if ($vDaily) {
+                $vMenu['Daily Pass'] = ['daily', [
+                    ['vehicle-daily/mine', 'My Daily Pass', ['my_vehicle_daily_pass']],
+                    ['vehicle-daily/request-list', 'Request List', ['daily_pass_request_list']],
+                    ['vehicle-daily/reject-list', 'Reject List', ['daily_pass_reject_list']],
+                    ['vehicle-daily/list', 'Daily Pass List', ['daily_pass_closed_list']],
+                ]];
+            }
+            // keep only the entries the user holds a key for, and only groups that still have entries
+            $vShow = [];
+            foreach ($vMenu as $vName => [$vId, $vItems]) {
+                $keep = array_values(array_filter($vItems, static function ($it) {
+                    foreach ($it[2] as $k) { if (has_access('vehicle', $k)) { return true; } }
+                    return false;
+                }));
+                if ($keep) { $vShow[$vName] = [$vId, $keep]; }
+            }
+            $vTransfer = has_access('vehicle', 'transfer_ownership');
+            ?>
+            <?php if (client_feature_enabled('vehicle_pass') && ($vShow || $vTransfer)): ?>
+            <div x-data="{ openVehicle: <?= $isVehicle ? 'true' : 'false' ?> }">
+                <button type="button" @click="openVehicle = !openVehicle"
+                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= $isVehicle ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
                     <div class="flex items-center gap-3">
-                        <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">account_tree</span>
-                        <p class="text-sm <?= $isWorkflow ? 'font-semibold' : 'font-medium' ?>">Workflow</p>
+                        <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">directions_car</span>
+                        <p class="text-sm font-medium">Vehicle</p>
                     </div>
-                    <span class="material-symbols-outlined text-[18px] transition-transform duration-200" :class="openWorkflow ? 'rotate-180' : ''">expand_more</span>
+                    <span class="material-symbols-outlined text-[18px] transition-transform duration-200" :class="openVehicle ? 'rotate-180' : ''">expand_more</span>
                 </button>
-                <div x-show="openWorkflow" class="ml-4 mt-1 flex flex-col gap-1">
-                    <?php if ($showVisitorWf): ?>
-                    <a href="<?= base_url('workflow') ?>"
-                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $isVisitorWf ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
-                        <span class="w-1.5 h-1.5 rounded-full <?= $isVisitorWf ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
-                        Visitor Workflow
-                    </a>
-                    <?php endif; ?>
-                    <?php if ($showVendorWf): ?>
-                    <a href="<?= base_url('vendor-workflow') ?>"
-                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $isVendorWf ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
-                        <span class="w-1.5 h-1.5 rounded-full <?= $isVendorWf ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
-                        Vendor Workflow
+                <div x-show="openVehicle" class="ml-4 mt-1 flex flex-col gap-1">
+                    <?php foreach ($vShow as $vName => [$vId, $vItems]):
+                        $vActive = false;
+                        foreach ($vItems as $it) { if ($current === $it[0]) { $vActive = true; } }
+                        $vActive = $vActive || str_starts_with($current, 'vehicles/' . $vId) || ($vId === 'daily' && str_starts_with($current, 'vehicle-daily')); ?>
+                    <div x-data="{ o: <?= $vActive ? 'true' : 'false' ?> }">
+                        <button type="button" @click="o = !o"
+                            class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium <?= $vActive ? 'text-primary' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?>">
+                            <span><?= esc($vName) ?></span>
+                            <span class="material-symbols-outlined text-[16px] transition-transform duration-200" :class="o ? 'rotate-180' : ''">expand_more</span>
+                        </button>
+                        <div x-show="o" class="ml-3 mt-1 flex flex-col gap-1">
+                            <?php foreach ($vItems as [$vPath, $vLabel]): ?>
+                            <a href="<?= base_url($vPath) ?>"
+                                class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm <?= $current == $vPath ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
+                                <span class="w-1.5 h-1.5 rounded-full <?= $current == $vPath ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
+                                <?= esc($vLabel) ?>
+                            </a>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
+                    <?php if ($vTransfer): $vOn = str_starts_with($current, 'vehicle-transfer'); ?>
+                    <a href="<?= base_url('vehicle-transfer') ?>"
+                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $vOn ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
+                        Transfer Ownership
                     </a>
                     <?php endif; ?>
                 </div>
             </div>
+            <?php endif; ?>
+
+            <!-- Visitor Workflow -->
+            <?php if (has_access('visitor_workflow', 'view')): ?>
+            <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?= $isWorkflow ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white' ?> transition-colors group" href="<?= base_url('workflow') ?>">
+                <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">account_tree</span>
+                <p class="text-sm <?= $isWorkflow ? 'font-semibold' : 'font-medium' ?>">Visitor Workflow</p>
+            </a>
             <?php endif; ?>
 
             <!-- Blacklist -->
@@ -387,14 +418,6 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
                         class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'report/vendor' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
                         <span class="w-1.5 h-1.5 rounded-full <?= $current == 'report/vendor' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
                         Vendor Report
-                    </a>
-                    <?php endif; ?>
-
-                    <?php if (client_feature_enabled('staff_pass') && has_access('report', 'staff_report')): ?>
-                    <a href="<?= base_url('report/staff') ?>"
-                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'report/staff' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
-                        <span class="w-1.5 h-1.5 rounded-full <?= $current == 'report/staff' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
-                        Staff Report
                     </a>
                     <?php endif; ?>
                 </div>

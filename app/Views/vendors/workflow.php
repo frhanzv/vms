@@ -47,6 +47,7 @@
         <main class="flex-1 overflow-y-auto bg-background-light dark:bg-background-dark custom-scrollbar">
 <?php
 $active   = array_values(array_filter($steps, fn($s) => $s['is_active']));
+foreach ($active as $i => &$aw) { $aw['rank'] = $i + 1; } unset($aw);
 $inactive = array_values(array_filter($steps, fn($s) => ! $s['is_active']));
 $staffN   = count(array_filter($steps, fn($s) => $s['owner'] !== 'Vendor'));
 $vendorN  = count(array_filter($steps, fn($s) => $s['owner'] !== 'Staff'));
@@ -64,7 +65,7 @@ $row = function (array $w, bool $on) { ob_start(); ?>
                                     </div>
                                     <div class="col-span-3 text-sm <?= $on ? 'text-gray-600 dark:text-gray-300' : 'text-gray-500 dark:text-gray-400' ?>"><?= esc($w['trigger']) ?></div>
                                     <div class="col-span-1">
-                                        <span class="inline-flex items-center px-2 py-1 rounded bg-gray-100 dark:bg-[#233648] text-xs font-medium <?= $on ? '' : 'text-gray-500' ?>"><?= $on ? esc((string) $w['order']) : '-' ?></span>
+                                        <span class="inline-flex items-center px-2 py-1 rounded bg-gray-100 dark:bg-[#233648] text-xs font-medium <?= $on ? '' : 'text-gray-500' ?>"><?= $on ? esc((string) ($w['rank'] ?? $w['order'])) : '-' ?></span>
                                     </div>
                                     <div class="col-span-2">
                                         <?php if ($on): ?>
@@ -77,13 +78,10 @@ $row = function (array $w, bool $on) { ob_start(); ?>
                                         <button onclick='openEditModal(<?= esc(json_encode(['key' => $w['key'], 'name' => $w['name'], 'trigger' => $w['trigger'], 'owner' => $w['owner'], 'custom' => $w['is_custom']]), 'attr') ?>)' class="p-1.5 text-gray-500 hover:text-primary hover:bg-primary/10 rounded transition-colors" title="Edit">
                                             <span class="material-symbols-outlined text-[20px]">edit</span>
                                         </button>
-                                        <?php if ($w['locked']): ?>
-                                        <span class="p-1.5 text-gray-300 dark:text-gray-600 cursor-not-allowed" title="Required step, always on"><span class="material-symbols-outlined text-[20px]">toggle_on</span></span>
-                                        <?php else: ?>
-                                        <button onclick="toggleWorkflow('<?= esc($w['key'], 'js') ?>')" class="p-1.5 text-gray-500 <?= $on ? 'hover:text-orange-500 hover:bg-orange-500/10' : 'hover:text-green-500 hover:bg-green-500/10' ?> rounded transition-colors" title="<?= $on ? 'Set Inactive' : 'Set Active' ?>">
+                                                                                <button onclick="toggleWorkflow('<?= esc($w['key'], 'js') ?>')" class="p-1.5 text-gray-500 <?= $on ? 'hover:text-orange-500 hover:bg-orange-500/10' : 'hover:text-green-500 hover:bg-green-500/10' ?> rounded transition-colors" title="<?= $on ? 'Set Inactive' : 'Set Active' ?>">
                                             <span class="material-symbols-outlined text-[20px]"><?= $on ? 'toggle_on' : 'toggle_off' ?></span>
                                         </button>
-                                        <?php endif; ?>
+                                        
                                         <?php if ($w['is_custom'] && $w['own']): ?>
                                         <button onclick="openDeleteModal('<?= esc($w['key'], 'js') ?>')" class="p-1.5 text-gray-500 hover:text-red-500 hover:bg-red-500/10 rounded transition-colors" title="Delete">
                                             <span class="material-symbols-outlined text-[20px]">delete</span>
@@ -108,13 +106,18 @@ HTML;
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-5 pb-6 border-b border-border-light dark:border-border-dark mb-6">
                     <div class="flex min-w-72 flex-col gap-2">
                         <h1 class="text-text-main-light dark:text-white text-3xl md:text-4xl font-black leading-tight tracking-[-0.033em]">Vendor Workflows</h1>
-                        <p class="text-text-secondary-light dark:text-[#92adc9] text-base font-normal leading-normal max-w-2xl">Manage the vendor pass process sequence, from company setup to the finished card.
-                            <?= $platform ? 'You are editing the default used by every client without its own workflow.' : 'You are editing your own client\'s workflow.' ?></p>
+                        <p class="text-text-secondary-light dark:text-[#92adc9] text-base font-normal leading-normal max-w-2xl">Manage the vendor pass process sequence.</p>
                     </div>
+                    <div class="flex items-center gap-3">
+                    <form method="post" action="<?= base_url('vendor-workflow/reset') ?>" onsubmit="return confirm('Reset every step to the default (all on, original order)? Custom steps you added will be removed.')"><?= csrf_field() ?>
+                        <button class="flex items-center gap-2 px-5 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                            <span class="material-symbols-outlined text-[20px]">restart_alt</span>Reset to default</button>
+                    </form>
                     <a href="<?= base_url('vendor-workflow/create') ?>" class="flex items-center gap-2 bg-primary hover:bg-primary-hover text-white px-5 py-2.5 rounded-lg shadow-lg shadow-primary/20 transition-all">
                         <span class="material-symbols-outlined text-[20px]">edit</span>
                         <span class="text-sm font-bold leading-normal tracking-[0.015em]">Edit Sequence</span>
                     </a>
+                    </div>
                 </div>
 
                 <?php if (session()->getFlashdata('success')): ?>
@@ -169,7 +172,7 @@ HTML;
                 </div>
 
                 <div class="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <p class="text-xs text-gray-500 max-w-3xl">The order is how the steps are listed for the team. The vendor and staff pages still follow the real flow. Steps you add are for tracking and do not block anything. Required steps stay on and cannot be deleted. Turning off <strong>Account Verification</strong> activates vendor accounts as soon as they register. Card Processing covers the photo, card details and printing on the Process List.</p>
+                    <p class="text-xs text-gray-500 max-w-3xl">Every step can be turned off. The vendor and staff pages adapt: with <strong>Account Verification</strong> off, vendors are active as soon as they register; <strong>Vendor Registration</strong> off closes the self-registration page; <strong>Company Setup</strong> off stops invitation emails; <strong>Pass Request</strong> off hides the request form from vendors (staff can still add passes); <strong>Pass Approval</strong> off approves passes automatically; <strong>Card Processing</strong> off skips photo, details and printing; <strong>Card Issuance</strong> off activates the card without a hand-over. <strong>Completion</strong> is only a label. A step you turn off keeps its place and returns there when turned on. The order only changes how steps are listed.</p>
                     <form method="post" action="<?= base_url('vendor-workflow/reset') ?>" onsubmit="return confirm('Reset all steps to the default? Custom steps you added will be removed.')"><?= csrf_field() ?>
                         <button class="text-sm text-gray-500 hover:text-red-600 underline">Reset to default</button></form>
                 </div>

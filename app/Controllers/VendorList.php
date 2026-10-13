@@ -218,7 +218,9 @@ class VendorList extends BaseController
             return ['label' => 'Suspended', 'tone' => 'gray'];
         }
         if ($rowStatus === 'Approved') {
-            return trim((string) ($row['receipt_no'] ?? '')) === ''
+            $wfProcessing = \App\Libraries\VendorWorkflow::enabled(\Config\Database::connect(), (int) ($row['company_id'] ?? 0) ?: (int) current_company_id(), 'card_processing');
+
+            return ($wfProcessing && trim((string) ($row['receipt_no'] ?? '')) === '')
                 ? ['label' => 'Process List / Printing List', 'tone' => 'blue']
                 : ['label' => 'Issuance List', 'tone' => 'purple'];
         }
@@ -778,6 +780,7 @@ class VendorList extends BaseController
             $db->table('vendors')->insert($record);
             $vendorId = (int) $db->insertID();
             \App\Libraries\VendorClientApprovals::sync($db, $vendorId, implode(',', $locations));
+            \App\Libraries\VendorWorkflow::autoApprove($db, $vendorId, (int) ($record['company_id'] ?? 0) ?: (int) current_company_id()); // Pass Approval off
 
             // Driving License (template's optional "License Class" / "License
             // Expiry" columns) — same vendor_driving_licenses table the Card
@@ -910,6 +913,8 @@ class VendorList extends BaseController
             $update['status']      = 'Approved';
             $update['next_action'] = null;
             $update['reject_reason'] = null;
+            // Vendor Workflow: with both card steps off the pass is complete as soon as it is approved.
+            $update += \App\Libraries\VendorWorkflow::approvedUpdate(\Config\Database::connect(), (int) ($vendor['company_id'] ?? 0) ?: (int) current_company_id());
 
             // KPK ModuleConfig.vpDirectClose — skip Printing / Issuance.
             $companyId = (int) ($vendor['company_id'] ?? 0) ?: current_company_id();
@@ -1029,6 +1034,7 @@ class VendorList extends BaseController
 
         if ($overall === 'Approved') {
             $update['reject_reason'] = null;
+            $update += \App\Libraries\VendorWorkflow::approvedUpdate($db, (int) ($vendor['company_id'] ?? 0) ?: (int) current_company_id());
             $cfgModel = new \App\Models\ClientFormFieldModel();
             if ($cfgModel->isEnabled((int) ($vendor['company_id'] ?? 0) ?: (int) current_company_id(), 'vendor_pass_request', 'direct_close')) {
                 $update['card_status'] = 'Active';

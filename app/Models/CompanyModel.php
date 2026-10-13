@@ -161,7 +161,7 @@ class CompanyModel extends Model
                 $company = $this->find($id);
                 // The client is the owner of the company's Location Access.
                 $client = ! empty($company['client_id']) ? ((new ClientModel())->find((int) $company['client_id']) ?: null) : null;
-                if ($company) {
+                if ($company && \App\Libraries\VendorWorkflow::enabled($this->db, (int) ($company['client_id'] ?? 0), 'company_setup')) {
                     self::$lastInvite = \App\Libraries\VendorInviteMailer::invite($company, $client);
                 }
             }

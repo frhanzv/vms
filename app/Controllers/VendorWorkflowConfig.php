@@ -22,6 +22,16 @@ class VendorWorkflowConfig extends BaseController
         return redirect()->to(base_url($to))->with($type, $msg);
     }
 
+    /** Move passes already in flight to where they belong now that a card step may be off. */
+    private function settle(): void
+    {
+        $db  = \Config\Database::connect();
+        $cid = $this->scope();
+        $ids = $cid > 0 ? [$cid] : array_map('intval', array_column($db->table('clients')->select('id')->get()->getResultArray(), 'id'));
+        VendorWorkflow::forget();
+        VendorWorkflow::settle($db, $ids);
+    }
+
     /** The step as the current scope sees it, or null. */
     private function find(string $key): ?array
     {
@@ -110,9 +120,10 @@ class VendorWorkflowConfig extends BaseController
                 $keys[] = $k;
             }
         }
-        foreach ($all as $s) { // steps that are off keep their place after the active ones
-            if (! in_array($s['key'], $keys, true)) {
-                $keys[] = $s['key'];
+        // Steps that are off keep the exact slot they had, so turning one back on puts it where it was.
+        foreach ($all as $pos => $s) {
+            if (! $s['is_active'] && ! in_array($s['key'], $keys, true)) {
+                array_splice($keys, min($pos, count($keys)), 0, [$s['key']]);
             }
         }
         foreach ($keys as $i => $k) {
@@ -128,10 +139,8 @@ class VendorWorkflowConfig extends BaseController
         if (! $s) {
             return $this->back('error', 'Unknown step.');
         }
-        if ($s['locked']) {
-            return $this->back('error', 'This step is required and cannot be turned off.');
-        }
         $this->save($s, ['is_active' => $s['is_active'] ? 0 : 1]);
+        $this->settle();
 
         return $this->back('success', $s['name'] . ($s['is_active'] ? ' turned off.' : ' turned on.'));
     }
@@ -175,6 +184,7 @@ class VendorWorkflowConfig extends BaseController
     {
         \Config\Database::connect()->table('vendor_workflow_settings')->where('client_id', $this->scope())->delete();
         VendorWorkflow::forget();
+        $this->settle();
 
         return $this->back('success', 'Vendor workflow reset to the default.');
     }

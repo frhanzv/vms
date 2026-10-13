@@ -181,7 +181,7 @@ class VendorCardInfo extends BaseController
         if (! $vendor) {
             return $this->response->setJSON(['success' => false, 'message' => 'Record not found.']);
         }
-        if (empty($vendor['receipt_no'])) {
+        if (empty($vendor['receipt_no']) && \App\Libraries\VendorWorkflow::enabled(\Config\Database::connect(), (int) current_company_id(), 'card_processing')) {
             return $this->response->setJSON(['success' => false, 'message' => 'This card has not been printed yet — print it from Printing List first.']);
         }
 

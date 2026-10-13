@@ -56,9 +56,9 @@ $st = $stages;
                     <span class="material-symbols-outlined text-[20px]">upload_file</span>Import
                 </a>
                 <?php endif; ?>
-                <a href="<?= base_url('vendors/vendorpassrequest') ?>" class="flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-bold text-white shadow-sm transition-colors hover:bg-primary-dark">
+                <?php helper('vendor_company'); if (! is_vendor_admin() || \App\Libraries\VendorWorkflow::enabled(\Config\Database::connect(), (int) current_company_id(), 'pass_request')): ?><a href="<?= base_url('vendors/vendorpassrequest') ?>" class="flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-bold text-white shadow-sm transition-colors hover:bg-primary-dark">
                     <span class="material-symbols-outlined text-[20px]">add</span>New Request
-                </a>
+                </a><?php endif; ?>
             <?php endif; ?>
             </div>
         </header>
