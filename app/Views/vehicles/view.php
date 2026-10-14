@@ -7,6 +7,7 @@ $d   = static fn($x) => $x ? date('d/m/Y', strtotime($x)) : '-';
 $row = static function (string $label, $value) { return '<div><p class="text-xs font-semibold text-gray-500 dark:text-gray-400">' . esc($label) . '</p><p class="text-sm mt-0.5">' . (($value === null || $value === '') ? '-' : esc((string) $value)) . '</p></div>'; };
 $btn = 'px-4 py-2 rounded text-sm font-semibold';
 $in  = 'border border-gray-300 dark:border-gray-600 dark:bg-gray-800 rounded px-3 py-2 text-sm';
+$on = static fn(string $k): bool => \App\Libraries\VehicleRules::buttonOn($k);
 $needPay = (int) $v['payment_required'] === 1 && $v['payment_status'] !== 'Paid';
 ?>
 <div class="bg-card-light dark:bg-card-dark rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
@@ -20,12 +21,12 @@ $needPay = (int) $v['payment_required'] === 1 && $v['payment_status'] !== 'Paid'
             </div>
         </div>
         <div class="flex flex-wrap gap-2">
-            <?php if ($can['edit']): ?><a href="<?= base_url('vehicles/edit/' . $v['id']) ?>" class="<?= $btn ?> bg-primary text-white">Edit</a><?php endif; ?>
-            <?php if ($can['submit']): ?>
+            <?php if ($can['edit'] && $on('veh_edit_action')): ?><a href="<?= base_url('vehicles/edit/' . $v['id']) ?>" class="<?= $btn ?> bg-primary text-white">Edit</a><?php endif; ?>
+            <?php if ($can['submit'] && $on('veh_submit_action')): ?>
             <form method="post" action="<?= base_url('vehicles/' . $v['id'] . '/submit') ?>"><?= csrf_field() ?><button class="<?= $btn ?> bg-primary text-white">Submit</button></form>
             <?php endif; ?>
-            <?php if ($can['renew']): ?><a href="<?= base_url('vehicles/renew/' . $v['id']) ?>" class="<?= $btn ?> bg-emerald-600 text-white">Renew</a><?php endif; ?>
-            <?php if ($can['delete']): ?>
+            <?php if ($can['renew'] && $on('veh_renew_action')): ?><a href="<?= base_url('vehicles/renew/' . $v['id']) ?>" class="<?= $btn ?> bg-emerald-600 text-white">Renew</a><?php endif; ?>
+            <?php if ($can['delete'] && $on('veh_delete_action')): ?>
             <form method="post" action="<?= base_url('vehicles/' . $v['id'] . '/delete') ?>" onsubmit="return confirm('Delete this vehicle pass?')"><?= csrf_field() ?><button class="<?= $btn ?> border border-red-300 text-red-600">Delete</button></form>
             <?php endif; ?>
         </div>
@@ -81,30 +82,34 @@ $needPay = (int) $v['payment_required'] === 1 && $v['payment_status'] !== 'Paid'
     </div>
     <?php endif; ?>
 
-    <?php if ($v['status'] === 'Pending' && $can['approve']): ?>
+    <?php if ($v['status'] === 'Pending' && $can['approve'] && ($on('veh_approve_action') || $on('veh_reject_action'))): ?>
     <div class="rounded border border-gray-200 dark:border-gray-700 p-4 mb-2">
         <h2 class="text-sm font-bold uppercase mb-3">Approval</h2>
         <?php if (($group === 'cnc' && (int) $v['payment_required'] === 0) || \App\Libraries\VehicleRules::approveIssues()): ?>
         <p class="text-xs text-amber-700 mb-3">Approving this pass issues it straight away (no payment / sticker step).</p><?php endif; ?>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <?php if ($on('veh_approve_action')): ?>
             <form method="post" action="<?= base_url('vehicles/' . $v['id'] . '/approve') ?>" class="flex flex-wrap gap-2 items-end"><?= csrf_field() ?>
                 <div><label class="block text-xs font-semibold mb-1">Collection Date</label><input name="collect_date" class="flatpickr <?= $in ?>" placeholder="dd/mm/yyyy"/></div>
                 <div><label class="block text-xs font-semibold mb-1">Remark</label><input name="note" class="<?= $in ?> w-56"/></div>
                 <button class="<?= $btn ?> bg-emerald-600 text-white">Approve</button></form>
+            <?php endif; ?>
+            <?php if ($on('veh_reject_action')): ?>
             <form method="post" action="<?= base_url('vehicles/' . $v['id'] . '/reject') ?>" class="flex flex-wrap gap-2 items-end"><?= csrf_field() ?>
                 <div><label class="block text-xs font-semibold mb-1">Reject Reason</label>
                     <select name="reject_reason_id" class="<?= $in ?> w-56"><option value="">-- Select --</option>
                         <?php foreach ($rejectReasons as $rr): ?><option value="<?= (int) $rr['id'] ?>"><?= esc($rr['reason']) ?></option><?php endforeach; ?></select></div>
                 <div><label class="block text-xs font-semibold mb-1">Remark</label><input name="note" class="<?= $in ?> w-56"/></div>
                 <button class="<?= $btn ?> bg-red-600 text-white">Reject</button></form>
+            <?php endif; ?>
         </div>
     </div>
     <?php endif; ?>
 
-    <?php if ($v['status'] === 'Approved' && $can['issue']): ?>
+    <?php if ($v['status'] === 'Approved' && $can['issue'] && $on('veh_issue_action')): ?>
     <div class="rounded border border-gray-200 dark:border-gray-700 p-4 mb-2">
         <h2 class="text-sm font-bold uppercase mb-3">Issue Sticker</h2>
-        <?php if ($needPay && $payOnline): ?>
+        <?php if ($needPay && $payOnline && $on('veh_pay_action')): ?>
         <form method="post" action="<?= base_url('vehicles/' . $v['id'] . '/pay') ?>" class="mb-3"><?= csrf_field() ?><button class="<?= $btn ?> bg-primary text-white">Pay online</button>
             <span class="text-xs text-gray-500 ml-2">Payment is <?= esc($v['payment_status']) ?>. You can also enter the receipt number below.</span></form>
         <?php endif; ?>
@@ -128,7 +133,7 @@ $needPay = (int) $v['payment_required'] === 1 && $v['payment_status'] !== 'Paid'
     <div class="rounded border border-gray-200 dark:border-gray-700 p-4 mb-2" x-data="{ tool: '' }">
         <h2 class="text-sm font-bold uppercase mb-3">Sticker Tools</h2>
         <div class="flex flex-wrap gap-2 mb-3">
-            <?php foreach (['reissue' => 'Reissue', 'serial' => 'Serial No', 'receipt' => 'Receipt No', 'info' => 'Edit Vehicle Info', 'type' => 'Vehicle Type', 'locations' => 'Edit Location Access'] as $k => $label): ?>
+            <?php foreach (['reissue' => 'Reissue', 'serial' => 'Serial No', 'receipt' => 'Receipt No', 'info' => 'Edit Vehicle Info', 'type' => 'Vehicle Type', 'locations' => 'Edit Location Access'] as $k => $label): if (! $on(['reissue' => 'veh_reissue_action', 'serial' => 'veh_serial_action', 'receipt' => 'veh_receipt_action', 'info' => 'veh_editinfo_action', 'type' => 'veh_type_action', 'locations' => 'veh_locations_action'][$k])) { continue; } ?>
             <button type="button" @click="tool = tool === '<?= $k ?>' ? '' : '<?= $k ?>'" :class="tool === '<?= $k ?>' ? 'bg-primary text-white' : 'border border-gray-300'" class="px-3 py-1.5 rounded text-xs font-semibold"><?= $label ?></button>
             <?php endforeach; ?>
         </div>
@@ -196,7 +201,7 @@ $needPay = (int) $v['payment_required'] === 1 && $v['payment_status'] !== 'Paid'
     </table></div>
     <?php endif; ?>
 
-    <?php if ($v['status'] === 'Issued' && $can['terminate']): ?>
+    <?php if ($v['status'] === 'Issued' && $can['terminate'] && $on('veh_terminate_action')): ?>
     <form method="post" action="<?= base_url('vehicles/' . $v['id'] . '/terminate') ?>" onsubmit="return confirm('Terminate this vehicle pass? The plate becomes free for a new pass.')" class="mt-2"><?= csrf_field() ?>
         <button class="<?= $btn ?> bg-red-600 text-white">Terminate Pass</button></form>
     <?php endif; ?>

@@ -288,6 +288,109 @@ class VehicleRules
         return ((int) date('n') >= 10) ? [(string) $y, (string) ($y + 1)] : [(string) $y];
     }
 
+    /** Pages of the vehicle module whose columns Config > Page Settings controls (registry key => title). */
+    public const LIST_PAGES = ['all' => 'My Vehicle Pass', 'staff' => 'Staff Vehicle Pass', 'request' => 'Request List', 'reviewed' => 'Approved / Reject List', 'closed' => 'Closed List'];
+
+    /**
+     * Buttons / actions of the vehicle pages, per list page: key => label. Page Settings stores the on/off flag
+     * (client_form_fields, form vendor_pass_request); no row means the button shows. Keys are prefixed "veh_" so
+     * they never clash with vendor / staff keys. Actions on the pass screen are listed under the list they belong to.
+     */
+    public static function listButtons(string $stage): array
+    {
+        $details = ['veh_details_' . $stage => 'Details action'];
+        switch ($stage) {
+            case 'all':
+                return [
+                    'veh_request_button'       => 'Request button (all vehicle lists)',
+                    'veh_staff_request_button' => 'New Staff Request button (all vehicle lists)',
+                ] + $details + [
+                    'veh_edit_action'   => 'Edit action',
+                    'veh_submit_action' => 'Submit action',
+                    'veh_renew_action'  => 'Renew action',
+                    'veh_delete_action' => 'Delete action',
+                ];
+            case 'request':
+                return $details + ['veh_approve_action' => 'Approve action', 'veh_reject_action' => 'Reject action'];
+            case 'reviewed':
+                return $details + ['veh_pay_action' => 'Pay online action', 'veh_issue_action' => 'Issue Sticker action'];
+            case 'closed':
+                return $details + [
+                    'veh_direct_close_button' => 'New Issued Pass button',
+                    'veh_reissue_action'      => 'Reissue tool',
+                    'veh_serial_action'       => 'Serial No tool',
+                    'veh_receipt_action'      => 'Receipt No tool',
+                    'veh_editinfo_action'     => 'Edit Vehicle Info tool',
+                    'veh_type_action'         => 'Vehicle Type tool',
+                    'veh_locations_action'    => 'Edit Location Access tool',
+                    'veh_terminate_action'    => 'Terminate Pass action',
+                ];
+        }
+
+        return $details;
+    }
+
+    /** Is this button switched on for the logged-in user's client? (platform superadmin / no client: always) */
+    public static function buttonOn(string $key): bool
+    {
+        static $flags = null;
+        if ($flags === null) {
+            $flags = [];
+            try {
+                helper('feature');
+                $cid = function_exists('current_client_id') ? (int) current_client_id() : 0;
+                if ($cid > 0) {
+                    foreach ((new \App\Models\ClientFormFieldModel())->getForCompanyForm($cid, 'vendor_pass_request') as $row) {
+                        if (strpos((string) $row['field_key'], 'veh_') === 0) {
+                            $flags[$row['field_key']] = (int) $row['is_enabled'] === 1;
+                        }
+                    }
+                }
+            } catch (\Throwable $e) {
+                $flags = [];
+            }
+        }
+
+        return $flags[$key] ?? true;
+    }
+
+    /**
+     * Columns of a vehicle list page: key => ['label', 'locked'?, 'cnc_only'?]. A locked column is always shown.
+     * Same column set the list has always had; the keys are what Page Settings stores.
+     */
+    public static function listColumns(string $stage): array
+    {
+        $c = [];
+        if (in_array($stage, ['request', 'reviewed'], true)) {
+            $c['type_of_app'] = ['label' => 'Type Of App'];
+        }
+        $c += [
+            'app_no' => ['label' => 'App No'], 'receipt_no' => ['label' => 'Receipt No'], 'date' => ['label' => 'Date'], 'app_for' => ['label' => 'App For'], 'year' => ['label' => 'Year'],
+            'name' => ['label' => 'Name', 'locked' => true], 'ic' => ['label' => 'IC / Passport / Staff ID'], 'company' => ['label' => 'Company / Department'],
+            'reg_no' => ['label' => 'Reg No', 'locked' => true], 'type' => ['label' => 'Type Of Vehicle'],
+            'operation' => ['label' => 'Operation (Cargo | Non-Cargo)', 'cnc_only' => true], 'head_number' => ['label' => 'Head Number (Cargo | Non-Cargo)', 'cnc_only' => true],
+        ];
+        if (in_array($stage, ['all', 'staff', 'reviewed'], true)) {
+            $c['collect_date'] = ['label' => 'Date Collection'];
+        }
+        if ($stage === 'closed') {
+            $c['serial_no']   = ['label' => 'Serial No'];
+            $c['issue_date']  = ['label' => 'Date Of Issuance'];
+        }
+        $c['status'] = ['label' => 'Status', 'locked' => true];
+        if (in_array($stage, ['all', 'staff', 'reviewed'], true)) {
+            $c['next_action'] = ['label' => 'Next Action'];
+        }
+        if (in_array($stage, ['all', 'staff', 'closed'], true)) {
+            $c['sticker_status'] = ['label' => 'Sticker Status'];
+            $c['road_tax']       = ['label' => 'Road Tax Expiry'];
+            $c['insurance']      = ['label' => 'Insurance Expiry'];
+        }
+        $c['remarks'] = ['label' => 'Remarks'];
+
+        return $c;
+    }
+
     /** Next-action text shown in the lists (KPK nextAction). */
     public static function nextAction(array $v): string
     {

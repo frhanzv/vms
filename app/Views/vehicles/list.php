@@ -2,6 +2,8 @@
 echo view('vehicles/_head', ['pageTitle' => $pageTitle]);
 $badge = ['Draft' => 'bg-gray-100 text-gray-700', 'Pending' => 'bg-amber-100 text-amber-800', 'Approved' => 'bg-blue-100 text-blue-800',
     'Rejected' => 'bg-red-100 text-red-800', 'Expired' => 'bg-orange-100 text-orange-800', 'Issued' => 'bg-emerald-100 text-emerald-800', 'Terminated' => 'bg-slate-200 text-slate-700'];
+helper('list_columns');
+$listKey = 'vehicle_' . $stage;
 $K = \App\Libraries\VehicleRules::KEYS[$group];
 $base = 'vehicles/' . $group;
 $tabs = [
@@ -15,18 +17,23 @@ $tabs = [
 <div class="bg-card-light dark:bg-card-dark rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
     <div class="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-4">
         <h1 class="text-xl md:text-2xl font-bold tracking-tight uppercase"><?= esc($title) ?></h1>
-        <div class="flex gap-2 self-start">
-        <?php if ($canStaffRequest): ?>
+        <div class="flex flex-wrap gap-2 self-start">
+        <?php if (empty($canColumns) === false): ?>
+        <button type="button" onclick="document.getElementById('vehColumnsModal').classList.remove('hidden')" class="bg-[#535dec] hover:bg-[#4853e0] text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-1.5 shadow">
+            <span class="material-icons text-[18px]">visibility</span> Show/Hide Columns
+        </button>
+        <?php endif; ?>
+        <?php if ($canStaffRequest && \App\Libraries\VehicleRules::buttonOn('veh_staff_request_button')): ?>
         <a href="<?= base_url('vehicles/public/staff-request') ?>" class="bg-white border border-primary text-primary px-4 py-2 rounded text-sm font-medium flex items-center gap-1.5">
             <span class="material-icons text-[18px]">badge</span> New Staff Request
         </a>
         <?php endif; ?>
-        <?php if (! empty($canDirect)): ?>
+        <?php if (! empty($canDirect) && \App\Libraries\VehicleRules::buttonOn('veh_direct_close_button')): ?>
         <a href="<?= base_url('vehicles/direct-close/' . $group) ?>" class="bg-white border border-primary text-primary px-4 py-2 rounded text-sm font-medium flex items-center gap-1.5">
             <span class="material-icons text-[18px]">verified</span> New Issued Pass
         </a>
         <?php endif; ?>
-        <?php if ($canCreate): ?>
+        <?php if ($canCreate && \App\Libraries\VehicleRules::buttonOn('veh_request_button')): ?>
         <a href="<?= base_url($base . '/request') ?>" class="bg-primary hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-1.5 shadow">
             <span class="material-icons text-[18px]">add</span> Request
         </a>
@@ -70,54 +77,52 @@ $tabs = [
         if ($r['status'] !== 'Issued') { return '-'; }
         return ($r['pass_expiry'] && $r['pass_expiry'] < date('Y-m-d')) ? 'Expired' : 'Active';
     };
-    $cols = ['App No', 'Receipt No', 'Date', 'App For', 'Year', 'Name', 'IC / Passport / Staff ID', 'Company / Department', 'Reg No', 'Type Of Vehicle'];
-    if (in_array($stage, ['request', 'reviewed'], true)) { array_unshift($cols, 'Type Of App'); }
-    if ($group === 'cnc') { $cols[] = 'Operation'; $cols[] = 'Head Number'; }
-    if (in_array($stage, ['all', 'staff', 'reviewed'], true)) { $cols[] = 'Date Collection'; }
-    if ($stage === 'closed') { $cols[] = 'Serial No'; $cols[] = 'Date Of Issuance'; }
-    $cols[] = 'Status';
-    if (in_array($stage, ['all', 'staff', 'reviewed'], true)) { $cols[] = 'Next Action'; }
-    if (in_array($stage, ['all', 'staff', 'closed'], true)) { $cols[] = 'Sticker Status'; $cols[] = 'Road Tax Expiry'; $cols[] = 'Insurance Expiry'; }
-    $cols[] = 'Remarks';
-    $cols[] = '';
+    // key => label. Which of them show is set per client in Config > Page Settings (and the Show/Hide Columns button).
+    $defs = \App\Libraries\VehicleRules::listColumns($stage);
+    $cols = [];
+    foreach ($defs as $key => $def) {
+        if (! empty($def['cnc_only']) && $group !== 'cnc') { continue; }
+        if (list_col($listKey, $key)) { $cols[$key] = $def['label']; }
+    }
     ?>
     <div class="overflow-x-auto rounded border border-gray-200 dark:border-gray-700 mb-4">
         <table class="w-full min-w-max text-left text-xs">
             <thead><tr class="bg-gray-50 dark:bg-gray-700 font-bold uppercase tracking-wide">
                 <th class="p-3 border-b dark:border-gray-600">No</th>
-                <?php foreach ($cols as $h): ?><th class="p-3 border-b dark:border-gray-600"><?= $h ?></th><?php endforeach; ?>
+                <?php foreach ($cols as $h): ?><th class="p-3 border-b dark:border-gray-600"><?= esc($h) ?></th><?php endforeach; ?><th class="p-3 border-b dark:border-gray-600"></th>
             </tr></thead>
             <tbody>
             <?php if (! $rows): ?>
-                <tr><td colspan="<?= count($cols) + 1 ?>" class="p-8 text-center text-gray-500">No vehicle pass found.</td></tr>
+                <tr><td colspan="<?= count($cols) + 2 ?>" class="p-8 text-center text-gray-500">No vehicle pass found.</td></tr>
             <?php else: foreach ($rows as $i => $r): ?>
                 <tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
                     <td class="p-3"><?= ($page - 1) * $per + $i + 1 ?></td>
-                    <?php foreach ($cols as $h): switch ($h) {
-                        case 'Type Of App': $c = $r['type_of_app']; break;
-                        case 'App No': $c = '<span class="font-medium">' . esc($r['app_no']) . '</span>'; break;
-                        case 'Receipt No': $c = esc($r['receipt_no'] ?: '-'); break;
-                        case 'Date': $c = $d($r['app_date']); break;
-                        case 'App For': $c = esc($r['owner_type']); break;
-                        case 'Year': $c = esc($r['sticker_year'] ?: '-'); break;
-                        case 'Name': $c = esc($r['owner_name']); break;
-                        case 'IC / Passport / Staff ID': $c = esc($who($r)); break;
-                        case 'Company / Department': $c = esc($co($r)); break;
-                        case 'Reg No': $c = '<span class="font-semibold">' . esc($r['plate_no']) . '</span>'; break;
-                        case 'Type Of Vehicle': $c = esc($r['type_name'] ?? '-'); break;
-                        case 'Operation': $c = esc($r['vehicle_operation'] ?: '-'); break;
-                        case 'Head Number': $c = esc($r['truck_head_number'] ?: '-'); break;
-                        case 'Date Collection': $c = $d($r['collect_date'] ?? null); break;
-                        case 'Serial No': $c = esc($r['sticker_serial'] ?: '-'); break;
-                        case 'Date Of Issuance': $c = $d($r['issue_date'] ?? null); break;
-                        case 'Status': $ds = \App\Libraries\VehicleRules::displayStatus($r); $c = '<span class="px-2 py-0.5 rounded-full font-semibold ' . ($badge[$ds] ?? '') . '">' . esc($ds) . '</span>'; break;
-                        case 'Next Action': $c = esc(\App\Libraries\VehicleRules::nextAction($r)); break;
-                        case 'Sticker Status': $c = $stickerState($r); break;
-                        case 'Road Tax Expiry': $c = $d($r['road_tax_expiry']); break;
-                        case 'Insurance Expiry': $c = $d($r['insurance_expiry']); break;
-                        case 'Remarks': $c = esc($r['reject_reason'] ?: ''); break;
-                        default: $c = '<a href="' . base_url('vehicles/view/' . $r['id']) . '" class="text-primary font-semibold hover:underline">Details</a>';
+                    <?php foreach ($cols as $key => $h): switch ($key) {
+                        case 'type_of_app': $c = esc($r['type_of_app']); break;
+                        case 'app_no': $c = '<span class="font-medium">' . esc($r['app_no']) . '</span>'; break;
+                        case 'receipt_no': $c = esc($r['receipt_no'] ?: '-'); break;
+                        case 'date': $c = $d($r['app_date']); break;
+                        case 'app_for': $c = esc($r['owner_type']); break;
+                        case 'year': $c = esc($r['sticker_year'] ?: '-'); break;
+                        case 'name': $c = esc($r['owner_name']); break;
+                        case 'ic': $c = esc($who($r)); break;
+                        case 'company': $c = esc($co($r)); break;
+                        case 'reg_no': $c = '<span class="font-semibold">' . esc($r['plate_no']) . '</span>'; break;
+                        case 'type': $c = esc($r['type_name'] ?? '-'); break;
+                        case 'operation': $c = esc($r['vehicle_operation'] ?: '-'); break;
+                        case 'head_number': $c = esc($r['truck_head_number'] ?: '-'); break;
+                        case 'collect_date': $c = $d($r['collect_date'] ?? null); break;
+                        case 'serial_no': $c = esc($r['sticker_serial'] ?: '-'); break;
+                        case 'issue_date': $c = $d($r['issue_date'] ?? null); break;
+                        case 'status': $ds = \App\Libraries\VehicleRules::displayStatus($r); $c = '<span class="px-2 py-0.5 rounded-full font-semibold ' . ($badge[$ds] ?? '') . '">' . esc($ds) . '</span>'; break;
+                        case 'next_action': $c = esc(\App\Libraries\VehicleRules::nextAction($r)); break;
+                        case 'sticker_status': $c = $stickerState($r); break;
+                        case 'road_tax': $c = $d($r['road_tax_expiry']); break;
+                        case 'insurance': $c = $d($r['insurance_expiry']); break;
+                        case 'remarks': $c = esc($r['reject_reason'] ?: ''); break;
+                        default: $c = '';
                     } ?><td class="p-3"><?= $c ?></td><?php endforeach; ?>
+                    <td class="p-3"><?php if (\App\Libraries\VehicleRules::buttonOn('veh_details_' . $stage)): ?><a href="<?= base_url('vehicles/view/' . $r['id']) ?>" class="text-primary font-semibold hover:underline">Details</a><?php endif; ?></td>
                 </tr>
             <?php endforeach; endif; ?>
             </tbody>
@@ -135,4 +140,37 @@ $tabs = [
         <?php endif; ?>
     </div>
 </div>
+<?php if (! empty($canColumns)): ?>
+<!-- Show/Hide Columns (same settings as Config > Page Settings) -->
+<div id="vehColumnsModal" class="hidden fixed inset-0 z-[120] flex items-center justify-center p-4">
+    <div onclick="document.getElementById('vehColumnsModal').classList.add('hidden')" class="absolute inset-0 bg-slate-900/55 cursor-pointer"></div>
+    <form method="POST" action="<?= base_url('vehicles/save-columns') ?>" class="relative flex w-full max-w-[600px] flex-col rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+        <?= csrf_field() ?>
+        <input type="hidden" name="list" value="<?= esc($listKey) ?>"/>
+        <input type="hidden" name="back" value="<?= esc($tabs[$stage][1]) ?>"/>
+        <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4 dark:border-slate-700">
+            <h2 class="text-lg font-bold tracking-tight text-[#3b5998] dark:text-white">Show/Hide Columns</h2>
+            <button type="button" onclick="document.getElementById('vehColumnsModal').classList.add('hidden')" class="text-slate-300 hover:text-slate-500"><span class="material-icons text-[20px]">close</span></button>
+        </div>
+        <div class="px-6 py-5 overflow-y-auto max-h-[60vh]">
+            <div class="mb-5 flex items-center gap-2">
+                <input type="checkbox" id="selectAllVehCols" onchange="document.querySelectorAll('.veh-column-toggle:not(:disabled)').forEach(c => c.checked = this.checked)" class="rounded border-slate-300 h-4 w-4 cursor-pointer">
+                <label for="selectAllVehCols" class="text-sm font-bold text-slate-700 dark:text-slate-300 cursor-pointer">Select All Columns</label>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-4">
+                <?php foreach (\App\Libraries\VehicleRules::listColumns($stage) as $ckey => $cdef): if (! empty($cdef['cnc_only']) && $group !== 'cnc') { continue; } $locked = ! empty($cdef['locked']); ?>
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" id="veh_col_<?= esc($ckey) ?>" <?= $locked ? 'disabled' : 'name="columns[' . esc($ckey) . ']" value="1"' ?> class="veh-column-toggle rounded border-slate-300 h-4 w-4 <?= $locked ? 'opacity-60' : 'cursor-pointer' ?>" <?= list_col($listKey, $ckey) ? 'checked' : '' ?>>
+                    <label for="veh_col_<?= esc($ckey) ?>" class="text-sm text-slate-600 dark:text-slate-300 uppercase <?= $locked ? '' : 'cursor-pointer' ?>"><?= esc($cdef['label']) ?><?= $locked ? ' <span class="normal-case text-xs text-slate-400">(always shown)</span>' : '' ?></label>
+                </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <div class="flex justify-end gap-3 border-t-2 border-slate-100 bg-white px-6 py-4 dark:border-slate-700 dark:bg-slate-900 rounded-b-xl">
+            <button type="button" onclick="document.getElementById('vehColumnsModal').classList.add('hidden')" class="rounded-md border border-slate-400 bg-slate-500 hover:bg-slate-600 px-5 py-2 text-sm font-semibold text-white">Close</button>
+            <button type="submit" class="rounded-md bg-[#535dec] hover:bg-[#4853e0] px-5 py-2 text-sm font-semibold text-white shadow-md">Apply Changes</button>
+        </div>
+    </form>
+</div>
+<?php endif; ?>
 <?= view('vehicles/_foot') ?>

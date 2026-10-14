@@ -301,7 +301,24 @@ if (! function_exists('list_column_registry')) {
                     'card_info_terminate_button'     => 'Terminate Card button',
                 ],
             ],
-        ];
+        ] + vehicle_registry_pages();
+    }
+}
+
+if (! function_exists('vehicle_registry_pages')) {
+    /** Vehicle Pass lists for Config > Page Settings (columns, buttons and actions). The column set lives in VehicleRules::listColumns(). */
+    function vehicle_registry_pages(): array
+    {
+        $pages = [];
+        foreach (\App\Libraries\VehicleRules::LIST_PAGES as $stage => $title) {
+            $cols = [];
+            foreach (\App\Libraries\VehicleRules::listColumns($stage) as $key => $def) {
+                $cols[$key] = ['label' => $def['label']] + (! empty($def['locked']) ? ['locked' => true] : []);
+            }
+            $pages['vehicle_' . $stage] = ['title' => $title, 'group' => 'Vehicle Pass', 'columns' => $cols, 'buttons' => \App\Libraries\VehicleRules::listButtons($stage)];
+        }
+
+        return $pages;
     }
 }
 

@@ -293,9 +293,49 @@ class VehiclePass extends BaseController
             'appFor' => $appFor, 'typeId' => $typeId, 'appTyp' => $appTyp, 'sort' => $sort, 'per' => $per, 'types' => $this->types($group),
             'filterable' => $filterable,
             'canCreate' => $this->allowed($group, 'create'),
+            'canColumns' => ! is_vendor_admin(),
             'canDirect' => $stage === 'closed' && ! is_vendor_admin() && $this->allowed($group, 'closed'),
             'canStaffRequest' => $group === 'public' && ! is_vendor_admin() && $this->allowed($group, 'staff_request'),
         ]);
+    }
+
+    /** Show/Hide Columns button: the same per-client settings as Config > Page Settings (client_list_columns). */
+    public function saveColumns()
+    {
+        $this->init();
+        helper('list_columns');
+        $list = (string) $this->request->getPost('list');
+        $stage = str_starts_with($list, 'vehicle_') ? substr($list, 8) : '';
+        $back = (string) $this->request->getPost('back');
+        $back = preg_match('#^vehicles/(public|cnc)(/[a-z-]+)?$#', $back) ? $back : 'vehicles/public';
+        if (! isset(VehicleRules::LIST_PAGES[$stage]) || ! isset(list_column_registry()[$list])) {
+            return $this->back('error', 'Unknown list.', $back);
+        }
+        if (is_vendor_admin()) {
+            return $this->back('error', 'Columns are set by the client administrator.', $back);
+        }
+        $clientId = (int) current_client_id();
+        if ($clientId <= 0) {
+            return $this->back('error', 'Columns are set per client - use Config > Page Settings and choose a client.', $back);
+        }
+        $posted = $this->request->getPost('columns');
+        $posted = is_array($posted) ? $posted : [];
+        $db     = \Config\Database::connect();
+        $now    = date('Y-m-d H:i:s');
+        foreach (VehicleRules::listColumns($stage) as $key => $def) {
+            if (! empty($def['locked'])) {
+                continue;
+            }
+            $where = ['client_id' => $clientId, 'list_key' => $list, 'column_key' => $key];
+            $data  = ['is_visible' => array_key_exists($key, $posted) ? 1 : 0, 'updated_at' => $now];
+            if ($db->table('client_list_columns')->where($where)->countAllResults() > 0) {
+                $db->table('client_list_columns')->where($where)->update($data);
+            } else {
+                $db->table('client_list_columns')->insert($where + $data + ['created_at' => $now]);
+            }
+        }
+
+        return $this->back('success', 'Columns updated.', $back);
     }
 
     // ------------------------------------------------------------------ form

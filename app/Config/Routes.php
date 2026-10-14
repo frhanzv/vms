@@ -316,6 +316,7 @@ $routes->group('', ['filter' => [$plusAdminOfficerVendor, 'client_feature:vehicl
     $routes->get('vehicles/public/staff-request', 'VehiclePass::create/public/staff');
     $routes->get('vehicles/public/staff-lookup', 'VehiclePass::staffLookup');
     $routes->get('vehicles/drivers', 'VehiclePass::driverLookup');
+    $routes->post('vehicles/save-columns', 'VehiclePass::saveColumns');
     $routes->get('vehicles/direct-close/(public|cnc)', 'VehiclePass::directClose/$1/vendor');
     $routes->get('vehicles/direct-close/(public)/staff', 'VehiclePass::directClose/$1/staff');
     $routes->get('vehicles/public/staff', 'VehiclePass::listing/public/staff');
