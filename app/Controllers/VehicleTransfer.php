@@ -103,6 +103,9 @@ class VehicleTransfer extends BaseController
         if (is_vendor_admin()) {
             $b->where('v.vendor_company_id !=', $this->ownCompanyId());
         }
+        if ($db->fieldExists('soft_delete', 'vehicles')) {
+            $b->groupStart()->where('v.soft_delete', 0)->orWhere('v.soft_delete IS NULL', null, false)->groupEnd();
+        }
         $v = $b->orderBy('v.id', 'DESC')->get()->getRowArray();
         if (! $v) {
             return [null, "No vehicle with plate number {$plate} was found under another company."];

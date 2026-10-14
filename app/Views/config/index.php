@@ -2327,6 +2327,7 @@
                                 <div class="flex flex-wrap gap-6 text-sm text-gray-700 dark:text-slate-300">
                                     <label class="flex items-center gap-2"><input type="checkbox" data-vt="payment_required"> Payment required before the sticker is issued</label>
                                     <label class="flex items-center gap-2"><input type="checkbox" data-vt="duplicate_plate_ok"> Allow the same plate number on more than one pass</label>
+                                    <label class="flex items-center gap-2"><input type="checkbox" data-vt="req_pass"> Needs a driver (vendor pass) linked to the vehicle</label>
                                 </div>
                                 <div class="flex gap-2">
                                     <button type="submit" id="vtSaveBtn" class="px-4 py-2 rounded-lg bg-primary text-white hover:bg-blue-600 text-sm font-semibold">Save</button>
@@ -8089,7 +8090,7 @@
         function renderVehicleTypes() {
             const box = document.getElementById('vtList');
             if (!vtRows.length) { box.innerHTML = '<p class="text-sm text-gray-500">No vehicle types yet. Add one above.</p>'; return; }
-            const extras = { seater_req: 'Seater', working_height_req: 'Height', working_load_req: 'Load', truck_head_req: 'Truck head', trailer_req: 'Trailer', truck_weight_req: 'Weight', chassis_req: 'Chassis', trailer_weight_req: 'Trailer wt', trailer_type_req: 'Trailer type' };
+            const extras = { seater_req: 'Seater', working_height_req: 'Height', working_load_req: 'Load', truck_head_req: 'Truck head', trailer_req: 'Trailer', truck_weight_req: 'Weight', chassis_req: 'Chassis', trailer_weight_req: 'Trailer wt', trailer_type_req: 'Trailer type', req_pass: 'Driver pass' };
             box.innerHTML = `<div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800"><table class="w-full text-left text-sm">
                 <thead><tr class="bg-gray-50 dark:bg-slate-700 text-xs uppercase text-gray-600 dark:text-slate-200"><th class="p-3">Name</th><th class="p-3">Category</th><th class="p-3">Used for</th><th class="p-3">Extra details</th><th class="p-3">Payment</th><th class="p-3">Status</th><th class="p-3"></th></tr></thead><tbody>` +
                 vtRows.map(r => {

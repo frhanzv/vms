@@ -1,7 +1,7 @@
 <?php
 echo view('vehicles/_head', ['pageTitle' => $pageTitle]);
 $badge = ['Draft' => 'bg-gray-100 text-gray-700', 'Pending' => 'bg-amber-100 text-amber-800', 'Approved' => 'bg-blue-100 text-blue-800',
-    'Rejected' => 'bg-red-100 text-red-800', 'Issued' => 'bg-emerald-100 text-emerald-800', 'Terminated' => 'bg-slate-200 text-slate-700'];
+    'Rejected' => 'bg-red-100 text-red-800', 'Expired' => 'bg-orange-100 text-orange-800', 'Issued' => 'bg-emerald-100 text-emerald-800', 'Terminated' => 'bg-slate-200 text-slate-700'];
 $K = \App\Libraries\VehicleRules::KEYS[$group];
 $base = 'vehicles/' . $group;
 $tabs = [
@@ -19,6 +19,11 @@ $tabs = [
         <?php if ($canStaffRequest): ?>
         <a href="<?= base_url('vehicles/public/staff-request') ?>" class="bg-white border border-primary text-primary px-4 py-2 rounded text-sm font-medium flex items-center gap-1.5">
             <span class="material-icons text-[18px]">badge</span> New Staff Request
+        </a>
+        <?php endif; ?>
+        <?php if (! empty($canDirect)): ?>
+        <a href="<?= base_url('vehicles/direct-close/' . $group) ?>" class="bg-white border border-primary text-primary px-4 py-2 rounded text-sm font-medium flex items-center gap-1.5">
+            <span class="material-icons text-[18px]">verified</span> New Issued Pass
         </a>
         <?php endif; ?>
         <?php if ($canCreate): ?>
@@ -105,7 +110,7 @@ $tabs = [
                         case 'Date Collection': $c = $d($r['collect_date'] ?? null); break;
                         case 'Serial No': $c = esc($r['sticker_serial'] ?: '-'); break;
                         case 'Date Of Issuance': $c = $d($r['issue_date'] ?? null); break;
-                        case 'Status': $c = '<span class="px-2 py-0.5 rounded-full font-semibold ' . ($badge[$r['status']] ?? '') . '">' . esc($r['status']) . '</span>'; break;
+                        case 'Status': $ds = \App\Libraries\VehicleRules::displayStatus($r); $c = '<span class="px-2 py-0.5 rounded-full font-semibold ' . ($badge[$ds] ?? '') . '">' . esc($ds) . '</span>'; break;
                         case 'Next Action': $c = esc(\App\Libraries\VehicleRules::nextAction($r)); break;
                         case 'Sticker Status': $c = $stickerState($r); break;
                         case 'Road Tax Expiry': $c = $d($r['road_tax_expiry']); break;

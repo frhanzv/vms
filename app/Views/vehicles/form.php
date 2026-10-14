@@ -7,7 +7,9 @@ $selLocs = array_values(array_filter((array) ($old['location_access'] ?? explode
 $in  = 'w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 rounded px-3 py-2 text-sm';
 $lb  = 'block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1';
 $typeMeta = [];
-foreach ($types as $t) { $typeMeta[$t['id']] = array_map('intval', array_intersect_key($t, $typeFields)); }
+foreach ($types as $t) { $typeMeta[$t['id']] = array_map('intval', array_intersect_key($t, $typeFields)); $typeMeta[$t['id']]['req_pass'] = (int) ($t['req_pass'] ?? 0); }
+$direct = ! empty($direct);
+$driverRows = $driverRows ?? [];
 $typeList = array_map(static fn($t) => ['id' => (string) $t['id'], 'name' => $t['name'], 'operation' => $t['operation'] ?? ''], $types);
 $ops = \App\Libraries\VehicleRules::OPERATIONS;
 $yearNow = (int) date('Y');
@@ -15,7 +17,7 @@ $yearNow = (int) date('Y');
 <div class="bg-card-light dark:bg-card-dark rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
     <div class="flex items-center gap-3 mb-6">
         <a href="<?= base_url('vehicles/' . $group . ($passFor === 'staff' ? '/staff' : '')) ?>" class="text-gray-500 hover:text-primary"><span class="material-symbols-outlined">arrow_back</span></a>
-        <h1 class="text-xl md:text-2xl font-bold tracking-tight uppercase"><?= $isEdit ? 'Edit Vehicle Pass ' . esc($v['app_no']) : (! empty($v['renewed_from']) ? 'Renew Vehicle Pass' : ($passFor === 'staff' ? 'New Staff Vehicle Request' : 'New Vehicle Pass Request')) ?>
+        <h1 class="text-xl md:text-2xl font-bold tracking-tight uppercase"><?= $isEdit ? 'Edit Vehicle Pass ' . esc($v['app_no']) : ($direct ? 'New Vehicle Entry Pass (already issued)' : (! empty($v['renewed_from']) ? 'Renew Vehicle Pass' : ($passFor === 'staff' ? 'New Staff Vehicle Request' : 'New Vehicle Pass Request'))) ?>
             <span class="text-xs normal-case font-medium text-gray-500">- <?= esc(\App\Libraries\VehicleRules::GROUPS[$group]) ?></span></h1>
     </div>
 
@@ -34,6 +36,8 @@ $yearNow = (int) date('Y');
 
         <input type="hidden" name="vehicle_group" value="<?= esc($group) ?>"/>
         <input type="hidden" name="pass_for" value="<?= esc($passFor) ?>"/>
+        <?php if ($direct): ?><input type="hidden" name="direct" value="1"/>
+        <div class="mb-5 rounded border border-amber-200 bg-amber-50 text-amber-800 px-4 py-3 text-sm">This records a pass that is already issued: it skips the request and approval steps and goes straight to the Closed List.</div><?php endif; ?>
         <?php if (! empty($v['renewed_from'])): ?><input type="hidden" name="renewed_from" value="<?= (int) $v['renewed_from'] ?>"/>
         <div class="mb-5 rounded border border-blue-200 bg-blue-50 text-blue-800 px-4 py-3 text-sm">Renewal of the current pass. When the new sticker is issued the old pass is closed automatically.</div><?php endif; ?>
 
@@ -107,6 +111,27 @@ $yearNow = (int) date('Y');
             <?php endforeach; ?>
         </div>
 
+        <?php if ($passFor !== 'staff'): ?>
+        <div x-show="show('req_pass')" x-cloak class="mb-6" x-data="{ q: '', res: [], sel: <?= esc(json_encode(array_map(static fn($d) => ['id' => (int) $d['vendor_id'], 'full_name' => (string) $d['full_name'], 'ic' => (string) ($d['ic_no'] ?: $d['passport_no'])], $driverRows)), 'attr') ?>,
+              async find() { if (this.q.length < 2) { this.res = []; return; } const r = await fetch('<?= base_url('vehicles/drivers') ?>?q=' + encodeURIComponent(this.q)); this.res = await r.json(); },
+              add(r) { if (!this.sel.find(x => x.id === +r.id)) this.sel.push({ id: +r.id, full_name: r.full_name, ic: r.ic_no || r.passport_no || '' }); this.res = []; this.q = ''; } }">
+            <h2 class="text-sm font-bold uppercase text-gray-700 dark:text-gray-200 mb-3">Driver (Vendor Pass) *</h2>
+            <template x-for="d in sel" :key="d.id"><input type="hidden" name="driver_id[]" :value="d.id"></template>
+            <div class="relative max-w-xl">
+                <input type="text" x-model="q" @input.debounce.300ms="find()" placeholder="Search driver by name or IC / passport..." class="<?= $in ?>"/>
+                <div x-show="res.length" x-cloak class="absolute z-20 w-full mt-1 rounded border bg-white dark:bg-gray-800 shadow max-h-56 overflow-y-auto">
+                    <template x-for="r in res" :key="r.id"><button type="button" class="block w-full text-left px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700" @click="add(r)">
+                        <span class="font-semibold" x-text="r.full_name"></span> <span class="text-xs text-gray-500" x-text="(r.ic_no || r.passport_no || '') + ' / ' + (r.vendor_company_name || '')"></span></button></template>
+                </div>
+            </div>
+            <div class="mt-2 flex flex-wrap gap-2">
+                <template x-for="d in sel" :key="d.id"><span class="inline-flex items-center gap-2 rounded-full bg-primary/10 text-primary px-3 py-1 text-sm"><span x-text="d.full_name + ' (' + d.ic + ')'"></span>
+                    <button type="button" class="font-bold" @click="sel = sel.filter(x => x.id !== d.id)">&times;</button></span></template>
+            </div>
+            <p class="text-xs text-gray-500 mt-1">Only drivers with an active vendor pass can be linked. Reissuing the sticker later needs every linked pass to be active.</p>
+        </div>
+        <?php endif; ?>
+
         <h2 class="text-sm font-bold uppercase text-gray-700 dark:text-gray-200 mb-3">Location Access *</h2>
         <div class="relative mb-6 max-w-xl" @click.outside="open = false" @keydown.escape.window="open = false">
             <template x-for="c in selected" :key="c"><input type="hidden" name="location_access[]" :value="c"></template>
@@ -130,7 +155,7 @@ $yearNow = (int) date('Y');
             </div>
         </div>
 
-        <h2 class="text-sm font-bold uppercase text-gray-700 dark:text-gray-200 mb-3">Upload Documents *</h2>
+        <h2 class="text-sm font-bold uppercase text-gray-700 dark:text-gray-200 mb-3">Upload Documents<?= $direct ? '' : ' *' ?></h2>
         <div class="mb-6">
             <?php foreach ($files as $f): ?>
             <label class="flex items-center gap-2 text-sm mb-1"><input type="checkbox" name="remove_file[]" value="<?= $f['id'] ?>"/>
@@ -142,15 +167,28 @@ $yearNow = (int) date('Y');
 
         <div class="mb-6"><label class="<?= $lb ?>">Remark</label><textarea name="remark" rows="2" class="<?= $in ?>"><?= $val('remark') ?></textarea></div>
 
-        <?php if (empty($asApprover)): ?>
+        <?php if ($direct): ?>
+        <h2 class="text-sm font-bold uppercase text-gray-700 dark:text-gray-200 mb-3">Sticker Issuance</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6" x-data="{ pay: 'CASH' }">
+            <div><label class="<?= $lb ?>">Collection Date</label><input name="collect_date" value="<?= esc($old['collect_date'] ?? date('d/m/Y')) ?>" class="flatpickr <?= $in ?>" placeholder="dd/mm/yyyy"/></div>
+            <div><label class="<?= $lb ?>">Sticker Serial Number *</label><input name="sticker_serial" value="<?= esc($old['sticker_serial'] ?? '') ?>" class="<?= $in ?>"/></div>
+            <div><label class="<?= $lb ?>">Date Of Issuance *</label><input name="issue_date" value="<?= esc($old['issue_date'] ?? date('d/m/Y')) ?>" class="flatpickr <?= $in ?>" placeholder="dd/mm/yyyy"/></div>
+            <div><label class="<?= $lb ?>">Collector's IC No / Passport No *</label><input name="collector_ic" value="<?= esc($old['collector_ic'] ?? '') ?>" class="<?= $in ?>"/></div>
+            <div><label class="<?= $lb ?>">Collected By</label><input name="collector_name" value="<?= esc($old['collector_name'] ?? '') ?>" class="<?= $in ?>"/></div>
+            <div><label class="<?= $lb ?>">Payment Type</label><select name="payment_type" x-model="pay" class="<?= $in ?>"><option>CASH</option></select></div>
+            <div><label class="<?= $lb ?>">Receipt No. (when the type needs payment)</label><input name="receipt_no" value="<?= esc($old['receipt_no'] ?? '') ?>" class="<?= $in ?>"/></div>
+        </div>
+        <?php endif; ?>
+
+        <?php if (empty($asApprover) && ! $direct): ?>
         <label class="flex items-start gap-2 text-sm mb-6 max-w-3xl"><input type="checkbox" name="tnc" value="1" class="mt-1"/>
             <span>I declare that the information given is true, the vehicle is registered to the owner above, and I agree to follow the port's vehicle sticker terms and conditions. The sticker remains the property of the port and must be returned on request.</span></label>
         <?php endif; ?>
 
         <div class="flex justify-end gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
             <a href="<?= base_url('vehicles/' . $group . ($passFor === 'staff' ? '/staff' : '')) ?>" class="px-4 py-2 rounded border border-gray-300 text-sm">Cancel</a>
-            <?php if (empty($asApprover)): ?><button name="action" value="draft" class="px-4 py-2 rounded border border-gray-300 text-sm font-medium">Save as Draft</button><?php endif; ?>
-            <button name="action" value="submit" class="px-4 py-2 rounded bg-primary text-white text-sm font-semibold"><?= ! empty($asApprover) ? 'Save Changes' : 'Submit' ?></button>
+            <?php if (empty($asApprover) && ! $direct): ?><button name="action" value="draft" class="px-4 py-2 rounded border border-gray-300 text-sm font-medium">Save as Draft</button><?php endif; ?>
+            <button name="action" value="submit" class="px-4 py-2 rounded bg-primary text-white text-sm font-semibold"><?= ! empty($asApprover) ? 'Save Changes' : ($direct ? 'Save Issued Pass' : 'Submit') ?></button>
         </div>
     </form>
 </div>

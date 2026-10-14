@@ -59,4 +59,21 @@ Not yet in VMS: amount per vehicle type (the `amount` column exists but is not f
 * **Config > Vehicle Types**: Operation select and Trailer Weight / Trailer Type flags.
 * **Daily Pass** (still hidden): Individual or Staff, year made, colour, brand, road tax and insurance expiry, several visit dates (single day or range, stored as JSON in `visit_dates`), remark, terms.
 
-Not ported yet: company vehicle limit, company permit check, e-mail notifications, print slip, terms stored in the database, configurable renewal months. `companies.ledger_acc_no` has no Config screen yet (set it in the database).
+## KPK alignment, round 2 (migration 2026-10-14-100000)
+
+Run `php spark migrate` before using the new code.
+
+* **Drivers**: a vehicle type can be marked "Needs a driver (vendor pass)" in Config > Vehicle Types. The form then shows a driver picker (search by name / IC / passport; only vendor passes with an active card, inside the user's client, and for a vendor account only its own company). Stored in `vehicle_drivers`. A vehicle can be found in the lists by its driver's name or IC. Reissuing a sticker needs every linked driver pass to be Active. Staff passes have no driver.
+* **Delete is a soft delete** (`vehicles.soft_delete`, `deleted_at`): the pass leaves every list, its sticker goes inactive and the plate is free again. Allowed from Draft, Rejected (key `*_reject_delete`) and the Closed List (key `*_closed_delete`, Issued or Terminated).
+* **Plate rule (KPK)**: Pending, Approved, Rejected and Issued passes hold the plate. A Rejected pass keeps it until deleted. If the pass that holds the plate is of a "duplicate plate allowed" type, it only blocks the same company.
+* **Cargo | Non-Cargo checks**: truck weight at most 15000, trailer weight at most 10000 (digits only); spaces are removed from truck head and trailer numbers.
+* **Limits** (car / motorbike / van categories only): staff - 5 passes (10 in Oct-Dec) counting Pending, Approved and Issued; company - its own allocation per category (`companies.vehicle_max_car / _motorbike / _van`, doubled in Oct-Dec) or, with no allocation, 2 in total (4 in Oct-Dec) counting Approved and Issued. Defaults can be changed in `.env`: `VEHICLE_MAX_STAFF`, `VEHICLE_MAX_STAFF_YEAR_END`, `VEHICLE_MAX_COMPANY`, `VEHICLE_MAX_COMPANY_YEAR_END`. There is no screen for the company allocation yet (set it in the database).
+* **Year end**: from October a renewal or a resubmitted (rejected) pass must be for next year's sticker.
+* **Approval**: a Cargo | Non-Cargo type that needs no payment is issued the moment it is approved (no sticker serial, as in KPK). `VEHICLE_DIRECT_CLOSE=true` in `.env` does the same for every pass (KPK module config "vpDirectClose"). Otherwise approve keeps collection date + remark and waits for the sticker.
+* **New issued pass (direct close)**: Closed List > "New Issued Pass" (key `*_closed_list`, not for vendor accounts) records a vehicle that is already issued, with serial, date of issuance, collector IC, payment type and receipt. Route `vehicles/direct-close/(public|cnc)`.
+* **Edit Vehicle Info** (Closed List tools, Issued passes): year made, colour, brand, road tax, insurance, vehicle type, and for Cargo | Non-Cargo the extra details (fields the new type does not need are cleared). Road tax / insurance are copied to the active sticker.
+* **Sticker history** (`vehicle_stickers`): every issue / reissue adds an active sticker and makes the previous one inactive; serial and receipt changes follow the active sticker; terminate and delete make it inactive; past its expiry it reads Expired. Passes issued before this migration are backfilled.
+* **Expired**: an Issued pass past its expiry shows as Expired (list, view, filter) with next action "Renew Pass". Pass expiry is 31 Dec of the sticker year (a staff pass +100 years).
+* **Renewal** is still a new linked pass (`renewed_from`): the old pass is terminated when the renewal gets its sticker. KPK instead reuses the same row; that was not copied because it would hide a live pass behind a Pending status.
+
+Not ported: company permit (CP) invalid block (VMS has no company permit), number-plate validity lookup used by the gate, blacklist check on plates, approval e-mail / PDF slip / temporary pass slip, Excel import of vehicles, KPK payment-before-approval flow, terms stored in the database, configurable renewal months. `companies.ledger_acc_no` has no Config screen yet (set it in the database).

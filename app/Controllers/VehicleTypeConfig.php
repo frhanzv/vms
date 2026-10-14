@@ -10,7 +10,7 @@ use App\Libraries\VehicleRules;
  */
 class VehicleTypeConfig extends BaseController
 {
-    private const FLAGS = ['seater_req', 'working_height_req', 'working_load_req', 'truck_head_req', 'trailer_req', 'truck_weight_req', 'chassis_req', 'trailer_weight_req', 'trailer_type_req', 'payment_required', 'duplicate_plate_ok'];
+    private const FLAGS = ['seater_req', 'working_height_req', 'working_load_req', 'truck_head_req', 'trailer_req', 'truck_weight_req', 'chassis_req', 'trailer_weight_req', 'trailer_type_req', 'req_pass', 'payment_required', 'duplicate_plate_ok'];
 
     private function scope(): ?int
     {

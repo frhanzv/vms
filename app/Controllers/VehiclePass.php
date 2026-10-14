@@ -66,9 +66,113 @@ class VehiclePass extends BaseController
     private function find(int $id): ?array
     {
         $db = \Config\Database::connect();
-        $b  = $db->table('vehicles v')->select('v.*, t.name AS type_name')->join('vehicle_types t', 't.id = v.vehicle_type_id', 'left')->where('v.id', $id);
+        $b  = $db->table('vehicles v')->select('v.*, t.name AS type_name, t.category AS type_category, t.req_pass AS type_req_pass')->join('vehicle_types t', 't.id = v.vehicle_type_id', 'left')->where('v.id', $id);
 
-        return $this->scope($b)->get()->getRowArray() ?: null;
+        return $this->notDeleted($this->scope($b))->get()->getRowArray() ?: null;
+    }
+
+    /** A soft-deleted pass (KPK "remove") disappears from every list and page. */
+    private function notDeleted($builder, string $alias = 'v')
+    {
+        if (\Config\Database::connect()->fieldExists('soft_delete', 'vehicles')) {
+            $builder->groupStart()->where($alias . '.soft_delete', 0)->orWhere($alias . '.soft_delete IS NULL', null, false)->groupEnd();
+        }
+
+        return $builder;
+    }
+
+    // ------------------------------------------------------------------ drivers (vendor passes linked to a vehicle)
+
+    /** Vendor passes (drivers) the user may link: active card, not suspended / terminated, inside the user's client and (vendor account) company. */
+    private function driverQuery()
+    {
+        $b = \Config\Database::connect()->table('vendors')->select('id, full_name, ic_no, passport_no, vendor_company_name, card_status, status')
+            ->where('card_status', 'Active')->whereNotIn('status', ['suspended', 'Suspended', 'terminated', 'Terminated']);
+        if (! is_platform_superadmin()) {
+            $b->where('company_id', current_client_id());
+        }
+        apply_vendor_company_scope($b);
+
+        return $b;
+    }
+
+    /** JSON for the driver picker: search by name, IC or passport. */
+    public function driverLookup()
+    {
+        $this->init();
+        if (! ($this->allowed('public', 'create') || $this->allowed('cnc', 'create') || $this->allowed('public', 'closed') || $this->allowed('cnc', 'closed'))) {
+            return $this->response->setJSON([]);
+        }
+        $q = trim((string) $this->request->getGet('q'));
+        if (mb_strlen($q) < 2) {
+            return $this->response->setJSON([]);
+        }
+        $b = $this->driverQuery()->groupStart()->like('full_name', $q)->orLike('ic_no', $q)->orLike('passport_no', $q)->groupEnd();
+
+        return $this->response->setJSON($b->orderBy('full_name')->limit(10)->get()->getResultArray());
+    }
+
+    /** Drivers linked to a pass, with the vendor pass details. */
+    private function drivers(int $vehicleId): array
+    {
+        $db = \Config\Database::connect();
+        if (! $vehicleId || ! $db->tableExists('vehicle_drivers')) {
+            return [];
+        }
+
+        return $db->table('vehicle_drivers d')->select('d.id AS link_id, d.vendor_id, d.hod, x.full_name, x.ic_no, x.passport_no, x.card_status, x.status AS pass_status, x.vendor_company_name')
+            ->join('vendors x', 'x.id = d.vendor_id', 'left')->where('d.vehicle_id', $vehicleId)->orderBy('d.id')->get()->getResultArray();
+    }
+
+    /** Validates the posted driver ids against the user's scope. Returns [ids, error|null]. */
+    private function postedDrivers(): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', (array) $this->request->getPost('driver_id')))));
+        if (! $ids) {
+            return [[], null];
+        }
+        $ok = array_column($this->driverQuery()->whereIn('id', $ids)->get()->getResultArray(), 'id');
+        if (count($ok) !== count($ids)) {
+            return [[], 'A selected driver pass is not active (or not yours). Choose the driver again.'];
+        }
+
+        return [$ids, null];
+    }
+
+    private function saveDrivers($db, int $vehicleId, array $ids): void
+    {
+        if (! $db->tableExists('vehicle_drivers')) {
+            return;
+        }
+        $db->table('vehicle_drivers')->where('vehicle_id', $vehicleId)->delete();
+        foreach ($ids as $vid) {
+            $db->table('vehicle_drivers')->insert(['vehicle_id' => $vehicleId, 'vendor_id' => (int) $vid, 'hod' => null, 'created_at' => date('Y-m-d H:i:s')]);
+        }
+    }
+
+    /** KPK sticker history: the new sticker becomes active, the previous one inactive. */
+    private function recordSticker($db, array $v, array $f, string $by): void
+    {
+        if (! $db->tableExists('vehicle_stickers')) {
+            return;
+        }
+        $now = date('Y-m-d H:i:s');
+        $db->table('vehicle_stickers')->where('vehicle_id', (int) $v['id'])->where('status', 'active')->update(['status' => 'inactive', 'updated_at' => $now]);
+        $db->table('vehicle_stickers')->insert([
+            'vehicle_id' => (int) $v['id'], 'sticker_year' => $f['sticker_year'] ?? $v['sticker_year'] ?? null, 'serial_no' => $f['sticker_serial'] ?? null,
+            'receipt_no' => $f['receipt_no'] ?? $v['receipt_no'] ?? null, 'payment_type' => $f['payment_type'] ?? $v['payment_type'] ?? null,
+            'issue_date' => $f['issue_date'] ?? null, 'pass_expiry' => $f['pass_expiry'] ?? $v['pass_expiry'] ?? null,
+            'collector_ic' => $f['collector_ic'] ?? null, 'collector_name' => $f['collector_name'] ?? null,
+            'road_tax_expiry' => $v['road_tax_expiry'] ?? null, 'insurance_expiry' => $v['insurance_expiry'] ?? null,
+            'status' => 'active', 'issued_by' => $by, 'created_at' => $now, 'updated_at' => $now,
+        ]);
+    }
+
+    private function closeStickers($db, int $vehicleId): void
+    {
+        if ($db->tableExists('vehicle_stickers')) {
+            $db->table('vehicle_stickers')->where('vehicle_id', $vehicleId)->where('status', 'active')->update(['status' => 'inactive', 'updated_at' => date('Y-m-d H:i:s')]);
+        }
     }
 
     private function userName(): string
@@ -137,6 +241,7 @@ class VehiclePass extends BaseController
         $b = $db->table('vehicles v')->select('v.*, t.name AS type_name')->join('vehicle_types t', 't.id = v.vehicle_type_id', 'left');
         $this->scope($b);
         $b->where('v.vehicle_group', $group);
+        $this->notDeleted($b);
         $filterable = null; // statuses the user may filter by on this page
         if ($stage === 'request') {
             $b->where('v.status', 'Pending');
@@ -149,8 +254,10 @@ class VehiclePass extends BaseController
             if ($stage === 'staff') {
                 $b->where('v.pass_for', 'staff');
             }
-            $filterable = VehicleRules::STATUSES;
-            if ($status !== '' && in_array($status, $filterable, true)) {
+            $filterable = array_merge(VehicleRules::STATUSES, ['Expired']);
+            if ($status === 'Expired') {
+                $b->where('v.status', 'Issued')->where('v.pass_expiry <', date('Y-m-d'));
+            } elseif ($status !== '' && in_array($status, $filterable, true)) {
                 $b->where('v.status', $status);
             }
         }
@@ -166,7 +273,12 @@ class VehiclePass extends BaseController
         if ($search !== '') {
             $b->groupStart()->like('v.plate_no', VehicleRules::normalizePlate($search))->orLike('v.owner_name', $search)->orLike('v.owner_ic', $search)
                 ->orLike('v.company_name', $search)->orLike('v.department', $search)->orLike('v.staff_no', $search)
-                ->orLike('v.app_no', $search)->orLike('v.sticker_serial', $search)->orLike('v.receipt_no', $search)->groupEnd();
+                ->orLike('v.app_no', $search)->orLike('v.sticker_serial', $search)->orLike('v.receipt_no', $search);
+            // KPK also finds a vehicle by its driver's name or IC / passport
+            if ($db->tableExists('vehicle_drivers')) {
+                $b->orWhere('v.id IN (SELECT d.vehicle_id FROM ' . $db->prefixTable('vehicle_drivers') . ' d JOIN ' . $db->prefixTable('vendors') . ' x ON x.id = d.vendor_id WHERE x.full_name LIKE ' . $db->escape('%' . $db->escapeLikeString($search) . '%') . ' OR x.ic_no LIKE ' . $db->escape('%' . $db->escapeLikeString($search) . '%') . ' OR x.passport_no LIKE ' . $db->escape('%' . $db->escapeLikeString($search) . '%') . ')', null, false);
+            }
+            $b->groupEnd();
         }
         $sorts = ['app_asc' => ['v.app_no', 'ASC'], 'app_desc' => ['v.app_no', 'DESC'], 'reg_asc' => ['v.plate_no', 'ASC'], 'reg_desc' => ['v.plate_no', 'DESC'],
             'date_asc' => ['v.id', 'ASC'], 'date_desc' => ['v.id', 'DESC'], 'name_asc' => ['v.owner_name', 'ASC'], 'name_desc' => ['v.owner_name', 'DESC'],
@@ -181,6 +293,7 @@ class VehiclePass extends BaseController
             'appFor' => $appFor, 'typeId' => $typeId, 'appTyp' => $appTyp, 'sort' => $sort, 'per' => $per, 'types' => $this->types($group),
             'filterable' => $filterable,
             'canCreate' => $this->allowed($group, 'create'),
+            'canDirect' => $stage === 'closed' && ! is_vendor_admin() && $this->allowed($group, 'closed'),
             'canStaffRequest' => $group === 'public' && ! is_vendor_admin() && $this->allowed($group, 'staff_request'),
         ]);
     }
@@ -217,6 +330,19 @@ class VehiclePass extends BaseController
         return $this->form(['vehicle_group' => $group, 'pass_for' => $kind]);
     }
 
+    /** KPK "New Vehicle Entry Pass" (direct close): an admin records a pass that is already issued. */
+    public function directClose(string $group = 'public', string $kind = 'vendor')
+    {
+        $this->init();
+        $group = $this->group($group);
+        if (is_vendor_admin() || ! $this->allowed($group, 'closed')) {
+            return $this->back('error', 'You are not allowed to add an issued pass directly.', 'dashboard');
+        }
+        $kind = ($kind === 'staff' && $group === 'public') ? 'staff' : 'vendor';
+
+        return $this->form(['vehicle_group' => $group, 'pass_for' => $kind, 'direct' => 1]);
+    }
+
     public function edit($id)
     {
         $this->init();
@@ -246,6 +372,7 @@ class VehiclePass extends BaseController
         $new = array_diff_key($v, array_flip(['id', 'app_no', 'app_date', 'status', 'reject_reason', 'payment_status', 'payment_ref', 'payment_type', 'receipt_no', 'sticker_serial', 'sticker_year', 'pass_expiry', 'issued_at', 'issued_by', 'collector_name', 'approved_by', 'approved_at', 'created_at', 'updated_at', 'collect_date', 'issue_date', 'collector_ic', 'terminated_at']));
         $new['renewed_from'] = (int) $v['id'];
         $new['type_of_app']  = 'Renewal';
+        $new['driver_rows']  = $this->drivers((int) $v['id']);
 
         return $this->form($new);
     }
@@ -256,7 +383,7 @@ class VehiclePass extends BaseController
         if (! $this->canEdit(array_merge($v, ['status' => 'Draft']))) {
             return 'You are not allowed to request a vehicle pass here.';
         }
-        $v['renewal_pending'] = \Config\Database::connect()->table('vehicles')->where('renewed_from', (int) $v['id'])->whereIn('status', ['Draft', 'Pending', 'Approved'])->countAllResults() > 0;
+        $v['renewal_pending'] = \Config\Database::connect()->table('vehicles')->where('renewed_from', (int) $v['id'])->whereIn('status', ['Draft', 'Pending', 'Approved'])->where('soft_delete', 0)->countAllResults() > 0;
 
         return VehicleRules::renewBlock($v);
     }
@@ -273,6 +400,8 @@ class VehiclePass extends BaseController
             'typeFields' => VehicleRules::TYPE_FIELDS, 'old' => session()->getFlashdata('old') ?: [],
             'group' => $group, 'passFor' => $v['pass_for'] ?? 'vendor', 'ownCompany' => $co, 'stickerYears' => VehicleRules::stickerYears(),
             'allTypes' => $this->types($group), 'asApprover' => ! empty($v['id']) && ! $this->ownerMay($v) && $this->approverMay($v),
+            'driverRows' => ! empty($v['driver_rows']) ? $v['driver_rows'] : (! empty($v['id']) ? $this->drivers((int) $v['id']) : []),
+            'direct' => ! empty($v['direct']), 'ledger' => false,
             'staffRow' => ! empty($v['staff_id']) ? \Config\Database::connect()->table('staff')->where('id', (int) $v['staff_id'])->get()->getRowArray() : null,
         ]);
     }
@@ -281,7 +410,7 @@ class VehiclePass extends BaseController
     public function staffLookup()
     {
         $this->init();
-        if (is_vendor_admin() || ! $this->allowed('public', 'staff_request')) {
+        if (is_vendor_admin() || ! ($this->allowed('public', 'staff_request') || $this->allowed('public', 'closed'))) {
             return $this->response->setJSON([]);
         }
         $q = trim((string) $this->request->getGet('q'));
@@ -335,7 +464,11 @@ class VehiclePass extends BaseController
             return $this->back('error', 'You are not allowed to request a vehicle pass here.', 'dashboard');
         }
 
-        $submit = ($p['action'] ?? 'submit') === 'submit' || $asApprover;
+        $direct = ! $id && ! empty($p['direct']);
+        if ($direct && (is_vendor_admin() || ! $this->allowed($group, 'closed'))) {
+            return $this->back('error', 'You are not allowed to add an issued pass directly.', 'dashboard');
+        }
+        $submit = ($p['action'] ?? 'submit') === 'submit' || $asApprover || $direct;
         $errors = [];
         $get    = static fn(string $k): string => trim((string) ($p[$k] ?? ''));
 
@@ -390,10 +523,10 @@ class VehiclePass extends BaseController
                     $errors[] = "$label is required.";
                 }
             }
-            if ($this->docCount($id, $p) < 1) {
+            if (! $direct && $this->docCount($id, $p) < 1) {
                 $errors[] = 'Upload at least one document (vehicle grant / road tax / insurance).';
             }
-            if (! $asApprover && empty($p['tnc'])) {
+            if (! $asApprover && ! $direct && empty($p['tnc'])) {
                 $errors[] = 'Please accept the terms and conditions.';
             }
             if (! in_array($owner['owner_type'], ['Individual', 'Company', 'Staff'], true)) {
@@ -414,8 +547,37 @@ class VehiclePass extends BaseController
             }
         }
         $ignore = array_filter([$id, $origId]);
-        if ($plate !== '' && $type && (int) $type['duplicate_plate_ok'] !== 1 && ($h = VehicleRules::plateHolder($db, $plate, $ignore, $year))) {
+        $coId   = $co ? (int) $co['id'] : (int) ($cur['vendor_company_id'] ?? ($orig['vendor_company_id'] ?? 0));
+        if ($plate !== '' && $type && ($h = VehicleRules::plateHolder($db, $plate, $ignore, $year, $coId ?: null))) {
             $errors[] = VehicleRules::plateMessage($plate, $h);
+        }
+        if ($type && $group === 'cnc' && ($w = VehicleRules::weightError($type, $get))) {
+            $errors[] = $w;
+        }
+        [$driverIds, $driverErr] = $this->postedDrivers();
+        if ($driverErr) {
+            $errors[] = $driverErr;
+        }
+        if ($submit && $type && (int) ($type['req_pass'] ?? 0) === 1 && $kind === 'vendor' && ! $driverIds) {
+            $errors[] = "Choose at least one driver (vendor pass) for {$type['name']}.";
+        }
+        if ($submit && ! $asApprover && $type) {
+            // KPK limits: staff max vehicles, company max vehicles (car / motorbike / van types only)
+            $staffRowId = $kind === 'staff' ? (int) ($owner['staff_id'] ?? 0) : null;
+            if ($lim = VehicleRules::limitError($db, (string) ($type['category'] ?? ''), $kind === 'staff' ? null : $coId, $staffRowId, $id)) {
+                $errors[] = $lim;
+            }
+            // year-end window: a renewal or a resubmitted (rejected) pass must be for next year's sticker
+            if (($origId || ($cur && $cur['status'] === 'Rejected')) && ($ye = VehicleRules::yearEndError($year))) {
+                $errors[] = $ye;
+            }
+        }
+        $stickerF = [];
+        if ($direct && ! $errors) {
+            [$serr, $stickerF] = $this->stickerFields($db, ['payment_required' => $type ? (int) $type['payment_required'] : 0, 'payment_status' => 'Pending', 'vendor_company_id' => null], 0);
+            if ($serr) {
+                $errors[] = $serr;
+            }
         }
         foreach (['road_tax_expiry', 'insurance_expiry'] as $d) {
             if ($get($d) !== '' && ! $this->validDate($get($d))) {
@@ -446,6 +608,9 @@ class VehiclePass extends BaseController
         foreach (VehicleRules::TYPE_FIELDS as [$field, $label]) {
             $data[$field] = $get($field) ?: null;
         }
+        foreach (['truck_head_number', 'trailer_number'] as $f) {
+            $data[$f] = $data[$f] !== null ? VehicleRules::stripSpaces($data[$f]) : null;
+        }
         $data['payment_status'] = $data['payment_required'] ? ($cur['payment_status'] ?? 'Pending') : 'None';
 
         $db->transStart();
@@ -468,14 +633,26 @@ class VehiclePass extends BaseController
                 'created_by_user' => (int) session()->get('user_id') ?: null, 'renewed_from' => $origId ?: null,
                 'status' => $submit ? 'Pending' : 'Draft', 'requested_by' => $this->userName(), 'created_at' => $now,
             ];
+            if ($direct) {
+                $cd = $get('collect_date') !== '' ? $this->toDate($get('collect_date')) : null;
+                $data = array_merge($data, array_intersect_key($stickerF, array_flip(['sticker_serial', 'issue_date', 'collector_ic', 'collector_name', 'receipt_no', 'payment_type', 'payment_status'])), [
+                    'status' => 'Issued', 'collect_date' => $cd, 'pass_expiry' => VehicleRules::expiryFor($year, $kind === 'staff'),
+                    'issued_at' => $now, 'issued_by' => $this->userName(), 'approved_by' => $this->userName(), 'approved_at' => $now,
+                ]);
+            }
+            $data['soft_delete'] = 0;
             $db->table('vehicles')->insert($data);
             $id = (int) $db->insertID();
-            $this->log($id, null, $data['status'], ($origId ? 'Renewal of ' . $orig['app_no'] . '. ' : '') . ($submit ? 'Submitted' : 'Saved as draft'));
+            $this->log($id, null, $data['status'], $direct ? 'Added as an issued pass (direct close). Sticker ' . ($data['sticker_serial'] ?? '') : (($origId ? 'Renewal of ' . $orig['app_no'] . '. ' : '') . ($submit ? 'Submitted' : 'Saved as draft')));
+            if ($direct) {
+                $this->recordSticker($db, array_merge($data, ['id' => $id]), array_merge($stickerF, ['pass_expiry' => $data['pass_expiry'], 'sticker_year' => $year]), $this->userName());
+            }
         }
+        $this->saveDrivers($db, $id, $driverIds);
         $this->saveFiles($db, $id);
         $db->transComplete();
 
-        return $this->back('success', $asApprover ? 'Details updated.' : ($submit ? 'Vehicle pass request submitted.' : 'Saved as draft.'), 'vehicles/view/' . $id);
+        return $this->back('success', $asApprover ? 'Details updated.' : ($direct ? 'Issued vehicle pass added.' : ($submit ? 'Vehicle pass request submitted.' : 'Saved as draft.')), 'vehicles/view/' . $id);
     }
 
     /** Documents the pass will have after this save: kept existing files plus valid new uploads. */
@@ -611,6 +788,8 @@ class VehiclePass extends BaseController
             'pageTitle' => 'Vehicle Pass ' . $v['app_no'] . ' - SafeG', 'v' => $v, 'group' => $g,
             'files' => $db->table('vehicle_files')->where('vehicle_id', $v['id'])->get()->getResultArray(),
             'logs' => $db->table('vehicle_status_logs')->where('vehicle_id', $v['id'])->orderBy('id', 'DESC')->get()->getResultArray(),
+            'drivers' => $this->drivers((int) $v['id']),
+            'stickers' => $db->tableExists('vehicle_stickers') ? $db->table('vehicle_stickers')->where('vehicle_id', $v['id'])->orderBy('id', 'DESC')->get()->getResultArray() : [],
             'reissues' => $db->tableExists('vehicle_reissues') ? $db->table('vehicle_reissues')->where('vehicle_id', $v['id'])->orderBy('id', 'DESC')->get()->getResultArray() : [],
             'labels' => (new VendorLocationModel())->getAllLabelMap(), 'typeFields' => VehicleRules::TYPE_FIELDS,
             'locationOptions' => (new VendorLocationModel())->getOptionsForUser(true), 'types' => $this->types($g), 'ledger' => $this->ledgerCode($v) !== '',
@@ -645,7 +824,7 @@ class VehiclePass extends BaseController
     {
         return ($v['status'] === 'Rejected' && $this->may($v, 'delete_rejected'))
             || ($v['status'] === 'Draft' && ($this->may($v, 'create') || ($v['pass_for'] ?? '') === 'staff'))
-            || ($v['status'] === 'Terminated' && $this->may($v, 'delete_closed'));
+            || (in_array($v['status'], ['Issued', 'Terminated'], true) && $this->may($v, 'delete_closed'));
     }
 
     // ------------------------------------------------------------------ actions
@@ -680,12 +859,21 @@ class VehiclePass extends BaseController
         $upd  = ['status' => $to, 'updated_at' => date('Y-m-d H:i:s')];
         $note = trim((string) $this->request->getPost('note'));
 
+        $autoIssue = false;
         if ($action === 'submit') {
-            if ($h = (VehicleRules::plateHolder($db, (string) $v['plate_no'], array_filter([(int) $v['id'], (int) ($v['renewed_from'] ?? 0)])))) {
-                $t = $db->table('vehicle_types')->where('id', $v['vehicle_type_id'])->get()->getRowArray();
-                if (! $t || (int) $t['duplicate_plate_ok'] !== 1) {
-                    return $this->back('error', VehicleRules::plateMessage((string) $v['plate_no'], $h), $back);
-                }
+            $t = $db->table('vehicle_types')->where('id', $v['vehicle_type_id'])->get()->getRowArray() ?: [];
+            if ($h = VehicleRules::plateHolder($db, (string) $v['plate_no'], array_filter([(int) $v['id'], (int) ($v['renewed_from'] ?? 0)]), null, (int) ($v['vendor_company_id'] ?? 0) ?: null)) {
+                return $this->back('error', VehicleRules::plateMessage((string) $v['plate_no'], $h), $back);
+            }
+            $isStaff = ($v['pass_for'] ?? '') === 'staff';
+            if ($lim = VehicleRules::limitError($db, (string) ($t['category'] ?? ''), $isStaff ? null : (int) ($v['vendor_company_id'] ?? 0), $isStaff ? (int) $v['staff_id'] : null, (int) $v['id'])) {
+                return $this->back('error', $lim, $back);
+            }
+            if (($v['status'] === 'Rejected' || ! empty($v['renewed_from'])) && ($ye = VehicleRules::yearEndError((string) $v['sticker_year']))) {
+                return $this->back('error', $ye, $back);
+            }
+            if ((int) ($t['req_pass'] ?? 0) === 1 && ! $isStaff && ! $this->drivers((int) $v['id'])) {
+                return $this->back('error', 'Edit the pass and choose at least one driver (vendor pass) first.', $back);
             }
             $upd['reject_reason'] = null;
         } elseif ($action === 'approve') {
@@ -697,6 +885,20 @@ class VehiclePass extends BaseController
                 return $this->back('error', 'Use a valid collection date (dd/mm/yyyy).', $back);
             }
             $upd += ['approved_by' => $this->userName(), 'approved_at' => date('Y-m-d H:i:s'), 'collect_date' => $cd !== '' ? $this->toDate($cd) : null];
+            // KPK: a Cargo | Non-Cargo type that needs no payment is issued the moment it is approved; so is every pass when direct close is switched on
+            $payReq    = (int) ($v['payment_required'] ?? 0) === 1;
+            $autoIssue = ($g === 'cnc' && ! $payReq) || VehicleRules::approveIssues();
+            if ($autoIssue && $payReq && ($v['payment_status'] ?? '') !== 'Paid') {
+                $autoIssue = false; // a payable type still goes through the receipt step
+            }
+            if ($autoIssue) {
+                $upd['status']       = 'Issued';
+                $upd['pass_expiry']  = VehicleRules::expiryFor((string) ($v['sticker_year'] ?: date('Y')), ($v['pass_for'] ?? '') === 'staff');
+                $upd['issue_date']   = date('Y-m-d');
+                $upd['issued_at']    = date('Y-m-d H:i:s');
+                $upd['issued_by']    = $this->userName();
+                $to                  = 'Issued';
+            }
         } elseif ($action === 'reject') {
             $reason = '';
             if ((int) $this->request->getPost('reject_reason_id') > 0) {
@@ -720,18 +922,27 @@ class VehiclePass extends BaseController
 
         $db->transStart();
         $db->table('vehicles')->where('id', (int) $id)->update($upd);
-        $this->log((int) $id, (string) $v['status'], $to, $note !== '' ? $note : ($action === 'issue' ? 'Sticker ' . $upd['sticker_serial'] : null));
+        $this->log((int) $id, (string) $v['status'], $to, $note !== '' ? $note : ($action === 'issue' ? 'Sticker ' . $upd['sticker_serial'] : ($autoIssue ? 'Approved and issued (no payment step)' : null)));
+        $issued = $action === 'issue' || $autoIssue;
+        if ($issued) {
+            $this->recordSticker($db, array_merge($v, $upd, ['id' => (int) $id]), $upd, $this->userName());
+        }
+        if ($action === 'terminate') {
+            $this->closeStickers($db, (int) $id);
+            $db->table('vehicles')->where('id', (int) $id)->update(['terminated_at' => date('Y-m-d H:i:s')]);
+        }
         // a renewal that gets its sticker replaces the old pass
-        if ($action === 'issue' && ! empty($v['renewed_from'])) {
+        if ($issued && ! empty($v['renewed_from'])) {
             $old = $db->table('vehicles')->where('id', (int) $v['renewed_from'])->get()->getRowArray();
             if ($old && $old['status'] === 'Issued') {
-                $db->table('vehicles')->where('id', $old['id'])->update(['status' => 'Terminated', 'updated_at' => date('Y-m-d H:i:s')]);
+                $db->table('vehicles')->where('id', $old['id'])->update(['status' => 'Terminated', 'terminated_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s')]);
+                $this->closeStickers($db, (int) $old['id']);
                 $this->log((int) $old['id'], 'Issued', 'Terminated', 'Replaced by renewal ' . $v['app_no']);
             }
         }
         $db->transComplete();
 
-        $msg = ['submit' => 'Submitted for approval.', 'approve' => 'Vehicle pass approved. It is now waiting for sticker issuance.', 'reject' => 'Vehicle pass rejected.',
+        $msg = ['submit' => 'Submitted for approval.', 'approve' => $autoIssue ? 'Vehicle pass approved and issued.' : 'Vehicle pass approved. It is now waiting for sticker issuance.', 'reject' => 'Vehicle pass rejected.',
             'issue' => 'Sticker issued.', 'terminate' => 'Vehicle pass terminated.'][$action];
         $dest = $back;
         if ($action === 'approve' || $action === 'reject') {
@@ -770,6 +981,11 @@ class VehiclePass extends BaseController
             if (! in_array($reason, VehicleRules::REISSUE_REASONS, true)) {
                 return $this->back('error', 'Choose the reason for the reissue.', $back);
             }
+            foreach ($this->drivers((int) $v['id']) as $dr) {
+                if (($dr['card_status'] ?? '') !== 'Active') {
+                    return $this->back('error', 'There are driver passes not yet issued (or no longer active): ' . ($dr['full_name'] ?? '') . '.', $back);
+                }
+            }
             [$err, $f] = $this->stickerFields($db, array_merge($v, ['payment_status' => 'Pending']), (int) $v['id']);
             if ($err) {
                 return $this->back('error', $err, $back);
@@ -782,6 +998,7 @@ class VehiclePass extends BaseController
             ]);
             $upd += array_intersect_key($f, array_flip(['sticker_serial', 'issue_date', 'collector_ic', 'collector_name', 'receipt_no', 'payment_type']));
             $db->table('vehicles')->where('id', (int) $v['id'])->update($upd);
+            $this->recordSticker($db, array_merge($v, $upd, ['id' => (int) $v['id']]), $f, $this->userName());
             $this->saveFiles($db, (int) $v['id']);
             $this->log((int) $v['id'], 'Issued', 'Issued', "Sticker reissued ({$reason}): {$v['sticker_serial']} -> {$f['sticker_serial']}");
             $db->transComplete();
@@ -823,6 +1040,47 @@ class VehiclePass extends BaseController
             $upd['vehicle_type_id'] = (int) $t['id'];
             $ok  = 'Vehicle type updated.';
             $log = 'Vehicle type changed to ' . $t['name'];
+        } elseif ($what === 'edit-info') {
+            // KPK "Update vehicle information" after issue: year made, colour, brand, road tax, insurance, type (+ Cargo | Non-Cargo details)
+            $t = null;
+            foreach ($this->types($this->vGroup($v)) as $row) {
+                if ((int) $row['id'] === (int) ($this->request->getPost('vehicle_type_id') ?: $v['vehicle_type_id'])) {
+                    $t = $row;
+                }
+            }
+            if (! $t) {
+                return $this->back('error', 'Choose the vehicle type.', $back);
+            }
+            foreach (['colour' => 'Colour', 'brand' => 'Brand', 'insurance_expiry' => 'Insurance expiry'] as $k => $label) {
+                if ($g($k) === '') {
+                    return $this->back('error', "{$label} is required.", $back);
+                }
+            }
+            foreach (['road_tax_expiry', 'insurance_expiry'] as $d) {
+                if ($g($d) !== '' && ! $this->validDate($g($d))) {
+                    return $this->back('error', 'Use a valid date (dd/mm/yyyy) for ' . str_replace('_', ' ', $d) . '.', $back);
+                }
+            }
+            if ($this->vGroup($v) === 'cnc' && ($w = VehicleRules::weightError($t, $g))) {
+                return $this->back('error', $w, $back);
+            }
+            $upd += ['vehicle_type_id' => (int) $t['id'], 'year_made' => $g('year_made') ?: null, 'colour' => $g('colour'), 'brand' => $g('brand'),
+                'road_tax_expiry' => $this->toDate($g('road_tax_expiry')), 'insurance_expiry' => $this->toDate($g('insurance_expiry'))];
+            if ($this->vGroup($v) === 'cnc') {
+                // a field the type does not need is cleared, as KPK does
+                foreach (VehicleRules::TYPE_FIELDS as $col => [$field, $label]) {
+                    $val = (int) ($t[$col] ?? 0) === 1 ? $g($field) : '';
+                    if ((int) ($t[$col] ?? 0) === 1 && $val === '') {
+                        return $this->back('error', "{$label} is required for {$t['name']}.", $back);
+                    }
+                    $upd[$field] = in_array($field, ['truck_head_number', 'trailer_number'], true) ? VehicleRules::stripSpaces($val) : $val;
+                }
+                if (in_array($g('vehicle_operation'), VehicleRules::OPERATIONS, true)) {
+                    $upd['vehicle_operation'] = $g('vehicle_operation');
+                }
+            }
+            $ok  = 'Vehicle information updated.';
+            $log = 'Vehicle information updated';
         } elseif ($what === 'change-locations') {
             $locs = array_values(array_intersect(array_filter(array_map('trim', (array) $this->request->getPost('location_access'))), array_keys((new VendorLocationModel())->getOptionsForUser(true))));
             if ($locs === []) {
@@ -837,6 +1095,15 @@ class VehiclePass extends BaseController
 
         $db->transStart();
         $db->table('vehicles')->where('id', (int) $v['id'])->update($upd);
+        if ($db->tableExists('vehicle_stickers') && array_intersect_key($upd, array_flip(['sticker_serial', 'receipt_no', 'payment_type', 'road_tax_expiry', 'insurance_expiry']))) {
+            $st = ['updated_at' => $now];
+            foreach (['sticker_serial' => 'serial_no', 'receipt_no' => 'receipt_no', 'payment_type' => 'payment_type', 'road_tax_expiry' => 'road_tax_expiry', 'insurance_expiry' => 'insurance_expiry'] as $from => $to) {
+                if (array_key_exists($from, $upd)) {
+                    $st[$to] = $upd[$from];
+                }
+            }
+            $db->table('vehicle_stickers')->where('vehicle_id', (int) $v['id'])->where('status', 'active')->update($st);
+        }
         $this->log((int) $v['id'], 'Issued', 'Issued', $log);
         $db->transComplete();
 
@@ -913,20 +1180,25 @@ class VehiclePass extends BaseController
         return null;
     }
 
+    /**
+     * KPK removes a pass softly: it keeps its record (and files) but leaves every list, its sticker goes
+     * inactive and its plate becomes free again.
+     */
     private function delete(array $v)
     {
+        $to = $this->listUrl($this->vGroup($v), ($v['pass_for'] ?? '') === 'staff' ? 'staff' : 'all');
         if (! $this->canDelete($v)) {
             return $this->back('error', 'You cannot delete this vehicle pass.', 'vehicles/view/' . (int) $v['id']);
         }
-        $db = \Config\Database::connect();
-        foreach ($db->table('vehicle_files')->where('vehicle_id', $v['id'])->get()->getResultArray() as $f) {
-            @unlink(FCPATH . $f['file_path']);
-        }
-        $db->table('vehicle_files')->where('vehicle_id', $v['id'])->delete();
-        $db->table('vehicle_status_logs')->where('vehicle_id', $v['id'])->delete();
-        $db->table('vehicles')->where('id', $v['id'])->delete();
+        $db  = \Config\Database::connect();
+        $now = date('Y-m-d H:i:s');
+        $db->transStart();
+        $this->closeStickers($db, (int) $v['id']);
+        $db->table('vehicles')->where('id', (int) $v['id'])->update(['soft_delete' => 1, 'deleted_at' => $now, 'updated_at' => $now]);
+        $this->log((int) $v['id'], (string) $v['status'], (string) $v['status'], 'Vehicle application removed by ' . $this->userName());
+        $db->transComplete();
 
-        return $this->back('success', 'Vehicle pass deleted.', $this->listUrl($this->vGroup($v), ($v['pass_for'] ?? '') === 'staff' ? 'staff' : 'all'));
+        return $this->back('success', 'Vehicle pass deleted.', $to);
     }
 
     // ------------------------------------------------------------------ payment (external service)

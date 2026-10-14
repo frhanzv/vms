@@ -315,6 +315,9 @@ $routes->group('', ['filter' => [$plusAdminOfficerVendor, 'client_feature:vehicl
     $routes->get('vehicles', 'VehiclePass::index');
     $routes->get('vehicles/public/staff-request', 'VehiclePass::create/public/staff');
     $routes->get('vehicles/public/staff-lookup', 'VehiclePass::staffLookup');
+    $routes->get('vehicles/drivers', 'VehiclePass::driverLookup');
+    $routes->get('vehicles/direct-close/(public|cnc)', 'VehiclePass::directClose/$1/vendor');
+    $routes->get('vehicles/direct-close/(public)/staff', 'VehiclePass::directClose/$1/staff');
     $routes->get('vehicles/public/staff', 'VehiclePass::listing/public/staff');
     $routes->get('vehicles/(public|cnc)', 'VehiclePass::listing/$1/all');
     $routes->get('vehicles/(public|cnc)/request-list', 'VehiclePass::listing/$1/request');
@@ -327,7 +330,7 @@ $routes->group('', ['filter' => [$plusAdminOfficerVendor, 'client_feature:vehicl
     $routes->get('vehicles/view/(:num)', 'VehiclePass::view/$1');
     $routes->get('vehicles/renew/(:num)', 'VehiclePass::renew/$1');
     $routes->post('vehicles/(:num)/(submit|approve|reject|issue|terminate|delete)', 'VehiclePass::action/$1/$2');
-    $routes->post('vehicles/(:num)/(reissue|change-serial|change-receipt|change-type|change-locations)', 'VehiclePass::adjust/$1/$2');
+    $routes->post('vehicles/(:num)/(reissue|change-serial|change-receipt|change-type|change-locations|edit-info)', 'VehiclePass::adjust/$1/$2');
     $routes->post('vehicles/(:num)/pay', 'VehiclePass::pay/$1');
     $routes->get('vehicles/payment-return/(:num)', 'VehiclePass::paymentReturn/$1');
 
