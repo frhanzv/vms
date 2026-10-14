@@ -115,7 +115,6 @@
                         $required = $required ?? [];
                         $req      = fn(string $k) => ($required[$k] ?? false) ? ' <span class="text-red-500">*</span>' : '';
                         $reqAttr  = fn(string $k) => ($required[$k] ?? false) ? 'required' : '';
-                        $chkd = fn($val) => in_array($val, array_filter(explode(',', $s['location_access'] ?? ''))) ? 'checked' : '';
                     ?>
 
                     <!-- Application Information -->
@@ -191,84 +190,83 @@
                             </div>
                             <?php endif; ?>
 
-                            <!-- Location Access -->
+                            <!-- Location Access — same dropdown as the Contractor/Vendor Request -->
                             <?php if ($fs['location_access'] ?? true): ?>
                             <?php
-                            $locationGroups = $locationGroups ?? [];
-                            ?>
-                            <div class="space-y-3" x-data="{
-                                search: '',
-                                selectGroup(groupId) {
-                                    document.querySelectorAll('[data-group=\'' + groupId + '\']').forEach(cb => cb.checked = true);
-                                },
-                                clearGroup(groupId) {
-                                    document.querySelectorAll('[data-group=\'' + groupId + '\']').forEach(cb => cb.checked = false);
-                                },
-                                selectAll() {
-                                    document.querySelectorAll('input[name=\'location_access[]\']').forEach(cb => cb.checked = true);
-                                },
-                                clearAll() {
-                                    document.querySelectorAll('input[name=\'location_access[]\']').forEach(cb => cb.checked = false);
+                            // Every IN / OUT gate value from Location Access Management, A-Z.
+                            $locLabels = [];
+                            foreach (($locationGroups ?? []) as $groupLocations) {
+                                foreach ($groupLocations as $loc) {
+                                    foreach (['in', 'out'] as $dir) {
+                                        if (! empty($loc[$dir])) {
+                                            $locLabels[$loc[$dir]] = $loc[$dir];
+                                        }
+                                    }
                                 }
-                            }">
-                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Location Access<?= $req('location_access') ?></label>
-                                    <?php if (! empty($lockLocations)): ?>
-                                    <span class="text-xs text-text-sub dark:text-gray-400 font-brand">Changing Location Access on an approved pass needs the Manage Locations permission.</span>
-                                    <?php else: ?>
-                                    <div class="flex gap-2">
-                                        <button type="button" @click="selectAll()" class="text-xs px-3 py-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 font-brand font-semibold transition-colors">Select All</button>
-                                        <button type="button" @click="clearAll()" class="text-xs px-3 py-1.5 rounded-md bg-gray-100 dark:bg-gray-800 text-text-sub dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 font-brand font-semibold transition-colors">Clear All</button>
-                                    </div>
-                                    <?php endif; ?>
-                                </div>
-
-                                <!-- Search -->
-                                <div class="relative">
-                                    <span class="material-symbols-outlined absolute left-3 top-2.5 text-text-sub text-[20px] pointer-events-none">search</span>
-                                    <input x-model="search" type="text" placeholder="Search locations..." class="w-full h-10 rounded-lg border border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white pl-10 pr-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand text-sm"/>
-                                </div>
-
-                                <!-- Column header -->
-                                <div class="flex items-center justify-end pr-4 gap-4">
-                                    <span class="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 font-brand w-8 text-center">IN</span>
-                                    <span class="text-xs font-bold uppercase tracking-wider text-rose-500 dark:text-rose-400 font-brand w-8 text-center">OUT</span>
-                                </div>
-
-                                <div class="rounded-xl border border-border-color dark:border-gray-700 overflow-hidden divide-y divide-border-color dark:divide-gray-700">
-                                    <?php $groupIndex = 0; foreach ($locationGroups as $groupName => $locations): $groupId = 'grp-' . $groupIndex++; ?>
-                                    <div>
-                                        <!-- Group header -->
-                                        <div class="flex items-center justify-between bg-gray-50 dark:bg-gray-800/60 px-4 py-2.5">
-                                            <span class="text-xs font-bold uppercase tracking-wider text-text-sub dark:text-gray-400 font-brand"><?= esc($groupName) ?></span>
-                                            <div class="flex gap-1.5">
-                                                <button type="button" @click="selectGroup('<?= $groupId ?>')" class="text-xs px-2 py-1 rounded text-primary bg-primary/10 hover:bg-primary/20 font-brand font-semibold transition-colors">All</button>
-                                                <button type="button" @click="clearGroup('<?= $groupId ?>')" class="text-xs px-2 py-1 rounded text-text-sub dark:text-gray-400 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 font-brand font-semibold transition-colors">None</button>
-                                            </div>
-                                        </div>
-                                        <!-- Location rows -->
-                                        <?php foreach ($locations as $loc): ?>
-                                        <div x-show="search === '' || '<?= strtolower($loc['label']) ?>'.includes(search.toLowerCase())"
-                                             class="flex items-center justify-between px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors border-t border-border-color dark:border-gray-700">
-                                            <span class="text-sm font-medium text-text-main dark:text-gray-100 font-brand flex-1 pr-4"><?= esc($loc['label']) ?></span>
-                                            <div class="flex items-center gap-4 flex-shrink-0">
-                                                <label class="flex items-center justify-center cursor-pointer w-8">
-                                                    <?php if ($loc['in'] !== null): ?>
-                                                    <input data-group="<?= $groupId ?>" name="location_access[]" value="<?= esc($loc['in']) ?>" class="form-checkbox rounded text-primary border-2 border-gray-300 dark:border-gray-600 focus:ring-primary h-5 w-5 cursor-pointer" type="checkbox" <?= $chkd($loc['in']) ?> <?= ! empty($lockLocations) ? 'disabled' : '' ?>/>
-                                                    <?php endif; ?>
-                                                </label>
-                                                <label class="flex items-center justify-center cursor-pointer w-8">
-                                                    <?php if ($loc['out'] !== null): ?>
-                                                    <input data-group="<?= $groupId ?>" name="location_access[]" value="<?= esc($loc['out']) ?>" class="form-checkbox rounded text-primary border-2 border-gray-300 dark:border-gray-600 focus:ring-primary h-5 w-5 cursor-pointer" type="checkbox" <?= $chkd($loc['out']) ?> <?= ! empty($lockLocations) ? 'disabled' : '' ?>/>
-                                                    <?php endif; ?>
-                                                </label>
-                                            </div>
-                                        </div>
-                                        <?php endforeach; ?>
-                                    </div>
+                            }
+                            uksort($locLabels, 'strnatcasecmp');
+                            $selectedLocations = array_values(array_filter(array_map('trim', explode(',', (string) ($s['location_access'] ?? '')))));
+                            ?>
+                            <?php if (! empty($lockLocations)): ?>
+                            <div class="space-y-2">
+                                <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Location Access<?= $req('location_access') ?></label>
+                                <div class="w-full min-h-[3rem] flex flex-wrap items-center gap-1.5 rounded-lg border border-border-color dark:border-gray-700 bg-gray-100 dark:bg-gray-800 px-3 py-2 text-sm cursor-not-allowed">
+                                    <?php if ($selectedLocations === []): ?><span class="text-text-sub">-</span><?php endif; ?>
+                                    <?php foreach ($selectedLocations as $code): ?>
+                                    <span class="inline-flex items-center rounded-full bg-primary/10 text-primary px-2.5 py-0.5 text-xs font-medium"><?= esc($code) ?></span>
                                     <?php endforeach; ?>
                                 </div>
+                                <p class="text-xs text-text-sub dark:text-gray-400 font-brand">Changing Location Access on an approved pass needs the Manage Locations permission.</p>
                             </div>
+                            <?php else: ?>
+                            <div class="space-y-2 relative"
+                                 x-data="{ open: false, q: '', selected: <?= esc(json_encode(array_values(array_intersect($selectedLocations, array_keys($locLabels)))), 'attr') ?>, labels: <?= esc(json_encode((object) $locLabels), 'attr') ?>,
+                                           get codes() { return Object.keys(this.labels); },
+                                           get shown() { const q = this.q.toLowerCase(); return this.codes.filter(c => this.labels[c].toLowerCase().includes(q)); },
+                                           get allOn() { return this.codes.length > 0 && this.selected.length === this.codes.length; },
+                                           toggleAll() { this.selected = this.allOn ? [] : [...this.codes]; },
+                                           remove(c) { this.selected = this.selected.filter(x => x !== c); } }"
+                                 @click.outside="open = false" @keydown.escape.window="open = false">
+                                <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Location Access<?= $req('location_access') ?></label>
+
+                                <template x-for="c in selected" :key="c"><input type="hidden" name="location_access[]" :value="c"></template>
+
+                                <button type="button" @click="open = !open"
+                                    class="w-full min-h-[3rem] flex items-center justify-between gap-2 rounded-lg border border-border-color dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-left text-sm focus:ring-2 focus:ring-primary/30">
+                                    <span class="flex flex-wrap gap-1.5 items-center">
+                                        <span x-show="selected.length === 0" class="text-text-sub">-- Select location(s) --</span>
+                                        <template x-for="c in selected" :key="c">
+                                            <span class="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2.5 py-0.5 text-xs font-medium">
+                                                <span x-text="labels[c] || c"></span>
+                                                <span class="cursor-pointer font-bold leading-none" @click.stop="remove(c)" title="Remove">&times;</span>
+                                            </span>
+                                        </template>
+                                    </span>
+                                    <span class="material-symbols-outlined text-text-sub transition-transform" :class="open ? 'rotate-180' : ''">expand_more</span>
+                                </button>
+
+                                <div x-show="open" x-transition.opacity
+                                     class="absolute z-30 mt-1 w-full rounded-lg border border-border-color dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg">
+                                    <div class="p-2 border-b border-border-color dark:border-gray-700">
+                                        <input type="text" x-model="q" placeholder="Search location..."
+                                            class="w-full rounded-md border border-border-color dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm"/>
+                                    </div>
+                                    <label class="flex items-center gap-2 px-3 py-2 text-sm font-semibold border-b border-border-color dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
+                                        <input type="checkbox" :checked="allOn" @change="toggleAll()"/>
+                                        Select All <span class="text-text-sub font-normal" x-text="'(' + selected.length + '/' + codes.length + ')'"></span>
+                                    </label>
+                                    <div class="max-h-64 overflow-y-auto py-1">
+                                        <template x-for="c in shown" :key="c">
+                                            <label class="flex items-center gap-2 px-3 py-1.5 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
+                                                <input type="checkbox" :value="c" x-model="selected"/>
+                                                <span x-text="labels[c]"></span>
+                                            </label>
+                                        </template>
+                                        <p x-show="shown.length === 0" class="px-3 py-2 text-sm text-text-sub">No location found.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <?php endif; ?>
                             <?php endif; ?>
 
                         </div>
