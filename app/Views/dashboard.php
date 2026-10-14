@@ -243,6 +243,12 @@
 
         <!-- Dashboard Content -->
         <div class="flex-1 overflow-y-auto p-4 md:p-8 pb-20 no-scrollbar">
+            <?php if ($flashError = session()->getFlashdata('error')): ?>
+            <!-- Pages that send the user here (no permission, feature switched off) leave their reason in the flash. -->
+            <div class="mb-4 rounded-lg border border-red-200 bg-red-50 dark:bg-red-900/30 dark:border-red-700 px-4 py-3 text-sm text-red-700 dark:text-red-300">
+                <?php foreach (explode("\n", (string) $flashError) as $line): ?><p><?= esc($line) ?></p><?php endforeach; ?>
+            </div>
+            <?php endif; ?>
             <!-- Welcome Section -->
             <div class="flex flex-col gap-2 mb-6">
                 <h1 class="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Welcome back, <?= esc(session()->get('full_name') ?? $userName) ?></h1>

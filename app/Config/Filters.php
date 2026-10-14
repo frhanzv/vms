@@ -64,7 +64,13 @@ class Filters extends BaseFilters
         ],
         'after' => [
             'performance', // Performance Metrics
-            'toolbar',     // Debug Toolbar
+            // 'toolbar' is off: Config/Events.php no longer calls
+            // service('toolbar')->respond(), so the "?debugbar" script this
+            // filter injects into every page was answered by the Host
+            // Dashboard instead. That request then became the session's
+            // "previous URL", and every redirect()->back() (e.g. after an
+            // Excel import) landed on the dashboard.
+            // 'toolbar',     // Debug Toolbar
         ],
     ];
 

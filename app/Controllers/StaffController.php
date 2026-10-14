@@ -9,19 +9,63 @@ class StaffController extends BaseController
     public function import()
     {
         helper(['access', 'feature']);
+
+        // The Upload File popup posts here with fetch() (AJAX) and gets JSON back,
+        // so the user stays on the Staff List / Closed List. A plain form post
+        // (JavaScript off) is redirected to the list it came from — never
+        // redirect()->back(): the previous URL in the session can be the
+        // "/?debugbar" script request, which is the Host Dashboard.
+        $returnTo = (string) $this->request->getPost('return_to');
+        $target   = base_url(in_array($returnTo, ['staffs', 'staffs/closed-list'], true) ? $returnTo : 'staffs');
+        $isAjax   = $this->request->isAJAX();
+
+        /** One exit for every outcome: JSON for the popup, redirect + flash otherwise. */
+        $done = function (bool $ok, string $message, array $errors = [], array $extra = []) use ($target, $isAjax) {
+            if ($isAjax) {
+                if ($ok) {
+                    // The popup reloads the list; the flash shows the result on top of it.
+                    session()->setFlashdata('success', $message);
+                    if ($errors !== []) {
+                        session()->setFlashdata('error', implode("\n", $errors));
+                    }
+                }
+
+                return $this->response->setJSON(['success' => $ok, 'message' => $message, 'errors' => array_values($errors)] + $extra);
+            }
+
+            $redirect = redirect()->to($target);
+            if ($ok) {
+                $redirect = $redirect->with('success', $message);
+            }
+            if (! $ok || $errors !== []) {
+                $redirect = $redirect->with('error', implode("\n", array_merge($ok ? [] : [$message], $errors)));
+            }
+
+            return $redirect;
+        };
+
         if (! has_access('staff_pass_list', 'edit')) {
-            return redirect()->back()->with('error', 'You are not allowed to import staff records.');
+            return $done(false, 'You are not allowed to import staff records.');
+        }
+
+        // A file over PHP's post_max_size arrives with no POST data and no file at all.
+        $contentLength = (int) $this->request->getServer('CONTENT_LENGTH');
+        if ($contentLength > 0 && $this->request->getPost() === [] && $_FILES === []) {
+            return $done(false, 'The file is too large to upload (server limit post_max_size = ' . ini_get('post_max_size') . ').');
         }
 
         $file = $this->request->getFile('upload_file');
 
-        if (!$file || !$file->isValid() || $file->hasMoved()) {
-            return redirect()->back()->with('error', 'No valid file uploaded.');
+        if (! $file || $file->hasMoved()) {
+            return $done(false, 'No valid file uploaded. Please choose the Excel file and try again.');
+        }
+        if (! $file->isValid()) {
+            return $done(false, 'The file could not be uploaded: ' . $file->getErrorString());
         }
 
         $ext = strtolower($file->getClientExtension());
         if (!in_array($ext, ['xlsx', 'xls'])) {
-            return redirect()->back()->with('error', 'Only .xlsx or .xls files are allowed.');
+            return $done(false, 'Only .xlsx or .xls files are allowed.');
         }
 
         $tmpPath = $file->getTempName();
@@ -29,7 +73,7 @@ class StaffController extends BaseController
         try {
             $spreadsheet = IOFactory::load($tmpPath);
         } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Failed to read the Excel file: ' . $e->getMessage());
+            return $done(false, 'Failed to read the Excel file: ' . $e->getMessage());
         }
 
         $sheet = $spreadsheet->getActiveSheet();
@@ -39,7 +83,7 @@ class StaffController extends BaseController
         $rawRows = $sheet->toArray(null, true, false, false);
 
         if (count($rows) < 2) {
-            return redirect()->back()->with('error', 'The file has no data rows.');
+            return $done(false, 'The file has no data rows. Fill in the staff from row 2 of the Template.');
         }
 
         // Build a normalised header map: lowercase trimmed header => column index
@@ -195,8 +239,7 @@ class StaffController extends BaseController
         }
 
         if (!empty($validationErrors)) {
-            $errorMsg = 'Import denied. Please fix the following errors and re-upload:' . "\n" . implode("\n", $validationErrors);
-            return redirect()->back()->with('error', $errorMsg);
+            return $done(false, 'Import denied — nothing was saved. Please fix the following and upload again:', $validationErrors);
         }
 
         // --- Insert pass ---
@@ -306,16 +349,17 @@ class StaffController extends BaseController
             $counter++;
         }
 
-        // Back to the list the import was started from (Staff List or Closed List).
-        $returnTo = (string) $this->request->getPost('return_to');
-        $target   = base_url(in_array($returnTo, ['staffs', 'staffs/closed-list'], true) ? $returnTo : 'staffs');
-
+        if ($inserted === 0 && $failed === []) {
+            return $done(false, 'No staff rows found in the file. Fill in the staff from row 2 of the Template.');
+        }
         if ($failed !== []) {
-            $redirect = redirect()->to($target)->with('error', "These rows could not be saved (see writable/logs for the reason):\n" . implode("\n", $failed));
-            return $inserted > 0 ? $redirect->with('success', "{$inserted} staff record(s) imported.") : $redirect;
+            $failed = array_map(static fn($f) => 'Could not be saved: ' . $f . ' (see writable/logs for the reason).', $failed);
+            return $inserted > 0
+                ? $done(true, "{$inserted} staff record(s) imported.", $failed, ['imported' => $inserted])
+                : $done(false, 'No staff record could be saved.', $failed);
         }
 
-        return redirect()->to($target)->with('success', "{$inserted} staff record(s) imported successfully — now on the Staff List and the Closed List.");
+        return $done(true, "{$inserted} staff record(s) imported successfully — now on the Staff List and the Closed List.", [], ['imported' => $inserted]);
     }
 
     /**

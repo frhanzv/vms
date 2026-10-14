@@ -189,18 +189,19 @@ $label    = 'block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1';
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white">UPLOAD FILE</h3>
                 <button onclick="document.getElementById('uploadModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600"><span class="material-icons">close</span></button>
             </div>
-            <form action="<?= base_url('staff-pass/import') ?>" method="post" enctype="multipart/form-data">
+            <form action="<?= base_url('staff-pass/import') ?>" method="post" enctype="multipart/form-data" data-staff-import>
                 <?= csrf_field() ?>
                 <input type="hidden" name="return_to" value="staffs/closed-list"/>
                 <div class="p-6">
                     <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">Choose Excel File</label>
                     <input name="upload_file" type="file" accept=".xlsx, .xls" required
                         class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none dark:bg-slate-700 dark:border-slate-600"/>
+                    <div data-import-result class="hidden mt-3 max-h-48 overflow-y-auto rounded border px-3 py-2 text-xs"></div>
                     <p class="mt-2 text-xs text-gray-500">Only .xlsx or .xls files allowed. Download the Template first to see the expected columns. Imported staff are treated as HR-approved (as in KPK) and go straight to the Closed List with an active card; use Reprint Card on Card Info if a physical card is needed. A "Status" column of Active / Inactive sets the employee status.</p>
                 </div>
                 <div class="flex justify-end gap-2 p-4 border-t dark:border-slate-700">
                     <button type="button" onclick="document.getElementById('uploadModal').classList.add('hidden')" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200">Cancel</button>
-                    <button type="submit" class="bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-2 rounded text-sm font-medium flex items-center transition-colors"><span class="material-icons text-sm mr-1">publish</span>Import</button>
+                    <button type="submit" data-import-submit class="bg-indigo-500 hover:bg-indigo-600 disabled:opacity-60 text-white px-6 py-2 rounded text-sm font-medium flex items-center transition-colors"><span class="material-icons text-sm mr-1">publish</span>Import</button>
                 </div>
             </form>
         </div>
