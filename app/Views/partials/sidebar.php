@@ -46,8 +46,8 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
                 <p class="text-sm <?= $on ? 'font-semibold' : 'font-medium' ?>">Dashboard</p>
             </a>
             <?php elseif (count($dashTabs) > 1): ?>
-            <div x-data="{ openDash: <?= $dashActive !== '' ? 'true' : 'false' ?> }">
-                <button type="button" @click="openDash = !openDash"
+            <div @side-open.window="if ($event.detail !== 'openDash') openDash = false" x-data="{ openDash: <?= $dashActive !== '' ? 'true' : 'false' ?> }">
+                <button type="button" @click="openDash = !openDash; if (openDash) $dispatch('side-open', 'openDash')"
                     class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= $dashActive !== '' ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
                     <div class="flex items-center gap-3">
                         <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">dashboard</span>
@@ -86,8 +86,8 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
 
             <!-- Visitor Pass List -->
             <?php if ($hasVisitorPassAccess): ?>
-            <div x-data="{ openVisitorPass: <?= (str_contains($current, 'invitations') || str_contains($current, 'requests') || str_contains($current, 'visitors')) ? 'true' : 'false' ?> }">
-                <button type="button" @click="openVisitorPass = !openVisitorPass"
+            <div @side-open.window="if ($event.detail !== 'openVisitorPass') openVisitorPass = false" x-data="{ openVisitorPass: <?= (str_contains($current, 'invitations') || str_contains($current, 'requests') || str_contains($current, 'visitors')) ? 'true' : 'false' ?> }">
+                <button type="button" @click="openVisitorPass = !openVisitorPass; if (openVisitorPass) $dispatch('side-open', 'openVisitorPass')"
                     class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= (str_contains($current, 'invitations') || str_contains($current, 'requests') || str_contains($current, 'visitors')) ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
                     <div class="flex items-center gap-3">
                         <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">badge</span>
@@ -131,8 +131,8 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
             <!-- Staff Pass List (KPK staff pass pipeline) -->
             <?php if (client_feature_enabled('staff_pass') && has_access('staff_pass_list', 'view')): ?>
             <?php $isStaff = $isStaff || str_contains($current, 'staffpassrequest'); ?>
-            <div x-data="{ openStaff: <?= $isStaff ? 'true' : 'false' ?> }">
-                <button type="button" @click="openStaff = !openStaff"
+            <div @side-open.window="if ($event.detail !== 'openStaff') openStaff = false" x-data="{ openStaff: <?= $isStaff ? 'true' : 'false' ?> }">
+                <button type="button" @click="openStaff = !openStaff; if (openStaff) $dispatch('side-open', 'openStaff')"
                     class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= $isStaff ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
                     <div class="flex items-center gap-3">
                         <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">badge</span>
@@ -161,8 +161,8 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
 
             <!-- Vendor Pass List -->
             <?php if (client_feature_enabled('vendor_pass') && has_access('vendor_pass_list', 'view')): ?>
-            <div x-data="{ openVendor: <?= $isVendor ? 'true' : 'false' ?> }">
-                <button type="button" @click="openVendor = !openVendor"
+            <div @side-open.window="if ($event.detail !== 'openVendor') openVendor = false" x-data="{ openVendor: <?= $isVendor ? 'true' : 'false' ?> }">
+                <button type="button" @click="openVendor = !openVendor; if (openVendor) $dispatch('side-open', 'openVendor')"
                     class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= $isVendor ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
                     <div class="flex items-center gap-3">
                         <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">local_shipping</span>
@@ -256,8 +256,8 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
             $vTransfer = has_access('vehicle', 'transfer_ownership');
             ?>
             <?php if (client_feature_enabled('vehicle_pass') && ($vShow || $vTransfer)): ?>
-            <div x-data="{ openVehicle: <?= $isVehicle ? 'true' : 'false' ?> }">
-                <button type="button" @click="openVehicle = !openVehicle"
+            <div @side-open.window="if ($event.detail !== 'openVehicle') openVehicle = false" x-data="{ openVehicle: <?= $isVehicle ? 'true' : 'false' ?> }">
+                <button type="button" @click="openVehicle = !openVehicle; if (openVehicle) $dispatch('side-open', 'openVehicle')"
                     class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= $isVehicle ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
                     <div class="flex items-center gap-3">
                         <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">directions_car</span>
@@ -306,8 +306,8 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
                 if ($showVisitorWf) { $wfItems['workflow'] = 'Visitor Workflow'; }
                 if ($showVendorWf)  { $wfItems['vendor-workflow'] = 'Vendor Workflow'; }
             ?>
-            <div x-data="{ openWorkflow: <?= $isWorkflow ? 'true' : 'false' ?> }">
-                <button type="button" @click="openWorkflow = !openWorkflow"
+            <div @side-open.window="if ($event.detail !== 'openWorkflow') openWorkflow = false" x-data="{ openWorkflow: <?= $isWorkflow ? 'true' : 'false' ?> }">
+                <button type="button" @click="openWorkflow = !openWorkflow; if (openWorkflow) $dispatch('side-open', 'openWorkflow')"
                     class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= $isWorkflow ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white' ?> transition-colors group">
                     <div class="flex items-center gap-3">
                         <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">account_tree</span>
@@ -329,8 +329,8 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
 
             <!-- Blacklist -->
             <?php if ($hasBlacklistAccess && client_feature_enabled('blacklist')): ?>
-            <div x-data="{ openBlacklist: <?= str_contains($current, 'blacklist') ? 'true' : 'false' ?>, openIndividual: <?= str_contains($current, 'blacklist') ? 'true' : 'false' ?> }">
-                <button type="button" @click="openBlacklist = !openBlacklist"
+            <div @side-open.window="if ($event.detail !== 'openBlacklist') openBlacklist = false" x-data="{ openBlacklist: <?= str_contains($current, 'blacklist') ? 'true' : 'false' ?>, openIndividual: <?= str_contains($current, 'blacklist') ? 'true' : 'false' ?> }">
+                <button type="button" @click="openBlacklist = !openBlacklist; if (openBlacklist) $dispatch('side-open', 'openBlacklist')"
                     class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= str_contains($current, 'blacklist') ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
                     <div class="flex items-center gap-3">
                         <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">person_cancel</span>
@@ -383,8 +383,8 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
 
             <!-- Report -->
             <?php if ($hasReportAccess): ?>
-            <div x-data="{ openReport: <?= str_contains($current, 'report') ? 'true' : 'false' ?> }">
-                <button type="button" @click="openReport = !openReport"
+            <div @side-open.window="if ($event.detail !== 'openReport') openReport = false" x-data="{ openReport: <?= str_contains($current, 'report') ? 'true' : 'false' ?> }">
+                <button type="button" @click="openReport = !openReport; if (openReport) $dispatch('side-open', 'openReport')"
                     class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= str_contains($current, 'report') ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
                     <div class="flex items-center gap-3">
                         <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">description</span>
