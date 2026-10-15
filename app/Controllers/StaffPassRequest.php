@@ -79,6 +79,8 @@ class StaffPassRequest extends StaffPassBase
             'licenses'       => $this->licenses((int) $id),
             'statusLogs'     => $this->statusLogs((int) $id),
             'photoUrl'       => $this->photoUrl($staff),
+            // Edit button (same as the Vendor Pass detail page, without QR Pass).
+            'canEdit'        => $this->canEdit() && $this->editBlock($staff) === null,
         ]);
     }
 
