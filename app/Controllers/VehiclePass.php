@@ -533,14 +533,20 @@ class VehiclePass extends BaseController
 
         // who owns the vehicle
         $co    = current_vendor_company();
-        $owner = ['owner_type' => $get('owner_type'), 'owner_name' => $get('owner_name'), 'owner_ic' => $keep('owner_ic'), 'company_name' => $get('company_name'), 'contact_no' => $keep('contact_no'), 'staff_id' => null];
+        // KPK's request form has no owner fields: the owner is the logged-in account, "Application For" (Individual / Company) says which.
+        $appFor    = in_array($get('owner_type'), ['Individual', 'Company'], true) ? $get('owner_type') : (in_array($cur['owner_type'] ?? '', ['Individual', 'Company'], true) ? $cur['owner_type'] : 'Individual');
+        $acctName  = (string) (session()->get('full_name') ?: session()->get('username'));
+        $clientRow = $db->tableExists('clients') && function_exists('current_client_id') ? $db->table('clients')->select('name')->where('id', (int) current_client_id())->get()->getRowArray() : null;
+        $coName    = $co ? (string) $co['name'] : (string) (($cur['company_name'] ?? '') ?: ($clientRow['name'] ?? ''));
+        $owner = ['owner_type' => $appFor, 'owner_name' => $appFor === 'Company' ? $coName : ($cur['owner_name'] ?? $acctName), 'owner_ic' => (string) ($cur['owner_ic'] ?? ''),
+                  'company_name' => $appFor === 'Company' ? $coName : '', 'contact_no' => (string) ($cur['contact_no'] ?? ''), 'staff_id' => null];
         if ($kind === 'staff') {
             $st = $db->table('staff')->where('id', (int) ($p['staff_id'] ?? ($cur['staff_id'] ?? 0)))->get()->getRowArray();
             if (! $st) {
                 $errors[] = 'Find and choose the staff member first.';
             } else {
                 $owner = ['owner_type' => 'Staff', 'owner_name' => (string) $st['full_name'], 'owner_ic' => (string) ($st['ic_passport'] ?? ''),
-                          'company_name' => '', 'contact_no' => $keep('contact_no') ?: (string) ($st['contact_number'] ?? ''), 'staff_id' => (int) $st['id'], 'staff_no' => (string) ($st['staff_no'] ?? ''), 'department' => (string) ($st['department'] ?? '')];
+                          'company_name' => '', 'contact_no' => (string) ($cur['contact_no'] ?? ''), 'staff_id' => (int) $st['id'], 'staff_no' => (string) ($st['staff_no'] ?? ''), 'department' => (string) ($st['department'] ?? '')];
             }
         } elseif ($group === 'cnc' || $co) {
             $owner['owner_type'] = 'Company'; // Cargo | Non-Cargo and vendor accounts are company vehicles
@@ -560,17 +566,13 @@ class VehiclePass extends BaseController
             $errors[] = 'Choose the vehicle type.';
         }
         if ($submit) {
-            if ($owner['owner_name'] === '') {
-                $errors[] = 'Owner name is required.';
-            }
-            if ($req('contact_no') && $owner['contact_no'] === '') {
-                $errors[] = 'Contact number is required.';
-            }
-            if ($req('owner_ic') && $owner['owner_ic'] === '') {
-                $errors[] = 'IC / Passport is required.';
-            }
-            foreach (['road_tax_expiry' => 'Road tax expiry', 'insurance_expiry' => 'Insurance expiry', 'colour' => 'Colour', 'brand' => 'Brand', 'year_made' => 'Year made', 'department' => 'Department', 'hod' => 'HOD', 'remark' => 'Remark'] as $k => $label) {
-                if ($req($k) && $get($k) === '' && ($k !== 'department' && $k !== 'hod' || $kind === 'staff')) {
+            // KPK: Colour and Brand always; Insurance on Public and Cargo / Non-Cargo; Road Tax on Cargo / Non-Cargo (and when Config makes the others mandatory)
+            foreach (['road_tax_expiry' => 'Road tax expiry', 'insurance_expiry' => 'Insurance expiry', 'colour' => 'Colour', 'brand' => 'Brand', 'year_made' => 'Year made'] as $k => $label) {
+                $need = $req($k);
+                if (in_array($k, ['road_tax_expiry', 'insurance_expiry'], true)) {
+                    $need = $kind === 'staff' ? false : ($group === 'cnc' ? $on($k) : $req($k)); // KPK: Staff neither, Cargo / Non-Cargo both, Public per Config
+                }
+                if ($need && $get($k) === '') {
                     $errors[] = "$label is required.";
                 }
             }
@@ -580,13 +582,7 @@ class VehiclePass extends BaseController
             if ($on('tnc') && ! $asApprover && ! $direct && empty($p['tnc'])) {
                 $errors[] = 'Please accept the terms and conditions.';
             }
-            if (! in_array($owner['owner_type'], ['Individual', 'Company', 'Staff'], true)) {
-                $errors[] = 'Choose the owner type.';
-            }
-            if ($owner['owner_type'] === 'Company' && $owner['company_name'] === '') {
-                $errors[] = 'Company name is required for a company vehicle.';
-            }
-            if ($req('location_access') && $locs === []) {
+            if ($kind !== 'staff' && $req('location_access') && $locs === []) {
                 $errors[] = 'Choose at least one Location Access.';
             }
             if ($type) {
@@ -608,9 +604,6 @@ class VehiclePass extends BaseController
         [$driverIds, $driverErr] = $this->postedDrivers();
         if ($driverErr) {
             $errors[] = $driverErr;
-        }
-        if ($submit && $type && (int) ($type['req_pass'] ?? 0) === 1 && $kind === 'vendor' && ! $driverIds) {
-            $errors[] = "Choose at least one driver (vendor pass) for {$type['name']}.";
         }
         if ($submit && ! $asApprover && $type) {
             // KPK limits: staff max vehicles, company max vehicles (car / motorbike / van types only)
@@ -923,12 +916,9 @@ class VehiclePass extends BaseController
             if (($v['status'] === 'Rejected' || ! empty($v['renewed_from'])) && ($ye = VehicleRules::yearEndError((string) $v['sticker_year']))) {
                 return $this->back('error', $ye, $back);
             }
-            if ((int) ($t['req_pass'] ?? 0) === 1 && ! $isStaff && ! $this->drivers((int) $v['id'])) {
-                return $this->back('error', 'Edit the pass and choose at least one driver (vendor pass) first.', $back);
-            }
             $upd['reject_reason'] = null;
         } elseif ($action === 'approve') {
-            if (trim((string) $v['location_access']) === '') {
+            if (trim((string) $v['location_access']) === '' && ($v['owner_type'] ?? '') !== 'Staff') {
                 return $this->back('error', 'The pass has no Location Access.', $back);
             }
             $cd = trim((string) $this->request->getPost('collect_date'));

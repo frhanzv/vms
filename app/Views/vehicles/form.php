@@ -25,6 +25,7 @@ $st = static fn(string $k): string => \App\Libraries\VehicleRules::fieldRequired
     </div>
 
     <form method="post" enctype="multipart/form-data" action="<?= base_url($isEdit ? 'vehicles/update/' . $v['id'] : 'vehicles/store') ?>"
+          x-init="if (!typesShown.find(t => t.id === type)) type = typesShown.length ? typesShown[0].id : ''"
           x-data="{ type: '<?= $val('vehicle_type_id') ?>', op: '<?= $val('vehicle_operation') ?: ($group === 'cnc' ? $ops[0] : '') ?>', typeList: <?= esc(json_encode($typeList), 'attr') ?>,
                     get typesShown() { return this.typeList.filter(t => !this.op || !t.operation || t.operation === this.op); },
                     meta: <?= esc(json_encode($typeMeta), 'attr') ?>, owner: '<?= $val('owner_type') === 'Company' ? 'Company' : 'Individual' ?>',
@@ -44,102 +45,26 @@ $st = static fn(string $k): string => \App\Libraries\VehicleRules::fieldRequired
         <?php if (! empty($v['renewed_from'])): ?><input type="hidden" name="renewed_from" value="<?= (int) $v['renewed_from'] ?>"/>
         <div class="mb-5 rounded border border-blue-200 bg-blue-50 text-blue-800 px-4 py-3 text-sm">Renewal of the current pass. When the new sticker is issued the old pass is closed automatically.</div><?php endif; ?>
 
+        <?php // Fields and order follow the KPK vehicle request forms (Public, Cargo / Non-Cargo, Staff) exactly. ?>
+        <?php $isStaff = $passFor === 'staff'; $isCnc = $group === 'cnc'; $isPublic = ! $isStaff && ! $isCnc; ?>
         <h2 class="text-sm font-bold uppercase text-gray-700 dark:text-gray-200 mb-3">Application Info</h2>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <div><label class="<?= $lb ?>">Date Of Application</label><input value="<?= esc(! empty($v['app_date']) ? date('d/m/Y', strtotime($v['app_date'])) : date('d/m/Y')) ?>" disabled class="<?= $in ?> bg-gray-100"/></div>
             <div><label class="<?= $lb ?>">Type Of Application</label><input value="<?= ! empty($v['renewed_from']) || ($v['type_of_app'] ?? '') === 'Renewal' ? 'Renewal' : 'New' ?>" disabled class="<?= $in ?> bg-gray-100"/></div>
-            <div><label class="<?= $lb ?>">Sticker Year *</label>
+            <div><label class="<?= $lb ?>">Sticker Year</label>
                 <select name="sticker_year" class="<?= $in ?>"><?php $sy = (string) ($old['sticker_year'] ?? $v['sticker_year'] ?? ''); foreach ($stickerYears as $y): ?><option <?= $sy === $y ? 'selected' : '' ?>><?= $y ?></option><?php endforeach; ?></select></div>
-            <?php if ($group === 'cnc'): ?>
-            <div><label class="<?= $lb ?>">Vehicle Operation *</label>
-                <select name="vehicle_operation" x-model="op" @change="if (!typesShown.find(t => t.id === type)) type = ''" class="<?= $in ?>"><?php foreach ($ops as $o): ?><option><?= $o ?></option><?php endforeach; ?></select></div>
+            <?php if ($isPublic): ?>
+            <div><label class="<?= $lb ?>">Application For</label>
+                <select name="owner_type" x-model="owner" class="<?= $in ?>"><?php foreach (['Individual', 'Company'] as $o): ?><option><?= $o ?></option><?php endforeach; ?></select></div>
             <?php endif; ?>
         </div>
 
-        <h2 class="text-sm font-bold uppercase text-gray-700 dark:text-gray-200 mb-3">Owner</h2>
-        <?php if ($passFor === 'staff'): ?>
-        <div class="mb-6" x-data="{ q: '', res: [], sel: <?= esc(json_encode($staffRow ? ['id' => (int) $staffRow['id'], 'staff_no' => $staffRow['staff_no'], 'full_name' => $staffRow['full_name'], 'ic_passport' => $staffRow['ic_passport'] ?? ''] : null), 'attr') ?>,
-              async find() { if (this.q.length < 2) { this.res = []; return; } const r = await fetch('<?= base_url('vehicles/public/staff-lookup') ?>?q=' + encodeURIComponent(this.q)); this.res = await r.json(); } }">
-            <input type="hidden" name="staff_id" :value="sel ? sel.id : ''"/>
-            <label class="<?= $lb ?>">Staff * (search by Staff No, name or IC)</label>
-            <div class="relative max-w-xl">
-                <input type="text" x-model="q" @input.debounce.300ms="find()" placeholder="Type to search staff..." class="<?= $in ?>" <?= $isEdit ? 'readonly' : '' ?>/>
-                <div x-show="res.length && !sel" x-cloak class="absolute z-20 w-full mt-1 rounded border bg-white dark:bg-gray-800 shadow max-h-56 overflow-y-auto">
-                    <template x-for="r in res" :key="r.id"><button type="button" class="block w-full text-left px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700"
-                        @click="sel = r; res = []; q = ''"><span class="font-semibold" x-text="r.full_name"></span> <span class="text-xs text-gray-500" x-text="r.staff_no + ' / ' + (r.ic_passport || '')"></span></button></template>
-                </div>
-            </div>
-            <div x-show="sel" x-cloak class="mt-2 inline-flex items-center gap-2 rounded-full bg-primary/10 text-primary px-3 py-1 text-sm">
-                <span x-text="sel ? sel.full_name + ' (' + sel.staff_no + ')' : ''"></span>
-                <?php if (! $isEdit): ?><button type="button" @click="sel = null" class="font-bold">&times;</button><?php endif; ?>
-            </div>
-            <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl">
-                <?php if ($on('department')): ?><div><label class="<?= $lb ?>">Department<?= $st('department') ?></label><input name="department" value="<?= $val('department') ?: esc($staffRow['department'] ?? '') ?>" class="<?= $in ?>"/></div><?php endif; ?>
-                <?php if ($on('hod')): ?><div><label class="<?= $lb ?>">HOD<?= $st('hod') ?></label><input name="hod" value="<?= $val('hod') ?>" class="<?= $in ?>"/></div><?php endif; ?>
-                <?php if ($on('contact_no')): ?><div><label class="<?= $lb ?>">Contact No.<?= $st('contact_no') ?></label><input name="contact_no" value="<?= $val('contact_no') ?>" class="<?= $in ?>"/></div><?php endif; ?>
-            </div>
-        </div>
-        <?php else: $lockCo = ! empty($ownCompany) || $group === 'cnc'; ?>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div><label class="<?= $lb ?>">Owner Type *</label>
-                <?php if ($lockCo): ?><input type="hidden" name="owner_type" value="Company"/><input value="Company" disabled class="<?= $in ?> bg-gray-100"/>
-                <?php else: ?><select name="owner_type" x-model="owner" class="<?= $in ?>"><?php foreach (['Individual', 'Company'] as $o): ?><option><?= $o ?></option><?php endforeach; ?></select><?php endif; ?></div>
-            <div><label class="<?= $lb ?>">Owner Name *</label><input name="owner_name" value="<?= $val('owner_name') ?>" class="<?= $in ?>"/></div>
-            <?php if ($on('owner_ic')): ?><div><label class="<?= $lb ?>">IC / Passport<?= $st('owner_ic') ?></label><input name="owner_ic" value="<?= $val('owner_ic') ?>" class="<?= $in ?>"/></div><?php endif; ?>
-            <div <?= $lockCo ? '' : 'x-show="owner === \'Company\'"' ?>><label class="<?= $lb ?>">Company Name *</label>
-                <?php if (! empty($ownCompany)): ?><input type="hidden" name="company_name" value="<?= esc($ownCompany['name']) ?>"/><input value="<?= esc($ownCompany['name']) ?>" disabled class="<?= $in ?> bg-gray-100"/>
-                <?php else: ?><input name="company_name" value="<?= $val('company_name') ?>" class="<?= $in ?>"/><?php endif; ?></div>
-            <?php if ($on('contact_no')): ?><div><label class="<?= $lb ?>">Contact No.<?= $st('contact_no') ?></label><input name="contact_no" value="<?= $val('contact_no') ?>" class="<?= $in ?>"/></div><?php endif; ?>
-        </div>
-        <?php endif; ?>
-
-        <h2 class="text-sm font-bold uppercase text-gray-700 dark:text-gray-200 mb-3">Vehicle</h2>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div><label class="<?= $lb ?>">Vehicle Type *</label>
-                <select name="vehicle_type_id" x-model="type" class="<?= $in ?>">
-                    <option value="">-- Select --</option>
-                    <template x-for="t in typesShown" :key="t.id"><option :value="t.id" :selected="t.id === type" x-text="t.name"></option></template>
-                </select></div>
-            <div><label class="<?= $lb ?>">Plate Number *</label><input name="plate_no" value="<?= $val('plate_no') ?>" class="<?= $in ?> uppercase" placeholder="e.g. ABC1234"/></div>
-            <?php if ($on('brand')): ?><div><label class="<?= $lb ?>">Brand<?= $st('brand') ?></label><input name="brand" value="<?= $val('brand') ?>" class="<?= $in ?>"/></div><?php endif; ?>
-            <?php if ($on('year_made')): ?><div><label class="<?= $lb ?>">Year Made<?= $st('year_made') ?></label>
-                <select name="year_made" class="<?= $in ?>"><?php $ym = (string) ($old['year_made'] ?? $v['year_made'] ?? ''); for ($y = $yearNow; $y > $yearNow - 60; $y--): ?><option <?= $ym === (string) $y ? 'selected' : '' ?>><?= $y ?></option><?php endfor; ?></select></div><?php endif; ?>
-            <?php if ($on('colour')): ?><div><label class="<?= $lb ?>">Colour<?= $st('colour') ?></label><input name="colour" value="<?= $val('colour') ?>" class="<?= $in ?>"/></div><?php endif; ?>
-            <?php if ($on('road_tax_expiry')): ?><div><label class="<?= $lb ?>">Road Tax Expiry<?= $st('road_tax_expiry') ?></label><input name="road_tax_expiry" value="<?= $dt('road_tax_expiry') ?>" class="flatpickr <?= $in ?>" placeholder="dd/mm/yyyy"/></div><?php endif; ?>
-            <?php if ($on('insurance_expiry')): ?><div><label class="<?= $lb ?>">Insurance Expiry<?= $st('insurance_expiry') ?></label><input name="insurance_expiry" value="<?= $dt('insurance_expiry') ?>" class="flatpickr <?= $in ?>" placeholder="dd/mm/yyyy"/></div><?php endif; ?>
-            <?php foreach ($typeFields as $col => [$field, $label]): ?>
-            <div x-show="show('<?= $col ?>')" x-cloak><label class="<?= $lb ?>"><?= $label ?> *</label>
-                <?php if ($field === 'trailer_type'): ?><select name="<?= $field ?>" class="<?= $in ?>"><?php foreach (\App\Libraries\VehicleRules::TRAILER_TYPES as $tv => $tl): ?><option value="<?= $tv ?>" <?= (string) ($old[$field] ?? $v[$field] ?? '20') === (string) $tv ? 'selected' : '' ?>><?= $tl ?></option><?php endforeach; ?></select>
-                <?php else: ?><input name="<?= $field ?>" value="<?= $val($field) ?>" class="<?= $in ?>"/><?php endif; ?></div>
-            <?php endforeach; ?>
-        </div>
-
-        <?php if ($passFor !== 'staff'): ?>
-        <div x-show="show('req_pass')" x-cloak class="mb-6" x-data="{ q: '', res: [], sel: <?= esc(json_encode(array_map(static fn($d) => ['id' => (int) $d['vendor_id'], 'full_name' => (string) $d['full_name'], 'ic' => (string) ($d['ic_no'] ?: $d['passport_no'])], $driverRows)), 'attr') ?>,
-              async find() { if (this.q.length < 2) { this.res = []; return; } const r = await fetch('<?= base_url('vehicles/drivers') ?>?q=' + encodeURIComponent(this.q)); this.res = await r.json(); },
-              add(r) { if (!this.sel.find(x => x.id === +r.id)) this.sel.push({ id: +r.id, full_name: r.full_name, ic: r.ic_no || r.passport_no || '' }); this.res = []; this.q = ''; } }">
-            <h2 class="text-sm font-bold uppercase text-gray-700 dark:text-gray-200 mb-3">Driver (Vendor Pass) *</h2>
-            <template x-for="d in sel" :key="d.id"><input type="hidden" name="driver_id[]" :value="d.id"></template>
-            <div class="relative max-w-xl">
-                <input type="text" x-model="q" @input.debounce.300ms="find()" placeholder="Search driver by name or IC / passport..." class="<?= $in ?>"/>
-                <div x-show="res.length" x-cloak class="absolute z-20 w-full mt-1 rounded border bg-white dark:bg-gray-800 shadow max-h-56 overflow-y-auto">
-                    <template x-for="r in res" :key="r.id"><button type="button" class="block w-full text-left px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700" @click="add(r)">
-                        <span class="font-semibold" x-text="r.full_name"></span> <span class="text-xs text-gray-500" x-text="(r.ic_no || r.passport_no || '') + ' / ' + (r.vendor_company_name || '')"></span></button></template>
-                </div>
-            </div>
-            <div class="mt-2 flex flex-wrap gap-2">
-                <template x-for="d in sel" :key="d.id"><span class="inline-flex items-center gap-2 rounded-full bg-primary/10 text-primary px-3 py-1 text-sm"><span x-text="d.full_name + ' (' + d.ic + ')'"></span>
-                    <button type="button" class="font-bold" @click="sel = sel.filter(x => x.id !== d.id)">&times;</button></span></template>
-            </div>
-            <p class="text-xs text-gray-500 mt-1">Only drivers with an active vendor pass can be linked. Reissuing the sticker later needs every linked pass to be active.</p>
-        </div>
-        <?php endif; ?>
-
-        <?php if ($on('location_access')): ?>
-        <h2 class="text-sm font-bold uppercase text-gray-700 dark:text-gray-200 mb-3">Location Access<?= $st('location_access') ?></h2>
-        <div class="relative mb-6 max-w-xl" @click.outside="open = false" @keydown.escape.window="open = false">
+        <?php if (! $isStaff && $on('location_access')): ?>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6"><div class="md:col-span-2">
+        <label class="<?= $lb ?> mb-1.5"><span class="text-red-600">*</span>Location Access</label>
+        <div class="relative" @click.outside="open = false" @keydown.escape.window="open = false">
             <template x-for="c in selected" :key="c"><input type="hidden" name="location_access[]" :value="c"></template>
-            <button type="button" @click="open = !open" class="w-full min-h-[3rem] flex items-center justify-between gap-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-left text-sm">
+            <button type="button" @click="open = !open" class="w-full min-h-[2.5rem] flex items-center justify-between gap-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-left text-sm">
                 <span class="flex flex-wrap gap-1.5 items-center">
                     <span x-show="selected.length === 0" class="text-gray-400">-- Select location(s) --</span>
                     <template x-for="c in selected" :key="c">
@@ -158,22 +83,81 @@ $st = static fn(string $k): string => \App\Libraries\VehicleRules::fieldRequired
                 </div>
             </div>
         </div>
+        </div></div>
 
         <?php endif; ?>
 
-        <?php if ($on('documents')): ?>
-        <h2 class="text-sm font-bold uppercase text-gray-700 dark:text-gray-200 mb-3">Upload Documents<?= $direct ? '' : $st('documents') ?></h2>
-        <div class="mb-6">
-            <?php foreach ($files as $f): ?>
-            <label class="flex items-center gap-2 text-sm mb-1"><input type="checkbox" name="remove_file[]" value="<?= $f['id'] ?>"/>
-                Remove <a href="<?= base_url($f['file_path']) ?>" target="_blank" class="text-primary underline"><?= esc($f['original_name']) ?></a></label>
-            <?php endforeach; ?>
-            <input type="file" name="documents[]" multiple accept=".jpg,.jpeg,.png,.pdf" class="<?= $in ?> max-w-xl"/>
-            <p class="text-xs text-gray-500 mt-1">Vehicle grant / road tax / insurance (JPG, PNG or PDF, max 5 MB each).</p>
+        <?php if ($isStaff): ?>
+        <h2 class="text-sm font-bold uppercase text-gray-700 dark:text-gray-200 mb-3">Driver Info</h2>
+        <div class="mb-6" x-data="{ q: '', res: [], sel: <?= esc(json_encode($staffRow ? ['id' => (int) $staffRow['id'], 'staff_no' => $staffRow['staff_no'], 'full_name' => $staffRow['full_name'], 'ic_passport' => $staffRow['ic_passport'] ?? ''] : null), 'attr') ?>,
+              async find() { if (this.q.length < 2) { this.res = []; return; } const r = await fetch('<?= base_url('vehicles/public/staff-lookup') ?>?q=' + encodeURIComponent(this.q)); this.res = await r.json(); } }">
+            <input type="hidden" name="staff_id" :value="sel ? sel.id : ''"/>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="relative">
+                    <label class="<?= $lb ?>"><span class="text-red-600">*</span>Staff ID</label>
+                    <input type="text" x-model="q" @input.debounce.300ms="find()" :placeholder="sel ? sel.staff_no : ''" class="<?= $in ?>" <?= $isEdit ? 'readonly' : '' ?>/>
+                    <div x-show="res.length && !sel" x-cloak class="absolute z-20 w-full mt-1 rounded border bg-white dark:bg-gray-800 shadow max-h-56 overflow-y-auto">
+                        <template x-for="r in res" :key="r.id"><button type="button" class="block w-full text-left px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700"
+                            @click="sel = r; res = []; q = ''"><span class="font-semibold" x-text="r.staff_no"></span> <span class="text-xs text-gray-500" x-text="r.full_name"></span></button></template>
+                    </div>
+                </div>
+                <div><label class="<?= $lb ?>"><span class="text-red-600">*</span>Staff Name</label><input :value="sel ? sel.full_name : ''" readonly class="<?= $in ?> bg-gray-100"/></div>
+                <div><label class="<?= $lb ?>">Department</label><input name="department" value="<?= $val('department') ?: esc($staffRow['department'] ?? '') ?>" class="<?= $in ?>"/></div>
+                <div><label class="<?= $lb ?>">HOD</label><input name="hod" value="<?= $val('hod') ?>" class="<?= $in ?>"/></div>
+            </div>
+            <?php if (! $isEdit): ?><p x-show="sel" x-cloak class="mt-2 text-xs text-gray-500">Selected: <span x-text="sel ? sel.staff_no : ''"></span> <button type="button" @click="sel = null" class="text-primary underline">change</button></p><?php endif; ?>
         </div>
         <?php endif; ?>
 
-        <?php if ($on('remark')): ?><div class="mb-6"><label class="<?= $lb ?>">Remark<?= $st('remark') ?></label><textarea name="remark" rows="2" class="<?= $in ?>"><?= $val('remark') ?></textarea></div><?php endif; ?>
+        <h2 class="text-sm font-bold uppercase text-gray-700 dark:text-gray-200 mb-3">Vehicle Info</h2>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <?php if ($isCnc): ?>
+            <div><label class="<?= $lb ?>">Vehicle Operation</label>
+                <select name="vehicle_operation" x-model="op" @change="if (!typesShown.find(t => t.id === type)) type = typesShown.length ? typesShown[0].id : ''" class="<?= $in ?>"><?php foreach ($ops as $o): ?><option><?= $o ?></option><?php endforeach; ?></select></div>
+            <?php endif; ?>
+            <div><label class="<?= $lb ?>">Type Of Vehicle</label>
+                <select name="vehicle_type_id" x-model="type" class="<?= $in ?>">
+                    <?php foreach ($types as $t): ?>
+                    <option value="<?= esc($t['id']) ?>" <?= (string) $val('vehicle_type_id') === (string) $t['id'] ? 'selected' : '' ?> :hidden="!!op && '<?= esc($t['operation'] ?? '', 'js') ?>' !== '' && '<?= esc($t['operation'] ?? '', 'js') ?>' !== op" :disabled="!!op && '<?= esc($t['operation'] ?? '', 'js') ?>' !== '' && '<?= esc($t['operation'] ?? '', 'js') ?>' !== op"><?= esc($t['name']) ?></option>
+                    <?php endforeach; ?>
+                    <?php if (! $types): ?><option value="" disabled>No vehicle types yet (Config &gt; Vehicle Types)</option><?php endif; ?>
+                </select></div>
+            <div><label class="<?= $lb ?>"><span class="text-red-600">*</span>Registration Number</label><input name="plate_no" value="<?= $val('plate_no') ?>" class="<?= $in ?> uppercase"/></div>
+            <?php if ($on('year_made')): ?><div><label class="<?= $lb ?>"><?= $st('year_made') ? '<span class="text-red-600">*</span>' : '' ?>Year Made</label>
+                <select name="year_made" class="<?= $in ?>"><?php $ym = (string) ($old['year_made'] ?? $v['year_made'] ?? ''); for ($y = $yearNow; $y > $yearNow - 60; $y--): ?><option <?= $ym === (string) $y ? 'selected' : '' ?>><?= $y ?></option><?php endfor; ?></select></div><?php endif; ?>
+            <?php if ($on('colour')): ?><div><label class="<?= $lb ?>"><?= $st('colour') ? '<span class="text-red-600">*</span>' : '' ?>Colour</label><input name="colour" value="<?= $val('colour') ?>" class="<?= $in ?>"/></div><?php endif; ?>
+            <?php if ($on('brand')): ?><div><label class="<?= $lb ?>"><?= $st('brand') ? '<span class="text-red-600">*</span>' : '' ?>Brand</label><input name="brand" value="<?= $val('brand') ?>" class="<?= $in ?>"/></div><?php endif; ?>
+            <?php if ($on('road_tax_expiry')): ?><div><label class="<?= $lb ?>"><?= (! $isStaff && ($st('road_tax_expiry') || $isCnc)) ? '<span class="text-red-600">*</span>' : '' ?>Road Tax Expiry Date</label><input name="road_tax_expiry" value="<?= $dt('road_tax_expiry') ?>" class="flatpickr <?= $in ?>" placeholder="DD/MM/YYYY"/></div><?php endif; ?>
+            <?php if ($on('insurance_expiry')): ?><div><label class="<?= $lb ?>"><?= (! $isStaff && ($st('insurance_expiry') || $isCnc)) ? '<span class="text-red-600">*</span>' : '' ?>Insurance Expiry Date</label><input name="insurance_expiry" value="<?= $dt('insurance_expiry') ?>" class="flatpickr <?= $in ?>" placeholder="DD/MM/YYYY"/></div><?php endif; ?>
+            <?php foreach ($typeFields as $col => [$field, $label]): ?>
+            <div x-show="show('<?= $col ?>')" x-cloak><label class="<?= $lb ?>"><span class="text-red-600">*</span><?= $label ?></label>
+                <?php if ($field === 'trailer_type'): ?><select name="<?= $field ?>" class="<?= $in ?>"><?php foreach (\App\Libraries\VehicleRules::TRAILER_TYPES as $tv => $tl): ?><option value="<?= $tv ?>" <?= (string) ($old[$field] ?? $v[$field] ?? '20') === (string) $tv ? 'selected' : '' ?>><?= $tl ?></option><?php endforeach; ?></select>
+                <?php else: ?><input name="<?= $field ?>" value="<?= $val($field) ?>" class="<?= $in ?>"/><?php endif; ?></div>
+            <?php endforeach; ?>
+        </div>
+
+        <?php if ($on('documents')): ?>
+        <h2 class="text-sm font-bold uppercase text-gray-700 dark:text-gray-200 mb-3">Upload</h2>
+        <div class="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <?php foreach ($files as $f): ?>
+                <label class="flex items-center gap-2 text-sm mb-1"><input type="checkbox" name="remove_file[]" value="<?= $f['id'] ?>"/>
+                    Remove <a href="<?= base_url($f['file_path']) ?>" target="_blank" class="text-primary underline"><?= esc($f['original_name']) ?></a></label>
+                <?php endforeach; ?>
+                <label class="flex flex-col items-center justify-center text-center text-sm text-gray-500 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded p-6 cursor-pointer">
+                    Click or drag<br/>files to upload
+                    <input type="file" name="documents[]" multiple accept=".jpg,.jpeg,.png,.pdf" class="hidden"/>
+                </label>
+            </div>
+            <ul class="list-disc pl-5 text-sm text-gray-700 dark:text-gray-300">
+                <?php if ($isCnc): ?>
+                <li>Road Tax</li><li>Insurance</li>
+                <?php else: ?>
+                <li <?= $isPublic ? 'x-show="owner !== \'Company\'"' : '' ?>>Driving Licence</li><li>Road Tax</li><li>Cover Note</li><li>Grant</li>
+                <?php endif; ?>
+            </ul>
+        </div>
+        <?php endif; ?>
 
         <?php if ($direct): ?>
         <h2 class="text-sm font-bold uppercase text-gray-700 dark:text-gray-200 mb-3">Sticker Issuance</h2>
