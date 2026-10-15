@@ -67,7 +67,7 @@ class VendorList extends BaseController
             $sortBy = 'date_desc';
         }
 
-        $allowedStatus = ['all', 'Pending', 'Approved', 'Rejected', 'Suspended'];
+        $allowedStatus = ['all', 'Draft', 'Pending', 'Approved', 'Rejected', 'Suspended'];
         if (! in_array($status, $allowedStatus, true)) {
             $status = 'all';
         }

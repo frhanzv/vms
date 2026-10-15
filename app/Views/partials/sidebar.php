@@ -300,7 +300,7 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
             <!-- Workflow: Visitor Workflow + Vendor Workflow under one dropdown -->
             <?php
             $showVisitorWf = has_access('visitor_workflow', 'view');
-            $showVendorWf  = client_feature_enabled('vendor_pass') && ! is_vendor_admin() && (is_platform_superadmin() || is_client_superadmin() || normalize_role_slug((string) session()->get('role')) === 'admin');
+            $showVendorWf  = client_feature_enabled('vendor_pass') && ! is_vendor_admin() && has_access('vendor_workflow', 'view');
             if ($showVisitorWf || $showVendorWf):
                 $wfItems = [];
                 if ($showVisitorWf) { $wfItems['workflow'] = 'Visitor Workflow'; }

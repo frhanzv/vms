@@ -355,6 +355,55 @@ class VehicleRules
     }
 
     /**
+     * Request-form field settings (Config > Dynamic Form Fields > Vehicle Pass Request) for the logged-in user's
+     * client: [key => ['on' => bool, 'required' => bool]]. A field with no saved choice is on, and required only
+     * where the form always insisted on it.
+     */
+    private static array $ffCache = [];
+
+    public static function forgetFormFields(): void
+    {
+        self::$ffCache = [];
+    }
+
+    public static function formFields(): array
+    {
+        $cid = 0;
+        try {
+            helper('feature');
+            $cid = function_exists('current_client_id') ? (int) current_client_id() : 0;
+        } catch (\Throwable $e) {
+            $cid = 0;
+        }
+        if (! isset(self::$ffCache[$cid])) {
+            $map = [];
+            try {
+                foreach ((new \App\Models\ClientFormFieldModel())->getForCompanyForm($cid, 'vehicle_pass_request') as $row) {
+                    $map[$row['field_key']] = ['on' => (int) $row['is_enabled'] === 1, 'required' => (int) $row['is_enabled'] === 1 && (int) $row['is_required'] === 1];
+                }
+            } catch (\Throwable $e) {
+                $map = []; // settings table not there yet: use what the form always did
+                foreach (\App\Models\ClientFormFieldModel::vehiclePassFields() as $d) {
+                    $map[$d['field_key']] = ['on' => (bool) ($d['default_enabled'] ?? true), 'required' => (bool) ($d['default_required'] ?? false)];
+                }
+            }
+            self::$ffCache[$cid] = $map;
+        }
+
+        return self::$ffCache[$cid];
+    }
+
+    public static function fieldOn(string $key): bool
+    {
+        return self::formFields()[$key]['on'] ?? true;
+    }
+
+    public static function fieldRequired(string $key): bool
+    {
+        return self::fieldOn($key) && (self::formFields()[$key]['required'] ?? false);
+    }
+
+    /**
      * Columns of a vehicle list page: key => ['label', 'locked'?, 'cnc_only'?]. A locked column is always shown.
      * Same column set the list has always had; the keys are what Page Settings stores.
      */

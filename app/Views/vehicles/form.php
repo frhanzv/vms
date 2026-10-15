@@ -13,6 +13,9 @@ $driverRows = $driverRows ?? [];
 $typeList = array_map(static fn($t) => ['id' => (string) $t['id'], 'name' => $t['name'], 'operation' => $t['operation'] ?? ''], $types);
 $ops = \App\Libraries\VehicleRules::OPERATIONS;
 $yearNow = (int) date('Y');
+// Config > Dynamic Form Fields > Vehicle Pass Request
+$on = static fn(string $k): bool => \App\Libraries\VehicleRules::fieldOn($k);
+$st = static fn(string $k): string => \App\Libraries\VehicleRules::fieldRequired($k) ? ' *' : '';
 ?>
 <div class="bg-card-light dark:bg-card-dark rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
     <div class="flex items-center gap-3 mb-6">
@@ -71,9 +74,9 @@ $yearNow = (int) date('Y');
                 <?php if (! $isEdit): ?><button type="button" @click="sel = null" class="font-bold">&times;</button><?php endif; ?>
             </div>
             <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl">
-                <div><label class="<?= $lb ?>">Department</label><input name="department" value="<?= $val('department') ?: esc($staffRow['department'] ?? '') ?>" class="<?= $in ?>"/></div>
-                <div><label class="<?= $lb ?>">HOD</label><input name="hod" value="<?= $val('hod') ?>" class="<?= $in ?>"/></div>
-                <div><label class="<?= $lb ?>">Contact No.</label><input name="contact_no" value="<?= $val('contact_no') ?>" class="<?= $in ?>"/></div>
+                <?php if ($on('department')): ?><div><label class="<?= $lb ?>">Department<?= $st('department') ?></label><input name="department" value="<?= $val('department') ?: esc($staffRow['department'] ?? '') ?>" class="<?= $in ?>"/></div><?php endif; ?>
+                <?php if ($on('hod')): ?><div><label class="<?= $lb ?>">HOD<?= $st('hod') ?></label><input name="hod" value="<?= $val('hod') ?>" class="<?= $in ?>"/></div><?php endif; ?>
+                <?php if ($on('contact_no')): ?><div><label class="<?= $lb ?>">Contact No.<?= $st('contact_no') ?></label><input name="contact_no" value="<?= $val('contact_no') ?>" class="<?= $in ?>"/></div><?php endif; ?>
             </div>
         </div>
         <?php else: $lockCo = ! empty($ownCompany) || $group === 'cnc'; ?>
@@ -82,11 +85,11 @@ $yearNow = (int) date('Y');
                 <?php if ($lockCo): ?><input type="hidden" name="owner_type" value="Company"/><input value="Company" disabled class="<?= $in ?> bg-gray-100"/>
                 <?php else: ?><select name="owner_type" x-model="owner" class="<?= $in ?>"><?php foreach (['Individual', 'Company'] as $o): ?><option><?= $o ?></option><?php endforeach; ?></select><?php endif; ?></div>
             <div><label class="<?= $lb ?>">Owner Name *</label><input name="owner_name" value="<?= $val('owner_name') ?>" class="<?= $in ?>"/></div>
-            <div><label class="<?= $lb ?>">IC / Passport</label><input name="owner_ic" value="<?= $val('owner_ic') ?>" class="<?= $in ?>"/></div>
+            <?php if ($on('owner_ic')): ?><div><label class="<?= $lb ?>">IC / Passport<?= $st('owner_ic') ?></label><input name="owner_ic" value="<?= $val('owner_ic') ?>" class="<?= $in ?>"/></div><?php endif; ?>
             <div <?= $lockCo ? '' : 'x-show="owner === \'Company\'"' ?>><label class="<?= $lb ?>">Company Name *</label>
                 <?php if (! empty($ownCompany)): ?><input type="hidden" name="company_name" value="<?= esc($ownCompany['name']) ?>"/><input value="<?= esc($ownCompany['name']) ?>" disabled class="<?= $in ?> bg-gray-100"/>
                 <?php else: ?><input name="company_name" value="<?= $val('company_name') ?>" class="<?= $in ?>"/><?php endif; ?></div>
-            <div><label class="<?= $lb ?>">Contact No. *</label><input name="contact_no" value="<?= $val('contact_no') ?>" class="<?= $in ?>"/></div>
+            <?php if ($on('contact_no')): ?><div><label class="<?= $lb ?>">Contact No.<?= $st('contact_no') ?></label><input name="contact_no" value="<?= $val('contact_no') ?>" class="<?= $in ?>"/></div><?php endif; ?>
         </div>
         <?php endif; ?>
 
@@ -98,12 +101,12 @@ $yearNow = (int) date('Y');
                     <template x-for="t in typesShown" :key="t.id"><option :value="t.id" :selected="t.id === type" x-text="t.name"></option></template>
                 </select></div>
             <div><label class="<?= $lb ?>">Plate Number *</label><input name="plate_no" value="<?= $val('plate_no') ?>" class="<?= $in ?> uppercase" placeholder="e.g. ABC1234"/></div>
-            <div><label class="<?= $lb ?>">Brand *</label><input name="brand" value="<?= $val('brand') ?>" class="<?= $in ?>"/></div>
-            <div><label class="<?= $lb ?>">Year Made</label>
-                <select name="year_made" class="<?= $in ?>"><?php $ym = (string) ($old['year_made'] ?? $v['year_made'] ?? ''); for ($y = $yearNow; $y > $yearNow - 60; $y--): ?><option <?= $ym === (string) $y ? 'selected' : '' ?>><?= $y ?></option><?php endfor; ?></select></div>
-            <div><label class="<?= $lb ?>">Colour *</label><input name="colour" value="<?= $val('colour') ?>" class="<?= $in ?>"/></div>
-            <div><label class="<?= $lb ?>">Road Tax Expiry *</label><input name="road_tax_expiry" value="<?= $dt('road_tax_expiry') ?>" class="flatpickr <?= $in ?>" placeholder="dd/mm/yyyy"/></div>
-            <div><label class="<?= $lb ?>">Insurance Expiry *</label><input name="insurance_expiry" value="<?= $dt('insurance_expiry') ?>" class="flatpickr <?= $in ?>" placeholder="dd/mm/yyyy"/></div>
+            <?php if ($on('brand')): ?><div><label class="<?= $lb ?>">Brand<?= $st('brand') ?></label><input name="brand" value="<?= $val('brand') ?>" class="<?= $in ?>"/></div><?php endif; ?>
+            <?php if ($on('year_made')): ?><div><label class="<?= $lb ?>">Year Made<?= $st('year_made') ?></label>
+                <select name="year_made" class="<?= $in ?>"><?php $ym = (string) ($old['year_made'] ?? $v['year_made'] ?? ''); for ($y = $yearNow; $y > $yearNow - 60; $y--): ?><option <?= $ym === (string) $y ? 'selected' : '' ?>><?= $y ?></option><?php endfor; ?></select></div><?php endif; ?>
+            <?php if ($on('colour')): ?><div><label class="<?= $lb ?>">Colour<?= $st('colour') ?></label><input name="colour" value="<?= $val('colour') ?>" class="<?= $in ?>"/></div><?php endif; ?>
+            <?php if ($on('road_tax_expiry')): ?><div><label class="<?= $lb ?>">Road Tax Expiry<?= $st('road_tax_expiry') ?></label><input name="road_tax_expiry" value="<?= $dt('road_tax_expiry') ?>" class="flatpickr <?= $in ?>" placeholder="dd/mm/yyyy"/></div><?php endif; ?>
+            <?php if ($on('insurance_expiry')): ?><div><label class="<?= $lb ?>">Insurance Expiry<?= $st('insurance_expiry') ?></label><input name="insurance_expiry" value="<?= $dt('insurance_expiry') ?>" class="flatpickr <?= $in ?>" placeholder="dd/mm/yyyy"/></div><?php endif; ?>
             <?php foreach ($typeFields as $col => [$field, $label]): ?>
             <div x-show="show('<?= $col ?>')" x-cloak><label class="<?= $lb ?>"><?= $label ?> *</label>
                 <?php if ($field === 'trailer_type'): ?><select name="<?= $field ?>" class="<?= $in ?>"><?php foreach (\App\Libraries\VehicleRules::TRAILER_TYPES as $tv => $tl): ?><option value="<?= $tv ?>" <?= (string) ($old[$field] ?? $v[$field] ?? '20') === (string) $tv ? 'selected' : '' ?>><?= $tl ?></option><?php endforeach; ?></select>
@@ -132,7 +135,8 @@ $yearNow = (int) date('Y');
         </div>
         <?php endif; ?>
 
-        <h2 class="text-sm font-bold uppercase text-gray-700 dark:text-gray-200 mb-3">Location Access *</h2>
+        <?php if ($on('location_access')): ?>
+        <h2 class="text-sm font-bold uppercase text-gray-700 dark:text-gray-200 mb-3">Location Access<?= $st('location_access') ?></h2>
         <div class="relative mb-6 max-w-xl" @click.outside="open = false" @keydown.escape.window="open = false">
             <template x-for="c in selected" :key="c"><input type="hidden" name="location_access[]" :value="c"></template>
             <button type="button" @click="open = !open" class="w-full min-h-[3rem] flex items-center justify-between gap-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-left text-sm">
@@ -155,7 +159,10 @@ $yearNow = (int) date('Y');
             </div>
         </div>
 
-        <h2 class="text-sm font-bold uppercase text-gray-700 dark:text-gray-200 mb-3">Upload Documents<?= $direct ? '' : ' *' ?></h2>
+        <?php endif; ?>
+
+        <?php if ($on('documents')): ?>
+        <h2 class="text-sm font-bold uppercase text-gray-700 dark:text-gray-200 mb-3">Upload Documents<?= $direct ? '' : $st('documents') ?></h2>
         <div class="mb-6">
             <?php foreach ($files as $f): ?>
             <label class="flex items-center gap-2 text-sm mb-1"><input type="checkbox" name="remove_file[]" value="<?= $f['id'] ?>"/>
@@ -164,8 +171,9 @@ $yearNow = (int) date('Y');
             <input type="file" name="documents[]" multiple accept=".jpg,.jpeg,.png,.pdf" class="<?= $in ?> max-w-xl"/>
             <p class="text-xs text-gray-500 mt-1">Vehicle grant / road tax / insurance (JPG, PNG or PDF, max 5 MB each).</p>
         </div>
+        <?php endif; ?>
 
-        <div class="mb-6"><label class="<?= $lb ?>">Remark</label><textarea name="remark" rows="2" class="<?= $in ?>"><?= $val('remark') ?></textarea></div>
+        <?php if ($on('remark')): ?><div class="mb-6"><label class="<?= $lb ?>">Remark<?= $st('remark') ?></label><textarea name="remark" rows="2" class="<?= $in ?>"><?= $val('remark') ?></textarea></div><?php endif; ?>
 
         <?php if ($direct): ?>
         <h2 class="text-sm font-bold uppercase text-gray-700 dark:text-gray-200 mb-3">Sticker Issuance</h2>
@@ -180,7 +188,7 @@ $yearNow = (int) date('Y');
         </div>
         <?php endif; ?>
 
-        <?php if (empty($asApprover) && ! $direct): ?>
+        <?php if (empty($asApprover) && ! $direct && $on('tnc')): ?>
         <label class="flex items-start gap-2 text-sm mb-6 max-w-3xl"><input type="checkbox" name="tnc" value="1" class="mt-1"/>
             <span>I declare that the information given is true, the vehicle is registered to the owner above, and I agree to follow the port's vehicle sticker terms and conditions. The sticker remains the property of the port and must be returned on request.</span></label>
         <?php endif; ?>

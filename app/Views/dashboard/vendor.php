@@ -180,10 +180,9 @@ $st = $stages;
                     $stageLinks = $isVendorAccount ? [] : [
                         'Process'  => base_url('vendors/process-list'),
                         'Issuance' => base_url('vendors/issuance-list'),
-                        'Active'   => base_url('vendors/closed-list'),
-                        'Closed'   => base_url('vendors/closed-list') . '?card_status=Terminated',
+                        'Closed'   => base_url('vendors/closed-list'),
                     ];
-                    $tones = ['Draft' => 1, 'Pending' => 1, 'Rejected' => 1, 'Process' => 2, 'Issuance' => 4, 'Active' => 4, 'Closed' => 1];
+                    $tones = ['Draft' => 1, 'Pending' => 1, 'Rejected' => 1, 'Process' => 2, 'Issuance' => 4, 'Closed' => 1];
                     $items = [];
                     foreach (\App\Libraries\VendorDashboardStats::STAGES as $s) {
                         $items[] = ['label' => $s, 'value' => $st[$s], 'tone' => $tones[$s], 'href' => $stageLinks[$s] ?? null];

@@ -293,8 +293,8 @@ class VehiclePass extends BaseController
             'appFor' => $appFor, 'typeId' => $typeId, 'appTyp' => $appTyp, 'sort' => $sort, 'per' => $per, 'types' => $this->types($group),
             'filterable' => $filterable,
             'canCreate' => $this->allowed($group, 'create'),
-            'canColumns' => ! is_vendor_admin(),
-            'canDirect' => $stage === 'closed' && ! is_vendor_admin() && $this->allowed($group, 'closed'),
+            'canColumns' => ! is_vendor_admin() && has_access('vehicle', 'show_hide_columns'),
+            'canDirect' => $stage === 'closed' && ! is_vendor_admin() && $this->allowed($group, 'closed') && has_access('vehicle', 'new_issued_pass'),
             'canStaffRequest' => $group === 'public' && ! is_vendor_admin() && $this->allowed($group, 'staff_request'),
         ]);
     }
@@ -311,7 +311,7 @@ class VehiclePass extends BaseController
         if (! isset(VehicleRules::LIST_PAGES[$stage]) || ! isset(list_column_registry()[$list])) {
             return $this->back('error', 'Unknown list.', $back);
         }
-        if (is_vendor_admin()) {
+        if (is_vendor_admin() || ! has_access('vehicle', 'show_hide_columns')) {
             return $this->back('error', 'Columns are set by the client administrator.', $back);
         }
         $clientId = (int) current_client_id();
@@ -375,7 +375,7 @@ class VehiclePass extends BaseController
     {
         $this->init();
         $group = $this->group($group);
-        if (is_vendor_admin() || ! $this->allowed($group, 'closed')) {
+        if (is_vendor_admin() || ! $this->allowed($group, 'closed') || ! has_access('vehicle', 'new_issued_pass')) {
             return $this->back('error', 'You are not allowed to add an issued pass directly.', 'dashboard');
         }
         $kind = ($kind === 'staff' && $group === 'public') ? 'staff' : 'vendor';
@@ -505,12 +505,16 @@ class VehiclePass extends BaseController
         }
 
         $direct = ! $id && ! empty($p['direct']);
-        if ($direct && (is_vendor_admin() || ! $this->allowed($group, 'closed'))) {
+        if ($direct && (is_vendor_admin() || ! $this->allowed($group, 'closed') || ! has_access('vehicle', 'new_issued_pass'))) {
             return $this->back('error', 'You are not allowed to add an issued pass directly.', 'dashboard');
         }
         $submit = ($p['action'] ?? 'submit') === 'submit' || $asApprover || $direct;
         $errors = [];
         $get    = static fn(string $k): string => trim((string) ($p[$k] ?? ''));
+        // Dynamic Form Fields > Vehicle Pass Request: a switched-off field is not asked, not checked and keeps its saved value
+        $on     = static fn(string $k): bool => VehicleRules::fieldOn($k);
+        $req    = static fn(string $k): bool => VehicleRules::fieldRequired($k);
+        $keep   = static fn(string $k): string => $on($k) ? $get($k) : trim((string) ($cur[$k] ?? ''));
 
         $type = null;
         foreach ($this->types($group) as $t) {
@@ -521,19 +525,22 @@ class VehiclePass extends BaseController
         $plate = VehicleRules::normalizePlate($get('plate_no'));
         $year  = in_array($get('sticker_year'), VehicleRules::stickerYears(), true) ? $get('sticker_year') : ($cur['sticker_year'] ?? VehicleRules::stickerYears()[0]);
         $locs  = array_values(array_filter(array_map('trim', (array) ($p['location_access'] ?? []))));
+        if (! $on('location_access')) {
+            $locs = array_values(array_filter(explode(',', (string) ($cur['location_access'] ?? ''))));
+        }
         $valid = array_keys((new VendorLocationModel())->getOptionsForUser(true));
         $locs  = array_values(array_intersect($locs, $valid));
 
         // who owns the vehicle
         $co    = current_vendor_company();
-        $owner = ['owner_type' => $get('owner_type'), 'owner_name' => $get('owner_name'), 'owner_ic' => $get('owner_ic'), 'company_name' => $get('company_name'), 'contact_no' => $get('contact_no'), 'staff_id' => null];
+        $owner = ['owner_type' => $get('owner_type'), 'owner_name' => $get('owner_name'), 'owner_ic' => $keep('owner_ic'), 'company_name' => $get('company_name'), 'contact_no' => $keep('contact_no'), 'staff_id' => null];
         if ($kind === 'staff') {
             $st = $db->table('staff')->where('id', (int) ($p['staff_id'] ?? ($cur['staff_id'] ?? 0)))->get()->getRowArray();
             if (! $st) {
                 $errors[] = 'Find and choose the staff member first.';
             } else {
                 $owner = ['owner_type' => 'Staff', 'owner_name' => (string) $st['full_name'], 'owner_ic' => (string) ($st['ic_passport'] ?? ''),
-                          'company_name' => '', 'contact_no' => $get('contact_no') ?: (string) ($st['contact_number'] ?? ''), 'staff_id' => (int) $st['id'], 'staff_no' => (string) ($st['staff_no'] ?? ''), 'department' => (string) ($st['department'] ?? '')];
+                          'company_name' => '', 'contact_no' => $keep('contact_no') ?: (string) ($st['contact_number'] ?? ''), 'staff_id' => (int) $st['id'], 'staff_no' => (string) ($st['staff_no'] ?? ''), 'department' => (string) ($st['department'] ?? '')];
             }
         } elseif ($group === 'cnc' || $co) {
             $owner['owner_type'] = 'Company'; // Cargo | Non-Cargo and vendor accounts are company vehicles
@@ -553,20 +560,24 @@ class VehiclePass extends BaseController
             $errors[] = 'Choose the vehicle type.';
         }
         if ($submit) {
-            foreach (['owner_name' => 'Owner name', 'contact_no' => 'Contact number'] as $k => $label) {
-                if ($owner[$k] === '') {
+            if ($owner['owner_name'] === '') {
+                $errors[] = 'Owner name is required.';
+            }
+            if ($req('contact_no') && $owner['contact_no'] === '') {
+                $errors[] = 'Contact number is required.';
+            }
+            if ($req('owner_ic') && $owner['owner_ic'] === '') {
+                $errors[] = 'IC / Passport is required.';
+            }
+            foreach (['road_tax_expiry' => 'Road tax expiry', 'insurance_expiry' => 'Insurance expiry', 'colour' => 'Colour', 'brand' => 'Brand', 'year_made' => 'Year made', 'department' => 'Department', 'hod' => 'HOD', 'remark' => 'Remark'] as $k => $label) {
+                if ($req($k) && $get($k) === '' && ($k !== 'department' && $k !== 'hod' || $kind === 'staff')) {
                     $errors[] = "$label is required.";
                 }
             }
-            foreach (['road_tax_expiry' => 'Road tax expiry', 'insurance_expiry' => 'Insurance expiry', 'colour' => 'Colour', 'brand' => 'Brand'] as $k => $label) {
-                if ($get($k) === '') {
-                    $errors[] = "$label is required.";
-                }
-            }
-            if (! $direct && $this->docCount($id, $p) < 1) {
+            if (! $direct && $req('documents') && $this->docCount($id, $p) < 1) {
                 $errors[] = 'Upload at least one document (vehicle grant / road tax / insurance).';
             }
-            if (! $asApprover && ! $direct && empty($p['tnc'])) {
+            if ($on('tnc') && ! $asApprover && ! $direct && empty($p['tnc'])) {
                 $errors[] = 'Please accept the terms and conditions.';
             }
             if (! in_array($owner['owner_type'], ['Individual', 'Company', 'Staff'], true)) {
@@ -575,7 +586,7 @@ class VehiclePass extends BaseController
             if ($owner['owner_type'] === 'Company' && $owner['company_name'] === '') {
                 $errors[] = 'Company name is required for a company vehicle.';
             }
-            if ($locs === []) {
+            if ($req('location_access') && $locs === []) {
                 $errors[] = 'Choose at least one Location Access.';
             }
             if ($type) {
@@ -638,9 +649,9 @@ class VehiclePass extends BaseController
             'owner_type' => $owner['owner_type'] ?: 'Individual', 'owner_name' => $owner['owner_name'], 'owner_ic' => $owner['owner_ic'] ?: null,
             'company_name' => $owner['company_name'] ?: null, 'contact_no' => $owner['contact_no'] ?: null, 'staff_id' => $owner['staff_id'],
             'vehicle_type_id' => $type ? (int) $type['id'] : null, 'plate_no' => $plate,
-            'brand' => $get('brand') ?: null, 'year_made' => $get('year_made') ?: null, 'colour' => $get('colour') ?: null,
-            'road_tax_expiry' => $this->toDate($get('road_tax_expiry')), 'insurance_expiry' => $this->toDate($get('insurance_expiry')),
-            'location_access' => implode(',', $locs), 'remark' => $get('remark') ?: null, 'sticker_year' => $year,
+            'brand' => $keep('brand') ?: null, 'year_made' => $keep('year_made') ?: null, 'colour' => $keep('colour') ?: null,
+            'road_tax_expiry' => $this->toDate($keep('road_tax_expiry')), 'insurance_expiry' => $this->toDate($keep('insurance_expiry')),
+            'location_access' => implode(',', $locs), 'remark' => $keep('remark') ?: null, 'sticker_year' => $year,
             'vehicle_operation' => $group === 'cnc' ? $operation : null,
             'department' => $get('department') ?: ($owner['department'] ?? '') ?: ($cur['department'] ?? null), 'hod' => $get('hod') ?: ($cur['hod'] ?? null),
             'payment_required' => $type ? (int) $type['payment_required'] : 0, 'updated_at' => $now,
@@ -839,11 +850,11 @@ class VehiclePass extends BaseController
                 'edit'      => $this->canEdit($v),
                 'approve'   => $this->may($v, 'request'),
                 'issue'     => $this->may($v, 'approved'),
-                'terminate' => $this->may($v, 'closed'),
+                'terminate' => $this->may($v, 'closed') && has_access('vehicle', 'terminate_pass'),
                 'delete'    => $this->canDelete($v),
                 'submit'    => $own && in_array($v['status'], ['Draft', 'Rejected'], true),
                 'renew'     => $own && $this->renewError($v) === null,
-                'closedTools' => $this->may($v, 'closed') && $v['status'] === 'Issued',
+                'closedTools' => $this->may($v, 'closed') && $v['status'] === 'Issued' && has_access('vehicle', 'sticker_tools'),
                 'edit_approver' => $this->approverMay($v) && ! $this->ownerMay($v),
             ],
             'renewMsg'  => $own ? $this->renewError($v) : null,
@@ -884,7 +895,7 @@ class VehiclePass extends BaseController
             return $this->delete($v);
         }
         $page = ['submit' => 'create', 'approve' => 'request', 'reject' => 'request', 'issue' => 'approved', 'terminate' => 'closed'][$action] ?? null;
-        $ok   = $page && $this->may($v, $page);
+        $ok   = $page && $this->may($v, $page) && ($action !== 'terminate' || has_access('vehicle', 'terminate_pass'));
         if ($action === 'submit' && ! $ok && ($v['pass_for'] ?? '') === 'staff') {
             $ok = has_access('vehicle', VehicleRules::KEYS['public']['staff_request']) || has_access('vehicle', VehicleRules::KEYS['public']['staff']);
         }
@@ -1007,7 +1018,7 @@ class VehiclePass extends BaseController
         if (! $v) {
             return $this->back('error', 'Vehicle pass not found.');
         }
-        if (! $this->may($v, 'closed') || $v['status'] !== 'Issued') {
+        if (! $this->may($v, 'closed') || $v['status'] !== 'Issued' || ! has_access('vehicle', 'sticker_tools')) {
             return $this->back('error', 'You cannot change this pass. Only an issued pass can be changed from the Closed List.', $back);
         }
         $g   = fn(string $k) => trim((string) $this->request->getPost($k));
@@ -1092,7 +1103,7 @@ class VehiclePass extends BaseController
                 return $this->back('error', 'Choose the vehicle type.', $back);
             }
             foreach (['colour' => 'Colour', 'brand' => 'Brand', 'insurance_expiry' => 'Insurance expiry'] as $k => $label) {
-                if ($g($k) === '') {
+                if (VehicleRules::fieldRequired($k) && $g($k) === '') {
                     return $this->back('error', "{$label} is required.", $back);
                 }
             }

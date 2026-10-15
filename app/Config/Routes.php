@@ -294,7 +294,7 @@ $routes->group('config/import-template', ['filter' => 'role:superadmin,clientsup
     $routes->post('reset', 'ImportTemplateConfig::reset');
 });
 // Vendor Workflow (steps of a vendor pass, who does them, optional steps on/off)
-$routes->group('', ['filter' => ['role:superadmin,clientsuperadmin,admin', 'client_feature:vendor_pass']], function ($routes) {
+$routes->group('', ['filter' => ['permission:vendor_workflow,view', 'client_feature:vendor_pass']], function ($routes) {
     $routes->get('vendor-workflow', 'VendorWorkflowConfig::index');
     $routes->post('vendor-workflow/toggle/(:segment)', 'VendorWorkflowConfig::toggle/$1');
     $routes->post('vendor-workflow/edit/(:segment)', 'VendorWorkflowConfig::edit/$1');
@@ -304,7 +304,7 @@ $routes->group('', ['filter' => ['role:superadmin,clientsuperadmin,admin', 'clie
     $routes->post('vendor-workflow/reset', 'VendorWorkflowConfig::reset');
 });
 // Vehicle Types (Config)
-$routes->group('config/vehicle-types', ['filter' => 'role:superadmin,clientsuperadmin'], function ($routes) {
+$routes->group('config/vehicle-types', ['filter' => ['role:superadmin,clientsuperadmin', 'permission:config,vehicle_type']], function ($routes) {
     $routes->get('/', 'VehicleTypeConfig::index');
     $routes->post('save', 'VehicleTypeConfig::save');
     $routes->post('(:num)/delete', 'VehicleTypeConfig::delete/$1');

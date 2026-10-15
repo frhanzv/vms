@@ -2276,7 +2276,7 @@
                 </div>
 
                 <!-- Vehicle Types -->
-                <?php helper('feature'); if (client_feature_enabled('vehicle_pass')): ?>
+                <?php helper(['feature', 'access']); if (client_feature_enabled('vehicle_pass') && has_access('config', 'vehicle_type')): ?>
                 <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('vehicletype')"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
@@ -4751,6 +4751,13 @@
                                         class="px-4 py-2 text-sm font-medium font-brand border-b-2 border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 -mb-px">
                                         Visitor Pass Request
                                     </button>
+                                    <?php if (client_feature_enabled('vehicle_pass')): ?>
+                                    <button type="button" id="dff-tab-vehicle_pass_request"
+                                        onclick="dffSwitchTab('vehicle_pass_request')"
+                                        class="px-4 py-2 text-sm font-medium font-brand border-b-2 border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 -mb-px">
+                                        Vehicle Pass Request
+                                    </button>
+                                    <?php endif; ?>
                                 </div>
 
                                 <!-- Loading indicator -->
@@ -5001,19 +5008,10 @@
                                 </div>
                             </div>
 
-                            <!-- Vendor Pass -->
+                            <!-- Visitor Pass (menu items) -->
                             <div class="col-span-1 sm:col-span-2 lg:col-span-3 mt-4">
-                                <h4 class="font-medium text-sm text-gray-800 dark:text-white mb-4 border-b border-gray-200 dark:border-slate-700 pb-2">Vendor Pass</h4>
+                                <h4 class="font-medium text-sm text-gray-800 dark:text-white mb-4 border-b border-gray-200 dark:border-slate-700 pb-2">Visitor Pass</h4>
                                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-4 gap-x-6 ml-4">
-                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                                        <input type="checkbox" name="access[vendor_pass][my_pass]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> My Pass
-                                    </label>
-                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                                        <input type="checkbox" name="access[vendor_pass][staff]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Staff
-                                    </label>
-                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                                        <input type="checkbox" name="access[vendor_pass][student]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Student
-                                    </label>
                                     <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                                         <input type="checkbox" name="access[vendor_pass][visitor_pass_invitation_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Visitor Pass Invitation List
                                     </label>
@@ -5022,6 +5020,29 @@
                                     </label>
                                     <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                                         <input type="checkbox" name="access[vendor_pass][visitor_pass_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Visitor Pass List
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Staff Pass (menu items) -->
+                            <div class="col-span-1 sm:col-span-2 lg:col-span-3 mt-4">
+                                <h4 class="font-medium text-sm text-gray-800 dark:text-white mb-4 border-b border-gray-200 dark:border-slate-700 pb-2">Staff Pass</h4>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-4 gap-x-6 ml-4">
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vendor_pass][staff]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Staff
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vendor_pass][student]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Student
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Vendor Pass -->
+                            <div class="col-span-1 sm:col-span-2 lg:col-span-3 mt-4">
+                                <h4 class="font-medium text-sm text-gray-800 dark:text-white mb-4 border-b border-gray-200 dark:border-slate-700 pb-2">Vendor Pass</h4>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-4 gap-x-6 ml-4">
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vendor_pass][my_pass]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> My Pass
                                     </label>
                                     <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                                         <input type="checkbox" name="access[vendor_pass][request_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Vendor Pass Request List
@@ -5199,6 +5220,19 @@
                                     <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                                         <input type="checkbox" name="access[vehicle][transfer_ownership]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Transfer Ownership
                                     </label>
+                                    <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 mt-3">All Vehicle Lists</p>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vehicle][show_hide_columns]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Show / Hide Columns
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vehicle][new_issued_pass]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> New Issued Pass (direct close)
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vehicle][sticker_tools]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Sticker Tools (Reissue, Serial No, Receipt No, Edit Info, Type, Locations)
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vehicle][terminate_pass]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Terminate Pass
+                                    </label>
                                 </div>
                             </div>
 
@@ -5304,6 +5338,9 @@
                                     <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                                         <input type="checkbox" name="access[vendor_pass_list][manage_locations]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Manage Locations
                                     </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vendor_pass_list][show_hide_columns]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Show / Hide Columns
+                                    </label>
                                 </div>
                             </div>
 
@@ -5341,6 +5378,16 @@
                                 <div class="ml-4 space-y-2">
                                     <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                                         <input type="checkbox" name="access[visitor_workflow][view]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> View
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Vendor Workflow -->
+                            <div>
+                                <h4 class="font-medium text-sm text-gray-800 dark:text-white mb-2">Vendor Workflow</h4>
+                                <div class="ml-4 space-y-2">
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[vendor_workflow][view]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> View
                                     </label>
                                 </div>
                             </div>
@@ -5505,6 +5552,9 @@
                                     </label>
                                     <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                                         <input type="checkbox" name="access[config][page_settings]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Page Settings
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[config][vehicle_type]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Vehicle Types
                                     </label>
                                 </div>
                             </div>
@@ -18514,7 +18564,7 @@
         function dffSwitchTab(formType) {
             dffActiveTab = formType;
 
-            ['visitor_registration', 'invitation', 'staff_pass_request', 'visitor_pass_request', 'vendor_pass_request'].forEach(t => {
+            ['visitor_registration', 'invitation', 'staff_pass_request', 'visitor_pass_request', 'vendor_pass_request', 'vehicle_pass_request'].forEach(t => {
                 const btn = document.getElementById(`dff-tab-${t}`);
                 if (!btn) return;
                 if (t === formType) {

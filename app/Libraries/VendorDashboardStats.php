@@ -18,8 +18,8 @@ use CodeIgniter\Database\BaseConnection;
  *
  * Pipeline stages (same rules as the Process / Printing / Issuance / Closed
  * lists): Draft, Pending, Rejected, Process (approved, no receipt no. - this is also
- * the Printing List), Issuance (receipt no. set), Active (card active),
- * Closed (terminated / suspended).
+ * the Printing List), Issuance (receipt no. set), Closed (everything in the Closed
+ * List: card active or terminated, plus suspended).
  */
 if (! function_exists('vendor_client_scope_sql')) {
     require_once __DIR__ . '/../Helpers/vendor_client_scope_helper.php';
@@ -27,7 +27,7 @@ if (! function_exists('vendor_client_scope_sql')) {
 
 class VendorDashboardStats
 {
-    public const STAGES = ['Draft', 'Pending', 'Rejected', 'Process', 'Issuance', 'Active', 'Closed'];
+    public const STAGES = ['Draft', 'Pending', 'Rejected', 'Process', 'Issuance', 'Closed'];
 
     /**
      * @param array{location?:string,from?:string,to?:string} $filters
@@ -149,7 +149,7 @@ class VendorDashboardStats
 
         $activeCompanies = (int) ($activeBase()->select('COUNT(DISTINCT vendor_company_reg_id) AS c', false)
             ->where("TRIM(COALESCE(vendor_company_reg_id, '')) <> ''", null, false)->get()->getRowArray()['c'] ?? 0);
-        $activePasses = $stages['Active'];
+        $activePasses = (int) $activeBase()->countAllResults();
 
         // ---- By location -----------------------------------------------------
         $locLabels = [];
@@ -216,7 +216,7 @@ class VendorDashboardStats
             'filters'       => ['location' => $locCode, 'from' => $from, 'to' => $to],
             'total'         => $total,
             'stages'        => $stages,
-            'activePasses'  => $stages['Active'],
+            'activePasses'  => $activePasses,
             'expiring'      => $expiring,
             'expired'       => $expired,
             'monthLabels'   => array_values($months),
@@ -241,7 +241,7 @@ class VendorDashboardStats
         if ($card === 'terminated' || in_array($status, ['suspended', 'terminated'], true)) {
             return 'Closed';
         }
-        if ($card === 'active')     return 'Active';
+        if ($card === 'active')     return 'Closed';
         if ($status === 'draft')    return 'Draft';
         if ($status === 'rejected') return 'Rejected';
         if ($status === 'approved') {

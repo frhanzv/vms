@@ -27,6 +27,31 @@ class ClientFormFieldModel extends Model
             'staff_pass_request'    => 'Staff Pass Request',
             'visitor_pass_request'  => 'Visitor Pass Request',
             'vendor_pass_request'   => 'Vendor Pass Request',
+            'vehicle_pass_request'  => 'Vehicle Pass Request',
+        ];
+    }
+
+    /**
+     * Vehicle Pass request form (Public and Cargo | Non-Cargo). Plate, vehicle type, sticker year, owner type / name,
+     * company and operation are core to the pass and are not switchable. 'default_required' keeps what the form
+     * insisted on before this setting existed. The page buttons live in Config > Page Settings (veh_* keys).
+     */
+    public static function vehiclePassFields(): array
+    {
+        return [
+            ['field_key' => 'owner_ic',         'label' => 'Owner IC / Passport', 'requirable' => true],
+            ['field_key' => 'contact_no',       'label' => 'Contact Number', 'requirable' => true, 'default_required' => true],
+            ['field_key' => 'department',       'label' => 'Department (Staff Vehicle Pass)', 'requirable' => true],
+            ['field_key' => 'hod',              'label' => 'HOD (Staff Vehicle Pass)', 'requirable' => true],
+            ['field_key' => 'brand',            'label' => 'Brand', 'requirable' => true, 'default_required' => true],
+            ['field_key' => 'year_made',        'label' => 'Year Made', 'requirable' => true],
+            ['field_key' => 'colour',           'label' => 'Colour', 'requirable' => true, 'default_required' => true],
+            ['field_key' => 'road_tax_expiry',  'label' => 'Road Tax Expiry', 'requirable' => true, 'default_required' => true],
+            ['field_key' => 'insurance_expiry', 'label' => 'Insurance Expiry', 'requirable' => true, 'default_required' => true],
+            ['field_key' => 'location_access',  'label' => 'Location Access', 'requirable' => true, 'default_required' => true],
+            ['field_key' => 'documents',        'label' => 'Upload Documents Section', 'requirable' => true, 'default_required' => true],
+            ['field_key' => 'remark',           'label' => 'Remark', 'requirable' => true],
+            ['field_key' => 'tnc',              'label' => 'Declaration / Terms checkbox'],
         ];
     }
 
@@ -453,6 +478,10 @@ class ClientFormFieldModel extends Model
 
         if ($formType === 'vendor_pass_request') {
             return self::vendorPassFields();
+        }
+
+        if ($formType === 'vehicle_pass_request') {
+            return self::vehiclePassFields();
         }
 
         return [];
