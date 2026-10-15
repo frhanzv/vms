@@ -293,7 +293,7 @@ class VehicleRules
 
     /**
      * Buttons / actions of the vehicle pages, per list page: key => label. Page Settings stores the on/off flag
-     * (client_form_fields, form vendor_pass_request); no row means the button shows. Keys are prefixed "veh_" so
+     * (client_form_fields, form vehicle_buttons); no row means the button shows. Keys are prefixed "veh_" so
      * they never clash with vendor / staff keys. Actions on the pass screen are listed under the list they belong to.
      */
     public static function listButtons(string $stage): array
@@ -340,7 +340,7 @@ class VehicleRules
                 helper('feature');
                 $cid = function_exists('current_client_id') ? (int) current_client_id() : 0;
                 if ($cid > 0) {
-                    foreach ((new \App\Models\ClientFormFieldModel())->getForCompanyForm($cid, 'vendor_pass_request') as $row) {
+                    foreach ((new \App\Models\ClientFormFieldModel())->getForCompanyForm($cid, 'vehicle_buttons') as $row) {
                         if (strpos((string) $row['field_key'], 'veh_') === 0) {
                             $flags[$row['field_key']] = (int) $row['is_enabled'] === 1;
                         }

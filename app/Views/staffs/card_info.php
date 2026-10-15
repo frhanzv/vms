@@ -233,7 +233,7 @@ $selectedLocations = array_map('strval', $selectedLocations);
                         <div class="flex flex-wrap gap-2 items-end">
                             <div><label class="<?= $label ?>">Class</label>
                                 <select id="licClass" class="<?= $input ?>">
-                                    <?php foreach (['A', 'A1', 'B', 'B1', 'B2', 'C', 'D', 'DA', 'E', 'E1', 'E2', 'F', 'G', 'H', 'I', 'M', 'GDL'] as $c): ?><option><?= $c ?></option><?php endforeach; ?>
+                                    <?php foreach (\App\Libraries\LicenseClasses::options() as $c): ?><option value="<?= esc($c) ?>"><?= esc($c) ?></option><?php endforeach; ?>
                                 </select>
                             </div>
                             <div><label class="<?= $label ?>">Expiry</label><input id="licExpiry" type="date" class="<?= $input ?>"/></div>

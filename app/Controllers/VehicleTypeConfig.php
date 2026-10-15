@@ -46,7 +46,27 @@ class VehicleTypeConfig extends BaseController
             return $r;
         }, $b->get()->getResultArray());
 
-        return $this->json(true, 'ok', ['data' => $rows, 'fields' => array_map(static fn($f) => $f[1], VehicleRules::TYPE_FIELDS)]);
+        $db = \Config\Database::connect();
+        $links = [];
+        $opts  = [];
+        if ($db->tableExists('license_classes')) {
+            $ob = $db->table('license_classes')->select('id, name')->where('status', 'active')->orderBy('name');
+            $c === null ? $ob->where('client_id IS NULL', null, false)
+                : $ob->groupStart()->where('client_id', $c)->orWhere('client_id IS NULL', null, false)->groupEnd();
+            $opts = $ob->get()->getResultArray();
+            if ($rows && $db->tableExists('vehicle_type_license_classes')) {
+                $lb = $db->table('vehicle_type_license_classes l')->select('l.vehicle_type_id, c.id, c.name')
+                    ->join('license_classes c', 'c.id = l.license_class_id')->whereIn('l.vehicle_type_id', array_column($rows, 'id'))->orderBy('c.name');
+                foreach ($lb->get()->getResultArray() as $l) {
+                    $links[(int) $l['vehicle_type_id']][] = ['id' => (int) $l['id'], 'name' => $l['name']];
+                }
+            }
+        }
+        foreach ($rows as &$r) {
+            $r['license_classes'] = $links[(int) $r['id']] ?? [];
+        }
+
+        return $this->json(true, 'ok', ['data' => $rows, 'license_options' => $opts, 'fields' => array_map(static fn($f) => $f[1], VehicleRules::TYPE_FIELDS)]);
     }
 
     public function save()
@@ -89,9 +109,32 @@ class VehicleTypeConfig extends BaseController
             $db->table('vehicle_types')->where('id', $id)->update($data);
         } else {
             $db->table('vehicle_types')->insert($data + ['client_id' => $this->scope(), 'created_at' => date('Y-m-d H:i:s')]);
+            $id = (int) $db->insertID();
         }
+        $this->syncLicenseClasses($id, $p['license_class_ids'] ?? []);
 
         return $this->json(true, 'Vehicle type saved.');
+    }
+
+    /** The License Classes allowed to drive this type (only ones visible to this admin are accepted). */
+    private function syncLicenseClasses(int $typeId, $ids): void
+    {
+        $db = \Config\Database::connect();
+        if (! $typeId || ! $db->tableExists('vehicle_type_license_classes') || ! $db->tableExists('license_classes')) {
+            return;
+        }
+        $ids = array_values(array_unique(array_filter(array_map('intval', (array) $ids))));
+        if ($ids) {
+            $c  = $this->scope();
+            $vb = $db->table('license_classes')->select('id')->whereIn('id', $ids);
+            $c === null ? $vb->where('client_id IS NULL', null, false)
+                : $vb->groupStart()->where('client_id', $c)->orWhere('client_id IS NULL', null, false)->groupEnd();
+            $ids = array_map('intval', array_column($vb->get()->getResultArray(), 'id'));
+        }
+        $db->table('vehicle_type_license_classes')->where('vehicle_type_id', $typeId)->delete();
+        foreach ($ids as $lid) {
+            $db->table('vehicle_type_license_classes')->insert(['vehicle_type_id' => $typeId, 'license_class_id' => $lid]);
+        }
     }
 
     public function delete($id)
@@ -102,6 +145,9 @@ class VehicleTypeConfig extends BaseController
         $db = \Config\Database::connect();
         if ($db->table('vehicles')->where('vehicle_type_id', (int) $id)->countAllResults() > 0) {
             return $this->json(false, 'This type is used by vehicle passes. Set it to Inactive instead of deleting.', [], 400);
+        }
+        if ($db->tableExists('vehicle_type_license_classes')) {
+            $db->table('vehicle_type_license_classes')->where('vehicle_type_id', (int) $id)->delete();
         }
         $db->table('vehicle_types')->where('id', (int) $id)->delete();
 

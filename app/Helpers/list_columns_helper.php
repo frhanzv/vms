@@ -315,7 +315,7 @@ if (! function_exists('vehicle_registry_pages')) {
             foreach (\App\Libraries\VehicleRules::listColumns($stage) as $key => $def) {
                 $cols[$key] = ['label' => $def['label']] + (! empty($def['locked']) ? ['locked' => true] : []);
             }
-            $pages['vehicle_' . $stage] = ['title' => $title, 'group' => 'Vehicle Pass', 'columns' => $cols, 'buttons' => \App\Libraries\VehicleRules::listButtons($stage)];
+            $pages['vehicle_' . $stage] = ['title' => $title, 'group' => 'Vehicle Pass', 'form' => 'vehicle_buttons', 'columns' => $cols, 'buttons' => \App\Libraries\VehicleRules::listButtons($stage)];
         }
 
         return $pages;

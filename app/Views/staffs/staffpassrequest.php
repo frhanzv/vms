@@ -469,8 +469,8 @@
                                 <template x-if="! row.saved">
                                     <select :name="'licenses[' + i + '][class]'" x-model="row.class" class="<?= $inputClass ?>">
                                         <option value="">-- Select --</option>
-                                        <?php foreach (['B', 'B2', 'C', 'D', 'DA', 'E', 'E1', 'E2'] as $lc): ?>
-                                        <option value="<?= $lc ?>"><?= $lc ?></option>
+                                        <?php foreach (\App\Libraries\LicenseClasses::options() as $lc): ?>
+                                        <option value="<?= esc($lc) ?>"><?= esc($lc) ?></option>
                                         <?php endforeach; ?>
                                     </select>
                                 </template>

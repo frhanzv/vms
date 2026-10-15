@@ -2306,6 +2306,11 @@
                                     <div><label class="block text-xs font-semibold text-gray-600 dark:text-slate-300 mb-1">Operation (Cargo | Non-Cargo)</label>
                                         <select id="vtOperation" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm">
                                             <option value="">Any operation</option><option>CONTAINER</option><option>CARGO AND NON-CARGO</option><option>NON-CARGO</option><option>CONTAINER, CARGO AND NON-CARGO</option></select></div>
+                                    <div class="relative"><label class="block text-xs font-semibold text-gray-600 dark:text-slate-300 mb-1">License Class</label>
+                                        <details id="vtLcBox" class="w-full">
+                                            <summary id="vtLcSummary" class="list-none cursor-pointer w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm min-h-[2.5rem]">Select license class</summary>
+                                            <div id="vtLcOptions" class="absolute z-20 mt-1 w-full max-h-48 overflow-y-auto rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 p-2 text-sm space-y-1 shadow-lg"></div>
+                                        </details></div>
                                     <div><label class="block text-xs font-semibold text-gray-600 dark:text-slate-300 mb-1">Status</label>
                                         <select id="vtStatus" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm">
                                             <option value="active">Active</option><option value="inactive">Inactive</option></select></div>
@@ -2336,6 +2341,52 @@
                             </form>
                             <div id="vtList"><p class="text-sm text-gray-500">Loading...</p></div>
                         </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+                <!-- License Class -->
+                <?php helper(['access']); if (has_access('config', 'license_class')): ?>
+                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                    <button onclick="toggleSection('licenseclass')"
+                        class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                        <div class="flex items-center gap-4">
+                            <div class="p-2 bg-primary/10 rounded-lg"><span class="material-symbols-outlined text-primary text-xl">badge</span></div>
+                            <div class="text-left">
+                                <h3 class="text-base font-bold text-gray-800 dark:text-white">License Class</h3>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">List of driving license classes and the minimum age for each</p>
+                            </div>
+                        </div>
+                        <span id="licenseclass-icon" class="material-symbols-outlined text-gray-400 dark:text-slate-400 transition-transform">expand_more</span>
+                    </button>
+                    <div id="licenseclass-content" class="hidden border-t border-gray-200 dark:border-slate-700">
+                        <div class="p-6 bg-gray-50 dark:bg-slate-800/50 space-y-4">
+                            <form onsubmit="event.preventDefault(); lcPage = 1; loadLicenseClasses();" class="flex gap-2">
+                                <input id="lcSearch" type="text" placeholder="LICENSE CLASS" class="flex-1 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm uppercase">
+                                <button type="submit" class="px-4 py-2 rounded-lg bg-primary text-white hover:bg-blue-600 text-sm"><span class="material-symbols-outlined text-base align-middle">search</span></button>
+                            </form>
+                            <button type="button" onclick="openLicenseClassModal()" class="px-4 py-2 rounded-lg bg-primary text-white hover:bg-blue-600 text-sm font-semibold">Create</button>
+                            <div id="lcList"><p class="text-sm text-gray-500">Loading...</p></div>
+                            <div id="lcPager" class="flex gap-1"></div>
+                        </div>
+                    </div>
+                </div>
+                <div id="lcModal" class="hidden fixed inset-0 z-50 flex items-start justify-center bg-black/50 p-4 pt-24">
+                    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-lg">
+                        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-slate-700">
+                            <h3 id="lcModalTitle" class="text-lg font-bold text-gray-800 dark:text-white">Create License Class</h3>
+                            <button type="button" onclick="closeLicenseClassModal()" class="text-gray-500 hover:text-gray-700 text-xl leading-none">&times;</button>
+                        </div>
+                        <form onsubmit="saveLicenseClass(event)" class="p-6 space-y-4">
+                            <input type="hidden" id="lcId" value="">
+                            <div><label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1"><span class="text-red-600">*</span>License Class Name:</label>
+                                <input id="lcName" maxlength="50" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm"></div>
+                            <div><label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1"><span class="text-red-600">*</span>Minimum Age:</label>
+                                <input id="lcAge" type="number" min="0" max="120" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm"></div>
+                            <div class="flex justify-between pt-2">
+                                <button type="button" onclick="closeLicenseClassModal()" class="px-4 py-2 rounded-lg bg-amber-400 hover:bg-amber-500 text-white text-sm font-semibold">Back</button>
+                                <button type="submit" class="px-4 py-2 rounded-lg bg-primary text-white hover:bg-blue-600 text-sm font-semibold">Save</button>
+                            </div>
+                        </form>
                     </div>
                 </div>
                 <?php endif; ?>
@@ -5556,6 +5607,9 @@
                                     <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                                         <input type="checkbox" name="access[config][vehicle_type]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Vehicle Types
                                     </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[config][license_class]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> License Class
+                                    </label>
                                 </div>
                             </div>
                         </div>
@@ -5965,6 +6019,9 @@
                 }
                 if (section === 'vehicletype') {
                     loadVehicleTypes();
+                }
+                if (section === 'licenseclass') {
+                    loadLicenseClasses();
                 }
                 // Load email templates when Email Template section is opened
                 if (section === 'email-template') {
@@ -8129,12 +8186,22 @@
         function resetImportTemplate() { if (confirm('Go back to the default template?')) itPost(`<?= base_url('config/import-template/reset') ?>`, new FormData()); }
 
         // ---------------- Vehicle Types ----------------
-        let vtRows = [];
+        let vtRows = [], vtLcOptions = [];
+        function vtLcSelected() { return Array.from(document.querySelectorAll('#vtLcOptions input:checked')).map(c => +c.value); }
+        function vtLcRender(selected) {
+            const box = document.getElementById('vtLcOptions');
+            box.innerHTML = vtLcOptions.length ? vtLcOptions.map(o => `<label class="flex items-center gap-2 text-gray-700 dark:text-slate-200"><input type="checkbox" value="${o.id}" ${selected.includes(+o.id) ? 'checked' : ''} onchange="vtLcSummary()"> ${escapeHtml(o.name)}</label>`).join('') : '<p class="text-xs text-gray-500">No license class yet. Add them in License Class.</p>';
+            vtLcSummary();
+        }
+        function vtLcSummary() {
+            const names = Array.from(document.querySelectorAll('#vtLcOptions input:checked')).map(c => c.parentElement.textContent.trim());
+            document.getElementById('vtLcSummary').textContent = names.length ? names.join(', ') : 'Select license class';
+        }
         const vtFlags = () => Array.from(document.querySelectorAll('#vtForm [data-vt]'));
         function loadVehicleTypes() {
             fetch(`<?= base_url('config/vehicle-types') ?>`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
                 .then(r => r.json())
-                .then(res => { vtRows = res.data || []; renderVehicleTypes(); })
+                .then(res => { vtRows = res.data || []; vtLcOptions = res.license_options || []; vtLcRender(vtLcSelected()); renderVehicleTypes(); })
                 .catch(() => { document.getElementById('vtList').innerHTML = '<p class="text-sm text-red-500">Could not load vehicle types.</p>'; });
         }
         function renderVehicleTypes() {
@@ -8142,15 +8209,16 @@
             if (!vtRows.length) { box.innerHTML = '<p class="text-sm text-gray-500">No vehicle types yet. Add one above.</p>'; return; }
             const extras = { seater_req: 'Seater', working_height_req: 'Height', working_load_req: 'Load', truck_head_req: 'Truck head', trailer_req: 'Trailer', truck_weight_req: 'Weight', chassis_req: 'Chassis', trailer_weight_req: 'Trailer wt', trailer_type_req: 'Trailer type', req_pass: 'Driver pass' };
             box.innerHTML = `<div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800"><table class="w-full text-left text-sm">
-                <thead><tr class="bg-gray-50 dark:bg-slate-700 text-xs uppercase text-gray-600 dark:text-slate-200"><th class="p-3">Name</th><th class="p-3">Category</th><th class="p-3">Used for</th><th class="p-3">Extra details</th><th class="p-3">Payment</th><th class="p-3">Status</th><th class="p-3"></th></tr></thead><tbody>` +
+                <thead><tr class="bg-gray-50 dark:bg-slate-700 text-xs uppercase text-gray-600 dark:text-slate-200"><th class="p-3">Name</th><th class="p-3">Category</th><th class="p-3">Used for</th><th class="p-3">Extra details</th><th class="p-3">Payment</th><th class="p-3">License Class</th><th class="p-3">Status</th><th class="p-3"></th></tr></thead><tbody>` +
                 vtRows.map(r => {
                     const ex = Object.keys(extras).filter(k => +r[k] === 1).map(k => extras[k]).join(', ') || '-';
                     const acts = r.editable ? `<button type="button" onclick="editVehicleType(${r.id})" class="text-primary text-xs font-semibold mr-3">Edit</button><button type="button" onclick="deleteVehicleType(${r.id})" class="text-red-600 text-xs font-semibold">Delete</button>` : '<span class="text-xs text-gray-400">Shared</span>';
-                    return `<tr class="border-t border-gray-100 dark:border-slate-700 text-gray-700 dark:text-slate-200"><td class="p-3 font-medium">${escapeHtml(r.name)}</td><td class="p-3">${escapeHtml(r.category)}</td><td class="p-3">${({public:'Public',cnc:'Cargo | Non-Cargo'})[r.vehicle_group] || 'Both'}</td><td class="p-3">${escapeHtml(ex)}</td><td class="p-3">${+r.payment_required ? 'Required' : '-'}</td><td class="p-3">${escapeHtml(r.status)}</td><td class="p-3 whitespace-nowrap">${acts}</td></tr>`;
+                    return `<tr class="border-t border-gray-100 dark:border-slate-700 text-gray-700 dark:text-slate-200"><td class="p-3 font-medium">${escapeHtml(r.name)}</td><td class="p-3">${escapeHtml(r.category)}</td><td class="p-3">${({public:'Public',cnc:'Cargo | Non-Cargo'})[r.vehicle_group] || 'Both'}</td><td class="p-3">${escapeHtml(ex)}</td><td class="p-3">${+r.payment_required ? 'Required' : '-'}</td><td class="p-3">${escapeHtml((r.license_classes || []).map(l => l.name).join(', ') || '-')}</td><td class="p-3">${escapeHtml(r.status)}</td><td class="p-3 whitespace-nowrap">${acts}</td></tr>`;
                 }).join('') + '</tbody></table></div>';
         }
         function resetVehicleTypeForm() {
             document.getElementById('vtForm').reset(); document.getElementById('vtId').value = '';
+            vtLcRender([]);
             document.getElementById('vtFormTitle').textContent = 'Add Vehicle Type';
         }
         function editVehicleType(id) {
@@ -8159,6 +8227,7 @@
             document.getElementById('vtCategory').value = r.category; document.getElementById('vtStatus').value = r.status;
             document.getElementById('vtGroup').value = r.vehicle_group || 'both'; document.getElementById('vtOperation').value = r.operation || '';
             vtFlags().forEach(c => c.checked = +r[c.dataset.vt] === 1);
+            vtLcRender((r.license_classes || []).map(l => +l.id));
             document.getElementById('vtFormTitle').textContent = 'Edit Vehicle Type';
             document.getElementById('vtName').focus();
         }
@@ -8169,6 +8238,7 @@
             fd.append('category', document.getElementById('vtCategory').value); fd.append('status', document.getElementById('vtStatus').value);
             fd.append('vehicle_group', document.getElementById('vtGroup').value); fd.append('operation', document.getElementById('vtOperation').value);
             vtFlags().forEach(c => { if (c.checked) fd.append(c.dataset.vt, '1'); });
+            vtLcSelected().forEach(id => fd.append('license_class_ids[]', id));
             fetch(`<?= base_url('config/vehicle-types/save') ?>`, { method: 'POST', headers: ctHeaders(), body: fd })
                 .then(r => r.json())
                 .then(res => { showNotification(res.message, res.success ? 'success' : 'error'); if (res.success) { resetVehicleTypeForm(); loadVehicleTypes(); } })
@@ -8179,6 +8249,53 @@
             fetch(`<?= base_url('config/vehicle-types') ?>/${id}/delete`, { method: 'POST', headers: ctHeaders(), body: new FormData() })
                 .then(r => r.json())
                 .then(res => { showNotification(res.message, res.success ? 'success' : 'error'); if (res.success) loadVehicleTypes(); })
+                .catch(() => showNotification('Something went wrong. Please try again.', 'error'));
+        }
+
+        // ---------------- License Class ----------------
+        let lcRows = [], lcPage = 1;
+        function loadLicenseClasses() {
+            const q = document.getElementById('lcSearch').value.trim();
+            fetch(`<?= base_url('config/license-classes') ?>?page=${lcPage}&q=${encodeURIComponent(q)}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(r => r.json())
+                .then(res => { lcRows = res.data || []; lcPage = res.page || 1; renderLicenseClasses(res); })
+                .catch(() => { document.getElementById('lcList').innerHTML = '<p class="text-sm text-red-500">Could not load license classes.</p>'; });
+        }
+        function renderLicenseClasses(res) {
+            const box = document.getElementById('lcList');
+            if (!lcRows.length) { box.innerHTML = '<p class="text-sm text-gray-500">No license class yet. Click Create to add one.</p>'; document.getElementById('lcPager').innerHTML = ''; return; }
+            box.innerHTML = `<div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800"><table class="w-full text-left text-sm">
+                <thead><tr class="text-gray-800 dark:text-slate-100 font-semibold"><th class="p-3">License Class</th><th class="p-3">Minimum Age</th><th class="p-3">Status</th><th class="p-3"></th></tr></thead><tbody>` +
+                lcRows.map(r => `<tr class="border-t border-gray-100 dark:border-slate-700 text-gray-700 dark:text-slate-200"><td class="p-3">${escapeHtml(r.name)}</td><td class="p-3">${escapeHtml(String(r.min_age))}</td><td class="p-3">${r.status === 'active' ? 'Active' : 'Inactive'}</td><td class="p-3 text-right">` +
+                    (r.editable ? `<button type="button" onclick="openLicenseClassModal(${r.id})" class="text-primary text-xs font-semibold mr-3">Edit</button><button type="button" onclick="toggleLicenseClass(${r.id})" class="text-xs font-semibold ${r.status === 'active' ? 'text-red-600' : 'text-green-600'}">${r.status === 'active' ? 'Deactivate' : 'Activate'}</button>` : '<span class="text-xs text-gray-400">Shared</span>') +
+                    '</td></tr>').join('') + '</tbody></table></div>';
+            let pg = '';
+            for (let i = 1; i <= (res.pages || 1); i++) pg += `<button type="button" onclick="lcPage=${i};loadLicenseClasses()" class="px-3 py-1.5 border text-sm ${i === lcPage ? 'bg-primary text-white border-primary' : 'border-gray-300 text-gray-700 dark:text-slate-200'}">${i}</button>`;
+            document.getElementById('lcPager').innerHTML = (res.pages || 1) > 1 ? pg : '';
+        }
+        function openLicenseClassModal(id) {
+            const r = id ? lcRows.find(x => +x.id === +id) : null;
+            document.getElementById('lcId').value = r ? r.id : '';
+            document.getElementById('lcName').value = r ? r.name : '';
+            document.getElementById('lcAge').value = r ? r.min_age : '';
+            document.getElementById('lcModalTitle').textContent = r ? 'Edit License Class' : 'Create License Class';
+            document.getElementById('lcModal').classList.remove('hidden');
+            document.getElementById('lcName').focus();
+        }
+        function closeLicenseClassModal() { document.getElementById('lcModal').classList.add('hidden'); }
+        function saveLicenseClass(e) {
+            e.preventDefault();
+            const fd = new FormData();
+            fd.append('id', document.getElementById('lcId').value); fd.append('name', document.getElementById('lcName').value); fd.append('min_age', document.getElementById('lcAge').value);
+            fetch(`<?= base_url('config/license-classes/save') ?>`, { method: 'POST', headers: ctHeaders(), body: fd })
+                .then(r => r.json())
+                .then(res => { showNotification(res.message, res.success ? 'success' : 'error'); if (res.success) { closeLicenseClassModal(); loadLicenseClasses(); } })
+                .catch(() => showNotification('Something went wrong. Please try again.', 'error'));
+        }
+        function toggleLicenseClass(id) {
+            fetch(`<?= base_url('config/license-classes') ?>/${id}/toggle`, { method: 'POST', headers: ctHeaders(), body: new FormData() })
+                .then(r => r.json())
+                .then(res => { showNotification(res.message, res.success ? 'success' : 'error'); if (res.success) loadLicenseClasses(); })
                 .catch(() => showNotification('Something went wrong. Please try again.', 'error'));
         }
 

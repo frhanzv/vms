@@ -479,6 +479,18 @@ class ClientFormFieldModel extends Model
             return self::vehiclePassFields();
         }
 
+        // Vehicle page buttons / actions (Config > Page Settings). Not a form: it only holds the on/off flags.
+        if ($formType === 'vehicle_buttons') {
+            $defs = [];
+            foreach (array_keys(\App\Libraries\VehicleRules::LIST_PAGES) as $stage) {
+                foreach (\App\Libraries\VehicleRules::listButtons($stage) as $key => $label) {
+                    $defs[$key] = ['field_key' => $key, 'label' => $label];
+                }
+            }
+
+            return array_values($defs);
+        }
+
         return [];
     }
 }

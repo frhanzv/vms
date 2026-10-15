@@ -425,7 +425,17 @@
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-4">
                             <div class="space-y-2">
                                 <label class="<?= $labelClass ?>">License Class</label>
-                                <input :name="'license_class[' + i + ']'" x-model="row.class" class="<?= $inputClass ?>" type="text" placeholder="e.g. D" :readonly="row.saved" :class="row.saved ? 'bg-gray-100 dark:bg-background-dark' : ''"/>
+                                <template x-if="row.saved">
+                                    <input :name="'license_class[' + i + ']'" :value="row.class" class="<?= $inputClass ?> bg-gray-100 dark:bg-background-dark" type="text" readonly/>
+                                </template>
+                                <template x-if="! row.saved">
+                                    <select :name="'license_class[' + i + ']'" x-model="row.class" class="<?= $inputClass ?>">
+                                        <option value="">-- Select --</option>
+                                        <?php foreach (\App\Libraries\LicenseClasses::options() as $lc): ?>
+                                        <option value="<?= esc($lc) ?>"><?= esc($lc) ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </template>
                             </div>
                             <div class="space-y-2">
                                 <label class="<?= $labelClass ?>">License Expiry</label>

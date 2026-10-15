@@ -309,6 +309,12 @@ $routes->group('config/vehicle-types', ['filter' => 'role:superadmin,clientsuper
     $routes->post('save', 'VehicleTypeConfig::save');
     $routes->post('(:num)/delete', 'VehicleTypeConfig::delete/$1');
 });
+// License Class (Config)
+$routes->group('config/license-classes', ['filter' => 'role:superadmin,clientsuperadmin'], function ($routes) {
+    $routes->get('/', 'LicenseClassConfig::index');
+    $routes->post('save', 'LicenseClassConfig::save');
+    $routes->post('(:num)/toggle', 'LicenseClassConfig::toggle/$1');
+});
 // Vehicle Pass (annual) - Public and Cargo | Non-Cargo. Page access is checked inside the controller with the Role > Vehicle keys.
 // vendor_admin is allowed in so a vendor can use its own "My Vehicle Pass"; the controller limits it to its own company.
 $routes->group('', ['filter' => [$plusAdminOfficerVendor, 'client_feature:vehicle_pass']], function ($routes) {

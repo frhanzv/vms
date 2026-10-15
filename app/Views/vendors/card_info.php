@@ -186,7 +186,10 @@
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg w-full max-w-sm p-6">
             <h2 class="text-base font-bold mb-3">Add Driving License</h2>
             <label class="block text-xs font-semibold mb-1">License Class</label>
-            <input id="licClass" placeholder="e.g. D" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-900 rounded px-3 py-2 text-sm mb-3"/>
+            <select id="licClass" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-900 rounded px-3 py-2 text-sm mb-3">
+                <option value="">-- Select --</option>
+                <?php foreach (\App\Libraries\LicenseClasses::options() as $lc): ?><option value="<?= esc($lc) ?>"><?= esc($lc) ?></option><?php endforeach; ?>
+            </select>
             <label class="block text-xs font-semibold mb-1">License Expiry</label>
             <input id="licExpiry" type="date" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-900 rounded px-3 py-2 text-sm mb-4"/>
             <div class="flex justify-end gap-2">
