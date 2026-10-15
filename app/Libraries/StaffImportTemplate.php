@@ -183,7 +183,7 @@ class StaffImportTemplate
         $rows = [
             ['How to use', 'Fill one staff per row on the Staff sheet, starting at row 2. Do not change or move the header row.'],
             ['', 'Columns marked * are required. The import checks every row first and saves nothing until all rows are valid; any problem is listed by row number.'],
-            ['', 'Imported staff are treated as HR-approved and go straight to the Closed List with an active card. Use Reprint Card on Card Info if a physical card is needed.'],
+            ['', 'Imported staff are saved as Pending requests. They wait on the Request List for approval, then go through Process, Printing and Issuance like any other request.'],
             ['', 'Hover over a header cell to see a hint for that column. Columns with a dropdown show the allowed values.'],
             ['', ''],
         ];

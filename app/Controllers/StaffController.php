@@ -321,18 +321,14 @@ class StaffController extends BaseController
                 'access_branch'                => in_array($upper($get('access_branch')), ['KSB', 'KPK', 'BOTH'], true) ? $upper($get('access_branch')) : null,
                 'date_of_application'          => $this->parseDate($get('date_of_application')) ?? $get('date_of_application') ?? $today,
                 'location_access'              => $importLoc,
-                // KPK upload-staff-record: HR's sheet is the source of truth, so an
-                // imported staff pass skips approval and goes straight to CLOSED
-                // (status 300005) — here: Approved with an Active card, so it shows
-                // on the Staff List and the Closed List. A physical card can be
-                // printed later with Reprint Card on its Card Info page.
+                // An imported staff pass is a request like one made with the form:
+                // it waits as Pending on the Request List until it is approved,
+                // then goes through Process / Printing / Issuance to the Closed List.
                 // The sheet's Status column is the employee flag (Active /
                 // Inactive), not the pass workflow.
-                'status'                       => 'Approved',
+                'status'                       => 'Pending',
                 'is_active'                    => strtolower((string) $get('status')) === 'inactive' ? 0 : 1,
-                'card_status'                  => 'Active',
-                'issued_at'                    => $now,
-                'issued_by'                    => $actor !== '' ? $actor : null,
+                'card_status'                  => 'Inactive',
                 'company_id'                   => current_company_id() ?: null,
                 'suspension_period'            => $get('suspension_period'),
                 'next_action'                  => null,
@@ -365,11 +361,22 @@ class StaffController extends BaseController
                 continue;
             }
 
-            // Imported passes are already Approved (HR sheet), so every client owning one of the gates is Approved too.
+            // Same as a request from the form: every client owning one of the gates gets a Pending approval.
             if ($db->tableExists('staff_client_approvals')) {
                 \App\Libraries\StaffClientApprovals::sync($db, $staffId, (string) $record['location_access']);
-                if (\App\Libraries\StaffClientApprovals::hasRows($db, $staffId)) {
-                    \App\Libraries\StaffClientApprovals::decide($db, $staffId, null, 'Approved', 'import');
+            }
+            if ($db->tableExists('staff_status_logs')) {
+                try {
+                    $db->table('staff_status_logs')->insert(array_intersect_key([
+                        'staff_id'   => $staffId,
+                        'action'     => 'import',
+                        'to_status'  => 'Pending',
+                        'remark'     => 'Imported from Excel',
+                        'acted_by'   => $actor !== '' ? $actor : null,
+                        'created_at' => $now,
+                    ], array_flip($db->getFieldNames('staff_status_logs'))));
+                } catch (\Throwable $e) {
+                    log_message('error', 'Staff import log: ' . $e->getMessage());
                 }
             }
 
@@ -395,7 +402,7 @@ class StaffController extends BaseController
                 : $done(false, 'No staff record could be saved.', $failed);
         }
 
-        return $done(true, "{$inserted} staff record(s) imported successfully — now on the Staff List and the Closed List.", [], ['imported' => $inserted]);
+        return $done(true, "{$inserted} staff record(s) imported successfully — Pending, waiting for approval on the Request List.", [], ['imported' => $inserted]);
     }
 
     /**
