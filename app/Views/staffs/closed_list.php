@@ -220,13 +220,13 @@ $label    = 'block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1';
                 <ul class="list-disc pl-5 space-y-2 text-sm text-gray-700 dark:text-gray-300">
                     <li>Do not use dashes (-) in IC Number or Phone Number. Use only numbers.</li>
                     <li>For Date of Birth and License Expiry, use the slash ( / ) format only (e.g., 24/06/2025). Do not use dots ( . )</li>
-                    <li>Location Access is mandatory and must match a location you can use.</li>
+                    <li>Location Access is mandatory. Type the location names exactly as in Config &gt; Location Access Management, including IN / OUT (e.g. CHANGING ROOM 1 IN); separate several with commas.</li>
                     <li>Each IC / Passport may appear only once, and not for a staff pass that already exists.</li>
                     <li>Status column: Active or Inactive (blank = Active).</li>
                 </ul>
             </div>
             <div class="flex justify-end gap-2 p-4 border-t dark:border-slate-700">
-                <a href="<?= base_url('files/StaffTemplateNew.xlsx') ?>" download="StaffTemplateNew.xlsx" onclick="document.getElementById('reminderModal').classList.add('hidden')"
+                <a href="<?= base_url('staffs/import-template') ?>" download="StaffTemplateNew.xlsx" onclick="document.getElementById('reminderModal').classList.add('hidden')"
                     class="bg-primary hover:bg-indigo-700 text-white px-6 py-2 rounded text-sm font-medium flex items-center transition-colors">
                     <span class="material-icons text-sm mr-1">file_download</span>
                     Download

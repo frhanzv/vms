@@ -93,7 +93,7 @@ class StaffController extends BaseController
         $columnAliases = [
             'app_no'               => ['app no', 'app_no', 'application no', 'application number'],
             'full_name'            => ['full name', 'full_name', 'name'],
-            'ic_passport'          => ['ic/passport', 'ic / passport', 'ic no. / passport', 'ic_passport', 'ic no.', 'ic no', 'ic', 'passport no.', 'passport no', 'passport', 'ic/passport no'],
+            'ic_passport'          => ['ic / passport no.', 'ic / passport no', 'ic/passport', 'ic / passport', 'ic no. / passport', 'ic_passport', 'ic no.', 'ic no', 'ic', 'passport no.', 'passport no', 'passport', 'ic/passport no'],
             'staff_no'             => ['staff no.', 'staff no', 'staff_no', 'staff number', 'staff id'],
             'date_of_birth'        => ['date of birth', 'date_of_birth', 'dob'],
             'sex'                  => ['sex', 'gender'],
@@ -107,6 +107,7 @@ class StaffController extends BaseController
             'date_of_application'  => ['date of application', 'date_of_application'],
             'location_access'      => ['location access', 'location_access', 'access location'],
             'status'               => ['status'],
+            'access_branch'        => ['approving branch', 'access branch', 'access_branch', 'branch'],
             'suspension_period'    => ['suspension period', 'suspension_period'],
             'next_action'          => ['next action', 'next_action'],
             'name_on_staff_pass'   => ['name on staff pass', 'name_on_staff_pass', 'pass name'],
@@ -174,9 +175,41 @@ class StaffController extends BaseController
         // Location Access is mandatory and must be gates this client may use (own + site group + unassigned).
         helper('client_visibility');
         $allowedGates = array_column(visibility_filter_locations((new \App\Models\LocationModel())->getAllActive()), 'location_access');
-        $resolveGates = static function (?string $cell) use ($allowedGates): array {
-            $cells = array_values(array_filter(array_map('trim', explode(',', (string) $cell)), static fn($v) => $v !== ''));
-            return array_values(array_unique(array_intersect($cells, $allowedGates)));
+        // Typed names are matched ignoring upper/lower case and extra spaces; several
+        // locations may be separated by commas, semicolons or line breaks in the cell.
+        $norm    = static fn(string $v): string => strtoupper(preg_replace('/\s+/', ' ', trim($v)));
+        $byNorm  = [];
+        foreach ($allowedGates as $gate) {
+            $byNorm[$norm((string) $gate)] = (string) $gate;
+        }
+        $splitCell = static fn(?string $cell): array => array_values(array_filter(array_map('trim', preg_split('/[,;\r\n]+/', (string) $cell)), static fn($v) => $v !== ''));
+        $resolveGates = static function (?string $cell) use ($splitCell, $norm, $byNorm): array {
+            $out = [];
+            foreach ($splitCell($cell) as $typed) {
+                if (isset($byNorm[$norm($typed)])) {
+                    $out[] = $byNorm[$norm($typed)];
+                }
+            }
+            return array_values(array_unique($out));
+        };
+        /** Why a Location Access cell is not accepted, or null when every name matches. */
+        $gateProblem = static function (?string $cell) use ($splitCell, $norm, $byNorm): ?string {
+            $typed = $splitCell($cell);
+            if ($typed === []) {
+                return 'Location Access is empty (it is mandatory).';
+            }
+            $bad = [];
+            foreach ($typed as $t) {
+                if (isset($byNorm[$norm($t)])) {
+                    continue;
+                }
+                // "CHANGING ROOM 1" when only "CHANGING ROOM 1 IN" / "... OUT" exist.
+                $hint = array_values(array_filter($byNorm, static fn($real, $key) => in_array($key, [$norm($t) . ' IN', $norm($t) . ' OUT'], true), ARRAY_FILTER_USE_BOTH));
+                $bad[] = "'{$t}'" . ($hint !== [] ? " (did you mean '" . implode("' or '", $hint) . "'?)" : '');
+            }
+
+            return $bad === [] ? null
+                : 'Location Access ' . implode(', ', $bad) . ' ' . (count($bad) > 1 ? 'are not locations' : 'is not a location') . ' you can use. Use the names exactly as in Config > Location Access Management, separated by commas.';
         };
 
         // --- Validation pass: check all rows before inserting anything ---
@@ -216,8 +249,8 @@ class StaffController extends BaseController
             if (!empty($missing)) {
                 $validationErrors[] = "Row {$rowNum}: missing " . implode(', ', $missing) . '.';
             }
-            if ($resolveGates($get('location_access')) === []) {
-                $validationErrors[] = "Row {$rowNum}: Location Access is mandatory and must match a location you can use.";
+            if (($gateMsg = $gateProblem($get('location_access'))) !== null) {
+                $validationErrors[] = "Row {$rowNum}: " . $gateMsg;
             }
 
             // Duplicate check — IC/Passport against DB and within the file
@@ -247,6 +280,8 @@ class StaffController extends BaseController
         $counter  = 1;
         $failed   = [];
         $actor    = (string) (session()->get('full_name') ?: session()->get('username'));
+        // Dropdown values are stored the way the request form stores them (MALE, LOCAL, ...).
+        $upper    = static fn(?string $v): ?string => $v === null ? null : strtoupper($v);
         $fields   = $db->getFieldNames('staff');
 
         foreach (array_slice($rows, 1) as $i => $row) {
@@ -275,14 +310,15 @@ class StaffController extends BaseController
                 'license_class'                => $get('license_class'),
                 'license_expiry'               => $this->cellDate($raw, $fieldIndex['license_expiry'] ?? null),
                 'date_of_birth'                => $this->cellDate($raw, $fieldIndex['date_of_birth'] ?? null),
-                'sex'                          => $get('sex'),
+                'sex'                          => $upper($get('sex')),
                 'contact_number'               => $get('contact_number'),
                 'email'                        => $get('email'),
                 'department'                   => $get('department'),
                 'designation'                  => $get('designation'),
-                'resident'                     => $get('resident'),
-                'sub_type'                     => $get('sub_type'),
-                'type_of_application'          => $get('type_of_application'),
+                'resident'                     => $upper($get('resident')),
+                'sub_type'                     => $upper($get('sub_type')),
+                'type_of_application'          => $upper($get('type_of_application')) ?? 'NEW',
+                'access_branch'                => in_array($upper($get('access_branch')), ['KSB', 'KPK', 'BOTH'], true) ? $upper($get('access_branch')) : null,
                 'date_of_application'          => $this->parseDate($get('date_of_application')) ?? $get('date_of_application') ?? $today,
                 'location_access'              => $importLoc,
                 // KPK upload-staff-record: HR's sheet is the source of truth, so an
@@ -312,7 +348,7 @@ class StaffController extends BaseController
                 'city'                         => $get('city'),
                 'state'                        => $get('state'),
                 'postal_code'                  => $get('postal_code'),
-                'country'                      => $get('country'),
+                'country'                      => $upper($get('country')) ?? 'MALAYSIA',
                 'created_at'                   => $now,
             ];
 
@@ -360,6 +396,28 @@ class StaffController extends BaseController
         }
 
         return $done(true, "{$inserted} staff record(s) imported successfully — now on the Staff List and the Closed List.", [], ['imported' => $inserted]);
+    }
+
+    /**
+     * Staff List / Closed List > Template: the latest import template, built on
+     * download with this client's Location Access names and departments.
+     */
+    public function template()
+    {
+        helper(['client_visibility', 'feature']);
+        $locations = array_column(visibility_filter_locations((new \App\Models\LocationModel())->getAllActive()), 'location_access');
+
+        $departments = [];
+        try {
+            $rows        = \Config\Database::connect()->table('departments')->select('name')->where('status', 'Active')->orderBy('name')->get()->getResultArray();
+            $departments = array_column($rows, 'name');
+        } catch (\Throwable $e) {
+            log_message('error', 'Staff template departments: ' . $e->getMessage());
+        }
+
+        $path = \App\Libraries\StaffImportTemplate::toFile(\App\Libraries\StaffImportTemplate::build($locations, $departments));
+
+        return $this->response->download($path, null)->setFileName('StaffTemplateNew.xlsx');
     }
 
     /**

@@ -65,14 +65,7 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #4c739a;
         }
-        /* Hide native calendar picker icon */
-        input[type="datetime-local"]::-webkit-calendar-picker-indicator,
-        input[type="date"]::-webkit-calendar-picker-indicator {
-            display: none;
-            -webkit-appearance: none;
-            opacity: 0;
-            pointer-events: none;
-        }
+        input[type="date"]::-webkit-calendar-picker-indicator { opacity: 1; }
     </style>
 </head>
 <body class="bg-background-light dark:bg-background-dark font-sans text-gray-800 dark:text-gray-200 antialiased h-screen flex overflow-hidden transition-colors duration-200">
@@ -92,107 +85,127 @@
                     <?php endif; ?>
                 </div>
 
-                <form action="<?= base_url($formAction ?? 'staffs/staffpassrequest/store') ?>" method="post" enctype="multipart/form-data" class="space-y-8">
-                    <?= csrf_field() ?>
-                    <?php if (session()->getFlashdata('error')): ?>
-                    <div class="flex items-start gap-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-800 dark:text-red-300 text-sm rounded-lg px-4 py-3">
-                        <span class="material-symbols-outlined text-[20px]">error</span>
-                        <span><?= esc(session()->getFlashdata('error')) ?></span>
-                    </div>
-                    <?php endif; ?>
-                    <?php if (($staff['status'] ?? '') === 'Rejected' && ! empty($staff['reject_reason'])): ?>
-                    <div class="bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-lg px-4 py-3">
-                        This request was rejected: <strong><?= esc($staff['reject_reason']) ?></strong>. Fix it and submit again to send it back for approval.
-                    </div>
-                    <?php endif; ?>
-                    <?php
-                        $isRenew = ! empty($isRenew);
-                        $lock    = $isRenew ? 'readonly tabindex="-1" style="background:#f1f5f9"' : '';
-                        $s    = $staff ?? [];
-                        $v    = fn($f, $db = null) => esc(old($f, $s[$db ?? $f] ?? ''));
-                        $sel  = fn($f, $val) => ($s[$f] ?? '') === $val ? 'selected' : '';
-                        // Config > Dynamic Form Fields > Staff Pass Request > "Mandatory": red * and the browser's required check.
-                        $required = $required ?? [];
-                        $req      = fn(string $k) => ($required[$k] ?? false) ? ' <span class="text-red-500">*</span>' : '';
-                        $reqAttr  = fn(string $k) => ($required[$k] ?? false) ? 'required' : '';
-                    ?>
+            <?php if (session()->getFlashdata('error')): ?>
+                <div class="mb-6 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 text-sm">
+                    <?= esc(session()->getFlashdata('error')) ?>
+                </div>
+            <?php endif; ?>
+            <?php if (($staff['status'] ?? '') === 'Rejected' && ! empty($staff['reject_reason'])): ?>
+                <div class="mb-6 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 text-sm">
+                    This request was rejected: <strong><?= esc($staff['reject_reason']) ?></strong>. Fix it and submit again to send it back for approval.
+                </div>
+            <?php endif; ?>
 
-                    <!-- Application Information -->
-                    <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 p-6 sm:p-8">
-                        <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
-                            <div class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-primary">
-                                <span class="material-symbols-outlined">business</span>
-                            </div>
-                            <div>
-                                <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Application Info</h2>
-                            </div>
+            <form action="<?= base_url($formAction ?? 'staffs/staffpassrequest/store') ?>" method="post" enctype="multipart/form-data" class="space-y-8">
+                <?= csrf_field() ?>
+                <?php
+                    $isRenew = ! empty($isRenew);
+                    $s   = $staff ?? [];
+                    $v   = fn($f, $db = null) => esc(old($f, $s[$db ?? $f] ?? ''));
+                    $sel = fn($f, $val) => ($s[$f] ?? '') === $val ? 'selected' : '';
+                    $inputClass = 'w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand';
+                    $labelClass = 'block text-sm font-medium text-text-main dark:text-gray-200 font-brand';
+                    // Renewal keeps the person's identity: these fields are read-only.
+                    $lock      = $isRenew ? 'readonly tabindex="-1"' : '';
+                    $lockClass = $isRenew ? ' bg-gray-100 dark:bg-gray-800 cursor-not-allowed' : '';
+
+                    // Config > Dynamic Form Fields > Staff Pass Request: shown / hidden ...
+                    $fs = $fieldSettings ?? [];
+                    $on = fn(string $key, bool $default = true) => (bool) ($fs[$key] ?? $default);
+                    // ... and "Mandatory": red * and the browser's required check.
+                    $required = $required ?? [];
+                    $req      = fn(string $k) => ($required[$k] ?? false) ? ' <span class="text-red-500">*</span>' : '';
+                    $reqAttr  = fn(string $k) => ($required[$k] ?? false) ? 'required' : '';
+
+                    $existingLicenses = $licenses ?? [];
+                ?>
+
+                <!-- Application Info -->
+                <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 p-6 sm:p-8">
+                    <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
+                        <div class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-primary">
+                            <span class="material-symbols-outlined">assignment</span>
                         </div>
-                        <?php $fs = $fieldSettings ?? []; ?>
-                        <div class="space-y-6">
-
-                            <!-- Row 1: Date of Application, Type of Application, Designation, Resident -->
-                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                                <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Date Of Application</label>
-                                    <input name="date_of_application" value="<?= isset($isEdit) && ! $isRenew ? esc($s['date_of_application'] ?? '') : date('d/m/Y') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-gray-100 dark:bg-background-dark text-text-main dark:text-white px-4 outline-none font-brand" type="text" readonly/>
-                                </div>
-                                <?php if ($fs['type_of_application'] ?? true): ?>
-                                <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Type Of Application<?= $req('type_of_application') ?></label>
-                                    <?php if ($isRenew): ?>
-                                    <input <?= $reqAttr('type_of_application') ?> type="hidden" name="type_of_application" value="RENEWAL"/>
-                                    <input value="RENEWAL" class="w-full h-12 rounded-lg border-border-color bg-gray-100 dark:bg-background-dark text-text-main dark:text-white px-4 outline-none font-brand" readonly/>
-                                    <?php else: ?>
-                                    <select name="type_of_application" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
-                                        <option value="NEW" <?= $sel('type_of_application','NEW') ?>>NEW</option>
-                                        <option value="RENEWAL" <?= $sel('type_of_application','RENEWAL') ?>>RENEWAL</option>
-                                        <option value="REPLACEMENT" <?= $sel('type_of_application','REPLACEMENT') ?>>REPLACEMENT</option>
-                                    </select>
-                                    <?php endif; ?>
-                                </div>
-                                <?php endif; ?>
-                                <?php if ($fs['designation'] ?? true): ?>
-                                <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Designation<?= $req('designation') ?></label>
-                                    <select <?= $reqAttr('designation') ?> name="designation" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
-                                        <option value="">SELECT</option>
-                                        <option value="PEN. LORI" <?= $sel('designation','PEN. LORI') ?>>PEN. LORI</option>
-                                        <option value="OPERATOR" <?= $sel('designation','OPERATOR') ?>>OPERATOR</option>
-                                        <option value="SUPERVISOR" <?= $sel('designation','SUPERVISOR') ?>>SUPERVISOR</option>
-                                        <option value="ENGINEER" <?= $sel('designation','ENGINEER') ?>>ENGINEER</option>
-                                        <option value="MANAGER" <?= $sel('designation','MANAGER') ?>>MANAGER</option>
-                                    </select>
-                                </div>
-                                <?php endif; ?>
-                                <?php if ($fs['resident'] ?? true): ?>
-                                <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Resident<?= $req('resident') ?></label>
-                                    <select <?= $reqAttr('resident') ?> name="resident" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
-                                        <option value="LOCAL" <?= $sel('resident','LOCAL') ?>>LOCAL</option>
-                                        <option value="FOREIGN" <?= $sel('resident','FOREIGN') ?>>FOREIGN</option>
-                                    </select>
-                                </div>
-                                <?php endif; ?>
+                        <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Application Info</h2>
+                    </div>
+                    <div class="space-y-6">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">Date Of Application</label>
+                                <input name="date_of_application" value="<?= isset($isEdit) && ! $isRenew ? esc($s['date_of_application'] ?? '') : date('d/m/Y') ?>" class="<?= $inputClass ?> bg-gray-100 dark:bg-background-dark" type="text" readonly/>
                             </div>
-
-                            <!-- Row 2: Sub Type -->
-                            <?php if ($fs['sub_type'] ?? true): ?>
-                            <div class="grid grid-cols-1 sm:grid-cols-4 gap-6">
-                                <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Sub Type<?= $req('sub_type') ?></label>
-                                    <select <?= $reqAttr('sub_type') ?> name="sub_type" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
-                                        <option value="PERMANENT" <?= $sel('sub_type','PERMANENT') ?>>PERMANENT</option>
-                                        <option value="TEMPORARY" <?= $sel('sub_type','TEMPORARY') ?>>TEMPORARY</option>
-                                        <option value="CONTRACT" <?= $sel('sub_type','CONTRACT') ?>>CONTRACT</option>
-                                        <option value="FAMILY PASS" <?= $sel('sub_type','FAMILY PASS') ?>>FAMILY PASS</option>
-                                    </select>
-                                </div>
+                            <?php if ($on('type_of_application')): ?>
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">Type Of Application<?= $req('type_of_application') ?></label>
+                                <?php if ($isRenew): ?>
+                                <input type="hidden" name="type_of_application" value="RENEWAL"/>
+                                <input value="RENEWAL" class="<?= $inputClass ?> bg-gray-100 dark:bg-gray-800 cursor-not-allowed" type="text" readonly/>
+                                <?php else: ?>
+                                <select name="type_of_application" class="<?= $inputClass ?>" <?= $reqAttr('type_of_application') ?>>
+                                    <option value="NEW" <?= $sel('type_of_application', 'NEW') ?>>NEW</option>
+                                    <option value="RENEWAL" <?= $sel('type_of_application', 'RENEWAL') ?>>RENEWAL</option>
+                                    <option value="REPLACEMENT" <?= $sel('type_of_application', 'REPLACEMENT') ?>>REPLACEMENT</option>
+                                </select>
+                                <?php endif; ?>
                             </div>
                             <?php endif; ?>
+                            <?php if ($on('access_branch')): ?>
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">Approving Branch</label>
+                                <select name="access_branch" class="<?= $inputClass ?>">
+                                    <?php foreach (['' => '-- Select --', 'KSB' => 'KSB', 'KPK' => 'KPK', 'BOTH' => 'Both (KSB + KPK)'] as $bv => $bl): ?>
+                                    <option value="<?= $bv ?>" <?= old('access_branch', $s['access_branch'] ?? '') === $bv ? 'selected' : '' ?>><?= $bl ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <?php endif; ?>
+                            <?php if ($on('designation')): ?>
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">Designation<?= $req('designation') ?></label>
+                                <?php $desig = (string) old('designation', $s['designation'] ?? ''); $designations = ['PEN. LORI', 'OPERATOR', 'SUPERVISOR', 'ENGINEER', 'MANAGER']; ?>
+                                <select name="designation" class="<?= $inputClass ?>" <?= $reqAttr('designation') ?>>
+                                    <option value="">-- Select --</option>
+                                    <?php foreach ($designations as $dn): ?>
+                                    <option value="<?= esc($dn) ?>" <?= $desig === $dn ? 'selected' : '' ?>><?= esc($dn) ?></option>
+                                    <?php endforeach; ?>
+                                    <?php if ($desig !== '' && ! in_array($desig, $designations, true)): ?>
+                                    <option value="<?= esc($desig) ?>" selected><?= esc($desig) ?></option>
+                                    <?php endif; ?>
+                                </select>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <?php if ($on('resident')): ?>
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">Resident<?= $req('resident') ?></label>
+                                <select name="resident" class="<?= $inputClass ?>" <?= $reqAttr('resident') ?>>
+                                    <option value="LOCAL" <?= $sel('resident', 'LOCAL') ?>>LOCAL</option>
+                                    <option value="FOREIGN" <?= $sel('resident', 'FOREIGN') ?>>FOREIGN</option>
+                                </select>
+                            </div>
+                            <?php endif; ?>
+                            <?php if ($on('sub_type')): ?>
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">Sub Type<?= $req('sub_type') ?></label>
+                                <?php $subType = (string) old('sub_type', $s['sub_type'] ?? (isset($isEdit) ? '' : 'PERMANENT')); ?>
+                                <select name="sub_type" class="<?= $inputClass ?>" <?= $reqAttr('sub_type') ?>>
+                                    <option value="">-- Select --</option>
+                                    <?php foreach (['PERMANENT', 'TEMPORARY', 'CONTRACT', 'FAMILY PASS'] as $st): ?>
+                                    <option value="<?= $st ?>" <?= $subType === $st ? 'selected' : '' ?>><?= $st ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <?php endif; ?>
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">Visa / Work Permit Expiry <span class="text-xs text-text-sub">(foreigner)</span></label>
+                                <input name="visa_expiry" value="<?= $v('visa_expiry') ?>" class="<?= $inputClass ?>" type="date"/>
+                            </div>
+                        </div>
 
-                            <!-- Location Access — same dropdown as the Contractor/Vendor Request -->
-                            <?php if ($fs['location_access'] ?? true): ?>
-                            <?php
+                        <!-- Location Access — same dropdown as the Contractor/Vendor Request -->
+                        <?php if ($on('location_access')): ?>
+                        <?php
                             // Every IN / OUT gate value from Location Access Management, A-Z.
                             $locLabels = [];
                             foreach (($locationGroups ?? []) as $groupLocations) {
@@ -206,483 +219,374 @@
                             }
                             uksort($locLabels, 'strnatcasecmp');
                             $selectedLocations = array_values(array_filter(array_map('trim', explode(',', (string) ($s['location_access'] ?? '')))));
-                            ?>
-                            <?php if (! empty($lockLocations)): ?>
-                            <div class="space-y-2">
-                                <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Location Access<?= $req('location_access') ?></label>
-                                <div class="w-full min-h-[3rem] flex flex-wrap items-center gap-1.5 rounded-lg border border-border-color dark:border-gray-700 bg-gray-100 dark:bg-gray-800 px-3 py-2 text-sm cursor-not-allowed">
-                                    <?php if ($selectedLocations === []): ?><span class="text-text-sub">-</span><?php endif; ?>
-                                    <?php foreach ($selectedLocations as $code): ?>
-                                    <span class="inline-flex items-center rounded-full bg-primary/10 text-primary px-2.5 py-0.5 text-xs font-medium"><?= esc($code) ?></span>
-                                    <?php endforeach; ?>
-                                </div>
-                                <p class="text-xs text-text-sub dark:text-gray-400 font-brand">Changing Location Access on an approved pass needs the Manage Locations permission.</p>
+                        ?>
+                        <?php if (! empty($lockLocations)): ?>
+                        <div class="space-y-2">
+                            <label class="<?= $labelClass ?>">Location Access<?= $req('location_access') ?></label>
+                            <div class="w-full min-h-[3rem] flex flex-wrap items-center gap-1.5 rounded-lg border border-border-color dark:border-gray-700 bg-gray-100 dark:bg-gray-800 px-3 py-2 text-sm cursor-not-allowed">
+                                <?php if ($selectedLocations === []): ?><span class="text-text-sub">-</span><?php endif; ?>
+                                <?php foreach ($selectedLocations as $code): ?>
+                                <span class="inline-flex items-center rounded-full bg-primary/10 text-primary px-2.5 py-0.5 text-xs font-medium"><?= esc($code) ?></span>
+                                <?php endforeach; ?>
                             </div>
-                            <?php else: ?>
-                            <div class="space-y-2 relative"
-                                 x-data="{ open: false, q: '', selected: <?= esc(json_encode(array_values(array_intersect($selectedLocations, array_keys($locLabels)))), 'attr') ?>, labels: <?= esc(json_encode((object) $locLabels), 'attr') ?>,
-                                           get codes() { return Object.keys(this.labels); },
-                                           get shown() { const q = this.q.toLowerCase(); return this.codes.filter(c => this.labels[c].toLowerCase().includes(q)); },
-                                           get allOn() { return this.codes.length > 0 && this.selected.length === this.codes.length; },
-                                           toggleAll() { this.selected = this.allOn ? [] : [...this.codes]; },
-                                           remove(c) { this.selected = this.selected.filter(x => x !== c); } }"
-                                 @click.outside="open = false" @keydown.escape.window="open = false">
-                                <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Location Access<?= $req('location_access') ?></label>
-
-                                <template x-for="c in selected" :key="c"><input type="hidden" name="location_access[]" :value="c"></template>
-
-                                <button type="button" @click="open = !open"
-                                    class="w-full min-h-[3rem] flex items-center justify-between gap-2 rounded-lg border border-border-color dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-left text-sm focus:ring-2 focus:ring-primary/30">
-                                    <span class="flex flex-wrap gap-1.5 items-center">
-                                        <span x-show="selected.length === 0" class="text-text-sub">-- Select location(s) --</span>
-                                        <template x-for="c in selected" :key="c">
-                                            <span class="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2.5 py-0.5 text-xs font-medium">
-                                                <span x-text="labels[c] || c"></span>
-                                                <span class="cursor-pointer font-bold leading-none" @click.stop="remove(c)" title="Remove">&times;</span>
-                                            </span>
-                                        </template>
-                                    </span>
-                                    <span class="material-symbols-outlined text-text-sub transition-transform" :class="open ? 'rotate-180' : ''">expand_more</span>
-                                </button>
-
-                                <div x-show="open" x-transition.opacity
-                                     class="absolute z-30 mt-1 w-full rounded-lg border border-border-color dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg">
-                                    <div class="p-2 border-b border-border-color dark:border-gray-700">
-                                        <input type="text" x-model="q" placeholder="Search location..."
-                                            class="w-full rounded-md border border-border-color dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm"/>
-                                    </div>
-                                    <label class="flex items-center gap-2 px-3 py-2 text-sm font-semibold border-b border-border-color dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
-                                        <input type="checkbox" :checked="allOn" @change="toggleAll()"/>
-                                        Select All <span class="text-text-sub font-normal" x-text="'(' + selected.length + '/' + codes.length + ')'"></span>
-                                    </label>
-                                    <div class="max-h-64 overflow-y-auto py-1">
-                                        <template x-for="c in shown" :key="c">
-                                            <label class="flex items-center gap-2 px-3 py-1.5 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
-                                                <input type="checkbox" :value="c" x-model="selected"/>
-                                                <span x-text="labels[c]"></span>
-                                            </label>
-                                        </template>
-                                        <p x-show="shown.length === 0" class="px-3 py-2 text-sm text-text-sub">No location found.</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <?php endif; ?>
-                            <?php endif; ?>
-
+                            <p class="text-xs text-text-sub dark:text-gray-400 font-brand">Changing Location Access on an approved pass needs the Manage Locations permission.</p>
                         </div>
-                    </section>
+                        <?php else: ?>
+                        <div class="space-y-2 relative"
+                             x-data="{ open: false, q: '', selected: <?= esc(json_encode(array_values(array_intersect($selectedLocations, array_keys($locLabels)))), 'attr') ?>, labels: <?= esc(json_encode((object) $locLabels), 'attr') ?>,
+                                       get codes() { return Object.keys(this.labels); },
+                                       get shown() { const q = this.q.toLowerCase(); return this.codes.filter(c => this.labels[c].toLowerCase().includes(q)); },
+                                       get allOn() { return this.codes.length > 0 && this.selected.length === this.codes.length; },
+                                       toggleAll() { this.selected = this.allOn ? [] : [...this.codes]; },
+                                       remove(c) { this.selected = this.selected.filter(x => x !== c); } }"
+                             @click.outside="open = false" @keydown.escape.window="open = false">
+                            <label class="<?= $labelClass ?>">Location Access<?= $req('location_access') ?></label>
 
-                    <!-- Date of Visit -->
-                    
+                            <template x-for="c in selected" :key="c"><input type="hidden" name="location_access[]" :value="c"></template>
 
-                    <!-- Details of Visit -->
-                    
-                    <!-- Staff Details -->
-                    <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 p-6 sm:p-8">
-                        <div class="flex items-center justify-between mb-6 pb-4 border-b border-border-color dark:border-gray-800">
-                            <div class="flex items-center gap-3">
-                                <div class="size-10 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center text-green-600 dark:text-green-400">
-                                    <span class="material-symbols-outlined">person</span>
-                                </div>
-                                <div>
-                                    <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Staff Details</h2>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="p-6 space-y-6">
+                            <button type="button" @click="open = !open"
+                                class="w-full min-h-[3rem] flex items-center justify-between gap-2 rounded-lg border border-border-color dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-left text-sm focus:ring-2 focus:ring-primary/30">
+                                <span class="flex flex-wrap gap-1.5 items-center">
+                                    <span x-show="selected.length === 0" class="text-text-sub">-- Select location(s) --</span>
+                                    <template x-for="c in selected" :key="c">
+                                        <span class="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2.5 py-0.5 text-xs font-medium">
+                                            <span x-text="labels[c] || c"></span>
+                                            <span class="cursor-pointer font-bold leading-none" @click.stop="remove(c)" title="Remove">&times;</span>
+                                        </span>
+                                    </template>
+                                </span>
+                                <span class="material-symbols-outlined text-text-sub transition-transform" :class="open ? 'rotate-180' : ''">expand_more</span>
+                            </button>
 
-                            <!-- Read MyKad Button -->
-                            <?php if (($mykadOcrEnabled ?? true) && ! $isRenew): ?>
-                            <div>
-                                <button type="button" id="staff-mykad-btn" class="bg-success hover:bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-semibold uppercase shadow transition-all font-brand flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-base">credit_card</span>
-                                    Read MyKad
-                                </button>
-                            </div>
-                            <?php endif; ?>
-
-                            <!-- Row 1: IC Number, Date of Birth -->
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <?php if ($fs['ic_number'] ?? true): ?>
-                                <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">IC / Passport Number<?= $req('ic_number') ?></label>
-                                    <input <?= $reqAttr('ic_number') ?> name="ic_number" value="<?= $v('ic_number', 'ic_passport') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="Enter IC / Passport Number" type="text" <?= $lock ?>/>
+                            <div x-show="open" x-transition.opacity
+                                 class="absolute z-30 mt-1 w-full rounded-lg border border-border-color dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg">
+                                <div class="p-2 border-b border-border-color dark:border-gray-700">
+                                    <input type="text" x-model="q" placeholder="Search location..."
+                                        class="w-full rounded-md border border-border-color dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm"/>
                                 </div>
-                                <?php endif; ?>
-                                <?php if ($fs['date_of_birth'] ?? true): ?>
-                                <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Date Of Birth<?= $req('date_of_birth') ?></label>
-                                    <input <?= $reqAttr('date_of_birth') ?> name="date_of_birth" value="<?= $v('date_of_birth') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="DD/MM/YYYY" type="date" <?= $lock ?>/>
-                                </div>
-                                <?php endif; ?>
-                            </div>
-
-                            <!-- Row 2: Sex, Full Name, Name On Staff Pass -->
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <?php if ($fs['sex'] ?? true): ?>
-                                <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Sex<?= $req('sex') ?></label>
-                                    <select <?= $reqAttr('sex') ?> name="sex" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
-                                        <option value="MALE" <?= $sel('sex','MALE') ?>>MALE</option>
-                                        <option value="FEMALE" <?= $sel('sex','FEMALE') ?>>FEMALE</option>
-                                    </select>
-                                </div>
-                                <?php endif; ?>
-                                <?php if ($fs['full_name'] ?? true): ?>
-                                <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Full Name<?= $req('full_name') ?></label>
-                                    <input <?= $reqAttr('full_name') ?> name="full_name" value="<?= $v('full_name') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="Full name as per ID" type="text" <?= $lock ?>/>
-                                </div>
-                                <?php endif; ?>
-                                <?php if ($fs['name_on_staff_pass'] ?? true): ?>
-                                <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Name On Staff Pass<?= $req('name_on_staff_pass') ?></label>
-                                    <input <?= $reqAttr('name_on_staff_pass') ?> name="name_on_staff_pass" value="<?= $v('name_on_staff_pass') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
-                                </div>
-                                <?php endif; ?>
-                            </div>
-
-                            <!-- Row 3: Staff No, Contact Number, Email Address -->
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <?php if ($fs['staff_no'] ?? true): ?>
-                                <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Staff No<?= $req('staff_no') ?></label>
-                                    <input <?= $reqAttr('staff_no') ?> name="staff_no" value="<?= $v('staff_no') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text" <?= $lock ?>/>
-                                </div>
-                                <?php endif; ?>
-                                <?php if ($fs['contact_number'] ?? true): ?>
-                                <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Contact Number<?= $req('contact_number') ?></label>
-                                    <input <?= $reqAttr('contact_number') ?> name="contact_number" value="<?= $v('contact_number') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="+60 1x-xxx xxxx" type="tel"/>
-                                </div>
-                                <?php endif; ?>
-                                <?php if ($fs['email'] ?? true): ?>
-                                <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Email Address<?= $req('email') ?></label>
-                                    <input <?= $reqAttr('email') ?> name="email" value="<?= $v('email') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="staff@example.com" type="email"/>
-                                </div>
-                                <?php endif; ?>
-                            </div>
-
-                            <!-- Row 4: Department -->
-                            <?php if ($fs['department'] ?? true): ?>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Department<?= $req('department') ?></label>
-                                    <select <?= $reqAttr('department') ?> name="department" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
-                                        <option value="">SELECT</option>
-                                        <?php $deps = $departments ?? []; if (! empty($s['department']) && ! in_array($s['department'], $deps, true)) { $deps[] = $s['department']; } ?>
-                                        <?php foreach ($deps as $dep): ?>
-                                        <option value="<?= esc($dep, 'attr') ?>" <?= (old('department', $s['department'] ?? '')) === $dep ? 'selected' : '' ?>><?= esc($dep) ?></option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                            </div>
-                            <?php endif; ?>
-
-                            <!-- Row 5: Address 1, Address 2 -->
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <?php if ($fs['address_1'] ?? true): ?>
-                                <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Address 1<?= $req('address_1') ?></label>
-                                    <input <?= $reqAttr('address_1') ?> name="address_1" value="<?= $v('address_1') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
-                                </div>
-                                <?php endif; ?>
-                                <?php if ($fs['address_2'] ?? true): ?>
-                                <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Address 2<?= $req('address_2') ?></label>
-                                    <input <?= $reqAttr('address_2') ?> name="address_2" value="<?= $v('address_2') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
-                                </div>
-                                <?php endif; ?>
-                            </div>
-
-                            <!-- Row 6: Address 3 -->
-                            <?php if ($fs['address_3'] ?? true): ?>
-                            <div class="space-y-2">
-                                <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Address 3<?= $req('address_3') ?></label>
-                                <input <?= $reqAttr('address_3') ?> name="address_3" value="<?= $v('address_3') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
-                            </div>
-                            <?php endif; ?>
-
-                            <!-- Row 7: City, State -->
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <?php if ($fs['city'] ?? true): ?>
-                                <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">City<?= $req('city') ?></label>
-                                    <select <?= $reqAttr('city') ?> name="city" id="staff-city" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" disabled>
-                                        <option value="">SELECT STATE FIRST</option>
-                                    </select>
-                                </div>
-                                <?php endif; ?>
-                                <?php if ($fs['state'] ?? true): ?>
-                                <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">State<?= $req('state') ?></label>
-                                    <select <?= $reqAttr('state') ?> name="state" id="staff-state" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" disabled>
-                                        <option value="">SELECT COUNTRY FIRST</option>
-                                    </select>
-                                </div>
-                                <?php endif; ?>
-                            </div>
-
-                            <!-- Row 8: Postal Code, Country -->
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <?php if ($fs['postal_code'] ?? true): ?>
-                                <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Postal Code<?= $req('postal_code') ?></label>
-                                    <input <?= $reqAttr('postal_code') ?> name="postal_code" value="<?= $v('postal_code') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
-                                </div>
-                                <?php endif; ?>
-                                <?php if ($fs['country'] ?? true): ?>
-                                <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Country<?= $req('country') ?></label>
-                                    <select <?= $reqAttr('country') ?> name="country" id="staff-country" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
-                                        <option value="">SELECT</option>
-                                        <?php
-                                            $savedCountry = $s['country'] ?? '';
-                                            $defaultCountry = $savedCountry ?: 'MALAYSIA';
-                                        ?>
-                                        <?php foreach ($countries ?? [] as $c): ?>
-                                        <option value="<?= esc($c['name']) ?>" data-id="<?= (int) $c['id'] ?>"
-                                            <?= strtoupper($c['name']) === strtoupper($defaultCountry) ? 'selected' : '' ?>>
-                                            <?= esc($c['name']) ?>
-                                        </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                                <?php endif; ?>
-                            </div>
-
-                        </div>
-                    </section>
-
-                    <!-- Approval, Photo & Remark (KPK staff form: branch office, photo, remark) -->
-                    <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 p-6 sm:p-8">
-                        <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
-                            <div class="size-10 rounded-full bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center text-emerald-600">
-                                <span class="material-symbols-outlined">verified_user</span>
-                            </div>
-                            <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Approval &amp; Photo</h2>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <?php if ($fs['access_branch'] ?? true): ?>
-                            <div class="space-y-2">
-                                <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Approving Branch</label>
-                                <select name="access_branch" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 outline-none font-brand">
-                                    <?php foreach (['' => 'Any approver', 'KSB' => 'KSB', 'KPK' => 'KPK', 'BOTH' => 'Both (KSB + KPK)'] as $bv => $bl): ?>
-                                    <option value="<?= $bv ?>" <?= old('access_branch', $s['access_branch'] ?? '') === $bv ? 'selected' : '' ?>><?= $bl ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <?php endif; ?>
-                            <div class="space-y-2">
-                                <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Visa / Work Permit Expiry <span class="text-xs text-text-sub">(foreigner)</span></label>
-                                <input name="visa_expiry" type="date" value="<?= $v('visa_expiry') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 outline-none font-brand"/>
-                            </div>
-                            <?php if ($fs['photo_upload'] ?? true): ?>
-                            <div class="space-y-2">
-                                <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Passport Photo <span class="text-xs text-text-sub">(needed before the card is printed)</span></label>
-                                <?php if (! empty($s['photo'])): ?>
-                                <img src="<?= base_url('uploads/staff_photos/' . esc($s['photo'], 'url')) ?>" alt="" class="w-16 h-20 object-cover rounded border mb-2"/>
-                                <?php endif; ?>
-                                <input name="photo" type="file" accept="image/png,image/jpeg" class="block w-full text-sm"/>
-                            </div>
-                            <?php endif; ?>
-                            <?php if ($fs['remark'] ?? true): ?>
-                            <div class="space-y-2 md:col-span-3">
-                                <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">Remark</label>
-                                <textarea name="remark" rows="2" class="w-full rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 py-2 outline-none font-brand"><?= $v('remark') ?></textarea>
-                            </div>
-                            <?php endif; ?>
-                        </div>
-                    </section>
-
-                    <!-- Driving License Section -->
-                    <?php if ($fs['driving_license'] ?? true): ?>
-                    <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 mt-8">
-                        <div class="p-6 sm:p-8">
-                            <div class="flex items-center justify-between mb-6 pb-4 border-b border-border-color dark:border-gray-800">
-                                <div class="flex items-center gap-3">
-                                    <div class="size-10 rounded-full bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center text-orange-600 dark:text-orange-400">
-                                        <span class="material-symbols-outlined">cards_stack</span>
-                                    </div>
-                                    <div>
-                                        <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Driving License</h2>
-                                        <p class="text-sm text-text-sub dark:text-gray-400 font-brand">Optional driving license information.</p>
-                                    </div>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                <button type="button" onclick="addLicense()" class="text-green-600 hover:text-green-700 transition-colors p-1.5 rounded-full hover:bg-green-50 dark:hover:bg-green-900/20" title="Add License">
-                                    <span class="material-symbols-outlined text-2xl">add_circle</span>
-                                </button>
-                                <button type="button" onclick="removeLicense()" class="text-red-600 hover:text-red-700 transition-colors p-1.5 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20" title="Remove License">
-                                    <span class="material-symbols-outlined text-2xl">remove_circle</span>
-                                </button>
-                                </div>
-                            </div>
-                            <?php if (! empty($licenses)): ?>
-                            <div class="mb-4 text-sm">
-                                <p class="font-medium text-text-main dark:text-gray-200 mb-2"><?= $isRenew ? 'Current licenses (replaced if you add new ones below)' : 'Saved licenses' ?></p>
-                                <ul class="space-y-1">
-                                    <?php foreach ($licenses as $lic): ?>
-                                    <li class="text-text-sub dark:text-gray-400">Class <strong><?= esc($lic['license_class'] ?? '-') ?></strong> — expires <?= ! empty($lic['license_expiry']) ? esc(date('d/m/Y', strtotime($lic['license_expiry']))) : '-' ?></li>
-                                    <?php endforeach; ?>
-                                </ul>
-                            </div>
-                            <?php endif; ?>
-                            <div id="licenseContainer" class="flex flex-col gap-4">
-                                <div class="text-center py-8 text-text-sub dark:text-gray-400">
-                                    <span class="material-symbols-outlined text-5xl mb-3 block text-gray-300 dark:text-gray-600">badge</span>
-                                    <p class="text-sm">No licenses added yet. Click <span class="text-primary font-semibold">+</span> to add driving license.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-                    <?php endif; ?>
-
-                    <!-- CSP Details -->
-                    <?php if ($fs['csp_number'] ?? false): ?>
-                    <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 p-6 sm:p-8">
-                        <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
-                            <div class="size-10 rounded-full bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center text-orange-600 dark:text-orange-400">
-                                <span class="material-symbols-outlined">apartment</span>
-                            </div>
-                            <div>
-                                <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">CSP</h2>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div class="space-y-2">
-                                <label class="block text-sm font-semibold text-text-main dark:text-gray-200 font-brand">CSP Number<?= $req('csp_number') ?></label>
-                                <input <?= $reqAttr('csp_number') ?> name="company_reg_id" value="<?= $v('company_reg_id', 'csp_number') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="text"/>
-                            </div>
-                            <div class="space-y-2">
-                                <label class="block text-sm font-semibold text-text-main dark:text-gray-200 font-brand">Expiry Date</label>
-                                <div class="relative">
-                                    <input name="csp_expiry_date" value="<?= $v('csp_expiry_date') ?>" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 pr-12 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" placeholder="DD/MM/YYYY" type="date"/>
-                                    <span class="material-symbols-outlined absolute right-4 top-3 text-text-sub cursor-pointer" onclick="this.previousElementSibling.showPicker()">calendar_month</span>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-                    <?php endif; ?>
-
-                    <!-- E-Vetting -->
-                    <?php if ($fs['evetting'] ?? false): ?>
-                    <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 p-6 sm:p-8">
-                        <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
-                            <div class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400">
-                                <span class="material-symbols-outlined">verified_user</span>
-                            </div>
-                            <div>
-                                <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">E-Vetting</h2>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div class="space-y-2">
-                                <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">
-                                    Date of Application <span class="text-red-500">*</span>
+                                <label class="flex items-center gap-2 px-3 py-2 text-sm font-semibold border-b border-border-color dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
+                                    <input type="checkbox" :checked="allOn" @change="toggleAll()"/>
+                                    Select All <span class="text-text-sub font-normal" x-text="'(' + selected.length + '/' + codes.length + ')'"></span>
                                 </label>
-                                <div class="relative">
-                                    <input
-                                        name="evetting_date_of_application"
-                                        value="<?= $v('evetting_date_of_application') ?>"
-                                        class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 pr-12 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand"
-                                        placeholder="DD/MM/YYYY"
-                                        type="date"
-                                    />
-                                    <span class="material-symbols-outlined absolute right-4 top-3 text-text-sub cursor-pointer" onclick="this.previousElementSibling.showPicker()">calendar_month</span>
-                                </div>
-                            </div>
-                            <div class="space-y-2">
-                                <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">
-                                    Date of Result
-                                </label>
-                                <div class="relative">
-                                    <input
-                                        name="evetting_date_of_result"
-                                        value="<?= $v('evetting_date_of_result') ?>"
-                                        class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 pr-12 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand"
-                                        placeholder="DD/MM/YYYY"
-                                        type="date"
-                                    />
-                                    <span class="material-symbols-outlined absolute right-4 top-3 text-text-sub cursor-pointer" onclick="this.previousElementSibling.showPicker()">calendar_month</span>
-                                </div>
-                            </div>
-                            <div class="space-y-2">
-                                <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">
-                                    Result
-                                </label>
-                                <select
-                                    name="evetting_result"
-                                    class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand appearance-none cursor-pointer"
-                                >
-                                    <option value="In Progress" <?= ($s['evetting_result'] ?? 'In Progress') === 'In Progress' ? 'selected' : '' ?>>In Progress</option>
-                                    <option value="Pass" <?= ($s['evetting_result'] ?? '') === 'Pass' ? 'selected' : '' ?>>Pass</option>
-                                    <option value="Fail" <?= ($s['evetting_result'] ?? '') === 'Fail' ? 'selected' : '' ?>>Fail</option>
-                                </select>
-                            </div>
-                        </div>
-                    </section>
-                    <?php endif; ?>
-                    
-                    
-                    <!-- Document Upload -->
-                    <?php if ($fs['document_upload'] ?? true): ?>
-                    <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 p-6 sm:p-8 mt-8">
-                        <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
-                            <div class="size-10 rounded-full bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-                                <span class="material-symbols-outlined">folder_open</span>
-                            </div>
-                            <div>
-                                <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Document Upload</h2>
-                                <p class="text-sm text-text-sub dark:text-gray-400 font-brand">Required for identity verification.</p>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div class="flex flex-col gap-3">
-                                <p class="text-sm font-medium text-text-main dark:text-gray-200 font-brand">IC / MyKad <span class="text-red-500">*</span></p>
-                                <div class="group relative flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer">
-                                    <input name="government_id" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" type="file"/>
-                                    <div class="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4">
-                                        <span class="material-symbols-outlined text-4xl text-gray-400 group-hover:text-primary mb-3 transition-colors">id_card</span>
-                                        <p class="mb-1 text-sm text-text-main dark:text-gray-300 font-brand"><span class="font-semibold text-primary">Click to upload</span> or drag and drop</p>
-                                        <p class="text-xs text-text-sub dark:text-gray-500 font-brand">SVG, PNG, JPG or PDF (MAX. 5MB)</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="flex flex-col gap-3">
-                                <p class="text-sm font-medium text-text-main dark:text-gray-200 font-brand">Other Documents (Optional)</p>
-                                <div class="group relative flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer">
-                                    <input name="invitation_letter[]" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" type="file" multiple/>
-                                    <div class="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4">
-                                        <span class="material-symbols-outlined text-4xl text-gray-400 group-hover:text-primary mb-3 transition-colors">upload_file</span>
-                                        <p class="mb-1 text-sm text-text-main dark:text-gray-300 font-brand"><span class="font-semibold text-primary">Click to upload</span> or drag and drop</p>
-                                        <p class="text-xs text-text-sub dark:text-gray-500 font-brand">PDF or Images</p>
-                                    </div>
+                                <div class="max-h-64 overflow-y-auto py-1">
+                                    <template x-for="c in shown" :key="c">
+                                        <label class="flex items-center gap-2 px-3 py-1.5 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
+                                            <input type="checkbox" :value="c" x-model="selected"/>
+                                            <span x-text="labels[c]"></span>
+                                        </label>
+                                    </template>
+                                    <p x-show="shown.length === 0" class="px-3 py-2 text-sm text-text-sub">No location found.</p>
                                 </div>
                             </div>
                         </div>
-                    </section>
-                    <?php endif; ?>
-
-                    <!-- Profile Photo -->
-
-                    <!-- Form Actions -->
-                    <div class="flex items-center justify-end gap-4 py-6 border-t border-border-color dark:border-gray-800 mt-8">
-                        <button type="button" onclick="window.history.back()" class="px-6 py-3 rounded-lg border border-border-color dark:border-gray-700 text-text-main dark:text-gray-300 font-bold hover:bg-background-light dark:hover:bg-gray-800 transition-all font-brand">
-                            Cancel
-                        </button>
-                        <?php if (! $isRenew && in_array($s['status'] ?? 'Draft', ['Draft', ''], true)): ?>
-                        <button type="submit" name="save_as_draft" value="1" formnovalidate class="px-6 py-3 rounded-lg border border-primary text-primary font-bold hover:bg-blue-50 dark:hover:bg-gray-800 transition-all font-brand">
-                            Save as Draft
-                        </button>
                         <?php endif; ?>
-                        <button type="submit" class="px-8 py-3 rounded-lg bg-primary text-white font-bold hover:bg-primary-hover shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2 font-brand">
-                            <span><?= $isRenew ? 'Submit Renewal' : (isset($isEdit) && ($s['status'] ?? '') !== 'Draft' ? 'Save Changes' : 'Submit Request') ?></span>
-                            <span class="material-symbols-outlined text-sm"><?= isset($isEdit) ? 'save' : 'send' ?></span>
-                        </button>
+                        <?php endif; ?>
                     </div>
-                </form>
+                </section>
+
+                <!-- Person -->
+                <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 p-6 sm:p-8">
+                    <div class="flex items-center justify-between gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
+                        <div class="flex items-center gap-3">
+                            <div class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-primary">
+                                <span class="material-symbols-outlined">badge</span>
+                            </div>
+                            <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Person</h2>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <?php if (($mykadOcrEnabled ?? true) && ! $isRenew): ?>
+                            <button type="button" id="staff-mykad-btn" class="h-10 px-4 rounded-lg border border-primary text-primary hover:bg-primary/10 text-sm font-brand font-semibold">
+                                Read MyKad
+                            </button>
+                            <?php endif; ?>
+                            <?php if ($on('document_upload')): ?>
+                            <button type="button" onclick="document.getElementById('governmentIdInput').click()" class="h-10 px-4 rounded-lg bg-primary hover:bg-primary-hover text-white text-sm font-brand font-semibold">
+                                Upload IC
+                            </button>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <div class="space-y-6">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <?php if ($on('ic_number')): ?>
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">IC / Passport Number<?= $req('ic_number') ?></label>
+                                <input name="ic_number" value="<?= $v('ic_number', 'ic_passport') ?>" class="<?= $inputClass . $lockClass ?>" type="text" maxlength="50" <?= $reqAttr('ic_number') ?> <?= $lock ?>/>
+                            </div>
+                            <?php endif; ?>
+                            <?php if ($on('date_of_birth')): ?>
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">Date Of Birth<?= $req('date_of_birth') ?></label>
+                                <input name="date_of_birth" value="<?= $v('date_of_birth') ?>" class="<?= $inputClass . $lockClass ?>" type="date" <?= $reqAttr('date_of_birth') ?> <?= $lock ?>/>
+                            </div>
+                            <?php endif; ?>
+                            <?php if ($on('sex')): ?>
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">Sex<?= $req('sex') ?></label>
+                                <select name="sex" class="<?= $inputClass ?>" <?= $reqAttr('sex') ?>>
+                                    <option value="MALE" <?= $sel('sex', 'MALE') ?>>MALE</option>
+                                    <option value="FEMALE" <?= $sel('sex', 'FEMALE') ?>>FEMALE</option>
+                                </select>
+                            </div>
+                            <?php endif; ?>
+                            <?php if ($on('staff_no')): ?>
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">Staff No<?= $req('staff_no') ?></label>
+                                <input name="staff_no" value="<?= $v('staff_no') ?>" class="<?= $inputClass . $lockClass ?>" type="text" maxlength="50" <?= $reqAttr('staff_no') ?> <?= $lock ?>/>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <?php if ($on('full_name')): ?>
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">Full Name<?= $req('full_name') ?></label>
+                                <input name="full_name" value="<?= $v('full_name') ?>" class="<?= $inputClass . $lockClass ?>" type="text" maxlength="100" <?= $reqAttr('full_name') ?> <?= $lock ?>/>
+                            </div>
+                            <?php endif; ?>
+                            <?php if ($on('name_on_staff_pass')): ?>
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">Name On Staff Pass<?= $req('name_on_staff_pass') ?></label>
+                                <input name="name_on_staff_pass" value="<?= $v('name_on_staff_pass') ?>" class="<?= $inputClass ?>" type="text" maxlength="100" <?= $reqAttr('name_on_staff_pass') ?>/>
+                            </div>
+                            <?php endif; ?>
+                            <?php if ($on('department')): ?>
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">Department<?= $req('department') ?></label>
+                                <?php $deps = $departments ?? []; $dept = (string) old('department', $s['department'] ?? ''); if ($dept !== '' && ! in_array($dept, $deps, true)) { $deps[] = $dept; } ?>
+                                <select name="department" class="<?= $inputClass ?>" <?= $reqAttr('department') ?>>
+                                    <option value="">-- Select --</option>
+                                    <?php foreach ($deps as $dep): ?>
+                                    <option value="<?= esc($dep, 'attr') ?>" <?= $dept === $dep ? 'selected' : '' ?>><?= esc($dep) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                        <?php if ($on('contact_number') || $on('email')): ?>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <?php if ($on('contact_number')): ?>
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">Contact Number<?= $req('contact_number') ?></label>
+                                <input name="contact_number" value="<?= $v('contact_number') ?>" class="<?= $inputClass ?>" type="tel" maxlength="30" <?= $reqAttr('contact_number') ?>/>
+                            </div>
+                            <?php endif; ?>
+                            <?php if ($on('email')): ?>
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">Email Address<?= $req('email') ?></label>
+                                <input name="email" value="<?= $v('email') ?>" class="<?= $inputClass ?>" type="email" maxlength="100" <?= $reqAttr('email') ?>/>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                        <?php endif; ?>
+                        <?php if ($on('address_1') || $on('address_2') || $on('address_3')): ?>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                            <?php foreach (['address_1' => 'Address 1', 'address_2' => 'Address 2', 'address_3' => 'Address 3'] as $ak => $al): ?>
+                            <?php if ($on($ak)): ?>
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>"><?= $al ?><?= $req($ak) ?></label>
+                                <input name="<?= $ak ?>" value="<?= $v($ak) ?>" class="<?= $inputClass ?>" type="text" maxlength="150" <?= $reqAttr($ak) ?>/>
+                            </div>
+                            <?php endif; ?>
+                            <?php endforeach; ?>
+                        </div>
+                        <?php endif; ?>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <?php if ($on('country')): ?>
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">Country<?= $req('country') ?></label>
+                                <select name="country" id="staff-country" class="<?= $inputClass ?>" <?= $reqAttr('country') ?>>
+                                    <option value="">-- Select --</option>
+                                    <?php $defaultCountry = ($s['country'] ?? '') ?: 'MALAYSIA'; ?>
+                                    <?php foreach ($countries ?? [] as $c): ?>
+                                    <option value="<?= esc($c['name']) ?>" data-id="<?= (int) $c['id'] ?>" <?= strtoupper($c['name']) === strtoupper($defaultCountry) ? 'selected' : '' ?>><?= esc($c['name']) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <?php endif; ?>
+                            <?php if ($on('state')): ?>
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">State<?= $req('state') ?></label>
+                                <select name="state" id="staff-state" class="<?= $inputClass ?>" <?= $reqAttr('state') ?> disabled>
+                                    <option value="">SELECT COUNTRY FIRST</option>
+                                </select>
+                            </div>
+                            <?php endif; ?>
+                            <?php if ($on('city')): ?>
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">City<?= $req('city') ?></label>
+                                <select name="city" id="staff-city" class="<?= $inputClass ?>" <?= $reqAttr('city') ?> disabled>
+                                    <option value="">SELECT STATE FIRST</option>
+                                </select>
+                            </div>
+                            <?php endif; ?>
+                            <?php if ($on('postal_code')): ?>
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">Postal Code<?= $req('postal_code') ?></label>
+                                <input name="postal_code" value="<?= $v('postal_code') ?>" class="<?= $inputClass ?>" type="text" maxlength="10" <?= $reqAttr('postal_code') ?>/>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                        <?php if ($on('remark')): ?>
+                        <div class="space-y-2">
+                            <label class="<?= $labelClass ?>">Remark</label>
+                            <textarea name="remark" rows="2" class="w-full rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 py-3 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand"><?= $v('remark') ?></textarea>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                </section>
+
+                <?php if ($on('driving_license')): ?>
+                <!-- Driving License (saved rows are shown read-only; only new rows are posted) -->
+                <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 p-6 sm:p-8"
+                    x-data="{ rows: [<?php foreach ($existingLicenses as $lic): ?>{ class: <?= esc(json_encode((string) ($lic['license_class'] ?? '')), 'attr') ?>, expiry: <?= esc(json_encode((string) ($lic['license_expiry'] ?? '')), 'attr') ?>, saved: true }, <?php endforeach; ?>] }">
+                    <div class="flex items-center justify-between gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
+                        <div class="flex items-center gap-3">
+                            <div class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-primary">
+                                <span class="material-symbols-outlined">directions_car</span>
+                            </div>
+                            <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Driving License</h2>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button type="button" @click="rows.push({ class: '', expiry: '', saved: false })" class="size-9 rounded-full border border-border-color dark:border-gray-700 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800">
+                                <span class="material-symbols-outlined text-[20px]">add</span>
+                            </button>
+                            <button type="button" @click="const i = rows.map(r => r.saved).lastIndexOf(false); if (i > -1) rows.splice(i, 1)" class="size-9 rounded-full border border-border-color dark:border-gray-700 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800">
+                                <span class="material-symbols-outlined text-[20px]">remove</span>
+                            </button>
+                        </div>
+                    </div>
+                    <?php if ($isRenew && $existingLicenses): ?>
+                    <p class="text-xs text-text-sub mb-4">Adding a new license replaces the current ones when the renewal is submitted.</p>
+                    <?php endif; ?>
+                    <p x-show="rows.length === 0" class="text-sm text-text-sub text-center py-4">No Record</p>
+                    <template x-for="(row, i) in rows" :key="i">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-4">
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">License Class</label>
+                                <template x-if="row.saved">
+                                    <input :value="row.class" class="<?= $inputClass ?> bg-gray-100 dark:bg-background-dark" type="text" readonly/>
+                                </template>
+                                <template x-if="! row.saved">
+                                    <select :name="'licenses[' + i + '][class]'" x-model="row.class" class="<?= $inputClass ?>">
+                                        <option value="">-- Select --</option>
+                                        <?php foreach (['B', 'B2', 'C', 'D', 'DA', 'E', 'E1', 'E2'] as $lc): ?>
+                                        <option value="<?= $lc ?>"><?= $lc ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </template>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">License Expiry</label>
+                                <input :name="row.saved ? null : 'licenses[' + i + '][expiry]'" x-model="row.expiry" class="<?= $inputClass ?>" type="date" :readonly="row.saved" :class="row.saved ? 'bg-gray-100 dark:bg-background-dark' : ''"/>
+                            </div>
+                        </div>
+                    </template>
+                </section>
+                <?php endif; ?>
+
+                <?php if ($on('csp_number', false) || $on('evetting', false)): ?>
+                <!-- CSP & E-Vetting -->
+                <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 p-6 sm:p-8">
+                    <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
+                        <div class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-primary">
+                            <span class="material-symbols-outlined">verified_user</span>
+                        </div>
+                        <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">CSP &amp; E-Vetting</h2>
+                    </div>
+                    <div class="space-y-6">
+                        <?php if ($on('csp_number', false)): ?>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">CSP Number<?= $req('csp_number') ?></label>
+                                <input name="company_reg_id" value="<?= $v('company_reg_id', 'csp_number') ?>" class="<?= $inputClass ?>" type="text" maxlength="50" <?= $reqAttr('csp_number') ?>/>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">CSP Expiry Date</label>
+                                <input name="csp_expiry_date" value="<?= $v('csp_expiry_date') ?>" class="<?= $inputClass ?>" type="date"/>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+                        <?php if ($on('evetting', false)): ?>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">E-Vetting Date Of Application</label>
+                                <input name="evetting_date_of_application" value="<?= $v('evetting_date_of_application') ?>" class="<?= $inputClass ?>" type="date"/>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">E-Vetting Date Of Result</label>
+                                <input name="evetting_date_of_result" value="<?= $v('evetting_date_of_result') ?>" class="<?= $inputClass ?>" type="date"/>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="<?= $labelClass ?>">E-Vetting Result</label>
+                                <?php $evr = (string) ($s['evetting_result'] ?? 'In Progress'); ?>
+                                <select name="evetting_result" class="<?= $inputClass ?>">
+                                    <?php foreach (['In Progress', 'Pass', 'Fail'] as $er): ?>
+                                    <option value="<?= $er ?>" <?= $evr === $er ? 'selected' : '' ?>><?= $er ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                </section>
+                <?php endif; ?>
+
+                <?php if ($on('photo_upload') || $on('document_upload')): ?>
+                <!-- Upload -->
+                <section class="bg-surface-light dark:bg-surface-dark rounded-xl shadow-md border border-border-color dark:border-gray-800 p-6 sm:p-8">
+                    <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border-color dark:border-gray-800">
+                        <div class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-primary">
+                            <span class="material-symbols-outlined">upload_file</span>
+                        </div>
+                        <h2 class="text-xl font-bold font-brand text-text-main dark:text-white">Upload</h2>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <?php if ($on('document_upload')): ?>
+                        <div class="space-y-2">
+                            <label class="<?= $labelClass ?>">Photostat IC / Passport</label>
+                            <input id="governmentIdInput" name="government_id" class="<?= $inputClass ?> pt-2.5" type="file" accept="image/*,application/pdf"/>
+                        </div>
+                        <?php endif; ?>
+                        <?php if ($on('photo_upload')): ?>
+                        <div class="space-y-2">
+                            <label class="<?= $labelClass ?>">Passport Photo <span class="text-xs text-text-sub">(needed before the card is printed)</span></label>
+                            <label for="passportPhotoInput" class="flex flex-col items-center justify-center h-32 rounded-lg border-2 border-dashed border-border-color dark:border-gray-700 text-text-sub text-sm cursor-pointer hover:border-primary transition-colors">
+                                <?php if (! empty($s['photo'])): ?>
+                                <img src="<?= base_url('uploads/staff_photos/' . esc($s['photo'], 'url')) ?>" alt="" class="h-16 w-12 object-cover rounded border mb-1"/>
+                                <?php else: ?>
+                                <span class="material-symbols-outlined text-2xl mb-1">cloud_upload</span>
+                                <?php endif; ?>
+                                <span data-photo-name><?= ! empty($s['photo']) ? 'Click to replace the photo' : 'Click or drag files to upload' ?></span>
+                                <input id="passportPhotoInput" name="photo" class="hidden" type="file" accept="image/png,image/jpeg" onchange="this.parentElement.querySelector('[data-photo-name]').textContent = this.files[0] ? this.files[0].name : 'Click or drag files to upload'"/>
+                            </label>
+                        </div>
+                        <?php endif; ?>
+                        <?php if ($on('document_upload')): ?>
+                        <div class="space-y-2 sm:col-span-2">
+                            <label class="<?= $labelClass ?>">Other Documents</label>
+                            <input name="invitation_letter[]" class="<?= $inputClass ?> pt-2.5" type="file" multiple/>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                </section>
+                <?php endif; ?>
+
+                <!-- Actions -->
+                <div class="flex justify-end gap-3 pb-8">
+                    <a href="<?= base_url('staffs') ?>" class="h-12 px-6 rounded-lg border border-border-color dark:border-gray-700 text-text-main dark:text-gray-200 font-brand font-medium flex items-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                        Cancel
+                    </a>
+                    <?php if (! $isRenew && in_array($s['status'] ?? 'Draft', ['Draft', ''], true)): ?>
+                    <button type="submit" name="save_as_draft" value="1" formnovalidate class="h-12 px-6 rounded-lg border border-border-color dark:border-gray-700 text-text-main dark:text-gray-200 font-brand font-semibold flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                        Save As Draft
+                    </button>
+                    <?php endif; ?>
+                    <button type="submit" class="h-12 px-6 rounded-lg bg-primary hover:bg-primary-hover text-white font-brand font-semibold flex items-center gap-2 shadow transition-colors">
+                        <span class="material-symbols-outlined text-[20px]">check_circle</span>
+                        <?= $isRenew ? 'Submit Renewal' : (isset($isEdit) && ($s['status'] ?? '') !== 'Draft' ? 'Save Changes' : 'Submit') ?>
+                    </button>
+                </div>
+            </form>
         </div>
     </main>
 
@@ -727,107 +631,6 @@
 </body>
 
 <script>
-
-// License dynamic addition
-        let licenseCount = 0;
-        function addLicense() {
-            const container = document.getElementById('licenseContainer');
-            
-            // Remove empty state message if it exists
-            const emptyState = container.querySelector('.text-center');
-            if (emptyState) {
-                emptyState.remove();
-            }
-            
-            const items = container.querySelectorAll('.license-item');
-            const newIndex = items.length;
-            
-            const html = `
-                <div class="license-item bg-background-light dark:bg-background-dark/50 rounded-lg p-4 border border-border-color dark:border-gray-700">
-                    <div class="flex items-center justify-between mb-4">
-                        <h4 class="font-semibold text-text-main dark:text-white font-brand">License ${newIndex + 1}</h4>
-                        <button type="button" onclick="removeSpecificLicense(this)" class="text-red-600 hover:text-red-700 transition-colors p-1 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20" title="Delete this license">
-                            <span class="material-symbols-outlined text-xl">delete</span>
-                        </button>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="space-y-2">
-                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">License Class</label>
-                            <select name="licenses[${licenseCount}][class]" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand">
-                                <option value="">SELECT</option>
-                                <option value="B">B</option>
-                                <option value="B2">B2</option>
-                                <option value="C">C</option>
-                                <option value="D">D</option>
-                                <option value="DA">DA</option>
-                                <option value="E">E</option>
-                                <option value="E1">E1</option>
-                                <option value="E2">E2</option>
-                            </select>
-                        </div>
-                        <div class="space-y-2">
-                            <label class="block text-sm font-medium text-text-main dark:text-gray-200 font-brand">License Expiry <span class="text-red-500">*</span></label>
-                            <input name="licenses[${licenseCount}][expiry]" placeholder="DD/MM/YYYY" class="w-full h-12 rounded-lg border-border-color dark:border-gray-700 bg-background-light dark:bg-background-dark text-text-main dark:text-white px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-brand" type="date"/>
-                        </div>
-                    </div>
-                </div>
-            `;
-            container.insertAdjacentHTML('beforeend', html);
-            licenseCount++;
-        }
-
-
-// Function for removing license
-        function removeLicense() {
-            const container = document.getElementById('licenseContainer');
-            const items = container.querySelectorAll('.license-item');
-            if (items.length > 0) {
-                items[items.length - 1].remove();
-                updateLicenseNumbers();
-                
-                // Show empty state if no items left
-                if (container.querySelectorAll('.license-item').length === 0) {
-                    container.innerHTML = `
-                        <div class="text-center py-8 text-text-sub dark:text-gray-400">
-                            <span class="material-symbols-outlined text-5xl mb-3 block text-gray-300 dark:text-gray-600">badge</span>
-                            <p class="text-sm">No licenses added yet. Click <span class="text-primary font-semibold">+</span> to add driving license.</p>
-                        </div>
-                    `;
-                    licenseCount = 0;
-                }
-            }
-        }
-
-        function removeSpecificLicense(button) {
-            const container = document.getElementById('licenseContainer');
-            const item = button.closest('.license-item');
-            item.remove();
-            
-            updateLicenseNumbers();
-            
-            // Show empty state if no items left
-            const items = container.querySelectorAll('.license-item');
-            if (items.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-8 text-text-sub dark:text-gray-400">
-                        <span class="material-symbols-outlined text-5xl mb-3 block text-gray-300 dark:text-gray-600">badge</span>
-                        <p class="text-sm">No licenses added yet. Click <span class="text-primary font-semibold">+</span> to add driving license.</p>
-                    </div>
-                `;
-                licenseCount = 0;
-            }
-        }
-
-        function updateLicenseNumbers() {
-            const container = document.getElementById('licenseContainer');
-            const items = container.querySelectorAll('.license-item');
-            items.forEach((item, index) => {
-                const header = item.querySelector('h4');
-                if (header) {
-                    header.textContent = `License ${index + 1}`;
-                }
-            });
-        }
 
         function autoDetectGenderFromIC(icValue) {
             const ic = icValue.replace(/[-\s]/g, '');
@@ -874,26 +677,6 @@
                         return;
                     }
 
-                    const parent = this.closest('.group');
-                    let preview = parent.querySelector('.file-preview');
-                    if (!preview) {
-                        preview = document.createElement('div');
-                        preview.className = 'file-preview absolute inset-0 bg-green-50 dark:bg-green-900/20 rounded-xl border-2 border-green-500 flex flex-col items-center justify-center p-4 overflow-y-auto';
-                        parent.appendChild(preview);
-                    }
-
-                    const fileList = files.map(f =>
-                        `<p class="text-xs text-green-700 dark:text-green-400 truncate max-w-full">&#10003; ${f.name}</p>`
-                    ).join('');
-
-                    preview.innerHTML = `
-                        <div class="text-center w-full">
-                            <span class="material-symbols-outlined text-3xl text-green-600 mb-1">check_circle</span>
-                            <p class="text-sm font-semibold text-green-700 dark:text-green-400 mb-1">${files.length} file${files.length > 1 ? 's' : ''} selected</p>
-                            <div class="text-left px-2 mb-2">${fileList}</div>
-                            <button type="button" class="mt-1 text-xs text-red-600 hover:text-red-800" onclick="this.closest('.file-preview').remove(); document.querySelector('input[name=\\'invitation_letter[]\\']').value='';">Clear All</button>
-                        </div>
-                    `;
                 });
             }
         });
