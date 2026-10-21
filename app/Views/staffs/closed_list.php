@@ -46,6 +46,8 @@ $label    = 'block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1';
                 </div>
             </div>
 
+            <?php if ($showStats ?? true): ?><?= view('partials/stat_cards', ['cards' => $statCards]) ?><?php endif; ?>
+
             <!-- Filters -->
             <form method="get" action="<?= base_url('staffs/closed-list') ?>" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 <div class="lg:col-span-2">

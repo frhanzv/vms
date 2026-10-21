@@ -268,6 +268,7 @@
             $colSpans = \App\Models\DashboardWidgetPreferenceModel::$colSpans;
             foreach ($widgetPreferences as $wp):
                 $wid     = $wp['id'];
+                if ($wid === 'vendor-summary') { continue; } // the Vendor Passes card lives on the Vendor dashboard
                 $visible = $wp['visible'] ?? true;
                 $span    = $colSpans[$wid] ?? 'col-span-1';
             ?>

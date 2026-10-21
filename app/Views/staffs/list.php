@@ -73,20 +73,11 @@ $selectCls = 'w-full md:w-40 border border-gray-300 dark:border-gray-600 dark:bg
             </div>
 
             <!-- Stat cards -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-                <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                    <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 font-semibold"><?= $isInactive ? 'Inactive Staff Passes' : 'Total Staff Passes' ?></p>
-                    <p class="text-2xl font-bold text-gray-800 dark:text-white mt-1"><?= number_format($stats['total']) ?></p>
-                </div>
-                <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                    <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 font-semibold">Pending</p>
-                    <p class="text-2xl font-bold text-amber-500 mt-1"><?= number_format($stats['pending']) ?></p>
-                </div>
-                <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                    <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 font-semibold">Approved</p>
-                    <p class="text-2xl font-bold text-emerald-500 mt-1"><?= number_format($stats['approved']) ?></p>
-                </div>
-            </div>
+            <?php if ($showStats ?? true): ?><?= view('partials/stat_cards', ['cards' => [
+                ['label' => $isInactive ? 'Inactive Staff Passes' : 'Total Staff Passes', 'value' => $stats['total'], 'sub' => $isInactive ? 'Inactive records' : 'All staff pass records', 'color' => 'indigo', 'icon' => 'badge'],
+                ['label' => 'Pending', 'value' => $stats['pending'], 'sub' => 'Awaiting approval', 'color' => 'orange', 'icon' => 'pending_actions'],
+                ['label' => 'Approved', 'value' => $stats['approved'], 'sub' => 'Ready for use', 'color' => 'green', 'icon' => 'check_circle'],
+            ]]) ?><?php endif; ?>
 
             <!-- Filter -->
             <form method="get" action="<?= $listUrl ?>" class="no-print flex flex-col md:flex-row items-center justify-between gap-4 mb-6">

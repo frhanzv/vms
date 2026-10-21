@@ -286,12 +286,53 @@ class VehiclePass extends BaseController
         [$sortCol, $sortDir] = $sorts[$sort] ?? $sorts['date_desc'];
         $total = (clone $b)->countAllResults(false);
         $rows  = $b->orderBy($sortCol, $sortDir)->limit($per, ($page - 1) * $per)->get()->getResultArray();
+        if ($stage === 'request') {   // row Edit / Delete icons: only where the pass screen would allow them too
+            foreach ($rows as &$rw) {
+                $rw['_can_approve'] = $this->may($rw, 'request');
+                $rw['_can_edit']   = $this->canEdit($rw);
+                $rw['_can_delete'] = $this->canDelete($rw);
+            }
+            unset($rw);
+        }
+
+        // summary cards: counts of the whole list (ignoring search and filters), only the statuses this page can hold
+        $statCards = [];
+        if (in_array($stage, ['all', 'staff', 'closed'], true)) {
+            $today = $db->escape(date('Y-m-d'));
+            $sb    = $db->table('vehicles v');
+            $this->scope($sb);
+            $sb->where('v.vehicle_group', $group);
+            $this->notDeleted($sb);
+            if ($stage === 'staff') {
+                $sb->where('v.pass_for', 'staff');
+            }
+            if ($stage === 'closed') {
+                $sb->whereIn('v.status', ['Issued', 'Terminated']);
+                $sr = $sb->select("COUNT(*) AS total, SUM(v.status = 'Issued' AND (v.pass_expiry IS NULL OR v.pass_expiry >= {$today})) AS active, "
+                    . "SUM(v.status = 'Issued' AND v.pass_expiry < {$today}) AS expired, SUM(v.status = 'Terminated') AS term_n", false)->get()->getRowArray() ?: [];
+                $statCards = [
+                    ['label' => 'Total Closed', 'value' => (int) ($sr['total'] ?? 0), 'sub' => 'All closed passes', 'color' => 'indigo', 'icon' => 'directions_car'],
+                    ['label' => 'Active', 'value' => (int) ($sr['active'] ?? 0), 'sub' => 'Issued and valid', 'color' => 'green', 'icon' => 'check_circle'],
+                    ['label' => 'Expired', 'value' => (int) ($sr['expired'] ?? 0), 'sub' => 'Pass expiry passed', 'color' => 'orange', 'icon' => 'event_busy'],
+                    ['label' => 'Terminated', 'value' => (int) ($sr['term_n'] ?? 0), 'sub' => 'Pass ended', 'color' => 'red', 'icon' => 'cancel'],
+                ];
+            } else {
+                $sr = $sb->select("COUNT(*) AS total, SUM(v.status = 'Pending') AS pending, SUM(v.status = 'Approved') AS approved, SUM(v.status = 'Issued') AS issued, SUM(v.status = 'Rejected') AS rejected", false)->get()->getRowArray() ?: [];
+                $statCards = [
+                    ['label' => 'Total Passes', 'value' => (int) ($sr['total'] ?? 0), 'sub' => 'All vehicle pass records', 'color' => 'indigo', 'icon' => 'directions_car'],
+                    ['label' => 'Pending', 'value' => (int) ($sr['pending'] ?? 0), 'sub' => 'Awaiting approval', 'color' => 'orange', 'icon' => 'pending_actions'],
+                    ['label' => 'Approved', 'value' => (int) ($sr['approved'] ?? 0), 'sub' => 'Awaiting issue', 'color' => 'blue', 'icon' => 'task_alt'],
+                    ['label' => 'Issued', 'value' => (int) ($sr['issued'] ?? 0), 'sub' => 'Active passes', 'color' => 'green', 'icon' => 'check_circle'],
+                    ['label' => 'Rejected', 'value' => (int) ($sr['rejected'] ?? 0), 'sub' => 'Declined requests', 'color' => 'red', 'icon' => 'cancel'],
+                ];
+            }
+        }
 
         return view('vehicles/list', [
             'pageTitle' => $title . ' - ' . VehicleRules::GROUPS[$group] . ' - SafeG', 'title' => VehicleRules::GROUPS[$group] . ' - ' . $title, 'group' => $group, 'stage' => $stage, 'rows' => $rows,
             'search' => $search, 'status' => $status, 'page' => $page, 'pages' => max(1, (int) ceil($total / $per)), 'total' => $total,
             'appFor' => $appFor, 'typeId' => $typeId, 'appTyp' => $appTyp, 'sort' => $sort, 'per' => $per, 'types' => $this->types($group),
-            'filterable' => $filterable,
+            'filterable' => $filterable, 'statCards' => $statCards, 'rejectReasons' => $stage === 'request' ? $this->rejectReasons() : [],
             'canCreate' => $this->allowed($group, 'create'),
             'canColumns' => ! is_vendor_admin() && has_access('vehicle', 'show_hide_columns'),
             'canDirect' => $stage === 'closed' && ! is_vendor_admin() && $this->allowed($group, 'closed') && has_access('vehicle', 'new_issued_pass'),
@@ -512,8 +553,8 @@ class VehiclePass extends BaseController
         $errors = [];
         $get    = static fn(string $k): string => trim((string) ($p[$k] ?? ''));
         // Dynamic Form Fields > Vehicle Pass Request: a switched-off field is not asked, not checked and keeps its saved value
-        $on     = static fn(string $k): bool => VehicleRules::fieldOn($k);
-        $req    = static fn(string $k): bool => VehicleRules::fieldRequired($k);
+        $on     = static fn(string $k): bool => VehicleRules::fieldOn($k, $kind === 'staff');
+        $req    = static fn(string $k): bool => VehicleRules::fieldRequired($k, $kind === 'staff');
         $keep   = static fn(string $k): string => $on($k) ? $get($k) : trim((string) ($cur[$k] ?? ''));
 
         $type = null;
@@ -523,7 +564,7 @@ class VehiclePass extends BaseController
             }
         }
         $plate = VehicleRules::normalizePlate($get('plate_no'));
-        $year  = in_array($get('sticker_year'), VehicleRules::stickerYears(), true) ? $get('sticker_year') : ($cur['sticker_year'] ?? VehicleRules::stickerYears()[0]);
+        $year  = $on('sticker_year') && in_array($get('sticker_year'), VehicleRules::stickerYears(), true) ? $get('sticker_year') : ($cur['sticker_year'] ?? VehicleRules::stickerYears()[0]);
         $locs  = array_values(array_filter(array_map('trim', (array) ($p['location_access'] ?? []))));
         if (! $on('location_access')) {
             $locs = array_values(array_filter(explode(',', (string) ($cur['location_access'] ?? ''))));
@@ -534,7 +575,7 @@ class VehiclePass extends BaseController
         // who owns the vehicle
         $co    = current_vendor_company();
         // KPK's request form has no owner fields: the owner is the logged-in account, "Application For" (Individual / Company) says which.
-        $appFor    = in_array($get('owner_type'), ['Individual', 'Company'], true) ? $get('owner_type') : (in_array($cur['owner_type'] ?? '', ['Individual', 'Company'], true) ? $cur['owner_type'] : 'Individual');
+        $appFor    = $on('owner_type') && in_array($get('owner_type'), ['Individual', 'Company'], true) ? $get('owner_type') : (in_array($cur['owner_type'] ?? '', ['Individual', 'Company'], true) ? $cur['owner_type'] : 'Individual');
         $acctName  = (string) (session()->get('full_name') ?: session()->get('username'));
         $clientRow = $db->tableExists('clients') && function_exists('current_client_id') ? $db->table('clients')->select('name')->where('id', (int) current_client_id())->get()->getRowArray() : null;
         $coName    = $co ? (string) $co['name'] : (string) (($cur['company_name'] ?? '') ?: ($clientRow['name'] ?? ''));
@@ -555,8 +596,8 @@ class VehiclePass extends BaseController
             }
         }
 
-        $operation = in_array($get('vehicle_operation'), VehicleRules::OPERATIONS, true) ? $get('vehicle_operation') : null;
-        if ($group === 'cnc' && ! $operation) {
+        $operation = $on('vehicle_operation') ? (in_array($get('vehicle_operation'), VehicleRules::OPERATIONS, true) ? $get('vehicle_operation') : null) : ($cur['vehicle_operation'] ?? null);
+        if ($group === 'cnc' && $on('vehicle_operation') && ! $operation) {
             $errors[] = 'Choose the vehicle operation.';
         }
         if ($plate === '') {
@@ -646,7 +687,7 @@ class VehiclePass extends BaseController
             'road_tax_expiry' => $this->toDate($keep('road_tax_expiry')), 'insurance_expiry' => $this->toDate($keep('insurance_expiry')),
             'location_access' => implode(',', $locs), 'remark' => $keep('remark') ?: null, 'sticker_year' => $year,
             'vehicle_operation' => $group === 'cnc' ? $operation : null,
-            'department' => $get('department') ?: ($owner['department'] ?? '') ?: ($cur['department'] ?? null), 'hod' => $get('hod') ?: ($cur['hod'] ?? null),
+            'department' => ($on('department') ? $get('department') : '') ?: ($owner['department'] ?? '') ?: ($cur['department'] ?? null), 'hod' => ($on('hod') ? $get('hod') : '') ?: ($cur['hod'] ?? null),
             'payment_required' => $type ? (int) $type['payment_required'] : 0, 'updated_at' => $now,
         ];
         foreach (VehicleRules::TYPE_FIELDS as [$field, $label]) {
@@ -1093,7 +1134,7 @@ class VehiclePass extends BaseController
                 return $this->back('error', 'Choose the vehicle type.', $back);
             }
             foreach (['colour' => 'Colour', 'brand' => 'Brand', 'insurance_expiry' => 'Insurance expiry'] as $k => $label) {
-                if (VehicleRules::fieldRequired($k) && $g($k) === '') {
+                if (VehicleRules::fieldRequired($k, ($v['pass_for'] ?? '') === 'staff') && $g($k) === '') {
                     return $this->back('error', "{$label} is required.", $back);
                 }
             }

@@ -17,11 +17,14 @@ $d = static fn($x) => $x ? date('d/m/Y', strtotime($x)) : '-';
     </form>
     <?php if ($notFound): ?><p class="text-sm text-red-600"><?= esc($notFound) ?></p><?php endif; ?>
     <?php if ($v): ?>
-    <h2 class="text-sm font-bold uppercase mb-3">Vehicle Information</h2>
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <?= $row('Plate Number', $v['plate_no']) ?><?= $row('Pass No', $v['app_no']) ?><?= $row('Current Company', $v['company_name']) ?>
-        <?= $row('Sticker Serial', $v['sticker_serial']) ?><?= $row('Sticker Year', $v['sticker_year']) ?><?= $row('Pass Expiry', $d($v['pass_expiry'])) ?>
-        <?= $row('Brand', $v['brand'] ?? '') ?><?= $row('Colour', $v['colour'] ?? '') ?>
+    <h2 class="text-sm font-bold uppercase mb-3 flex items-center gap-2"><span class="material-symbols-outlined text-base">apartment</span>Company</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
+        <?= $row('Company Registration ID', $v['co_reg_no'] ?? '') ?><?= $row('Company Name', ($v['co_name'] ?? '') !== '' ? $v['co_name'] : $v['company_name']) ?>
+    </div>
+    <h2 class="text-sm font-bold uppercase mb-3 flex items-center gap-2"><span class="material-symbols-outlined text-base">directions_car</span>Vehicle Info</h2>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
+        <?= $row('Vehicle Operation', $v['vehicle_operation'] ?? '') ?><?= $row('Type Of Vehicle', $v['type_name'] ?? '') ?><?= $row('Registration Number', $v['plate_no']) ?><?= $row('Year Made', $v['year_made'] ?? '') ?>
+        <?= $row('Colour', $v['colour'] ?? '') ?><?= $row('Brand', $v['brand'] ?? '') ?><?= $row('Road Tax Expiry Date', $d($v['road_tax_expiry'] ?? null)) ?><?= $row('Insurance Expiry Date', $d($v['insurance_expiry'] ?? null)) ?>
     </div>
     <?php if ($v['expired']): ?>
         <div class="rounded border border-amber-200 bg-amber-50 text-amber-800 px-4 py-3 text-sm">

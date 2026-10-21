@@ -2297,15 +2297,6 @@
                                 <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                                     <div><label class="block text-xs font-semibold text-gray-600 dark:text-slate-300 mb-1">Name</label>
                                         <input id="vtName" maxlength="100" placeholder="e.g. Car" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm"></div>
-                                    <div><label class="block text-xs font-semibold text-gray-600 dark:text-slate-300 mb-1">Category</label>
-                                        <select id="vtCategory" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm">
-                                            <option value="car">Car</option><option value="motorbike">Motorbike</option><option value="van">Van</option><option value="truck">Truck / Lorry</option><option value="other">Other</option></select></div>
-                                    <div><label class="block text-xs font-semibold text-gray-600 dark:text-slate-300 mb-1">Used for</label>
-                                        <select id="vtGroup" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm">
-                                            <option value="both">Public and Cargo | Non-Cargo</option><option value="public">Public only</option><option value="cnc">Cargo | Non-Cargo only</option></select></div>
-                                    <div><label class="block text-xs font-semibold text-gray-600 dark:text-slate-300 mb-1">Operation (Cargo | Non-Cargo)</label>
-                                        <select id="vtOperation" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm">
-                                            <option value="">Any operation</option><option>CONTAINER</option><option>CARGO AND NON-CARGO</option><option>NON-CARGO</option><option>CONTAINER, CARGO AND NON-CARGO</option></select></div>
                                     <div class="relative"><label class="block text-xs font-semibold text-gray-600 dark:text-slate-300 mb-1">License Class</label>
                                         <details id="vtLcBox" class="w-full">
                                             <summary id="vtLcSummary" class="list-none cursor-pointer w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm min-h-[2.5rem]">Select license class</summary>
@@ -2314,6 +2305,20 @@
                                     <div><label class="block text-xs font-semibold text-gray-600 dark:text-slate-300 mb-1">Status</label>
                                         <select id="vtStatus" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm">
                                             <option value="active">Active</option><option value="inactive">Inactive</option></select></div>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-semibold text-gray-600 dark:text-slate-300 mb-2">Type of vehicle and where it is offered</p>
+                                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-gray-700 dark:text-slate-300">
+                                        <label class="flex items-center gap-2"><input type="checkbox" data-vt="is_commercial"> Commercial</label>
+                                        <label class="flex items-center gap-2"><input type="checkbox" data-vt="is_container"> Container</label>
+                                        <label class="flex items-center gap-2"><input type="checkbox" data-vt="is_cargo"> Cargo</label>
+                                        <label class="flex items-center gap-2"><input type="checkbox" data-vt="is_non_cargo"> Non-Cargo</label>
+                                        <label class="flex items-center gap-2"><input type="checkbox" data-vt="is_public"> Public</label>
+                                        <label class="flex items-center gap-2"><input type="checkbox" data-vt="is_car"> Car</label>
+                                        <label class="flex items-center gap-2"><input type="checkbox" data-vt="is_motorbike"> Motorbike</label>
+                                        <label class="flex items-center gap-2"><input type="checkbox" data-vt="is_van"> Van</label>
+                                    </div>
+                                    <p id="vtFlagsWarn" class="hidden mt-2 text-xs text-amber-600">These options need the latest database update (run php spark migrate). Until then they are not saved.</p>
                                 </div>
                                 <div>
                                     <p class="text-xs font-semibold text-gray-600 dark:text-slate-300 mb-2">Extra details required on the request form</p>
@@ -4782,31 +4787,36 @@
                                         class="px-4 py-2 text-sm font-medium font-brand border-b-2 border-primary text-primary -mb-px">
                                         Visitor Registration
                                     </button>
-                                    <button type="button" id="dff-tab-vendor_pass_request"
-                                        onclick="dffSwitchTab('vendor_pass_request')"
-                                        class="px-4 py-2 text-sm font-medium font-brand border-b-2 border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 -mb-px">
-                                        Vendor Pass Request
-                                    </button>
                                     <button type="button" id="dff-tab-invitation"
                                         onclick="dffSwitchTab('invitation')"
                                         class="px-4 py-2 text-sm font-medium font-brand border-b-2 border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 -mb-px">
                                         Invitation Form (Create Invitation page)
-                                    </button>
-                                    <button type="button" id="dff-tab-staff_pass_request"
-                                        onclick="dffSwitchTab('staff_pass_request')"
-                                        class="px-4 py-2 text-sm font-medium font-brand border-b-2 border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 -mb-px">
-                                        Staff Pass Request
                                     </button>
                                     <button type="button" id="dff-tab-visitor_pass_request"
                                         onclick="dffSwitchTab('visitor_pass_request')"
                                         class="px-4 py-2 text-sm font-medium font-brand border-b-2 border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 -mb-px">
                                         Visitor Pass Request
                                     </button>
+                                    <button type="button" id="dff-tab-staff_pass_request"
+                                        onclick="dffSwitchTab('staff_pass_request')"
+                                        class="px-4 py-2 text-sm font-medium font-brand border-b-2 border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 -mb-px">
+                                        Staff Pass Request
+                                    </button>
+                                    <button type="button" id="dff-tab-vendor_pass_request"
+                                        onclick="dffSwitchTab('vendor_pass_request')"
+                                        class="px-4 py-2 text-sm font-medium font-brand border-b-2 border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 -mb-px">
+                                        Vendor Pass Request
+                                    </button>
                                     <?php if (client_feature_enabled('vehicle_pass')): ?>
                                     <button type="button" id="dff-tab-vehicle_pass_request"
                                         onclick="dffSwitchTab('vehicle_pass_request')"
                                         class="px-4 py-2 text-sm font-medium font-brand border-b-2 border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 -mb-px">
                                         Vehicle Pass Request
+                                    </button>
+                                    <button type="button" id="dff-tab-vehicle_staff_request"
+                                        onclick="dffSwitchTab('vehicle_staff_request')"
+                                        class="px-4 py-2 text-sm font-medium font-brand border-b-2 border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 -mb-px">
+                                        Staff Vehicle Pass Request
                                     </button>
                                     <?php endif; ?>
                                 </div>
@@ -8198,22 +8208,31 @@
             document.getElementById('vtLcSummary').textContent = names.length ? names.join(', ') : 'Select license class';
         }
         const vtFlags = () => Array.from(document.querySelectorAll('#vtForm [data-vt]'));
+        // types saved before the KPK flags existed: work the flags out from the old category / used for / operation
+        function legacyFlag(r, k) {
+            const g = r.vehicle_group || 'both', o = r.operation || '', cat = r.category;
+            return ({ is_public: g !== 'cnc', is_cargo: g !== 'public' && (o === '' || o.includes('CARGO AND')), is_non_cargo: g !== 'public' && (o === '' || o.includes('NON-CARGO')), is_container: o.includes('CONTAINER'),
+                is_commercial: cat === 'truck', is_car: cat === 'car', is_motorbike: cat === 'motorbike', is_van: cat === 'van' })[k] ? 1 : 0;
+        }
         function loadVehicleTypes() {
             fetch(`<?= base_url('config/vehicle-types') ?>`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
                 .then(r => r.json())
-                .then(res => { vtRows = res.data || []; vtLcOptions = res.license_options || []; vtLcRender(vtLcSelected()); renderVehicleTypes(); })
+                .then(res => { vtRows = res.data || []; vtLcOptions = res.license_options || []; document.getElementById('vtFlagsWarn').classList.toggle('hidden', res.flags_ready !== false); vtLcRender(vtLcSelected()); renderVehicleTypes(); })
                 .catch(() => { document.getElementById('vtList').innerHTML = '<p class="text-sm text-red-500">Could not load vehicle types.</p>'; });
         }
         function renderVehicleTypes() {
             const box = document.getElementById('vtList');
             if (!vtRows.length) { box.innerHTML = '<p class="text-sm text-gray-500">No vehicle types yet. Add one above.</p>'; return; }
-            const extras = { seater_req: 'Seater', working_height_req: 'Height', working_load_req: 'Load', truck_head_req: 'Truck head', trailer_req: 'Trailer', truck_weight_req: 'Weight', chassis_req: 'Chassis', trailer_weight_req: 'Trailer wt', trailer_type_req: 'Trailer type', req_pass: 'Driver pass' };
-            box.innerHTML = `<div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800"><table class="w-full text-left text-sm">
-                <thead><tr class="bg-gray-50 dark:bg-slate-700 text-xs uppercase text-gray-600 dark:text-slate-200"><th class="p-3">Name</th><th class="p-3">Category</th><th class="p-3">Used for</th><th class="p-3">Extra details</th><th class="p-3">Payment</th><th class="p-3">License Class</th><th class="p-3">Status</th><th class="p-3"></th></tr></thead><tbody>` +
+            const yn = v => +v === 1 ? '<span class="text-green-600 font-bold">&#10003;</span>' : '<span class="text-red-500 font-bold">&#10005;</span>';
+            const cols = [['Commercial','is_commercial'],['Container','is_container'],['Cargo','is_cargo'],['Non-Cargo','is_non_cargo'],['Public','is_public'],['Car','is_car'],['Motorbike','is_motorbike'],['Van','is_van'],
+                ['Seater Number','seater_req'],['Trailer Number','trailer_req'],['Trailer Weight','trailer_weight_req'],['Trailer Type','trailer_type_req'],['Truck Head Number','truck_head_req'],['Truck Weight','truck_weight_req'],
+                ['Working Height','working_height_req'],['Working Load','working_load_req'],['Chassis Number','chassis_req'],['Payment Type','payment_required']];
+            const val = (r, k) => k.startsWith('is_') ? (r[k] !== undefined ? r[k] : legacyFlag(r, k)) : r[k];
+            box.innerHTML = `<div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800"><table class="w-full text-left text-sm whitespace-nowrap">
+                <thead><tr class="bg-gray-50 dark:bg-slate-700 text-xs uppercase text-gray-600 dark:text-slate-200"><th class="p-3">Vehicle Type</th>${cols.map(c => `<th class="p-3 text-center">${c[0]}</th>`).join('')}<th class="p-3">License Class</th><th class="p-3 text-center">Duplicate Plate No</th><th class="p-3 text-center">Driver Pass</th><th class="p-3">Status</th><th class="p-3"></th></tr></thead><tbody>` +
                 vtRows.map(r => {
-                    const ex = Object.keys(extras).filter(k => +r[k] === 1).map(k => extras[k]).join(', ') || '-';
                     const acts = r.editable ? `<button type="button" onclick="editVehicleType(${r.id})" class="text-primary text-xs font-semibold mr-3">Edit</button><button type="button" onclick="deleteVehicleType(${r.id})" class="text-red-600 text-xs font-semibold">Delete</button>` : '<span class="text-xs text-gray-400">Shared</span>';
-                    return `<tr class="border-t border-gray-100 dark:border-slate-700 text-gray-700 dark:text-slate-200"><td class="p-3 font-medium">${escapeHtml(r.name)}</td><td class="p-3">${escapeHtml(r.category)}</td><td class="p-3">${({public:'Public',cnc:'Cargo | Non-Cargo'})[r.vehicle_group] || 'Both'}</td><td class="p-3">${escapeHtml(ex)}</td><td class="p-3">${+r.payment_required ? 'Required' : '-'}</td><td class="p-3">${escapeHtml((r.license_classes || []).map(l => l.name).join(', ') || '-')}</td><td class="p-3">${escapeHtml(r.status)}</td><td class="p-3 whitespace-nowrap">${acts}</td></tr>`;
+                    return `<tr class="border-t border-gray-100 dark:border-slate-700 text-gray-700 dark:text-slate-200"><td class="p-3 font-medium">${escapeHtml(r.name)}</td>${cols.map(c => `<td class="p-3 text-center">${yn(val(r, c[1]))}</td>`).join('')}<td class="p-3">${escapeHtml((r.license_classes || []).map(l => l.name).join(', ') || '-')}</td><td class="p-3 text-center">${yn(r.duplicate_plate_ok)}</td><td class="p-3 text-center">${yn(r.req_pass)}</td><td class="p-3">${escapeHtml(r.status)}</td><td class="p-3">${acts}</td></tr>`;
                 }).join('') + '</tbody></table></div>';
         }
         function resetVehicleTypeForm() {
@@ -8224,9 +8243,8 @@
         function editVehicleType(id) {
             const r = vtRows.find(x => +x.id === +id); if (!r) return;
             document.getElementById('vtId').value = r.id; document.getElementById('vtName').value = r.name;
-            document.getElementById('vtCategory').value = r.category; document.getElementById('vtStatus').value = r.status;
-            document.getElementById('vtGroup').value = r.vehicle_group || 'both'; document.getElementById('vtOperation').value = r.operation || '';
-            vtFlags().forEach(c => c.checked = +r[c.dataset.vt] === 1);
+            document.getElementById('vtStatus').value = r.status;
+            vtFlags().forEach(c => c.checked = +(r[c.dataset.vt] !== undefined ? r[c.dataset.vt] : legacyFlag(r, c.dataset.vt)) === 1);
             vtLcRender((r.license_classes || []).map(l => +l.id));
             document.getElementById('vtFormTitle').textContent = 'Edit Vehicle Type';
             document.getElementById('vtName').focus();
@@ -8235,8 +8253,7 @@
             e.preventDefault();
             const fd = new FormData();
             fd.append('id', document.getElementById('vtId').value); fd.append('name', document.getElementById('vtName').value);
-            fd.append('category', document.getElementById('vtCategory').value); fd.append('status', document.getElementById('vtStatus').value);
-            fd.append('vehicle_group', document.getElementById('vtGroup').value); fd.append('operation', document.getElementById('vtOperation').value);
+            fd.append('status', document.getElementById('vtStatus').value);
             vtFlags().forEach(c => { if (c.checked) fd.append(c.dataset.vt, '1'); });
             vtLcSelected().forEach(id => fd.append('license_class_ids[]', id));
             fetch(`<?= base_url('config/vehicle-types/save') ?>`, { method: 'POST', headers: ctHeaders(), body: fd })
@@ -18681,7 +18698,7 @@
         function dffSwitchTab(formType) {
             dffActiveTab = formType;
 
-            ['visitor_registration', 'invitation', 'staff_pass_request', 'visitor_pass_request', 'vendor_pass_request', 'vehicle_pass_request'].forEach(t => {
+            ['visitor_registration', 'invitation', 'visitor_pass_request', 'staff_pass_request', 'vendor_pass_request', 'vehicle_pass_request', 'vehicle_staff_request'].forEach(t => {
                 const btn = document.getElementById(`dff-tab-${t}`);
                 if (!btn) return;
                 if (t === formType) {

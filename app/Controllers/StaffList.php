@@ -148,6 +148,7 @@ class StaffList extends StaffPassBase
             'requestMode'   => $rm,
             'listUrl'       => base_url($rm ? 'staffs/request-list' : 'staffs'),
             'tab'           => $tab,
+            'showStats'     => $this->cfg('stat_cards'),
             'stats'         => [
                 'total'    => $count($tab, 'all'),
                 'pending'  => $count($tab, 'Pending'),

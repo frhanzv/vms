@@ -24,10 +24,11 @@ class ClientFormFieldModel extends Model
         return [
             'visitor_registration'  => 'Visitor Registration',
             'invitation'            => 'Invitation Form',
-            'staff_pass_request'    => 'Staff Pass Request',
             'visitor_pass_request'  => 'Visitor Pass Request',
+            'staff_pass_request'    => 'Staff Pass Request',
             'vendor_pass_request'   => 'Vendor Pass Request',
             'vehicle_pass_request'  => 'Vehicle Pass Request',
+            'vehicle_staff_request' => 'Staff Vehicle Pass Request',
         ];
     }
 
@@ -39,12 +40,17 @@ class ClientFormFieldModel extends Model
     public static function vehiclePassFields(): array
     {
         return [
+            ['field_key' => 'sticker_year',     'label' => 'Sticker Year'],
+            ['field_key' => 'owner_type',       'label' => 'Application For (Public: Individual / Company)'],
+            ['field_key' => 'vehicle_operation', 'label' => 'Vehicle Operation (Cargo | Non-Cargo)'],
             ['field_key' => 'brand',            'label' => 'Brand', 'requirable' => true, 'default_required' => true],
             ['field_key' => 'year_made',        'label' => 'Year Made', 'requirable' => true],
             ['field_key' => 'colour',           'label' => 'Colour', 'requirable' => true, 'default_required' => true],
             ['field_key' => 'road_tax_expiry',  'label' => 'Road Tax Expiry', 'requirable' => true],
             ['field_key' => 'insurance_expiry', 'label' => 'Insurance Expiry', 'requirable' => true, 'default_required' => true],
             ['field_key' => 'location_access',  'label' => 'Location Access', 'requirable' => true, 'default_required' => true],
+            ['field_key' => 'department',       'label' => 'Department (Staff request)'],
+            ['field_key' => 'hod',              'label' => 'HOD (Staff request)'],
             ['field_key' => 'documents',        'label' => 'Upload Documents Section', 'requirable' => true, 'default_required' => true],
             ['field_key' => 'tnc',              'label' => 'Declaration / Terms checkbox'],
         ];
@@ -87,6 +93,8 @@ class ClientFormFieldModel extends Model
             ['field_key' => 'import_button',               'label' => 'Show Import Button (Staff List / Closed List)'],
             ['field_key' => 'template_button',             'label' => 'Show Template Button (Staff List / Closed List)'],
             ['field_key' => 'export_button',               'label' => 'Show Export Button (Staff List)'],
+            ['field_key' => 'stat_cards',                  'label' => 'Show Summary Cards (Staff List)'],
+            ['field_key' => 'closed_stat_cards',           'label' => 'Show Summary Cards (Closed List)'],
             ['field_key' => 'approve_button',              'label' => 'Show Approve Button (Request List)'],
             ['field_key' => 'reject_button',               'label' => 'Show Reject Button (Request List)'],
             ['field_key' => 'edit_button',                 'label' => 'Show Edit Button (Request List)'],
@@ -252,6 +260,8 @@ class ClientFormFieldModel extends Model
             ['field_key' => 'reject_button',          'label' => 'Show Reject Button (Vendor Pass List)'],
             ['field_key' => 'import_button',          'label' => 'Show Import Button (Vendor Pass List)'],
             ['field_key' => 'export_button',          'label' => 'Show Export Button (Vendor Pass List)'],
+            ['field_key' => 'stat_cards',             'label' => 'Show Summary Cards (Vendor Pass List)'],
+            ['field_key' => 'closed_stat_cards',      'label' => 'Show Summary Cards (Closed List)'],
             ['field_key' => 'template_button',        'label' => 'Show Template Button (Vendor Pass List)'],
             ['field_key' => 'request_button',         'label' => 'Show Request Button (Vendor Pass List / Closed List)'],
             ['field_key' => 'print_button',           'label' => 'Show Print Button (Vendor Pass List)'],
@@ -476,7 +486,13 @@ class ClientFormFieldModel extends Model
         }
 
         if ($formType === 'vehicle_pass_request') {
-            return self::vehiclePassFields();
+            // Department / HOD only exist on the staff request form
+            return array_values(array_filter(self::vehiclePassFields(), static fn($f) => ! in_array($f['field_key'], ['department', 'hod'], true)));
+        }
+
+        // The Staff Vehicle Pass request form (New Staff Request): a staff pass has no Location Access, owner type or operation
+        if ($formType === 'vehicle_staff_request') {
+            return array_values(array_filter(self::vehiclePassFields(), static fn($f) => ! in_array($f['field_key'], ['location_access', 'owner_type', 'vehicle_operation'], true)));
         }
 
         // Vehicle page buttons / actions (Config > Page Settings). Not a form: it only holds the on/off flags.
@@ -484,7 +500,7 @@ class ClientFormFieldModel extends Model
             $defs = [];
             foreach (array_keys(\App\Libraries\VehicleRules::LIST_PAGES) as $stage) {
                 foreach (\App\Libraries\VehicleRules::listButtons($stage) as $key => $label) {
-                    $defs[$key] = ['field_key' => $key, 'label' => $label];
+                    $defs[$key] = ['field_key' => $key, 'label' => $label, 'default_enabled' => in_array($key, \App\Libraries\VehicleRules::BUTTONS_OFF_BY_DEFAULT, true) ? 0 : 1];
                 }
             }
 

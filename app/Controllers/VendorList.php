@@ -159,6 +159,7 @@ class VendorList extends BaseController
             'pageTitle'     => ($this->requestMode ? 'Request List' : 'Vendor List') . ' - SafeG',
             'requestMode'   => $this->requestMode,
             'listUrl'       => base_url($this->requestMode ? 'vendors/request-list' : 'vendors'),
+            'showStats'     => $cfg('stat_cards'),
             'stats'         => [
                 'total'    => $totalCount,
                 'pending'  => $pendingCount,

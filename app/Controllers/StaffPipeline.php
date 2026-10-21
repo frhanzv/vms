@@ -411,9 +411,21 @@ class StaffPipeline extends StaffPassBase
             $list[] = $item;
         }
 
+        // summary cards: the whole closed list, ignoring search and filters
+        $sb = $this->db()->table('staff')->groupStart()->whereIn('card_status', ['Active', 'Terminated'])->orWhere('status', 'Suspended')->groupEnd();
+        $this->scope($sb);
+        $sr = $sb->select("COUNT(*) AS total, SUM(card_status = 'Active' AND status <> 'Suspended') AS active, SUM(status = 'Suspended') AS suspended, SUM(card_status = 'Terminated' AND status <> 'Suspended') AS term_n", false)->get()->getRowArray() ?: [];
+
         return view('staffs/closed_list', [
             'pageTitle'      => 'Staff Pass Closed List - SafeG',
             'closedList'     => $list,
+            'showStats'      => $this->cfg('closed_stat_cards'),
+            'statCards'      => [
+                ['label' => 'Total Closed', 'value' => (int) ($sr['total'] ?? 0), 'sub' => 'All closed staff passes', 'color' => 'indigo', 'icon' => 'badge'],
+                ['label' => 'Active', 'value' => (int) ($sr['active'] ?? 0), 'sub' => 'Card in use', 'color' => 'green', 'icon' => 'check_circle'],
+                ['label' => 'Suspended', 'value' => (int) ($sr['suspended'] ?? 0), 'sub' => 'Card switched off', 'color' => 'orange', 'icon' => 'pause_circle'],
+                ['label' => 'Terminated', 'value' => (int) ($sr['term_n'] ?? 0), 'sub' => 'Card ended', 'color' => 'red', 'icon' => 'cancel'],
+            ],
             'canExport'      => $this->cfg('closed_export_button'),
             'canCardDetails' => $this->cfg('closed_card_details_button'),
             'canRenew'       => $this->canEdit() && $this->cfg('renew_button'),

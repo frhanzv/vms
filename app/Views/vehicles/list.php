@@ -41,12 +41,7 @@ $tabs = [
         </div>
     </div>
 
-    <div class="flex flex-wrap gap-2 mb-5 border-b border-gray-200 dark:border-gray-700 pb-3">
-        <?php foreach ($tabs as $k => [$label, $path, $keys]): $show = false; foreach ($keys as $kk) { $show = $show || has_access('vehicle', $kk); } if (! $show) { continue; } ?>
-        <a href="<?= base_url($path) ?>" class="px-3 py-1.5 rounded-full text-xs font-semibold <?= $k === $stage ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200' ?>"><?= $label ?></a>
-        <?php endforeach; ?>
-    </div>
-
+    <?php if (! empty($statCards) && \App\Libraries\VehicleRules::buttonOn('veh_stat_cards_' . $stage)): ?><?= view('partials/stat_cards', ['cards' => $statCards]) ?><?php endif; ?>
     <?php $sel = static fn($a, $b) => (string) $a === (string) $b ? 'selected' : ''; $f = 'border border-gray-300 dark:border-gray-600 dark:bg-gray-800 rounded px-3 py-2 text-sm'; ?>
     <form method="get" class="grid grid-cols-2 md:grid-cols-6 gap-3 mb-5">
         <input name="search" value="<?= esc($search) ?>" placeholder="App No / Name / IC / Passport / Staff ID / Company / Department / Reg No / Serial / Receipt" class="col-span-2 md:col-span-3 <?= $f ?>"/>
@@ -77,6 +72,15 @@ $tabs = [
         if ($r['status'] !== 'Issued') { return '-'; }
         return ($r['pass_expiry'] && $r['pass_expiry'] < date('Y-m-d')) ? 'Expired' : 'Active';
     };
+    // Road tax / insurance expiry: red once the date has passed, green while it is still valid.
+    $expiryCell = static function ($date) use ($d) {
+        if (empty($date)) {
+            return '';
+        }
+        $cls = $date < date('Y-m-d') ? 'text-red-600' : 'text-green-600';
+
+        return '<span class="font-medium ' . $cls . '">' . $d($date) . '</span>';
+    };
     // key => label. Which of them show is set per client in Config > Page Settings (and the Show/Hide Columns button).
     $defs = \App\Libraries\VehicleRules::listColumns($stage);
     $cols = [];
@@ -89,7 +93,8 @@ $tabs = [
         <table class="w-full min-w-max text-left text-xs">
             <thead><tr class="bg-gray-50 dark:bg-gray-700 font-bold uppercase tracking-wide">
                 <th class="p-3 border-b dark:border-gray-600">No</th>
-                <?php foreach ($cols as $h): ?><th class="p-3 border-b dark:border-gray-600"><?= esc($h) ?></th><?php endforeach; ?><th class="p-3 border-b dark:border-gray-600"></th>
+                <th class="p-3 border-b dark:border-gray-600">Action</th>
+                <?php foreach ($cols as $h): ?><th class="p-3 border-b dark:border-gray-600"><?= esc($h) ?></th><?php endforeach; ?>
             </tr></thead>
             <tbody>
             <?php if (! $rows): ?>
@@ -97,6 +102,19 @@ $tabs = [
             <?php else: foreach ($rows as $i => $r): ?>
                 <tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
                     <td class="p-3"><?= ($page - 1) * $per + $i + 1 ?></td>
+                    <td class="p-3"><?php if (\App\Libraries\VehicleRules::buttonOn('veh_details_' . $stage)): ?><a href="<?= base_url('vehicles/view/' . $r['id']) ?>" class="text-primary hover:text-blue-700 transition-colors inline-flex" title="View Details"><span class="material-symbols-outlined text-[20px]">search</span></a><?php endif; ?>
+                        <?php if ($stage === 'request' && ! empty($r['_can_approve']) && \App\Libraries\VehicleRules::buttonOn('veh_approve_action')): ?>
+                        <button type="button" onclick="vehApprove(<?= (int) $r['id'] ?>, '<?= esc($r['plate_no'], 'js') ?>', '<?= esc($r['app_no'], 'js') ?>')" class="text-emerald-600 hover:text-emerald-700 transition-colors inline-flex align-middle ml-2" title="Approve"><span class="material-symbols-outlined text-[22px]">check_circle</span></button>
+                        <?php endif; ?>
+                        <?php if ($stage === 'request' && ! empty($r['_can_approve']) && \App\Libraries\VehicleRules::buttonOn('veh_reject_action')): ?>
+                        <button type="button" onclick="vehReject(<?= (int) $r['id'] ?>, '<?= esc($r['plate_no'], 'js') ?>', '<?= esc($r['app_no'], 'js') ?>')" class="text-red-600 hover:text-red-700 transition-colors inline-flex align-middle ml-1" title="Reject"><span class="material-symbols-outlined text-[22px]">cancel</span></button>
+                        <?php endif; ?>
+                        <?php if ($stage === 'request' && ! empty($r['_can_edit']) && \App\Libraries\VehicleRules::buttonOn('veh_edit_request')): ?>
+                        <a href="<?= base_url('vehicles/edit/' . $r['id']) ?>" class="text-amber-500 hover:text-amber-600 transition-colors inline-flex align-middle ml-1" title="Edit"><span class="material-symbols-outlined text-[20px]">edit</span></a>
+                        <?php endif; ?>
+                        <?php if ($stage === 'request' && ! empty($r['_can_delete']) && \App\Libraries\VehicleRules::buttonOn('veh_delete_request')): ?>
+                        <form method="post" action="<?= base_url('vehicles/' . $r['id'] . '/delete') ?>" class="inline ml-1" onsubmit="return confirm('Delete this vehicle pass?')"><?= csrf_field() ?><button type="submit" class="text-red-600 hover:text-red-700 transition-colors inline-flex align-middle" title="Delete"><span class="material-symbols-outlined text-[20px]">delete</span></button></form>
+                        <?php endif; ?></td>
                     <?php foreach ($cols as $key => $h): switch ($key) {
                         case 'type_of_app': $c = esc($r['type_of_app']); break;
                         case 'app_no': $c = '<span class="font-medium">' . esc($r['app_no']) . '</span>'; break;
@@ -104,8 +122,8 @@ $tabs = [
                         case 'date': $c = $d($r['app_date']); break;
                         case 'app_for': $c = esc($r['owner_type']); break;
                         case 'year': $c = esc($r['sticker_year'] ?: '-'); break;
-                        case 'name': $c = esc($r['owner_name']); break;
-                        case 'ic': $c = esc($who($r)); break;
+                        case 'name': $c = ($r['owner_type'] ?? '') === 'Staff' ? esc($r['owner_name']) : ''; break; // Individual / Company: no name asked on the request form
+                        case 'ic': $c = ($r['owner_type'] ?? '') === 'Staff' ? esc($who($r)) : ''; break;
                         case 'company': $c = esc($co($r)); break;
                         case 'reg_no': $c = '<span class="font-semibold">' . esc($r['plate_no']) . '</span>'; break;
                         case 'type': $c = esc($r['type_name'] ?? '-'); break;
@@ -117,12 +135,11 @@ $tabs = [
                         case 'status': $ds = \App\Libraries\VehicleRules::displayStatus($r); $c = '<span class="px-2 py-0.5 rounded-full font-semibold ' . ($badge[$ds] ?? '') . '">' . esc($ds) . '</span>'; break;
                         case 'next_action': $c = esc(\App\Libraries\VehicleRules::nextAction($r)); break;
                         case 'sticker_status': $c = $stickerState($r); break;
-                        case 'road_tax': $c = $d($r['road_tax_expiry']); break;
-                        case 'insurance': $c = $d($r['insurance_expiry']); break;
+                        case 'road_tax': $c = $expiryCell($r['road_tax_expiry']); break;
+                        case 'insurance': $c = $expiryCell($r['insurance_expiry']); break;
                         case 'remarks': $c = esc($r['reject_reason'] ?: ''); break;
                         default: $c = '';
                     } ?><td class="p-3"><?= $c ?></td><?php endforeach; ?>
-                    <td class="p-3"><?php if (\App\Libraries\VehicleRules::buttonOn('veh_details_' . $stage)): ?><a href="<?= base_url('vehicles/view/' . $r['id']) ?>" class="text-primary font-semibold hover:underline">Details</a><?php endif; ?></td>
                 </tr>
             <?php endforeach; endif; ?>
             </tbody>
@@ -172,5 +189,45 @@ $tabs = [
         </div>
     </form>
 </div>
+<?php endif; ?>
+<?php if ($stage === 'request'): $mi = 'w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 rounded px-3 py-2 text-sm'; ?>
+<div id="vehApproveModal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+    <form id="vehApproveForm" method="post" class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6"><?= csrf_field() ?>
+        <h3 class="text-lg font-bold mb-1">Approve Vehicle Pass</h3>
+        <p class="text-sm text-gray-500 mb-4"><span id="vehApproveInfo"></span></p>
+        <label class="block text-xs font-semibold mb-1">Collection Date</label><input name="collect_date" class="flatpickr <?= $mi ?> mb-3" placeholder="dd/mm/yyyy"/>
+        <label class="block text-xs font-semibold mb-1">Remark</label><textarea name="note" rows="2" class="<?= $mi ?> mb-4"></textarea>
+        <div class="flex justify-end gap-2">
+            <button type="button" onclick="document.getElementById('vehApproveModal').classList.add('hidden')" class="px-4 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm font-medium">Cancel</button>
+            <button class="px-4 py-2 rounded bg-emerald-600 text-white text-sm font-semibold">Approve</button>
+        </div>
+    </form>
+</div>
+<div id="vehRejectModal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+    <form id="vehRejectForm" method="post" class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6"><?= csrf_field() ?>
+        <h3 class="text-lg font-bold mb-1">Reject Vehicle Pass</h3>
+        <p class="text-sm text-gray-500 mb-4"><span id="vehRejectInfo"></span></p>
+        <label class="block text-xs font-semibold mb-1">Reject Reason</label>
+        <select name="reject_reason_id" class="<?= $mi ?> mb-3"><option value="">-- Select --</option>
+            <?php foreach ($rejectReasons ?? [] as $rr): ?><option value="<?= (int) $rr['id'] ?>"><?= esc($rr['reason']) ?></option><?php endforeach; ?></select>
+        <label class="block text-xs font-semibold mb-1">Remark</label><textarea name="note" rows="2" class="<?= $mi ?> mb-4"></textarea>
+        <div class="flex justify-end gap-2">
+            <button type="button" onclick="document.getElementById('vehRejectModal').classList.add('hidden')" class="px-4 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm font-medium">Cancel</button>
+            <button class="px-4 py-2 rounded bg-red-600 text-white text-sm font-semibold">Reject</button>
+        </div>
+    </form>
+</div>
+<script>
+function vehApprove(id, plate, app) {
+    document.getElementById('vehApproveForm').action = '<?= base_url('vehicles') ?>/' + id + '/approve';
+    document.getElementById('vehApproveInfo').textContent = plate + ' - ' + app;
+    document.getElementById('vehApproveModal').classList.remove('hidden');
+}
+function vehReject(id, plate, app) {
+    document.getElementById('vehRejectForm').action = '<?= base_url('vehicles') ?>/' + id + '/reject';
+    document.getElementById('vehRejectInfo').textContent = plate + ' - ' + app;
+    document.getElementById('vehRejectModal').classList.remove('hidden');
+}
+</script>
 <?php endif; ?>
 <?= view('vehicles/_foot') ?>

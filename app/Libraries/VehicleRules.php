@@ -272,6 +272,33 @@ class VehicleRules
     /** KPK "Vehicle Operation" (Cargo | Non-Cargo): narrows which vehicle types are offered. */
     public const OPERATIONS = ['CONTAINER', 'CARGO AND NON-CARGO', 'NON-CARGO', 'CONTAINER, CARGO AND NON-CARGO'];
 
+    /**
+     * Vehicle Operations a type can be requested under (empty = any). Worked out from the type's KPK flags
+     * (Container / Cargo / Non-Cargo); types saved before the flags existed fall back to their single operation.
+     */
+    public static function typeOperations(array $t): array
+    {
+        if (array_key_exists('is_container', $t)) {
+            $ops = [];
+            if (! empty($t['is_container'])) {
+                $ops[] = 'CONTAINER';
+            }
+            if (! empty($t['is_non_cargo'])) {
+                $ops[] = 'NON-CARGO';
+            }
+            if (! empty($t['is_cargo']) || ! empty($t['is_non_cargo'])) {
+                $ops[] = 'CARGO AND NON-CARGO';
+            }
+            if ($ops) {
+                $ops[] = 'CONTAINER, CARGO AND NON-CARGO';
+            }
+
+            return $ops;
+        }
+
+        return ($t['operation'] ?? '') !== '' ? [(string) $t['operation']] : [];
+    }
+
     /** KPK trailer sizes. */
     public const TRAILER_TYPES = ['20' => '20 Ft', '40' => '40 Ft', '45' => '45 Ft'];
 
@@ -296,6 +323,9 @@ class VehicleRules
      * (client_form_fields, form vehicle_buttons); no row means the button shows. Keys are prefixed "veh_" so
      * they never clash with vendor / staff keys. Actions on the pass screen are listed under the list they belong to.
      */
+    /** Buttons that are OFF until someone ticks them in Page Settings. */
+    public const BUTTONS_OFF_BY_DEFAULT = ['veh_edit_request', 'veh_delete_request'];
+
     public static function listButtons(string $stage): array
     {
         $details = ['veh_details_' . $stage => 'Details action'];
@@ -304,18 +334,22 @@ class VehicleRules
                 return [
                     'veh_request_button'       => 'Request button (all vehicle lists)',
                     'veh_staff_request_button' => 'New Staff Request button (all vehicle lists)',
+                    'veh_stat_cards_all'       => 'Summary cards',
                 ] + $details + [
                     'veh_edit_action'   => 'Edit action',
                     'veh_submit_action' => 'Submit action',
                     'veh_renew_action'  => 'Renew action',
                     'veh_delete_action' => 'Delete action',
                 ];
+            case 'staff':
+                return ['veh_stat_cards_staff' => 'Summary cards'] + $details;
             case 'request':
-                return $details + ['veh_approve_action' => 'Approve action', 'veh_reject_action' => 'Reject action'];
+                return $details + ['veh_edit_request' => 'Edit action (icon on each row)', 'veh_delete_request' => 'Delete action (icon on each row)',
+                    'veh_approve_action' => 'Approve action', 'veh_reject_action' => 'Reject action'];
             case 'reviewed':
                 return $details + ['veh_pay_action' => 'Pay online action', 'veh_issue_action' => 'Issue Sticker action'];
             case 'closed':
-                return $details + [
+                return ['veh_stat_cards_closed' => 'Summary cards'] + $details + [
                     'veh_direct_close_button' => 'New Issued Pass button',
                     'veh_reissue_action'      => 'Reissue tool',
                     'veh_serial_action'       => 'Serial No tool',
@@ -351,7 +385,7 @@ class VehicleRules
             }
         }
 
-        return $flags[$key] ?? true;
+        return $flags[$key] ?? ! in_array($key, self::BUTTONS_OFF_BY_DEFAULT, true);
     }
 
     /**
@@ -366,19 +400,22 @@ class VehicleRules
         self::$ffCache = [];
     }
 
-    public static function formFields(): array
+    /** Dynamic Form Fields of the vehicle request form: "vehicle_pass_request", or "vehicle_staff_request" for a staff pass. */
+    public static function formFields(bool $staff = false): array
     {
-        $cid = 0;
+        $form = $staff ? 'vehicle_staff_request' : 'vehicle_pass_request';
+        $cid  = 0;
         try {
             helper('feature');
             $cid = function_exists('current_client_id') ? (int) current_client_id() : 0;
         } catch (\Throwable $e) {
             $cid = 0;
         }
-        if (! isset(self::$ffCache[$cid])) {
+        $ck = $form . ':' . $cid;
+        if (! isset(self::$ffCache[$ck])) {
             $map = [];
             try {
-                foreach ((new \App\Models\ClientFormFieldModel())->getForCompanyForm($cid, 'vehicle_pass_request') as $row) {
+                foreach ((new \App\Models\ClientFormFieldModel())->getForCompanyForm($cid, $form) as $row) {
                     $map[$row['field_key']] = ['on' => (int) $row['is_enabled'] === 1, 'required' => (int) $row['is_enabled'] === 1 && (int) $row['is_required'] === 1];
                 }
             } catch (\Throwable $e) {
@@ -387,20 +424,20 @@ class VehicleRules
                     $map[$d['field_key']] = ['on' => (bool) ($d['default_enabled'] ?? true), 'required' => (bool) ($d['default_required'] ?? false)];
                 }
             }
-            self::$ffCache[$cid] = $map;
+            self::$ffCache[$ck] = $map;
         }
 
-        return self::$ffCache[$cid];
+        return self::$ffCache[$ck];
     }
 
-    public static function fieldOn(string $key): bool
+    public static function fieldOn(string $key, bool $staff = false): bool
     {
-        return self::formFields()[$key]['on'] ?? true;
+        return self::formFields($staff)[$key]['on'] ?? true;
     }
 
-    public static function fieldRequired(string $key): bool
+    public static function fieldRequired(string $key, bool $staff = false): bool
     {
-        return self::fieldOn($key) && (self::formFields()[$key]['required'] ?? false);
+        return self::fieldOn($key, $staff) && (self::formFields($staff)[$key]['required'] ?? false);
     }
 
     /**

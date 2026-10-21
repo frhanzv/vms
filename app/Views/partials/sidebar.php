@@ -38,7 +38,7 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
             <?php
             helper('dashboard_nav');
             $dashTabs   = dashboard_tabs();
-            $dashActive = $current === 'dashboard/staff' ? 'staff' : ($current === 'dashboard/vendor' ? 'vendor' : (($current === '' || $current === 'dashboard') ? 'visitor' : ''));
+            $dashActive = $current === 'dashboard/staff' ? 'staff' : ($current === 'dashboard/vendor' ? 'vendor' : ($current === 'dashboard/vehicle' ? 'vehicle' : (($current === '' || $current === 'dashboard') ? 'visitor' : '')));
             ?>
             <?php if (count($dashTabs) === 1): $t = $dashTabs[0]; $on = $dashActive === $t['key']; ?>
             <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?= $on ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white' ?> transition-colors group" href="<?= esc($t['url'], 'attr') ?>">
@@ -84,6 +84,26 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
             </a>
             <?php endif; ?>
 
+            <!-- Pass: Visitor / Staff / Vendor dropdowns under one dropdown -->
+            <?php
+            $passVisitorActive = str_contains($current, 'invitations') || str_contains($current, 'requests') || str_contains($current, 'visitors');
+            $passStaffActive   = $isStaff || str_contains($current, 'staffpassrequest');
+            $passAny           = $hasVisitorPassAccess
+                || (client_feature_enabled('staff_pass') && has_access('staff_pass_list', 'view'))
+                || (client_feature_enabled('vendor_pass') && has_access('vendor_pass_list', 'view'));
+            $passActive        = $passVisitorActive || $passStaffActive || $isVendor;
+            ?>
+            <?php if ($passAny): ?>
+            <div @side-open.window="if (!['openPass', 'openVisitorPass', 'openStaff', 'openVendor'].includes($event.detail)) openPass = false" x-data="{ openPass: <?= $passActive ? 'true' : 'false' ?> }">
+                <button type="button" @click="openPass = !openPass; if (openPass) $dispatch('side-open', 'openPass')"
+                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= $passActive ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
+                    <div class="flex items-center gap-3">
+                        <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">badge</span>
+                        <p class="text-sm font-medium">Pass</p>
+                    </div>
+                    <span class="material-symbols-outlined text-[18px] transition-transform duration-200" :class="openPass ? 'rotate-180' : ''">expand_more</span>
+                </button>
+                <div x-show="openPass" class="ml-4 mt-1 flex flex-col gap-1">
             <!-- Visitor Pass List -->
             <?php if ($hasVisitorPassAccess): ?>
             <div @side-open.window="if ($event.detail !== 'openVisitorPass') openVisitorPass = false" x-data="{ openVisitorPass: <?= (str_contains($current, 'invitations') || str_contains($current, 'requests') || str_contains($current, 'visitors')) ? 'true' : 'false' ?> }">
@@ -91,7 +111,7 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
                     class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= (str_contains($current, 'invitations') || str_contains($current, 'requests') || str_contains($current, 'visitors')) ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
                     <div class="flex items-center gap-3">
                         <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">badge</span>
-                        <p class="text-sm font-medium">Visitor Pass List</p>
+                        <p class="text-sm font-medium">Visitor</p>
                     </div>
                     <span class="material-symbols-outlined text-[18px] transition-transform duration-200" :class="openVisitorPass ? 'rotate-180' : ''">expand_more</span>
                 </button>
@@ -136,7 +156,7 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
                     class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= $isStaff ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
                     <div class="flex items-center gap-3">
                         <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">badge</span>
-                        <p class="text-sm font-medium">Staff Pass List</p>
+                        <p class="text-sm font-medium">Staff</p>
                     </div>
                     <span class="material-symbols-outlined text-[18px] transition-transform duration-200" :class="openStaff ? 'rotate-180' : ''">expand_more</span>
                 </button>
@@ -166,7 +186,7 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
                     class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= $isVendor ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
                     <div class="flex items-center gap-3">
                         <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">local_shipping</span>
-                        <p class="text-sm font-medium">Vendor Pass List</p>
+                        <p class="text-sm font-medium">Vendor</p>
                     </div>
                     <span class="material-symbols-outlined text-[18px] transition-transform duration-200" :class="openVendor ? 'rotate-180' : ''">expand_more</span>
                 </button>
@@ -215,6 +235,9 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
                 </div>
             </div>
             <?php endif; ?>
+                </div>
+            </div>
+            <?php endif; ?>
 
             <!-- Vehicle Pass -->
             <?php
@@ -223,16 +246,13 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
             $vMenu = [
                 'Public' => ['pub', [
                     ['vehicles/public', 'My Vehicle Pass', ['my_vehicle_pass']],
-                    ['vehicles/public/staff-request', 'New Staff Request', $vNoStaff ? [] : ['new_staff_request']],
                     ['vehicles/public/staff', 'Staff Vehicle Pass', $vNoStaff ? [] : ['staff_vehicle_pass']],
                     ['vehicles/public/request-list', 'Request List', ['public_request_list']],
-                    ['vehicles/public/reviewed-list', 'Approved / Reject List', ['public_approved_list', 'public_reject_list']],
                     ['vehicles/public/closed-list', 'Closed List', ['public_closed_list']],
                 ]],
                 'Cargo | Non-Cargo' => ['cnc', [
                     ['vehicles/cnc', 'My Vehicle Pass', ['cargo_my_vehicle_pass']],
                     ['vehicles/cnc/request-list', 'Request List', ['cargo_request_list']],
-                    ['vehicles/cnc/reviewed-list', 'Approved / Reject List', ['cargo_approved_list', 'cargo_reject_list']],
                     ['vehicles/cnc/closed-list', 'Closed List', ['cargo_closed_list']],
                 ]],
             ];
@@ -443,6 +463,34 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
                         Staff Report
                     </a>
                     <?php endif; ?>
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <!-- Monitoring (KPK Monitoring > Monitoring) -->
+            <?php if (has_access('monitoring', 'monitoring')): $isMonitoring = str_starts_with($current, 'monitoring'); ?>
+            <div @side-open.window="if ($event.detail !== 'openMonitoring') openMonitoring = false" x-data="{ openMonitoring: <?= $isMonitoring ? 'true' : 'false' ?> }">
+                <button type="button" @click="openMonitoring = !openMonitoring; if (openMonitoring) $dispatch('side-open', 'openMonitoring')"
+                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= $isMonitoring ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
+                    <div class="flex items-center gap-3">
+                        <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">desktop_windows</span>
+                        <p class="text-sm font-medium">Monitoring</p>
+                    </div>
+                    <span class="material-symbols-outlined text-[18px] transition-transform duration-200" :class="openMonitoring ? 'rotate-180' : ''">expand_more</span>
+                </button>
+                <div x-show="openMonitoring"
+                    x-transition:enter="transition ease-out duration-200"
+                    x-transition:enter-start="opacity-0 -translate-y-1"
+                    x-transition:enter-end="opacity-100 translate-y-0"
+                    x-transition:leave="transition ease-in duration-150"
+                    x-transition:leave-start="opacity-100 translate-y-0"
+                    x-transition:leave-end="opacity-0 -translate-y-1"
+                    class="ml-4 mt-1 flex flex-col gap-1">
+                    <a href="<?= base_url('monitoring') ?>"
+                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'monitoring' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors">
+                        <span class="w-1.5 h-1.5 rounded-full <?= $current == 'monitoring' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
+                        Monitoring
+                    </a>
                 </div>
             </div>
             <?php endif; ?>

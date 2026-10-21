@@ -268,6 +268,7 @@ $routes->get('/', 'Dashboard::index');
 $routes->get('dashboard', 'Dashboard::index');
 $routes->get('dashboard/staff',  'DashboardStaff::index',  ['filter' => 'client_feature:staff_pass']);
 $routes->get('dashboard/vendor', 'DashboardVendor::index', ['filter' => 'client_feature:vendor_pass']);
+$routes->get('dashboard/vehicle', 'DashboardVehicle::index', ['filter' => 'client_feature:vehicle_pass']);
 // List Columns moved into Config > Page Settings (old link just goes to Config).
 $routes->get('config/list-columns', static fn () => redirect()->to(base_url('config')));
 // Access: superadmin, or Role Management > Config > Page Settings (own client) — checked in PageSettings.
@@ -302,6 +303,13 @@ $routes->group('', ['filter' => ['role:superadmin,clientsuperadmin,admin', 'clie
     $routes->post('vendor-workflow/save', 'VendorWorkflowConfig::saveSequence');
     $routes->post('vendor-workflow/delete/(:segment)', 'VendorWorkflowConfig::delete/$1');
     $routes->post('vendor-workflow/reset', 'VendorWorkflowConfig::reset');
+});
+// Monitoring > Monitoring (KPK monitoring/transaction-list). Access is checked in the controller with Role > Monitoring > Monitoring.
+$routes->group('monitoring', ['filter' => $plusAdminOfficer], function ($routes) {
+    $routes->get('/', 'GateMonitoring::index');
+    $routes->get('data', 'GateMonitoring::data');
+    $routes->get('person', 'GateMonitoring::person');
+    $routes->get('export', 'GateMonitoring::export');
 });
 // Vehicle Types (Config)
 $routes->group('config/vehicle-types', ['filter' => 'role:superadmin,clientsuperadmin'], function ($routes) {

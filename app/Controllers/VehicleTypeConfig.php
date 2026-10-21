@@ -12,6 +12,9 @@ class VehicleTypeConfig extends BaseController
 {
     private const FLAGS = ['seater_req', 'working_height_req', 'working_load_req', 'truck_head_req', 'trailer_req', 'truck_weight_req', 'chassis_req', 'trailer_weight_req', 'trailer_type_req', 'req_pass', 'payment_required', 'duplicate_plate_ok'];
 
+    /** KPK yes/no columns of a vehicle type (the flags tell where it is offered and what kind of vehicle it is). */
+    private const KPK_FLAGS = ['is_commercial', 'is_container', 'is_cargo', 'is_non_cargo', 'is_public', 'is_car', 'is_motorbike', 'is_van'];
+
     private function scope(): ?int
     {
         helper(['role', 'feature']);
@@ -66,7 +69,7 @@ class VehicleTypeConfig extends BaseController
             $r['license_classes'] = $links[(int) $r['id']] ?? [];
         }
 
-        return $this->json(true, 'ok', ['data' => $rows, 'license_options' => $opts, 'fields' => array_map(static fn($f) => $f[1], VehicleRules::TYPE_FIELDS)]);
+        return $this->json(true, 'ok', ['flags_ready' => $db->fieldExists('is_public', 'vehicle_types'), 'data' => $rows, 'license_options' => $opts, 'fields' => array_map(static fn($f) => $f[1], VehicleRules::TYPE_FIELDS)]);
     }
 
     public function save()
@@ -77,8 +80,15 @@ class VehicleTypeConfig extends BaseController
         if ($name === '') {
             return $this->json(false, 'Give the vehicle type a name.', [], 400);
         }
-        $cat = in_array($p['category'] ?? '', ['car', 'motorbike', 'van', 'truck', 'other'], true) ? $p['category'] : 'car';
         $db  = \Config\Database::connect();
+        $on  = static fn(string $k): bool => ! empty($p[$k]);
+        $flagsReady = $db->fieldExists('is_public', 'vehicle_types');
+        if ($flagsReady) {
+            // the older columns (category / used for / operation) are worked out from the KPK flags
+            $cat = $on('is_car') ? 'car' : ($on('is_motorbike') ? 'motorbike' : ($on('is_van') ? 'van' : ($on('is_commercial') ? 'truck' : 'other')));
+        } else {
+            $cat = in_array($p['category'] ?? '', ['car', 'motorbike', 'van', 'truck', 'other'], true) ? $p['category'] : 'car';
+        }
 
         $dup = $db->table('vehicle_types')->where('LOWER(name)', strtolower($name));
         $this->scope() === null ? $dup->where('client_id IS NULL', null, false) : $dup->where('client_id', $this->scope());
@@ -90,11 +100,27 @@ class VehicleTypeConfig extends BaseController
         }
 
         $data = ['name' => mb_substr($name, 0, 100), 'category' => $cat, 'status' => ($p['status'] ?? 'active') === 'inactive' ? 'inactive' : 'active', 'updated_at' => date('Y-m-d H:i:s')];
+        if ($flagsReady) {
+            foreach (self::KPK_FLAGS as $f) {
+                $data[$f] = $on($f) ? 1 : 0;
+            }
+            $hasC = $on('is_container') || $on('is_cargo') || $on('is_non_cargo');
+            $grp  = $on('is_public') && $hasC ? 'both' : ($on('is_public') ? 'public' : ($hasC ? 'cnc' : 'both'));
+            $op   = null;
+            if ($on('is_container')) {
+                $op = ($on('is_cargo') || $on('is_non_cargo')) ? 'CONTAINER, CARGO AND NON-CARGO' : 'CONTAINER';
+            } elseif ($on('is_cargo') || $on('is_non_cargo')) {
+                $op = $on('is_cargo') ? 'CARGO AND NON-CARGO' : 'NON-CARGO';
+            }
+        } else {
+            $grp = in_array($p['vehicle_group'] ?? '', ['public', 'cnc', 'both'], true) ? $p['vehicle_group'] : 'both';
+            $op  = in_array($p['operation'] ?? '', VehicleRules::OPERATIONS, true) ? $p['operation'] : null;
+        }
         if ($db->fieldExists('vehicle_group', 'vehicle_types')) {
-            $data['vehicle_group'] = in_array($p['vehicle_group'] ?? '', ['public', 'cnc', 'both'], true) ? $p['vehicle_group'] : 'both';
+            $data['vehicle_group'] = $grp;
         }
         if ($db->fieldExists('operation', 'vehicle_types')) {
-            $data['operation'] = in_array($p['operation'] ?? '', VehicleRules::OPERATIONS, true) ? $p['operation'] : null;
+            $data['operation'] = $op;
         }
         foreach (self::FLAGS as $f) {
             if ($db->fieldExists($f, 'vehicle_types')) {

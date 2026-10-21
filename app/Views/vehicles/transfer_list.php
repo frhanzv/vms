@@ -16,19 +16,19 @@ $in = 'border border-gray-300 dark:border-gray-600 dark:bg-gray-800 rounded px-3
     <div class="overflow-x-auto rounded border border-gray-200 dark:border-gray-700 mb-4">
         <table class="w-full min-w-max text-left text-xs">
             <thead><tr class="bg-gray-50 dark:bg-gray-700 font-bold uppercase tracking-wide">
-                <?php foreach (['Transfer No', 'Date', 'Plate', 'From Company', 'To Company', 'Done By', ''] as $h): ?><th class="p-3 border-b dark:border-gray-600"><?= $h ?></th><?php endforeach; ?>
+                <?php foreach (['Action', 'Transfer No', 'Date', 'Plate', 'From Company', 'To Company', 'Done By'] as $h): ?><th class="p-3 border-b dark:border-gray-600"><?= $h ?></th><?php endforeach; ?>
             </tr></thead>
             <tbody>
             <?php if (! $rows): ?><tr><td colspan="7" class="p-8 text-center text-gray-500">No ownership transfer found.</td></tr>
             <?php else: foreach ($rows as $r): ?>
                 <tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <td class="p-3"><a href="<?= base_url('vehicles/view/' . $r['vehicle_id']) ?>" class="text-primary hover:text-blue-700 transition-colors inline-flex" title="View Vehicle"><span class="material-symbols-outlined text-[20px]">search</span></a></td>
                     <td class="p-3 font-medium"><?= esc($r['transfer_no']) ?></td>
                     <td class="p-3"><?= $r['created_at'] ? date('d/m/Y', strtotime($r['created_at'])) : '-' ?></td>
                     <td class="p-3 font-semibold"><?= esc($r['plate_no']) ?></td>
                     <td class="p-3"><?= esc($r['from_company'] ?: $r['from_owner_name']) ?></td>
                     <td class="p-3"><?= esc($r['to_company'] ?: $r['to_owner_name']) ?></td>
                     <td class="p-3"><?= esc($r['requested_by']) ?></td>
-                    <td class="p-3"><a href="<?= base_url('vehicles/view/' . $r['vehicle_id']) ?>" class="text-primary font-semibold hover:underline">Vehicle</a></td>
                 </tr>
             <?php endforeach; endif; ?>
             </tbody>

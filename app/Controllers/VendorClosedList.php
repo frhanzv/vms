@@ -117,9 +117,20 @@ class VendorClosedList extends BaseController
         $companyId      = current_company_id();
         $cfg            = fn(string $key) => $formFieldModel->isEnabled($companyId, 'vendor_pass_request', $key);
 
+        // summary cards: the whole closed list, ignoring search and filters
+        $sb = $db->table('vendors')->whereIn('card_status', ['Active', 'Terminated']);
+        vendor_client_scope($sb);
+        $sr = $sb->select("COUNT(*) AS total, SUM(card_status = 'Active') AS active, SUM(card_status = 'Terminated') AS term_n", false)->get()->getRowArray() ?: [];
+
         return view('vendors/closed_list', [
             'pageTitle'      => 'Vendor Pass Closed List - SafeG',
             'closedList'     => $closedList,
+            'showStats'      => $cfg('closed_stat_cards'),
+            'statCards'      => [
+                ['label' => 'Total Closed', 'value' => (int) ($sr['total'] ?? 0), 'sub' => 'All closed vendor passes', 'color' => 'indigo', 'icon' => 'local_shipping'],
+                ['label' => 'Active', 'value' => (int) ($sr['active'] ?? 0), 'sub' => 'Card in use', 'color' => 'green', 'icon' => 'check_circle'],
+                ['label' => 'Terminated', 'value' => (int) ($sr['term_n'] ?? 0), 'sub' => 'Card ended', 'color' => 'red', 'icon' => 'cancel'],
+            ],
             'canExport'      => $cfg('closed_export_button'),
             'canQr'          => $cfg('qr_button'),
             'canCardDetails' => $cfg('closed_card_details_button'),

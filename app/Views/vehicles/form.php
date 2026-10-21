@@ -10,12 +10,13 @@ $typeMeta = [];
 foreach ($types as $t) { $typeMeta[$t['id']] = array_map('intval', array_intersect_key($t, $typeFields)); $typeMeta[$t['id']]['req_pass'] = (int) ($t['req_pass'] ?? 0); }
 $direct = ! empty($direct);
 $driverRows = $driverRows ?? [];
-$typeList = array_map(static fn($t) => ['id' => (string) $t['id'], 'name' => $t['name'], 'operation' => $t['operation'] ?? ''], $types);
+$typeList = array_map(static fn($t) => ['id' => (string) $t['id'], 'name' => $t['name'], 'ops' => \App\Libraries\VehicleRules::typeOperations($t)], $types);
 $ops = \App\Libraries\VehicleRules::OPERATIONS;
 $yearNow = (int) date('Y');
-// Config > Dynamic Form Fields > Vehicle Pass Request
-$on = static fn(string $k): bool => \App\Libraries\VehicleRules::fieldOn($k);
-$st = static fn(string $k): string => \App\Libraries\VehicleRules::fieldRequired($k) ? ' *' : '';
+// Config > Dynamic Form Fields > Vehicle Pass Request (or Staff Vehicle Pass Request for a staff pass)
+$ffStaff = ($passFor ?? '') === 'staff';
+$on = static fn(string $k): bool => \App\Libraries\VehicleRules::fieldOn($k, $ffStaff);
+$st = static fn(string $k): string => \App\Libraries\VehicleRules::fieldRequired($k, $ffStaff) ? ' *' : '';
 ?>
 <div class="bg-card-light dark:bg-card-dark rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
     <div class="flex items-center gap-3 mb-6">
@@ -26,8 +27,9 @@ $st = static fn(string $k): string => \App\Libraries\VehicleRules::fieldRequired
 
     <form method="post" enctype="multipart/form-data" action="<?= base_url($isEdit ? 'vehicles/update/' . $v['id'] : 'vehicles/store') ?>"
           x-init="if (!typesShown.find(t => t.id === type)) type = typesShown.length ? typesShown[0].id : ''"
-          x-data="{ type: '<?= $val('vehicle_type_id') ?>', op: '<?= $val('vehicle_operation') ?: ($group === 'cnc' ? $ops[0] : '') ?>', typeList: <?= esc(json_encode($typeList), 'attr') ?>,
-                    get typesShown() { return this.typeList.filter(t => !this.op || !t.operation || t.operation === this.op); },
+          x-data="{ type: '<?= $val('vehicle_type_id') ?>', op: '<?= $val('vehicle_operation') ?: ($group === 'cnc' && $on('vehicle_operation') ? $ops[0] : '') ?>', typeList: <?= esc(json_encode($typeList), 'attr') ?>,
+                    opOk(id) { const t = this.typeList.find(x => x.id === String(id)); return !this.op || !t || !t.ops.length || t.ops.includes(this.op); },
+                    get typesShown() { return this.typeList.filter(t => this.opOk(t.id)); },
                     meta: <?= esc(json_encode($typeMeta), 'attr') ?>, owner: '<?= $val('owner_type') === 'Company' ? 'Company' : 'Individual' ?>',
                     show(c) { return this.type && this.meta[this.type] && this.meta[this.type][c] === 1; },
                     open: false, q: '', selected: <?= esc(json_encode($selLocs), 'attr') ?>, labels: <?= esc(json_encode(array_map('strval', $locationOptions)), 'attr') ?>,
@@ -51,9 +53,9 @@ $st = static fn(string $k): string => \App\Libraries\VehicleRules::fieldRequired
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <div><label class="<?= $lb ?>">Date Of Application</label><input value="<?= esc(! empty($v['app_date']) ? date('d/m/Y', strtotime($v['app_date'])) : date('d/m/Y')) ?>" disabled class="<?= $in ?> bg-gray-100"/></div>
             <div><label class="<?= $lb ?>">Type Of Application</label><input value="<?= ! empty($v['renewed_from']) || ($v['type_of_app'] ?? '') === 'Renewal' ? 'Renewal' : 'New' ?>" disabled class="<?= $in ?> bg-gray-100"/></div>
-            <div><label class="<?= $lb ?>">Sticker Year</label>
-                <select name="sticker_year" class="<?= $in ?>"><?php $sy = (string) ($old['sticker_year'] ?? $v['sticker_year'] ?? ''); foreach ($stickerYears as $y): ?><option <?= $sy === $y ? 'selected' : '' ?>><?= $y ?></option><?php endforeach; ?></select></div>
-            <?php if ($isPublic): ?>
+            <?php if ($on('sticker_year')): ?><div><label class="<?= $lb ?>">Sticker Year</label>
+                <select name="sticker_year" class="<?= $in ?>"><?php $sy = (string) ($old['sticker_year'] ?? $v['sticker_year'] ?? ''); foreach ($stickerYears as $y): ?><option <?= $sy === $y ? 'selected' : '' ?>><?= $y ?></option><?php endforeach; ?></select></div><?php endif; ?>
+            <?php if ($isPublic && $on('owner_type')): ?>
             <div><label class="<?= $lb ?>">Application For</label>
                 <select name="owner_type" x-model="owner" class="<?= $in ?>"><?php foreach (['Individual', 'Company'] as $o): ?><option><?= $o ?></option><?php endforeach; ?></select></div>
             <?php endif; ?>
@@ -102,8 +104,8 @@ $st = static fn(string $k): string => \App\Libraries\VehicleRules::fieldRequired
                     </div>
                 </div>
                 <div><label class="<?= $lb ?>"><span class="text-red-600">*</span>Staff Name</label><input :value="sel ? sel.full_name : ''" readonly class="<?= $in ?> bg-gray-100"/></div>
-                <div><label class="<?= $lb ?>">Department</label><input name="department" value="<?= $val('department') ?: esc($staffRow['department'] ?? '') ?>" class="<?= $in ?>"/></div>
-                <div><label class="<?= $lb ?>">HOD</label><input name="hod" value="<?= $val('hod') ?>" class="<?= $in ?>"/></div>
+                <?php if ($on('department')): ?><div><label class="<?= $lb ?>">Department</label><input name="department" value="<?= $val('department') ?: esc($staffRow['department'] ?? '') ?>" class="<?= $in ?>"/></div><?php endif; ?>
+                <?php if ($on('hod')): ?><div><label class="<?= $lb ?>">HOD</label><input name="hod" value="<?= $val('hod') ?>" class="<?= $in ?>"/></div><?php endif; ?>
             </div>
             <?php if (! $isEdit): ?><p x-show="sel" x-cloak class="mt-2 text-xs text-gray-500">Selected: <span x-text="sel ? sel.staff_no : ''"></span> <button type="button" @click="sel = null" class="text-primary underline">change</button></p><?php endif; ?>
         </div>
@@ -111,14 +113,14 @@ $st = static fn(string $k): string => \App\Libraries\VehicleRules::fieldRequired
 
         <h2 class="text-sm font-bold uppercase text-gray-700 dark:text-gray-200 mb-3">Vehicle Info</h2>
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <?php if ($isCnc): ?>
+            <?php if ($isCnc && $on('vehicle_operation')): ?>
             <div><label class="<?= $lb ?>">Vehicle Operation</label>
                 <select name="vehicle_operation" x-model="op" @change="if (!typesShown.find(t => t.id === type)) type = typesShown.length ? typesShown[0].id : ''" class="<?= $in ?>"><?php foreach ($ops as $o): ?><option><?= $o ?></option><?php endforeach; ?></select></div>
             <?php endif; ?>
             <div><label class="<?= $lb ?>">Type Of Vehicle</label>
                 <select name="vehicle_type_id" x-model="type" class="<?= $in ?>">
                     <?php foreach ($types as $t): ?>
-                    <option value="<?= esc($t['id']) ?>" <?= (string) $val('vehicle_type_id') === (string) $t['id'] ? 'selected' : '' ?> :hidden="!!op && '<?= esc($t['operation'] ?? '', 'js') ?>' !== '' && '<?= esc($t['operation'] ?? '', 'js') ?>' !== op" :disabled="!!op && '<?= esc($t['operation'] ?? '', 'js') ?>' !== '' && '<?= esc($t['operation'] ?? '', 'js') ?>' !== op"><?= esc($t['name']) ?></option>
+                    <option value="<?= esc($t['id']) ?>" <?= (string) $val('vehicle_type_id') === (string) $t['id'] ? 'selected' : '' ?> :hidden="!opOk('<?= esc($t['id'], 'js') ?>')" :disabled="!opOk('<?= esc($t['id'], 'js') ?>')"><?= esc($t['name']) ?></option>
                     <?php endforeach; ?>
                     <?php if (! $types): ?><option value="" disabled>No vehicle types yet (Config &gt; Vehicle Types)</option><?php endif; ?>
                 </select></div>

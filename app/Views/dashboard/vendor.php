@@ -74,8 +74,6 @@ $st = $stages;
                 </div>
             <?php else: ?>
 
-            <?= view('partials/dashboard_tabs', ['active' => 'vendor']) ?>
-
             <?php if (! dash_card_any('vendor')): ?>
                 <p class="rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">No cards are switched on. Use <strong>Customize</strong> to show some.</p>
             <?php endif; ?>
@@ -311,5 +309,6 @@ $st = $stages;
     </main>
 </div>
 <?= view('partials/dashboard_viz_assets', ['part' => 'script']) ?>
+<?php if (dash_card('vendor', 'assistant')): ?><?= view('partials/analytics_assistant', ['examples' => ['How many vendors are registered?', 'Which vendors are on-site right now?', 'Show vendor passes expiring this month.']]) ?><?php endif; ?>
 </body>
 </html>

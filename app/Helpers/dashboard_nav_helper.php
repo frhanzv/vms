@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Which dashboards the logged-in user may open: Visitor and Vendor.
+ * Which dashboards the logged-in user may open: Visitor, Vendor and Vehicle.
  * One source of truth for the tab bar, the sidebar and the controllers.
  *
  *  - Visitor / Staff / Vendor tabs for staff-side roles need the existing
@@ -37,6 +37,11 @@ if (! function_exists('dashboard_tabs')) {
         if (($staffSide || is_vendor_admin()) && client_feature_enabled('vendor_pass')
             && has_access('dashboard', 'vendor_pass') && has_access('vendor_pass_list', 'view')) {
             $tabs[] = ['key' => 'vendor', 'label' => 'Vendor', 'url' => base_url('dashboard/vendor'), 'icon' => 'local_shipping'];
+        }
+
+        // Vehicle dashboard: Dashboard > Vehicle plus the client's vehicle pass feature.
+        if ($staffSide && client_feature_enabled('vehicle_pass') && has_access('dashboard', 'vehicle')) {
+            $tabs[] = ['key' => 'vehicle', 'label' => 'Vehicle', 'url' => base_url('dashboard/vehicle'), 'icon' => 'directions_car'];
         }
 
         return $tabs;

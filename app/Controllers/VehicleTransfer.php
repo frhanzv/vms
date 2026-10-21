@@ -96,7 +96,15 @@ class VehicleTransfer extends BaseController
             return [null, null];
         }
         $db = \Config\Database::connect();
-        $b  = $db->table('vehicles v')->select('v.*')->where('v.plate_no', $plate)->where('v.status', 'Issued')->whereNotNull('v.vendor_company_id');
+        // plate stored as typed (spaces / dashes) still matches the normalised search
+        $norm = "UPPER(REPLACE(REPLACE(REPLACE(REPLACE(v.plate_no, ' ', ''), '-', ''), '.', ''), '/', ''))";
+        $b    = $db->table('vehicles v')
+            ->select('v.*, t.name AS type_name, c.name AS co_name, c.registration_no AS co_reg_no')
+            ->join('vehicle_types t', 't.id = v.vehicle_type_id', 'left')
+            ->join('companies c', 'c.id = v.vendor_company_id', 'left')
+            ->where($norm . ' = ' . $db->escape($plate), null, false)
+            ->where('v.status', 'Issued')
+            ->where('v.vendor_company_id IS NOT NULL', null, false);
         if (! is_platform_superadmin()) {
             $b->where('v.client_id', current_client_id());
         }

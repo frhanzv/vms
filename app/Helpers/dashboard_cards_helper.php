@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Configurable dashboard cards (Staff and Vendor dashboards).
+ * Configurable dashboard cards (Staff, Vendor and Vehicle dashboards).
  *
  * A card is shown when BOTH the client allows it (admin page: Config >
  * Dashboard Cards) AND the user has not switched it off for themselves
@@ -48,6 +48,17 @@ if (! function_exists('dash_card_registry')) {
                     'list_action'       => ['label' => 'Waiting for approval / needs attention', 'group' => 'Lists'],
                     'list_expiring'     => ['label' => 'Passes expiring soon', 'group' => 'Lists'],
                     'list_recent'       => ['label' => 'Recent applications', 'group' => 'Lists'],
+                    'assistant'         => ['label' => 'Analytics Assistant', 'group' => 'Assistant'],
+                ],
+            ],
+            'vehicle' => [
+                'title' => 'Vehicle Dashboard',
+                'cards' => [
+                    'kpi_today'      => ['label' => 'Registered today / Gate In / Gate Out', 'group' => 'Number tiles'],
+                    'chart_share'    => ['label' => 'Total of Registered Vehicle And Gate In Out', 'group' => 'Charts'],
+                    'chart_monthly'  => ['label' => 'Vehicle Entering (per month)', 'group' => 'Charts'],
+                    'list_duration'  => ['label' => 'Vehicle Duration', 'group' => 'Lists'],
+                    'assistant'      => ['label' => 'Analytics Assistant', 'group' => 'Assistant'],
                 ],
             ],
         ];
