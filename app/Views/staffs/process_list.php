@@ -11,7 +11,7 @@ $select = 'border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:tex
              x-init="$watch('view', v => { try { localStorage.setItem('staffProcessListView', v); } catch (e) {} })">
 
             <h1 class="text-xl font-bold uppercase mb-2 text-gray-800 dark:text-white">Staff Process List</h1>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mb-6">Approved staff passes that haven't been printed yet. Open a pass to check the details, take the photo and confirm the Staff No. — a card can only be printed once both are in. Printing is what moves it on to the Issuance List.</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-6">Approved staff passes whose card has not been issued yet. Open a pass (View Details) to check the details, take the photo and confirm the Staff No. — a card can only be printed once both are in. After printing, press Issue there when the card is collected: the card becomes Active and the pass moves to the Closed List.</p>
 
             <div class="flex items-center gap-6 mb-4">
                 <label class="flex items-center gap-1.5 text-sm cursor-pointer">
@@ -64,7 +64,9 @@ $select = 'border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:tex
                             <div class="text-xs text-gray-600 dark:text-gray-300 mt-1"><?= esc($r['department']) ?></div>
                             <div class="text-xs text-gray-600 dark:text-gray-300"><?= esc($r['full_name']) ?><?= $r['staff_no'] !== '' ? ' · ' . esc($r['staff_no']) : '' ?></div>
                             <div class="text-xs text-gray-500 dark:text-gray-400"><?= esc($r['ic_passport_masked']) ?></div>
-                            <?php if (! $r['ready']): ?>
+                            <?php if ($r['printed']): ?>
+                            <div class="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 mt-1">Printed · <?= esc($r['printed']) ?> — ready to issue</div>
+                            <?php elseif (! $r['ready']): ?>
                             <div class="text-[11px] font-semibold text-amber-600 dark:text-amber-400 mt-1">
                                 <?= esc(implode(' & ', array_filter([$r['photo_url'] === null ? 'Photo' : null, $r['staff_no'] === '' ? 'Staff No' : null]))) ?> missing
                             </div>
@@ -115,7 +117,9 @@ $select = 'border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:tex
                             <?php if ($col('card_expiry')): ?><td class="p-3"><?= esc($r['card_expiry']) ?></td><?php endif; ?>
                             <?php if ($col('ready')): ?>
                             <td class="p-3">
-                                <?php if ($r['ready']): ?>
+                                <?php if ($r['printed']): ?>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700" title="Card <?= esc($r['printed'], 'attr') ?>">Printed — ready to issue</span>
+                                <?php elseif ($r['ready']): ?>
                                 <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700">Ready</span>
                                 <?php else: ?>
                                 <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700">Incomplete</span>

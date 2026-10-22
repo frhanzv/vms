@@ -47,12 +47,11 @@
         <div class="bg-card-light dark:bg-card-dark rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mx-auto max-w-7xl">
 
             <?php
-            // Pipeline tabs — same order as KPK: list -> process -> printing -> issuance -> closed
+            // Pipeline tabs: list -> process -> printing -> closed (cards are issued from View Details)
             $staffTabs = [
                 'staffs'               => ['Staff List', 'badge'],
                 'staffs/process-list'  => ['Process', 'manage_accounts'],
                 'staffs/printing-list' => ['Printing', 'print'],
-                'staffs/issuance-list' => ['Issuance', 'outbox'],
                 'staffs/closed-list'   => ['Closed', 'task_alt'],
             ];
             $activeTab = $activeTab ?? '';

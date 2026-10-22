@@ -10,7 +10,10 @@ namespace App\Controllers;
  *
  *   Process (approved, not printed): update details, reject, photo
  *       (upload / live camera), Staff No, licences, location access, print.
- *   Issuance (printed):              reprint, bind RFID card, card expiry.
+ *   Printed, not issued yet:         reprint, bind RFID card, card expiry.
+ *   Process / printed:               Issue — enter who collected the card;
+ *       the card becomes Active and the pass moves to the Closed List
+ *       (replaces the old Issuance List).
  *   Closed (issued):                 reprint (lost card — no receipt needed
  *       for staff), activate / terminate card, suspend / unsuspend,
  *       change staff no. (Renew is started from the Closed List.)
@@ -37,6 +40,10 @@ class StaffCardInfo extends StaffPassBase
 
         $stage = $this->stage($staff);
         $edit  = $this->canEdit();
+        // View Details opened from the Printing List returns there after Issue.
+        $from     = $this->request->getGet('from') === 'printing' ? 'printing' : 'process';
+        $logs     = $this->printLogs((int) $id);
+        $isPrinted = trim((string) ($staff['receipt_no'] ?? '')) !== '' || $logs !== [];
 
         return view('staffs/card_info', [
             'pageTitle'         => 'Staff Pass Details - SafeG',
@@ -45,7 +52,8 @@ class StaffCardInfo extends StaffPassBase
             'icPassport'        => mask_ic_passport($staff['ic_passport'] ?? '', 'N/A'),
             'photoUrl'          => $this->photoUrl($staff),
             'licenses'          => $this->licenses((int) $id),
-            'printLogs'         => $this->printLogs((int) $id),
+            'printLogs'         => $logs,
+            'from'              => $from,
             'statusLogs'        => $this->statusLogs((int) $id),
             'boundCard'         => $boundCard,
             'locationGroups'    => $this->getLocationGroups(),
@@ -67,6 +75,10 @@ class StaffCardInfo extends StaffPassBase
             'canSuspend'        => $edit && $this->cfg('suspend_button') && $stage === 'closed' && $staff['status'] === 'Approved',
             'canUnsuspend'      => $edit && $this->cfg('suspend_button') && $staff['status'] === 'Suspended',
             'canChangeStaffNo'  => $edit,
+            // Issue (from Process / Printing List View Details): only an approved pass whose card is not issued yet.
+            'canIssue'          => $edit && $this->cfg('issuance_issue_button') && in_array($stage, ['process', 'issuance'], true)
+                                   && $staff['status'] === 'Approved' && ($staff['card_status'] ?? '') === 'Inactive',
+            'issueReady'        => $isPrinted,
         ]);
     }
 
@@ -207,7 +219,8 @@ class StaffCardInfo extends StaffPassBase
     /**
      * Finish = end of the Process List (Vendor Process detail's Scan Card):
      * needs the photo, Staff No, card expiry and a printed card; links the real
-     * RFID card and saves the Pass No, which moves the pass to the Issuance List.
+     * RFID card and saves the Pass No. The pass stays on the Process List until
+     * it is issued (Issue button), which moves it to the Closed List.
      */
     public function finish($id)
     {
@@ -278,7 +291,7 @@ class StaffCardInfo extends StaffPassBase
         }
         $this->logAction($staff, 'finish', $staff['status'], null, 'Pass No ' . $passNo . ', card ' . $epc);
 
-        return $this->ok('Card ' . $epc . ' linked — moved to Issuance List.', ['redirect' => base_url('staffs/process-list')]);
+        return $this->ok('Card ' . $epc . ' linked. Press Issue when the card is collected to move the pass to the Closed List.', ['redirect' => base_url('staffs/process-list')]);
     }
 
     /** KPK readCard(): bind a physical RFID card from the shared visitor_cards pool. */

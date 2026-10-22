@@ -166,7 +166,6 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
                         'staffs/request-list'  => \App\Controllers\StaffList::canSeeRequestList() ? 'Request List' : null,
                         'staffs/process-list'  => 'Process List',
                         'staffs/printing-list' => 'Printing List',
-                        'staffs/issuance-list' => 'Issuance List',
                         'staffs/closed-list'   => 'Closed List',
                     ]) as $staffPath => $staffLabel): $on = $current === $staffPath; ?>
                     <a href="<?= base_url($staffPath) ?>"

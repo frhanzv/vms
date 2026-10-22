@@ -503,6 +503,8 @@ $routes->group('', ['filter' => [$plusAdminOfficer, 'client_feature:staff_pass']
     $routes->get('staffs/issuance-list', 'StaffPipeline::issuanceList');
     $routes->post('staffs/issuance-list/issue/(:num)', 'StaffPipeline::issue/$1');
     $routes->post('staffs/issuance-list/issue-selected', 'StaffPipeline::issueSelected');
+    // Issue button on View Details (Process List / Printing List) — the Issuance List page itself is gone.
+    $routes->post('staffs/card-info/issue/(:num)', 'StaffPipeline::issue/$1');
     $routes->get('staffs/closed-list', 'StaffPipeline::closedList');
     $routes->get('staffs/closed-list/export', 'StaffPipeline::closedExport');
 

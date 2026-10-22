@@ -1,4 +1,5 @@
-<?= view('staffs/_layout_top', ['pageTitle' => $pageTitle, 'activeTab' => ['process' => 'staffs/process-list', 'issuance' => 'staffs/issuance-list', 'closed' => 'staffs/closed-list'][$stage] ?? 'staffs']) ?>
+<?php $listTab = ($from ?? 'process') === 'printing' ? 'staffs/printing-list' : 'staffs/process-list'; ?>
+<?= view('staffs/_layout_top', ['pageTitle' => $pageTitle, 'activeTab' => ['process' => $listTab, 'issuance' => $listTab, 'closed' => 'staffs/closed-list'][$stage] ?? 'staffs']) ?>
 <?php
 $s   = $staff;
 $id  = (int) $s['id'];
@@ -7,7 +8,7 @@ $dt  = fn(?string $v) => $v && ! str_starts_with($v, '0000') ? date('d/m/Y', str
 $stageLabel = [
     'request'  => ['Request / Approval', 'bg-amber-50 text-amber-700'],
     'process'  => ['Process — waiting for card print', 'bg-blue-50 text-blue-700'],
-    'issuance' => ['Issuance — printed, not collected', 'bg-indigo-50 text-indigo-700'],
+    'issuance' => ['Printed — waiting to be issued', 'bg-indigo-50 text-indigo-700'],
     'closed'   => ['Closed — card issued', 'bg-emerald-50 text-emerald-700'],
 ][$stage];
 $input = 'w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2 text-sm disabled:bg-gray-100 dark:disabled:bg-gray-900 disabled:text-gray-500';
@@ -63,7 +64,10 @@ $selectedLocations = array_map('strval', $selectedLocations);
                 <button onclick="openModal('rejectModal')" class="border border-red-300 text-red-600 hover:bg-red-50 px-4 py-2 rounded text-sm font-medium">Reject</button>
                 <?php endif; ?>
                 <?php if ($canFinish ?? false): ?>
-                <button onclick="openScanCard()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-1" title="Scan the printed card to finish — moves the pass to the Issuance List"><span class="material-icons text-sm">task_alt</span>Finish</button>
+                <button onclick="openScanCard()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-1" title="Scan the printed card to link it to this pass"><span class="material-icons text-sm">task_alt</span>Finish</button>
+                <?php endif; ?>
+                <?php if ($canIssue ?? false): ?>
+                <button onclick="openIssue()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-1" title="<?= ($issueReady ?? false) ? 'Hand the card to the collector — the card becomes Active and the pass moves to the Closed List' : 'Print the card first' ?>"><span class="material-icons text-sm">outbox</span>Issue</button>
                 <?php endif; ?>
             </div>
 
@@ -336,11 +340,34 @@ $selectedLocations = array_map('strval', $selectedLocations);
                     <label class="block text-sm mb-1"><span class="text-red-500">*</span> Card ID</label>
                     <input id="sc_card_id" autocomplete="off" placeholder="Tap the card on the reader" class="<?= $input ?>" onkeydown="if (event.key === 'Enter') { finishReadCard(document.getElementById('scFinishBtn')); }"/>
                 </div>
-                <p class="text-[11px] text-gray-400">Needs the photo, Staff No and Card Expiry, and the card printed. The pass then moves to the Issuance List.</p>
+                <p class="text-[11px] text-gray-400">Needs the photo, Staff No and Card Expiry, and the card printed. Then press Issue when the card is collected.</p>
             </div>
             <div class="flex justify-end gap-2 p-4 border-t dark:border-gray-700">
                 <button onclick="closeModal('scanCardModal')" class="px-4 py-2 rounded border text-sm">Cancel</button>
                 <button id="scFinishBtn" onclick="finishReadCard(this)" class="px-5 py-2 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold">Read Card</button>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <?php if ($canIssue ?? false): ?>
+    <!-- Issue: who collected the card. Confirming activates the card and moves the pass to the Closed List. -->
+    <div id="issueModal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg max-w-sm w-full p-6">
+            <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-1">Issue Card</h3>
+            <p class="text-sm text-gray-500 mb-4">Card for <?= esc($s['full_name'] ?: '-') ?><?= ! empty($s['receipt_no']) ? ' · ' . esc($s['receipt_no']) : (! empty($printLogs[0]['receipt_no']) ? ' · ' . esc($printLogs[0]['receipt_no']) : '') ?></p>
+            <?php if (! ($issueReady ?? false)): ?>
+            <p class="mb-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2">This card has not been printed yet — press Print Card first.</p>
+            <?php endif; ?>
+            <label class="<?= $label ?>">Collector Name <span class="text-red-500">*</span></label>
+            <input id="issueCollectorName" class="<?= $input ?> mb-3" autocomplete="off"/>
+            <label class="<?= $label ?>">Collector IC / Passport <span class="text-red-500">*</span></label>
+            <input id="issueCollectorIc" class="<?= $input ?> mb-3" autocomplete="off"/>
+            <label class="<?= $label ?>">Issue Date / Time</label>
+            <input id="issueWhen" class="<?= $input ?> mb-4" disabled/>
+            <div class="flex justify-end gap-2">
+                <button onclick="closeModal('issueModal')" class="px-4 py-2 rounded border text-sm">Cancel</button>
+                <button onclick="submitIssue(this)" class="px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold">Issue &amp; Close</button>
             </div>
         </div>
     </div>
@@ -414,6 +441,24 @@ $selectedLocations = array_map('strval', $selectedLocations);
             staffPost(BASE + '/finish/' + STAFF_ID, { card_epc: epc, pass_no: passNo }, btn).then(d => {
                 if (d.message) alert(d.message);
                 if (d.success) location.href = d.redirect || '<?= base_url('staffs/process-list') ?>';
+            });
+        }
+        function openIssue() {
+            document.getElementById('issueCollectorName').value = '';
+            document.getElementById('issueCollectorIc').value = '';
+            document.getElementById('issueWhen').value = new Date().toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' (saved when you confirm)';
+            openModal('issueModal');
+            setTimeout(() => document.getElementById('issueCollectorName').focus(), 50);
+        }
+        function submitIssue(btn) {
+            const name = document.getElementById('issueCollectorName').value.trim();
+            const ic = document.getElementById('issueCollectorIc').value.trim();
+            if (!name || !ic) { alert('Please enter the collector\'s name and IC / passport.'); return; }
+            staffPost('<?= base_url('staffs/card-info/issue/') ?>' + STAFF_ID, {
+                collector_name: name, collector_ic_passport: ic, from: '<?= esc($from ?? 'process', 'js') ?>',
+            }, btn).then(d => {
+                if (d.message) alert(d.message);
+                if (d.success) location.href = d.redirect || '<?= base_url('staffs/closed-list') ?>';
             });
         }
         function bindCard(btn) {

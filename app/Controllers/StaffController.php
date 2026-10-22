@@ -323,7 +323,7 @@ class StaffController extends BaseController
                 'location_access'              => $importLoc,
                 // An imported staff pass is a request like one made with the form:
                 // it waits as Pending on the Request List until it is approved,
-                // then goes through Process / Printing / Issuance to the Closed List.
+                // then goes through Process / Printing and is issued to the Closed List.
                 // The sheet's Status column is the employee flag (Active /
                 // Inactive), not the pass workflow.
                 'status'                       => 'Pending',

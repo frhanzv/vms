@@ -105,7 +105,7 @@ class ClientFormFieldModel extends Model
             ['field_key' => 'process_upload_photo_button', 'label' => 'Show Upload Photo Button (Process Detail)'],
             ['field_key' => 'process_rfid_section',        'label' => 'Show Physical Card / RFID Section (Process Detail)'],
             ['field_key' => 'printing_generate_button',    'label' => 'Show Print / Generate Serial Buttons (Printing List)'],
-            ['field_key' => 'issuance_issue_button',       'label' => 'Show Issue Card Button (Issuance List)'],
+            ['field_key' => 'issuance_issue_button',       'label' => 'Show Issue Button (View Details from Process / Printing List)'],
             ['field_key' => 'closed_export_button',        'label' => 'Show Export Button (Closed List)'],
             ['field_key' => 'closed_card_details_button',  'label' => 'Show Card Details Button (Closed List)'],
             ['field_key' => 'renew_button',                'label' => 'Show Renew Button (Closed List)'],

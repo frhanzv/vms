@@ -199,7 +199,7 @@ class StaffList extends StaffPassBase
         if ($rowStatus === 'Approved') {
             return trim((string) ($row['receipt_no'] ?? '')) === ''
                 ? ['label' => 'Process List / Printing List', 'tone' => 'blue']
-                : ['label' => 'Issuance List', 'tone' => 'purple'];
+                : ['label' => 'Process List (printed, waiting to be issued)', 'tone' => 'purple'];
         }
 
         return ['label' => 'Request List (awaiting approval)', 'tone' => 'amber'];

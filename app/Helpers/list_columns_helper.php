@@ -100,7 +100,7 @@ if (! function_exists('list_column_registry')) {
                 'buttons' => [],
             ],
             'staff_process_detail' => [
-                'title'   => 'Process Detail (opened from Process List)',
+                'title'   => 'Process Detail (opened from Process / Printing List)',
                 'group'   => 'Staff Pass',
                 'form'    => 'staff_pass_request',
                 'columns' => [],
@@ -109,6 +109,8 @@ if (! function_exists('list_column_registry')) {
                     'process_reject_button'       => 'Reject button',
                     'process_upload_photo_button' => 'Upload Photo button',
                     'process_rfid_section'        => 'Physical Card / RFID section',
+                    // The staff Issuance List page was removed; cards are issued from here.
+                    'issuance_issue_button'       => 'Issue button',
                 ],
             ],
             'staff_printing_list' => [
@@ -126,23 +128,6 @@ if (! function_exists('list_column_registry')) {
                     'action'      => ['label' => 'Action', 'locked' => true],
                 ],
                 'buttons' => ['printing_generate_button' => 'Print / Generate Serial buttons'],
-            ],
-            'staff_issuance_list' => [
-                'title'   => 'Issuance List',
-                'group'   => 'Staff Pass',
-                'form'    => 'staff_pass_request',
-                'columns' => [
-                    'select'      => ['label' => 'Select (checkbox)', 'locked' => true],
-                    'no'          => ['label' => 'No', 'locked' => true],
-                    'receipt_no'  => ['label' => 'Card Serial'],
-                    'app_no'      => ['label' => 'App No'],
-                    'staff_no'    => ['label' => 'Staff No'],
-                    'full_name'   => ['label' => 'Full Name', 'locked' => true],
-                    'department'  => ['label' => 'Department'],
-                    'card_expiry' => ['label' => 'Card Expiry'],
-                    'action'      => ['label' => 'Action', 'locked' => true],
-                ],
-                'buttons' => ['issuance_issue_button' => 'Issue Card button'],
             ],
             'staff_closed_list' => [
                 'title'   => 'Closed List',

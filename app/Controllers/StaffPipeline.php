@@ -7,13 +7,17 @@ namespace App\Controllers;
  * issuance-list / closed-list filtered to visitorOrVip = STAFF, in the same
  * shape as the Vendor* list controllers:
  *
- *   Process List  = Approved, not printed yet (no receipt_no / card serial)
+ *   Process List  = Approved, card not issued yet (card_status Inactive) —
+ *                   before and after the card is printed
  *   Printing List = same set, bulk-print view
- *   Issuance List = printed, card not handed over yet (card_status Inactive)
  *   Closed List   = card issued (Active) or terminated
  *
- * Inactive employees (is_active = 0) are left out of Process / Printing /
- * Issuance — KPK only processes cards for active staff.
+ * There is no separate Issuance List any more: a printed card is issued from
+ * the pass's View Details page (Issue button), which activates the card and
+ * moves the pass straight to the Closed List.
+ *
+ * Inactive employees (is_active = 0) are left out of Process / Printing —
+ * KPK only processes cards for active staff.
  */
 class StaffPipeline extends StaffPassBase
 {
@@ -35,12 +39,12 @@ class StaffPipeline extends StaffPassBase
         return in_array($pp, [10, 25, 50], true) ? $pp : 10;
     }
 
-    private function notPrinted()
+    /** Approved passes whose card has not been issued yet (printed or not). */
+    private function notIssued()
     {
         $b = $this->db()->table('staff')
             ->where('status', 'Approved')
-            ->where('card_status', 'Inactive')
-            ->groupStart()->where('receipt_no', null)->orWhere('receipt_no', '')->groupEnd();
+            ->where('card_status', 'Inactive');
         if ($this->hasColumn('is_active')) {
             $b->where('is_active', 1);
         }
@@ -88,7 +92,7 @@ class StaffPipeline extends StaffPassBase
             $cardType = '';
         }
 
-        $builder = $this->notPrinted();
+        $builder = $this->notIssued();
         $this->applySearch($builder, $search, ['department', 'receipt_no']);
         // Worker Type = the staff Sub Type (same as Worker Type on the Vendor Process List).
         if ($cardType !== '') {
@@ -103,10 +107,12 @@ class StaffPipeline extends StaffPassBase
         [$field, $dir] = self::SORTS[$sortBy];
         [$rows, $pagination] = $this->paginate($builder, $page, $this->perPage(), $field, $dir);
 
-        $list = [];
+        $list    = [];
+        $printed = $this->printedSerials($rows);
         foreach ($rows as $i => $row) {
             $item = $this->rowBasics($row, ($pagination['current_page'] - 1) * $pagination['per_page'] + $i + 1);
             $item['ready']     = $item['photo_url'] !== null && $item['staff_no'] !== '';
+            $item['printed']   = $printed[(int) $row['id']] ?? null;
             $item['card_type'] = ($row['sub_type'] ?? '') !== '' ? ucwords(strtolower($row['sub_type'])) : 'Not assigned';
             $list[] = $item;
         }
@@ -127,14 +133,16 @@ class StaffPipeline extends StaffPassBase
         helper(['access', 'feature', 'role']);
         [$search, $sortBy, $page] = $this->common();
 
-        $builder = $this->notPrinted();
-        $this->applySearch($builder, $search, ['department']);
+        $builder = $this->notIssued();
+        $this->applySearch($builder, $search, ['department', 'receipt_no']);
         [$field, $dir] = self::SORTS[$sortBy];
         [$rows, $pagination] = $this->paginate($builder, $page, $this->perPage(), $field, $dir);
 
-        $list = [];
+        $list    = [];
+        $printed = $this->printedSerials($rows);
         foreach ($rows as $i => $row) {
             $item = $this->rowBasics($row, ($pagination['current_page'] - 1) * $pagination['per_page'] + $i + 1);
+            $item['printed'] = $printed[(int) $row['id']] ?? null;
             $item['ready']   = $item['photo_url'] !== null && $item['staff_no'] !== '';
             $item['blocker'] = $item['photo_url'] === null ? 'Photo missing' : ($item['staff_no'] === '' ? 'Staff No missing' : null);
             $list[] = $item;
@@ -221,6 +229,33 @@ class StaffPipeline extends StaffPassBase
         ]]);
     }
 
+    /**
+     * Card serial of every pass on the page that has been printed: the saved
+     * serial (Printing List / Finish), else the last print from View Details.
+     *
+     * @return array<int, string> staff id => serial
+     */
+    private function printedSerials(array $rows): array
+    {
+        $out = [];
+        $ids = [];
+        foreach ($rows as $row) {
+            if (trim((string) ($row['receipt_no'] ?? '')) !== '') {
+                $out[(int) $row['id']] = (string) $row['receipt_no'];
+            } else {
+                $ids[] = (int) $row['id'];
+            }
+        }
+        $db = $this->db();
+        if ($ids !== [] && $db->tableExists('staff_card_print_logs')) {
+            foreach ($db->table('staff_card_print_logs')->select('staff_id, receipt_no')->whereIn('staff_id', $ids)->orderBy('id', 'ASC')->get()->getResultArray() as $log) {
+                $out[(int) $log['staff_id']] = (string) $log['receipt_no'];
+            }
+        }
+
+        return $out;
+    }
+
     /** <YYYYMM><running no> — same serial scheme as the vendor cards, own sequence. */
     private function nextSerialNo(int $forStaffId = 0): string
     {
@@ -247,40 +282,19 @@ class StaffPipeline extends StaffPassBase
 
     // ------------------------------------------------------------------
 
+    /** The Issuance List page was removed — cards are issued from View Details. Old links land on the Process List. */
     public function issuanceList()
     {
-        helper(['access', 'feature', 'role']);
-        [$search, $sortBy, $page] = $this->common();
-
-        $builder = $this->db()->table('staff')
-            ->where('status', 'Approved')
-            ->where('card_status', 'Inactive')
-            ->where('receipt_no IS NOT NULL', null, false)
-            ->where('receipt_no !=', '');
-        if ($this->hasColumn('is_active')) {
-            $builder->where('is_active', 1);
-        }
-        $this->scope($builder);
-        $this->applySearch($builder, $search, ['receipt_no', 'department']);
-        [$field, $dir] = self::SORTS[$sortBy];
-        [$rows, $pagination] = $this->paginate($builder, $page, $this->perPage(), $field, $dir);
-
-        $list = [];
-        foreach ($rows as $i => $row) {
-            $list[] = $this->rowBasics($row, ($pagination['current_page'] - 1) * $pagination['per_page'] + $i + 1);
-        }
-
-        return view('staffs/issuance_list', [
-            'pageTitle'  => 'Staff Issuance List - SafeG',
-            'list'       => $list,
-            'searchTerm' => $search,
-            'sortBy'     => $sortBy,
-            'canIssue'   => $this->canEdit() && $this->cfg('issuance_issue_button'),
-            'pagination' => $pagination,
-        ]);
+        return redirect()->to(base_url('staffs/process-list'))
+            ->with('success', 'Printed cards are now issued from the pass\'s View Details page (Issue button).');
     }
 
-    /** KPK issueCards()/finishPortPassProcessing(): record who collected it, activate the card. */
+    /**
+     * KPK issueCards()/finishPortPassProcessing(): record who collected it,
+     * activate the card. Called by the Issue button on View Details (opened
+     * from the Process List or Printing List); the pass then sits on the
+     * Closed List and is gone from Process / Printing.
+     */
     public function issue($id)
     {
         if (! $this->canEdit() || ! $this->cfg('issuance_issue_button')) {
@@ -296,8 +310,9 @@ class StaffPipeline extends StaffPassBase
         if ($error !== null) {
             return $this->fail($error);
         }
+        $back = ($in['from'] ?? '') === 'printing' ? 'staffs/printing-list' : 'staffs/process-list';
 
-        return $this->ok('Card issued to ' . $name . ' — moved to Closed List.');
+        return $this->ok('Card issued to ' . $name . ' — the card is Active and the pass moved to the Closed List.', ['redirect' => base_url($back)]);
     }
 
     /**
@@ -347,14 +362,28 @@ class StaffPipeline extends StaffPassBase
         if (! $staff) {
             return 'Record not found.';
         }
-        if (empty($staff['receipt_no'])) {
-            return 'This card has not been printed yet.';
-        }
         if (($staff['status'] ?? '') !== 'Approved' || ($staff['card_status'] ?? '') !== 'Inactive') {
             return 'This card is no longer waiting to be issued. Please refresh the list.';
         }
+        // Printed from View Details (Print Card) keeps the serial only in the print log
+        // until Finish; issuing takes that serial, so the Closed List shows it.
+        $serial = trim((string) ($staff['receipt_no'] ?? ''));
+        if ($serial === '') {
+            $db  = $this->db();
+            $log = $db->tableExists('staff_card_print_logs')
+                ? $db->table('staff_card_print_logs')->where('staff_id', $id)->orderBy('id', 'DESC')->get()->getRowArray()
+                : null;
+            $serial = trim((string) ($log['receipt_no'] ?? ''));
+            if ($serial === '') {
+                return 'Print the card first.';
+            }
+            if ($db->table('staff')->where('receipt_no', $serial)->where('id !=', $id)->countAllResults() > 0) {
+                return 'Card serial ' . $serial . ' is already used by another pass — please print the card again.';
+            }
+        }
 
         $this->db()->table('staff')->where('id', $id)->update($this->onlyColumns([
+            'receipt_no'            => $serial,
             'card_status'           => 'Active',
             'collector_name'        => $name,
             'collector_ic_passport' => $ic,

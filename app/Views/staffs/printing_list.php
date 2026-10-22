@@ -9,7 +9,7 @@
                 </button>
                 <?php endif; ?>
             </div>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mb-6">Same passes as the Process List. Printing a card gives it a serial number and moves it to the Issuance List. Rows without a photo or Staff No. can't be printed yet.</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-6">Same passes as the Process List. Printing a card gives it a serial number; the pass stays here until the card is issued — open View Details and press Issue when it is collected, which moves it to the Closed List. Rows without a photo or Staff No. can't be printed yet.</p>
 
             <form method="get" action="<?= base_url('staffs/printing-list') ?>" class="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
                 <div class="flex shadow-sm w-full max-w-lg">
@@ -58,11 +58,15 @@
                             <?php if ($col('department')): ?><td class="p-4"><?= esc($r['department']) ?></td><?php endif; ?>
                             <td class="p-4">
                                 <div class="flex items-center gap-2">
-                                    <a href="<?= base_url('staffs/card-info/' . $r['id']) ?>" class="text-primary hover:underline font-semibold">View Details</a>
+                                    <a href="<?= base_url('staffs/card-info/' . $r['id'] . '?from=printing') ?>" class="text-primary hover:underline font-semibold">View Details</a>
+                                    <?php if ($r['printed']): ?>
+                                        <span class="text-gray-300">|</span>
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700" title="Card <?= esc($r['printed'], 'attr') ?>">Printed — ready to issue</span>
+                                    <?php endif; ?>
                                     <?php if ($canPrint): ?>
                                         <span class="text-gray-300">|</span>
                                         <?php if ($r['ready']): ?>
-                                        <button onclick="staffPrintOne(<?= $r['id'] ?>)" class="text-primary hover:underline font-semibold flex items-center gap-1"><span class="material-icons text-sm">print</span>Print</button>
+                                        <button onclick="staffPrintOne(<?= $r['id'] ?>)" class="text-primary hover:underline font-semibold flex items-center gap-1"><span class="material-icons text-sm">print</span><?= $r['printed'] ? 'Reprint' : 'Print' ?></button>
                                         <?php else: ?>
                                         <span class="text-amber-600"><?= esc($r['blocker']) ?></span>
                                         <?php endif; ?>
