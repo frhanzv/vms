@@ -96,8 +96,8 @@ $needPay = (int) $v['payment_required'] === 1 && $v['payment_status'] !== 'Paid'
             <?php endif; ?>
             <?php if ($on('veh_reject_action')): ?>
             <form method="post" action="<?= base_url('vehicles/' . $v['id'] . '/reject') ?>" class="flex flex-wrap gap-2 items-end"><?= csrf_field() ?>
-                <div><label class="block text-xs font-semibold mb-1">Reject Reason</label>
-                    <select name="reject_reason_id" class="<?= $in ?> w-56"><option value="">-- Select --</option>
+                <div><label class="block text-xs font-semibold mb-1">Reject Reason *</label>
+                    <select name="reject_reason_id" required class="<?= $in ?> w-56"><option value="">-- Select --</option>
                         <?php foreach ($rejectReasons as $rr): ?><option value="<?= (int) $rr['id'] ?>"><?= esc($rr['reason']) ?></option><?php endforeach; ?></select></div>
                 <div><label class="block text-xs font-semibold mb-1">Remark</label><input name="note" class="<?= $in ?> w-56"/></div>
                 <button class="<?= $btn ?> bg-red-600 text-white">Reject</button></form>
@@ -126,6 +126,18 @@ $needPay = (int) $v['payment_required'] === 1 && $v['payment_status'] !== 'Paid'
             <?php endif; ?>
             <div><button class="<?= $btn ?> bg-primary text-white">Issue Sticker</button></div>
         </form>
+    </div>
+    <?php endif; ?>
+
+    <?php if ($can['reject_approved'] && $on('veh_reject_action')): ?>
+    <div class="rounded border border-gray-200 dark:border-gray-700 p-4 mb-2">
+        <h2 class="text-sm font-bold uppercase mb-3">Reject</h2>
+        <form method="post" action="<?= base_url('vehicles/' . $v['id'] . '/reject') ?>" class="flex flex-wrap gap-2 items-end" onsubmit="return confirm('Reject this approved vehicle pass?')"><?= csrf_field() ?>
+            <div><label class="block text-xs font-semibold mb-1">Reject Reason *</label>
+                <select name="reject_reason_id" required class="<?= $in ?> w-56"><option value="">-- Select --</option>
+                    <?php foreach ($rejectReasons as $rr): ?><option value="<?= (int) $rr['id'] ?>"><?= esc($rr['reason']) ?></option><?php endforeach; ?></select></div>
+            <div><label class="block text-xs font-semibold mb-1">Remark</label><input name="note" class="<?= $in ?> w-56"/></div>
+            <button class="<?= $btn ?> bg-red-600 text-white">Reject</button></form>
     </div>
     <?php endif; ?>
 

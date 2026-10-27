@@ -106,7 +106,7 @@ $tabs = [
                         <?php if ($stage === 'request' && ! empty($r['_can_approve']) && \App\Libraries\VehicleRules::buttonOn('veh_approve_action')): ?>
                         <button type="button" onclick="vehApprove(<?= (int) $r['id'] ?>, '<?= esc($r['plate_no'], 'js') ?>', '<?= esc($r['app_no'], 'js') ?>')" class="text-emerald-600 hover:text-emerald-700 transition-colors inline-flex align-middle ml-2" title="Approve"><span class="material-symbols-outlined text-[22px]">check_circle</span></button>
                         <?php endif; ?>
-                        <?php if ($stage === 'request' && ! empty($r['_can_approve']) && \App\Libraries\VehicleRules::buttonOn('veh_reject_action')): ?>
+                        <?php if ((($stage === 'request' && ! empty($r['_can_approve'])) || ($stage === 'reviewed' && ! empty($r['_can_reject']))) && \App\Libraries\VehicleRules::buttonOn('veh_reject_action')): ?>
                         <button type="button" onclick="vehReject(<?= (int) $r['id'] ?>, '<?= esc($r['plate_no'], 'js') ?>', '<?= esc($r['app_no'], 'js') ?>')" class="text-red-600 hover:text-red-700 transition-colors inline-flex align-middle ml-1" title="Reject"><span class="material-symbols-outlined text-[22px]">cancel</span></button>
                         <?php endif; ?>
                         <?php if ($stage === 'request' && ! empty($r['_can_edit']) && \App\Libraries\VehicleRules::buttonOn('veh_edit_request')): ?>
@@ -190,7 +190,7 @@ $tabs = [
     </form>
 </div>
 <?php endif; ?>
-<?php if ($stage === 'request'): $mi = 'w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 rounded px-3 py-2 text-sm'; ?>
+<?php if ($stage === 'request' || $stage === 'reviewed'): $mi ='w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 rounded px-3 py-2 text-sm'; ?>
 <div id="vehApproveModal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
     <form id="vehApproveForm" method="post" class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6"><?= csrf_field() ?>
         <h3 class="text-lg font-bold mb-1">Approve Vehicle Pass</h3>
@@ -207,8 +207,8 @@ $tabs = [
     <form id="vehRejectForm" method="post" class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6"><?= csrf_field() ?>
         <h3 class="text-lg font-bold mb-1">Reject Vehicle Pass</h3>
         <p class="text-sm text-gray-500 mb-4"><span id="vehRejectInfo"></span></p>
-        <label class="block text-xs font-semibold mb-1">Reject Reason</label>
-        <select name="reject_reason_id" class="<?= $mi ?> mb-3"><option value="">-- Select --</option>
+        <label class="block text-xs font-semibold mb-1">Reject Reason *</label>
+        <select name="reject_reason_id" required class="<?= $mi ?> mb-3"><option value="">-- Select --</option>
             <?php foreach ($rejectReasons ?? [] as $rr): ?><option value="<?= (int) $rr['id'] ?>"><?= esc($rr['reason']) ?></option><?php endforeach; ?></select>
         <label class="block text-xs font-semibold mb-1">Remark</label><textarea name="note" rows="2" class="<?= $mi ?> mb-4"></textarea>
         <div class="flex justify-end gap-2">

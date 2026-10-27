@@ -150,10 +150,16 @@ class VehicleRules
         return null;
     }
 
-    /** Pass expiry for a sticker year: 31 Dec of that year; a staff pass runs 100 years. */
+    /**
+     * Pass expiry (KPK): 31 Dec of the sticker year, staff included. Only a pass with no sticker
+     * year falls back to this year, or 100 years on for a staff pass.
+     */
     public static function expiryFor(?string $stickerYear, bool $staff = false): string
     {
-        $y = ctype_digit((string) $stickerYear) && $stickerYear !== '' ? (int) $stickerYear : (int) date('Y');
+        if (ctype_digit((string) $stickerYear) && $stickerYear !== '') {
+            return (int) $stickerYear . '-12-31';
+        }
+        $y = (int) date('Y');
 
         return ($staff ? $y + 100 : $y) . '-12-31';
     }
@@ -248,7 +254,7 @@ class VehicleRules
         $map = [
             'submit'    => ['Draft' => 'Pending', 'Rejected' => 'Pending'],
             'approve'   => ['Pending' => 'Approved'],
-            'reject'    => ['Pending' => 'Rejected'],
+            'reject'    => ['Pending' => 'Rejected', 'Approved' => 'Rejected'], // KPK: the Approved list can reject too
             'issue'     => ['Approved' => 'Issued'],
             'terminate' => ['Issued' => 'Terminated'],
         ];

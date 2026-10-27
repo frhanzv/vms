@@ -293,6 +293,11 @@ class VehiclePass extends BaseController
                 $rw['_can_delete'] = $this->canDelete($rw);
             }
             unset($rw);
+        } elseif ($stage === 'reviewed') {   // KPK Approved list: an Approved pass can still be rejected
+            foreach ($rows as &$rw) {
+                $rw['_can_reject'] = $rw['status'] === 'Approved' && $this->may($rw, 'approved');
+            }
+            unset($rw);
         }
 
         // summary cards: counts of the whole list (ignoring search and filters), only the statuses this page can hold
@@ -332,7 +337,7 @@ class VehiclePass extends BaseController
             'pageTitle' => $title . ' - ' . VehicleRules::GROUPS[$group] . ' - SafeG', 'title' => VehicleRules::GROUPS[$group] . ' - ' . $title, 'group' => $group, 'stage' => $stage, 'rows' => $rows,
             'search' => $search, 'status' => $status, 'page' => $page, 'pages' => max(1, (int) ceil($total / $per)), 'total' => $total,
             'appFor' => $appFor, 'typeId' => $typeId, 'appTyp' => $appTyp, 'sort' => $sort, 'per' => $per, 'types' => $this->types($group),
-            'filterable' => $filterable, 'statCards' => $statCards, 'rejectReasons' => $stage === 'request' ? $this->rejectReasons() : [],
+            'filterable' => $filterable, 'statCards' => $statCards, 'rejectReasons' => in_array($stage, ['request', 'reviewed'], true) ? $this->rejectReasons() : [],
             'canCreate' => $this->allowed($group, 'create'),
             'canColumns' => ! is_vendor_admin() && has_access('vehicle', 'show_hide_columns'),
             'canDirect' => $stage === 'closed' && ! is_vendor_admin() && $this->allowed($group, 'closed') && has_access('vehicle', 'new_issued_pass'),
@@ -884,6 +889,7 @@ class VehiclePass extends BaseController
                 'edit'      => $this->canEdit($v),
                 'approve'   => $this->may($v, 'request'),
                 'issue'     => $this->may($v, 'approved'),
+                'reject_approved' => $v['status'] === 'Approved' && $this->may($v, 'approved'),
                 'terminate' => $this->may($v, 'closed') && has_access('vehicle', 'terminate_pass'),
                 'delete'    => $this->canDelete($v),
                 'submit'    => $own && in_array($v['status'], ['Draft', 'Rejected'], true),
@@ -928,7 +934,7 @@ class VehiclePass extends BaseController
         if ($action === 'delete') {
             return $this->delete($v);
         }
-        $page = ['submit' => 'create', 'approve' => 'request', 'reject' => 'request', 'issue' => 'approved', 'terminate' => 'closed'][$action] ?? null;
+        $page = ['submit' => 'create', 'approve' => 'request', 'reject' => $v['status'] === 'Approved' ? 'approved' : 'request', 'issue' => 'approved', 'terminate' => 'closed'][$action] ?? null;
         $ok   = $page && $this->may($v, $page) && ($action !== 'terminate' || has_access('vehicle', 'terminate_pass'));
         if ($action === 'submit' && ! $ok && ($v['pass_for'] ?? '') === 'staff') {
             $ok = has_access('vehicle', VehicleRules::KEYS['public']['staff_request']) || has_access('vehicle', VehicleRules::KEYS['public']['staff']);
@@ -975,7 +981,7 @@ class VehiclePass extends BaseController
             }
             if ($autoIssue) {
                 $upd['status']       = 'Issued';
-                $upd['pass_expiry']  = VehicleRules::expiryFor((string) ($v['sticker_year'] ?: date('Y')), ($v['pass_for'] ?? '') === 'staff');
+                $upd['pass_expiry']  = VehicleRules::expiryFor((string) ($v['sticker_year'] ?? ''), ($v['pass_for'] ?? '') === 'staff');
                 $upd['issue_date']   = date('Y-m-d');
                 $upd['issued_at']    = date('Y-m-d H:i:s');
                 $upd['issued_by']    = $this->userName();
@@ -991,7 +997,7 @@ class VehiclePass extends BaseController
                     $reason = '';
                 }
             }
-            if ($reason === '' && $note === '') {
+            if ($reason === '') {   // KPK: a reason from the list is required; the remark is extra
                 return $this->back('error', 'Please choose a reason for rejecting.', $back);
             }
             $upd['reject_reason'] = trim($reason . ($reason !== '' && $note !== '' ? ' - ' : '') . $note);
@@ -1024,10 +1030,17 @@ class VehiclePass extends BaseController
         }
         $db->transComplete();
 
-        $msg = ['submit' => 'Submitted for approval.', 'approve' => $autoIssue ? 'Vehicle pass approved and issued.' : 'Vehicle pass approved. It is now waiting for sticker issuance.', 'reject' => 'Vehicle pass rejected.',
+        // KPK: the applicant is emailed when the pass is approved or rejected
+        if (($action === 'approve' || $action === 'reject') && $db->transStatus()) {
+            \App\Libraries\VehicleMailer::decision(array_merge($v, $upd), $action === 'approve' ? 'APPROVED' : 'REJECTED', $action === 'reject' ? (string) $upd['reject_reason'] : $note);
+        }
+
+        $msg = ['submit' =>'Submitted for approval.', 'approve' => $autoIssue ? 'Vehicle pass approved and issued.' : 'Vehicle pass approved. It is now waiting for sticker issuance.', 'reject' => 'Vehicle pass rejected.',
             'issue' => 'Sticker issued.', 'terminate' => 'Vehicle pass terminated.'][$action];
         $dest = $back;
-        if ($action === 'approve' || $action === 'reject') {
+        if ($action === 'reject' && $v['status'] === 'Approved') {
+            $dest = $this->listUrl($g, 'reviewed');
+        } elseif ($action === 'approve' || $action === 'reject') {
             $dest = $this->listUrl($g, 'request');
         } elseif ($action === 'issue') {
             $dest = $this->listUrl($g, 'closed');
