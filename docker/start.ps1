@@ -7,15 +7,10 @@
 $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot\..
 
-$image = 'localhost/vms:v1.0.1'
+$image = 'localhost/vms:v.1.0.2'
 if (-not (podman images -q $image)) {
-    if (podman images -q 'localhost/vms:v.1.0.1') {
-        $image = 'localhost/vms:v.1.0.1'
-    } else {
-        Write-Host 'Image missing — running docker/build.ps1 ...'
-        & "$PSScriptRoot\build.ps1"
-        $image = 'localhost/vms:v1.0.1'
-    }
+    Write-Host 'Image missing — running docker/build.ps1 ...'
+    & "$PSScriptRoot\build.ps1"
 }
 
 if (-not (Test-Path 'docker\.env')) {

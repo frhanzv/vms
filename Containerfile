@@ -4,13 +4,13 @@
 #   composer install --no-dev --optimize-autoloader
 #
 # Build:
-#   podman build --network=host --format=docker -t localhost/vms:v1.0.1 -f Containerfile .
+#   podman build --network=host --format=docker -t localhost/vms:v.1.0.2 -f Containerfile .
 
 FROM php:8.2-apache-bookworm
 
 LABEL org.opencontainers.image.title="vms" \
       org.opencontainers.image.description="SafeG Visitor Management System" \
-      org.opencontainers.image.version="v1.0.1"
+      org.opencontainers.image.version="v.1.0.2"
 
 ENV APACHE_DOCUMENT_ROOT=/var/www/html/public \
     COMPOSER_ALLOW_SUPERUSER=1 \
