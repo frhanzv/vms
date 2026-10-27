@@ -1,0 +1,9 @@
+# Bank (PayNet FPX) keys and certificates are supplied on the server, never committed.
+*.key
+*.p12
+*.pfx
+*.jks
+*.pem
+*.cer
+*.crt
+*.properties
