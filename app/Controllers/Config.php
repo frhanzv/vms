@@ -4224,7 +4224,7 @@ class Config extends BaseController
             'hero_title' => 'Secure, Seamless Visitor Management.',
             'hero_subtitle' => "Safety Without the Hassle with SafeG's Intelligent Visitor Management System",
             'hero_badge_text' => 'A Malaysian Product',
-            'background_image' => 'https://lh3.googleusercontent.com/aida-public/AB6AXuCMW9bMBWzlF_H5fr9w7w3EWL0xxvt6SL3WOWhab785VAq-rPN7ObkIsyr14Mt_qViRpBCsWeGiJy_MvZtevN5n7tZw-bEZ5gGzGS2KQKwDBo8Tn69WH_kATZaaiyZsJGR9HjJoetsBEwp1g9XBSxn7zDaU-iPaepoY4EqrJGMvx8MR2FGxM9MzfDj0bLLzMBl0EAhlHtGT5a3UQyiNcsJ6_IRtUWS8HkpAFoMcKYbXFM3murPhLrKZYTSGa2hSBA4v8ggyH-BBtQ',
+            'background_image' => 'assets/images/safeg/login_bg.png', // KPK login background
         ];
     }
 
@@ -4234,7 +4234,7 @@ class Config extends BaseController
         $path = trim((string) $rawPath);
 
         if ($path === '') {
-            return $default;
+            $path = $default;
         }
 
         if (preg_match('/^https?:\/\//i', $path)) {
