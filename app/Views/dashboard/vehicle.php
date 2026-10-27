@@ -64,10 +64,10 @@ $qs    = static fn(array $o): string => base_url('dashboard/vehicle') . '?' . ht
             <!-- Today -->
             <?php if (dash_card('vehicle', 'kpi_today')): ?>
             <section style="order: <?= dash_card_pos('vehicle', 'kpi_today') ?>" aria-label="Registered vehicles and gate activity today" class="grid grid-cols-2 gap-4 lg:grid-cols-4">
-                <?= dash_stat('Staff Vehicle Registered', $registered['staff'], 'today', 'badge', 'info') ?>
-                <?= dash_stat('Vendor Pass Vehicle Registered', $registered['vendor'], 'today', 'local_shipping', 'info') ?>
-                <?= dash_stat('Gate In', $gate['in'], 'vehicles today', 'login', 'good') ?>
-                <?= dash_stat('Gate Out', $gate['out'], 'vehicles today', 'logout', 'neutral') ?>
+                <?= dash_stat('Staff Vehicle Registered', $registered['staff'], 'today', 'badge', 'info', null, 'reg_staff') ?>
+                <?= dash_stat('Vendor Pass Vehicle Registered', $registered['vendor'], 'today', 'local_shipping', 'info', null, 'reg_vendor') ?>
+                <?= dash_stat('Gate In', $gate['in'], 'vehicles today', 'login', 'good', null, 'gate_in') ?>
+                <?= dash_stat('Gate Out', $gate['out'], 'vehicles today', 'logout', 'neutral', null, 'gate_out') ?>
             </section>
             <?php endif; ?>
 
@@ -174,6 +174,7 @@ $qs    = static fn(array $o): string => base_url('dashboard/vehicle') . '?' . ht
 })();
 </script>
 <?= view('partials/dashboard_viz_assets', ['part' => 'script']) ?>
+<?= view('partials/dash_detail_modal', ['dash' => 'vehicle']) ?>
 <?php if (dash_card('vehicle', 'assistant')): ?><?= view('partials/analytics_assistant', ['examples' => ['How many vehicles are registered?', 'Which vehicles are currently inside?', 'Show vehicles with expired road tax.']]) ?><?php endif; ?>
 </body>
 </html>

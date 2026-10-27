@@ -377,6 +377,7 @@ $routes->get('dashboard/accessDeniedData', 'Dashboard::accessDeniedData');
 $routes->get('dashboard/overstayData', 'Dashboard::overstayData');
 $routes->get('dashboard/alertDetailData/(:num)', 'Dashboard::alertDetailData/$1');
 $routes->get('dashboard/onSiteData', 'Dashboard::onSiteData');
+$routes->get('dashboard/cardDetail', 'DashboardDetail::data');
 $routes->get('dashboard/expectedTodayData', 'Dashboard::expectedTodayData');
 $routes->get('dashboard/checkedOutData', 'Dashboard::checkedOutData');
 $routes->get('dashboard/activeAlertsData', 'Dashboard::activeAlertsData');

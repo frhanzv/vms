@@ -152,7 +152,7 @@ if (! function_exists('dash_stat')) {
      * Headline tile. $href makes the whole tile a link. $tone only tints the
      * icon (never the number) — warn / bad / good / neutral.
      */
-    function dash_stat(string $label, $value, string $sub = '', string $icon = 'info', string $tone = 'neutral', ?string $href = null): string
+    function dash_stat(string $label, $value, string $sub = '', string $icon = 'info', string $tone = 'neutral', ?string $href = null, ?string $detail = null): string
     {
         $tones = [
             'neutral' => 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
@@ -173,6 +173,12 @@ if (! function_exists('dash_stat')) {
             . '</div>';
 
         $class = 'block rounded-xl border border-slate-200 bg-surface-light p-5 shadow-sm dark:border-slate-700 dark:bg-surface-dark';
+
+        // A card with a pop-up: the whole card is a button, the pop-up lists what the number is made of.
+        if ($detail !== null) {
+            return '<div role="button" tabindex="0" data-dash-detail="' . esc($detail, 'attr') . '" data-dash-label="' . esc($label, 'attr') . '" class="' . $class
+                . ' cursor-pointer transition-colors hover:border-primary hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary/40">' . $inner . '</div>';
+        }
 
         return $href !== null
             ? '<a href="' . esc($href, 'attr') . '" class="' . $class . ' transition-colors hover:border-primary">' . $inner . '</a>'
