@@ -12,7 +12,7 @@ class Auth extends BaseController
     private function getDefaultLoginPageSettings(): array
     {
         return [
-            'template' => 'default',
+            'template' => 'kpk',
             'page_title' => 'SafeG - Visitor Management System Login',
             'brand_name' => 'SafeG',
             'heading' => 'Welcome back',
@@ -77,7 +77,7 @@ class Auth extends BaseController
         $settings['background_image_url'] = $this->resolveLoginBackgroundImageUrl($settings['background_image'] ?? null);
 
         $template = strtolower((string) ($settings['template'] ?? 'default'));
-        $view = $template === 'gxo' ? 'auth/login_gxo' : 'auth/login';
+        $view = ['gxo' => 'auth/login_gxo', 'kpk' => 'auth/login_kpk'][$template] ?? 'auth/login';
 
         return view($view, ['loginPageSettings' => $settings]);
     }

@@ -56,7 +56,7 @@ class VehicleTransfer extends BaseController
 
         $b = $db->table('vehicle_transfers t')->select('t.*, v.plate_no, v.vehicle_group')->join('vehicles v', 'v.id = t.vehicle_id');
         if (! is_platform_superadmin()) {
-            $b->where('v.client_id', current_client_id());
+            $b->where(\App\Libraries\VehicleClientApprovals::scopeSql($db, (int) current_client_id(), 'v'), null, false);
         }
         if (is_vendor_admin()) {
             $c = $this->ownCompanyId();
@@ -106,7 +106,7 @@ class VehicleTransfer extends BaseController
             ->where('v.status', 'Issued')
             ->where('v.vendor_company_id IS NOT NULL', null, false);
         if (! is_platform_superadmin()) {
-            $b->where('v.client_id', current_client_id());
+            $b->where(\App\Libraries\VehicleClientApprovals::scopeSql($db, (int) current_client_id(), 'v'), null, false);
         }
         if (is_vendor_admin()) {
             $b->where('v.vendor_company_id !=', $this->ownCompanyId());
@@ -159,8 +159,12 @@ class VehicleTransfer extends BaseController
             return $this->back('error', is_vendor_admin() ? 'Your company could not be found.' : 'Choose the company that takes over the vehicle.', $self);
         }
 
-        $v = $db->table('vehicles')->where('id', $id)->get()->getRowArray();
-        if (! $v || (! is_platform_superadmin() && (int) $v['client_id'] !== (int) current_client_id())) {
+        $vb = $db->table('vehicles v')->select('v.*')->where('v.id', $id);
+        if (! is_platform_superadmin()) {
+            $vb->where(\App\Libraries\VehicleClientApprovals::scopeSql($db, (int) current_client_id(), 'v'), null, false);
+        }
+        $v = $vb->get()->getRowArray();
+        if (! $v) {
             return $this->back('error', 'Vehicle not found.', $self);
         }
         $back = $self . '?plate=' . urlencode((string) $v['plate_no']);

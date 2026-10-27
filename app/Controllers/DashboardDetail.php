@@ -58,14 +58,11 @@ class DashboardDetail extends BaseController
             $locked  = ($regNo === '');
         }
 
-        $today = date('Y-m-d');
-        $in30  = date('Y-m-d', strtotime($today . ' +30 days'));
-        $isDate = static fn($d) => is_string($d) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $d) && strtotime($d) !== false;
-        $from = $isDate($this->request->getGet('from')) ? (string) $this->request->getGet('from') : date('Y-m-d', strtotime($today . ' -30 days'));
-        $to   = $isDate($this->request->getGet('to')) ? (string) $this->request->getGet('to') : $today;
-        if ($from > $to) {
-            [$from, $to] = [$to, $from];
-        }
+        $today  = date('Y-m-d');
+        $in30   = date('Y-m-d', strtotime($today . ' +30 days'));
+        $period = \App\Libraries\VendorDashboardStats::period(['from' => $this->request->getGet('from'), 'to' => $this->request->getGet('to')], $today);
+        $from   = $period['from'];
+        $to     = $period['to'];
         $locCode = trim((string) $this->request->getGet('location'));
 
         $scope = static function ($b) use ($clientId, $regNo, $locked, $locCode, $db) {
@@ -90,7 +87,6 @@ class DashboardDetail extends BaseController
         $active = static fn() => $scope($db->table('vendors'))
             ->where("LOWER(vendors.card_status) = 'active'", null, false)
             ->where("LOWER(vendors.status) NOT IN ('suspended','terminated')", null, false);
-        $range = static fn($b) => $b->where('vendors.created_at >=', $from . ' 00:00:00')->where('vendors.created_at <=', $to . ' 23:59:59');
 
         $cols = 'vendors.id, vendors.full_name, vendors.app_no, vendors.vendor_company_name, vendors.card_type, vendors.status, vendors.card_status, vendors.pass_expiry, vendors.created_at';
         $title = '';
@@ -104,20 +100,28 @@ class DashboardDetail extends BaseController
                 $q = $scope($db->table('vendors'));
                 break;
             case 'kpi_active':
-            case 'summary_active':
                 $title = 'Active passes'; $sub = 'Passes with an active card';
                 $q = $active();
                 break;
             case 'kpi_expiring':
-            case 'summary_expiring':
                 $title = 'Expiring in 30 days'; $sub = 'Active passes that expire by ' . date('d M Y', strtotime($in30));
                 $q = $active()->where('vendors.pass_expiry >=', $today)->where('vendors.pass_expiry <=', $in30);
                 $order = 'vendors.pass_expiry ASC';
                 break;
+            // KPK summary tiles: same rules as the numbers (VendorDashboardStats::applyCard)
+            case 'summary_active':
+                $title = 'Total Active Pass'; $sub = 'Active card, not expired' . ($period['ranged'] ? ', applied ' . $from . ' to ' . $to : '');
+                break;
+            case 'summary_expiring':
+                $title = 'Expiring in 30 Days'; $sub = 'Passes that expire by ' . date('d M Y', strtotime($in30));
+                $order = 'vendors.pass_expiry ASC';
+                break;
             case 'summary_expired':
-                $title = 'Expired passes'; $sub = 'Active cards whose pass has expired';
-                $q = $active()->where('vendors.pass_expiry IS NOT NULL', null, false)->where('vendors.pass_expiry <', $today);
+                $title = 'Expired'; $sub = 'Passes that expired ' . ($period['expFrom'] === $period['expTo'] ? 'on ' . $period['expFrom'] : $period['expFrom'] . ' to ' . $period['expTo']);
                 $order = 'vendors.pass_expiry DESC';
+                break;
+            case 'summary_renewed':
+                $title = 'Total Pass Renewed'; $sub = 'Renewal applications, ' . $from . ' to ' . $to;
                 break;
             case 'kpi_awaiting':
                 $title = $isVendorAccount ? 'Awaiting KPK' : 'Awaiting approval'; $sub = 'Applications waiting for a decision';
@@ -126,25 +130,29 @@ class DashboardDetail extends BaseController
                     ->where("LOWER(COALESCE(vendors.card_status,'')) NOT IN ('active','terminated')", null, false);
                 break;
             case 'summary_new':
-                $title = 'New applications'; $sub = $from . ' to ' . $to;
-                $q = $range($scope($db->table('vendors')));
-                break;
+                return $this->vendorKpk($db, $scope, $card, $period, ['New Application', 'New applications, ' . $from . ' to ' . $to]);
             case 'summary_approved':
-                $title = 'Approved'; $sub = 'Approved applications, ' . $from . ' to ' . $to;
-                $q = $range($scope($db->table('vendors')))->where("LOWER(vendors.status) = 'approved'", null, false);
+                $title = 'Approved'; $sub = 'Approved, still in process, ' . $from . ' to ' . $to;
                 break;
             case 'summary_issuance':
-                $title = 'Pass issuance'; $sub = 'Approved with a receipt number, ' . $from . ' to ' . $to;
-                $q = $range($scope($db->table('vendors')))->where("LOWER(vendors.status) = 'approved'", null, false)
-                    ->where("TRIM(COALESCE(vendors.receipt_no, '')) <> ''", null, false);
+                $title = 'Pass Issuance'; $sub = 'Approved and waiting for collection, ' . $from . ' to ' . $to;
                 break;
             case 'gate_in':
             case 'gate_out':
             case 'gate_near':
             case 'gate_out_window':
-                return $this->vendorGate($db, $scope, $card, $from, $to, $today);
+                return $this->vendorKpk($db, $scope, $card, $period, [
+                    'gate_in'         => ['Total Check IN', 'Vendor check-ins, ' . $from . ' to ' . $to],
+                    'gate_out'        => ['Total Check Out', 'Vendor check-outs, ' . $from . ' to ' . $to],
+                    'gate_near'       => ['Near Out Of Window', 'Came in before today, still inside, less than 24 hours'],
+                    'gate_out_window' => ['Out Of Window', 'Still inside 24 hours or more after coming in'],
+                ][$card]);
             default:
                 return null;
+        }
+        if ($q === null) {   // a KPK summary tile
+            $q = $scope($db->table('vendors'));
+            \App\Libraries\VendorDashboardStats::applyCard($q, $card, $period);
         }
 
         $rows = $q->select($cols, false)->orderBy($order, '', false)->limit(self::LIMIT + 1)->get()->getResultArray();
@@ -175,53 +183,63 @@ class DashboardDetail extends BaseController
         ];
     }
 
-    private function vendorGate(BaseConnection $db, \Closure $scope, string $card, string $from, string $to, string $today): array
+    /**
+     * KPK's five dashboard pop-ups (New Application, Near Out Of Window, Out Of Window, Check In, Check Out)
+     * share one table: App Date, Full Name, IC No / Passport No, Company Name, Location, Time In, Time Out.
+     */
+    private function vendorKpk(BaseConnection $db, \Closure $scope, string $card, array $period, array $title): array
     {
-        $titles = [
-            'gate_in'         => ['Total Check IN', 'Vendor check-ins, ' . $from . ' to ' . $to],
-            'gate_out'        => ['Total Check Out', 'Vendor check-outs, ' . $from . ' to ' . $to],
-            'gate_near'       => ['Near Out Of Window', 'On-site vendors whose pass expires within 7 days'],
-            'gate_out_window' => ['Out Of Window', 'On-site vendors whose pass has already expired'],
-        ];
-        $rows = [];
+        $rows  = [];
         $trunc = false;
-        if ($db->tableExists('vendor_visits')) {
-            $b = $scope($db->table('vendor_visits')->join('vendors', 'vendors.id = vendor_visits.vendor_id'))
-                ->select('vendors.id, vendors.full_name, vendors.vendor_company_name, vendors.pass_expiry, vendor_visits.check_in_time, vendor_visits.check_out_time', false);
-            if ($card === 'gate_in') {
-                $b->where('vendor_visits.check_in_time >=', $from . ' 00:00:00')->where('vendor_visits.check_in_time <=', $to . ' 23:59:59');
-            } elseif ($card === 'gate_out') {
-                $b->where('vendor_visits.check_out_time >=', $from . ' 00:00:00')->where('vendor_visits.check_out_time <=', $to . ' 23:59:59');
+        $sel   = 'vendors.id, vendors.full_name, vendors.ic_no, vendors.passport_no, vendors.vendor_company_name, vendors.location_access, '
+               . 'vendors.created_at AS app_date';
+        if ($card === 'summary_new') {
+            $b = $scope($db->table('vendors'));
+            if ($db->tableExists('vendor_visits')) {   // last gate visit of each applicant
+                $last = '(SELECT %s FROM ' . $db->prefixTable('vendor_visits') . ' lv WHERE lv.vendor_id = vendors.id ORDER BY lv.check_in_time DESC LIMIT 1)';
+                $sel .= ', ' . sprintf($last, 'lv.check_in_time') . ' AS time_in, ' . sprintf($last, 'lv.check_out_time') . ' AS time_out';
             } else {
-                $b->where('vendor_visits.check_in_time IS NOT NULL', null, false)->where('vendor_visits.check_out_time IS NULL', null, false);
-                if ($card === 'gate_out_window') {
-                    $b->where('vendors.pass_expiry IS NOT NULL', null, false)->where('vendors.pass_expiry <', $today);
-                } else {
-                    $b->where('vendors.pass_expiry >=', $today)->where('vendors.pass_expiry <=', date('Y-m-d', strtotime($today . ' +7 days')));
-                }
+                $sel .= ', NULL AS time_in, NULL AS time_out';
             }
-            $rows  = $b->orderBy('vendor_visits.check_in_time', 'DESC')->limit(self::LIMIT + 1)->get()->getResultArray();
+            $order = 'vendors.id DESC';
+        } elseif ($db->tableExists('vendor_visits')) {
+            $b     = $scope($db->table('vendor_visits')->join('vendors', 'vendors.id = vendor_visits.vendor_id'));
+            $sel  .= ', vendor_visits.check_in_time AS time_in, vendor_visits.check_out_time AS time_out';
+            $order = $card === 'gate_out' ? 'vendor_visits.check_out_time DESC' : 'vendor_visits.check_in_time DESC';
+        }
+        if (isset($b)) {
+            \App\Libraries\VendorDashboardStats::applyCard($b, $card, $period);
+            $rows  = $b->select($sel, false)->orderBy($order, '', false)->limit(self::LIMIT + 1)->get()->getResultArray();
             $trunc = count($rows) > self::LIMIT;
             $rows  = array_slice($rows, 0, self::LIMIT);
         }
 
-        $out = [];
+        $labels = [];
+        try {
+            $labels = (new \App\Models\VendorLocationModel())->getAllLabelMap();
+        } catch (\Throwable $e) {
+            $labels = [];
+        }
+        $out  = [];
         $urls = [];
         foreach ($rows as $r) {
+            $locs = array_filter(array_map('trim', explode(',', (string) ($r['location_access'] ?? ''))));
             $out[] = [
+                $this->date($r['app_date'] ?? null, 'd M Y'),
                 trim((string) $r['full_name']) ?: '-',
+                (string) (($r['ic_no'] ?? '') ?: ($r['passport_no'] ?? '')) ?: '-',
                 (string) ($r['vendor_company_name'] ?? '') ?: '-',
-                $this->date($r['pass_expiry'] ?? null, 'd M Y'),
-                $this->date($r['check_in_time'] ?? null, 'd M Y H:i'),
-                $this->date($r['check_out_time'] ?? null, 'd M Y H:i'),
+                $locs ? implode(', ', array_map(static fn($c) => $labels[$c] ?? $c, $locs)) : '-',
+                $this->date($r['time_in'] ?? null, 'd M Y H:i'),
+                $this->date($r['time_out'] ?? null, 'd M Y H:i'),
             ];
             $urls[] = base_url('vendorpassrequest/view/' . (int) $r['id']);
         }
 
         return [
-            'title' => $titles[$card][0], 'subtitle' => $titles[$card][1], 'icon' => 'local_shipping',
+            'title' => $title[0], 'subtitle' => $title[1], 'icon' => 'local_shipping',
             'noun' => 'records',
-            'columns' => ['Name', 'Company', 'Pass Expiry', 'Check In', 'Check Out'],
+            'columns' => ['App Date', 'Full Name', 'IC No / Passport No', 'Company Name', 'Location', 'Time In', 'Time Out'],
             'rows' => $out, 'urls' => $urls, 'truncated' => $trunc, 'link' => null,
         ];
     }
@@ -239,7 +257,7 @@ class DashboardDetail extends BaseController
                 $b = $db->table('vehicles')->where('DATE(vehicles.created_at) = CURDATE()', null, false);
                 $b->where($staff ? 'vehicles.staff_id IS NOT NULL' : 'vehicles.staff_id IS NULL', null, false);
                 if ($clientId > 0 && $db->fieldExists('client_id', 'vehicles')) {
-                    $b->where('vehicles.client_id', $clientId);
+                    $b->where(\App\Libraries\VehicleClientApprovals::scopeSql($db, $clientId, $db->prefixTable('vehicles')), null, false);
                 }
                 if ($db->fieldExists('soft_delete', 'vehicles')) {
                     $b->groupStart()->where('vehicles.soft_delete', 0)->orWhere('vehicles.soft_delete IS NULL', null, false)->groupEnd();

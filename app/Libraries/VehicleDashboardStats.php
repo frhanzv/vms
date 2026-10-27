@@ -32,7 +32,7 @@ class VehicleDashboardStats
         if ($db->tableExists('vehicles')) {
             $b = $db->table('vehicles')->select('SUM(staff_id IS NOT NULL) AS s, SUM(staff_id IS NULL) AS v', false)->where('DATE(created_at) = CURDATE()', null, false);
             if ($clientId > 0 && $db->fieldExists('client_id', 'vehicles')) {
-                $b->where('client_id', $clientId);
+                $b->where(VehicleClientApprovals::scopeSql($db, $clientId, $db->prefixTable('vehicles')), null, false); // clients owning one of its locations
             }
             if ($db->fieldExists('soft_delete', 'vehicles')) {
                 $b->groupStart()->where('soft_delete', 0)->orWhere('soft_delete IS NULL', null, false)->groupEnd();

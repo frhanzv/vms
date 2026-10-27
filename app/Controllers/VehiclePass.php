@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Libraries\VehicleClientApprovals;
 use App\Libraries\VehiclePayment;
 use App\Libraries\VehicleRules;
 use App\Models\VendorLocationModel;
@@ -51,13 +52,13 @@ class VehiclePass extends BaseController
 
     private function scope($builder, string $alias = 'v')
     {
-        if (! is_platform_superadmin()) {
-            $builder->where($alias . '.client_id', current_client_id());
-        }
         // a vendor account only ever sees the passes of its own company
         if (is_vendor_admin()) {
             $co = current_vendor_company();
             $builder->where($alias . '.vendor_company_id', (int) ($co['id'] ?? 0));
+        } elseif (! is_platform_superadmin()) {
+            // like vendor / staff passes: every client owning one of the pass's locations sees it
+            $builder->where(VehicleClientApprovals::scopeSql(\Config\Database::connect(), (int) current_client_id(), $alias), null, false);
         }
 
         return $builder;
@@ -286,16 +287,23 @@ class VehiclePass extends BaseController
         [$sortCol, $sortDir] = $sorts[$sort] ?? $sorts['date_desc'];
         $total = (clone $b)->countAllResults(false);
         $rows  = $b->orderBy($sortCol, $sortDir)->limit($per, ($page - 1) * $per)->get()->getResultArray();
+        // shared passes: which clients are involved and what each decided (same as the vendor / staff lists)
+        $clientRows = VehicleClientApprovals::ready($db) ? VehicleClientApprovals::rowsForVendors($db, array_map('intval', array_column($rows, 'id'))) : [];
+        foreach ($rows as &$rw) {
+            $rw['_clients'] = $clientRows[(int) $rw['id']] ?? [];
+        }
+        unset($rw);
         if ($stage === 'request') {   // row Edit / Delete icons: only where the pass screen would allow them too
             foreach ($rows as &$rw) {
-                $rw['_can_approve'] = $this->may($rw, 'request');
+                $rw['_can_approve'] = $this->may($rw, 'request') && $this->clientMayApprove($db, $rw, $rw['_clients']);
+                $rw['_can_reject']  = $this->may($rw, 'request') && $this->clientInvolved($db, $rw, $rw['_clients']);
                 $rw['_can_edit']   = $this->canEdit($rw);
                 $rw['_can_delete'] = $this->canDelete($rw);
             }
             unset($rw);
         } elseif ($stage === 'reviewed') {   // KPK Approved list: an Approved pass can still be rejected
             foreach ($rows as &$rw) {
-                $rw['_can_reject'] = $rw['status'] === 'Approved' && $this->may($rw, 'approved');
+                $rw['_can_reject'] = $rw['status'] === 'Approved' && $this->may($rw, 'approved') && $this->clientInvolved($db, $rw, $rw['_clients']);
             }
             unset($rw);
         }
@@ -576,6 +584,9 @@ class VehiclePass extends BaseController
         }
         $valid = array_keys((new VendorLocationModel())->getOptionsForUser(true));
         $locs  = array_values(array_intersect($locs, $valid));
+        if ($cur) {   // never drop another client's locations the editor cannot see (same as vendor passes)
+            $locs = array_values(array_filter(explode(',', VehicleClientApprovals::mergeLocations((string) ($cur['location_access'] ?? ''), $locs, $valid))));
+        }
 
         // who owns the vehicle
         $co    = current_vendor_company();
@@ -703,9 +714,11 @@ class VehiclePass extends BaseController
         }
         $data['payment_status'] = $data['payment_required'] ? ($cur['payment_status'] ?? 'Pending') : 'None';
 
+        $reset = false;
         $db->transStart();
         if ($id) {
-            $from = $cur['status'];
+            $from  = $cur['status'];
+            $reset = $submit && ! $asApprover && $from !== 'Pending';   // resubmitted: every client decides again
             if ($submit && ! $asApprover && $from !== 'Pending') {
                 $data['status'] = 'Pending';
                 $data['reject_reason'] = null;
@@ -740,9 +753,71 @@ class VehiclePass extends BaseController
         }
         $this->saveDrivers($db, $id, $driverIds);
         $this->saveFiles($db, $id);
+        $this->syncClients($db, $id, $reset);
         $db->transComplete();
 
         return $this->back('success', $asApprover ? 'Details updated.' : ($direct ? 'Issued vehicle pass added.' : ($submit ? 'Vehicle pass request submitted.' : 'Saved as draft.')), 'vehicles/view/' . $id);
+    }
+
+    /**
+     * Keep vehicle_client_approvals in step with the pass, as vendor / staff passes do: a draft involves
+     * nobody; $reset puts every client back to Pending (resubmitted); on a pass that is already approved or
+     * issued a newly involved client counts as approved.
+     */
+    private function syncClients($db, int $id, bool $reset = false): void
+    {
+        if (! VehicleClientApprovals::ready($db)) {
+            return;
+        }
+        $v = $db->table('vehicles')->select('status, location_access')->where('id', $id)->get()->getRowArray();
+        if (! $v) {
+            return;
+        }
+        VehicleClientApprovals::sync($db, $id, $v['status'] === 'Draft' ? '' : (string) $v['location_access']);
+        if ($reset) {
+            VehicleClientApprovals::resetAll($db, $id);
+        }
+        if (in_array($v['status'], ['Approved', 'Issued', 'Terminated'], true)) {
+            $db->table('vehicle_client_approvals')->where('vehicle_id', $id)->where('status', 'Pending')
+                ->update(['status' => 'Approved', 'updated_at' => date('Y-m-d H:i:s')]);
+        }
+    }
+
+    private function clientName($db, int $clientId): string
+    {
+        $row = $db->table('clients')->select('name')->where('id', $clientId)->get()->getRowArray();
+
+        return (string) ($row['name'] ?? ('Client ' . $clientId));
+    }
+
+    /** May the current user's client still approve this pass? (involved and not approved yet; true when not shared) */
+    private function clientMayApprove($db, array $v, ?array $rows = null): bool
+    {
+        if (is_platform_superadmin() || ! VehicleClientApprovals::ready($db)) {
+            return true;
+        }
+        $rows ??= VehicleClientApprovals::rows($db, (int) $v['id']);
+        if ($rows === []) {
+            return true;
+        }
+        foreach ($rows as $r) {
+            if ($r['client_id'] === (int) current_client_id()) {
+                return in_array($r['status'], ['Pending', 'Rejected'], true);
+            }
+        }
+
+        return false;
+    }
+
+    /** Is the current user's client involved in this pass at all? (true when not shared) */
+    private function clientInvolved($db, array $v, ?array $rows = null): bool
+    {
+        if (is_platform_superadmin() || ! VehicleClientApprovals::ready($db)) {
+            return true;
+        }
+        $rows ??= VehicleClientApprovals::rows($db, (int) $v['id']);
+
+        return $rows === [] || in_array((int) current_client_id(), array_column($rows, 'client_id'), true);
     }
 
     /** Documents the pass will have after this save: kept existing files plus valid new uploads. */
@@ -869,6 +944,7 @@ class VehiclePass extends BaseController
         }
         $db = \Config\Database::connect();
         $g  = $this->vGroup($v);
+        $clients = VehicleClientApprovals::ready($db) ? VehicleClientApprovals::rows($db, (int) $v['id']) : [];
         // staff passes are created from the staff pages, so the "create" key is the staff request one
         $own = ($v['pass_for'] ?? 'vendor') === 'staff'
             ? (has_access('vehicle', VehicleRules::KEYS['public']['staff_request']) || has_access('vehicle', VehicleRules::KEYS['public']['staff']))
@@ -884,12 +960,14 @@ class VehiclePass extends BaseController
             'labels' => (new VendorLocationModel())->getAllLabelMap(), 'typeFields' => VehicleRules::TYPE_FIELDS,
             'locationOptions' => (new VendorLocationModel())->getOptionsForUser(true), 'types' => $this->types($g), 'ledger' => $this->ledgerCode($v) !== '',
             'rejectReasons' => $this->rejectReasons(),
+            'clients' => $clients,
             'listUrl' => $this->listUrl($g, ($v['pass_for'] ?? '') === 'staff' ? 'staff' : 'all'),
             'can' => [
                 'edit'      => $this->canEdit($v),
-                'approve'   => $this->may($v, 'request'),
+                'approve'   => $this->may($v, 'request') && $this->clientMayApprove($db, $v, $clients),
+                'reject'    => $this->may($v, 'request') && $this->clientInvolved($db, $v, $clients),
                 'issue'     => $this->may($v, 'approved'),
-                'reject_approved' => $v['status'] === 'Approved' && $this->may($v, 'approved'),
+                'reject_approved' => $v['status'] === 'Approved' && $this->may($v, 'approved') && $this->clientInvolved($db, $v, $clients),
                 'terminate' => $this->may($v, 'closed') && has_access('vehicle', 'terminate_pass'),
                 'delete'    => $this->canDelete($v),
                 'submit'    => $own && in_array($v['status'], ['Draft', 'Rejected'], true),
@@ -946,6 +1024,22 @@ class VehiclePass extends BaseController
         if (! $to) {
             return $this->back('error', "This pass is {$v['status']} - it cannot be {$action}d from here. Refresh the page.", $back);
         }
+
+        // A pass whose locations belong to several clients: each client approves / rejects its own part,
+        // as with vendor and staff passes. The platform superadmin decides for every client at once.
+        $perClient = in_array($action, ['approve', 'reject'], true) && VehicleClientApprovals::ready($db) && VehicleClientApprovals::hasRows($db, (int) $id);
+        $myClient  = is_platform_superadmin() ? null : (int) current_client_id();
+        if ($perClient && $myClient !== null) {
+            if ($action === 'approve' && ! VehicleClientApprovals::clientCanApprove($db, (int) $id, $myClient)) {
+                return $this->back('error', VehicleClientApprovals::clientCanReject($db, (int) $id, $myClient)
+                    ? 'Your client has already approved this pass. ' . (VehicleClientApprovals::awaitingLabel($db, (int) $id) ?? '')
+                    : 'You cannot approve this pass: none of its locations belong to your client.', $back);
+            }
+            if ($action === 'reject' && ! VehicleClientApprovals::clientCanReject($db, (int) $id, $myClient)) {
+                return $this->back('error', 'You cannot reject this pass: none of its locations belong to your client.', $back);
+            }
+        }
+        $clientLabel = $perClient ? '[' . ($myClient === null ? 'All clients' : $this->clientName($db, $myClient)) . '] ' : '';
 
         $upd  = ['status' => $to, 'updated_at' => date('Y-m-d H:i:s')];
         $note = trim((string) $this->request->getPost('note'));
@@ -1008,6 +1102,23 @@ class VehiclePass extends BaseController
             }
         }
 
+        $mailNote = $note;
+        if ($perClient) {
+            // one client rejecting rejects the whole pass; an approval only counts once every client has approved
+            [$okDecide, $msgDecide, $allApproved] = VehicleClientApprovals::decide($db, (int) $id, $myClient, $action === 'approve' ? 'Approved' : 'Rejected', $this->userName(), $note);
+            if (! $okDecide) {
+                return $this->back('error', $msgDecide, $back);
+            }
+            if ($action === 'approve' && ! $allApproved) {
+                $awaiting = VehicleClientApprovals::awaitingLabel($db, (int) $id) ?? '';
+                $db->table('vehicles')->where('id', (int) $id)->update(array_filter(['collect_date' => $upd['collect_date'] ?? null, 'updated_at' => $upd['updated_at']]));
+                $this->log((int) $id, 'Pending', 'Pending', trim($clientLabel . 'Approved' . ($note !== '' ? ': ' . $note : '') . '. ' . $awaiting));
+
+                return $this->back('success', 'Your client has approved. ' . $awaiting, $this->listUrl($g, 'request'));
+            }
+            $note = trim($clientLabel . $note);
+        }
+
         $db->transStart();
         $db->table('vehicles')->where('id', (int) $id)->update($upd);
         $this->log((int) $id, (string) $v['status'], $to, $note !== '' ? $note : ($action === 'issue' ? 'Sticker ' . $upd['sticker_serial'] : ($autoIssue ? 'Approved and issued (no payment step)' : null)));
@@ -1018,6 +1129,9 @@ class VehiclePass extends BaseController
         if ($action === 'terminate') {
             $this->closeStickers($db, (int) $id);
             $db->table('vehicles')->where('id', (int) $id)->update(['terminated_at' => date('Y-m-d H:i:s')]);
+        }
+        if ($action === 'submit') {
+            $this->syncClients($db, (int) $id, true);   // every involved client decides (again)
         }
         // a renewal that gets its sticker replaces the old pass
         if ($issued && ! empty($v['renewed_from'])) {
@@ -1032,7 +1146,7 @@ class VehiclePass extends BaseController
 
         // KPK: the applicant is emailed when the pass is approved or rejected
         if (($action === 'approve' || $action === 'reject') && $db->transStatus()) {
-            \App\Libraries\VehicleMailer::decision(array_merge($v, $upd), $action === 'approve' ? 'APPROVED' : 'REJECTED', $action === 'reject' ? (string) $upd['reject_reason'] : $note);
+            \App\Libraries\VehicleMailer::decision(array_merge($v, $upd), $action === 'approve' ? 'APPROVED' : 'REJECTED', $action === 'reject' ? (string) $upd['reject_reason'] : $mailNote);
         }
 
         $msg = ['submit' =>'Submitted for approval.', 'approve' => $autoIssue ? 'Vehicle pass approved and issued.' : 'Vehicle pass approved. It is now waiting for sticker issuance.', 'reject' => 'Vehicle pass rejected.',
@@ -1181,7 +1295,7 @@ class VehiclePass extends BaseController
             if ($locs === []) {
                 return $this->back('error', 'Choose at least one Location Access.', $back);
             }
-            $upd['location_access'] = implode(',', $locs);
+            $upd['location_access'] = VehicleClientApprovals::mergeLocations((string) $v['location_access'], $locs, array_keys((new VendorLocationModel())->getOptionsForUser(true)));
             $ok  = 'Location access updated.';
             $log = 'Location access changed';
         } else {
@@ -1200,6 +1314,9 @@ class VehiclePass extends BaseController
             $db->table('vehicle_stickers')->where('vehicle_id', (int) $v['id'])->where('status', 'active')->update($st);
         }
         $this->log((int) $v['id'], 'Issued', 'Issued', $log);
+        if (isset($upd['location_access'])) {
+            $this->syncClients($db, (int) $v['id']);
+        }
         $db->transComplete();
 
         return $this->back('success', $ok, $back);

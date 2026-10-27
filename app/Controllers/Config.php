@@ -4203,7 +4203,7 @@ class Config extends BaseController
     private function getDefaultLoginPageSettings(): array
     {
         return [
-            'template' => 'default',
+            'template' => 'kpk',
             'page_title' => 'SafeG - Visitor Management System Login',
             'brand_name' => 'SafeG',
             'heading' => 'Welcome back',
@@ -4268,7 +4268,7 @@ class Config extends BaseController
     {
         $rules = [
             'page_title' => 'required|max_length[255]',
-            'template' => 'required|in_list[default,gxo]',
+            'template' => 'required|in_list[default,gxo,kpk]',
             'brand_name' => 'required|max_length[100]',
             'heading' => 'required|max_length[255]',
             'subheading' => 'permit_empty|max_length[500]',

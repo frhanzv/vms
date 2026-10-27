@@ -5,7 +5,8 @@
  *
  * A card is shown when BOTH the client allows it (admin page: Config >
  * Dashboard Cards) AND the user has not switched it off for themselves
- * (Customize button on the dashboard). No saved choice = shown.
+ * (Customize button on the dashboard). No saved choice = shown, unless the
+ * card is marked 'off' in the registry (then the user has to switch it on).
  * To add a card: add it to dash_card_registry() and wrap it in the view with
  * `if (dash_card('<dashboard>', '<key>'))`.
  */
@@ -37,17 +38,17 @@ if (! function_exists('dash_card_registry')) {
                     'summary'           => ['label' => 'Summary (KPK-style tiles)', 'group' => 'Summary'],
                     'chart_location'    => ['label' => 'By location', 'group' => 'Charts'],
                     'gate_summary'      => ['label' => 'Check IN / Check OUT / Out of window', 'group' => 'Summary'],
-                    'kpi_total'         => ['label' => 'Total applications', 'group' => 'Number tiles'],
-                    'kpi_active'        => ['label' => 'Active passes', 'group' => 'Number tiles'],
-                    'kpi_expiring'      => ['label' => 'Expiring ≤ 30 days', 'group' => 'Number tiles'],
-                    'kpi_awaiting'      => ['label' => 'Awaiting approval', 'group' => 'Number tiles'],
-                    'chart_pipeline'    => ['label' => 'Pass pipeline', 'group' => 'Charts'],
-                    'chart_monthly'     => ['label' => 'Applications per month', 'group' => 'Charts'],
-                    'chart_worker_type' => ['label' => 'Worker type', 'group' => 'Charts'],
-                    'chart_companies'   => ['label' => 'Top vendor companies (staff side)', 'group' => 'Charts'],
-                    'list_action'       => ['label' => 'Waiting for approval / needs attention', 'group' => 'Lists'],
-                    'list_expiring'     => ['label' => 'Passes expiring soon', 'group' => 'Lists'],
-                    'list_recent'       => ['label' => 'Recent applications', 'group' => 'Lists'],
+                    'kpi_total'         => ['label' => 'Total applications', 'group' => 'Number tiles', 'off' => true],
+                    'kpi_active'        => ['label' => 'Active passes', 'group' => 'Number tiles', 'off' => true],
+                    'kpi_expiring'      => ['label' => 'Expiring ≤ 30 days', 'group' => 'Number tiles', 'off' => true],
+                    'kpi_awaiting'      => ['label' => 'Awaiting approval', 'group' => 'Number tiles', 'off' => true],
+                    'chart_pipeline'    => ['label' => 'Pass pipeline', 'group' => 'Charts', 'off' => true],
+                    'chart_monthly'     => ['label' => 'Applications per month', 'group' => 'Charts', 'off' => true],
+                    'chart_worker_type' => ['label' => 'Worker type', 'group' => 'Charts', 'off' => true],
+                    'chart_companies'   => ['label' => 'Top vendor companies (staff side)', 'group' => 'Charts', 'off' => true],
+                    'list_action'       => ['label' => 'Waiting for approval / needs attention', 'group' => 'Lists', 'off' => true],
+                    'list_expiring'     => ['label' => 'Passes expiring soon', 'group' => 'Lists', 'off' => true],
+                    'list_recent'       => ['label' => 'Recent applications', 'group' => 'Lists', 'off' => true],
                     'assistant'         => ['label' => 'Analytics Assistant', 'group' => 'Assistant'],
                 ],
             ],
@@ -180,7 +181,15 @@ if (! function_exists('dash_card')) {
         }
         $userId ??= (int) session()->get('user_id');
 
-        return dash_card_choices('user', $userId, $dash)[$card] ?? true;
+        return dash_card_choices('user', $userId, $dash)[$card] ?? dash_card_default_on($dash, $card);
+    }
+}
+
+if (! function_exists('dash_card_default_on')) {
+    /** Shown when the user has made no choice? Cards marked 'off' in the registry start hidden. */
+    function dash_card_default_on(string $dash, string $card): bool
+    {
+        return empty(dash_card_registry()[$dash]['cards'][$card]['off']);
     }
 }
 

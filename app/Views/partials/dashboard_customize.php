@@ -35,7 +35,7 @@ $build = static function (string $scopeType, int $scopeId, bool $onlyAllowed) us
             'key'    => $key,
             'label'  => $reg['cards'][$key]['label'],
             'group'  => $reg['cards'][$key]['group'],
-            'hidden' => isset($rows[$key]) ? ! $rows[$key]['visible'] : false,
+            'hidden' => isset($rows[$key]) ? ! $rows[$key]['visible'] : ($scopeType === 'user' && ! dash_card_default_on($dash, $key)),
         ];
     }
 

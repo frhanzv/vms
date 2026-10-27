@@ -96,68 +96,60 @@ $st = $stages;
                 <input type="date" name="to" aria-label="To" value="<?= esc($filters['to'], 'attr') ?>" class="h-9 rounded-full border-slate-200 bg-slate-50 px-4 text-sm dark:border-slate-600 dark:bg-slate-800"/>
                 <button type="submit" class="h-9 rounded-full bg-primary px-5 text-sm font-bold text-white hover:bg-primary-dark">Apply</button>
                 <a href="<?= base_url('dashboard/vendor') ?>" class="px-2 text-sm font-semibold text-slate-500 hover:text-primary">Reset</a>
-                <span class="ml-auto text-xs text-slate-400">As at <?= esc($summary['asAt']) ?></span>
+                <span class="ml-auto text-xs text-slate-400"><?= ! empty($filters['ranged']) ? esc(date('d M Y', strtotime($filters['periodFrom']))) . ' &rarr; ' . esc(date('d M Y', strtotime($filters['periodTo']))) : 'Today' ?> &middot; As at <?= esc($summary['asAt']) ?></span>
             </form>
 
-            <?php if (dash_card('vendor', 'summary')): ?>
-            <!-- Summary hero -->
-            <section style="order: <?= dash_card_pos('vendor', 'summary') ?>" aria-label="Summary"
-                     class="overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-blue-600 to-indigo-700 text-white shadow-lg">
-                <div class="grid gap-6 p-6 lg:grid-cols-5 lg:p-8">
-                    <div class="lg:col-span-2 cursor-pointer rounded-xl transition hover:bg-white/10" role="button" tabindex="0" data-dash-detail="summary_active" data-dash-label="Total Active Pass">
-                        <p class="text-xs font-bold uppercase tracking-widest text-white/70">Total Active Pass</p>
-                        <p class="mt-2 text-6xl font-black leading-none"><?= dash_fmt($summary['activePasses']) ?></p>
-                        <p class="mt-3 text-sm text-white/80">across <strong><?= dash_fmt($summary['activeCompanies']) ?></strong> companies &middot; avg <strong><?= esc((string) $summary['avgPerCompany']) ?></strong> per company</p>
-                    </div>
-                    <div class="grid grid-cols-3 gap-3 lg:col-span-3">
-                        <?php foreach ([
-                            ['New Application', $summary['newApplications'], 'note_add', 'summary_new'],
-                            ['Approved', $summary['approved'], 'check_circle', 'summary_approved'],
-                            ['Pass Issuance', $summary['issuance'], 'receipt_long', 'summary_issuance'],
-                        ] as [$lbl, $val, $ico, $key]): ?>
-                        <div class="cursor-pointer rounded-xl bg-white/15 p-4 backdrop-blur-sm transition hover:bg-white/25" role="button" tabindex="0" data-dash-detail="<?= $key ?>" data-dash-label="<?= esc($lbl, 'attr') ?>">
-                            <span class="material-symbols-outlined text-[22px] text-white/80"><?= $ico ?></span>
-                            <p class="mt-2 text-3xl font-black"><?= dash_fmt($val) ?></p>
-                            <p class="mt-1 text-xs font-semibold text-white/80"><?= esc($lbl) ?></p>
+            <?php if (dash_card('vendor', 'summary')):
+                // KPK progress bar: grey at 0 %, red under 30 %, blue under 80 %, green from 80 %
+                $bar = static function (int $p): string {
+                    $c = $p === 0 ? 'bg-slate-300 dark:bg-slate-600' : ($p < 30 ? 'bg-red-500' : ($p < 80 ? 'bg-primary' : 'bg-emerald-500'));
+
+                    return '<div class="mt-3 flex items-center gap-2"><div class="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700">'
+                        . '<div class="h-full rounded-full ' . $c . '" style="width: ' . min(100, max(0, $p)) . '%"></div></div>'
+                        . '<span class="text-[11px] font-bold text-slate-500 dark:text-slate-400">' . $p . '%</span></div>';
+                };
+                $groups = [
+                    ['Applications', 'text-primary bg-primary/10', [
+                        ['New Application', $summary['newApplications'], 'note_add', 'summary_new', null],
+                        ['Approved', $summary['approved'], 'check_circle', 'summary_approved', $summary['pct']['approved']],
+                        ['Pass Issuance', $summary['issuance'], 'receipt_long', 'summary_issuance', $summary['pct']['issuance']],
+                    ]],
+                    ['Expiry & Renewal', 'text-amber-600 bg-amber-500/10', [
+                        ['Expired', $summary['expired'], 'event_busy', 'summary_expired', null],
+                        ['Expiring in 30 Days', $summary['expiring'], 'event_upcoming', 'summary_expiring', $summary['pct']['expiring']],
+                        ['Total Pass Renewed', $summary['renewed'], 'autorenew', 'summary_renewed', $summary['pct']['renewed']],
+                    ]],
+                    ['Active', 'text-emerald-600 bg-emerald-500/10', [
+                        ['Total Active Pass', $summary['activePasses'], 'badge', 'summary_active', null],
+                        ['Total Active Companies', $summary['activeCompanies'], 'domain', null, $summary['pct']['companies']],
+                        ['Average Pass Per Company', $summary['avgPerCompany'], 'functions', null, null],
+                    ]],
+                ]; ?>
+            <!-- Summary (KPK getVendorForDashboard) -->
+            <section style="order: <?= dash_card_pos('vendor', 'summary') ?>" aria-label="Summary" class="grid grid-cols-1 gap-4 xl:grid-cols-3">
+                <?php foreach ($groups as [$gTitle, $tone, $tiles]): ?>
+                <div class="rounded-2xl border border-slate-200 bg-surface-light p-5 shadow-sm dark:border-slate-700 dark:bg-surface-dark">
+                    <h3 class="mb-4 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400"><?= esc($gTitle) ?></h3>
+                    <div class="grid grid-cols-3 gap-3">
+                        <?php foreach ($tiles as [$lbl, $val, $ico, $key, $pct]): ?>
+                        <div <?= $key ? 'role="button" tabindex="0" data-dash-detail="' . $key . '" data-dash-label="' . esc($lbl, 'attr') . '"' : '' ?>
+                             class="flex flex-col rounded-xl p-2 <?= $key ? 'cursor-pointer transition hover:bg-slate-50 dark:hover:bg-slate-800' : '' ?>">
+                            <span class="flex size-9 items-center justify-center rounded-lg <?= $tone ?>"><span class="material-symbols-outlined text-[20px]"><?= $ico ?></span></span>
+                            <p class="mt-3 text-3xl font-black leading-none"><?= is_float($val) ? esc((string) $val) : dash_fmt($val) ?></p>
+                            <p class="mt-1 text-xs font-semibold leading-snug text-slate-600 dark:text-slate-300"><?= esc($lbl) ?></p>
+                            <?= $pct !== null ? $bar((int) $pct) : '' ?>
                         </div>
                         <?php endforeach; ?>
                     </div>
-                </div>
-                <div class="flex flex-wrap gap-3 border-t border-white/20 bg-black/10 px-6 py-3 text-sm lg:px-8">
-                    <span role="button" tabindex="0" data-dash-detail="summary_expired" data-dash-label="Expired" class="inline-flex cursor-pointer items-center gap-2 rounded-full bg-red-500/90 px-3 py-1 font-semibold hover:brightness-110"><span class="material-symbols-outlined text-[18px]">event_busy</span><?= dash_fmt($summary['expired']) ?> Expired</span>
-                    <span role="button" tabindex="0" data-dash-detail="summary_expiring" data-dash-label="Expiring in 30 days" class="inline-flex cursor-pointer items-center gap-2 rounded-full bg-amber-400 px-3 py-1 font-semibold text-amber-950 hover:brightness-105"><span class="material-symbols-outlined text-[18px]">event_upcoming</span><?= dash_fmt($summary['expiring']) ?> Expiring in 30 days</span>
-                    <span class="ml-auto text-xs text-white/70 self-center"><?= esc($filters['from']) ?> &rarr; <?= esc($filters['to']) ?></span>
-                </div>
-            </section>
-            <?php endif; ?>
-
-            <?php if (dash_card('vendor', 'gate_summary') && ! empty($gate['available'])): ?>
-            <!-- Gate activity -->
-            <section style="order: <?= dash_card_pos('vendor', 'gate_summary') ?>" aria-label="Gate activity" class="grid grid-cols-2 gap-4 lg:grid-cols-4">
-                <?php foreach ([
-                    ['Total Check IN',       $gate['checkIn'],         'login',         'emerald', 'gate_in'],
-                    ['Total Check Out',      $gate['checkOut'],        'logout',        'sky',     'gate_out'],
-                    ['Near Out Of Window',   $gate['nearOutOfWindow'], 'hourglass_top', 'amber',   'gate_near'],
-                    ['Out Of Window',        $gate['outOfWindow'],     'warning',       'red',     'gate_out_window'],
-                ] as [$lbl, $val, $ico, $c, $key]):
-                    $cls = [
-                        'emerald' => 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800',
-                        'sky'     => 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-900/20 dark:text-sky-300 dark:border-sky-800',
-                        'amber'   => 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800',
-                        'red'     => 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800',
-                    ][$c]; ?>
-                <div role="button" tabindex="0" data-dash-detail="<?= $key ?>" data-dash-label="<?= esc($lbl, 'attr') ?>" class="flex cursor-pointer items-center gap-4 rounded-2xl border p-4 transition hover:shadow-md <?= $cls ?>">
-                    <span class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-white/70 dark:bg-white/10"><span class="material-symbols-outlined text-[26px]"><?= $ico ?></span></span>
-                    <div><p class="text-3xl font-black leading-none"><?= dash_fmt($val) ?></p><p class="mt-1 text-xs font-semibold"><?= esc($lbl) ?></p></div>
                 </div>
                 <?php endforeach; ?>
             </section>
             <?php endif; ?>
 
-            <!-- Charts -->
-            <section class="grid grid-cols-1 gap-6 xl:grid-cols-2" style="order: 20">
+            <!-- By location + gate activity (KPK: chart, then Near Out Of Window / Check IN / Check Out / Out Of Window) -->
+            <section class="grid grid-cols-1 gap-6 xl:grid-cols-3" style="order: <?= min(dash_card_pos('vendor', 'chart_location'), dash_card_pos('vendor', 'gate_summary')) ?>">
                 <?php if (dash_card('vendor', 'chart_location')): ?>
-                <div class="rounded-2xl border border-slate-200 bg-surface-light p-6 shadow-sm dark:border-slate-700 dark:bg-surface-dark" style="order: <?= dash_card_pos('vendor', 'chart_location') ?>">
+                <div class="rounded-2xl border border-slate-200 bg-surface-light p-6 shadow-sm dark:border-slate-700 dark:bg-surface-dark <?= dash_card('vendor', 'gate_summary') && ! empty($gate['available']) ? 'xl:col-span-2' : 'xl:col-span-3' ?>">
                     <h3 class="text-base font-bold">By Location</h3>
                     <p class="mb-4 text-xs text-slate-500 dark:text-slate-400">Passes by location access</p>
                     <?php
@@ -169,6 +161,41 @@ $st = $stages;
                     ?>
                 </div>
                 <?php endif; ?>
+                <?php if (dash_card('vendor', 'gate_summary') && ! empty($gate['available'])): ?>
+                <div aria-label="Gate activity" class="grid grid-cols-2 gap-4 content-start <?= dash_card('vendor', 'chart_location') ? '' : 'xl:col-span-3 xl:grid-cols-4' ?>">
+                    <?php foreach ([
+                        ['Near Out Of Window',   $gate['nearOutOfWindow'], 'hourglass_top', 'amber',   'gate_near'],
+                        ['Total Check IN',       $gate['checkIn'],         'login',         'emerald', 'gate_in'],
+                        ['Total Check Out',      $gate['checkOut'],        'logout',        'sky',     'gate_out'],
+                        ['Out Of Window',        $gate['outOfWindow'],     'warning',       'red',     'gate_out_window'],
+                    ] as [$lbl, $val, $ico, $c, $key]):
+                        $cls = [
+                            'emerald' => 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800',
+                            'sky'     => 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-900/20 dark:text-sky-300 dark:border-sky-800',
+                            'amber'   => 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800',
+                            'red'     => 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800',
+                        ][$c]; ?>
+                    <div role="button" tabindex="0" data-dash-detail="<?= $key ?>" data-dash-label="<?= esc($lbl, 'attr') ?>" class="flex cursor-pointer flex-col gap-3 rounded-2xl border p-4 transition hover:shadow-md <?= $cls ?>">
+                        <span class="flex size-10 items-center justify-center rounded-xl bg-white/70 dark:bg-white/10"><span class="material-symbols-outlined text-[22px]"><?= $ico ?></span></span>
+                        <div><p class="text-3xl font-black leading-none"><?= dash_fmt($val) ?></p><p class="mt-1 text-xs font-semibold"><?= esc($lbl) ?></p></div>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+                <?php endif; ?>
+            </section>
+
+            <?php
+            // VMS-only cards (not on the KPK dashboard): hidden by default, switch them on under Customize
+            $extras = ['chart_pipeline', 'kpi_total', 'kpi_active', 'kpi_expiring', 'kpi_awaiting', 'chart_monthly', 'chart_worker_type', 'chart_companies', 'list_action', 'list_expiring', 'list_recent'];
+            if (array_filter($extras, static fn($k) => dash_card('vendor', $k))): ?>
+            <!-- More (VMS-only cards) -->
+            <details style="order: 30" class="group rounded-2xl border border-slate-200 bg-surface-light shadow-sm dark:border-slate-700 dark:bg-surface-dark">
+                <summary class="flex cursor-pointer list-none items-center justify-between px-6 py-4 text-sm font-bold">
+                    <span class="flex items-center gap-2"><span class="material-symbols-outlined text-primary">dashboard_customize</span>More charts &amp; lists</span>
+                    <span class="material-symbols-outlined transition-transform group-open:rotate-180">expand_more</span>
+                </summary>
+                <div class="border-t border-slate-100 p-6 dark:border-slate-800">
+            <section class="mb-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
                 <?php if (dash_card('vendor', 'chart_pipeline')): ?>
                 <div>
                 <div class="rounded-xl border border-slate-200 bg-surface-light p-5 shadow-sm dark:border-slate-700 dark:bg-surface-dark">
@@ -190,17 +217,8 @@ $st = $stages;
                 </div>
                 </div>
                 <?php endif; ?>
-
-
             </section>
 
-            <!-- Everything from the previous dashboard -->
-            <details style="order: 30" class="group rounded-2xl border border-slate-200 bg-surface-light shadow-sm dark:border-slate-700 dark:bg-surface-dark">
-                <summary class="flex cursor-pointer list-none items-center justify-between px-6 py-4 text-sm font-bold">
-                    <span class="flex items-center gap-2"><span class="material-symbols-outlined text-primary">dashboard_customize</span>More charts &amp; lists</span>
-                    <span class="material-symbols-outlined transition-transform group-open:rotate-180">expand_more</span>
-                </summary>
-                <div class="border-t border-slate-100 p-6 dark:border-slate-800">
             <section class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Key numbers">
                 <?php if (dash_card('vendor', 'kpi_total')): ?>
                 <div class="[&>*]:h-full" style="order: <?= dash_card_pos('vendor', 'kpi_total') ?>">
@@ -303,6 +321,7 @@ $st = $stages;
             </section>
                 </div>
             </details>
+            <?php endif; ?>
             </div>
             <?php endif; ?>
         </div>

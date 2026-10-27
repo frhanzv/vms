@@ -106,7 +106,7 @@ $tabs = [
                         <?php if ($stage === 'request' && ! empty($r['_can_approve']) && \App\Libraries\VehicleRules::buttonOn('veh_approve_action')): ?>
                         <button type="button" onclick="vehApprove(<?= (int) $r['id'] ?>, '<?= esc($r['plate_no'], 'js') ?>', '<?= esc($r['app_no'], 'js') ?>')" class="text-emerald-600 hover:text-emerald-700 transition-colors inline-flex align-middle ml-2" title="Approve"><span class="material-symbols-outlined text-[22px]">check_circle</span></button>
                         <?php endif; ?>
-                        <?php if ((($stage === 'request' && ! empty($r['_can_approve'])) || ($stage === 'reviewed' && ! empty($r['_can_reject']))) && \App\Libraries\VehicleRules::buttonOn('veh_reject_action')): ?>
+                        <?php if (in_array($stage, ['request', 'reviewed'], true) && ! empty($r['_can_reject']) && \App\Libraries\VehicleRules::buttonOn('veh_reject_action')): ?>
                         <button type="button" onclick="vehReject(<?= (int) $r['id'] ?>, '<?= esc($r['plate_no'], 'js') ?>', '<?= esc($r['app_no'], 'js') ?>')" class="text-red-600 hover:text-red-700 transition-colors inline-flex align-middle ml-1" title="Reject"><span class="material-symbols-outlined text-[22px]">cancel</span></button>
                         <?php endif; ?>
                         <?php if ($stage === 'request' && ! empty($r['_can_edit']) && \App\Libraries\VehicleRules::buttonOn('veh_edit_request')): ?>
@@ -132,7 +132,12 @@ $tabs = [
                         case 'collect_date': $c = $d($r['collect_date'] ?? null); break;
                         case 'serial_no': $c = esc($r['sticker_serial'] ?: '-'); break;
                         case 'issue_date': $c = $d($r['issue_date'] ?? null); break;
-                        case 'status': $ds = \App\Libraries\VehicleRules::displayStatus($r); $c = '<span class="px-2 py-0.5 rounded-full font-semibold ' . ($badge[$ds] ?? '') . '">' . esc($ds) . '</span>'; break;
+                        case 'status': $ds = \App\Libraries\VehicleRules::displayStatus($r); $c = '<span class="px-2 py-0.5 rounded-full font-semibold ' . ($badge[$ds] ?? '') . '">' . esc($ds) . '</span>';
+                            // shared pass still pending: which clients have not approved yet (like the vendor / staff lists)
+                            if ($ds === 'Pending' && count($r['_clients'] ?? []) > 1 && ($wait = array_filter($r['_clients'], static fn($x) => $x['status'] !== 'Approved'))) {
+                                $c .= '<span class="mt-1 block text-[11px] text-amber-700">Awaiting ' . esc(implode(' & ', array_column($wait, 'client_name'))) . '</span>';
+                            }
+                            break;
                         case 'next_action': $c = esc(\App\Libraries\VehicleRules::nextAction($r)); break;
                         case 'sticker_status': $c = $stickerState($r); break;
                         case 'road_tax': $c = $expiryCell($r['road_tax_expiry']); break;

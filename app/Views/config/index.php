@@ -421,6 +421,7 @@
                                                 <select id="login_template" name="template" class="w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2.5 text-sm focus:border-primary focus:ring-primary text-gray-800 dark:text-white">
                                                     <option value="default">Default SafeG Layout</option>
                                                     <option value="gxo">GXO Layout</option>
+                                                    <option value="kpk">KPK Layout (ACMS)</option>
                                                 </select>
                                                 <button type="button" onclick="applyGxoLoginPreset()" class="whitespace-nowrap px-4 py-2.5 rounded-lg bg-orange-600 text-white font-medium hover:bg-orange-700 transition-colors text-sm">
                                                     Apply GXO Preset

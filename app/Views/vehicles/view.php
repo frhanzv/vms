@@ -36,6 +36,15 @@ $needPay = (int) $v['payment_required'] === 1 && $v['payment_status'] !== 'Paid'
     <div class="mb-5 rounded border border-red-200 bg-red-50 text-red-800 px-4 py-3 text-sm"><strong>Rejected:</strong> <?= esc($v['reject_reason']) ?></div>
     <?php endif; ?>
 
+    <?php if (! empty($clients)): // shared pass: one approval per client owning its locations ?>
+    <div class="mb-5 flex flex-wrap items-center gap-2 text-xs">
+        <span class="font-bold uppercase text-gray-500">Client approvals</span>
+        <?php foreach ($clients as $c): $tone = ['Approved' => 'bg-emerald-100 text-emerald-800', 'Rejected' => 'bg-red-100 text-red-800'][$c['status']] ?? 'bg-amber-100 text-amber-800'; ?>
+        <span class="rounded-full px-2.5 py-1 font-semibold <?= $tone ?>"><?= esc($c['client_name']) ?>: <?= esc($c['status']) ?></span>
+        <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
+
     <h2 class="text-sm font-bold uppercase mb-3">Vehicle</h2>
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <?= $row('Vehicle Type', $v['type_name']) ?><?= $row('Plate Number', $v['plate_no']) ?><?= $row('Brand / Model', $v['brand']) ?><?= $row('Year Made', $v['year_made']) ?>
@@ -82,19 +91,21 @@ $needPay = (int) $v['payment_required'] === 1 && $v['payment_status'] !== 'Paid'
     </div>
     <?php endif; ?>
 
-    <?php if ($v['status'] === 'Pending' && $can['approve'] && ($on('veh_approve_action') || $on('veh_reject_action'))): ?>
+    <?php if ($v['status'] === 'Pending' && (($can['approve'] && $on('veh_approve_action')) || ($can['reject'] && $on('veh_reject_action')))): ?>
     <div class="rounded border border-gray-200 dark:border-gray-700 p-4 mb-2">
         <h2 class="text-sm font-bold uppercase mb-3">Approval</h2>
         <?php if (($group === 'cnc' && (int) $v['payment_required'] === 0) || \App\Libraries\VehicleRules::approveIssues()): ?>
         <p class="text-xs text-amber-700 mb-3">Approving this pass issues it straight away (no payment / sticker step).</p><?php endif; ?>
+        <?php if (count($clients) > 1): ?>
+        <p class="text-xs text-gray-500 mb-3">This pass has locations of more than one client: it is approved once every client has approved, and rejected as soon as one client rejects.</p><?php endif; ?>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <?php if ($on('veh_approve_action')): ?>
+            <?php if ($can['approve'] && $on('veh_approve_action')): ?>
             <form method="post" action="<?= base_url('vehicles/' . $v['id'] . '/approve') ?>" class="flex flex-wrap gap-2 items-end"><?= csrf_field() ?>
                 <div><label class="block text-xs font-semibold mb-1">Collection Date</label><input name="collect_date" class="flatpickr <?= $in ?>" placeholder="dd/mm/yyyy"/></div>
                 <div><label class="block text-xs font-semibold mb-1">Remark</label><input name="note" class="<?= $in ?> w-56"/></div>
                 <button class="<?= $btn ?> bg-emerald-600 text-white">Approve</button></form>
             <?php endif; ?>
-            <?php if ($on('veh_reject_action')): ?>
+            <?php if ($can['reject'] && $on('veh_reject_action')): ?>
             <form method="post" action="<?= base_url('vehicles/' . $v['id'] . '/reject') ?>" class="flex flex-wrap gap-2 items-end"><?= csrf_field() ?>
                 <div><label class="block text-xs font-semibold mb-1">Reject Reason *</label>
                     <select name="reject_reason_id" required class="<?= $in ?> w-56"><option value="">-- Select --</option>

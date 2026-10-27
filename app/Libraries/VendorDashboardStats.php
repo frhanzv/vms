@@ -29,6 +29,104 @@ class VendorDashboardStats
 {
     public const STAGES = ['Draft', 'Pending', 'Rejected', 'Process', 'Issuance', 'Closed'];
 
+    /** Summary / gate cards that follow KPK's getVendorForDashboard rules (shared with the card pop-ups). */
+    public const KPK_CARDS = ['summary_new', 'summary_renewed', 'summary_approved', 'summary_issuance', 'summary_expired',
+        'summary_expiring', 'summary_active', 'gate_in', 'gate_out', 'gate_near', 'gate_out_window'];
+
+    /**
+     * The period the summary is for (KPK): no dates picked = today, and "expired" means expired yesterday.
+     * With dates, "expired" runs from the first date to the last one, but never past yesterday.
+     *
+     * @return array{from:string,to:string,ranged:bool,expFrom:string,expTo:string,today:string}
+     */
+    public static function period(array $filters, ?string $today = null): array
+    {
+        $today     = $today ?: date('Y-m-d');
+        $yesterday = date('Y-m-d', strtotime($today . ' -1 day'));
+        $isDate    = static fn($d) => is_string($d) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $d) && strtotime($d) !== false;
+        $ranged    = $isDate($filters['from'] ?? null) && $isDate($filters['to'] ?? null);
+        $from      = $ranged ? $filters['from'] : $today;
+        $to        = $ranged ? $filters['to'] : $today;
+        if ($from > $to) {
+            [$from, $to] = [$to, $from];
+        }
+
+        return [
+            'from' => $from, 'to' => $to, 'ranged' => $ranged, 'today' => $today,
+            'expFrom' => $ranged ? $from : $yesterday,
+            'expTo'   => $ranged ? min($to, $yesterday) : $yesterday,
+        ];
+    }
+
+    /**
+     * Narrows a vendors query (already scoped) to the records behind one KPK summary card. Gate cards
+     * expect vendor_visits joined to vendors. Returns false for a card that isn't one of KPK_CARDS.
+     */
+    public static function applyCard($b, string $card, array $p): bool
+    {
+        $range  = static fn($b) => $b->where('vendors.created_at >=', $p['from'] . ' 00:00:00')->where('vendors.created_at <=', $p['to'] . ' 23:59:59');
+        $issued = "LOWER(COALESCE(vendors.card_status, '')) IN ('active','terminated')"; // KPK: the pass has a card
+        $noCard = "LOWER(COALESCE(vendors.card_status, '')) NOT IN ('active','terminated')";
+        $now    = date('Y-m-d H:i:s');
+        $day    = date('Y-m-d H:i:s', strtotime($now . ' -1 day'));
+
+        switch ($card) {
+            case 'summary_new':        // typeOfApp = new
+                $range($b)->where("UPPER(COALESCE(vendors.type_of_application, 'NEW')) <> 'RENEWAL'", null, false);
+                break;
+            case 'summary_renewed':    // typeOfApp = renewal
+                $range($b)->where("UPPER(COALESCE(vendors.type_of_application, '')) = 'RENEWAL'", null, false);
+                break;
+            case 'summary_approved':   // approved, still in process (verify / receipt / training)
+                $range($b)->where("LOWER(vendors.status) = 'approved'", null, false)
+                    ->where("TRIM(COALESCE(vendors.receipt_no, '')) = ''", null, false)->where($noCard, null, false);
+                break;
+            case 'summary_issuance':   // approved, waiting for collection
+                $range($b)->where("LOWER(vendors.status) = 'approved'", null, false)
+                    ->where("TRIM(COALESCE(vendors.receipt_no, '')) <> ''", null, false)->where($noCard, null, false);
+                break;
+            case 'summary_expired':
+                $b->where($issued, null, false)->where('vendors.pass_expiry >=', $p['expFrom'])->where('vendors.pass_expiry <=', $p['expTo']);
+                break;
+            case 'summary_expiring':
+                $b->where($issued, null, false)->where('vendors.pass_expiry >=', $p['today'])
+                    ->where('vendors.pass_expiry <=', date('Y-m-d', strtotime($p['today'] . ' +30 days')));
+                break;
+            case 'summary_active':
+                $b->where("LOWER(vendors.card_status) = 'active'", null, false)
+                    ->where("LOWER(COALESCE(vendors.status, '')) NOT IN ('suspended','terminated')", null, false)
+                    ->groupStart()->where('vendors.pass_expiry IS NULL', null, false)->orWhere('vendors.pass_expiry >', $p['today'])->groupEnd();
+                if ($p['ranged']) {
+                    $range($b);
+                }
+                break;
+            case 'gate_in':
+                $b->where('vendor_visits.check_in_time >=', $p['from'] . ' 00:00:00')->where('vendor_visits.check_in_time <=', $p['to'] . ' 23:59:59');
+                break;
+            case 'gate_out':
+                $b->where('vendor_visits.check_out_time >=', $p['from'] . ' 00:00:00')->where('vendor_visits.check_out_time <=', $p['to'] . ' 23:59:59');
+                break;
+            case 'gate_near':          // came in before today, still inside, less than 24 hours so far
+                $b->where('vendor_visits.check_out_time IS NULL', null, false)->where('vendor_visits.check_in_time <', $p['today'] . ' 00:00:00')
+                    ->where('vendor_visits.check_in_time >', $day);
+                break;
+            case 'gate_out_window':    // still inside 24 hours or more after coming in
+                $b->where('vendor_visits.check_out_time IS NULL', null, false)->where('vendor_visits.check_in_time IS NOT NULL', null, false)
+                    ->where('vendor_visits.check_in_time <=', $day);
+                break;
+            default:
+                return false;
+        }
+
+        return true;
+    }
+
+    /** KPK progress bar: ratio as a whole percent (0 when the base is 0). */
+    public static function pct(int $part, int $base): int
+    {
+        return $base > 0 ? (int) round($part / $base * 100) : 0;
+    }
+
     /**
      * @param array{location?:string,from?:string,to?:string} $filters
      *        location = location code (slug of locations.location_access), from/to = Y-m-d (application / check-in date range)
@@ -38,12 +136,9 @@ class VendorDashboardStats
         $today = $today ?: date('Y-m-d');
         $in30  = date('Y-m-d', strtotime($today . ' +30 days'));
 
-        $isDate = static fn($d) => is_string($d) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $d) && strtotime($d) !== false;
-        $from   = $isDate($filters['from'] ?? null) ? $filters['from'] : date('Y-m-d', strtotime($today . ' -30 days'));
-        $to     = $isDate($filters['to'] ?? null) ? $filters['to'] : $today;
-        if ($from > $to) {
-            [$from, $to] = [$to, $from];
-        }
+        $period  = self::period($filters, $today);
+        $from    = $period['from'];
+        $to      = $period['to'];
         $locCode = trim((string) ($filters['location'] ?? ''));
 
         $scope = static function ($b) use ($clientId, $regNo, $locked, $locCode, $db) {
@@ -139,16 +234,32 @@ class VendorDashboardStats
             ->select('id, full_name, app_no, vendor_company_name, status, created_at'))
             ->orderBy('id', 'DESC')->limit(8)->get()->getResultArray();
 
-        // ---- KPK-style summary -----------------------------------------------
-        $inRange = static fn($b) => $b->where('vendors.created_at >=', $from . ' 00:00:00')->where('vendors.created_at <=', $to . ' 23:59:59');
+        // ---- KPK summary (getVendorForDashboard) -----------------------------
+        $count = static function (string $card) use ($db, $scope, $period): int {
+            $b = $scope($db->table('vendors'));
+            self::applyCard($b, $card, $period);
 
-        $newApplications = (int) $inRange($scope($db->table('vendors')))->countAllResults();
-        $approved        = (int) $inRange($scope($db->table('vendors')))->where("LOWER(status) = 'approved'", null, false)->countAllResults();
-        $issuance        = (int) $inRange($scope($db->table('vendors')))->where("LOWER(status) = 'approved'", null, false)
-            ->where("TRIM(COALESCE(receipt_no, '')) <> ''", null, false)->countAllResults();
+            return (int) $b->countAllResults();
+        };
+        $newApplications = $count('summary_new');
+        $renewed         = $count('summary_renewed');
+        $approved        = $count('summary_approved');
+        $issuance        = $count('summary_issuance');
+        $kpkExpired      = $count('summary_expired');
+        $kpkExpiring     = $count('summary_expiring');
+        $kpkActive       = $count('summary_active');
 
-        $activeCompanies = (int) ($activeBase()->select('COUNT(DISTINCT vendor_company_reg_id) AS c', false)
-            ->where("TRIM(COALESCE(vendor_company_reg_id, '')) <> ''", null, false)->get()->getRowArray()['c'] ?? 0);
+        // KPK counts registered companies (company permits), not companies that happen to hold a pass
+        $activeCompanies = 0;
+        if (! $locked && $db->tableExists('companies')) {
+            $cb = $db->table('companies')->where('status', 'active');
+            if ($regNo !== null) {
+                $cb->where('registration_no', $regNo);
+            } elseif ($clientId !== null && $db->fieldExists('client_id', 'companies')) {
+                $cb->groupStart()->where('client_id', $clientId)->orWhere('client_id IS NULL', null, false)->groupEnd();
+            }
+            $activeCompanies = (int) $cb->countAllResults();
+        }
         $activePasses = (int) $activeBase()->countAllResults();
 
         // ---- By location -----------------------------------------------------
@@ -181,18 +292,17 @@ class VendorDashboardStats
         $gate = ['checkIn' => 0, 'checkOut' => 0, 'outOfWindow' => 0, 'nearOutOfWindow' => 0, 'available' => false];
         try {
             if ($db->tableExists('vendor_visits')) {
-                $visits = static fn() => $scope($db->table('vendor_visits')->join('vendors', 'vendors.id = vendor_visits.vendor_id'));
-                $gate['available'] = true;
-                $gate['checkIn'] = (int) $visits()->where('vendor_visits.check_in_time >=', $from . ' 00:00:00')
-                    ->where('vendor_visits.check_in_time <=', $to . ' 23:59:59')->countAllResults();
-                $gate['checkOut'] = (int) $visits()->where('vendor_visits.check_out_time >=', $from . ' 00:00:00')
-                    ->where('vendor_visits.check_out_time <=', $to . ' 23:59:59')->countAllResults();
-                $onSite = static fn() => $visits()->select('COUNT(DISTINCT ' . $db->prefixTable('vendor_visits') . '.vendor_id) AS c', false)
-                    ->where('vendor_visits.check_in_time IS NOT NULL')->where('vendor_visits.check_out_time IS NULL');
-                $gate['outOfWindow'] = (int) ($onSite()->where('vendors.pass_expiry IS NOT NULL')
-                    ->where('vendors.pass_expiry <', $today)->get()->getRowArray()['c'] ?? 0);
-                $gate['nearOutOfWindow'] = (int) ($onSite()->where('vendors.pass_expiry >=', $today)
-                    ->where('vendors.pass_expiry <=', date('Y-m-d', strtotime($today . ' +7 days')))->get()->getRowArray()['c'] ?? 0);
+                $visits = static function (string $card) use ($db, $scope, $period): int {
+                    $b = $scope($db->table('vendor_visits')->join('vendors', 'vendors.id = vendor_visits.vendor_id'));
+                    self::applyCard($b, $card, $period);
+
+                    return (int) $b->countAllResults();
+                };
+                $gate['available']       = true;
+                $gate['checkIn']         = $visits('gate_in');
+                $gate['checkOut']        = $visits('gate_out');
+                $gate['nearOutOfWindow'] = $visits('gate_near');
+                $gate['outOfWindow']     = $visits('gate_out_window');
             }
         } catch (\Throwable $e) {
             log_message('error', 'VendorDashboardStats gate: ' . $e->getMessage());
@@ -203,17 +313,26 @@ class VendorDashboardStats
                 'newApplications' => $newApplications,
                 'approved'        => $approved,
                 'issuance'        => $issuance,
-                'expired'         => $expired,
-                'expiring'        => $expiring,
-                'activePasses'    => $activePasses,
+                'expired'         => $kpkExpired,
+                'expiring'        => $kpkExpiring,
+                'renewed'         => $renewed,
+                'activePasses'    => $kpkActive,
                 'activeCompanies' => $activeCompanies,
-                'avgPerCompany'   => $activeCompanies > 0 ? round($activePasses / $activeCompanies, 1) : 0,
+                'avgPerCompany'   => $activeCompanies > 0 ? round($kpkActive / $activeCompanies, 2) : 0,
+                // KPK progress bars (same ratios as dashboard-vendorpass.component.ts)
+                'pct' => [
+                    'approved' => self::pct($approved, $newApplications),
+                    'issuance' => self::pct($issuance, $newApplications),
+                    'expiring' => self::pct($kpkExpiring, $kpkExpired),
+                    'renewed'  => self::pct($renewed, $kpkExpired),
+                    'companies' => self::pct($kpkActive, $activeCompanies),
+                ],
                 'asAt'            => date('d M Y, g:i A'),
             ],
             'byLocation'    => $byLocation,
             'locationList'  => $locLabels,
             'gate'          => $gate,
-            'filters'       => ['location' => $locCode, 'from' => $from, 'to' => $to],
+            'filters'       => ['location' => $locCode, 'from' => $period['ranged'] ? $from : '', 'to' => $period['ranged'] ? $to : '', 'ranged' => $period['ranged'], 'periodFrom' => $from, 'periodTo' => $to],
             'total'         => $total,
             'stages'        => $stages,
             'activePasses'  => $activePasses,
