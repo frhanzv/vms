@@ -4,7 +4,7 @@ namespace App\Controllers;
 
 /**
  * The staff pass card pipeline after approval — KPK process-list /
- * issuance-list / closed-list filtered to visitorOrVip = STAFF, in the same
+ * closed-list filtered to visitorOrVip = STAFF, in the same
  * shape as the Vendor* list controllers:
  *
  *   Process List  = Approved, card not issued yet (card_status Inactive) —
@@ -12,8 +12,8 @@ namespace App\Controllers;
  *   Printing List = same set, bulk-print view
  *   Closed List   = card issued (Active) or terminated
  *
- * There is no separate Issuance List any more: a printed card is issued from
- * the pass's View Details page (Issue button), which activates the card and
+ * There is no separate Issuance List: a printed card is issued from the Issue
+ * button on the Process / Printing List row or on View Details, which activates the card and
  * moves the pass straight to the Closed List.
  *
  * Inactive employees (is_active = 0) are left out of Process / Printing —
@@ -124,6 +124,7 @@ class StaffPipeline extends StaffPassBase
             'missing'    => $missing,
             'cardType'   => $cardType,
             'sortBy'     => $sortBy,
+            'canIssue'   => $this->canEdit() && $this->cfg('issuance_issue_button'),
             'pagination' => $pagination,
         ]);
     }
@@ -154,6 +155,7 @@ class StaffPipeline extends StaffPassBase
             'searchTerm' => $search,
             'sortBy'     => $sortBy,
             'canPrint'   => $this->canEdit() && $this->cfg('printing_generate_button'),
+            'canIssue'   => $this->canEdit() && $this->cfg('issuance_issue_button'),
             'pagination' => $pagination,
         ]);
     }
@@ -283,12 +285,6 @@ class StaffPipeline extends StaffPassBase
     // ------------------------------------------------------------------
 
     /** The Issuance List page was removed — cards are issued from View Details. Old links land on the Process List. */
-    public function issuanceList()
-    {
-        return redirect()->to(base_url('staffs/process-list'))
-            ->with('success', 'Printed cards are now issued from the pass\'s View Details page (Issue button).');
-    }
-
     /**
      * KPK issueCards()/finishPortPassProcessing(): record who collected it,
      * activate the card. Called by the Issue button on View Details (opened
@@ -313,46 +309,6 @@ class StaffPipeline extends StaffPassBase
         $back = ($in['from'] ?? '') === 'printing' ? 'staffs/printing-list' : 'staffs/process-list';
 
         return $this->ok('Card issued to ' . $name . ' — the card is Active and the pass moved to the Closed List.', ['redirect' => base_url($back)]);
-    }
-
-    /**
-     * Confirm button (KPK issueCards()): issue every ticked card to one collector.
-     * Cards that can't be issued any more (already issued, not printed) are skipped
-     * and listed in the message.
-     */
-    public function issueSelected()
-    {
-        if (! $this->canEdit() || ! $this->cfg('issuance_issue_button')) {
-            return $this->fail('Not allowed.');
-        }
-        $in   = $this->input();
-        $name = trim((string) ($in['collector_name'] ?? ''));
-        $ic   = trim((string) ($in['collector_ic_passport'] ?? ''));
-        $ids  = array_values(array_unique(array_filter(array_map('intval', (array) ($in['ids'] ?? [])))));
-        if ($ids === []) {
-            return $this->fail('Please tick at least one card to issue.');
-        }
-        if ($name === '' || $ic === '') {
-            return $this->fail('Please enter the collector\'s name and IC/passport before issuing the cards.');
-        }
-
-        $issued  = 0;
-        $skipped = [];
-        foreach ($ids as $id) {
-            $error = $this->issueOne($id, $name, $ic);
-            if ($error === null) {
-                $issued++;
-            } else {
-                $skipped[] = '#' . $id . ': ' . $error;
-            }
-        }
-
-        $message = $issued . ' card' . ($issued === 1 ? '' : 's') . ' issued to ' . $name . ' — moved to Closed List.';
-        if ($skipped !== []) {
-            $message .= "\nSkipped:\n" . implode("\n", $skipped);
-        }
-
-        return $issued > 0 ? $this->ok($message, ['issued' => $issued, 'skipped' => count($skipped)]) : $this->fail($message);
     }
 
     /** Issue one printed card. Returns an error message, or null when issued. */

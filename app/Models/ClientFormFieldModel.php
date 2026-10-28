@@ -277,8 +277,8 @@ class ClientFormFieldModel extends Model
             // === Printing List ===
             ['field_key' => 'printing_generate_button', 'label' => 'Show Generate Serial Button (Printing List)'],
 
-            // === Issuance List ===
-            ['field_key' => 'issuance_issue_button', 'label' => 'Show Issue Card Button (Issuance List)'],
+            // === Issue Card (Process List / Printing List) ===
+            ['field_key' => 'issuance_issue_button', 'label' => 'Show Issue Card Button (Process / Printing List)'],
 
             // === Closed List ===
             ['field_key' => 'closed_export_button',       'label' => 'Show Export Button (Closed List)'],

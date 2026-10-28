@@ -10,8 +10,10 @@ namespace App\Controllers;
  *   VENDORPASS vendor_visits     (lane from vendor_card_logs)
  *   VISITOR    invitation_visitors (lane from visitor_card_logs)
  *
- * It only reads those tables - nothing here writes gate data. Same client scope as the reports.
- * Needs the Role > Monitoring > Monitoring permission.
+ *   MANUAL     gate_manual_openings (Open Gate on this page, KPK "/api/adam/trigger")
+ *
+ * Open Gate is the only write: it opens a barrier through the ADAM module and records the manual movement.
+ * Same client scope as the reports. Needs the Role > Monitoring > Monitoring permission.
  */
 class GateMonitoring extends BaseController
 {
@@ -22,6 +24,7 @@ class GateMonitoring extends BaseController
         'la-z' => 'location ASC', 'lz-a' => 'location DESC',
         'ln-a' => 'in_lane ASC',  'ln-d' => 'in_lane DESC',
         'dt-a' => 'time_in ASC',  'dt-d' => 'time_in DESC',
+        'mr-a' => 'manual_reason ASC', 'mr-d' => 'manual_reason DESC',
     ];
 
     private function db()
@@ -104,7 +107,8 @@ class GateMonitoring extends BaseController
             $parts[] = "SELECT 'staff' AS kind, s.id AS ref_id, s.full_name AS name, COALESCE(s.ic_passport,'') AS ic, 'STAFF' AS pass_type,
                     COALESCE(loc_i.location_access, loc_o.location_access, '') AS location, COALESCE(li.lane,'') AS in_lane, COALESCE(lo.lane,'') AS out_lane,
                     COALESCE(vc.card_id,'') AS card_no, {$staffPlateSql} AS plate_no, sv.check_in_time AS time_in, sv.check_out_time AS time_out,
-                    IF(sv.check_out_time IS NULL, 'Gate In', 'Gate Out') AS status, {$photo} AS photo, CONCAT('staff-v-', sv.id) AS tx_key
+                    IF(sv.check_out_time IS NULL, 'Gate In', 'Gate Out') AS status, {$photo} AS photo, CONCAT('staff-v-', sv.id) AS tx_key,
+                    COALESCE(loc_o.location_access,'') AS out_location, UPPER(COALESCE(li.scan_type,'')) AS mode_in, IF(sv.check_out_time IS NULL, '', UPPER(COALESCE(lo.scan_type,''))) AS mode_out, '' AS manual_reason
                 FROM staff_visits sv
                 JOIN staff s ON s.id = sv.staff_id
                 LEFT JOIN lanes li ON li.id = sv.check_in_lane_id LEFT JOIN locations loc_i ON loc_i.id = li.location_id
@@ -114,7 +118,8 @@ class GateMonitoring extends BaseController
 
             if ($db->tableExists('staff_card_logs')) {
                 $parts[] = "SELECT 'staff', COALESCE(s.id, 0), COALESCE(s.full_name, 'UNKNOWN CARD'), COALESCE(s.ic_passport,''), 'STAFF',
-                        COALESCE(loc.location_access,''), COALESCE(l.lane,''), '', COALESCE(vc.card_id,''), '', sl.scanned_at, NULL, 'Rejected', '', CONCAT('staff-d-', sl.id)
+                        COALESCE(loc.location_access,''), COALESCE(l.lane,''), '', COALESCE(vc.card_id,''), '', sl.scanned_at, NULL, 'Rejected', '', CONCAT('staff-d-', sl.id),
+                        '', UPPER(COALESCE(l.scan_type,'')), '', ''
                     FROM staff_card_logs sl
                     LEFT JOIN staff s ON s.id = sl.staff_id
                     LEFT JOIN lanes l ON l.id = sl.lane_id LEFT JOIN locations loc ON loc.id = l.location_id
@@ -140,7 +145,8 @@ class GateMonitoring extends BaseController
             $parts[] = "SELECT 'vendor', v.id, v.full_name, COALESCE(NULLIF(v.ic_no,''), NULLIF(v.passport_no,''), ''), 'VENDORPASS',
                     COALESCE(loc_i.location_access, loc_o.location_access, ''), COALESCE(li.lane,''), COALESCE(lo.lane,''),
                     COALESCE(vc.card_id,''), {$plate}, vv.check_in_time, vv.check_out_time,
-                    IF(vv.check_out_time IS NULL, 'Gate In', 'Gate Out'), {$photo}, CONCAT('vendor-v-', vv.id)
+                    IF(vv.check_out_time IS NULL, 'Gate In', 'Gate Out'), {$photo}, CONCAT('vendor-v-', vv.id),
+                    COALESCE(loc_o.location_access,''), UPPER(COALESCE(li.scan_type,'')), IF(vv.check_out_time IS NULL, '', UPPER(COALESCE(lo.scan_type,''))), ''
                 FROM vendor_visits vv
                 JOIN vendors v ON v.id = vv.vendor_id
                 {$joinIn} {$joinOut}
@@ -159,7 +165,8 @@ class GateMonitoring extends BaseController
             $parts[] = "SELECT 'visitor', i.id, COALESCE(NULLIF(iv.full_name,''), i.full_name), COALESCE(NULLIF(iv.ic_passport,''), i.ic_passport, ''), 'VISITOR',
                     COALESCE(loc_i.location_access, loc_o.location_access, ''), COALESCE(li.lane,''), COALESCE(lo.lane,''),
                     COALESCE(vc.card_id,''), {$plate}, iv.check_in_time, iv.check_out_time,
-                    IF(iv.check_out_time IS NULL, 'Gate In', 'Gate Out'), '', CONCAT('visitor-v-', iv.id)
+                    IF(iv.check_out_time IS NULL, 'Gate In', 'Gate Out'), '', CONCAT('visitor-v-', iv.id),
+                    COALESCE(loc_o.location_access,''), UPPER(COALESCE(li.scan_type,'')), IF(iv.check_out_time IS NULL, '', UPPER(COALESCE(lo.scan_type,''))), ''
                 FROM invitation_visitors iv
                 JOIN invitations i ON i.id = iv.invitation_id
                 {$joinIn} {$joinOut}
@@ -167,7 +174,75 @@ class GateMonitoring extends BaseController
                 WHERE iv.check_in_time IS NOT NULL" . $scope;
         }
 
-        return $parts ? implode(' UNION ALL ', $parts) : "SELECT 'x' AS kind, 0 AS ref_id, '' AS name, '' AS ic, '' AS pass_type, '' AS location, '' AS in_lane, '' AS out_lane, '' AS card_no, '' AS plate_no, NULL AS time_in, NULL AS time_out, '' AS status, '' AS photo, '' AS tx_key FROM DUAL WHERE 1=0";
+        // ---- TEMPORARY WORK PASS (KPK TWP, written by App\Libraries\TwpGate)
+        if ($db->tableExists('twp_visits') && $db->tableExists('twp_workers')) {
+            $scope = $clientId > 0 ? " AND (tr.company_id = {$clientId} OR tr.company_id IS NULL)" : '';
+            $parts[] = "SELECT 'twp', tw.id, tw.name, COALESCE(NULLIF(tw.ic_no,''), tw.passport_no, ''), 'TWP',
+                    COALESCE(loc_i.location_access, loc_o.location_access, ''), COALESCE(li.lane,''), COALESCE(lo.lane,''),
+                    COALESCE(tc.card_no,''), COALESCE(tw.vehicle_no,''), tv.check_in_time, tv.check_out_time,
+                    IF(tv.check_out_time IS NULL, 'Gate In', 'Gate Out'), '', CONCAT('twp-v-', tv.id),
+                    COALESCE(loc_o.location_access,''), UPPER(COALESCE(li.scan_type,'')), IF(tv.check_out_time IS NULL, '', UPPER(COALESCE(lo.scan_type,''))), ''
+                FROM twp_visits tv
+                JOIN twp_workers tw ON tw.id = tv.worker_id JOIN twp_requests tr ON tr.id = tw.request_id
+                LEFT JOIN lanes li ON li.id = tv.check_in_lane_id LEFT JOIN locations loc_i ON loc_i.id = li.location_id
+                LEFT JOIN lanes lo ON lo.id = tv.check_out_lane_id LEFT JOIN locations loc_o ON loc_o.id = lo.location_id
+                LEFT JOIN twp_cards tc ON tc.id = tv.card_id
+                WHERE tv.check_in_time IS NOT NULL" . $scope;
+        }
+
+        // ---- MANUAL (Open Gate on this page; KPK AdamService.createTransaction: mode "manual", type Driver)
+        if ($db->tableExists('gate_manual_openings')) {
+            $scope = $clientId > 0 && $this->has('locations', 'client_id') ? " AND (loc.client_id = {$clientId} OR loc.client_id IS NULL)" : '';
+            $parts[] = "SELECT 'manual', mo.id, '', '', '',
+                    COALESCE(loc.location_access,''), IF(mo.direction = 'in', COALESCE(l.lane,''), ''), IF(mo.direction = 'out', COALESCE(l.lane,''), ''),
+                    '', '', mo.opened_at, IF(mo.direction = 'out', mo.opened_at, NULL),
+                    IF(mo.direction = 'in', 'Gate In', 'Gate Out'), '', CONCAT('manual-m-', mo.id),
+                    IF(mo.direction = 'out', COALESCE(loc.location_access,''), ''), IF(mo.direction = 'in', 'MANUAL', ''), IF(mo.direction = 'out', 'MANUAL', ''), mo.reason
+                FROM gate_manual_openings mo
+                LEFT JOIN lanes l ON l.id = mo.lane_id LEFT JOIN locations loc ON loc.id = COALESCE(mo.location_id, l.location_id)
+                WHERE 1=1" . $scope;
+        }
+
+        return $parts ? implode(' UNION ALL ', $parts) : "SELECT 'x' AS kind, 0 AS ref_id, '' AS name, '' AS ic, '' AS pass_type, '' AS location, '' AS in_lane, '' AS out_lane, '' AS card_no, '' AS plate_no, NULL AS time_in, NULL AS time_out, '' AS status, '' AS photo, '' AS tx_key, '' AS out_location, '' AS mode_in, '' AS mode_out, '' AS manual_reason FROM DUAL WHERE 1=0";
+    }
+
+    /** KPK "Type": a manual opening or anybody with a plate is the DRIVER, everyone else a PASSENGER. */
+    private function driverTypeSql(): string
+    {
+        return "IF(tx.kind = 'manual' OR tx.plate_no <> '', 'DRIVER', 'PASSENGER')";
+    }
+
+    /** KPK "Type Of Vehicle": the type of the registered vehicle with this plate (spaces ignored). */
+    private function vehicleTypeSql(): string
+    {
+        $db = $this->db();
+        if (! $db->tableExists('vehicles') || ! $db->tableExists('vehicle_types') || ! $this->has('vehicles', 'vehicle_type_id')) {
+            return "''";
+        }
+
+        return "COALESCE((SELECT vt.name FROM vehicles vh JOIN vehicle_types vt ON vt.id = vh.vehicle_type_id
+                    WHERE tx.plate_no <> '' AND UPPER(REPLACE(vh.plate_no, ' ', '')) = UPPER(REPLACE(tx.plate_no, ' ', '')) ORDER BY vh.id DESC LIMIT 1), '')";
+    }
+
+    /** The outer SELECT list: every union column plus the two worked-out KPK columns. */
+    private function selectSql(): string
+    {
+        return 'tx.*, ' . $this->driverTypeSql() . ' AS driver_type, ' . $this->vehicleTypeSql() . ' AS vehicle_type';
+    }
+
+    /** Vehicle type names for the Advanced Filter (KPK "Vehicle Type"). */
+    private function vehicleTypes(): array
+    {
+        $db = $this->db();
+        if (! $db->tableExists('vehicle_types')) {
+            return [];
+        }
+        $b = $db->table('vehicle_types')->select('name')->distinct()->orderBy('name');
+        if ($this->has('vehicle_types', 'status')) {
+            $b->where('status', 'active');
+        }
+
+        return array_column($b->get()->getResultArray(), 'name');
     }
 
     private function validDate(?string $d): ?string
@@ -206,9 +281,16 @@ class GateMonitoring extends BaseController
         if (in_array($type, ['VENDORPASS', 'STAFF', 'VISITOR'], true)) {
             $w[] = 'tx.pass_type = ' . $db->escape($type);
         }
+        $driver = strtoupper($g('driver_type'));
+        if (in_array($driver, ['DRIVER', 'PASSENGER'], true)) {
+            $w[] = $this->driverTypeSql() . ' = ' . $db->escape($driver);
+        }
+        if (($vt = $g('vehicle_type')) !== '') {
+            $w[] = $this->vehicleTypeSql() . ' = ' . $db->escape($vt);
+        }
         if (($q = $g('q')) !== '') {
             $like = $db->escape('%' . $db->escapeLikeString($q) . '%');
-            $w[]  = "(tx.name LIKE {$like} OR tx.ic LIKE {$like} OR tx.location LIKE {$like} OR tx.in_lane LIKE {$like} OR tx.out_lane LIKE {$like} OR tx.card_no LIKE {$like} OR tx.plate_no LIKE {$like})";
+            $w[]  = "(tx.name LIKE {$like} OR tx.ic LIKE {$like} OR tx.location LIKE {$like} OR tx.in_lane LIKE {$like} OR tx.out_lane LIKE {$like} OR tx.card_no LIKE {$like} OR tx.plate_no LIKE {$like} OR tx.manual_reason LIKE {$like})";
         }
 
         return implode(' AND ', $w);
@@ -235,10 +317,11 @@ class GateMonitoring extends BaseController
             $total = (int) ($db->query("SELECT COUNT(*) c FROM ({$union}) tx WHERE {$where}")->getRow()->c ?? 0);
             $pages = max(1, (int) ceil($total / $per));
             $page  = min($page, $pages);
-            $rows  = $db->query("SELECT tx.* FROM ({$union}) tx WHERE {$where} ORDER BY tx.{$this->order()}, tx.ref_id DESC LIMIT {$per} OFFSET " . (($page - 1) * $per))->getResultArray();
+            $rows  = $db->query("SELECT {$this->selectSql()} FROM ({$union}) tx WHERE {$where} ORDER BY tx.{$this->order()}, tx.ref_id DESC LIMIT {$per} OFFSET " . (($page - 1) * $per))->getResultArray();
 
             return $this->json([
                 'success' => true, 'rows' => $rows, 'total' => $total, 'pages' => $pages, 'page' => $page, 'per_page' => $per,
+                'vehicle_types' => $this->vehicleTypes(),
                 'stats' => $this->stats($union), 'charts' => $this->charts($union, (string) $this->request->getGet('lane')),
             ]);
         } catch (\Throwable $e) {
@@ -391,11 +474,11 @@ class GateMonitoring extends BaseController
         if (! $this->allowed()) {
             return redirect()->to(base_url('dashboard'))->with('error', 'You are not allowed to open Monitoring.');
         }
-        if (! preg_match('/^(staff|vendor|visitor)-(v|d)-\d+$/', $key)) {
+        if (! preg_match('/^(staff|vendor|visitor|twp|manual)-(v|d|m)-\d+$/', $key)) {
             return redirect()->to(base_url('monitoring'))->with('error', 'Transaction not found.');
         }
         $db  = $this->db();
-        $row = $db->query('SELECT tx.* FROM (' . $this->unionSql($this->clientId()) . ') tx WHERE tx.tx_key = ' . $db->escape($key) . ' LIMIT 1')->getRowArray();
+        $row = $db->query('SELECT ' . $this->selectSql() . ' FROM (' . $this->unionSql($this->clientId()) . ') tx WHERE tx.tx_key = ' . $db->escape($key) . ' LIMIT 1')->getRowArray();
         if (! $row) {
             return redirect()->to(base_url('monitoring'))->with('error', 'Transaction not found.');
         }
@@ -413,6 +496,80 @@ class GateMonitoring extends BaseController
         return view('monitoring/transaction_info', ['pageTitle' => 'Transaction Info - SafeG', 'tx' => $row, 'vehicle' => $vehicle]);
     }
 
+    /** Lanes for Open Gate (KPK lane list: No., Lane, Location Access, Barrier No.), limited to this client's gates. */
+    public function lanes()
+    {
+        if (! $this->allowed()) {
+            return $this->json(['success' => false, 'message' => 'Not allowed.'], 403);
+        }
+        $db = $this->db();
+        $b  = $db->table('lanes l')->select('l.id, l.lane, l.barrier_no, l.in_bound, l.out_bound, loc.location_access')
+            ->join('locations loc', 'loc.id = l.location_id', 'left');
+        if ($this->has('lanes', 'status')) {
+            $b->where('l.status', 'active');
+        }
+        $cid = $this->clientId();
+        if ($cid > 0 && $this->has('locations', 'client_id')) {
+            $b->groupStart()->where('loc.client_id', $cid)->orWhere('loc.client_id IS NULL', null, false)->groupEnd();
+        }
+        if (($q = trim((string) $this->request->getGet('q'))) !== '') {
+            $b->groupStart()->like('l.lane', $q)->orLike('loc.location_access', $q)->orLike('l.barrier_no', $q)->groupEnd();
+        }
+        $rows = $b->orderBy('loc.location_access')->orderBy('l.lane')->get()->getResultArray();
+        foreach ($rows as &$r) {
+            $r['direction'] = strtolower((string) $r['in_bound']) === 'yes' ? 'Gate In' : 'Gate Out';
+        }
+        unset($r);
+
+        return $this->json(['success' => true, 'lanes' => $rows]);
+    }
+
+    /**
+     * Open Gate (KPK /api/adam/trigger with jetson=true): opens the lane's barrier through the location's ADAM
+     * module, then records a manual Gate In / Gate Out with the reason typed in (shown as "Manual Reason").
+     */
+    public function openGate()
+    {
+        if (! $this->allowed()) {
+            return $this->json(['success' => false, 'message' => 'Not allowed.'], 403);
+        }
+        $db     = $this->db();
+        $laneId = (int) $this->request->getPost('lane_id');
+        $reason = trim((string) $this->request->getPost('reason'));
+        if ($reason === '') {
+            return $this->json(['success' => false, 'message' => 'Type the reason for opening the gate.']);
+        }
+        if (mb_strlen($reason) > 255) {
+            return $this->json(['success' => false, 'message' => 'The reason can be at most 255 characters.']);
+        }
+        if (! $db->tableExists('gate_manual_openings')) {
+            return $this->json(['success' => false, 'message' => 'Run "php spark migrate" first.']);
+        }
+        $lane = $laneId > 0 ? $db->table('lanes')->where('id', $laneId)->get()->getRowArray() : null;
+        if (! $lane) {
+            return $this->json(['success' => false, 'message' => 'Choose a lane.']);
+        }
+        $location = $db->table('locations')->where('id', (int) $lane['location_id'])->get()->getRowArray() ?: [];
+        $cid = $this->clientId();
+        if ($cid > 0 && ! empty($location['client_id']) && (int) $location['client_id'] !== $cid) {
+            return $this->json(['success' => false, 'message' => 'This lane belongs to another client.'], 403);
+        }
+
+        if ($err = \App\Libraries\GateBarrier::open($lane, $location)) {
+            return $this->json(['success' => false, 'message' => $err]);
+        }
+
+        $now = date('Y-m-d H:i:s');
+        $db->table('gate_manual_openings')->insert([
+            'lane_id' => $laneId, 'location_id' => $location['id'] ?? null,
+            'direction' => strtolower((string) ($lane['in_bound'] ?? '')) === 'yes' ? 'in' : 'out',
+            'reason' => $reason, 'opened_by' => (string) (session()->get('full_name') ?: session()->get('username')),
+            'opened_at' => $now, 'created_at' => $now,
+        ]);
+
+        return $this->json(['success' => true, 'message' => 'Successfully Open!']);
+    }
+
     public function export()
     {
         if (! $this->allowed()) {
@@ -420,13 +577,14 @@ class GateMonitoring extends BaseController
         }
         $db    = $this->db();
         $union = $this->unionSql($this->clientId());
-        $rows  = $db->query("SELECT tx.* FROM ({$union}) tx WHERE {$this->where()} ORDER BY tx.{$this->order()} LIMIT " . self::MAX_ROWS)->getResultArray();
+        $rows  = $db->query("SELECT {$this->selectSql()} FROM ({$union}) tx WHERE {$this->where()} ORDER BY tx.{$this->order()} LIMIT " . self::MAX_ROWS)->getResultArray();
 
         $fh = fopen('php://temp', 'w+');
         fwrite($fh, "\xEF\xBB\xBF");
-        fputcsv($fh, ['No', 'Name', 'Type Of Vendor', 'IC/Passport No', 'Location', 'In Lane No', 'Out Lane No', 'Card ID', 'Plate No', 'Time In', 'Time Out', 'Status']);
+        fputcsv($fh, ['No', 'Name', 'Type', 'Type Of Vehicle', 'Type Of Vendor', 'IC/Passport No', 'Location', 'In Lane No', 'Out Lane No', 'Card ID', 'Plate No', 'Time In', 'Time Out', 'Mode For In', 'Mode For Out', 'Manual Reason', 'Status']);
         foreach ($rows as $i => $r) {
-            fputcsv($fh, [$i + 1, $r['name'], $r['pass_type'], $r['ic'], $r['location'], $r['in_lane'], $r['out_lane'], $r['card_no'], $r['plate_no'], $r['time_in'], $r['time_out'], strtoupper($r['status'])]);
+            fputcsv($fh, [$i + 1, $r['name'], $r['driver_type'], $r['vehicle_type'], $r['pass_type'], $r['ic'], $r['location'] ?: $r['out_location'], $r['in_lane'], $r['out_lane'], $r['card_no'], $r['plate_no'],
+                $r['time_in'], $r['time_out'], $r['mode_in'], $r['mode_out'], $r['manual_reason'], strtoupper($r['status'])]);
         }
         rewind($fh);
         $csv = stream_get_contents($fh);

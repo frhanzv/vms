@@ -13,7 +13,8 @@ $isSettings  = str_contains($current, 'settings');
 $requestListAvailable = is_platform_superadmin() || ! client_feature_enabled('auto_approve_after_workflow');
 $hasVisitorPassAccess = has_access('visitor_pass_list', 'invitations') || ($requestListAvailable && has_access('visitor_pass_list', 'request_list')) || has_access('visitor_pass_list', 'visitors_list');
 $hasBlacklistAccess   = has_access('blacklist', 'request_list') || has_access('blacklist', 'closed_list') || has_access('blacklist', 'individual_request_list') || has_access('blacklist', 'individual_closed_list') || has_access('blacklist', 'company_request_list') || has_access('blacklist', 'company_closed_list');
-$hasReportAccess      = has_access('report', 'access_report') || has_access('report', 'visitor_report') || has_access('report', 'visitor_chronology') || has_access('report', 'visitor_info_by_door') || has_access('report', 'gate_in_out') || has_access('report', 'out_window_list') || has_access('report', 'port_pass_monthly') || has_access('report', 'port_pass_summary') || has_access('report', 'company_permit_ageing') || has_access('report', 'company_permit_monthly') || has_access('report', 'vehicle_sticker_summary') || has_access('report', 'blacklist_report') || has_access('report', 'attendance_report') || has_access('report', 'monitoring_report')  || has_access('report', 'vendor_report') || (client_feature_enabled('staff_pass') && has_access('report', 'staff_report'));
+$canReportTemplates   = in_array(session()->get('role'), ['superadmin', 'clientsuperadmin', 'admin', 'officer'], true);
+$hasReportAccess      = $canReportTemplates || has_access('report', 'access_report') || has_access('report', 'visitor_report') || has_access('report', 'visitor_chronology') || has_access('report', 'visitor_info_by_door') || has_access('report', 'gate_in_out') || has_access('report', 'out_window_list') || has_access('report', 'port_pass_monthly') || has_access('report', 'port_pass_summary') || has_access('report', 'company_permit_ageing') || has_access('report', 'company_permit_monthly') || has_access('report', 'vehicle_sticker_summary') || has_access('report', 'blacklist_report') || has_access('report', 'attendance_report') || has_access('report', 'monitoring_report')  || has_access('report', 'vendor_report') || (client_feature_enabled('staff_pass') && has_access('report', 'staff_report'));
 $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'alert_priority') || has_access('config', 'api_management') || has_access('config', 'general_settings') || has_access('config', 'application_settings') || has_access('config', 'role_management') || has_access('config', 'user_management') || has_access('config', 'company') || (is_client_superadmin() && current_client_id() > 0);
 ?>
 
@@ -220,11 +221,6 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
                         <span class="w-1.5 h-1.5 rounded-full <?= $current == 'vendors/printing-list' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
                         Printing List
                     </a>
-                    <a href="<?= base_url('vendors/issuance-list') ?>"
-                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'vendors/issuance-list' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
-                        <span class="w-1.5 h-1.5 rounded-full <?= $current == 'vendors/issuance-list' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
-                        Issuance List
-                    </a>
                     <a href="<?= base_url('vendors/closed-list') ?>"
                         class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'vendors/closed-list' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
                         <span class="w-1.5 h-1.5 rounded-full <?= $current == 'vendors/closed-list' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
@@ -314,6 +310,15 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
                     <?php endif; ?>
                 </div>
             </div>
+            <?php endif; ?>
+
+            <!-- Temporary Work Pass (KPK TWP) -->
+            <?php if ($canReportTemplates): ?>
+            <a href="<?= base_url('twp/requests') ?>"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?= str_starts_with($current, 'twp') ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors">
+                <span class="material-symbols-outlined text-[20px]">engineering</span>
+                <p class="text-sm font-medium">Temporary Work Pass</p>
+            </a>
             <?php endif; ?>
 
             <!-- Workflow: Visitor Workflow + Vendor Workflow under one dropdown -->
@@ -419,6 +424,13 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
                     x-transition:leave-start="opacity-100 translate-y-0"
                     x-transition:leave-end="opacity-0 -translate-y-1"
                     class="ml-4 mt-1 flex flex-col gap-1">
+                    <?php if ($canReportTemplates): ?>
+                    <a href="<?= base_url('report/templates') ?>"
+                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= str_starts_with($current, 'report/templates') ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
+                        <span class="w-1.5 h-1.5 rounded-full <?= str_starts_with($current, 'report/templates') ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
+                        Report Templates
+                    </a>
+                    <?php endif; ?>
                     <?php if (has_access('report', 'access_report')): ?>
                     <a href="<?= base_url('report/access') ?>"
                         class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'report/access' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">

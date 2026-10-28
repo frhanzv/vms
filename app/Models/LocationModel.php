@@ -33,7 +33,7 @@ class LocationModel extends Model
         'branch' => 'required|min_length[2]|max_length[100]',
         'location_access' => 'required|min_length[2]|max_length[100]',
         'adam_ip' => 'permit_empty|valid_ip',
-        'adam_password' => 'permit_empty|min_length[4]|max_length[100]',
+        'adam_password' => 'permit_empty|max_length[500]', // stored encrypted; the typed length (4 - 100) is checked in Config
         'mobile_app' => 'required|in_list[enabled,disabled]',
         'is_hold_area' => 'required|in_list[yes,no]',
         'visitor_pass_print' => 'required|in_list[enabled,disabled]',

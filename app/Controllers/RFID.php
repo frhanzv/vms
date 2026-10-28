@@ -40,6 +40,10 @@ class RFID extends ResourceController
             ->first();
 
         if (!$card) {
+            // Not in the visitor card pool — it may be a KPK Temporary Work Pass card.
+            if (($twp = $this->handleTwpCard((string) $cardEpc, null, 'Security')) !== null) {
+                return $this->respond($twp);
+            }
             log_message('warning', 'Unknown card scanned: ' . $cardEpc);
             return $this->respond([
                 'success' => false,
@@ -235,6 +239,10 @@ class RFID extends ResourceController
             ->first();
 
         if (!$card) {
+            // Not in the visitor card pool — it may be a KPK Temporary Work Pass card.
+            if (($twp = $this->handleTwpCard((string) $cardEpc, $laneId ? (int) $laneId : null, 'Security')) !== null) {
+                return $this->respond($twp);
+            }
             log_message('warning', 'Unknown card scanned: ' . $cardEpc . ' at lane ' . $laneId);
             return $this->respond([
                 'success' => false,
@@ -684,6 +692,21 @@ class RFID extends ResourceController
      * staff card. A refused staff pass raises a medium alert — the card is
      * known, unlike an unassigned card.
      */
+    /** Temporary Work Pass gate in / out (KPK TWP). Null when the EPC is not a TWP card. */
+    protected function handleTwpCard(string $epc, ?int $laneId, string $location): ?array
+    {
+        $result = \App\Libraries\TwpGate::scan(\Config\Database::connect(), $epc, $laneId);
+        if ($result === null) {
+            return null;
+        }
+        if (! empty($result['alert'])) {
+            $this->insertSecurityAlert('Unauthorized Access', 'medium', (string) ($result['worker_name'] ?? 'TWP'), $location, $result['alert']);
+        }
+        unset($result['alert']);
+
+        return $result;
+    }
+
     protected function handleStaffCard(array $card, ?int $laneId, string $location): ?array
     {
         $result = \App\Libraries\StaffGate::scan(\Config\Database::connect(), $card, $laneId);

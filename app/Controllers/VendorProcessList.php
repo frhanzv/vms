@@ -43,6 +43,7 @@ class VendorProcessList extends BaseController
 
         $builder = $db->table('vendors')
             ->where('status', 'Approved')
+            ->where("COALESCE(card_status, 'Inactive') <> 'Active'", null, false) // issued cards are in the Closed List
             ->groupStart()
                 ->where('receipt_no', null)
                 ->orWhere('receipt_no', '')
@@ -102,6 +103,7 @@ class VendorProcessList extends BaseController
             'searchTerm' => $searchTerm,
             'cardType'   => $cardType,
             'sortBy'     => $sortBy,
+            'canIssue'   => VendorCardIssue::allowed(),
             'pagination' => ['current_page' => $page, 'last_page' => $lastPage, 'total' => $totalCount],
         ]);
     }

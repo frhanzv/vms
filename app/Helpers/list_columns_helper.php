@@ -232,21 +232,7 @@ if (! function_exists('list_column_registry')) {
                     'card_type'           => ['label' => 'Card Type'],
                     'action'              => ['label' => 'Action', 'locked' => true],
                 ],
-                'buttons' => ['printing_generate_button' => 'Print / Generate Serial buttons'],
-            ],
-            'vendor_issuance_list' => [
-                'title'   => 'Issuance List',
-                'group'   => 'Vendor Pass',
-                'columns' => [
-                    'no'                  => ['label' => 'No', 'locked' => true],
-                    'app_no'              => ['label' => 'App No'],
-                    'receipt_no'          => ['label' => 'Receipt No'],
-                    'full_name'           => ['label' => 'Full Name', 'locked' => true],
-                    'vendor_company_name' => ['label' => 'Vendor Company'],
-                    'card_type'           => ['label' => 'Card Type'],
-                    'action'              => ['label' => 'Action', 'locked' => true],
-                ],
-                'buttons' => ['issuance_issue_button' => 'Issue Card button'],
+                'buttons' => ['printing_generate_button' => 'Print / Generate Serial buttons', 'issuance_issue_button' => 'Issue Card button'],
             ],
             'vendor_closed_list' => [
                 'title'   => 'Closed List',

@@ -2494,6 +2494,10 @@ class Config extends BaseController
         $offset = ($page - 1) * $perPage;
 
         $locations = $this->locationModel->getLocationsWithPagination($search, $sortBy, $perPage, $offset);
+        foreach ($locations as &$loc) {
+            unset($loc['adam_password']);   // never sent back to the browser
+        }
+        unset($loc);
         $total = $this->locationModel->getTotalLocations($search);
         $totalPages = ceil($total / $perPage);
 
@@ -2524,6 +2528,9 @@ class Config extends BaseController
                 'message' => 'Location not found'
             ])->setStatusCode(404);
         }
+
+        $location['has_adam_password'] = (string) ($location['adam_password'] ?? '') !== '';
+        unset($location['adam_password']);   // never sent back to the browser
 
         return $this->response->setJSON([
             'success' => true,
@@ -2577,9 +2584,12 @@ class Config extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => $ownerErr, 'errors' => ['branch' => $ownerErr]])->setStatusCode(400);
         }
 
-        // Hash password if provided
+        // ADAM password: encrypted, not hashed - Monitoring > Open Gate has to send it to the module
         if (!empty($data['adam_password'])) {
-            $data['adam_password'] = password_hash($data['adam_password'], PASSWORD_DEFAULT);
+            if (($err = $this->adamPasswordError((string) $data['adam_password'])) !== null) {
+                return $this->response->setJSON(['success' => false, 'message' => $err, 'errors' => ['adam_password' => $err]])->setStatusCode(400);
+            }
+            $data['adam_password'] = \App\Libraries\GateBarrier::encryptPassword((string) $data['adam_password']);
         }
 
         if (!$this->locationModel->insert($data)) {
@@ -2597,6 +2607,14 @@ class Config extends BaseController
             'message' => 'Location created successfully',
             'location_id' => $this->locationModel->getInsertID()
         ]);
+    }
+
+    /** Length rule for the ADAM password as typed (the stored value is the longer encrypted form). */
+    private function adamPasswordError(string $plain): ?string
+    {
+        $n = mb_strlen($plain);
+
+        return ($n < 4 || $n > 100) ? 'The ADAM password must be 4 to 100 characters.' : null;
     }
 
     /**
@@ -2618,9 +2636,12 @@ class Config extends BaseController
         $data = $input;
         unset($data['version'], $data['id']);
 
-        // Hash password if provided and not empty
+        // ADAM password: encrypted, not hashed (Monitoring > Open Gate sends it to the module); empty = keep
         if (!empty($data['adam_password'])) {
-            $data['adam_password'] = password_hash($data['adam_password'], PASSWORD_DEFAULT);
+            if (($err = $this->adamPasswordError((string) $data['adam_password'])) !== null) {
+                return $this->response->setJSON(['success' => false, 'message' => $err, 'errors' => ['adam_password' => $err]])->setStatusCode(400);
+            }
+            $data['adam_password'] = \App\Libraries\GateBarrier::encryptPassword((string) $data['adam_password']);
         } else {
             // Don't update password if empty
             unset($data['adam_password']);
@@ -2786,16 +2807,17 @@ class Config extends BaseController
             ])->setStatusCode(404);
         }
 
-        if (!$this->laneModel->delete($id)) {
+        // KPK never removes a lane, it is set to Inactive so its gate history stays linked
+        if (!$this->laneModel->skipValidation(true)->update($id, ['status' => 'inactive'])) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Failed to delete lane'
+                'message' => 'Failed to deactivate lane'
             ])->setStatusCode(500);
         }
 
         return $this->response->setJSON([
             'success' => true,
-            'message' => 'Lane deleted successfully'
+            'message' => 'Lane set to Inactive'
         ]);
     }
 

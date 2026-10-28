@@ -51,7 +51,7 @@ class LaneModel extends Model
     protected $validationRules = [
         'lane' => 'required|max_length[100]',
         'location_id' => 'required|is_natural_no_zero',
-        'barrier_no' => 'permit_empty|max_length[50]',
+        'barrier_no' => 'required|in_list[0,1,2,3,4,5]',
         'weight_id' => 'permit_empty|max_length[50]',
         'slip_print' => 'required|in_list[enabled,disabled]',
         'antena_ip' => 'permit_empty|valid_ip',

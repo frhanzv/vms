@@ -127,7 +127,13 @@ $select = 'border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:tex
                             </td>
                             <?php endif; ?>
                             <td class="p-3">
+                                <div class="flex items-center gap-2">
                                 <a href="<?= base_url('staffs/card-info/' . $r['id']) ?>" class="text-primary hover:underline text-xs font-semibold">View Details</a>
+                                <?php if ($canIssue && $r['printed']): ?>
+                                    <span class="text-gray-300">|</span>
+                                    <button onclick="staffIssueOpen(this)" data-id="<?= $r['id'] ?>" data-name="<?= esc($r['full_name'], 'attr') ?>" class="text-indigo-600 hover:underline text-xs font-semibold">Issue Card</button>
+                                <?php endif; ?>
+                                </div>
                             </td>
                         </tr>
                         <?php endforeach; endif; ?>
@@ -141,5 +147,6 @@ $select = 'border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:tex
         </div>
 
 <?= view('staffs/_layout_bottom') ?>
+<?= view('staffs/_issue_modal') ?>
 </body>
 </html>

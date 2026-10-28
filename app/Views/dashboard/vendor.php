@@ -204,7 +204,7 @@ $st = $stages;
                     <?php
                     $stageLinks = $isVendorAccount ? [] : [
                         'Process'  => base_url('vendors/process-list'),
-                        'Issuance' => base_url('vendors/issuance-list'),
+                        'Issuance' => base_url('vendors/printing-list'),
                         'Closed'   => base_url('vendors/closed-list'),
                     ];
                     $tones = ['Draft' => 1, 'Pending' => 1, 'Rejected' => 1, 'Process' => 2, 'Issuance' => 4, 'Closed' => 1];

@@ -30,15 +30,24 @@ $photo = ! empty($tx['photo']) ? base_url($tx['photo']) : base_url('assets/image
             <span class="mt-3 text-xs px-2 py-0.5 rounded bg-primary/10 text-primary font-semibold"><?= esc($tx['pass_type']) ?></span>
             <span class="mt-2 text-xs px-2 py-0.5 rounded font-semibold <?= $rej ? 'bg-red-100 text-red-700' : (($tx['status'] ?? '') === 'Gate In' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-700') ?>"><?= esc($tx['status']) ?></span>
         </div>
-        <div class="lg:col-span-2">
-            <?php $card('Person', ['Name' => $tx['name'], 'IC / Passport No' => $tx['ic'], 'Type Of Pass' => $tx['pass_type'], 'Card ID' => $tx['card_no']]); ?>
+        <div class="lg:col-span-2 space-y-4">
+            <?php $card('Person', ['Name' => $tx['name'], 'IC / Passport No' => $tx['ic'], 'Type Of Pass' => $tx['pass_type'], 'Card ID' => $tx['card_no'],
+                'Type' => $tx['driver_type'] ?? null, 'Is Driver' => ($tx['driver_type'] ?? '') === 'DRIVER' ? 'YES' : 'NO']); ?>
         </div>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <?php
-        $card('Gate In', ['Date' => $d($in), 'Time' => $t($in), 'Location' => $tx['location'], 'Lane' => $tx['in_lane'], 'Plate Number' => $tx['plate_no']]);
-        $card('Gate Out', $rej ? ['Status' => 'Entry denied - no gate out'] : ['Date' => $d($out), 'Time' => $t($out), 'Location' => $tx['location'], 'Lane' => $tx['out_lane'], 'Plate Number' => $tx['plate_no']]);
+        // KPK transaction-info: each side shows its own location / lane, whether it was opened by hand and why
+        $manualIn  = ($tx['mode_in'] ?? '') === 'MANUAL';
+        $manualOut = ($tx['mode_out'] ?? '') === 'MANUAL';
+        $card('Gate In', $in === null ? ['Status' => 'No gate in'] : ['Date' => $d($in), 'Time' => $t($in), 'Location' => $tx['location'], 'Lane' => $tx['in_lane'],
+            'Type Of Vehicle' => $tx['vehicle_type'] ?? null, 'Plate Number' => $tx['plate_no'], 'Mode' => $tx['mode_in'] ?? null,
+            'Manual' => $manualIn ? 'YES' : 'NO', 'Reason' => $manualIn ? $tx['manual_reason'] : null]);
+        $card('Gate Out', $rej ? ['Status' => 'Entry denied - no gate out'] : ($out === null ? ['Status' => 'Still inside'] : ['Date' => $d($out), 'Time' => $t($out),
+            'Location' => ($tx['out_location'] ?? '') !== '' ? $tx['out_location'] : $tx['location'], 'Lane' => $tx['out_lane'],
+            'Type Of Vehicle' => $tx['vehicle_type'] ?? null, 'Plate Number' => $tx['plate_no'], 'Mode' => $tx['mode_out'] ?? null,
+            'Manual' => $manualOut ? 'YES' : 'NO', 'Reason' => $manualOut ? $tx['manual_reason'] : null]));
         ?>
     </div>
 

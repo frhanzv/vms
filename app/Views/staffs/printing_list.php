@@ -71,6 +71,10 @@
                                         <span class="text-amber-600"><?= esc($r['blocker']) ?></span>
                                         <?php endif; ?>
                                     <?php endif; ?>
+                                    <?php if ($canIssue && $r['printed']): ?>
+                                        <span class="text-gray-300">|</span>
+                                        <button onclick="staffIssueOpen(this)" data-id="<?= $r['id'] ?>" data-name="<?= esc($r['full_name'], 'attr') ?>" class="text-indigo-600 hover:underline text-xs font-semibold">Issue Card</button>
+                                    <?php endif; ?>
                                 </div>
                             </td>
                         </tr>
@@ -82,6 +86,7 @@
             <?= view('staffs/_pager', ['pagination' => $pagination, 'baseUrl' => base_url('staffs/printing-list'), 'showPerPage' => true]) ?>
 
 <?= view('staffs/_layout_bottom') ?>
+<?= view('staffs/_issue_modal') ?>
 <?= view('staffs/_card_print') ?>
     <script>
         function onRowCheck() {

@@ -95,7 +95,13 @@
                             <?php if (list_col('vendor_process_list', 'card_type')): ?><td class="p-3"><?= esc($row['card_type']) ?></td><?php endif; ?>
                             <?php if (list_col('vendor_process_list', 'pass_expiry')): ?><td class="p-3"><?= esc($row['pass_expiry']) ?></td><?php endif; ?>
                             <td class="p-3">
+                                <div class="flex items-center gap-2">
                                 <a href="<?= base_url('vendors/process-list/detail/view/' . $row['id']) ?>" class="text-primary hover:underline text-xs font-semibold">View Details</a>
+                                <?php if ($canIssue ?? false): ?>
+                                <span class="text-gray-300">|</span>
+                                <button onclick="openIssue(this)" data-id="<?= $row['id'] ?>" data-name="<?= esc($row['full_name'], 'attr') ?>" class="text-emerald-600 hover:underline text-xs font-semibold">Issue Card</button>
+                                <?php endif; ?>
+                                </div>
                             </td>
                         </tr>
                         <?php endforeach; endif; ?>
@@ -114,5 +120,6 @@
             <?php endif; ?>
         </div>
     </main>
+    <?= view('vendors/_issue_modal') ?>
 </body>
 </html>

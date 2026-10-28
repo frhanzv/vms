@@ -2338,6 +2338,7 @@
                                 <div class="flex flex-wrap gap-6 text-sm text-gray-700 dark:text-slate-300">
                                     <label class="flex items-center gap-2"><input type="checkbox" data-vt="payment_required"> Payment required before the sticker is issued</label>
                                     <label class="flex items-center gap-2"><input type="checkbox" data-vt="duplicate_plate_ok"> Allow the same plate number on more than one pass</label>
+                                    <label class="flex items-center gap-2"><input type="checkbox" data-vt="capture_plate" checked> Take a plate number photo at the gate (untick = tapping the pass is enough, e.g. motorcycle)</label>
                                     <label class="flex items-center gap-2"><input type="checkbox" data-vt="req_pass"> Needs a driver (vendor pass) linked to the vehicle</label>
                                 </div>
                                 <div class="flex gap-2">
@@ -8230,10 +8231,10 @@
                 ['Working Height','working_height_req'],['Working Load','working_load_req'],['Chassis Number','chassis_req'],['Payment Type','payment_required']];
             const val = (r, k) => k.startsWith('is_') ? (r[k] !== undefined ? r[k] : legacyFlag(r, k)) : r[k];
             box.innerHTML = `<div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800"><table class="w-full text-left text-sm whitespace-nowrap">
-                <thead><tr class="bg-gray-50 dark:bg-slate-700 text-xs uppercase text-gray-600 dark:text-slate-200"><th class="p-3">Vehicle Type</th>${cols.map(c => `<th class="p-3 text-center">${c[0]}</th>`).join('')}<th class="p-3">License Class</th><th class="p-3 text-center">Duplicate Plate No</th><th class="p-3 text-center">Driver Pass</th><th class="p-3">Status</th><th class="p-3"></th></tr></thead><tbody>` +
+                <thead><tr class="bg-gray-50 dark:bg-slate-700 text-xs uppercase text-gray-600 dark:text-slate-200"><th class="p-3">Vehicle Type</th>${cols.map(c => `<th class="p-3 text-center">${c[0]}</th>`).join('')}<th class="p-3">License Class</th><th class="p-3 text-center">Duplicate Plate No</th><th class="p-3 text-center">Plate Photo</th><th class="p-3 text-center">Driver Pass</th><th class="p-3">Status</th><th class="p-3"></th></tr></thead><tbody>` +
                 vtRows.map(r => {
                     const acts = r.editable ? `<button type="button" onclick="editVehicleType(${r.id})" class="text-primary text-xs font-semibold mr-3">Edit</button><button type="button" onclick="deleteVehicleType(${r.id})" class="text-red-600 text-xs font-semibold">Delete</button>` : '<span class="text-xs text-gray-400">Shared</span>';
-                    return `<tr class="border-t border-gray-100 dark:border-slate-700 text-gray-700 dark:text-slate-200"><td class="p-3 font-medium">${escapeHtml(r.name)}</td>${cols.map(c => `<td class="p-3 text-center">${yn(val(r, c[1]))}</td>`).join('')}<td class="p-3">${escapeHtml((r.license_classes || []).map(l => l.name).join(', ') || '-')}</td><td class="p-3 text-center">${yn(r.duplicate_plate_ok)}</td><td class="p-3 text-center">${yn(r.req_pass)}</td><td class="p-3">${escapeHtml(r.status)}</td><td class="p-3">${acts}</td></tr>`;
+                    return `<tr class="border-t border-gray-100 dark:border-slate-700 text-gray-700 dark:text-slate-200"><td class="p-3 font-medium">${escapeHtml(r.name)}</td>${cols.map(c => `<td class="p-3 text-center">${yn(val(r, c[1]))}</td>`).join('')}<td class="p-3">${escapeHtml((r.license_classes || []).map(l => l.name).join(', ') || '-')}</td><td class="p-3 text-center">${yn(r.duplicate_plate_ok)}</td><td class="p-3 text-center">${yn(r.capture_plate)}</td><td class="p-3 text-center">${yn(r.req_pass)}</td><td class="p-3">${escapeHtml(r.status)}</td><td class="p-3">${acts}</td></tr>`;
                 }).join('') + '</tbody></table></div>';
         }
         function resetVehicleTypeForm() {
@@ -11937,8 +11938,8 @@
                                 <button onclick="openEditLaneModal(${lane.id})" class="text-primary hover:text-primary/80">
                                     <span class="material-symbols-outlined text-xl">edit</span>
                                 </button>
-                                <button onclick="openDeleteLaneModal(${lane.id}, '${escapeHtml(lane.lane)}')" class="text-red-500 hover:text-red-400">
-                                    <span class="material-symbols-outlined text-xl">delete</span>
+                                <button onclick="openDeleteLaneModal(${lane.id}, '${escapeHtml(lane.lane)}')" class="text-red-500 hover:text-red-400" title="Deactivate">
+                                    <span class="material-symbols-outlined text-xl">block</span>
                                 </button>
                             </div>
                         </td>
@@ -12044,8 +12045,8 @@
                                             </select>
                                         </div>
                                         <div>
-                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Barrier No</label>
-                                            <input type="text" id="laneBarrierNo" name="barrier_no" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Barrier No <span class="text-red-500">*</span></label>
+                                            <select id="laneBarrierNo" name="barrier_no" required class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary"><option value="">Select barrier</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select>
                                         </div>
                                         <div>
                                             <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Weight ID</label>
@@ -12224,8 +12225,8 @@
                                         </select>
                                     </div>
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Barrier No</label>
-                                        <input type="text" id="laneBarrierNo" name="barrier_no" value="${escapeHtml(lane.barrier_no || '')}" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Barrier No <span class="text-red-500">*</span></label>
+                                        <select id="laneBarrierNo" name="barrier_no" required class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary"><option value="">Select barrier</option>${[0, 1, 2, 3, 4, 5].map(n => `<option ${String(lane.barrier_no ?? '') === String(n) ? 'selected' : ''}>${n}</option>`).join('')}</select>
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Weight ID</label>
@@ -12366,21 +12367,21 @@
                 <div id="deleteLaneModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
                     <div class="bg-white dark:bg-slate-800 rounded-lg max-w-md w-full">
                         <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-700">
-                            <h3 class="text-lg font-bold text-gray-800 dark:text-white">Delete Lane</h3>
+                            <h3 class="text-lg font-bold text-gray-800 dark:text-white">Deactivate Lane</h3>
                             <button onclick="closeDeleteLaneModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                                 <span class="material-symbols-outlined">close</span>
                             </button>
                         </div>
                         <div class="p-6">
                             <p class="text-gray-700 dark:text-slate-300 mb-6">
-                                Are you sure you want to delete <strong>${laneName}</strong>? This action cannot be undone.
+                                Set <strong>${laneName}</strong> to Inactive? It stays in the list and can be made Active again from Edit.
                             </p>
                             <div class="flex gap-3 justify-end">
                                 <button onclick="closeDeleteLaneModal()" class="px-5 py-2.5 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">
                                     Cancel
                                 </button>
                                 <button onclick="deleteLane()" class="px-5 py-2.5 rounded-lg bg-red-500 text-white font-medium hover:bg-red-600 transition-colors text-sm">
-                                    Delete Lane
+                                    Deactivate Lane
                                 </button>
                             </div>
                         </div>
@@ -12509,7 +12510,7 @@
 
         function deleteLane() {
             const deleteBtn = event.target;
-            deleteBtn.textContent = 'Deleting...';
+            deleteBtn.textContent = 'Saving...';
             deleteBtn.disabled = true;
 
             fetch(`<?= base_url('config/deleteLane') ?>/${currentLaneId}`, {
@@ -12525,8 +12526,8 @@
                             fetchLocationsForDevice();
                         }
                     } else {
-                        showNotification(data.message || 'Failed to delete lane', 'error');
-                        deleteBtn.textContent = 'Delete Lane';
+                        showNotification(data.message || 'Failed to deactivate lane', 'error');
+                        deleteBtn.textContent = 'Deactivate Lane';
                         deleteBtn.disabled = false;
                     }
                 })

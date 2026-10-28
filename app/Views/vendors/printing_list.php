@@ -115,8 +115,13 @@
                                 <?php if ($canPrint ?? false): ?>
                                 <span class="text-gray-300">|</span>
                                 <button onclick="printOne(<?= $row['id'] ?>)" class="text-primary hover:underline text-xs font-semibold flex items-center gap-1">
-                                    <span class="material-icons text-sm">print</span>Print
+                                    <span class="material-icons text-sm">print</span><?= $row['receipt_no'] !== '' ? 'Reprint' : 'Print' ?>
                                 </button>
+                                <?php endif; ?>
+                                <?php if ($row['receipt_no'] !== ''): ?><span class="text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-700 font-semibold">Printed <?= esc($row['receipt_no']) ?></span><?php endif; ?>
+                                <?php if ($canIssue ?? false): ?>
+                                <span class="text-gray-300">|</span>
+                                <button onclick="openIssue(this)" data-id="<?= $row['id'] ?>" data-name="<?= esc($row['full_name'], 'attr') ?>" class="text-emerald-600 hover:underline text-xs font-semibold">Issue Card</button>
                                 <?php endif; ?>
                             </div>
                         </td>
@@ -136,6 +141,8 @@
             <?php endif; ?>
         </div>
     </main>
+
+    <?= view('vendors/_issue_modal') ?>
 
     <!-- Hidden print area: filled just before window.print() -->
     <script src="<?= base_url('assets/js/vendor-card-print.js') ?>"></script>

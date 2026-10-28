@@ -310,6 +310,9 @@ $routes->group('monitoring', ['filter' => $plusAdminOfficer], function ($routes)
     $routes->get('data', 'GateMonitoring::data');
     $routes->get('person', 'GateMonitoring::person');
     $routes->get('export', 'GateMonitoring::export');
+    $routes->get('info/(:segment)', 'GateMonitoring::info/$1');
+    $routes->get('lanes', 'GateMonitoring::lanes');
+    $routes->post('open-gate', 'GateMonitoring::openGate');
 });
 // Vehicle Types (Config)
 $routes->group('config/vehicle-types', ['filter' => 'role:superadmin,clientsuperadmin'], function ($routes) {
@@ -501,9 +504,8 @@ $routes->group('', ['filter' => [$plusAdminOfficer, 'client_feature:staff_pass']
     $routes->get('staffs/process-list', 'StaffPipeline::processList');
     $routes->get('staffs/printing-list', 'StaffPipeline::printingList');
     $routes->post('staffs/printing-list/generate-serial/(:num)', 'StaffPipeline::generateSerial/$1');
-    $routes->get('staffs/issuance-list', 'StaffPipeline::issuanceList');
-    $routes->post('staffs/issuance-list/issue/(:num)', 'StaffPipeline::issue/$1');
-    $routes->post('staffs/issuance-list/issue-selected', 'StaffPipeline::issueSelected');
+    // Issue Card: button on the Process List / Printing List rows (there is no Issuance List)
+    $routes->post('staffs/issue-card/(:num)', 'StaffPipeline::issue/$1');
     // Issue button on View Details (Process List / Printing List) — the Issuance List page itself is gone.
     $routes->post('staffs/card-info/issue/(:num)', 'StaffPipeline::issue/$1');
     $routes->get('staffs/closed-list', 'StaffPipeline::closedList');
@@ -604,9 +606,8 @@ $routes->group('', ['filter' => [$plusAdminOfficer, 'client_feature:vendor_pass'
     $routes->get('vendors/printing-list', 'VendorPrintingList::index');
     $routes->post('vendors/printing-list/generate-serial/(:num)', 'VendorPrintingList::generateSerial/$1');
 
-    // Issuance List (printed, waiting to be handed to the collector)
-    $routes->get('vendors/issuance-list', 'VendorIssuanceList::index');
-    $routes->post('vendors/issuance-list/issue/(:num)', 'VendorIssuanceList::issue/$1');
+    // Issue Card (button on the Process List and Printing List; there is no Issuance List page)
+    $routes->post('vendors/issue-card/(:num)', 'VendorCardIssue::issue/$1');
 
     // Closed List (issued / completed)
     $routes->get('vendors/closed-list', 'VendorClosedList::index');
@@ -682,7 +683,37 @@ $routes->group('blacklist', ['filter' => [$superadmins, 'client_feature:blacklis
 // superadmin, clientsuperadmin, admin, officer
 // ===========================
 
+// Temporary Work Pass (KPK TWP). Bank (FPX) payment stays in Java, reached through VehiclePayment.
+$routes->group('twp', ['filter' => $plusAdminOfficer], function($routes) {
+    $routes->get('requests', 'Twp::requests');
+    $routes->get('requests/new', 'Twp::create');
+    $routes->post('requests/save', 'Twp::save');
+    $routes->get('requests/(:num)', 'Twp::show/$1');
+    $routes->post('requests/(:num)/approve', 'Twp::approve/$1');
+    $routes->post('requests/(:num)/reject', 'Twp::reject/$1');
+    $routes->post('requests/(:num)/payment', 'Twp::payment/$1');
+    $routes->post('requests/(:num)/pay-online', 'Twp::payOnline/$1');
+    $routes->get('requests/(:num)/payment-return', 'Twp::paymentReturn/$1');
+    $routes->get('passes', 'Twp::passes');
+    $routes->post('passes/(:num)/issue', 'Twp::issueCard/$1');
+    $routes->post('passes/(:num)/return', 'Twp::returnCard/$1');
+    $routes->get('cards', 'Twp::cards');
+    $routes->post('cards/save', 'Twp::saveCard');
+    $routes->post('cards/rates', 'Twp::saveRates');
+    $routes->get('dashboard', 'Twp::dashboard');
+    $routes->get('report', 'Twp::report');
+});
+
 $routes->group('', ['filter' => $plusAdminOfficer], function($routes) {
+    // Report Templates (Kurita-style builder: sections, schedule, Excel / PDF, email)
+    $routes->get('report/templates', 'ReportTemplates::index');
+    $routes->get('report/templates/create', 'ReportTemplates::create');
+    $routes->post('report/templates/save', 'ReportTemplates::save');
+    $routes->get('report/templates/(:num)', 'ReportTemplates::show/$1');
+    $routes->get('report/templates/(:num)/edit', 'ReportTemplates::edit/$1');
+    $routes->get('report/templates/(:num)/export', 'ReportTemplates::export/$1');
+    $routes->post('report/templates/(:num)/send', 'ReportTemplates::send/$1');
+    $routes->post('report/templates/(:num)/delete', 'ReportTemplates::delete/$1');
     $routes->get('report/access', 'AccessReport::index');
     $routes->post('report/access/generate', 'AccessReport::generate');
     $routes->post('report/access/movementHistory', 'AccessReport::movementHistory');

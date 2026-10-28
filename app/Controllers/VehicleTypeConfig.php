@@ -10,7 +10,7 @@ use App\Libraries\VehicleRules;
  */
 class VehicleTypeConfig extends BaseController
 {
-    private const FLAGS = ['seater_req', 'working_height_req', 'working_load_req', 'truck_head_req', 'trailer_req', 'truck_weight_req', 'chassis_req', 'trailer_weight_req', 'trailer_type_req', 'req_pass', 'payment_required', 'duplicate_plate_ok'];
+    private const FLAGS = ['seater_req', 'working_height_req', 'working_load_req', 'truck_head_req', 'trailer_req', 'truck_weight_req', 'chassis_req', 'trailer_weight_req', 'trailer_type_req', 'req_pass', 'payment_required', 'duplicate_plate_ok', 'capture_plate'];
 
     /** KPK yes/no columns of a vehicle type (the flags tell where it is offered and what kind of vehicle it is). */
     private const KPK_FLAGS = ['is_commercial', 'is_container', 'is_cargo', 'is_non_cargo', 'is_public', 'is_car', 'is_motorbike', 'is_van'];

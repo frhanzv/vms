@@ -39,12 +39,10 @@ class VendorPrintingList extends BaseController
             $sortBy = 'date_desc';
         }
 
+        // Printed cards stay on this list until they are issued (there is no Issuance List)
         $builder = $db->table('vendors')
             ->where('status', 'Approved')
-            ->groupStart()
-                ->where('receipt_no', null)
-                ->orWhere('receipt_no', '')
-            ->groupEnd();
+            ->where("COALESCE(card_status, 'Inactive') <> 'Active'", null, false);
         // Vendor Workflow: Card Processing off -> nothing waits here.
         if (! \App\Libraries\VendorWorkflow::enabled($db, (int) current_company_id(), 'card_processing')) {
             $builder->where('1 = 0', null, false);
@@ -93,6 +91,7 @@ class VendorPrintingList extends BaseController
                 'vendor_company_name' => $row['vendor_company_name'] ?? 'N/A',
                 'ic_passport_masked'  => mask_ic_passport($row['ic_no'] ?: ($row['passport_no'] ?? ''), 'N/A'),
                 'card_type'           => $row['card_type'] ?? 'Not assigned',
+                'receipt_no'          => $row['receipt_no'] ?? '',
                 'photo_url'           => $photoUrl,
             ];
         }
@@ -105,6 +104,7 @@ class VendorPrintingList extends BaseController
             'sortBy'     => $sortBy,
             'canPrint'   => has_access('vendor_pass_list', 'edit')
                 && (new \App\Models\ClientFormFieldModel())->isEnabled(current_company_id(), 'vendor_pass_request', 'printing_generate_button'),
+            'canIssue'   => VendorCardIssue::allowed(),
             'pagination' => ['current_page' => $page, 'last_page' => $lastPage, 'total' => $totalCount],
         ]);
     }
