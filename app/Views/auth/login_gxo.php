@@ -220,7 +220,7 @@ $loginButtonText = $lp['login_button_text'] ?? 'Sign In';
 
                     <div class="mt-auto pt-10 text-right">
                         <p class="text-sm font-semibold text-slate-600">Powered by</p>
-                        <div class="mt-2 flex items-end justify-end gap-1">
+                        <div class="mt-2 flex items-end justify-end gap-0">
                             <span class="text-xl font-semibold text-[#1f8cff]">Safe</span>
                             <span class="text-5xl font-black leading-none text-[#2f7fd7]">G</span>
                         </div>
