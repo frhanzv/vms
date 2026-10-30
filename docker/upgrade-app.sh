@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Switch / upgrade ONLY the app image (MySQL data + phpMyAdmin stay).
 #
-#   VMS_IMAGE=bytespace.jfrog.io/vms/vms:v1.0.2 ./docker/upgrade-app.sh
+#   VMS_IMAGE=bytespaceartifactory.tail61f14e.ts.net:8443/vms/vms:v.1.0.2 ./docker/upgrade-app.sh
 #
 # Or edit VMS_IMAGE in docker/compose.env then:
 #   ./docker/upgrade-app.sh

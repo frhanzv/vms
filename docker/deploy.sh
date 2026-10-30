@@ -5,11 +5,11 @@
 #   cp .env docker/.env          # then set hostname=db, baseURL, password
 #   cp docker/compose.env.example docker/compose.env
 #   # DB_PASSWORD must match database.default.password
-#   # VMS_IMAGE=bytespace.jfrog.io/vms/vms:v1.0.1
+#   # VMS_IMAGE=bytespaceartifactory.tail61f14e.ts.net:8443/vms/vms:v.1.0.2
 #   SKIP_BUILD=1 ./docker/deploy.sh
 #
 # New Artifactory tag later (DB stays):
-#   VMS_IMAGE=bytespace.jfrog.io/vms/vms:v1.0.2 ./docker/upgrade-app.sh
+#   VMS_IMAGE=bytespaceartifactory.tail61f14e.ts.net:8443/vms/vms:v.1.0.3 ./docker/upgrade-app.sh
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -19,7 +19,7 @@ PHPMYADMIN_PORT="${PHPMYADMIN_PORT:-8082}"
 DB_PORT="${DB_PORT:-3307}"
 RUN_MIGRATIONS="${RUN_MIGRATIONS:-true}"
 RUN_SEEDERS="${RUN_SEEDERS:-true}"
-VMS_IMAGE="${VMS_IMAGE:-localhost/vms:v1.0.1}"
+VMS_IMAGE="${VMS_IMAGE:-bytespaceartifactory.tail61f14e.ts.net:8443/vms/vms:v.1.0.2}"
 MYSQL_IMAGE="${MYSQL_IMAGE:-docker.io/library/mysql:8.0.37-oraclelinux8}"
 
 env_get() {
@@ -84,7 +84,7 @@ if [[ -f docker/compose.env ]]; then
   existing_root="$(grep -E '^[[:space:]]*MYSQL_ROOT_PASSWORD[[:space:]]*=' docker/compose.env | tail -n1 | cut -d= -f2- || true)"
   [[ -n "${existing_root:-}" ]] && MYSQL_ROOT_PASSWORD="$existing_root"
   existing_img="$(grep -E '^[[:space:]]*VMS_IMAGE[[:space:]]*=' docker/compose.env | tail -n1 | cut -d= -f2- || true)"
-  if [[ -z "${VMS_IMAGE_SET:-}" && -n "${existing_img:-}" && "${VMS_IMAGE}" == "localhost/vms:v1.0.1" ]]; then
+  if [[ -z "${VMS_IMAGE_SET:-}" && -n "${existing_img:-}" && "${VMS_IMAGE}" == "bytespaceartifactory.tail61f14e.ts.net:8443/vms/vms:v.1.0.2" ]]; then
     VMS_IMAGE="$existing_img"
   fi
 fi
@@ -142,4 +142,4 @@ echo "             (Tailscale: serve --set-path /phpmyadmin http://127.0.0.1:${P
 echo "DB:          localhost:${DB_PORT}  (${DB_USERNAME}/${DB_DATABASE})"
 echo "Logs:        podman compose --env-file ${COMPOSE_ENV} logs -f app"
 echo
-echo "Upgrade app image later:  VMS_IMAGE=bytespace.jfrog.io/vms/vms:vX.Y.Z ./docker/upgrade-app.sh"
+echo "Upgrade app image later:  VMS_IMAGE=bytespaceartifactory.tail61f14e.ts.net:8443/vms/vms:vX.Y.Z ./docker/upgrade-app.sh"

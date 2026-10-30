@@ -16,6 +16,27 @@ final class VisitorListGxoStatusTest extends CIUnitTestCase
     {
         $this->assertSame('Expected', $this->resolveGxoStatus([
             'sch_date_to' => '2999-01-01 00:00:00',
+            'invitation_video_watched' => 1,
+        ]));
+    }
+
+    public function testApprovedVisitorWaitingForVideoHasPendingVideoStatus(): void
+    {
+        $this->assertSame('Pending Video Watch', $this->resolveGxoStatus([
+            'sch_date_to' => '2999-01-01 00:00:00',
+            'invitation_video_watched' => 0,
+        ]));
+    }
+
+    public function testScheduleExpiryUsesApplicationTimezoneInsteadOfPhpTimezone(): void
+    {
+        $applicationTimezone = new DateTimeZone(app_timezone());
+        $oneMinuteAgo = (new DateTimeImmutable('now', $applicationTimezone))
+            ->modify('-1 minute')
+            ->format('Y-m-d H:i:s');
+
+        $this->assertSame('Expired', $this->resolveGxoStatus([
+            'sch_date_to' => $oneMinuteAgo,
         ]));
     }
 
@@ -31,7 +52,7 @@ final class VisitorListGxoStatusTest extends CIUnitTestCase
     private function resolveGxoStatus(array $row): string
     {
         $controller = (new ReflectionClass(VisitorList::class))->newInstanceWithoutConstructor();
-        $method = new ReflectionMethod(VisitorList::class, 'gxoEntryStatus');
+        $method = new ReflectionMethod(VisitorList::class, 'visitorEntryStatus');
 
         return $method->invoke($controller, $row);
     }

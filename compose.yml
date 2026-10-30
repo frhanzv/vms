@@ -20,7 +20,7 @@ x-podman:
 
 services:
   app:
-    image: ${VMS_IMAGE:-localhost/vms:v1.0.1}
+    image: ${VMS_IMAGE:-localhost/vms:v.1.0.2}
     container_name: vms-app
     ports:
       - "${APP_PORT:-80}:80"
