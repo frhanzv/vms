@@ -10,9 +10,9 @@ namespace App\Controllers;
  *   VENDORPASS vendor_visits     (lane from vendor_card_logs)
  *   VISITOR    invitation_visitors (lane from visitor_card_logs)
  *
- *   MANUAL     gate_manual_openings (Open Gate on this page, KPK "/api/adam/trigger")
+ *   MANUAL     gate_manual_openings (older manual openings; the site now uses its own physical button)
  *
- * Open Gate is the only write: it opens a barrier through the ADAM module and records the manual movement.
+ * Read only: every movement comes from the gate taps (and the plate camera, see PlateCapture).
  * Same client scope as the reports. Needs the Role > Monitoring > Monitoring permission.
  */
 class GateMonitoring extends BaseController
@@ -190,7 +190,7 @@ class GateMonitoring extends BaseController
                 WHERE tv.check_in_time IS NOT NULL" . $scope;
         }
 
-        // ---- MANUAL (Open Gate on this page; KPK AdamService.createTransaction: mode "manual", type Driver)
+        // ---- MANUAL (older manual openings; KPK AdamService.createTransaction: mode "manual", type Driver)
         if ($db->tableExists('gate_manual_openings')) {
             $scope = $clientId > 0 && $this->has('locations', 'client_id') ? " AND (loc.client_id = {$clientId} OR loc.client_id IS NULL)" : '';
             $parts[] = "SELECT 'manual', mo.id, '', '', '',
@@ -227,7 +227,19 @@ class GateMonitoring extends BaseController
     /** The outer SELECT list: every union column plus the two worked-out KPK columns. */
     private function selectSql(): string
     {
-        return 'tx.*, ' . $this->driverTypeSql() . ' AS driver_type, ' . $this->vehicleTypeSql() . ' AS vehicle_type';
+        return 'tx.*, ' . $this->driverTypeSql() . ' AS driver_type, ' . $this->vehicleTypeSql() . ' AS vehicle_type' . $this->captureSql();
+    }
+
+    /** Plate the lane camera read at the tap (PlateCapture): registered, tap_only or unregistered, for gate in and gate out. */
+    private function captureSql(): string
+    {
+        if (! $this->db()->tableExists('gate_plate_captures')) {
+            return ", '' AS cap_plate, '' AS cap_category, '' AS cap_image, '' AS cap_plate_out, '' AS cap_category_out, '' AS cap_image_out";
+        }
+        $q = static fn(string $dir, string $col) => "COALESCE((SELECT pc.{$col} FROM gate_plate_captures pc WHERE pc.tx_key = tx.tx_key AND pc.direction = '{$dir}' ORDER BY pc.id DESC LIMIT 1), '')";
+
+        return ', ' . $q('in', 'plate_no') . ' AS cap_plate, ' . $q('in', 'category') . ' AS cap_category, ' . $q('in', 'image_path') . ' AS cap_image, '
+            . $q('out', 'plate_no') . ' AS cap_plate_out, ' . $q('out', 'category') . ' AS cap_category_out, ' . $q('out', 'image_path') . ' AS cap_image_out';
     }
 
     /** Vehicle type names for the Advanced Filter (KPK "Vehicle Type"). */
@@ -278,7 +290,7 @@ class GateMonitoring extends BaseController
             $w[] = "tx.status = 'Gate In' AND tx.time_in <= " . $db->escape(date('Y-m-d H:i:s', time() - self::OUT_OF_WINDOW_HOURS * 3600));
         }
         $type = $g('type');
-        if (in_array($type, ['VENDORPASS', 'STAFF', 'VISITOR'], true)) {
+        if (in_array($type, ['VENDORPASS', 'STAFF', 'VISITOR', 'TWP'], true)) {
             $w[] = 'tx.pass_type = ' . $db->escape($type);
         }
         $driver = strtoupper($g('driver_type'));
@@ -288,9 +300,14 @@ class GateMonitoring extends BaseController
         if (($vt = $g('vehicle_type')) !== '') {
             $w[] = $this->vehicleTypeSql() . ' = ' . $db->escape($vt);
         }
+        $hasCap = $db->tableExists('gate_plate_captures');
+        if ($hasCap && in_array($cat = $g('plate_category'), ['registered', 'tap_only', 'unregistered'], true)) {
+            $w[] = 'EXISTS (SELECT 1 FROM gate_plate_captures pc WHERE pc.tx_key = tx.tx_key AND pc.category = ' . $db->escape($cat) . ')';
+        }
         if (($q = $g('q')) !== '') {
             $like = $db->escape('%' . $db->escapeLikeString($q) . '%');
-            $w[]  = "(tx.name LIKE {$like} OR tx.ic LIKE {$like} OR tx.location LIKE {$like} OR tx.in_lane LIKE {$like} OR tx.out_lane LIKE {$like} OR tx.card_no LIKE {$like} OR tx.plate_no LIKE {$like} OR tx.manual_reason LIKE {$like})";
+            $cap  = $hasCap ? " OR EXISTS (SELECT 1 FROM gate_plate_captures pc WHERE pc.tx_key = tx.tx_key AND pc.plate_no LIKE {$like})" : '';
+            $w[]  = "(tx.name LIKE {$like} OR tx.ic LIKE {$like} OR tx.location LIKE {$like} OR tx.in_lane LIKE {$like} OR tx.out_lane LIKE {$like} OR tx.card_no LIKE {$like} OR tx.plate_no LIKE {$like} OR tx.manual_reason LIKE {$like}{$cap})";
         }
 
         return implode(' AND ', $w);
@@ -335,8 +352,8 @@ class GateMonitoring extends BaseController
     {
         $db     = $this->db();
         $cutoff = $db->escape(date('Y-m-d H:i:s', time() - self::OUT_OF_WINDOW_HOURS * 3600));
-        $out    = ['visitor' => 0, 'staff' => 0, 'vendor' => 0, 'denied' => 0, 'out_of_window' => 0, 'in_visitor' => 0, 'in_staff' => 0, 'in_vendor' => 0, 'in_all' => 0];
-        $map    = ['VISITOR' => 'visitor', 'STAFF' => 'staff', 'VENDORPASS' => 'vendor'];
+        $out    = ['visitor' => 0, 'staff' => 0, 'vendor' => 0, 'twp' => 0, 'denied' => 0, 'out_of_window' => 0, 'in_visitor' => 0, 'in_staff' => 0, 'in_vendor' => 0, 'in_all' => 0];
+        $map    = ['VISITOR' => 'visitor', 'STAFF' => 'staff', 'VENDORPASS' => 'vendor', 'TWP' => 'twp'];
         $res    = $db->query("SELECT pass_type,
                 SUM(status <> 'Rejected' AND DATE(time_in) = CURDATE()) AS today,
                 SUM(status = 'Rejected' AND DATE(time_in) = CURDATE()) AS denied,
@@ -367,8 +384,7 @@ class GateMonitoring extends BaseController
         $today   = date('Y-m-d');
         $perLane = [];
         $lanes   = [];
-        $hourIn  = array_fill(0, 24, 0);
-        $hourOut = array_fill(0, 24, 0);
+        $laneHrs = []; // lane => ['n' => taps, 'h' => [date-hour => true]] for KPK avgTransactionPerHrPerLane
         $dowIn   = array_fill(1, 7, 0);
         $dowOut  = array_fill(1, 7, 0);
         $monthly = ['VISITOR' => [], 'VENDORPASS' => [], 'STAFF' => []];
@@ -389,9 +405,9 @@ class GateMonitoring extends BaseController
                 if ($d === $today) {
                     $perLane[$lane][$dir] = ($perLane[$lane][$dir] ?? 0) + 1;
                 }
-                if ($d >= $cut30 && ($laneFilter === '' || $laneFilter === $lane)) {
-                    $h = (int) substr($t, 11, 2);
-                    $dir === 'in' ? $hourIn[$h]++ : $hourOut[$h]++;
+                if ($d >= $cut30) {
+                    $laneHrs[$lane]['n']                    = ($laneHrs[$lane]['n'] ?? 0) + 1;
+                    $laneHrs[$lane]['h'][substr($t, 0, 13)] = true;
                 }
                 if ($d >= $cut84) {
                     $w = (int) date('N', strtotime($d));
@@ -410,28 +426,28 @@ class GateMonitoring extends BaseController
         ksort($perLane);
         $laneNames = array_keys($lanes);
         sort($laneNames);
-        $months = [];
-        for ($i = 11; $i >= 0; $i--) {
-            $months[] = date('Y-m', strtotime("first day of -{$i} month"));
-        }
-        $days = [];
-        for ($i = 6; $i >= 0; $i--) {
-            $days[] = date('Y-m-d', strtotime("-{$i} day"));
-        }
+        // KPK Total Transaction: BY WEEK = last 7 days (day names), BY MONTH = last 30 days (dates)
+        $week  = array_map(static fn($i) => date('Y-m-d', strtotime("-{$i} day")), range(6, 0));
+        $month = array_map(static fn($i) => date('Y-m-d', strtotime("-{$i} day")), range(29, 0));
         $series = [];
         foreach (['VISITOR', 'VENDORPASS', 'STAFF'] as $pt) {
             $series[$pt] = [
-                'month' => array_map(static fn($m) => $monthly[$pt][$m] ?? 0, $months),
-                'week'  => array_map(static fn($d) => $daily[$pt][$d] ?? 0, $days),
+                'month' => array_map(static fn($d) => $daily[$pt][$d] ?? 0, $month),
+                'week'  => array_map(static fn($d) => $daily[$pt][$d] ?? 0, $week),
             ];
         }
+
+        // KPK Avg Transactions Per Hour (Per Lane): every active lane, taps in the last 30 days / hours it was in use
+        $allLanes = array_values(array_unique(array_merge(array_column($this->activeLanes(), 'lane'), array_keys($laneHrs))));
+        sort($allLanes, SORT_NATURAL | SORT_FLAG_CASE);
+        $perHour = array_map(static fn($l) => isset($laneHrs[$l]) ? round($laneHrs[$l]['n'] / max(1, count($laneHrs[$l]['h'])), 2) : 0, $allLanes);
 
         return [
             'lanes'      => $laneNames,
             'per_lane'   => ['labels' => array_keys($perLane), 'in' => array_map(static fn($v) => $v['in'] ?? 0, array_values($perLane)), 'out' => array_map(static fn($v) => $v['out'] ?? 0, array_values($perLane))],
-            'per_hour'   => ['in' => array_map(static fn($v) => round($v / 30, 2), $hourIn), 'out' => array_map(static fn($v) => round($v / 30, 2), $hourOut)],
+            'per_hour'   => ['labels' => $allLanes, 'data' => $perHour],
             'per_day'    => ['labels' => ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'], 'in' => array_map(static fn($v) => round($v / 12, 1), array_values($dowIn)), 'out' => array_map(static fn($v) => round($v / 12, 1), array_values($dowOut))],
-            'total'      => ['months' => $months, 'days' => $days, 'series' => $series],
+            'total'      => ['week' => array_map(static fn($d) => strtoupper(date('D', strtotime($d))), $week), 'month' => array_map(static fn($d) => date('d/m', strtotime($d)), $month), 'series' => $series],
         ];
     }
 
@@ -496,12 +512,9 @@ class GateMonitoring extends BaseController
         return view('monitoring/transaction_info', ['pageTitle' => 'Transaction Info - SafeG', 'tx' => $row, 'vehicle' => $vehicle]);
     }
 
-    /** Lanes for Open Gate (KPK lane list: No., Lane, Location Access, Barrier No.), limited to this client's gates. */
-    public function lanes()
+    /** Active lanes this client can see (for the per-lane chart). */
+    private function activeLanes(): array
     {
-        if (! $this->allowed()) {
-            return $this->json(['success' => false, 'message' => 'Not allowed.'], 403);
-        }
         $db = $this->db();
         $b  = $db->table('lanes l')->select('l.id, l.lane, l.barrier_no, l.in_bound, l.out_bound, loc.location_access')
             ->join('locations loc', 'loc.id = l.location_id', 'left');
@@ -512,62 +525,8 @@ class GateMonitoring extends BaseController
         if ($cid > 0 && $this->has('locations', 'client_id')) {
             $b->groupStart()->where('loc.client_id', $cid)->orWhere('loc.client_id IS NULL', null, false)->groupEnd();
         }
-        if (($q = trim((string) $this->request->getGet('q'))) !== '') {
-            $b->groupStart()->like('l.lane', $q)->orLike('loc.location_access', $q)->orLike('l.barrier_no', $q)->groupEnd();
-        }
-        $rows = $b->orderBy('loc.location_access')->orderBy('l.lane')->get()->getResultArray();
-        foreach ($rows as &$r) {
-            $r['direction'] = strtolower((string) $r['in_bound']) === 'yes' ? 'Gate In' : 'Gate Out';
-        }
-        unset($r);
 
-        return $this->json(['success' => true, 'lanes' => $rows]);
-    }
-
-    /**
-     * Open Gate (KPK /api/adam/trigger with jetson=true): opens the lane's barrier through the location's ADAM
-     * module, then records a manual Gate In / Gate Out with the reason typed in (shown as "Manual Reason").
-     */
-    public function openGate()
-    {
-        if (! $this->allowed()) {
-            return $this->json(['success' => false, 'message' => 'Not allowed.'], 403);
-        }
-        $db     = $this->db();
-        $laneId = (int) $this->request->getPost('lane_id');
-        $reason = trim((string) $this->request->getPost('reason'));
-        if ($reason === '') {
-            return $this->json(['success' => false, 'message' => 'Type the reason for opening the gate.']);
-        }
-        if (mb_strlen($reason) > 255) {
-            return $this->json(['success' => false, 'message' => 'The reason can be at most 255 characters.']);
-        }
-        if (! $db->tableExists('gate_manual_openings')) {
-            return $this->json(['success' => false, 'message' => 'Run "php spark migrate" first.']);
-        }
-        $lane = $laneId > 0 ? $db->table('lanes')->where('id', $laneId)->get()->getRowArray() : null;
-        if (! $lane) {
-            return $this->json(['success' => false, 'message' => 'Choose a lane.']);
-        }
-        $location = $db->table('locations')->where('id', (int) $lane['location_id'])->get()->getRowArray() ?: [];
-        $cid = $this->clientId();
-        if ($cid > 0 && ! empty($location['client_id']) && (int) $location['client_id'] !== $cid) {
-            return $this->json(['success' => false, 'message' => 'This lane belongs to another client.'], 403);
-        }
-
-        if ($err = \App\Libraries\GateBarrier::open($lane, $location)) {
-            return $this->json(['success' => false, 'message' => $err]);
-        }
-
-        $now = date('Y-m-d H:i:s');
-        $db->table('gate_manual_openings')->insert([
-            'lane_id' => $laneId, 'location_id' => $location['id'] ?? null,
-            'direction' => strtolower((string) ($lane['in_bound'] ?? '')) === 'yes' ? 'in' : 'out',
-            'reason' => $reason, 'opened_by' => (string) (session()->get('full_name') ?: session()->get('username')),
-            'opened_at' => $now, 'created_at' => $now,
-        ]);
-
-        return $this->json(['success' => true, 'message' => 'Successfully Open!']);
+        return $b->orderBy('loc.location_access')->orderBy('l.lane')->get()->getResultArray();
     }
 
     public function export()
@@ -581,9 +540,9 @@ class GateMonitoring extends BaseController
 
         $fh = fopen('php://temp', 'w+');
         fwrite($fh, "\xEF\xBB\xBF");
-        fputcsv($fh, ['No', 'Name', 'Type', 'Type Of Vehicle', 'Type Of Vendor', 'IC/Passport No', 'Location', 'In Lane No', 'Out Lane No', 'Card ID', 'Plate No', 'Time In', 'Time Out', 'Mode For In', 'Mode For Out', 'Manual Reason', 'Status']);
+        fputcsv($fh, ['No', 'Name', 'Type', 'Type Of Vehicle', 'Type Of Vendor', 'IC/Passport No', 'Location', 'In Lane No', 'Out Lane No', 'Card ID', 'Plate No', 'Captured Plate (In)', 'Plate Category (In)', 'Captured Plate (Out)', 'Plate Category (Out)', 'Time In', 'Time Out', 'Mode For In', 'Mode For Out', 'Manual Reason', 'Status']);
         foreach ($rows as $i => $r) {
-            fputcsv($fh, [$i + 1, $r['name'], $r['driver_type'], $r['vehicle_type'], $r['pass_type'], $r['ic'], $r['location'] ?: $r['out_location'], $r['in_lane'], $r['out_lane'], $r['card_no'], $r['plate_no'],
+            fputcsv($fh, [$i + 1, $r['name'], $r['driver_type'], $r['vehicle_type'], $r['pass_type'], $r['ic'], $r['location'] ?: $r['out_location'], $r['in_lane'], $r['out_lane'], $r['card_no'], $r['plate_no'], $r['cap_plate'], \App\Libraries\PlateCapture::LABELS[$r['cap_category']] ?? '', $r['cap_plate_out'], \App\Libraries\PlateCapture::LABELS[$r['cap_category_out']] ?? '',
                 $r['time_in'], $r['time_out'], $r['mode_in'], $r['mode_out'], $r['manual_reason'], strtoupper($r['status'])]);
         }
         rewind($fh);

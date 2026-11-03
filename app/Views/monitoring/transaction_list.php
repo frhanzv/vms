@@ -22,46 +22,8 @@ $btn = 'px-4 py-2.5 rounded bg-primary hover:bg-blue-600 text-white text-sm font
             <?php foreach ($clients as $c): ?><option value="<?= (int) $c['id'] ?>"><?= esc($c['name']) ?></option><?php endforeach; ?>
         </select>
         <?php endif; ?>
-        <button type="button" @click="gateStart()" class="<?= $btn ?> ml-auto flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700"><span class="material-symbols-outlined text-[18px]">door_open</span> Open Gate</button>
     </div>
 
-    <!-- Open Gate (KPK: choose a lane, then the reason; the barrier opens and a manual movement is recorded) -->
-    <div x-show="gate.open" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" @keydown.escape.window="gate.open = false">
-        <div class="w-full max-w-3xl rounded-lg bg-white p-5 shadow-xl dark:bg-gray-900" @click.outside="gate.open = false">
-            <div class="mb-3 flex items-center justify-between">
-                <h2 class="text-sm font-bold uppercase" x-text="gate.step === 1 ? 'Please Choose Lane' : 'Open Gate'"></h2>
-                <button type="button" @click="gate.open = false" class="text-gray-400 hover:text-gray-700"><span class="material-symbols-outlined">close</span></button>
-            </div>
-            <div x-show="gate.step === 1">
-                <form @submit.prevent="gateLanes()" class="mb-3 flex"><input x-model="gate.q" placeholder="LANE / LOCATION / BARRIER NO" class="<?= $in ?> uppercase rounded-r-none">
-                    <button class="px-4 bg-primary text-white rounded-r"><span class="material-symbols-outlined text-[20px] align-middle">search</span></button></form>
-                <div class="max-h-80 overflow-y-auto rounded border border-gray-200 dark:border-gray-700">
-                    <table class="w-full text-left text-xs">
-                        <thead><tr class="bg-gray-50 font-bold dark:bg-gray-800"><th class="p-2"></th><th class="p-2">No.</th><th class="p-2">Lane</th><th class="p-2">Location Access</th><th class="p-2">Barrier No.</th><th class="p-2">Direction</th></tr></thead>
-                        <tbody>
-                            <template x-for="(l, i) in gate.lanes" :key="l.id">
-                                <tr class="cursor-pointer border-t border-gray-100 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800" :class="gate.laneId === l.id ? 'bg-primary/10' : ''" @click="gate.laneId = l.id">
-                                    <td class="p-2"><input type="radio" :checked="gate.laneId === l.id"></td><td class="p-2" x-text="i + 1"></td><td class="p-2" x-text="l.lane"></td>
-                                    <td class="p-2" x-text="l.location_access || '-'"></td><td class="p-2" x-text="l.barrier_no ?? '-'"></td><td class="p-2" x-text="l.direction"></td>
-                                </tr>
-                            </template>
-                            <tr x-show="! gate.lanes.length"><td colspan="6" class="p-4 text-center text-gray-400">No lane found.</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div class="mt-3 flex justify-end"><button type="button" @click="gate.step = 2; gate.msg = ''" :disabled="! gate.laneId" class="<?= $btn ?> disabled:opacity-40">Open</button></div>
-            </div>
-            <div x-show="gate.step === 2">
-                <label class="mb-1 block text-xs font-semibold">Remark *</label>
-                <textarea x-model="gate.reason" maxlength="255" rows="3" class="<?= $in ?>"></textarea>
-                <p x-show="gate.msg" class="mt-2 text-sm" :class="gate.ok ? 'text-emerald-600' : 'text-red-600'" x-text="gate.msg"></p>
-                <div class="mt-3 flex justify-between">
-                    <button type="button" @click="gate.step = 1" class="px-4 py-2.5 rounded border border-gray-300 text-sm">Back</button>
-                    <button type="button" @click="gateSubmit()" :disabled="gate.busy || ! gate.reason.trim()" class="<?= $btn ?> bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40" x-text="gate.busy ? 'Opening...' : 'OK'"></button>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <div class="rounded-2xl bg-[#0b1f5c] p-4 grid grid-cols-1 xl:grid-cols-3 gap-4">
         <!-- left: person + transaction list -->
@@ -106,6 +68,7 @@ $btn = 'px-4 py-2.5 rounded bg-primary hover:bg-blue-600 text-white text-sm font
                     <input x-model="to" type="date" title="Date To" class="<?= $in ?>">
                     <select x-model="status" class="<?= $in ?>"><option value="">Status</option><option>Gate In</option><option>Gate Out</option><option>Rejected</option></select>
                     <select x-model="vehicleType" class="<?= $in ?>"><option value="">Vehicle Type</option><template x-for="v in vehicleTypes" :key="v"><option :value="v" x-text="v"></option></template></select>
+                    <select x-model="plateCategory" class="<?= $in ?>"><option value="">Plate Capture</option><option value="registered">Registered</option><option value="tap_only">Registered (Tap Only)</option><option value="unregistered">Unregistered</option></select>
                     <select x-model="driverType" class="<?= $in ?>"><option value="">Type</option><option value="PASSENGER">PASSENGER</option><option value="DRIVER">DRIVER</option></select>
                     <select x-model="type" class="<?= $in ?>"><option value="">Type Of Vendor Pass</option><option value="VENDORPASS">VENDOR PASS</option><option value="STAFF">STAFF</option><option value="VISITOR">VISITOR</option></select>
                     <select x-model="sort" class="<?= $in ?>">
@@ -131,7 +94,7 @@ $btn = 'px-4 py-2.5 rounded bg-primary hover:bg-blue-600 text-white text-sm font
                                     <td class="p-3 text-primary"><a :href="BASE + '/info/' + r.tx_key" @click.stop title="View Transaction Detail"><span class="material-symbols-outlined text-[18px]">search</span></a></td>
                                     <td class="p-3 uppercase" x-text="r.name"></td><td class="p-3" x-text="r.driver_type"></td><td class="p-3" x-text="r.vehicle_type"></td><td class="p-3" x-text="r.pass_type"></td>
                                     <td class="p-3" x-text="r.ic"></td><td class="p-3" x-text="r.location || r.out_location"></td>
-                                    <td class="p-3" x-text="r.in_lane"></td><td class="p-3" x-text="r.out_lane"></td><td class="p-3" x-text="r.card_no"></td><td class="p-3" x-text="r.plate_no"></td>
+                                    <td class="p-3" x-text="r.in_lane"></td><td class="p-3" x-text="r.out_lane"></td><td class="p-3" x-text="r.card_no"></td><td class="p-3 whitespace-nowrap"><span x-text="r.cap_plate || r.cap_plate_out || r.plate_no"></span><span x-show="(r.cap_category || r.cap_category_out)" class="ml-1 inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold whitespace-nowrap" :class="{'bg-green-100 text-green-700': (r.cap_category || r.cap_category_out) === 'registered', 'bg-blue-100 text-blue-700': (r.cap_category || r.cap_category_out) === 'tap_only', 'bg-red-100 text-red-700': (r.cap_category || r.cap_category_out) === 'unregistered'}" x-text="({registered: 'Registered', tap_only: 'Tap Only', unregistered: 'Unregistered'})[(r.cap_category || r.cap_category_out)]"></span></td>
                                     <td class="p-3 whitespace-nowrap" x-text="fmt(r.time_in)"></td><td class="p-3 whitespace-nowrap" x-text="fmt(r.time_out)"></td>
                                     <td class="p-3" x-text="r.mode_in"></td><td class="p-3" x-text="r.mode_out"></td><td class="p-3" x-text="r.manual_reason"></td>
                                     <td class="p-3 uppercase font-semibold" :class="r.status === 'Rejected' ? 'text-red-600' : (r.status === 'Gate In' ? 'text-green-600' : '')" x-text="r.status"></td>
@@ -154,34 +117,37 @@ $btn = 'px-4 py-2.5 rounded bg-primary hover:bg-blue-600 text-white text-sm font
             </div>
         </div>
 
-        <!-- right: totals + charts -->
-        <div class="space-y-4 text-white">
-            <div class="rounded-lg bg-[#0a1647] p-4">
+        <!-- right: totals + charts (KPK transaction-detail right panel: gradient frame, dark cards, Chartist-style lines) -->
+        <div class="relative rounded-2xl border border-cyan-400 p-2 text-white self-start" style="background: linear-gradient(to bottom, #131126, #161630, #1F1E46, #2C3466, #3C499B, #3B46A3, #3C47A2);">
+            <div class="absolute inset-x-0 bottom-0 h-36 bg-[#101124] rounded-b-2xl"></div>
+            <div class="relative space-y-2">
+            <div class="rounded-2xl bg-[#0A0D26] p-4 relative z-[1]">
                 <div class="flex items-center justify-between mb-3"><p class="text-xs font-bold uppercase tracking-wide">Total Transactions</p>
-                    <button type="button" @click="load()" class="text-xs font-semibold px-3 py-1.5 rounded bg-primary flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">refresh</span> Refresh</button></div>
-                <div class="grid grid-cols-2 gap-y-2 gap-x-4 text-xs">
+                    <button type="button" @click="load()" class="text-xs font-semibold px-3 py-1.5 rounded bg-primary flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">refresh</span> Refresh</button></div>
+                <div class="grid grid-cols-2 gap-y-2 gap-x-4 text-[11px]">
                     <p class="cursor-pointer hover:underline" @click="quick({ type: 'VISITOR', today: true })">Total Visitor: <b x-text="stats.visitor"></b></p><p class="cursor-pointer hover:underline" @click="quick({ tab: 'reject', today: true })">Denied Entry: <b x-text="stats.denied"></b></p>
                     <p class="cursor-pointer hover:underline" @click="quick({ type: 'STAFF', today: true })">Total Staff: <b x-text="stats.staff"></b></p><p class="cursor-pointer hover:underline" @click="quick({ oow: '1' })">Out Of Window: <b x-text="stats.out_of_window"></b></p>
                     <p class="cursor-pointer hover:underline" @click="quick({ type: 'VENDORPASS', today: true })">Total Vendor: <b x-text="stats.vendor"></b></p><p class="cursor-pointer hover:underline" @click="quick({ type: 'STAFF', status: 'Gate In' })">Total Staff In Premise: <b x-text="stats.in_staff"></b></p>
-                    <p></p><p class="cursor-pointer hover:underline" @click="quick({ type: 'VENDORPASS', status: 'Gate In' })">Total Vendor In Premise: <b x-text="stats.in_vendor"></b></p>
+                    <p class="cursor-pointer hover:underline" @click="quick({ type: 'TWP', today: true })">Total TWP: <b x-text="stats.twp"></b></p><p class="cursor-pointer hover:underline" @click="quick({ type: 'VENDORPASS', status: 'Gate In' })">Total Vendor In Premise: <b x-text="stats.in_vendor"></b></p>
                     <p></p><p class="cursor-pointer hover:underline" @click="quick({ type: 'VISITOR', status: 'Gate In' })">Total Visitor In Premise: <b x-text="stats.in_visitor"></b></p>
                     <p></p><p class="cursor-pointer hover:underline" @click="quick({ status: 'Gate In' })">Total All In Premise: <b x-text="stats.in_all"></b></p>
                 </div>
             </div>
-            <div class="rounded-lg bg-[#0a1647] p-4"><p class="text-xs font-bold uppercase tracking-wide mb-2">Current Transaction Per Lane</p><div class="h-48"><canvas id="chLane"></canvas></div></div>
-            <div class="rounded-lg bg-[#0a1647] p-4">
-                <div class="flex items-center justify-between mb-2"><p class="text-xs font-bold uppercase tracking-wide">Avg Transactions Per Hour (Per Lane)</p>
-                    <select x-model="lane" @change="load()" class="text-xs text-gray-800 rounded px-2 py-1"><option value="">All lanes</option><template x-for="l in lanes" :key="l"><option :value="l" x-text="l"></option></template></select></div>
-                <div class="h-48"><canvas id="chHour"></canvas></div>
+            <div class="rounded-2xl bg-[#0A0D26] p-4 relative z-[1]"><p class="text-xs font-bold uppercase tracking-wide mb-2">Current Transaction Per Lane</p><div class="h-44"><canvas id="chLane"></canvas></div><div class="flex justify-center gap-6 mt-2 text-xs"><span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-[#5b6ee1]"></span>In</span><span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-[#22c58b]"></span>Out</span></div></div>
+            <div class="rounded-2xl bg-[#0A0D26] p-4 relative z-[1]">
+                <p class="text-xs font-bold uppercase tracking-wide mb-2">Avg Transactions Per Hour (Per Lane)</p>
+                <div class="h-44"><canvas id="chHour"></canvas></div>
             </div>
-            <div class="rounded-lg bg-[#0a1647] p-4"><p class="text-xs font-bold uppercase tracking-wide mb-2">Avg Transactions Per Day</p><div class="h-48"><canvas id="chDay"></canvas></div></div>
-            <div class="rounded-lg bg-[#0a1647] p-4">
-                <div class="flex flex-wrap items-center justify-between gap-2 mb-2"><p class="text-xs font-bold uppercase tracking-wide">Total Transaction</p>
-                    <div class="flex gap-1">
-                        <button type="button" @click="period = 'month'; drawTotal()" :class="period === 'month' ? 'bg-primary text-white' : 'bg-white text-gray-800'" class="text-[11px] font-semibold px-2 py-1 rounded">BY MONTH</button>
-                        <button type="button" @click="period = 'week'; drawTotal()" :class="period === 'week' ? 'bg-primary text-white' : 'bg-white text-gray-800'" class="text-[11px] font-semibold px-2 py-1 rounded">BY WEEK</button>
-                        <select x-model="totalType" @change="drawTotal()" class="text-xs text-gray-800 rounded px-2 py-1"><option value="VISITOR">Visitor</option><option value="VENDORPASS">Vendor</option><option value="STAFF">Staff</option></select></div></div>
-                <div class="h-48"><canvas id="chTotal"></canvas></div>
+            <div class="rounded-2xl bg-[#0A0D26] p-4 relative z-[1]"><p class="text-xs font-bold uppercase tracking-wide mb-2">Avg Transactions Per Day</p><div class="h-44"><canvas id="chDay"></canvas></div><div class="flex justify-center gap-6 mt-2 text-xs"><span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-[#5b6ee1]"></span>Entry</span><span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-[#22c58b]"></span>Exit</span></div></div>
+            <div class="rounded-2xl bg-[#0A0D26] p-4 relative z-[1]">
+                <p class="text-xs font-bold uppercase tracking-wide">Total Transaction</p>
+                <div class="flex justify-end items-center gap-1 my-2">
+                    <button type="button" @click="period = 'month'; drawTotal()" :class="period === 'month' ? 'ring-2 ring-primary' : ''" class="text-[10px] font-semibold px-1.5 py-1 rounded bg-white text-gray-800 hover:bg-gray-100">BY MONTH</button>
+                    <button type="button" @click="period = 'week'; drawTotal()" :class="period === 'week' ? 'ring-2 ring-primary' : ''" class="text-[10px] font-semibold px-1.5 py-1 rounded bg-white text-gray-800 hover:bg-gray-100 mr-2">BY WEEK</button>
+                    <select x-model="totalType" @change="drawTotal()" class="text-[10px] font-semibold uppercase text-gray-800 rounded px-2 py-1 w-28"><option value="VISITOR">Visitor</option><option value="VENDORPASS">Vendor</option><option value="STAFF">Staff</option></select>
+                </div>
+                <div class="h-44"><canvas id="chTotal"></canvas></div>
+            </div>
             </div>
         </div>
     </div>
@@ -191,17 +157,19 @@ $btn = 'px-4 py-2.5 rounded bg-primary hover:bg-blue-600 text-white text-sm font
 function gateMon() {
     const BASE = '<?= base_url('monitoring') ?>';
     const charts = {};
-    const axis = { ticks: { color: '#cbd5e1' }, grid: { color: 'rgba(255,255,255,.08)' } };
-    const opts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#fff', boxWidth: 10 } } }, scales: { x: axis, y: Object.assign({ beginAtZero: true }, axis) } };
+    // KPK Chartist look: white labels, no grid lines, no legend box (legend sits under the chart), big dots
+    const axis = { ticks: { color: '#fff', font: { size: 10 } }, grid: { display: false }, border: { display: false } };
+    const opts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, elements: { point: { radius: 4, hoverRadius: 6 }, line: { borderWidth: 3 } }, scales: { x: axis, y: Object.assign({ beginAtZero: true }, axis) } };
     const draw = (id, type, labels, sets) => {
         if (charts[id]) { charts[id].destroy(); }
         charts[id] = new Chart(document.getElementById(id), { type, data: { labels, datasets: sets }, options: opts });
     };
     const IN = '#5b6ee1', OUT = '#22c58b';
+    // lane names are long ("2. OPERATION OFFICE STAIRCASE"): keep the axis readable, full name in the tooltip title
+    const short = l => String(l).length > 14 ? String(l).slice(0, 13) + '…' : l;
     return {
         q: '', from: '', to: '', status: '', type: '', sort: '', tab: 'active', oow: '', adv: false, clientId: '', lane: '', BASE,
-        driverType: '', vehicleType: '', vehicleTypes: [],
-        gate: { open: false, step: 1, q: '', lanes: [], laneId: null, reason: '', msg: '', ok: false, busy: false },
+        driverType: '', vehicleType: '', vehicleTypes: [], plateCategory: '',
         page: 1, pages: 1, perPage: 10, total: 0, rows: [], loading: false, error: '',
         stats: { visitor: 0, staff: 0, vendor: 0, denied: 0, out_of_window: 0, in_visitor: 0, in_staff: 0, in_vendor: 0, in_all: 0 },
         lanes: [], chartData: null, period: 'month', totalType: 'VISITOR',
@@ -209,7 +177,7 @@ function gateMon() {
         init() { this.load(); },
         fmt(t) { if (!t) return '-'; const d = new Date(t.replace(' ', 'T')); return isNaN(d) ? t : d.toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }).replace(',', ''); },
         query(extra) {
-            const p = new URLSearchParams(Object.assign({ q: this.q, from: this.from, to: this.to, status: this.status, type: this.type, driver_type: this.driverType, vehicle_type: this.vehicleType, sort: this.sort, tab: this.tab, client_id: this.clientId, lane: this.lane, oow: this.oow, page: this.page, per_page: this.perPage }, extra || {}));
+            const p = new URLSearchParams(Object.assign({ q: this.q, from: this.from, to: this.to, status: this.status, type: this.type, driver_type: this.driverType, vehicle_type: this.vehicleType, plate_category: this.plateCategory, sort: this.sort, tab: this.tab, client_id: this.clientId, lane: this.lane, oow: this.oow, page: this.page, per_page: this.perPage }, extra || {}));
             return p.toString();
         },
         exportUrl() { return BASE + '/export?' + this.query(); },
@@ -222,26 +190,7 @@ function gateMon() {
             this.load();
             document.querySelector('[x-data=\"gateMon()\"] table')?.scrollIntoView({ behavior: 'smooth' });
         },
-        reset() { this.q = this.from = this.to = this.status = this.type = this.sort = this.oow = this.driverType = this.vehicleType = ''; this.page = 1; this.load(); },
-        gateStart() { Object.assign(this.gate, { open: true, step: 1, q: '', laneId: null, reason: '', msg: '', ok: false }); this.gateLanes(); },
-        gateLanes() {
-            fetch(BASE + '/lanes?q=' + encodeURIComponent(this.gate.q) + '&client_id=' + encodeURIComponent(this.clientId), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(r => r.json()).then(res => { this.gate.lanes = res.success ? res.lanes : []; })
-                .catch(() => { this.gate.lanes = []; });
-        },
-        gateSubmit() {
-            const fd = new FormData();
-            fd.append('lane_id', this.gate.laneId); fd.append('reason', this.gate.reason.trim()); fd.append('client_id', this.clientId);
-            fd.append('<?= csrf_token() ?>', '<?= csrf_hash() ?>');
-            this.gate.busy = true; this.gate.msg = '';
-            fetch(BASE + '/open-gate', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(r => r.json())
-                .then(res => {
-                    this.gate.busy = false; this.gate.ok = !!res.success; this.gate.msg = res.message || (res.success ? 'Successfully Open!' : 'Could not open the gate.');
-                    if (res.success) { setTimeout(() => { this.gate.open = false; }, 900); this.page = 1; this.load(); }
-                })
-                .catch(() => { this.gate.busy = false; this.gate.ok = false; this.gate.msg = 'Could not reach the server.'; });
-        },
+        reset() { this.q = this.from = this.to = this.status = this.type = this.sort = this.oow = this.driverType = this.vehicleType = this.plateCategory = ''; this.page = 1; this.load(); },
         go(p) { if (p < 1 || p > this.pages) return; this.page = p; this.load(); },
         pageList() { const out = []; for (let p = Math.max(1, this.page - 2); p <= Math.min(this.pages, this.page + 2); p++) out.push(p); return out; },
         load() {
@@ -260,16 +209,16 @@ function gateMon() {
         },
         drawCharts() {
             const c = this.chartData; if (!c || typeof Chart === 'undefined') return;
-            const d = (label, data, color, fill) => ({ label, data, backgroundColor: color, borderColor: color, tension: .3, fill: !!fill });
-            draw('chLane', 'bar', c.per_lane.labels, [d('In', c.per_lane.in, IN), d('Out', c.per_lane.out, OUT)]);
-            draw('chHour', 'line', Array.from({ length: 24 }, (_, i) => i), [d('In', c.per_hour.in, IN), d('Out', c.per_hour.out, OUT)]);
+            const d = (label, data, color, fill) => ({ label, data, backgroundColor: color, borderColor: color, tension: 0, fill: !!fill });
+            draw('chLane', 'line', c.per_lane.labels.map(short), [d('In', c.per_lane.in, IN), d('Out', c.per_lane.out, OUT)]);
+            draw('chHour', 'line', c.per_hour.labels.map(short), [d('Avg / hour', c.per_hour.data, IN)]);
             draw('chDay', 'line', c.per_day.labels, [d('Entry', c.per_day.in, IN), d('Exit', c.per_day.out, OUT)]);
             this.drawTotal();
         },
         drawTotal() {
             const c = this.chartData; if (!c || typeof Chart === 'undefined') return;
-            const t = c.total, labels = this.period === 'month' ? t.months : t.days.map(x => x.slice(5));
-            draw('chTotal', 'line', labels, [{ label: 'Transactions', data: t.series[this.totalType][this.period], borderColor: IN, backgroundColor: IN, tension: .3 }]);
+            const t = c.total, labels = this.period === 'month' ? t.month : t.week;
+            draw('chTotal', 'line', labels, [{ label: 'Transactions', data: t.series[this.totalType][this.period], borderColor: IN, backgroundColor: IN, tension: 0 }]);
         },
         lookup(term) {
             term = (term || '').trim(); if (!term) return;

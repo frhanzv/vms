@@ -87,7 +87,9 @@ class Twp extends BaseController
         $rows = $this->db()->query('SELECT r.*, (SELECT COUNT(*) FROM twp_workers w WHERE w.request_id = r.id) AS workers FROM twp_requests r WHERE '
             . implode(' AND ', $where) . " ORDER BY {$sort} LIMIT 500", $bind)->getResultArray();
 
-        return view('twp/requests', ['pageTitle' => 'TWP Request List - SafeG', 'rows' => $rows, 'q' => $q, 'status' => $status, 'sort' => $this->request->getGet('sort') ?? '']);
+        $stats = $this->db()->query("SELECT COUNT(*) total, SUM(r.status = 'Pending') pending, SUM(r.status = 'Approved') approved, SUM(r.status = 'Rejected') rejected FROM twp_requests r WHERE {$this->scoped()}")->getRowArray();
+
+        return view('twp/requests', ['pageTitle' => 'TWP Request List - SafeG', 'rows' => $rows, 'q' => $q, 'status' => $status, 'sort' => $this->request->getGet('sort') ?? '', 'stats' => array_map('intval', $stats)]);
     }
 
     public function create()
@@ -283,20 +285,113 @@ class Twp extends BaseController
 
     // ------------------------------------------------------------------ Pass List
 
+    /** KPK getWorkerVendorPassList: one row per worker pass, with the pass's own dates (falls back to the request's). */
+    private function passSql(): string
+    {
+        return "SELECT w.*, COALESCE(w.date_from, r.date_from) AS date_from, COALESCE(w.date_to, r.date_to) AS date_to, r.app_no, r.app_date, r.receipt_no,
+                r.company_name, r.resident AS request_resident, r.sub_type, r.type_of_work, r.location_access, r.remark, r.payment_status, r.payment_type,
+                r.payment_ref, r.amount, r.updated_at AS request_updated, r.requested_by, c.card_no, c.card_id AS card_epc
+                FROM twp_workers w JOIN twp_requests r ON r.id = w.request_id
+                LEFT JOIN twp_cards c ON c.id = w.card_id WHERE w.status = 'Approved' AND r.status = 'Approved' AND {$this->scoped()}";
+    }
+
     public function passes()
     {
         $q    = trim((string) $this->request->getGet('q'));
         $bind = [];
-        $sql  = "SELECT w.*, r.app_no, r.company_name, r.date_from, r.date_to, r.location_access, r.type_of_work, c.card_no, c.card_id AS card_epc
-                FROM twp_workers w JOIN twp_requests r ON r.id = w.request_id
-                LEFT JOIN twp_cards c ON c.id = w.card_id WHERE w.status = 'Approved' AND r.status = 'Approved' AND {$this->scoped()}";
+        $sql  = $this->passSql();
         if ($q !== '') {
-            $sql .= ' AND (w.name LIKE ? OR w.ic_no LIKE ? OR w.passport_no LIKE ? OR w.pass_no LIKE ? OR r.company_name LIKE ? OR c.card_no LIKE ?)';
-            $bind = array_fill(0, 6, "%{$q}%");
+            $sql .= ' AND (w.name LIKE ? OR w.ic_no LIKE ? OR w.passport_no LIKE ? OR w.pass_no LIKE ? OR r.company_name LIKE ? OR c.card_no LIKE ? OR r.receipt_no LIKE ? OR w.vehicle_no LIKE ?)';
+            $bind = array_fill(0, 8, "%{$q}%");
         }
         $rows = $this->db()->query($sql . ' ORDER BY w.id DESC LIMIT 500', $bind)->getResultArray();
+        if ($this->request->getGet('export') === '1') {
+            return $this->exportPasses($rows);
+        }
 
-        return view('twp/passes', ['pageTitle' => 'TWP Pass List - SafeG', 'rows' => $rows, 'q' => $q, 'freeCards' => $this->freeCards()]);
+        $stats = $this->db()->query("SELECT COUNT(*) total, SUM(w.card_status = 'Issued') issued, SUM(w.card_status <> 'Issued' AND COALESCE(w.date_to, r.date_to) >= NOW()) not_issued, SUM(COALESCE(w.date_to, r.date_to) < NOW()) expired
+            FROM twp_workers w JOIN twp_requests r ON r.id = w.request_id WHERE w.status = 'Approved' AND r.status = 'Approved' AND {$this->scoped()}")->getRowArray();
+
+        return view('twp/passes', ['pageTitle' => 'TWP Pass List - SafeG', 'rows' => $rows, 'q' => $q, 'freeCards' => $this->freeCards(), 'stats' => array_map('intval', $stats)]);
+    }
+
+    /** Show/Hide Columns on the TWP Request / Pass List (saved per client, same table as Config > Page Settings). */
+    public function saveColumns()
+    {
+        helper(['feature', 'list_columns']);
+        $list = (string) $this->request->getPost('list');
+        $back = ['twp_request_list' => 'twp/requests', 'twp_pass_list' => 'twp/passes'][$list] ?? null;
+        if ($back === null) {
+            return $this->back('twp/requests', 'error', 'Unknown list.');
+        }
+        if (($cid = (int) current_client_id()) <= 0) {
+            return $this->back($back, 'error', 'Columns are set per client - use Config > Page Settings and choose a client.');
+        }
+        $posted = (array) ($this->request->getPost('columns') ?? []);
+        $db     = $this->db();
+        $now    = date('Y-m-d H:i:s');
+        foreach (list_column_registry()[$list]['columns'] as $key => $def) {
+            if (! empty($def['locked'])) {
+                continue;
+            }
+            $where = ['client_id' => $cid, 'list_key' => $list, 'column_key' => $key];
+            $data  = ['is_visible' => array_key_exists($key, $posted) ? 1 : 0, 'updated_at' => $now];
+            $db->table('client_list_columns')->where($where)->countAllResults() > 0
+                ? $db->table('client_list_columns')->where($where)->update($data)
+                : $db->table('client_list_columns')->insert($where + $data + ['created_at' => $now]);
+        }
+
+        return $this->back($back, 'success', 'Columns updated.');
+    }
+
+    /** KPK Work Pass Info (click on a Pass List row). */
+    public function passInfo($id)
+    {
+        $w = $this->db()->query($this->passSql() . ' AND w.id = ?', [(int) $id])->getRowArray();
+        if (! $w) {
+            return $this->back('twp/passes', 'error', 'Pass not found.');
+        }
+        $by = $w['requested_by'] ? $this->db()->table('users')->select('COALESCE(NULLIF(full_name, \'\'), username) AS n', false)->where('id', (int) $w['requested_by'])->get()->getRowArray()['n'] ?? '' : '';
+
+        return view('twp/pass_info', ['pageTitle' => 'Work Pass Info - SafeG', 'w' => $w, 'requestedBy' => $by, 'freeCards' => $this->freeCards(),
+            'qrUrl' => 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' . rawurlencode((string) ($w['qr_string'] ?: $w['pass_no']))]);
+    }
+
+    /** KPK updateDateVendorPass: change this pass's Date and Time In / Out. */
+    public function updateDates($id)
+    {
+        $w    = $this->worker((int) $id);
+        $from = strtotime((string) $this->request->getPost('date_from'));
+        $to   = strtotime((string) $this->request->getPost('date_to'));
+        if (! $w) {
+            return $this->back('twp/passes', 'error', 'Pass not found.');
+        }
+        if (! $from || ! $to || $to <= $from) {
+            return $this->back('twp/passes/' . $w['id'], 'error', 'Please enter a valid Date and Time In and a later Date and Time Out.');
+        }
+        $this->db()->table('twp_workers')->where('id', $w['id'])->update(['date_from' => date('Y-m-d H:i:s', $from), 'date_to' => date('Y-m-d H:i:s', $to), 'updated_at' => date('Y-m-d H:i:s')]);
+
+        return $this->back('twp/passes/' . $w['id'], 'success', 'Successfully updated.');
+    }
+
+    /** KPK downloadExport "Worker_Pass_List". */
+    private function exportPasses(array $rows)
+    {
+        $fh = fopen('php://temp', 'w+');
+        fputcsv($fh, ['App Date', 'Receipt No', 'Company', 'Applicant Name', 'IC / Passport No', 'Contact No', 'Vehicle No', 'Location', 'Card Status', 'Status', 'Temporary Work Pass No']);
+        foreach ($rows as $r) {
+            fputcsv($fh, [date('d/m/Y', strtotime((string) $r['app_date'])), $r['receipt_no'], $r['company_name'], $r['name'], $r['ic_no'] ?: $r['passport_no'], $r['contact_no'],
+                $r['vehicle_no'], str_replace(',', ', ', (string) $r['location_access']), $r['card_status'], self::passStatus($r), $r['pass_no']]);
+        }
+        rewind($fh);
+
+        return $this->response->setHeader('Content-Type', 'text/csv')->setHeader('Content-Disposition', 'attachment; filename="Worker_Pass_List.csv"')->setBody(stream_get_contents($fh));
+    }
+
+    /** Pass status shown on the list: Expired after Date and Time Out, otherwise Approved. */
+    public static function passStatus(array $r): string
+    {
+        return $r['date_to'] && strtotime((string) $r['date_to']) < time() ? 'Expired' : 'Approved';
     }
 
     private function freeCards(): array
@@ -331,7 +426,7 @@ class Twp extends BaseController
         $this->db()->table('twp_workers')->where('id', $w['id'])->update(['card_id' => $pick, 'card_status' => 'Issued', 'issued_at' => date('Y-m-d H:i:s'),
             'issued_by' => (int) session()->get('user_id') ?: null, 'returned_at' => null, 'updated_at' => date('Y-m-d H:i:s')]);
 
-        return $this->back('twp/passes', 'success', 'Card ' . $free[$pick]['card_no'] . ' issued to ' . $w['name'] . '.');
+        return $this->back($this->from($w), 'success', 'Card ' . $free[$pick]['card_no'] . ' issued to ' . $w['name'] . '.');
     }
 
     public function returnCard($id)
@@ -342,7 +437,13 @@ class Twp extends BaseController
         }
         $this->db()->table('twp_workers')->where('id', $w['id'])->update(['card_status' => 'Returned', 'returned_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s')]);
 
-        return $this->back('twp/passes', 'success', 'Card returned.');
+        return $this->back($this->from($w), 'success', 'Card returned.');
+    }
+
+    /** Back to Work Pass Info when the button was pressed there, else the Pass List. */
+    private function from(array $w): string
+    {
+        return $this->request->getPost('from') === 'info' ? 'twp/passes/' . $w['id'] : 'twp/passes';
     }
 
     // ------------------------------------------------------------------ TWP Card config (+ rates)
@@ -353,7 +454,8 @@ class Twp extends BaseController
         $rows = $this->db()->query("SELECT c.*, (SELECT w.name FROM twp_workers w WHERE w.card_id = c.id AND w.card_status = 'Issued' LIMIT 1) AS holder
                 FROM twp_cards c" . ($c > 0 ? " WHERE c.company_id = {$c} OR c.company_id IS NULL" : '') . ' ORDER BY c.card_no')->getResultArray();
 
-        return view('twp/cards', ['pageTitle' => 'Temporary Work Pass Card - SafeG', 'rows' => $rows, 'rates' => $this->rates(), 'superadmin' => $c === 0]);
+        return view('twp/cards', ['pageTitle' => 'Temporary Work Pass Card - SafeG', 'rows' => $rows, 'rates' => $this->rates(), 'superadmin' => $c === 0,
+            'templates' => \App\Libraries\CardTemplates::resolveAll($this->db(), 'twp', $c ?: null)]);
     }
 
     public function saveCard()
@@ -404,7 +506,7 @@ class Twp extends BaseController
     /** Visits joined to their worker / request / lanes, scoped to this client. */
     private function visitSql(): string
     {
-        return "SELECT v.*, w.name, COALESCE(NULLIF(w.ic_no,''), w.passport_no, '') AS ic, w.contact_no, w.vehicle_no, w.pass_no, r.company_name, r.app_no, r.date_from, r.date_to, r.created_at AS reg_date,
+        return "SELECT v.*, w.name, COALESCE(NULLIF(w.ic_no,''), w.passport_no, '') AS ic, w.contact_no, w.vehicle_no, w.pass_no, r.company_name, r.app_no, COALESCE(w.date_from, r.date_from) AS date_from, COALESCE(w.date_to, r.date_to) AS date_to, r.created_at AS reg_date,
                 COALESCE(loc_i.location_access, '') AS location, COALESCE(li.lane, '') AS in_lane, COALESCE(lo.lane, '') AS out_lane,
                 ROUND(TIMESTAMPDIFF(MINUTE, v.check_in_time, COALESCE(v.check_out_time, NOW())) / 60, 2) AS hours
             FROM twp_visits v JOIN twp_workers w ON w.id = v.worker_id JOIN twp_requests r ON r.id = w.request_id

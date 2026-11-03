@@ -311,8 +311,6 @@ $routes->group('monitoring', ['filter' => $plusAdminOfficer], function ($routes)
     $routes->get('person', 'GateMonitoring::person');
     $routes->get('export', 'GateMonitoring::export');
     $routes->get('info/(:segment)', 'GateMonitoring::info/$1');
-    $routes->get('lanes', 'GateMonitoring::lanes');
-    $routes->post('open-gate', 'GateMonitoring::openGate');
 });
 // Vehicle Types (Config)
 $routes->group('config/vehicle-types', ['filter' => 'role:superadmin,clientsuperadmin'], function ($routes) {
@@ -686,6 +684,7 @@ $routes->group('blacklist', ['filter' => [$superadmins, 'client_feature:blacklis
 // Temporary Work Pass (KPK TWP). Bank (FPX) payment stays in Java, reached through VehiclePayment.
 $routes->group('twp', ['filter' => $plusAdminOfficer], function($routes) {
     $routes->get('requests', 'Twp::requests');
+    $routes->post('columns', 'Twp::saveColumns');
     $routes->get('requests/new', 'Twp::create');
     $routes->post('requests/save', 'Twp::save');
     $routes->get('requests/(:num)', 'Twp::show/$1');
@@ -695,6 +694,8 @@ $routes->group('twp', ['filter' => $plusAdminOfficer], function($routes) {
     $routes->post('requests/(:num)/pay-online', 'Twp::payOnline/$1');
     $routes->get('requests/(:num)/payment-return', 'Twp::paymentReturn/$1');
     $routes->get('passes', 'Twp::passes');
+    $routes->get('passes/(:num)', 'Twp::passInfo/$1');
+    $routes->post('passes/(:num)/dates', 'Twp::updateDates/$1');
     $routes->post('passes/(:num)/issue', 'Twp::issueCard/$1');
     $routes->post('passes/(:num)/return', 'Twp::returnCard/$1');
     $routes->get('cards', 'Twp::cards');

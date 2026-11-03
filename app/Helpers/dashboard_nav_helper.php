@@ -44,6 +44,11 @@ if (! function_exists('dashboard_tabs')) {
             $tabs[] = ['key' => 'vehicle', 'label' => 'Vehicle', 'url' => base_url('dashboard/vehicle'), 'icon' => 'directions_car'];
         }
 
+        // TWP dashboard (KPK Dashboard > TWP): same roles as the twp/* routes.
+        if (in_array(session()->get('role'), ['superadmin', 'clientsuperadmin', 'admin', 'officer'], true)) {
+            $tabs[] = ['key' => 'twp', 'label' => 'Temporary Work Pass', 'url' => base_url('twp/dashboard'), 'icon' => 'engineering'];
+        }
+
         return $tabs;
     }
 }

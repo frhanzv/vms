@@ -2,7 +2,7 @@
 
 <?php $input = 'w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 rounded-lg px-3 py-2 text-sm'; ?>
 <div class="-m-2 space-y-4" x-data="{ edit: null }">
-    <?= view('twp/_tabs') ?>
+    <?= view('twp/_header', ['title' => 'Temporary Work Pass Card', 'actions' => '<button type="button" onclick="window.print()" class="px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">print</span> Print</button>']) ?>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div class="lg:col-span-2 bg-white dark:bg-gray-900 rounded-lg shadow overflow-x-auto">
@@ -46,5 +46,16 @@
         </form>
     </div>
 </div>
+
+<!-- KPK print-section: blank TWP card, front then back with the signature (artwork from Config > Card Template Management) -->
+<div id="twpPrint" class="hidden print:block">
+    <div style="width:54mm;height:86mm;position:relative;"><img src="<?= esc($templates['front']) ?>" style="width:100%;height:100%;position:absolute;object-fit:cover;"></div>
+    <div style="break-after:page"></div>
+    <div style="width:54mm;height:86mm;position:relative;">
+        <img src="<?= esc($templates['back']) ?>" style="width:100%;height:100%;position:absolute;">
+        <img src="<?= base_url('assets/images/template/sign.png') ?>" style="width:65%;height:8mm;left:8%;top:68mm;position:absolute;">
+    </div>
+</div>
+<style>@media print { @page { size: 54mm 86mm; margin: 0; } body * { visibility: hidden; } #twpPrint, #twpPrint * { visibility: visible; } #twpPrint { position: absolute; left: 0; top: 0; } }</style>
 
 <?= view('staffs/_layout_bottom') ?>

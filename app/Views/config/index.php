@@ -2196,6 +2196,22 @@
                     </div>
                 </div>
 
+                <!-- Temporary Work Pass Card (KPK Config > Temporary Work Pass Card) -->
+                <?php if (in_array(session()->get('role'), ['superadmin', 'clientsuperadmin', 'admin', 'officer'], true)): ?>
+                <a href="<?= base_url('twp/cards') ?>" class="block bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 px-6 py-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <div class="p-2 bg-primary/10 rounded-lg"><span class="material-symbols-outlined text-primary text-xl">engineering</span></div>
+                            <div class="text-left">
+                                <h3 class="text-base font-bold text-gray-800 dark:text-white">Temporary Work Pass Card</h3>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Register TWP cards, set TWP rates and print the blank card</p>
+                            </div>
+                        </div>
+                        <span class="material-symbols-outlined text-gray-400 dark:text-slate-400">chevron_right</span>
+                    </div>
+                </a>
+                <?php endif; ?>
+
                 <!-- Card Template Management -->
                 <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('cardtemplate')"

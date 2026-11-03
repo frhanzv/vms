@@ -39,17 +39,31 @@ $photo = ! empty($tx['photo']) ? base_url($tx['photo']) : base_url('assets/image
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <?php
         // KPK transaction-info: each side shows its own location / lane, whether it was opened by hand and why
+        // plate the lane camera read at the tap (PlateCapture), with its category
+        $capLabel = static fn(string $p, string $c) => $p === '' ? null : $p . ' (' . (\App\Libraries\PlateCapture::LABELS[$c] ?? $c) . ')';
         $manualIn  = ($tx['mode_in'] ?? '') === 'MANUAL';
         $manualOut = ($tx['mode_out'] ?? '') === 'MANUAL';
         $card('Gate In', $in === null ? ['Status' => 'No gate in'] : ['Date' => $d($in), 'Time' => $t($in), 'Location' => $tx['location'], 'Lane' => $tx['in_lane'],
-            'Type Of Vehicle' => $tx['vehicle_type'] ?? null, 'Plate Number' => $tx['plate_no'], 'Mode' => $tx['mode_in'] ?? null,
+            'Type Of Vehicle' => $tx['vehicle_type'] ?? null, 'Plate Number' => $tx['plate_no'], 'Captured Plate' => $capLabel($tx['cap_plate'] ?? '', $tx['cap_category'] ?? ''), 'Mode' => $tx['mode_in'] ?? null,
             'Manual' => $manualIn ? 'YES' : 'NO', 'Reason' => $manualIn ? $tx['manual_reason'] : null]);
         $card('Gate Out', $rej ? ['Status' => 'Entry denied - no gate out'] : ($out === null ? ['Status' => 'Still inside'] : ['Date' => $d($out), 'Time' => $t($out),
             'Location' => ($tx['out_location'] ?? '') !== '' ? $tx['out_location'] : $tx['location'], 'Lane' => $tx['out_lane'],
-            'Type Of Vehicle' => $tx['vehicle_type'] ?? null, 'Plate Number' => $tx['plate_no'], 'Mode' => $tx['mode_out'] ?? null,
+            'Type Of Vehicle' => $tx['vehicle_type'] ?? null, 'Plate Number' => $tx['plate_no'], 'Captured Plate' => $capLabel($tx['cap_plate_out'] ?? '', $tx['cap_category_out'] ?? ''), 'Mode' => $tx['mode_out'] ?? null,
             'Manual' => $manualOut ? 'YES' : 'NO', 'Reason' => $manualOut ? $tx['manual_reason'] : null]));
         ?>
     </div>
+
+    <?php $shots = array_filter(['Gate In' => $tx['cap_image'] ?? '', 'Gate Out' => $tx['cap_image_out'] ?? '']); ?>
+    <?php if ($shots): ?>
+        <div class="bg-white dark:bg-gray-900 rounded-lg shadow p-4">
+            <h4 class="font-bold text-gray-800 dark:text-white mb-3">Number Plate</h4>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <?php foreach ($shots as $label => $img): ?>
+                    <figure><img src="<?= esc(preg_match('#^https?://#', $img) ? $img : base_url($img), 'attr') ?>" alt="<?= esc($label) ?> plate" class="rounded border border-gray-200 max-h-56"><figcaption class="text-xs text-gray-500 mt-1"><?= esc($label) ?></figcaption></figure>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    <?php endif; ?>
 
     <?php if (! empty($vehicle)): ?>
         <?php $card('Vehicle Info', [

@@ -272,6 +272,45 @@ if (! function_exists('list_column_registry')) {
                     'card_info_terminate_button'     => 'Terminate Card button',
                 ],
             ],
+            // KPK Temporary Work Pass lists (Show/Hide Columns on the TWP pages)
+            'twp_request_list' => [
+                'title'   => 'TWP Request List',
+                'group'   => 'TWP',
+                'columns' => [
+                    'no'             => ['label' => 'No', 'locked' => true],
+                    'app_no'         => ['label' => 'App No', 'locked' => true],
+                    'app_date'       => ['label' => 'App Date'],
+                    'receipt_no'     => ['label' => 'Receipt No'],
+                    'company'        => ['label' => 'Company'],
+                    'full_name'      => ['label' => 'Applicant Name', 'locked' => true],
+                    'contact_no'     => ['label' => 'Contact No'],
+                    'workers'        => ['label' => 'Workers'],
+                    'date_in_out'    => ['label' => 'Date In / Out'],
+                    'payment_status' => ['label' => 'Payment Status'],
+                    'status'         => ['label' => 'Status', 'locked' => true],
+                ],
+                'buttons' => [],
+            ],
+            'twp_pass_list' => [
+                'title'   => 'TWP Pass List',
+                'group'   => 'TWP',
+                'columns' => [
+                    'no'           => ['label' => 'No', 'locked' => true],
+                    'app_date'     => ['label' => 'App Date'],
+                    'receipt_no'   => ['label' => 'Receipt No'],
+                    'company'      => ['label' => 'Company'],
+                    'name'         => ['label' => 'Applicant Name', 'locked' => true],
+                    'ic_passport'  => ['label' => 'IC / Passport No'],
+                    'contact_no'   => ['label' => 'Contact No'],
+                    'vehicle_no'   => ['label' => 'Vehicle No'],
+                    'valid'        => ['label' => 'Date In / Out'],
+                    'location'     => ['label' => 'Location'],
+                    'card_status'  => ['label' => 'Card Status', 'locked' => true],
+                    'status'       => ['label' => 'Status'],
+                    'pass_no'      => ['label' => 'Temporary Work Pass No', 'locked' => true],
+                ],
+                'buttons' => [],
+            ],
         ] + vehicle_registry_pages();
     }
 }

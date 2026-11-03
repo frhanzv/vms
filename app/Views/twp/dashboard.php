@@ -9,7 +9,7 @@ $tiles = [['Total Check In', $sum['checked_in'], 'login', 'text-green-600'], ['T
     ['Average Time In Location (hrs)', $sum['avg_hours'] ?? '-', 'timer', 'text-gray-600']];
 ?>
 <div class="-m-2 space-y-4">
-    <?= view('twp/_tabs') ?>
+    <?= view('twp/_header', ['title' => 'TWP Dashboard']) ?>
 
     <form method="get" class="bg-white dark:bg-gray-900 rounded-lg shadow p-4 flex flex-wrap items-end gap-3">
         <div><label class="block text-xs text-gray-500 mb-1">Date From</label><input type="date" name="date_from" value="<?= esc($from) ?>" class="<?= $input ?>"></div>

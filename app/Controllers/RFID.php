@@ -23,6 +23,21 @@ class RFID extends ResourceController
         $this->invitationVisitorModel = new InvitationVisitorModel();
     }
 
+    /** Every granted tap at a lane also stores the plate the lane camera read (KPK ALPR), see PlateCapture. */
+    protected function respond($data = null, ?int $status = null, string $message = '')
+    {
+        $laneId = (int) $this->request->getGet('lane_id');
+        if (is_array($data) && ! empty($data['success']) && $laneId > 0 && in_array($data['action'] ?? '', ['checkin', 'checkout'], true)) {
+            $cap = \App\Libraries\PlateCapture::afterTap(\Config\Database::connect(), (string) ($data['card_epc'] ?? $this->request->getGet('card_epc')),
+                $laneId, $data['action'], (string) ($data['holder_type'] ?? 'visitor'));
+            if ($cap) {
+                $data['plate'] = ['plate_no' => $cap['plate_no'], 'category' => $cap['category'], 'label' => \App\Libraries\PlateCapture::LABELS[$cap['category']]];
+            }
+        }
+
+        return parent::respond($data, $status, $message);
+    }
+
     /**
      * Handle RFID card scan (single reader)
      * GET /api/rfid/scan?card_epc=DD123...

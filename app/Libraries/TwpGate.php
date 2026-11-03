@@ -53,7 +53,7 @@ class TwpGate
         $db->transStart();
 
         $open   = $db->query('SELECT * FROM twp_visits WHERE card_id = ? AND check_out_time IS NULL ORDER BY id DESC LIMIT 1 FOR UPDATE', [$cardId])->getRowArray();
-        $worker = $db->query("SELECT w.*, r.status AS request_status, r.date_from, r.date_to, r.location_access, r.company_name
+        $worker = $db->query("SELECT w.*, r.status AS request_status, COALESCE(w.date_from, r.date_from) AS date_from, COALESCE(w.date_to, r.date_to) AS date_to, r.location_access, r.company_name
                 FROM twp_workers w JOIN twp_requests r ON r.id = w.request_id
                 WHERE " . ($open ? 'w.id = ?' : "w.card_id = ? AND w.card_status = 'Issued'") . ' LIMIT 1', [$open ? (int) $open['worker_id'] : $cardId])->getRowArray();
         $name = (string) ($worker['name'] ?? 'TWP card ' . $card['card_no']);

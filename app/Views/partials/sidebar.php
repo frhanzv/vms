@@ -7,7 +7,7 @@ $isStaff     = str_contains($current, 'staffs') || str_contains($current, 'staff
 $isVendor    = str_contains($current, 'vendors') || str_contains($current, 'vendorpassrequest') || $current === 'vendor-workflow';
 $isVehicle   = str_starts_with($current, 'vehicles') || str_starts_with($current, 'vehicle-');
 $isWorkflow  = str_contains($current, 'workflow');
-$isConfig    = str_contains($current, 'config');
+$isConfig    = str_contains($current, 'config') || str_starts_with($current, 'twp/cards'); // TWP Card lives in Config (KPK Config > Temporary Work Pass Card)
 $isSettings  = str_contains($current, 'settings');
 
 $requestListAvailable = is_platform_superadmin() || ! client_feature_enabled('auto_approve_after_workflow');
@@ -39,7 +39,7 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
             <?php
             helper('dashboard_nav');
             $dashTabs   = dashboard_tabs();
-            $dashActive = $current === 'dashboard/staff' ? 'staff' : ($current === 'dashboard/vendor' ? 'vendor' : ($current === 'dashboard/vehicle' ? 'vehicle' : (($current === '' || $current === 'dashboard') ? 'visitor' : '')));
+            $dashActive = $current === 'dashboard/staff' ? 'staff' : ($current === 'dashboard/vendor' ? 'vendor' : ($current === 'dashboard/vehicle' ? 'vehicle' : ($current === 'twp/dashboard' ? 'twp' : (($current === '' || $current === 'dashboard') ? 'visitor' : ''))));
             ?>
             <?php if (count($dashTabs) === 1): $t = $dashTabs[0]; $on = $dashActive === $t['key']; ?>
             <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?= $on ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white' ?> transition-colors group" href="<?= esc($t['url'], 'attr') ?>">
@@ -87,15 +87,19 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
 
             <!-- Pass: Visitor / Staff / Vendor dropdowns under one dropdown -->
             <?php
-            $passVisitorActive = str_contains($current, 'invitations') || str_contains($current, 'requests') || str_contains($current, 'visitors');
+            $visReq = str_contains($current, 'requests') && ! str_starts_with($current, 'twp/'); // twp/requests is the TWP Request List, not the visitor one
+            $passVisitorActive = str_contains($current, 'invitations') || $visReq || str_contains($current, 'visitors');
             $passStaffActive   = $isStaff || str_contains($current, 'staffpassrequest');
             $passAny           = $hasVisitorPassAccess
                 || (client_feature_enabled('staff_pass') && has_access('staff_pass_list', 'view'))
-                || (client_feature_enabled('vendor_pass') && has_access('vendor_pass_list', 'view'));
-            $passActive        = $passVisitorActive || $passStaffActive || $isVendor;
+                || (client_feature_enabled('vendor_pass') && has_access('vendor_pass_list', 'view'))
+                || $canReportTemplates;
+            // TWP pages under Pass (the TWP dashboard and report live under Dashboard / Report)
+            $isTwp             = str_starts_with($current, 'twp/') && ! in_array($current, ['twp/dashboard', 'twp/report'], true) && ! str_starts_with($current, 'twp/cards');
+            $passActive        = $passVisitorActive || $passStaffActive || $isVendor || $isTwp;
             ?>
             <?php if ($passAny): ?>
-            <div @side-open.window="if (!['openPass', 'openVisitorPass', 'openStaff', 'openVendor'].includes($event.detail)) openPass = false" x-data="{ openPass: <?= $passActive ? 'true' : 'false' ?> }">
+            <div @side-open.window="if (!['openPass', 'openVisitorPass', 'openStaff', 'openVendor', 'openTwp'].includes($event.detail)) openPass = false" x-data="{ openPass: <?= $passActive ? 'true' : 'false' ?> }">
                 <button type="button" @click="openPass = !openPass; if (openPass) $dispatch('side-open', 'openPass')"
                     class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= $passActive ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
                     <div class="flex items-center gap-3">
@@ -107,9 +111,9 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
                 <div x-show="openPass" class="ml-4 mt-1 flex flex-col gap-1">
             <!-- Visitor Pass List -->
             <?php if ($hasVisitorPassAccess): ?>
-            <div @side-open.window="if ($event.detail !== 'openVisitorPass') openVisitorPass = false" x-data="{ openVisitorPass: <?= (str_contains($current, 'invitations') || str_contains($current, 'requests') || str_contains($current, 'visitors')) ? 'true' : 'false' ?> }">
+            <div @side-open.window="if ($event.detail !== 'openVisitorPass') openVisitorPass = false" x-data="{ openVisitorPass: <?= (str_contains($current, 'invitations') || $visReq || str_contains($current, 'visitors')) ? 'true' : 'false' ?> }">
                 <button type="button" @click="openVisitorPass = !openVisitorPass; if (openVisitorPass) $dispatch('side-open', 'openVisitorPass')"
-                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= (str_contains($current, 'invitations') || str_contains($current, 'requests') || str_contains($current, 'visitors')) ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
+                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= (str_contains($current, 'invitations') || $visReq || str_contains($current, 'visitors')) ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
                     <div class="flex items-center gap-3">
                         <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">badge</span>
                         <p class="text-sm font-medium">Visitor</p>
@@ -133,8 +137,8 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
                     <?php endif; ?>
                     <?php if ($requestListAvailable && has_access('visitor_pass_list', 'request_list')): ?>
                     <a href="<?= base_url('requests') ?>"
-                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= str_contains($current, 'requests') ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
-                        <span class="w-1.5 h-1.5 rounded-full <?= str_contains($current, 'requests') ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
+                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $visReq ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
+                        <span class="w-1.5 h-1.5 rounded-full <?= $visReq ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
                         Request List
                     </a>
                     <?php endif; ?>
@@ -230,6 +234,29 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
                 </div>
             </div>
             <?php endif; ?>
+
+            <!-- Temporary Work Pass (KPK TWP) -->
+            <?php if ($canReportTemplates): ?>
+            <div @side-open.window="if ($event.detail !== 'openTwp') openTwp = false" x-data="{ openTwp: <?= $isTwp ? 'true' : 'false' ?> }">
+                <button type="button" @click="openTwp = !openTwp; if (openTwp) $dispatch('side-open', 'openTwp')"
+                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= $isTwp ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
+                    <div class="flex items-center gap-3">
+                        <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">engineering</span>
+                        <p class="text-sm font-medium text-left leading-tight">Temporary Work Pass</p>
+                    </div>
+                    <span class="material-symbols-outlined text-[18px] transition-transform duration-200" :class="openTwp ? 'rotate-180' : ''">expand_more</span>
+                </button>
+                <div x-show="openTwp" class="ml-4 mt-1 flex flex-col gap-1">
+                    <?php foreach (['twp/requests' => 'Request List', 'twp/passes' => 'Pass List'] as $tPath => $tLabel): $tOn = str_starts_with($current, $tPath); ?>
+                    <a href="<?= base_url($tPath) ?>"
+                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $tOn ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
+                        <span class="w-1.5 h-1.5 rounded-full <?= $tOn ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
+                        <?= $tLabel ?>
+                    </a>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <?php endif; ?>
                 </div>
             </div>
             <?php endif; ?>
@@ -312,13 +339,32 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
             </div>
             <?php endif; ?>
 
-            <!-- Temporary Work Pass (KPK TWP) -->
-            <?php if ($canReportTemplates): ?>
-            <a href="<?= base_url('twp/requests') ?>"
-                class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?= str_starts_with($current, 'twp') ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors">
-                <span class="material-symbols-outlined text-[20px]">engineering</span>
-                <p class="text-sm font-medium">Temporary Work Pass</p>
-            </a>
+            <!-- Monitoring (KPK Monitoring > Monitoring) -->
+            <?php if (has_access('monitoring', 'monitoring')): $isMonitoring = str_starts_with($current, 'monitoring'); ?>
+            <div @side-open.window="if ($event.detail !== 'openMonitoring') openMonitoring = false" x-data="{ openMonitoring: <?= $isMonitoring ? 'true' : 'false' ?> }">
+                <button type="button" @click="openMonitoring = !openMonitoring; if (openMonitoring) $dispatch('side-open', 'openMonitoring')"
+                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= $isMonitoring ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
+                    <div class="flex items-center gap-3">
+                        <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">desktop_windows</span>
+                        <p class="text-sm font-medium">Monitoring</p>
+                    </div>
+                    <span class="material-symbols-outlined text-[18px] transition-transform duration-200" :class="openMonitoring ? 'rotate-180' : ''">expand_more</span>
+                </button>
+                <div x-show="openMonitoring"
+                    x-transition:enter="transition ease-out duration-200"
+                    x-transition:enter-start="opacity-0 -translate-y-1"
+                    x-transition:enter-end="opacity-100 translate-y-0"
+                    x-transition:leave="transition ease-in duration-150"
+                    x-transition:leave-start="opacity-100 translate-y-0"
+                    x-transition:leave-end="opacity-0 -translate-y-1"
+                    class="ml-4 mt-1 flex flex-col gap-1">
+                    <a href="<?= base_url('monitoring') ?>"
+                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'monitoring' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors">
+                        <span class="w-1.5 h-1.5 rounded-full <?= $current == 'monitoring' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
+                        Monitoring
+                    </a>
+                </div>
+            </div>
             <?php endif; ?>
 
             <!-- Workflow: Visitor Workflow + Vendor Workflow under one dropdown -->
@@ -430,6 +476,11 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
                         <span class="w-1.5 h-1.5 rounded-full <?= str_starts_with($current, 'report/templates') ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
                         Report Templates
                     </a>
+                    <a href="<?= base_url('twp/report') ?>"
+                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current === 'twp/report' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
+                        <span class="w-1.5 h-1.5 rounded-full <?= $current === 'twp/report' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
+                        Temporary Work Pass Report
+                    </a>
                     <?php endif; ?>
                     <?php if (has_access('report', 'access_report')): ?>
                     <a href="<?= base_url('report/access') ?>"
@@ -474,34 +525,6 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
                         Staff Report
                     </a>
                     <?php endif; ?>
-                </div>
-            </div>
-            <?php endif; ?>
-
-            <!-- Monitoring (KPK Monitoring > Monitoring) -->
-            <?php if (has_access('monitoring', 'monitoring')): $isMonitoring = str_starts_with($current, 'monitoring'); ?>
-            <div @side-open.window="if ($event.detail !== 'openMonitoring') openMonitoring = false" x-data="{ openMonitoring: <?= $isMonitoring ? 'true' : 'false' ?> }">
-                <button type="button" @click="openMonitoring = !openMonitoring; if (openMonitoring) $dispatch('side-open', 'openMonitoring')"
-                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= $isMonitoring ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
-                    <div class="flex items-center gap-3">
-                        <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">desktop_windows</span>
-                        <p class="text-sm font-medium">Monitoring</p>
-                    </div>
-                    <span class="material-symbols-outlined text-[18px] transition-transform duration-200" :class="openMonitoring ? 'rotate-180' : ''">expand_more</span>
-                </button>
-                <div x-show="openMonitoring"
-                    x-transition:enter="transition ease-out duration-200"
-                    x-transition:enter-start="opacity-0 -translate-y-1"
-                    x-transition:enter-end="opacity-100 translate-y-0"
-                    x-transition:leave="transition ease-in duration-150"
-                    x-transition:leave-start="opacity-100 translate-y-0"
-                    x-transition:leave-end="opacity-0 -translate-y-1"
-                    class="ml-4 mt-1 flex flex-col gap-1">
-                    <a href="<?= base_url('monitoring') ?>"
-                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'monitoring' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors">
-                        <span class="w-1.5 h-1.5 rounded-full <?= $current == 'monitoring' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
-                        Monitoring
-                    </a>
                 </div>
             </div>
             <?php endif; ?>

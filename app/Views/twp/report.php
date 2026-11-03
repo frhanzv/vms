@@ -7,7 +7,7 @@ $tabs  = ['twp' => 'TWP', 'premise' => 'TWP In Premise', 'oow' => 'TWP Out Of Wi
 $qs    = static fn(array $extra) => http_build_query(array_filter(array_merge(['tab' => $tab, 'q' => $q, 'company' => $company, 'date_from' => $from, 'date_to' => $to, 'sort' => $sort], $extra)));
 ?>
 <div class="-m-2 space-y-4">
-    <?= view('twp/_tabs') ?>
+    <?= view('twp/_header', ['title' => 'TWP Report']) ?>
 
     <div class="flex gap-1">
         <?php foreach ($tabs as $k => $l): ?>
