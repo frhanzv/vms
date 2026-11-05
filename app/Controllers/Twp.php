@@ -24,7 +24,7 @@ class Twp extends BaseController
         'edit' => ['twp', 'request_list'], 'update' => ['twp', 'request_list'], 'approve' => ['twp', 'request_list'], 'reject' => ['twp', 'request_list'],
         'payment' => ['twp', 'request_list'], 'payOnline' => ['twp', 'request_list'], 'paymentReturn' => ['twp', 'request_list'],
         'passes' => ['twp', 'pass_list'], 'passInfo' => ['twp', 'pass_list'], 'updateDates' => ['twp', 'pass_list'], 'issueCard' => ['twp', 'pass_list'], 'returnCard' => ['twp', 'pass_list'],
-        'cards' => ['twp', 'card'], 'saveCard' => ['twp', 'card'], 'saveRates' => ['twp', 'card'],
+        'cards' => ['twp', 'card'], 'cardList' => ['twp', 'card'], 'saveCard' => ['twp', 'card'], 'deleteCard' => ['twp', 'card'], 'saveRates' => ['twp', 'card'],
         'dashboard' => ['dashboard', 'twp'], 'report' => ['twp', 'report'],
     ];
 
@@ -582,7 +582,6 @@ class Twp extends BaseController
         return redirect()->to(base_url('config?section=twpcard'));
     }
 
-<<<<<<< Updated upstream
     /** Config > TWP Card Management table: search, sort, 10 a page. Status in_use = issued to a worker now. */
     public function cardList()
     {
@@ -610,7 +609,7 @@ class Twp extends BaseController
         }
         unset($r);
 
-        return $this->response->setJSON(['success' => true, 'data' => $rows, 'rates' => $this->rates(), 'superadmin' => $c === 0,
+        return $this->response->setJSON(['success' => true, 'data' => $rows, 'rates' => $this->settingsRates(), 'effective' => $this->rates(), 'superadmin' => $c === 0,
             'pagination' => ['current_page' => $page, 'per_page' => 10, 'total' => $total, 'total_pages' => max(1, (int) ceil($total / 10))]]);
     }
 
@@ -629,10 +628,6 @@ class Twp extends BaseController
         $db->table('twp_cards')->where('id', (int) $id)->delete();
 
         return $this->response->setJSON(['success' => true, 'message' => 'TWP card deleted.']);
-=======
-        return view('twp/cards', ['pageTitle' => 'Temporary Work Pass Card - SafeG', 'rows' => $rows, 'rates' => $this->settingsRates(), 'effective' => $this->rates(), 'superadmin' => $c === 0,
-            'templates' => \App\Libraries\CardTemplates::resolveAll($this->db(), 'twp', $c ?: null)]);
->>>>>>> Stashed changes
     }
 
     public function saveCard()

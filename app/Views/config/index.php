@@ -2218,19 +2218,12 @@
                     </div>
                 </div>
 
-<<<<<<< Updated upstream
                 <!-- TWP Card Management (KPK Config > Temporary Work Pass Card), same look as Visitor Card Management -->
-                <?php if (in_array(session()->get('role'), ['superadmin', 'clientsuperadmin', 'admin', 'officer'], true)):
+                <?php helper(['access']); if (in_array(session()->get('role'), ['superadmin', 'clientsuperadmin', 'admin', 'officer'], true) && has_access('twp', 'card')):
                     $twpTpl = \App\Libraries\CardTemplates::resolveAll(\Config\Database::connect(), 'twp', is_platform_superadmin() ? null : ((int) current_client_id() ?: null)); ?>
                 <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden" x-data="twpCards()">
                     <button onclick="toggleSection('twpcard')" @click="if (! loaded) load(1)"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
-=======
-                <!-- Temporary Work Pass Card (KPK Config > Temporary Work Pass Card) -->
-                <?php helper(['access']); if (in_array(session()->get('role'), ['superadmin', 'clientsuperadmin', 'admin', 'officer'], true) && has_access('twp', 'card')): ?>
-                <a href="<?= base_url('twp/cards') ?>" class="block bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 px-6 py-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
-                    <div class="flex items-center justify-between">
->>>>>>> Stashed changes
                         <div class="flex items-center gap-4">
                             <div class="p-2 bg-primary/10 rounded-lg">
                                 <span class="material-symbols-outlined text-primary text-xl">engineering</span>
@@ -2432,6 +2425,13 @@
                             <div><label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Per vehicle (RM)</label>
                                 <input type="number" step="0.01" min="0" x-model="rates.vehicle" :disabled="! superadmin" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm"></div>
                             <p x-show="! superadmin" class="text-xs text-gray-500">Rates are set by the superadmin.</p>
+                            <div x-show="eff && Object.values(eff.source || {}).includes('payment_type')" class="rounded bg-blue-50 dark:bg-slate-700 text-xs text-gray-700 dark:text-slate-300 p-2">
+                                Config &gt; Payment Type is set, so new requests use:
+                                per worker RM <span x-text="eff && Number(eff.worker).toFixed(2)"></span><span x-show="eff && eff.source.worker === 'payment_type'"> (STAFF)</span>,
+                                per vehicle RM <span x-text="eff && Number(eff.vehicle).toFixed(2)"></span><span x-show="eff && eff.source.vehicle === 'payment_type'"> (LORRY)</span>.
+                                The rates above apply only to a type with no active Payment Type.
+                            </div>
+                            <p x-show="! (eff && Object.values(eff.source || {}).includes('payment_type'))" class="text-xs text-gray-500">Set per-client amounts in Config &gt; Payment Type (STAFF = per worker, LORRY = per vehicle); they replace these rates.</p>
                             <div class="flex justify-end gap-3">
                                 <button type="button" @click="rateOpen = false" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">Close</button>
                                 <button type="submit" x-show="superadmin" :disabled="busy" class="px-4 py-2 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm">Save Rates</button>
@@ -2450,7 +2450,7 @@
                     return {
                         loaded: false, loading: false, rows: [], search: '', sort: '', busy: false, err: '',
                         p: { current_page: 1, per_page: 10, total: 0, total_pages: 1 },
-                        form: null, del: null, qr: null, rateOpen: false, rates: { worker: 0, vehicle: 0 }, superadmin: false,
+                        form: null, del: null, qr: null, rateOpen: false, rates: { worker: 0, vehicle: 0 }, eff: null, superadmin: false,
                         badge: { active: 'bg-green-500/20 text-green-400', in_use: 'bg-yellow-500/20 text-yellow-400', inactive: 'bg-gray-500/20 text-gray-400' },
                         label: { active: 'Active', in_use: 'In Use', inactive: 'Inactive' },
                         load(page) {
@@ -2458,7 +2458,7 @@
                             this.loaded = true; this.loading = true;
                             fetch(`<?= base_url('twp/cards/list') ?>?page=${page}&search=${encodeURIComponent(this.search)}&sort=${this.sort}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
                                 .then(r => r.json()).then(d => {
-                                    this.rows = d.data || []; this.p = d.pagination; this.superadmin = d.superadmin;
+                                    this.rows = d.data || []; this.p = d.pagination; this.superadmin = d.superadmin; this.eff = d.effective;
                                     this.rates = { worker: Number(d.rates.worker).toFixed(2), vehicle: Number(d.rates.vehicle).toFixed(2) };
                                 }).catch(() => showNotification('Failed to load TWP cards', 'error')).finally(() => this.loading = false);
                         },
