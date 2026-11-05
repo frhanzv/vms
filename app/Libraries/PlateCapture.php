@@ -12,14 +12,24 @@ use CodeIgniter\Database\BaseConnection;
  * gate transaction, also when the vehicle is not registered or its type only needs the pass tapped,
  * so Monitoring shows one of three categories: registered, tap_only, unregistered.
  *
+ * Detection order is set per lane (Config > Lane Management > Detection Order):
+ *  - camera_first:  the camera reads the car first, so the tap takes the newest read from the last
+ *                   lanes.detect_window seconds.
+ *  - antenna_first: the antenna / mobile app tap comes first, so the tap is stored as 'pending' and
+ *                   gets the first read within detect_window seconds AFTER the tap (resolvePending(),
+ *                   run on the next tap, when Monitoring opens, and by `php spark plate:resolve`).
+ *
  * Set ALPR_URL in .env (KPK pymsoft.alpr.url, e.g. http://10.10.201.3:8080/alpr/integration).
  * Without it nothing is captured and the gate works as before.
  */
 class PlateCapture
 {
-    public const LABELS = ['registered' => 'Registered', 'tap_only' => 'Registered (Tap Only)', 'unregistered' => 'Unregistered'];
+    public const LABELS = ['registered' => 'Registered', 'tap_only' => 'Registered (Tap Only)', 'unregistered' => 'Unregistered', 'pending' => 'Waiting For Camera'];
 
-    /** How old a camera read may be to belong to this tap. */
+    /** Lane Management > Detection Order choices. */
+    public const ORDERS = ['camera_first' => 'Camera first, then Antenna / Mobile App', 'antenna_first' => 'Antenna / Mobile App first, then Camera'];
+
+    /** Seconds between the camera read and the tap when the lane has no detect_window. */
     private const MAX_AGE = 120;
 
     public static function enabled(): bool
@@ -34,21 +44,32 @@ class PlateCapture
             if (! $laneId || ! self::enabled() || ! in_array($action, ['checkin', 'checkout'], true) || ! $db->tableExists('gate_plate_captures')) {
                 return null;
             }
-            $lane = $db->query('SELECT l.id, l.cam_id_1, loc.client_id FROM lanes l LEFT JOIN locations loc ON loc.id = l.location_id WHERE l.id = ?', [$laneId])->getRowArray();
-            $cam  = trim((string) ($lane['cam_id_1'] ?? ''));
-            if ($cam === '') {
+            self::resolvePending($db);
+            $lane = self::lane($db, $laneId);
+            if (! $lane || $lane['cam'] === '') {
                 return null;
             }
-            $read = self::lastRead($cam);
+            $base = ['company_id' => $lane['client_id'], 'lane_id' => $laneId, 'card_epc' => $epc, 'holder_type' => $holderType, 'direction' => $action === 'checkin' ? 'in' : 'out'];
+            $now  = date('Y-m-d H:i:s');
+
+            if ($lane['order'] === 'antenna_first') {
+                // the camera reads after the tap: keep the tap, the plate is filled in by resolvePending()
+                $read = self::readBetween($db, $lane['cam'], $now, $lane['window']);
+                if ($read) {
+                    return self::record($db, $base + self::fromRead($read, $lane['cam']) + ['tap_at' => $now]);
+                }
+                $row = $base + ['tx_key' => self::txKey($db, $epc, $base['direction']), 'plate_no' => '', 'category' => 'pending', 'camera' => $lane['cam'], 'tap_at' => $now, 'created_at' => $now];
+                $db->table('gate_plate_captures')->insert($row);
+
+                return $row + ['id' => (int) $db->insertID()];
+            }
+
+            $read = self::lastRead($lane['cam'], $lane['window']);
             if (! $read || trim((string) ($read['refNo'] ?? '')) === '') {
                 return null;
             }
 
-            return self::record($db, [
-                'company_id' => $lane['client_id'] ?? null, 'lane_id' => $laneId, 'card_epc' => $epc, 'holder_type' => $holderType,
-                'direction' => $action === 'checkin' ? 'in' : 'out', 'plate_no' => $read['refNo'], 'camera' => $read['camera'] ?? $cam,
-                'alpr_ref' => $read['id'] ?? null, 'image_path' => $read['path'] ?? null, 'captured_at' => self::parseDate($read['dateTime'] ?? null),
-            ]);
+            return self::record($db, $base + self::fromRead($read, $lane['cam']) + ['tap_at' => $now]);
         } catch (\Throwable $e) {
             log_message('error', 'PlateCapture::afterTap ' . $e->getMessage());
 
@@ -56,30 +77,94 @@ class PlateCapture
         }
     }
 
+    /**
+     * antenna_first lanes: give each waiting tap the first camera read in its window after the tap.
+     * A tap whose window has passed without a read is dropped (no plate seen, like camera_first). Never throws.
+     */
+    public static function resolvePending(BaseConnection $db): int
+    {
+        try {
+            if (! self::enabled() || ! $db->tableExists('gate_plate_captures') || ! $db->fieldExists('tap_at', 'gate_plate_captures')) {
+                return 0;
+            }
+            $done = 0;
+            foreach ($db->table('gate_plate_captures')->where('category', 'pending')->orderBy('tap_at')->get()->getResultArray() as $p) {
+                $lane = self::lane($db, (int) $p['lane_id']);
+                $win  = $lane['window'] ?? self::MAX_AGE;
+                $read = $lane && $lane['cam'] !== '' ? self::readBetween($db, $lane['cam'], (string) $p['tap_at'], $win) : null;
+                if ($read) {
+                    $d = self::fromRead($read, $lane['cam']);
+                    $db->table('gate_plate_captures')->where('id', $p['id'])->update(self::classify($db, $d['plate_no']) + [
+                        'camera' => $d['camera'], 'alpr_ref' => $d['alpr_ref'], 'captured_at' => $d['captured_at'] ?? date('Y-m-d H:i:s'),
+                        'image_path' => ($d['alpr_ref'] ? self::saveImage((string) $d['alpr_ref']) : null) ?? $d['image_path'],
+                    ]);
+                    $done++;
+                } elseif (strtotime((string) $p['tap_at']) + $win < time()) {
+                    $db->table('gate_plate_captures')->where('id', $p['id'])->delete();
+                }
+            }
+
+            return $done;
+        } catch (\Throwable $e) {
+            log_message('error', 'PlateCapture::resolvePending ' . $e->getMessage());
+
+            return 0;
+        }
+    }
+
+    /** The lane's camera, client, detection order and window. */
+    private static function lane(BaseConnection $db, int $laneId): ?array
+    {
+        $has = $db->fieldExists('detect_order', 'lanes');
+        $l   = $db->query('SELECT l.cam_id_1, loc.client_id' . ($has ? ', l.detect_order, l.detect_window' : '') . ' FROM lanes l LEFT JOIN locations loc ON loc.id = l.location_id WHERE l.id = ?', [$laneId])->getRowArray();
+
+        return $l ? [
+            'cam' => trim((string) $l['cam_id_1']), 'client_id' => $l['client_id'] ?? null,
+            'order' => ($l['detect_order'] ?? '') === 'antenna_first' ? 'antenna_first' : 'camera_first',
+            'window' => max(5, (int) ($l['detect_window'] ?? 0) ?: self::MAX_AGE),
+        ] : null;
+    }
+
+    private static function fromRead(array $read, string $cam): array
+    {
+        return ['plate_no' => (string) $read['refNo'], 'camera' => $read['camera'] ?? $cam, 'alpr_ref' => $read['id'] ?? null,
+            'image_path' => $read['path'] ?? null, 'captured_at' => self::parseDate($read['dateTime'] ?? null)];
+    }
+
+    /** Plate, category and registered vehicle for a plate read. */
+    private static function classify(BaseConnection $db, string $plateNo): array
+    {
+        $plate = strtoupper(preg_replace('/\s+/', ' ', trim($plateNo)));
+        $veh   = self::vehicle($db, $plate);
+
+        return [
+            'plate_no'     => mb_substr($plate, 0, 40),
+            'category'     => ! $veh ? 'unregistered' : ((int) ($veh['capture_plate'] ?? 1) === 0 ? 'tap_only' : 'registered'),
+            'vehicle_id'   => $veh['id'] ?? null,
+            'vehicle_type' => $veh['type_name'] ?? null,
+        ];
+    }
+
     /** Store one plate read: works out the category and the transaction it belongs to. */
     public static function record(BaseConnection $db, array $d): array
     {
-        $now   = date('Y-m-d H:i:s');
-        $plate = strtoupper(preg_replace('/\s+/', ' ', trim((string) $d['plate_no'])));
-        $veh   = self::vehicle($db, $plate);
-
-        $row = [
+        $now = date('Y-m-d H:i:s');
+        $row = self::classify($db, (string) $d['plate_no']) + [
             'company_id'   => $d['company_id'] ?? null,
             'lane_id'      => $d['lane_id'] ?? null,
             'tx_key'       => $d['tx_key'] ?? self::txKey($db, (string) ($d['card_epc'] ?? ''), (string) ($d['direction'] ?? 'in')),
             'holder_type'  => $d['holder_type'] ?? null,
             'card_epc'     => $d['card_epc'] ?? null,
             'direction'    => $d['direction'] ?? 'in',
-            'plate_no'     => mb_substr($plate, 0, 40),
-            'category'     => ! $veh ? 'unregistered' : ((int) ($veh['capture_plate'] ?? 1) === 0 ? 'tap_only' : 'registered'),
-            'vehicle_id'   => $veh['id'] ?? null,
-            'vehicle_type' => $veh['type_name'] ?? null,
             'camera'       => $d['camera'] ?? null,
             'alpr_ref'     => $d['alpr_ref'] ?? null,
             'image_path'   => $d['image_path'] ?? null,
             'captured_at'  => $d['captured_at'] ?? $now,
             'created_at'   => $now,
         ];
+        if ($db->fieldExists('tap_at', 'gate_plate_captures')) {
+            $row['tap_at'] = $d['tap_at'] ?? $now;
+        }
         if (! empty($row['alpr_ref']) && self::enabled() && ($img = self::saveImage((string) $row['alpr_ref'])) !== null) {
             $row['image_path'] = $img;
         }
@@ -132,7 +217,7 @@ class PlateCapture
     }
 
     /** KPK getResultAlpr: the camera's latest read, or null when the ALPR server does not answer. */
-    private static function lastRead(string $cam): ?array
+    private static function lastRead(string $cam, int $window = self::MAX_AGE): ?array
     {
         $res  = self::get('/last?c=' . rawurlencode($cam) . '&limit=1');
         $read = $res['result'][0] ?? null;
@@ -141,7 +226,29 @@ class PlateCapture
         }
         $at = self::parseDate($read['dateTime'] ?? null);
 
-        return $at && strtotime($at) < time() - self::MAX_AGE ? null : $read;
+        return $at && strtotime($at) < time() - $window ? null : $read;
+    }
+
+    /** antenna_first: the first read from $from to $from + $window that no other tap has taken. */
+    private static function readBetween(BaseConnection $db, string $cam, string $from, int $window): ?array
+    {
+        $res   = self::get('/last?c=' . rawurlencode($cam) . '&limit=20');
+        $start = strtotime($from);
+        $best  = null;
+        foreach ((array) ($res['result'] ?? []) as $r) {
+            $at = is_array($r) ? self::parseDate($r['dateTime'] ?? null) : null;
+            if (! $at || trim((string) ($r['refNo'] ?? '')) === '' || strtotime($at) < $start || strtotime($at) > $start + $window) {
+                continue;
+            }
+            if (! empty($r['id']) && $db->table('gate_plate_captures')->where('alpr_ref', (string) $r['id'])->countAllResults() > 0) {
+                continue;
+            }
+            if (! $best || strtotime($at) < strtotime(self::parseDate($best['dateTime']))) {
+                $best = $r;
+            }
+        }
+
+        return $best;
     }
 
     /** KPK getImageResultAlpr: download the plate photo into public/uploads/plate_captures. */

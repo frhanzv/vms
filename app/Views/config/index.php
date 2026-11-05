@@ -47,6 +47,7 @@
     </script>
     <!-- Blacklist dropdown function-->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>[x-cloak] { display: none !important; }</style> <!-- hide Alpine popups until Alpine starts -->
     <style>
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: transparent; }
@@ -13117,6 +13118,22 @@
                                             </select>
                                             <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Select the type of scanner connected to this lane</p>
                                         </div>
+                                        <!-- Gate detection order: which device sees the vehicle first (PlateCapture) -->
+                                        <div class="mb-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <div class="md:col-span-2">
+                                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Detection Order <span class="text-red-500">*</span></label>
+                                                <select id="laneDetectOrder" name="detect_order" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                                    <option value="camera_first">Scan Camera first, then Antenna / Mobile App</option>
+                                                    <option value="antenna_first">Scan Antenna / Mobile App first, then Camera</option>
+                                                </select>
+                                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Which one detects the vehicle first at this lane, so the captured plate is matched to the right tap</p>
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Match Window (seconds)</label>
+                                                <input type="number" id="laneDetectWindow" name="detect_window" min="5" max="600" value="120" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Longest gap between the camera and the tap</p>
+                                            </div>
+                                        </div>
                                         <!-- RFID-specific fields (hidden when QR is selected) -->
                                         <div id="addLaneRfidFields" class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                             <div>
@@ -13297,6 +13314,22 @@
                                         </select>
                                         <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Select the type of scanner connected to this lane</p>
                                     </div>
+                                    <!-- Gate detection order: which device sees the vehicle first (PlateCapture) -->
+                                    <div class="mb-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div class="md:col-span-2">
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Detection Order <span class="text-red-500">*</span></label>
+                                            <select id="laneDetectOrder" name="detect_order" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                                <option value="camera_first" ${(lane.detect_order || 'camera_first') === 'camera_first' ? 'selected' : ''}>Scan Camera first, then Antenna / Mobile App</option>
+                                                <option value="antenna_first" ${(lane.detect_order || 'camera_first') === 'antenna_first' ? 'selected' : ''}>Scan Antenna / Mobile App first, then Camera</option>
+                                            </select>
+                                            <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Which one detects the vehicle first at this lane, so the captured plate is matched to the right tap</p>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Match Window (seconds)</label>
+                                            <input type="number" id="laneDetectWindow" name="detect_window" min="5" max="600" value="${lane.detect_window || 120}" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:ring-primary focus:border-primary">
+                                            <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Longest gap between the camera and the tap</p>
+                                        </div>
+                                    </div>
                                     <!-- RFID-specific fields -->
                                     <div id="editLaneRfidFields" class="${lane.scan_type === 'qr_code' ? 'hidden' : ''} grid grid-cols-1 md:grid-cols-3 gap-4">
                                         <div>
@@ -13453,7 +13486,9 @@
                 rfid_reader_ip: document.getElementById('laneRfidReaderIp')?.value || null,
                 rfid_reader_port: document.getElementById('laneRfidReaderPort')?.value || null,
                 rfid_enabled: document.getElementById('laneRfidEnabled')?.checked ? 1 : 0,
-                scan_type: document.getElementById('laneScanType')?.value || 'rfid'
+                scan_type: document.getElementById('laneScanType')?.value || 'rfid',
+                detect_order: document.getElementById('laneDetectOrder')?.value || 'camera_first',
+                detect_window: document.getElementById('laneDetectWindow')?.value || 120
             };
 
             const submitBtn = e.target.querySelector('button[type="submit"]');

@@ -320,6 +320,7 @@ class GateMonitoring extends BaseController
 
     public function data()
     {
+        \App\Libraries\PlateCapture::resolvePending($this->db()); // antenna_first taps waiting for the camera
         if (! $this->allowed()) {
             return $this->json(['success' => false, 'message' => 'Not allowed.'], 403);
         }
@@ -487,6 +488,7 @@ class GateMonitoring extends BaseController
     /** Transaction Info (KPK monitoring/transaction-info/:id): everything about one gate movement. */
     public function info(string $key = '')
     {
+        \App\Libraries\PlateCapture::resolvePending($this->db());
         if (! $this->allowed()) {
             return redirect()->to(base_url('dashboard'))->with('error', 'You are not allowed to open Monitoring.');
         }

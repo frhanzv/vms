@@ -1,4 +1,5 @@
 <?php
+ob_start(); // closed dropdowns are hidden in the HTML itself, see the end of this file
 helper(['access', 'navigation', 'branding', 'feature']);
 $current     = app_route_path($current ?? null); // report pages pass their own path
 $isDashboard = ($current === '' || $current === 'dashboard');
@@ -17,6 +18,8 @@ $canReportTemplates   = in_array(session()->get('role'), ['superadmin', 'clients
 $hasReportAccess      = $canReportTemplates || has_access('report', 'access_report') || has_access('report', 'visitor_report') || has_access('report', 'visitor_chronology') || has_access('report', 'visitor_info_by_door') || has_access('report', 'gate_in_out') || has_access('report', 'out_window_list') || has_access('report', 'port_pass_monthly') || has_access('report', 'port_pass_summary') || has_access('report', 'company_permit_ageing') || has_access('report', 'company_permit_monthly') || has_access('report', 'vehicle_sticker_summary') || has_access('report', 'blacklist_report') || has_access('report', 'attendance_report') || has_access('report', 'monitoring_report')  || has_access('report', 'vendor_report') || (client_feature_enabled('staff_pass') && has_access('report', 'staff_report'));
 $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'alert_priority') || has_access('config', 'api_management') || has_access('config', 'general_settings') || has_access('config', 'application_settings') || has_access('config', 'role_management') || has_access('config', 'user_management') || has_access('config', 'company') || (is_client_superadmin() && current_client_id() > 0);
 ?>
+<!-- every page has the sidebar: hide x-cloak popups until Alpine starts, so they do not flash on load -->
+<style>[x-cloak] { display: none !important; }</style>
 
 <aside class="w-64 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col p-4 hidden md:flex h-full overflow-hidden">
     <div class="flex flex-col gap-8 flex-1 min-h-0">
@@ -572,3 +575,11 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
         </div>
     </div>
 </aside>
+<?php
+// Closed dropdowns start hidden (display:none) so they do not flash open while a big page waits for
+// Alpine; Alpine's x-show takes over from there. Open / closed comes from each x-data's true / false.
+$sideHtml = ob_get_clean();
+preg_match_all('/(\w+): (true|false)/', implode(' ', preg_match_all('/x-data="\{([^"]*)\}"/', $sideHtml, $xd) ? $xd[1] : []), $kv);
+$sideOpen = array_combine($kv[1], array_map(static fn($v) => $v === 'true', $kv[2]));
+echo preg_replace_callback('/x-show="(\w+)"/', static fn($m) => isset($sideOpen[$m[1]]) && ! $sideOpen[$m[1]] ? $m[0] . ' style="display: none;"' : $m[0], $sideHtml);
+?>

@@ -38,6 +38,8 @@ class LaneModel extends Model
         'rfid_reader_port',
         'rfid_enabled',
         'scan_type',
+        'detect_order',
+        'detect_window',
         'version'
     ];
 
@@ -67,7 +69,9 @@ class LaneModel extends Model
         'last_logged_in_datetime' => 'permit_empty|valid_date',
         'last_changed_on_printer_paper' => 'permit_empty|valid_date',
         'status'    => 'required|in_list[active,inactive]',
-        'scan_type' => 'permit_empty|in_list[rfid,qr_code]'
+        'scan_type' => 'permit_empty|in_list[rfid,qr_code]',
+        'detect_order'  => 'permit_empty|in_list[camera_first,antenna_first]',
+        'detect_window' => 'permit_empty|is_natural_no_zero|less_than_equal_to[600]'
     ];
 
     protected $validationMessages = [
