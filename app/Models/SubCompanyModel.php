@@ -15,7 +15,7 @@ class SubCompanyModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['company_id', 'name', 'description', 'status', 'version'];
+    protected $allowedFields    = ['company_id', 'name', 'description', 'prefix', 'status', 'version']; // prefix: KPK Config > Sub Company
 
     protected bool $allowEmptyInserts = false;
     protected bool $updateOnlyChanged = true;
@@ -35,6 +35,7 @@ class SubCompanyModel extends Model
         'company_id' => 'required|is_natural_no_zero',
         'name' => 'required|min_length[3]|max_length[255]',
         'description' => 'permit_empty|max_length[500]',
+        'prefix' => 'permit_empty|max_length[20]',
         'status' => 'required|in_list[active,inactive]'
     ];
     protected $validationMessages   = [
@@ -71,7 +72,7 @@ class SubCompanyModel extends Model
      */
     public function getSubCompaniesWithPagination($search = '', $companyFilter = '', $sortBy = '', $limit = 10, $offset = 0)
     {
-        $builder = $this->select('sub_companies.id, sub_companies.name, sub_companies.description, sub_companies.status, sub_companies.created_at, sub_companies.company_id, companies.name as company_name')
+        $builder = $this->select('sub_companies.id, sub_companies.name, sub_companies.description, sub_companies.status, sub_companies.created_at, sub_companies.company_id, companies.name as company_name' . ($this->db->fieldExists('prefix', 'sub_companies') ? ', sub_companies.prefix' : ''))
                         ->join('companies', 'companies.id = sub_companies.company_id', 'left');
         
         if (!empty($search)) {

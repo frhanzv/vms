@@ -67,6 +67,7 @@ class BlacklistClosedList extends BaseController
                 'per_page'     => $perPage,
             ],
             'rowOffset'        => $rowOffset,
+            'releaseReasons'   => \App\Libraries\ConfigLookups::releaseReasons(\App\Libraries\ConfigLookups::currentClient(), 'BLACKLIST'),
         ]);
     }
 
@@ -179,7 +180,15 @@ class BlacklistClosedList extends BaseController
                 ->with('error', 'Record not found.');
         }
 
-        $released = $this->model->release((int) $id);
+        // KPK release-reason: when Config > Release Reason has active BLACKLIST reasons, one must be chosen.
+        $reasons = \App\Libraries\ConfigLookups::releaseReasons(\App\Libraries\ConfigLookups::currentClient(), 'BLACKLIST');
+        $reason  = trim((string) $this->request->getPost('release_reason'));
+        if ($reasons && ! in_array($reason, $reasons, true)) {
+            return redirect()->to(base_url('blacklist/closedlist'))
+                ->with('error', 'Choose a Release Reason.');
+        }
+
+        $released = $this->model->release((int) $id, $reason !== '' ? $reason : null);
 
         if (!$released) {
             return redirect()->to(base_url('blacklist/closedlist'))

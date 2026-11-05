@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Libraries\ConfigLookups;
 use App\Libraries\TwpGate;
 use App\Libraries\VehiclePayment;
 
@@ -16,6 +17,32 @@ use App\Libraries\VehiclePayment;
 class Twp extends BaseController
 {
     private const STATUSES = ['Pending', 'Approved', 'Rejected'];
+
+    /** Role Management boxes each page needs (KPK role: Work Pass Request List / Work Pass List, TWP Card, Dashboard TWP). */
+    private const ACCESS = [
+        'requests' => ['twp', 'request_list'], 'create' => ['twp', 'request_list'], 'save' => ['twp', 'request_list'], 'show' => ['twp', 'request_list'],
+        'edit' => ['twp', 'request_list'], 'update' => ['twp', 'request_list'], 'approve' => ['twp', 'request_list'], 'reject' => ['twp', 'request_list'],
+        'payment' => ['twp', 'request_list'], 'payOnline' => ['twp', 'request_list'], 'paymentReturn' => ['twp', 'request_list'],
+        'passes' => ['twp', 'pass_list'], 'passInfo' => ['twp', 'pass_list'], 'updateDates' => ['twp', 'pass_list'], 'issueCard' => ['twp', 'pass_list'], 'returnCard' => ['twp', 'pass_list'],
+        'cards' => ['twp', 'card'], 'saveCard' => ['twp', 'card'], 'saveRates' => ['twp', 'card'],
+        'dashboard' => ['dashboard', 'twp'], 'report' => ['twp', 'report'],
+    ];
+
+    public function _remap($method, ...$params)
+    {
+        if (! method_exists($this, $method) || str_starts_with($method, '_') || ! (new \ReflectionMethod($this, $method))->isPublic()) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+        helper(['access']);
+        $need = self::ACCESS[$method] ?? null;
+        $ok   = $need ? has_access($need[0], $need[1])
+            : ($method === 'saveColumns' ? has_access('twp', 'request_list') || has_access('twp', 'pass_list') : true);
+        if (! $ok) {
+            return redirect()->to(base_url('dashboard'))->with('error', 'Your role does not have access to this Temporary Work Pass page.');
+        }
+
+        return $this->{$method}(...$params);
+    }
 
     private function db()
     {
@@ -58,13 +85,25 @@ class Twp extends BaseController
         return array_values(array_unique(array_filter(array_column($b->get()->getResultArray(), 'location_access'))));
     }
 
-    /** KPK payment type rates: STAFF per worker, LORRY per worker with a vehicle. */
-    private function rates(): array
+    /** The global TWP rates (TWP Card page), used when Config > Payment Type has no active row. */
+    private function settingsRates(): array
     {
         $rows = $this->db()->table('settings')->whereIn('setting_key', ['twp_rate_worker', 'twp_rate_vehicle'])->get()->getResultArray();
         $map  = array_column($rows, 'setting_value', 'setting_key');
 
         return ['worker' => (float) ($map['twp_rate_worker'] ?? 0), 'vehicle' => (float) ($map['twp_rate_vehicle'] ?? 0)];
+    }
+
+    /**
+     * KPK payment type rates: STAFF per worker, LORRY per worker with a vehicle, taken from
+     * Config > Payment Type (the client's own row, else the shared one), else the global TWP rates.
+     * $companyId: the request's client (null = this user's client, 0 / none = shared rows only).
+     */
+    private function rates(?int $companyId = null): array
+    {
+        $cid = $companyId ?? $this->clientId();
+
+        return ConfigLookups::twpRates($cid > 0 ? $cid : null, $this->settingsRates());
     }
 
     // ------------------------------------------------------------------ Request List
@@ -97,10 +136,12 @@ class Twp extends BaseController
         return view('twp/form', ['pageTitle' => 'New Temporary Work Pass - SafeG', 'locations' => $this->locations(), 'rates' => $this->rates(), 'old' => [], 'errors' => []]);
     }
 
-    public function save()
+    /**
+     * Check a New / Edit request form. Returns the errors, the request columns and the workers;
+     * the same rules apply to both (KPK insertTemporaryWorkPass).
+     */
+    private function readForm(array $p): array
     {
-        $p   = $this->request->getPost();
-        $db  = $this->db();
         $res = ($p['resident'] ?? '') === 'FOREIGNER' ? 'FOREIGNER' : 'LOCAL';
         $err = [];
         foreach (['company_name' => 'Company', 'full_name' => 'Applicant Name', 'contact_no' => 'Contact Number', 'type_of_work' => 'Type Of Work', 'date_from' => 'Date and Time In', 'date_to' => 'Date and Time Out'] as $k => $l) {
@@ -140,25 +181,45 @@ class Twp extends BaseController
             $err[] = 'Add at least one worker.';
         }
         // KPK: the applicant and every worker are checked against the blacklist before saving
-        if (! $err && TwpGate::blacklisted($db, $idNo, ...array_map(static fn($w) => $w['ic_no'] ?? $w['passport_no'], $workers))) {
+        if (! $err && TwpGate::blacklisted($this->db(), $idNo, ...array_map(static fn($w) => $w['ic_no'] ?? $w['passport_no'], $workers))) {
             $err[] = 'IC No or Passport No Blacklisted / Suspended.';
         }
+        if ($err) {
+            return [$err, [], []];
+        }
+
+        $data = [
+            'company_name' => mb_substr(trim($p['company_name']), 0, 200), 'company_reg_id' => trim((string) ($p['company_reg_id'] ?? '')) ?: null,
+            'resident' => $res, 'ic_no' => $res === 'LOCAL' ? $idNo : null, 'passport_no' => $res === 'FOREIGNER' ? $idNo : null,
+            'full_name' => mb_substr(trim($p['full_name']), 0, 200), 'contact_no' => trim($p['contact_no']), 'email' => trim((string) ($p['email'] ?? '')) ?: null,
+            'type_of_work' => mb_substr(trim($p['type_of_work']), 0, 150), 'location_access' => implode(',', $locs),
+            'date_from' => date('Y-m-d H:i:s', $from), 'date_to' => date('Y-m-d H:i:s', $to),
+        ];
+
+        return [[], $data, $workers];
+    }
+
+    private function amountFor(array $workers, array $rates): float
+    {
+        return $rates['worker'] * count($workers) + $rates['vehicle'] * count(array_filter(array_column($workers, 'vehicle_no')));
+    }
+
+    public function save()
+    {
+        $p  = $this->request->getPost();
+        $db = $this->db();
+        [$err, $data, $workers] = $this->readForm($p);
         if ($err) {
             return view('twp/form', ['pageTitle' => 'New Temporary Work Pass - SafeG', 'locations' => $this->locations(), 'rates' => $this->rates(), 'old' => $p, 'errors' => $err]);
         }
 
-        $rates  = $this->rates();
-        $amount = $rates['worker'] * count($workers) + $rates['vehicle'] * count(array_filter(array_column($workers, 'vehicle_no')));
+        $amount = $this->amountFor($workers, $this->rates());
         $now    = date('Y-m-d H:i:s');
         $c      = $this->clientId();
         $db->transStart();
-        $db->table('twp_requests')->insert([
+        $db->table('twp_requests')->insert($data + [
             'company_id' => $c > 0 ? $c : null, 'app_date' => $now, 'requested_by' => (int) session()->get('user_id') ?: null,
-            'company_name' => mb_substr(trim($p['company_name']), 0, 200), 'company_reg_id' => trim((string) ($p['company_reg_id'] ?? '')) ?: null,
-            'resident' => $res, 'ic_no' => $res === 'LOCAL' ? $idNo : null, 'passport_no' => $res === 'FOREIGNER' ? $idNo : null,
-            'full_name' => mb_substr(trim($p['full_name']), 0, 200), 'contact_no' => trim($p['contact_no']), 'email' => trim((string) ($p['email'] ?? '')) ?: null,
-            'sub_type' => 'TEMPORARY WORK PERMIT', 'type_of_work' => mb_substr(trim($p['type_of_work']), 0, 150), 'location_access' => implode(',', $locs),
-            'date_from' => date('Y-m-d H:i:s', $from), 'date_to' => date('Y-m-d H:i:s', $to),
+            'sub_type' => 'TEMPORARY WORK PERMIT',
             'amount' => $amount, 'payment_status' => $amount > 0 ? 'Pending' : 'None', 'payment_type' => $amount > 0 ? null : 'NONE',
             'status' => 'Pending', 'created_at' => $now, 'updated_at' => $now,
         ]);
@@ -171,6 +232,73 @@ class Twp extends BaseController
         $db->transComplete();
 
         return $this->back("twp/requests/{$id}", 'success', 'Temporary work pass request submitted.');
+    }
+
+    /** Only a Pending request that is not paid yet can be changed (KPK: edit before approval). */
+    private function editable(?array $r): bool
+    {
+        return $r && $r['status'] === 'Pending' && ($r['payment_status'] ?? '') !== 'Paid';
+    }
+
+    /** The saved request as form values (same names the New form posts). */
+    private function formValues(array $r): array
+    {
+        $workers = [];
+        foreach ($this->db()->table('twp_workers')->where('request_id', $r['id'])->orderBy('id')->get()->getResultArray() as $w) {
+            $workers[] = ['name' => $w['name'], 'resident' => $w['resident'], 'id_no' => $w['resident'] === 'FOREIGNER' ? $w['passport_no'] : $w['ic_no'],
+                'contact_no' => $w['contact_no'], 'vehicle_no' => $w['vehicle_no']];
+        }
+        $dt = static fn($v) => $v ? date('Y-m-d\TH:i', strtotime((string) $v)) : '';
+
+        return ['company_name' => $r['company_name'], 'company_reg_id' => $r['company_reg_id'], 'resident' => $r['resident'], 'ic_no' => $r['ic_no'], 'passport_no' => $r['passport_no'],
+            'full_name' => $r['full_name'], 'contact_no' => $r['contact_no'], 'email' => $r['email'], 'type_of_work' => $r['type_of_work'],
+            'date_from' => $dt($r['date_from']), 'date_to' => $dt($r['date_to']),
+            'locations' => array_values(array_filter(explode(',', (string) $r['location_access']))), 'workers' => $workers ?: [['resident' => 'LOCAL']]];
+    }
+
+    private function editView(array $r, array $old, array $err)
+    {
+        return view('twp/form', ['pageTitle' => 'Edit ' . $r['app_no'] . ' - SafeG', 'locations' => $this->locations(), 'rates' => $this->rates((int) ($r['company_id'] ?? 0)),
+            'old' => $old, 'errors' => $err, 'editing' => $r]);
+    }
+
+    public function edit($id)
+    {
+        $r = $this->find((int) $id);
+        if (! $this->editable($r)) {
+            return $this->back($r ? "twp/requests/{$r['id']}" : 'twp/requests', 'error', 'Only a Pending request that is not paid yet can be edited.');
+        }
+
+        return $this->editView($r, $this->formValues($r), []);
+    }
+
+    /** Save an officer's changes to a Pending request; the amount is worked out again and the workers replaced. */
+    public function update($id)
+    {
+        $r = $this->find((int) $id);
+        if (! $this->editable($r)) {
+            return $this->back($r ? "twp/requests/{$r['id']}" : 'twp/requests', 'error', 'Only a Pending request that is not paid yet can be edited.');
+        }
+        $p = $this->request->getPost();
+        [$err, $data, $workers] = $this->readForm($p);
+        if ($err) {
+            return $this->editView($r, $p, $err);
+        }
+
+        $db     = $this->db();
+        $amount = $this->amountFor($workers, $this->rates((int) ($r['company_id'] ?? 0)));
+        $now    = date('Y-m-d H:i:s');
+        $db->transStart();
+        $db->table('twp_requests')->where('id', $r['id'])->update($data + [
+            'amount' => $amount, 'payment_status' => $amount > 0 ? 'Pending' : 'None', 'payment_type' => $amount > 0 ? null : 'NONE', 'updated_at' => $now,
+        ]);
+        $db->table('twp_workers')->where('request_id', $r['id'])->delete();
+        foreach ($workers as $w) {
+            $db->table('twp_workers')->insert($w + ['request_id' => $r['id'], 'status' => 'Pending', 'created_at' => $now, 'updated_at' => $now]);
+        }
+        $db->transComplete();
+
+        return $this->back("twp/requests/{$r['id']}", 'success', 'Temporary work pass request updated.');
     }
 
     public function show($id)
@@ -454,6 +582,7 @@ class Twp extends BaseController
         return redirect()->to(base_url('config?section=twpcard'));
     }
 
+<<<<<<< Updated upstream
     /** Config > TWP Card Management table: search, sort, 10 a page. Status in_use = issued to a worker now. */
     public function cardList()
     {
@@ -500,6 +629,10 @@ class Twp extends BaseController
         $db->table('twp_cards')->where('id', (int) $id)->delete();
 
         return $this->response->setJSON(['success' => true, 'message' => 'TWP card deleted.']);
+=======
+        return view('twp/cards', ['pageTitle' => 'Temporary Work Pass Card - SafeG', 'rows' => $rows, 'rates' => $this->settingsRates(), 'effective' => $this->rates(), 'superadmin' => $c === 0,
+            'templates' => \App\Libraries\CardTemplates::resolveAll($this->db(), 'twp', $c ?: null)]);
+>>>>>>> Stashed changes
     }
 
     public function saveCard()

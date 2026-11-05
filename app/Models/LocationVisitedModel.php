@@ -15,7 +15,7 @@ class LocationVisitedModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['name', 'status', 'version'];
+    protected $allowedFields    = ['name', 'status', 'meeting_room', 'version'];
 
     protected $useTimestamps = true;
     protected $dateFormat    = 'datetime';

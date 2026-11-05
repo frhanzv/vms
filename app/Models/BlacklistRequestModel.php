@@ -27,6 +27,7 @@ class BlacklistRequestModel extends Model
         'status',
         'type',
         'reason',
+        'release_reason',
         'released_date',
     ];
 
@@ -101,12 +102,17 @@ class BlacklistRequestModel extends Model
      * Release a blacklisted individual
      * Updates status to 'released' and sets released_date
      */
-    public function release(int $id): bool
+    public function release(int $id, ?string $reason = null): bool
     {
-        return $this->update($id, [
+        $data = [
             'status'        => 'released',
             'released_date' => date('Y-m-d'),
-        ]);
+        ];
+        if ($reason !== null && $this->db->fieldExists('release_reason', $this->table)) {
+            $data['release_reason'] = mb_substr($reason, 0, 255);
+        }
+
+        return $this->update($id, $data);
     }
 
     /**

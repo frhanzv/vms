@@ -7,14 +7,15 @@ $label = 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1';
 $req   = '<span class="text-red-500">*</span>';
 $workers = array_values($old['workers'] ?? [['resident' => 'LOCAL']]);
 $chosen  = (array) ($old['locations'] ?? []);
+$editing = $editing ?? null; // the request being edited (Pending only), or null for a new one
 ?>
-<form method="post" action="<?= base_url('twp/requests/save') ?>" class="-m-2 space-y-4"
+<form method="post" action="<?= base_url($editing ? 'twp/requests/' . $editing['id'] . '/update' : 'twp/requests/save') ?>" class="-m-2 space-y-4"
       x-data="{ resident: '<?= $o('resident', 'LOCAL') ?>', workers: <?= esc(json_encode($workers), 'attr') ?>, rate: <?= (float) $rates['worker'] ?>, vrate: <?= (float) $rates['vehicle'] ?>,
                 get total() { return this.workers.filter(w => (w.name || '').trim()).reduce((s, w) => s + this.rate + ((w.vehicle_no || '').trim() ? this.vrate : 0), 0) } }">
     <?= csrf_field() ?>
     <div class="flex items-center justify-between">
-        <h1 class="text-xl font-bold uppercase tracking-wide">New Temporary Work Pass</h1>
-        <a href="<?= base_url('twp/requests') ?>" class="px-4 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm font-semibold">Back</a>
+        <h1 class="text-xl font-bold uppercase tracking-wide"><?= $editing ? 'Edit Temporary Work Pass ' . esc($editing['app_no']) : 'New Temporary Work Pass' ?></h1>
+        <a href="<?= base_url($editing ? 'twp/requests/' . $editing['id'] : 'twp/requests') ?>" class="px-4 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm font-semibold">Back</a>
     </div>
 
     <?php if ($errors): ?>
@@ -53,7 +54,7 @@ $chosen  = (array) ($old['locations'] ?? []);
                 <div class="font-semibold text-primary uppercase text-xs mb-1">Payment Info</div>
                 <div>Per worker: RM <?= number_format($rates['worker'], 2) ?> &middot; per vehicle: RM <?= number_format($rates['vehicle'], 2) ?></div>
                 <div class="font-bold">Total: RM <span x-text="total.toFixed(2)"></span></div>
-                <div class="text-xs text-gray-500">Pay at the counter (receipt) or online by FPX from the request page after submitting.</div>
+                <div class="text-xs text-gray-500"><?= $editing ? 'The total is worked out again when you save.' : 'Pay at the counter (receipt) or online by FPX from the request page after submitting.' ?></div>
             </div>
         </div>
     </div>
@@ -80,7 +81,7 @@ $chosen  = (array) ($old['locations'] ?? []);
         </div>
     </div>
 
-    <div class="flex justify-end"><button class="px-5 py-2 rounded bg-primary text-white text-sm font-semibold">Submit Request</button></div>
+    <div class="flex justify-end"><button class="px-5 py-2 rounded bg-primary text-white text-sm font-semibold"><?= $editing ? 'Save Changes' : 'Submit Request' ?></button></div>
 </form>
 
 <?= view('staffs/_layout_bottom') ?>

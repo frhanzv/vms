@@ -162,7 +162,7 @@ $selectedLocations = array_map('strval', $selectedLocations);
                             <div>
                                 <label class="<?= $label ?>">Approving Branch</label>
                                 <select data-f="access_branch" class="<?= $input ?>" <?= $dis ?>>
-                                    <?php foreach (['' => '-', 'KSB' => 'KSB', 'KPK' => 'KPK', 'BOTH' => 'Both'] as $v => $l): ?>
+                                    <?php foreach (\App\Libraries\ConfigLookups::branchOptions(\App\Libraries\ConfigLookups::currentClient(), '-', 'Both') as $v => $l): ?>
                                     <option value="<?= $v ?>" <?= ($s['access_branch'] ?? '') === $v ? 'selected' : '' ?>><?= $l ?></option>
                                     <?php endforeach; ?>
                                 </select>

@@ -17,14 +17,16 @@ class CardTemplates
         'vendor' => ['permanent' => 'Front - Permanent', 'temporary' => 'Front - Temporary / Contract', 'family' => 'Front - Family Pass', 'back' => 'Back'],
         'staff'  => ['permanent' => 'Front - Permanent', 'temporary' => 'Front - Temporary / Contract', 'back' => 'Back'],
         'twp'    => ['front' => 'Front', 'back' => 'Back'],
+        'visitor' => ['ksb' => 'Front - KSB', 'kpk' => 'Front - KPK', 'back' => 'Back'],
     ];
 
-    public const MODULES = ['vendor' => 'Vendor Pass', 'staff' => 'Staff Pass', 'twp' => 'Temporary Work Pass'];
+    public const MODULES = ['vendor' => 'Vendor Pass', 'staff' => 'Staff Pass', 'twp' => 'Temporary Work Pass', 'visitor' => 'Visitor Card'];
 
     private const DEFAULTS = [
         'vendor' => ['permanent' => 'vendor_permanent.jpg', 'temporary' => 'vendor_temporary.jpg', 'family' => 'family_type.png', 'back' => 'template_back.jpg'],
         'staff'  => ['permanent' => 'staff_permanent.jpg', 'temporary' => 'staff_temporary.jpg', 'back' => 'template_back.jpg'],
         'twp'    => ['front' => 'kpk_twp.jpg', 'back' => 'template_back.jpg'], // KPK temporary-work-pass-card print
+        'visitor' => ['ksb' => 'visitor.jpg', 'kpk' => 'kpk_visitor.png', 'back' => 'template_back.jpg'], // KPK visitor-card print (KSB / KPK template)
     ];
 
     public static function isValid(string $module, string $slot): bool

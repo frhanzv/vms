@@ -15,7 +15,25 @@ class CompanyModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['name', 'pass_name', 'registration_no', 'address', 'contact_no', 'email', 'status', 'location_id', 'location_ids', 'client_id', 'version'];
+    protected $allowedFields    = ['name', 'pass_name', 'registration_no', 'address', 'contact_no', 'email', 'status', 'location_id', 'location_ids', 'client_id', 'version',
+        // KPK Config > Company (migration 2026-11-05-120000_KpkConfigFields)
+        'branch', 'ledger_acc_no', 'account_type', 'haulier_code', 'mother_company_roc', 'gov_agent', 'created_by'];
+
+    /** KPK company fields shown in the list / export (only the ones the database has). */
+    public function kpkSelect(): string
+    {
+        $cols = [];
+        foreach (['branch', 'ledger_acc_no', 'account_type', 'haulier_code', 'mother_company_roc', 'gov_agent'] as $c) {
+            if ($this->db->fieldExists($c, 'companies')) {
+                $cols[] = 'companies.' . $c;
+            }
+        }
+        if ($this->db->fieldExists('created_by', 'companies')) {
+            $cols[] = '(SELECT u.username FROM users u WHERE u.id = companies.created_by) AS created_by_name';
+        }
+
+        return $cols ? ', ' . implode(', ', $cols) : '';
+    }
 
     protected bool $allowEmptyInserts = false;
     protected bool $updateOnlyChanged = true;
@@ -70,7 +88,7 @@ class CompanyModel extends Model
      */
     public function getCompaniesWithPagination($search = '', $sortBy = '', $limit = 10, $offset = 0)
     {
-        $builder = $this->select('companies.id, companies.name, companies.pass_name, companies.registration_no, companies.address, companies.contact_no, companies.email, companies.status, companies.created_at, ' . $this->registrationStateSql() . ' AS registration_state', false);
+        $builder = $this->select('companies.id, companies.name, companies.pass_name, companies.registration_no, companies.address, companies.contact_no, companies.email, companies.status, companies.created_at, ' . $this->registrationStateSql() . ' AS registration_state' . $this->kpkSelect(), false);
         $this->applyRegistrationFilter($builder);
         
         if (!empty($search)) {
@@ -183,6 +201,11 @@ class CompanyModel extends Model
         ];
         if (isset($conds[$f])) {
             $builder->where($conds[$f], null, false);
+        }
+        // KPK Branch filter (KSB / KPK / BOTH)
+        $b = strtoupper((string) service('request')->getGet('branch'));
+        if (in_array($b, ['KSB', 'KPK', 'BOTH'], true) && $this->db->fieldExists('branch', 'companies')) {
+            $builder->where('companies.branch', $b);
         }
     }
 

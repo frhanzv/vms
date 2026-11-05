@@ -19,6 +19,7 @@ $canDecide = in_array($r['status'], ['Pending', 'Rejected'], true);
             <span class="ml-2 text-xs px-2 py-0.5 rounded font-semibold <?= ['Approved' => 'bg-green-100 text-green-700', 'Rejected' => 'bg-red-100 text-red-700'][$r['status']] ?? 'bg-yellow-100 text-yellow-700' ?>"><?= esc($r['status']) ?></span></h1>
         <div class="flex gap-2">
             <a href="<?= base_url('twp/requests') ?>" class="px-4 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm font-semibold">Back</a>
+            <?php if ($r['status'] === 'Pending' && ($r['payment_status'] ?? '') !== 'Paid'): ?><a href="<?= base_url('twp/requests/' . $r['id'] . '/edit') ?>" class="px-4 py-2 rounded bg-primary text-white text-sm font-semibold">Edit</a><?php endif; ?>
             <?php if ($canDecide): ?><button type="button" @click="modal = 'approve'" class="px-4 py-2 rounded bg-green-600 text-white text-sm font-semibold">Approve</button><?php endif; ?>
             <button type="button" @click="modal = 'reject'" class="px-4 py-2 rounded bg-red-600 text-white text-sm font-semibold">Reject</button>
         </div>

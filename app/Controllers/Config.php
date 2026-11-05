@@ -652,7 +652,8 @@ class Config extends BaseController
      */
     public function getUser($id)
     {
-        $user = $this->userModel->select('id, username, email, full_name, staff_id, contact_no, role, is_active, client_id, company_id, receive_email_notifications')
+        $kpk  = array_filter(['user_type', 'country', 'ic_number', 'passport_no', 'plks_expiry', 'branch', 'remark', 'verified_at'], fn($c) => \Config\Database::connect()->fieldExists($c, 'users'));
+        $user = $this->userModel->select('id, username, email, full_name, staff_id, contact_no, role, is_active, client_id, company_id, receive_email_notifications' . ($kpk ? ', ' . implode(', ', $kpk) : ''))
             ->find($id);
 
         if (!$user) {
@@ -703,6 +704,58 @@ class Config extends BaseController
             (string) $this->request->getGet('staff_id')
         ));
     }
+    /**
+     * KPK Config > User extra fields: Type (USER / STAFF), Country, IC No / Passport No, Work Permit (PLKS)
+     * Expiry, Branch, Remark, Company. Returns [data, errors]; only keys the form sent are returned
+     * (company_id: '' = no company), so an edit that does not send them leaves them as they are.
+     */
+    private function kpkUserFields(array $input): array
+    {
+        $db   = \Config\Database::connect();
+        $data = [];
+        $err  = [];
+        $has  = static fn(string $k) => array_key_exists($k, $input);
+        if ($has('user_type') && $db->fieldExists('user_type', 'users')) {
+            $t = strtoupper(trim((string) $input['user_type']));
+            if ($t !== '' && ! in_array($t, ['USER', 'STAFF'], true)) {
+                $err['user_type'] = 'Choose a valid Type.';
+            }
+            $data['user_type'] = $t ?: null;
+        }
+        if ($has('branch') && $db->fieldExists('branch', 'users')) {
+            $b = strtoupper(trim((string) $input['branch']));
+            if ($b !== '' && ! in_array($b, ['KSB', 'KPK', 'BOTH'], true)) {
+                $err['branch'] = 'Choose a valid Branch.';
+            }
+            $data['branch'] = $b ?: null;
+        }
+        foreach (['country' => 100, 'ic_number' => 50, 'passport_no' => 50, 'remark' => 500] as $k => $max) {
+            if ($has($k) && $db->fieldExists($k, 'users')) {
+                $data[$k] = mb_substr(trim((string) $input[$k]), 0, $max) ?: null;
+            }
+        }
+        if (isset($data['ic_number'])) {
+            $data['ic_number'] = preg_replace('/[\s-]/', '', $data['ic_number']);
+        }
+        if ($has('plks_expiry') && $db->fieldExists('plks_expiry', 'users')) {
+            $d = trim((string) $input['plks_expiry']);
+            $t = $d !== '' ? \DateTime::createFromFormat('Y-m-d', $d) : null;
+            if ($d !== '' && (! $t || $t->format('Y-m-d') !== $d)) {
+                $err['plks_expiry'] = 'Work Permit (PLKS) Expiry must be a date.';
+            }
+            $data['plks_expiry'] = $d !== '' ? $d : null;
+        }
+        if ($has('company_id')) {
+            $cid = (int) $input['company_id'];
+            if ($cid > 0 && ! $db->table('companies')->where('id', $cid)->countAllResults()) {
+                $err['company_id'] = 'Company not found.';
+            }
+            $data['company_id'] = $cid > 0 ? $cid : null;
+        }
+
+        return [$data, $err];
+    }
+
     public function createUser()
     {
         helper(['role', 'feature']);
@@ -775,6 +828,11 @@ class Config extends BaseController
             ])->setStatusCode(400);
         }
 
+        [$kpk, $kpkErr] = $this->kpkUserFields($input);
+        if ($kpkErr) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Validation failed', 'errors' => $kpkErr])->setStatusCode(400);
+        }
+
         $data = [
             'username'   => $input['username'],
             'email'      => $input['email'],
@@ -788,6 +846,7 @@ class Config extends BaseController
             'company_id' => null,
             'receive_email_notifications' => isset($input['receive_email_notifications']) ? $input['receive_email_notifications'] : 1,
         ];
+        $data = array_merge($data, $kpk);
 
         try {
             $userId = $this->userModel->insert($data);
@@ -884,6 +943,11 @@ class Config extends BaseController
             ])->setStatusCode(400);
         }
 
+        [$kpk, $kpkErr] = $this->kpkUserFields($input);
+        if ($kpkErr) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Validation failed', 'errors' => $kpkErr])->setStatusCode(400);
+        }
+
         $data = [
             'username'   => $input['username'],
             'email'      => $input['email'],
@@ -893,9 +957,11 @@ class Config extends BaseController
             'role'       => $role,
             'is_active'  => $input['is_active'],
             'client_id' => ! empty($input['client_id']) ? (int) $input['client_id'] : null,
-            'company_id' => null,
+            // Keep the user's company (a vendor account's link to Config > Company) unless the form changes it.
+            'company_id' => $user['company_id'] ?? null,
             'receive_email_notifications' => isset($input['receive_email_notifications']) ? $input['receive_email_notifications'] : 1,
         ];
+        $data = array_merge($data, $kpk);
 
         // Only update password if provided and not empty
         if (!empty($input['password'])) {
@@ -1275,10 +1341,48 @@ class Config extends BaseController
         return $e;
     }
 
+    /**
+     * KPK Config > Company extra fields: Branch, Ledger Code (ledger_acc_no), Account Type, Haulier Code,
+     * Mother Company (ROC No), Gov Agent. Only the keys the form sent are touched.
+     */
+    private function kpkCompanyFields(array &$data): ?string
+    {
+        $pick = static fn($v, array $ok) => in_array(strtoupper(trim((string) $v)), $ok, true) ? strtoupper(trim((string) $v)) : null;
+        if (array_key_exists('branch', $data)) {
+            if (trim((string) $data['branch']) !== '' && $pick($data['branch'], ['KSB', 'KPK', 'BOTH']) === null) {
+                return 'Choose a valid Branch.';
+            }
+            $data['branch'] = $pick($data['branch'], ['KSB', 'KPK', 'BOTH']);
+        }
+        if (array_key_exists('account_type', $data)) {
+            if (trim((string) $data['account_type']) !== '' && $pick($data['account_type'], ['CASH', 'LEDGER', 'CREDIT']) === null) {
+                return 'Choose a valid Account Type.';
+            }
+            $data['account_type'] = $pick($data['account_type'], ['CASH', 'LEDGER', 'CREDIT']);
+        }
+        foreach (['ledger_acc_no' => 50, 'haulier_code' => 50, 'mother_company_roc' => 100] as $k => $max) {
+            if (array_key_exists($k, $data)) {
+                $data[$k] = mb_substr(trim((string) $data[$k]), 0, $max) ?: null;
+            }
+        }
+        if (array_key_exists('gov_agent', $data)) {
+            $data['gov_agent'] = in_array((string) $data['gov_agent'], ['1', 'true', 'yes'], true) ? 1 : 0;
+        }
+        unset($data['created_by']);
+
+        return null;
+    }
+
     public function createCompany()
     {
         try {
             $data = $this->request->getJSON(true);
+            if ($err = $this->kpkCompanyFields($data)) {
+                return $this->response->setJSON(['success' => false, 'message' => $err])->setStatusCode(400);
+            }
+            if (\Config\Database::connect()->fieldExists('created_by', 'companies')) {
+                $data['created_by'] = (int) session()->get('user_id') ?: null;
+            }
 
             if ($missing = $this->companyRequiredErrors($data)) {
                 return $this->response->setJSON(['success' => false, 'message' => reset($missing), 'errors' => $missing])->setStatusCode(400);
@@ -1334,6 +1438,9 @@ class Config extends BaseController
 
             $data = $input;
             unset($data['version'], $data['id']);
+            if ($err = $this->kpkCompanyFields($data)) {
+                return $this->response->setJSON(['success' => false, 'message' => $err])->setStatusCode(400);
+            }
 
             if ($missing = $this->companyRequiredErrors($data)) {
                 return $this->response->setJSON(['success' => false, 'message' => reset($missing), 'errors' => $missing])->setStatusCode(400);
@@ -1391,6 +1498,118 @@ class Config extends BaseController
                 'message' => 'Failed to delete company: ' . $e->getMessage()
             ])->setStatusCode(500);
         }
+    }
+
+    private const SLIP_LIMITS = ['slip_paper_limit_1', 'slip_paper_limit_2', 'slip_paper_limit_3'];
+
+    /** Config > Lane > Threshold (KPK slip-printer paper limits 1-3, one set for the whole system). */
+    public function laneThresholds()
+    {
+        $map = array_column(\Config\Database::connect()->table('settings')->whereIn('setting_key', self::SLIP_LIMITS)->get()->getResultArray(), 'setting_value', 'setting_key');
+
+        return $this->response->setJSON(['success' => true, 'data' => array_map(static fn($k) => (int) ($map[$k] ?? 0), self::SLIP_LIMITS)]);
+    }
+
+    public function saveLaneThresholds()
+    {
+        helper('role');
+        if (! is_platform_superadmin() && ! is_client_superadmin()) {
+            return $this->response->setStatusCode(403)->setJSON(['success' => false, 'message' => 'Only a super admin can change the thresholds.']);
+        }
+        $db  = \Config\Database::connect();
+        $now = date('Y-m-d H:i:s');
+        $vals = [];
+        foreach (self::SLIP_LIMITS as $i => $key) {
+            $v = trim((string) $this->request->getPost('limit_' . ($i + 1)));
+            if ($v !== '' && (! ctype_digit($v) || (int) $v > 1000000)) {
+                return $this->response->setStatusCode(400)->setJSON(['success' => false, 'message' => 'Threshold ' . ($i + 1) . ' must be a whole number.']);
+            }
+            $vals[$key] = (string) (int) $v;
+        }
+        foreach ($vals as $key => $v) {
+            $db->table('settings')->where('setting_key', $key)->countAllResults() > 0
+                ? $db->table('settings')->where('setting_key', $key)->update(['setting_value' => $v, 'updated_at' => $now])
+                : $db->table('settings')->insert(['setting_key' => $key, 'setting_value' => $v, 'created_at' => $now, 'updated_at' => $now]);
+        }
+
+        return $this->response->setJSON(['success' => true, 'message' => 'Slip print threshold saved.']);
+    }
+
+    /** Config > Lane > Force Log Out (KPK forceLogOutUserOnLane): clears the user logged in on the lane. */
+    public function forceLaneLogout($id)
+    {
+        $db   = \Config\Database::connect();
+        $lane = $db->table('lanes')->where('id', (int) $id)->get()->getRowArray();
+        if (! $lane) {
+            return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Lane not found.']);
+        }
+        if (empty($lane['last_logged_in_by'])) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Nobody is logged in on this lane.']);
+        }
+        $db->table('lanes')->where('id', (int) $id)->update(['last_logged_in_by' => null, 'last_logged_in_datetime' => null, 'updated_at' => date('Y-m-d H:i:s')]);
+        log_message('info', 'Config > Lane: force logged out {who} from lane {lane} (by user {by})', ['who' => $lane['last_logged_in_by'], 'lane' => $lane['lane'], 'by' => session()->get('user_id')]);
+
+        return $this->response->setJSON(['success' => true, 'message' => 'Force user ' . $lane['last_logged_in_by'] . ' logged out.']);
+    }
+
+    /** Write rows to an .xlsx download (KPK Config "Export" buttons). */
+    private function xlsxDownload(string $title, array $headers, array $rows, string $fileName)
+    {
+        $book  = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $book->getActiveSheet()->setTitle(mb_substr($title, 0, 31));
+        $sheet->fromArray($headers, null, 'A1');
+        $r = 2;
+        foreach ($rows as $row) {
+            $c = 1;
+            foreach ($row as $v) {
+                $sheet->setCellValueExplicit(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($c++) . $r, (string) ($v ?? ''), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            }
+            $r++;
+        }
+        $last = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($headers));
+        $sheet->getStyle("A1:{$last}1")->getFont()->setBold(true);
+        foreach (range(1, count($headers)) as $i) {
+            $sheet->getColumnDimension(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i))->setAutoSize(true);
+        }
+        $path = tempnam(sys_get_temp_dir(), 'cfgx_') . '.xlsx';
+        (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($book))->save($path);
+        $body = file_get_contents($path);
+        @unlink($path);
+
+        return $this->response
+            ->setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            ->setHeader('Content-Disposition', 'attachment; filename="' . $fileName . '"')
+            ->setBody($body);
+    }
+
+    /** Config > Company > Export (KPK doExportExcel): the list with the same search / sort / filters. */
+    public function exportCompanies()
+    {
+        $rows = $this->companyModel->getCompaniesWithPagination((string) ($this->request->getGet('search') ?? ''), (string) ($this->request->getGet('sort') ?? ''), 100000, 0);
+        $reg  = ['registered' => 'Yes', 'pending' => 'Pending', 'not_registered' => 'No'];
+        $out  = array_map(static fn($c) => [
+            $c['branch'] ?? '', $c['registration_no'] ?? '', $c['name'] ?? '', $c['pass_name'] ?? '', $c['ledger_acc_no'] ?? '', $c['account_type'] ?? '',
+            $c['haulier_code'] ?? '', $c['mother_company_roc'] ?? '', ! empty($c['gov_agent']) ? 'Yes' : 'No', $c['contact_no'] ?? '', $c['email'] ?? '',
+            ($c['status'] ?? '') === 'active' ? 'Active' : 'Inactive', $reg[$c['registration_state'] ?? ''] ?? '', $c['created_by_name'] ?? '',
+            ! empty($c['created_at']) ? date('d/m/Y h:i:s A', strtotime((string) $c['created_at'])) : '',
+        ], $rows);
+
+        return $this->xlsxDownload('Company', ['Branch', 'Company Reg ID', 'Company Name', 'Company Name In Port Pass', 'Ledger', 'Account Type', 'Haulier', 'Mother Company (ROC No)',
+            'Gov Agent', 'Contact No', 'Email', 'Status', 'Registered', 'Created By', 'Created Date'], $out, 'Company_' . date('Ymd_His') . '.xlsx');
+    }
+
+    /** Config > Location Access > Export (KPK downloadExport). The Adam password is never exported. */
+    public function exportLocations()
+    {
+        $rows = $this->locationModel->getLocationsWithPagination((string) ($this->request->getGet('search') ?? ''), (string) ($this->request->getGet('sort_by') ?? ''), 100000, 0);
+        $yn   = static fn($v, $yes) => (string) $v === $yes ? 'Yes' : 'No';
+        $out  = array_map(static fn($l) => [
+            $l['branch'] ?? '', $l['location_access'] ?? '', $l['adam_ip'] ?? '', $yn($l['mobile_app'] ?? '', 'enabled'), $yn($l['is_hold_area'] ?? '', 'yes'),
+            $yn($l['visitor_pass_print'] ?? '', 'enabled'), $yn($l['turnstile'] ?? '', 'active'), ucfirst((string) ($l['in_out_bound'] ?? '')), ucfirst((string) ($l['status'] ?? '')),
+        ], $rows);
+
+        return $this->xlsxDownload('Location Access', ['Client', 'Location Access', 'Adam IP', 'Mobile APP', 'Is Hold Area', 'Visitor Pass Print', 'Turnstile', 'In/Out Bound', 'Status'],
+            $out, 'LocationAccess_' . date('Ymd_His') . '.xlsx');
     }
 
     // ============== SUB COMPANY MANAGEMENT METHODS ==============
@@ -3627,6 +3846,9 @@ class Config extends BaseController
             'name' => trim((string) $this->request->getPost('name')),
             'status' => (string) $this->request->getPost('status'),
         ];
+        if (\Config\Database::connect()->fieldExists('meeting_room', 'location_visited')) {
+            $data['meeting_room'] = (string) $this->request->getPost('meeting_room') === '1' ? 1 : 0; // KPK LocationVisitedLookup.meetingroom
+        }
 
         if (!$this->locationVisitedModel->insert($data)) {
             return $this->response->setStatusCode(500)->setJSON([
@@ -3676,6 +3898,9 @@ class Config extends BaseController
             'name' => trim((string) $input['name']),
             'status' => (string) $input['status'],
         ];
+        if (array_key_exists('meeting_room', $input) && \Config\Database::connect()->fieldExists('meeting_room', 'location_visited')) {
+            $data['meeting_room'] = (string) $input['meeting_room'] === '1' ? 1 : 0;
+        }
 
         $this->locationVisitedModel->skipValidation(true);
         $error = $this->versionedUpdate($this->locationVisitedModel, $id, $data, $input, 'location visited');

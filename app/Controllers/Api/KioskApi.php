@@ -365,6 +365,20 @@ class KioskApi extends BaseController
     }
 
     /**
+     * KPK VendorPassServiceImpl: a walk-in pass with no validity dates ends at today's closing time
+     * (Config > Operating Hours). No operating hours for today, or already past closing = end of today.
+     */
+    private function walkInExpiry(int $clientId): string
+    {
+        $close = \App\Libraries\ConfigLookups::closingTime($clientId > 0 ? $clientId : null);
+        if ($close !== null && strtotime(date('Y-m-d ') . $close) > time()) {
+            return date('Y-m-d ') . $close;
+        }
+
+        return date('Y-m-d 23:59:59');
+    }
+
+    /**
      * POST /api/vendorpass/doVisitorPassReqMobile
      * Registers a walk-in visitor and creates an invitation record.
      *
@@ -513,7 +527,7 @@ class KioskApi extends BaseController
             'registration_source'  => 'kiosk',
             'client_id'            => $clientId > 0 ? $clientId : null,
             'status'               => 'Submitted',
-            'link_expiry'          => date('Y-m-d 23:59:59'),
+            'link_expiry'          => $this->walkInExpiry($clientId),
         ];
 
         // Remove null fields so model validation stays clean

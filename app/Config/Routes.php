@@ -324,6 +324,29 @@ $routes->group('config/license-classes', ['filter' => 'role:superadmin,clientsup
     $routes->post('save', 'LicenseClassConfig::save');
     $routes->post('(:num)/toggle', 'LicenseClassConfig::toggle/$1');
 });
+// Config > Payment Type / Branch Office / Release Reason / Operating Hours / Bank Name / Sub Business Type (KPK lists)
+$routes->group('config/lookups', ['filter' => 'role:superadmin,clientsuperadmin'], function ($routes) {
+    $routes->get('(:segment)', 'LookupConfig::index/$1');
+    $routes->get('(:segment)/schema', 'LookupConfig::schema/$1');
+    $routes->post('(:segment)/save', 'LookupConfig::save/$1');
+    $routes->post('(:segment)/(:num)/toggle', 'LookupConfig::toggle/$1/$2');
+});
+// Config > Questionnaire (KPK questionnaire-conf: questions per training video + Question Threshold)
+$routes->group('config/questionnaire', ['filter' => 'role:superadmin,clientsuperadmin'], function ($routes) {
+    $routes->get('/', 'VideoQuestionConfig::index');
+    $routes->get('threshold', 'VideoQuestionConfig::threshold');
+    $routes->post('threshold', 'VideoQuestionConfig::threshold');
+    $routes->get('(:num)', 'VideoQuestionConfig::show/$1');
+    $routes->post('save', 'VideoQuestionConfig::save');
+    $routes->post('(:num)/toggle', 'VideoQuestionConfig::toggle/$1');
+});
+// Config > Dashboard Upload (KPK dashboard-upload: picture shown on the dashboard)
+$routes->group('config/dashboard-upload', ['filter' => 'role:superadmin,clientsuperadmin'], function ($routes) {
+    $routes->get('/', 'DashboardUploadConfig::index');
+    $routes->post('upload', 'DashboardUploadConfig::upload');
+    $routes->post('(:num)/toggle', 'DashboardUploadConfig::toggle/$1');
+    $routes->post('(:num)/delete', 'DashboardUploadConfig::delete/$1');
+});
 // Vehicle Pass (annual) - Public and Cargo | Non-Cargo. Page access is checked inside the controller with the Role > Vehicle keys.
 // vendor_admin is allowed in so a vendor can use its own "My Vehicle Pass"; the controller limits it to its own company.
 $routes->group('', ['filter' => [$plusAdminOfficerVendor, 'client_feature:vehicle_pass']], function ($routes) {
@@ -688,6 +711,8 @@ $routes->group('twp', ['filter' => $plusAdminOfficer], function($routes) {
     $routes->get('requests/new', 'Twp::create');
     $routes->post('requests/save', 'Twp::save');
     $routes->get('requests/(:num)', 'Twp::show/$1');
+    $routes->get('requests/(:num)/edit', 'Twp::edit/$1');
+    $routes->post('requests/(:num)/update', 'Twp::update/$1');
     $routes->post('requests/(:num)/approve', 'Twp::approve/$1');
     $routes->post('requests/(:num)/reject', 'Twp::reject/$1');
     $routes->post('requests/(:num)/payment', 'Twp::payment/$1');
@@ -782,6 +807,11 @@ $routes->group('config', ['filter' => $superadmins], function($routes) {
     $routes->post('updateCompany/(:num)', 'Config::updateCompany/$1');
     $routes->delete('deleteCompany/(:num)', 'Config::deleteCompany/$1');
     $routes->get('getAllCompanies', 'Config::getAllCompanies');
+    $routes->get('companies/export', 'Config::exportCompanies');   // KPK Config > Company > Export
+    $routes->get('locations/export', 'Config::exportLocations');   // KPK Config > Location Access > Export
+    $routes->get('lanes/thresholds', 'Config::laneThresholds');     // KPK Config > Lane > Threshold
+    $routes->post('lanes/thresholds', 'Config::saveLaneThresholds');
+    $routes->post('lanes/(:num)/force-logout', 'Config::forceLaneLogout/$1');
 
     // Sub Companies
     $routes->get('getSubCompanies', 'Config::getSubCompanies');

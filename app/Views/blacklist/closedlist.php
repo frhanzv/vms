@@ -300,6 +300,10 @@
                             <label class="block text-[11px] text-slate-400 mb-1 font-medium">Staff ID</label>
                             <div id="m_staff_id" class="h-10 px-4 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-700 flex items-center"></div>
                         </div>
+                        <div id="m_release_reason_box" class="hidden md:col-span-2">
+                            <label class="block text-[11px] text-slate-400 mb-1 font-medium">Release Reason</label>
+                            <div id="m_release_reason" class="h-10 px-4 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-700 flex items-center"></div>
+                        </div>
                     </div>
                 </div>
 
@@ -312,8 +316,14 @@
                 class="px-5 py-2 rounded-lg bg-amber-400 hover:bg-amber-500 text-white text-sm font-semibold transition-colors">
                 Back
             </button>
-            <form id="releaseForm" method="POST" action="">
+            <form id="releaseForm" method="POST" action="" class="flex items-center gap-3">
                 <?= csrf_field() ?>
+                <?php if (! empty($releaseReasons)): ?>
+                <select name="release_reason" required class="h-10 pl-3 pr-8 text-sm bg-white border border-slate-200 rounded-lg text-slate-700">
+                    <option value="">-- Release Reason --</option>
+                    <?php foreach ($releaseReasons as $rr): ?><option value="<?= esc($rr) ?>"><?= esc($rr) ?></option><?php endforeach; ?>
+                </select>
+                <?php endif; ?>
                 <button type="submit"
                     onclick="return confirm('Are you sure you want to release this individual from the blacklist?')"
                     class="px-6 py-2 rounded-lg bg-green-500 hover:bg-green-600 text-white text-sm font-semibold transition-colors shadow-sm flex items-center gap-2">
@@ -357,6 +367,8 @@ function openModal(id) {
             document.getElementById('m_name').textContent           = d.name || '—';
             document.getElementById('m_type').textContent           = d.type || '—';
             document.getElementById('m_staff_id').textContent       = d.staff_id || '—';
+            document.getElementById('m_release_reason').textContent = d.release_reason || '—';
+            document.getElementById('m_release_reason_box').classList.toggle('hidden', !d.release_reason);
 
             loading.classList.add('hidden');
             content.classList.remove('hidden');

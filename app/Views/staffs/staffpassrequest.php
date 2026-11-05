@@ -153,7 +153,7 @@
                             <div class="space-y-2">
                                 <label class="<?= $labelClass ?>">Approving Branch</label>
                                 <select name="access_branch" class="<?= $inputClass ?>">
-                                    <?php foreach (['' => '-- Select --', 'KSB' => 'KSB', 'KPK' => 'KPK', 'BOTH' => 'Both (KSB + KPK)'] as $bv => $bl): ?>
+                                    <?php foreach (\App\Libraries\ConfigLookups::branchOptions(\App\Libraries\ConfigLookups::currentClient()) as $bv => $bl): ?>
                                     <option value="<?= $bv ?>" <?= old('access_branch', $s['access_branch'] ?? '') === $bv ? 'selected' : '' ?>><?= $bl ?></option>
                                     <?php endforeach; ?>
                                 </select>

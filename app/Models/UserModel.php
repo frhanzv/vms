@@ -15,7 +15,9 @@ class UserModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['client_id', 'company_id', 'username', 'email', 'password', 'full_name', 'staff_id', 'contact_no', 'ic_number', 'activation_token', 'activation_token_expires_at', 'verified_at', 'verified_by', 'role', 'is_active', 'receive_email_notifications', 'profile_photo', 'version'];
+    protected $allowedFields    = ['client_id', 'company_id', 'username', 'email', 'password', 'full_name', 'staff_id', 'contact_no', 'ic_number', 'activation_token', 'activation_token_expires_at', 'verified_at', 'verified_by', 'role', 'is_active', 'receive_email_notifications', 'profile_photo', 'version',
+        // KPK Config > User (migration 2026-11-05-120000_KpkConfigFields)
+        'user_type', 'country', 'passport_no', 'plks_expiry', 'branch', 'remark'];
 
     // Dates
     protected $useTimestamps = true;
@@ -92,7 +94,7 @@ class UserModel extends Model
     public function getUsersWithPagination($search = '', $sortBy = '', $limit = 10, $offset = 0, ?int $clientId = null)
     {
         helper('role');
-        $builder = $this->select('users.id, users.username, users.email, users.full_name, users.staff_id, users.contact_no, users.role, users.is_active, users.verified_at, users.client_id, users.company_id, users.created_at, clients.name AS client_name, (SELECT c.name FROM companies c WHERE c.id = users.company_id) AS company_name, (SELECT c.registration_no FROM companies c WHERE c.id = users.company_id) AS company_reg_no')
+        $builder = $this->select('users.id, users.username, users.email, users.full_name, users.staff_id, users.contact_no, users.role, users.is_active, users.verified_at, users.client_id, users.company_id, users.created_at, users.ic_number,' . ($this->db->fieldExists('passport_no', 'users') ? ' users.passport_no, users.user_type,' : '') . ' clients.name AS client_name, (SELECT c.name FROM companies c WHERE c.id = users.company_id) AS company_name, (SELECT c.registration_no FROM companies c WHERE c.id = users.company_id) AS company_reg_no')
             ->join('clients', 'clients.id = users.client_id', 'left');
 
         if ($clientId !== null && $clientId > 0) {
@@ -101,13 +103,18 @@ class UserModel extends Model
         }
         
         if (!empty($search)) {
+            // users.* — the clients join also has email / contact_no. KPK also searches IC / passport.
             $builder->groupStart()
-                    ->like('username', $search)
-                    ->orLike('full_name', $search)
-                    ->orLike('email', $search)
-                    ->orLike('staff_id', $search)
-                    ->orLike('contact_no', $search)
-                    ->groupEnd();
+                    ->like('users.username', $search)
+                    ->orLike('users.full_name', $search)
+                    ->orLike('users.email', $search)
+                    ->orLike('users.staff_id', $search)
+                    ->orLike('users.contact_no', $search)
+                    ->orLike('users.ic_number', $search);
+            if ($this->db->fieldExists('passport_no', 'users')) {
+                $builder->orLike('users.passport_no', $search);
+            }
+            $builder->groupEnd();
         }
         
         // Apply sorting
@@ -183,7 +190,11 @@ class UserModel extends Model
                  ->orLike('email', $search)
                  ->orLike('staff_id', $search)
                  ->orLike('contact_no', $search)
-                 ->groupEnd();
+                 ->orLike('ic_number', $search);
+            if ($this->db->fieldExists('passport_no', 'users')) {
+                $this->orLike('passport_no', $search);
+            }
+            $this->groupEnd();
         }
         
         return $this->countAllResults();

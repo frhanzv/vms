@@ -1451,18 +1451,19 @@
                                         <tr>
                                             <th class="px-4 py-3">Username</th>
                                             <th class="px-4 py-3">Full Name</th>
-                                            <th class="px-4 py-3">Staff ID</th>
+                                            <th class="px-4 py-3">IC No / Passport No / Staff ID</th>
                                             <th class="px-4 py-3">Email</th>
                                             <th class="px-4 py-3">Contact Number</th>
                                             <th class="px-4 py-3">Role</th>
                                             <th class="px-4 py-3">Client</th>
+                                            <th class="px-4 py-3 text-center">Verified</th>
                                             <th class="px-4 py-3">Status</th>
                                             <th class="px-4 py-3">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody id="users-table-body" class="text-gray-700 dark:text-slate-300">
                                         <tr>
-                                            <td colspan="9"
+                                            <td colspan="10"
                                                 class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
                                                 <div class="flex flex-col items-center justify-center">
                                                     <div
@@ -1627,6 +1628,21 @@
                                         <span
                                             class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-symbols-outlined text-[20px]">expand_more</span>
                                     </div>
+                                    <div class="relative w-full sm:w-40">
+                                        <select id="companyBranchFilter" onchange="loadCompanies(1, currentCompanySearch, currentCompanySort)"
+                                            class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm appearance-none focus:ring-primary focus:border-primary text-gray-700 dark:text-gray-300">
+                                            <option value="">All branches</option>
+                                            <option value="BOTH">BOTH</option>
+                                            <option value="KSB">KSB</option>
+                                            <option value="KPK">KPK</option>
+                                        </select>
+                                        <span
+                                            class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-symbols-outlined text-[20px]">expand_more</span>
+                                    </div>
+                                    <button type="button" onclick="exportCompanies()"
+                                        class="px-4 py-2.5 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-200 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 text-sm flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-base">download</span> Export
+                                    </button>
                                 </div>
                                 <button onclick="openCreateCompanyModal()"
                                     class="px-4 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm flex items-center gap-2 w-full sm:w-auto">
@@ -1641,20 +1657,25 @@
                                     <thead
                                         class="text-xs text-gray-600 dark:text-slate-400 uppercase border-b border-gray-200 dark:border-slate-700">
                                         <tr>
+                                            <th class="px-4 py-3">Branch</th>
                                             <th class="px-4 py-3">Registration No</th>
                                             <th class="px-4 py-3">Company Name</th>
                                             <th class="px-4 py-3">Company Name In Port Pass</th>
+                                            <th class="px-4 py-3">Ledger</th>
+                                            <th class="px-4 py-3">Account Type</th>
+                                            <th class="px-4 py-3">Haulier</th>
                                             <th class="px-4 py-3">Contact No</th>
                                             <th class="px-4 py-3">Email</th>
                                             <th class="px-4 py-3">Status</th>
                                             <th class="px-4 py-3 text-center" title="Has the vendor registered its login account?">Registered</th>
+                                            <th class="px-4 py-3">Created By</th>
                                             <th class="px-4 py-3">Created At</th>
                                             <th class="px-4 py-3">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody id="companyTableBody" class="text-gray-700 dark:text-slate-300">
                                         <tr>
-                                            <td colspan="9"
+                                            <td colspan="14"
                                                 class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
                                                 <div class="flex flex-col items-center justify-center">
                                                     <div
@@ -1742,6 +1763,7 @@
                                         <tr>
                                             <th class="px-4 py-3">Sub Company</th>
                                             <th class="px-4 py-3">Company</th>
+                                            <th class="px-4 py-3">Prefix</th>
                                             <th class="px-4 py-3">Description</th>
                                             <th class="px-4 py-3">Status</th>
                                             <th class="px-4 py-3">Actions</th>
@@ -1749,7 +1771,7 @@
                                     </thead>
                                     <tbody id="subCompanyTableBody" class="text-gray-700 dark:text-slate-300">
                                         <tr>
-                                            <td colspan="5"
+                                            <td colspan="6"
                                                 class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
                                                 <div class="flex flex-col items-center justify-center">
                                                     <div
@@ -2196,12 +2218,19 @@
                     </div>
                 </div>
 
+<<<<<<< Updated upstream
                 <!-- TWP Card Management (KPK Config > Temporary Work Pass Card), same look as Visitor Card Management -->
                 <?php if (in_array(session()->get('role'), ['superadmin', 'clientsuperadmin', 'admin', 'officer'], true)):
                     $twpTpl = \App\Libraries\CardTemplates::resolveAll(\Config\Database::connect(), 'twp', is_platform_superadmin() ? null : ((int) current_client_id() ?: null)); ?>
                 <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden" x-data="twpCards()">
                     <button onclick="toggleSection('twpcard')" @click="if (! loaded) load(1)"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+=======
+                <!-- Temporary Work Pass Card (KPK Config > Temporary Work Pass Card) -->
+                <?php helper(['access']); if (in_array(session()->get('role'), ['superadmin', 'clientsuperadmin', 'admin', 'officer'], true) && has_access('twp', 'card')): ?>
+                <a href="<?= base_url('twp/cards') ?>" class="block bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 px-6 py-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                    <div class="flex items-center justify-between">
+>>>>>>> Stashed changes
                         <div class="flex items-center gap-4">
                             <div class="p-2 bg-primary/10 rounded-lg">
                                 <span class="material-symbols-outlined text-primary text-xl">engineering</span>
@@ -2686,6 +2715,154 @@
                     </div>
                 </div>
                 <?php endif; ?>
+                <!-- KPK lists: Payment Type, Branch Office, Release Reason, Operating Hours, Bank Name, Sub Business Type -->
+                <?php $lkIcons = ['meeting-sessions' => 'event_available', 'payment-types' => 'payments', 'branch-offices' => 'apartment', 'release-reasons' => 'lock_open', 'operating-hours' => 'schedule', 'bank-names' => 'account_balance', 'sub-business-types' => 'category'];
+                $lkAny = false;
+                foreach (\App\Libraries\ConfigLookups::definitions() as $lkKey => $lkDef):
+                    if (! has_access('config', $lkDef['access'])) { continue; }
+                    $lkAny = true; ?>
+                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                    <button onclick="toggleSection('lk-<?= $lkKey ?>')"
+                        class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                        <div class="flex items-center gap-4">
+                            <div class="p-2 bg-primary/10 rounded-lg"><span class="material-symbols-outlined text-primary text-xl"><?= $lkIcons[$lkKey] ?? 'list' ?></span></div>
+                            <div class="text-left">
+                                <h3 class="text-base font-bold text-gray-800 dark:text-white"><?= esc($lkDef['title']) ?></h3>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5"><?= esc($lkDef['hint']) ?></p>
+                            </div>
+                        </div>
+                        <span id="lk-<?= $lkKey ?>-icon" class="material-symbols-outlined text-gray-400 dark:text-slate-400 transition-transform">expand_more</span>
+                    </button>
+                    <div id="lk-<?= $lkKey ?>-content" class="hidden border-t border-gray-200 dark:border-slate-700">
+                        <div class="p-6 bg-gray-50 dark:bg-slate-800/50 space-y-4">
+                            <form onsubmit="event.preventDefault(); lkState['<?= $lkKey ?>'].page = 1; loadLookup('<?= $lkKey ?>');" class="flex gap-2">
+                                <input id="lk-<?= $lkKey ?>-search" type="text" placeholder="<?= esc(strtoupper($lkDef['title'])) ?>" class="flex-1 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm uppercase">
+                                <button type="submit" class="px-4 py-2 rounded-lg bg-primary text-white hover:bg-blue-600 text-sm"><span class="material-symbols-outlined text-base align-middle">search</span></button>
+                            </form>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <button type="button" onclick="openLookupModal('<?= $lkKey ?>')" class="px-4 py-2 rounded-lg bg-primary text-white hover:bg-blue-600 text-sm font-semibold">Create</button>
+                                <div id="lk-<?= $lkKey ?>-controls" class="flex flex-wrap items-center gap-2"></div>
+                            </div>
+                            <div id="lk-<?= $lkKey ?>-list"><p class="text-sm text-gray-500">Loading...</p></div>
+                            <div id="lk-<?= $lkKey ?>-pager" class="flex gap-1"></div>
+                        </div>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+                <?php if ($lkAny): ?>
+                <div id="lkModal" class="hidden fixed inset-0 z-50 flex items-start justify-center bg-black/50 p-4 pt-24">
+                    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-lg">
+                        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-slate-700">
+                            <h3 id="lkModalTitle" class="text-lg font-bold text-gray-800 dark:text-white">Create</h3>
+                            <button type="button" onclick="closeLookupModal()" class="text-gray-500 hover:text-gray-700 text-xl leading-none">&times;</button>
+                        </div>
+                        <form onsubmit="saveLookup(event)" class="p-6 space-y-4">
+                            <input type="hidden" id="lkId" value="">
+                            <div id="lkFields" class="space-y-4"></div>
+                            <div class="flex justify-between pt-2">
+                                <button type="button" onclick="closeLookupModal()" class="px-4 py-2 rounded-lg bg-amber-400 hover:bg-amber-500 text-white text-sm font-semibold">Back</button>
+                                <button type="submit" class="px-4 py-2 rounded-lg bg-primary text-white hover:bg-blue-600 text-sm font-semibold">Save</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <?php endif; ?>
+                <!-- KPK Config > Questionnaire (questions per training video) and Dashboard Upload -->
+                <?php if (has_access('config', 'questionnaire')): ?>
+                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                    <button onclick="toggleSection('questionnaire')"
+                        class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                        <div class="flex items-center gap-4">
+                            <div class="p-2 bg-primary/10 rounded-lg"><span class="material-symbols-outlined text-primary text-xl">quiz</span></div>
+                            <div class="text-left">
+                                <h3 class="text-base font-bold text-gray-800 dark:text-white">Questionnaire</h3>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Questions visitors answer after each training video (Video Management), with the correct answer and the pass threshold</p>
+                            </div>
+                        </div>
+                        <span id="questionnaire-icon" class="material-symbols-outlined text-gray-400 dark:text-slate-400 transition-transform">expand_more</span>
+                    </button>
+                    <div id="questionnaire-content" class="hidden border-t border-gray-200 dark:border-slate-700">
+                        <div class="p-6 bg-gray-50 dark:bg-slate-800/50 space-y-4">
+                            <form onsubmit="event.preventDefault(); vqState.page = 1; loadVideoQuestions();" class="flex gap-2">
+                                <input id="vqSearch" type="text" placeholder="QUESTION" class="flex-1 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm uppercase">
+                                <button type="submit" class="px-4 py-2 rounded-lg bg-primary text-white hover:bg-blue-600 text-sm"><span class="material-symbols-outlined text-base align-middle">search</span></button>
+                            </form>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <button type="button" onclick="openVqThreshold()" class="px-4 py-2 rounded-lg bg-amber-500 text-white hover:bg-amber-600 text-sm font-semibold">Question Threshold</button>
+                                <button type="button" onclick="openVqModal()" class="px-4 py-2 rounded-lg bg-primary text-white hover:bg-blue-600 text-sm font-semibold">Create</button>
+                                <select id="vqVideoFilter" onchange="vqState.page = 1; loadVideoQuestions()" class="border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm pr-8"><option value="">All Training Videos</option></select>
+                                <select id="vqPerPage" onchange="vqState.page = 1; loadVideoQuestions()" class="border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm pr-8"><option value="10">10 items per page</option><option value="20">20 items per page</option><option value="30">30 items per page</option><option value="40">40 items per page</option></select>
+                            </div>
+                            <div id="vqList"><p class="text-sm text-gray-500">Loading...</p></div>
+                            <div id="vqPager" class="flex gap-1"></div>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+                <?php if (has_access('config', 'dashboard_upload')): ?>
+                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                    <button onclick="toggleSection('dashboardupload')"
+                        class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                        <div class="flex items-center gap-4">
+                            <div class="p-2 bg-primary/10 rounded-lg"><span class="material-symbols-outlined text-primary text-xl">add_photo_alternate</span></div>
+                            <div class="text-left">
+                                <h3 class="text-base font-bold text-gray-800 dark:text-white">Dashboard Upload</h3>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Picture shown on the dashboard</p>
+                            </div>
+                        </div>
+                        <span id="dashboardupload-icon" class="material-symbols-outlined text-gray-400 dark:text-slate-400 transition-transform">expand_more</span>
+                    </button>
+                    <div id="dashboardupload-content" class="hidden border-t border-gray-200 dark:border-slate-700">
+                        <div class="p-6 bg-gray-50 dark:bg-slate-800/50 space-y-4">
+                            <form onsubmit="uploadDashboardPicture(event)" class="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
+                                <div><label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1">Picture (JPG, PNG, WEBP or GIF, max 5 MB)</label>
+                                    <input id="duFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif" class="text-sm"></div>
+                                <button type="submit" class="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 text-sm font-semibold">Save</button>
+                            </form>
+                            <div id="duList"><p class="text-sm text-gray-500">Loading...</p></div>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+                <?php if (has_access('config', 'questionnaire')): ?>
+                <div id="vqModal" class="hidden fixed inset-0 z-50 flex items-start justify-center bg-black/50 p-4 pt-16 overflow-y-auto">
+                    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-xl">
+                        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-slate-700">
+                            <h3 id="vqModalTitle" class="text-lg font-bold text-gray-800 dark:text-white">Create Question</h3>
+                            <button type="button" onclick="closeVqModal()" class="text-gray-500 hover:text-gray-700 text-xl leading-none">&times;</button>
+                        </div>
+                        <form onsubmit="saveVideoQuestion(event)" class="p-6 space-y-4">
+                            <input type="hidden" id="vqId" value="">
+                            <div><label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1"><span class="text-red-600">*</span>Question:</label><textarea id="vqQuestion" rows="2" maxlength="500" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm"></textarea></div>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <div class="sm:col-span-2"><label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1"><span class="text-red-600">*</span>Training Video:</label><select id="vqVideo" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm pr-8"></select></div>
+                                <div><label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1"><span class="text-red-600">*</span>Sequence:</label><input id="vqSequence" type="number" min="0" max="9999" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm"></div>
+                            </div>
+                            <div><label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1">Status</label><select id="vqStatus" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm pr-8"><option value="active">ACTIVE</option><option value="inactive">INACTIVE</option></select></div>
+                            <div>
+                                <div class="flex items-center justify-between mb-1"><label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1"><span class="text-red-600">*</span>Answers (tick the correct one):</label>
+                                    <button type="button" onclick="vqAddAnswer()" class="text-primary text-xs font-semibold">+ Add Option</button></div>
+                                <div id="vqAnswers" class="space-y-2"></div>
+                            </div>
+                            <div class="flex justify-between pt-2">
+                                <button type="button" onclick="closeVqModal()" class="px-4 py-2 rounded-lg bg-amber-400 hover:bg-amber-500 text-white text-sm font-semibold">Back</button>
+                                <button type="submit" class="px-4 py-2 rounded-lg bg-primary text-white hover:bg-blue-600 text-sm font-semibold">Save</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div id="vqThresholdModal" class="hidden fixed inset-0 z-50 flex items-start justify-center bg-black/50 p-4 pt-24">
+                    <form onsubmit="saveVqThreshold(event)" class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md p-6 space-y-4">
+                        <h3 class="text-lg font-bold text-gray-800 dark:text-white">Questions Threshold</h3>
+                        <div><label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1">Threshold:</label><input id="vqThreshold" type="number" min="0" max="9999" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm">
+                            <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Number of correct answers a visitor needs to pass the questionnaire.</p></div>
+                        <div class="flex justify-between pt-2">
+                            <button type="button" onclick="document.getElementById('vqThresholdModal').classList.add('hidden')" class="px-4 py-2 rounded-lg bg-amber-400 hover:bg-amber-500 text-white text-sm font-semibold">Back</button>
+                            <button type="submit" class="px-4 py-2 rounded-lg bg-primary text-white hover:bg-blue-600 text-sm font-semibold">Save</button>
+                        </div>
+                    </form>
+                </div>
+                <?php endif; ?>
                 <!-- Designation Management -->
                 <div
                     class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
@@ -2835,11 +3012,17 @@
                                             class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-symbols-outlined text-[20px]">expand_more</span>
                                     </div>
                                 </div>
+                                <div class="flex gap-2 w-full sm:w-auto">
+                                <button type="button" onclick="exportLocations()"
+                                    class="px-4 py-2.5 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-200 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 text-sm flex items-center justify-center gap-2">
+                                    <span class="material-symbols-outlined text-base">download</span> Export
+                                </button>
                                 <button onclick="openCreateLocationModal()"
                                     class="px-4 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm flex items-center justify-center gap-2 w-full sm:w-auto whitespace-nowrap">
                                     <span class="material-symbols-outlined text-base">add</span>
                                     Create Location
                                 </button>
+                                </div>
                             </div>
 
                             <!-- Location Access Table -->
@@ -2938,11 +3121,31 @@
                                             class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-symbols-outlined text-[20px]">expand_more</span>
                                     </div>
                                 </div>
+                                <div class="flex gap-2 w-full sm:w-auto">
+                                <button type="button" onclick="openLaneThresholdModal()"
+                                    class="px-4 py-2.5 rounded-lg bg-amber-500 text-white font-medium hover:bg-amber-600 text-sm flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-base">receipt_long</span> Threshold
+                                </button>
                                 <button onclick="openCreateLaneModal()"
                                     class="px-4 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm flex items-center gap-2 w-full sm:w-auto">
                                     <span class="material-symbols-outlined text-base">add</span>
                                     Create Lane
                                 </button>
+                                </div>
+                                <div id="laneThresholdModal" class="hidden fixed inset-0 z-50 flex items-start justify-center bg-black/50 p-4 pt-24">
+                                    <form onsubmit="saveLaneThresholds(event)" class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md p-6 space-y-4">
+                                        <h3 class="text-lg font-bold text-gray-800 dark:text-white">Slip Print Threshold</h3>
+                                        <p class="text-xs text-gray-500 dark:text-slate-400">Number of slips printed since the printer paper was last changed at which the lane shows each warning level.</p>
+                                        <?php for ($ti = 1; $ti <= 3; $ti++): ?>
+                                        <div><label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1">Threshold <?= $ti ?>:</label>
+                                            <input id="laneThreshold<?= $ti ?>" type="number" min="0" step="1" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm"></div>
+                                        <?php endfor; ?>
+                                        <div class="flex justify-between pt-2">
+                                            <button type="button" onclick="document.getElementById('laneThresholdModal').classList.add('hidden')" class="px-4 py-2 rounded-lg bg-amber-400 hover:bg-amber-500 text-white text-sm font-semibold">Back</button>
+                                            <button type="submit" class="px-4 py-2 rounded-lg bg-primary text-white hover:bg-blue-600 text-sm font-semibold">Save</button>
+                                        </div>
+                                    </form>
+                                </div>
                             </div>
 
                             <!-- Lane Table -->
@@ -3143,11 +3346,46 @@
                                             class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-symbols-outlined text-[20px]">expand_more</span>
                                     </div>
                                 </div>
+                                <?php $vcArt = \App\Libraries\CardTemplates::resolveAll(\Config\Database::connect(), 'visitor', (function () { helper(['role', 'feature']); return is_platform_superadmin() ? null : ((int) current_client_id() ?: null); })()); ?>
+                                <div class="flex gap-2 w-full sm:w-auto">
+                                <button type="button" onclick="document.getElementById('vcPrintModal').classList.remove('hidden')"
+                                    class="px-4 py-2.5 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-200 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 text-sm flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-base">print</span> Print
+                                </button>
                                 <button onclick="openCreateVisitorCardModal()"
                                     class="px-4 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm flex items-center gap-2 w-full sm:w-auto">
                                     <span class="material-symbols-outlined text-base">add</span>
                                     Create Card
                                 </button>
+                                </div>
+                                <!-- KPK Config > Visitor Card > Print: blank visitor card on the KSB or KPK template (Config > Card Template Management > Visitor Card) -->
+                                <div id="vcPrintModal" class="hidden fixed inset-0 z-50 flex items-start justify-center bg-black/50 p-4 pt-24">
+                                    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md p-6 space-y-4">
+                                        <h3 class="text-lg font-bold text-gray-800 dark:text-white">Choose Template</h3>
+                                        <div class="grid grid-cols-2 gap-3">
+                                            <?php foreach (['ksb' => 'KSB', 'kpk' => 'KPK'] as $vcSlot => $vcLabel): ?>
+                                            <button type="button" onclick="printVisitorBlankCard('<?= $vcSlot ?>')" class="border border-gray-300 dark:border-slate-600 rounded-lg p-2 hover:border-primary text-sm font-semibold text-gray-700 dark:text-slate-200">
+                                                <img src="<?= esc($vcArt[$vcSlot] ?? '') ?>" alt="" class="w-full h-40 object-contain mb-1"><?= $vcLabel ?>
+                                            </button>
+                                            <?php endforeach; ?>
+                                        </div>
+                                        <div class="flex justify-start"><button type="button" onclick="document.getElementById('vcPrintModal').classList.add('hidden')" class="px-4 py-2 rounded-lg bg-amber-400 hover:bg-amber-500 text-white text-sm font-semibold">Back</button></div>
+                                    </div>
+                                </div>
+                                <script>
+                                    const vcArt = <?= json_encode($vcArt, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?>;
+                                    function printVisitorBlankCard(slot) {
+                                        const w = window.open('', '_blank', 'width=420,height=700');
+                                        if (!w) { showNotification('Allow pop-ups to print the card.', 'error'); return; }
+                                        const sign = <?= json_encode(base_url('assets/images/template/sign.png'), JSON_UNESCAPED_SLASHES) ?>;
+                                        w.document.write(`<!doctype html><html><head><title>Visitor Card</title><style>@page{size:54mm 86mm;margin:0}body{margin:0}.c{width:54mm;height:86mm;position:relative;page-break-after:always;overflow:hidden}.c img{position:absolute}</style></head><body>
+                                            <div class="c"><img src="${vcArt[slot]}" style="width:100%;height:100%;object-fit:cover"></div>
+                                            <div class="c"><img src="${vcArt.back}" style="width:100%;height:100%"><img src="${sign}" style="width:65%;height:8mm;left:8%;top:68mm"></div>
+                                            <script>window.onload=()=>{window.print();setTimeout(()=>window.close(),300)}<\/script></body></html>`);
+                                        w.document.close();
+                                        document.getElementById('vcPrintModal').classList.add('hidden');
+                                    }
+                                </script>
                             </div>
 
                             <!-- Visitor Cards Table -->
@@ -3458,13 +3696,14 @@
                                         <tr>
                                             <th class="px-4 py-3">No</th>
                                             <th class="px-4 py-3">Location Visited</th>
+                                            <th class="px-4 py-3">Meeting Room</th>
                                             <th class="px-4 py-3">Status</th>
                                             <th class="px-4 py-3 w-32">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody id="locationVisitedTableBody" class="text-gray-700 dark:text-slate-300">
                                         <tr>
-                                            <td colspan="4"
+                                            <td colspan="5"
                                                 class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
                                                 <div class="flex flex-col items-center justify-center">
                                                     <div
@@ -5347,6 +5586,9 @@
                                     <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                                         <input type="checkbox" name="access[dashboard][security_dashboard]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Security Dashboard
                                     </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[dashboard][twp]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Temporary Work Pass
+                                    </label>
                                 </div>
                             </div>
                             
@@ -5356,6 +5598,25 @@
                                 <div class="ml-4 space-y-2">
                                     <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                                         <input type="checkbox" name="access[mobile_app][login]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Login
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Temporary Work Pass (KPK role: Work Pass Request List / Work Pass List; TWP Card; TWP report) -->
+                            <div>
+                                <h4 class="font-medium text-sm text-gray-800 dark:text-white mb-2">Temporary Work Pass</h4>
+                                <div class="ml-4 space-y-2">
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[twp][request_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Work Pass Request List
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[twp][pass_list]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Work Pass List
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[twp][card]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> TWP Card
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[twp][report]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> TWP Report
                                     </label>
                                 </div>
                             </div>
@@ -5911,6 +6172,33 @@
                                     <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                                         <input type="checkbox" name="access[config][license_class]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> License Class
                                     </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[config][payment_type]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Payment Type
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[config][branch_office]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Branch Office
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[config][release_reason]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Release Reason
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[config][operating_hours]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Operating Hours
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[config][bank_name]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Bank Name
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[config][sub_business_type]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Sub Business Type
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[config][meeting_session]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Meeting Session
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[config][questionnaire]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Questionnaire
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                        <input type="checkbox" name="access[config][dashboard_upload]" class="rounded border-gray-300 text-primary focus:ring-primary access-checkbox"> Dashboard Upload
+                                    </label>
                                 </div>
                             </div>
                         </div>
@@ -6031,6 +6319,63 @@
                                 class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none"
                                 placeholder="Enter contact number">
                             <p id="userContact_noError" class="text-red-500 text-xs mt-1 hidden"></p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Type</label>
+                            <select id="userType" name="user_type" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none">
+                                <option value="">-</option>
+                                <option value="USER">User</option>
+                                <option value="STAFF">Staff</option>
+                            </select>
+                            <p id="userUser_typeError" class="text-red-500 text-xs mt-1 hidden"></p>
+                        </div>
+                    </div>
+                    <!-- KPK Config > User: company, country, IC / passport, PLKS, branch, remark -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Company</label>
+                            <select id="userCompanyId" name="company_id" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none">
+                                <option value="">-</option>
+                            </select>
+                            <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Company Registration ID / Name of a company user (Config &gt; Company).</p>
+                            <p id="userCompany_idError" class="text-red-500 text-xs mt-1 hidden"></p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Country</label>
+                            <select id="userCountry" name="country" onchange="userCountryChanged()" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none">
+                                <option value="">-</option>
+                            </select>
+                            <p id="userCountryError" class="text-red-500 text-xs mt-1 hidden"></p>
+                        </div>
+                        <div id="userIcRow">
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">IC Number</label>
+                            <input type="text" id="userIcNumber" name="ic_number" maxlength="50" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="e.g. 900101015555">
+                            <p id="userIc_numberError" class="text-red-500 text-xs mt-1 hidden"></p>
+                        </div>
+                        <div id="userPassportRow">
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Passport Number</label>
+                            <input type="text" id="userPassportNo" name="passport_no" maxlength="50" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none">
+                            <p id="userPassport_noError" class="text-red-500 text-xs mt-1 hidden"></p>
+                        </div>
+                        <div id="userPlksRow">
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Work Permit (PLKS) Expiry</label>
+                            <input type="date" id="userPlksExpiry" name="plks_expiry" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none">
+                            <p id="userPlks_expiryError" class="text-red-500 text-xs mt-1 hidden"></p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Branch</label>
+                            <select id="userBranch" name="branch" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none">
+                                <option value="">-</option>
+                                <option value="BOTH">BOTH</option>
+                                <option value="KSB">KSB</option>
+                                <option value="KPK">KPK</option>
+                            </select>
+                            <p id="userBranchError" class="text-red-500 text-xs mt-1 hidden"></p>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">Remark</label>
+                            <textarea id="userRemark" name="remark" rows="2" maxlength="500" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none"></textarea>
+                            <p id="userRemarkError" class="text-red-500 text-xs mt-1 hidden"></p>
                         </div>
                     </div>
 
@@ -6323,6 +6668,15 @@
                 }
                 if (section === 'licenseclass') {
                     loadLicenseClasses();
+                }
+                if (section.startsWith('lk-')) {
+                    loadLookup(section.slice(3));
+                }
+                if (section === 'questionnaire') {
+                    loadVideoQuestions();
+                }
+                if (section === 'dashboardupload') {
+                    loadDashboardUploads();
                 }
                 // Load email templates when Email Template section is opened
                 if (section === 'email-template') {
@@ -7261,7 +7615,7 @@
             const tbody = document.getElementById('users-table-body');
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="9" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
+                    <td colspan="10" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
                         <div class="flex flex-col items-center justify-center">
                             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
                             <span>Loading users...</span>
@@ -7286,7 +7640,7 @@
                         const errorMsg = data.message || 'Error loading users';
                         tbody.innerHTML = `
                             <tr>
-                                <td colspan="9" class="px-4 py-8 text-center text-red-500">${errorMsg}</td>
+                                <td colspan="10" class="px-4 py-8 text-center text-red-500">${errorMsg}</td>
                             </tr>
                         `;
                         console.error('Error from server:', data);
@@ -7296,7 +7650,7 @@
                     console.error('Error loading users:', error);
                     tbody.innerHTML = `
                         <tr>
-                            <td colspan="9" class="px-4 py-8 text-center text-red-500">Failed to load users: ${error.message}</td>
+                            <td colspan="10" class="px-4 py-8 text-center text-red-500">Failed to load users: ${error.message}</td>
                         </tr>
                     `;
                 });
@@ -7308,7 +7662,7 @@
             if (users.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="9" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">No users found</td>
+                        <td colspan="10" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">No users found</td>
                     </tr>
                 `;
                 return;
@@ -7327,11 +7681,12 @@
                     <tr class="${borderClass} hover:bg-gray-100 dark:hover:bg-slate-700/30">
                         <td class="px-4 py-3 font-medium">${escapeHtml(user.username)}</td>
                         <td class="px-4 py-3">${escapeHtml(user.full_name)}${user.company_name ? `<span class="block text-xs text-gray-500 dark:text-slate-400">${escapeHtml(user.company_name)}</span>` : ''}</td>
-                        <td class="px-4 py-3">${escapeHtml(user.staff_id || '-')}</td>
+                        <td class="px-4 py-3">${escapeHtml([user.ic_number, user.passport_no, user.staff_id].filter(Boolean).join(' / ') || '-')}</td>
                         <td class="px-4 py-3">${escapeHtml(user.email)}</td>
                         <td class="px-4 py-3">${escapeHtml(user.contact_no || '-')}</td>
                         <td class="px-4 py-3">${escapeHtml(user.role_label || user.role || '-')}</td>
                         <td class="px-4 py-3">${escapeHtml(user.client_name || '-')}</td>
+                        <td class="px-4 py-3 text-center">${user.verified_at ? '<span class="material-symbols-outlined text-green-600 text-[18px]" title="Verified">check_circle</span>' : '<span class="material-symbols-outlined text-red-500 text-[18px]" title="Not verified">cancel</span>'}</td>
                         <td class="px-4 py-3">
                             <span class="px-2 py-1 ${statusClass} rounded text-xs font-semibold">${statusText}</span>
                         </td>
@@ -7575,12 +7930,45 @@
             resetUserStaffLookup(true);
             userStaffLookupTimer = setTimeout(lookupUserStaff, 350);
         });
+        // KPK user fields: Company and Country lists, IC vs Passport + PLKS by country (Malaysia = IC).
+        let userKpkLists = null;
+        function loadUserKpkLists() {
+            if (userKpkLists) return Promise.resolve(userKpkLists);
+            const get = u => fetch(u, { headers: { 'X-Requested-With': 'XMLHttpRequest' } }).then(r => r.json()).catch(() => ({}));
+            return Promise.all([get(`<?= base_url('config/getAllCompanies') ?>`), get(`<?= base_url('config/getAllCountries') ?>`)]).then(([c, k]) => {
+                const countries = (k.data || k.countries || []).map(x => x.name).filter(Boolean);
+                userKpkLists = { companies: c.data || [], countries };
+                const cs = document.getElementById('userCompanyId');
+                cs.innerHTML = '<option value="">-</option>' + userKpkLists.companies.map(x => `<option value="${x.id}">${escapeHtml((x.registration_no ? x.registration_no + ' - ' : '') + x.name)}</option>`).join('');
+                const ks = document.getElementById('userCountry');
+                ks.innerHTML = '<option value="">-</option>' + countries.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+                return userKpkLists;
+            });
+        }
+        function userCountryChanged() {
+            const c = (document.getElementById('userCountry').value || '').toUpperCase();
+            const local = c === '' || c === 'MALAYSIA';
+            document.getElementById('userIcRow').classList.toggle('hidden', !local);
+            document.getElementById('userPassportRow').classList.toggle('hidden', local);
+            document.getElementById('userPlksRow').classList.toggle('hidden', local);
+        }
+        function fillUserKpk(d) {
+            loadUserKpkLists().then(() => {
+                const set = (id, v) => { const el = document.getElementById(id); if (!el) return; if (el.tagName === 'SELECT' && v && ![...el.options].some(o => o.value === String(v))) el.add(new Option(String(v), String(v))); el.value = v ?? ''; };
+                set('userType', d.user_type || ''); set('userCompanyId', d.company_id || ''); set('userCountry', d.country || '');
+                set('userIcNumber', d.ic_number || ''); set('userPassportNo', d.passport_no || ''); set('userPlksExpiry', d.plks_expiry || '');
+                set('userBranch', d.branch || ''); set('userRemark', d.remark || '');
+                userCountryChanged();
+            });
+        }
+
         function openCreateUserModal() {
             resetUserStaffLookup();
             document.getElementById('userModalTitle').textContent = 'Create New User';
             document.getElementById('userId').value = '';
             document.getElementById('userForm').reset();
             document.getElementById('userReceiveEmailNotifications').checked = true;
+            fillUserKpk({});
             document.getElementById('userPassword').required = true;
             document.getElementById('passwordRequired').classList.remove('hidden');
             document.getElementById('passwordOptional').classList.add('hidden');
@@ -7617,6 +8005,7 @@
                         document.getElementById('userContactNo').value = data.data.contact_no || '';
                         document.getElementById('userStatus').value = data.data.is_active;
                         document.getElementById('userReceiveEmailNotifications').checked = (data.data.receive_email_notifications == 1);
+                        fillUserKpk(data.data);
                         clearUserErrors();
                         resetUserClientDropdown();
 
@@ -7649,7 +8038,8 @@
 
         function clearUserErrors() {
             ['userUsernameError', 'userFull_nameError', 'userEmailError', 'userPasswordError',
-                'userStaff_idError', 'userContact_noError', 'userRoleError', 'userIs_activeError', 'userClient_idError'].forEach(id => {
+                'userStaff_idError', 'userContact_noError', 'userRoleError', 'userIs_activeError', 'userClient_idError',
+                'userUser_typeError', 'userCompany_idError', 'userCountryError', 'userIc_numberError', 'userPassport_noError', 'userPlks_expiryError', 'userBranchError', 'userRemarkError'].forEach(id => {
                     const el = document.getElementById(id);
                     if (el) {
                         el.classList.add('hidden');
@@ -8073,7 +8463,7 @@
             const tbody = document.getElementById('companyTableBody');
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="9" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
+                    <td colspan="14" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
                         <div class="flex flex-col items-center justify-center">
                             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
                             <span>Loading companies...</span>
@@ -8082,7 +8472,7 @@
                 </tr>
             `;
 
-            fetch(`<?= base_url('config/getCompanies') ?>?page=${page}&per_page=10&search=${encodeURIComponent(search)}&sort=${encodeURIComponent(sort)}&registered=${encodeURIComponent((document.getElementById('companyRegisteredFilter') || {}).value || '')}`)
+            fetch(`<?= base_url('config/getCompanies') ?>?page=${page}&per_page=10&search=${encodeURIComponent(search)}&sort=${encodeURIComponent(sort)}&registered=${encodeURIComponent((document.getElementById('companyRegisteredFilter') || {}).value || '')}&branch=${encodeURIComponent((document.getElementById('companyBranchFilter') || {}).value || '')}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
@@ -8090,7 +8480,7 @@
                     } else {
                         tbody.innerHTML = `
                             <tr>
-                                <td colspan="9" class="px-4 py-8 text-center text-red-500 dark:text-red-400">
+                                <td colspan="14" class="px-4 py-8 text-center text-red-500 dark:text-red-400">
                                     Failed to load companies
                                 </td>
                             </tr>
@@ -8101,7 +8491,7 @@
                     console.error('Error loading companies:', error);
                     tbody.innerHTML = `
                         <tr>
-                            <td colspan="9" class="px-4 py-8 text-center text-red-500 dark:text-red-400">
+                            <td colspan="14" class="px-4 py-8 text-center text-red-500 dark:text-red-400">
                                 Error loading companies
                             </td>
                         </tr>
@@ -8137,7 +8527,7 @@
             if (companies.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="9" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
+                        <td colspan="14" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
                             No companies found
                         </td>
                     </tr>
@@ -8147,9 +8537,13 @@
 
             tbody.innerHTML = companies.map(company => `
                 <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
+                    <td class="px-4 py-3">${escapeHtml(company.branch || '-')}</td>
                     <td class="px-4 py-3">${escapeHtml(company.registration_no || '-')}</td>
                     <td class="px-4 py-3 font-medium">${escapeHtml(company.name)}</td>
                     <td class="px-4 py-3">${escapeHtml(company.pass_name || '-')}</td>
+                    <td class="px-4 py-3">${escapeHtml(company.ledger_acc_no || '-')}</td>
+                    <td class="px-4 py-3">${escapeHtml(company.account_type || 'N/A')}</td>
+                    <td class="px-4 py-3">${escapeHtml(company.haulier_code || '-')}</td>
                     <td class="px-4 py-3">${escapeHtml(company.contact_no || '-')}</td>
                     <td class="px-4 py-3">${escapeHtml(company.email || '-')}</td>
                     <td class="px-4 py-3">
@@ -8158,6 +8552,7 @@
                         </span>
                     </td>
                     <td class="px-4 py-3 text-center">${registrationBadge(company.registration_state)}</td>
+                    <td class="px-4 py-3">${escapeHtml(company.created_by_name || '-')}</td>
                     <td class="px-4 py-3">${new Date(company.created_at).toLocaleDateString()}</td>
                     <td class="px-4 py-3">
                         ${company.registration_state === 'not_registered' && company.email ? `<button onclick="sendCompanyInvite(${company.id})" class="text-amber-600 hover:text-amber-500 mr-2" title="Email the registration link to this vendor"><span class="material-symbols-outlined text-base">forward_to_inbox</span></button>` : ''}
@@ -8286,6 +8681,7 @@
                                     <div id="companyEmailError" class="text-red-500 text-sm mt-1 hidden"></div>
                                 </div>
                             </div>
+                            ${companyKpkFields({})}
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                                     Status <span class="text-red-500">*</span>
@@ -8607,6 +9003,240 @@
                 .catch(() => showNotification('Something went wrong. Please try again.', 'error'));
         }
 
+        // ---------------- KPK lists (Payment Type, Branch Office, Release Reason, Operating Hours, Bank Name, Sub Business Type) ----------------
+        const lkState = {};
+        <?php foreach (array_keys(\App\Libraries\ConfigLookups::definitions()) as $lkKey): ?>lkState['<?= $lkKey ?>'] = { page: 1, rows: [], schema: null, perPage: 10, filter: '', sort: '', client: '', h12: false };
+        <?php endforeach; ?>
+        let lkCurrent = '', lkCellList = '';
+        const lkUrl = (list, tail = '') => `<?= base_url('config/lookups') ?>/${list}${tail}`;
+        function lkSchema(list) {
+            const st = lkState[list];
+            if (st.schema) return Promise.resolve(st.schema);
+            return fetch(lkUrl(list, '/schema'), { headers: { 'X-Requested-With': 'XMLHttpRequest' } }).then(r => r.json()).then(res => { st.schema = res; lkControls(list, res); return res; });
+        }
+        // KPK list controls: items per page, filter, Sort By, company (superadmin, Payment Type), 12H / 24H
+        function lkControls(list, schema) {
+            const box = document.getElementById(`lk-${list}-controls`);
+            if (!box) return;
+            const sel = 'border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg pl-3 pr-8 py-2 text-sm';
+            const opt = (pairs, cur) => pairs.map(([v, l]) => `<option value="${escapeHtml(String(v))}" ${String(cur) === String(v) ? 'selected' : ''}>${escapeHtml(String(l))}</option>`).join('');
+            let html = '';
+            if (schema.clients) {
+                html += `<select class="${sel}" onchange="lkSet('${list}', 'client', this.value)" title="Company">${opt([['', 'Shared (all clients)'], ...Object.entries(schema.clients)], lkState[list].client)}</select>`;
+            }
+            if (schema.filter && schema.fields[schema.filter]) {
+                const f = schema.fields[schema.filter];
+                html += `<select class="${sel}" onchange="lkSet('${list}', 'filter', this.value)" title="${escapeHtml(f.label)}">${opt([['', 'All ' + f.label], ...lkOptions(f)], lkState[list].filter)}</select>`;
+            }
+            if (schema.sort) {
+                const lbl = Object.values(schema.sort)[0];
+                html += `<select class="${sel}" onchange="lkSet('${list}', 'sort', this.value)">${opt([['', 'Sort By'], ['asc', lbl + ' A-Z'], ['desc', lbl + ' Z-A']], lkState[list].sort)}</select>`;
+            }
+            html += `<select class="${sel}" onchange="lkSet('${list}', 'perPage', this.value)">${opt((schema.page_sizes || [10]).map(n => [n, n + ' items per page']), lkState[list].perPage)}</select>`;
+            if (schema.clock_toggle) {
+                html += `<button type="button" onclick="lkState['${list}'].h12 = !lkState['${list}'].h12; loadLookup('${list}')" class="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-slate-200">12H / 24H</button>`;
+            }
+            box.innerHTML = html;
+        }
+        function lkSet(list, key, value) { lkState[list][key] = value; lkState[list].page = 1; loadLookup(list); }
+        function lkClock(v, h12) {
+            if (!h12 || !/^\d{2}:\d{2}/.test(v || '')) return v;
+            let [h, m] = v.split(':').map(Number); const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12;
+            return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ap}`;
+        }
+        function lkOptions(f) {
+            // options come as a list (["STAFF","LORRY"]) or a value => label map
+            return Array.isArray(f.options) ? f.options.map(v => [String(v), String(v)]) : Object.entries(f.options || {}).map(([v, l]) => [String(v), String(l)]);
+        }
+        function lkCell(r, key, f) {
+            if (f.kind === 'businesstype') return r.business_type || '-';
+            if (f.kind === 'money') return 'RM ' + Number(r[key] || 0).toFixed(2);
+            if (f.kind === 'select' && !Array.isArray(f.options)) return (f.options || {})[r[key] ?? ''] ?? (r[key] || '-');
+            if (f.kind === 'time') return lkClock(r[key], lkState[lkCellList]?.h12) || '-';
+            if (f.kind === 'meetingroom') return r.room_name || '-';
+            if (f.kind === 'date') return /^\d{4}-\d{2}-\d{2}$/.test(r[key] || '') ? r[key].split('-').reverse().join('/') : (r[key] || '-');
+            return (r[key] === null || r[key] === '') ? '-' : String(r[key]);
+        }
+        function loadLookup(list) {
+            const st = lkState[list];
+            if (!st) return;
+            const q = (document.getElementById(`lk-${list}-search`)?.value || '').trim();
+            const qs = new URLSearchParams({ page: st.page, q, per_page: st.perPage, filter: st.filter, sort: st.sort, client_id: st.client });
+            lkSchema(list).then(schema => fetch(lkUrl(list, `?${qs}`), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(r => r.json())
+                .then(res => { st.rows = res.data || []; st.page = res.page || 1; renderLookup(list, schema, res); }))
+                .catch(() => { document.getElementById(`lk-${list}-list`).innerHTML = '<p class="text-sm text-red-500">Could not load the list.</p>'; });
+        }
+        function renderLookup(list, schema, res) {
+            const st = lkState[list], box = document.getElementById(`lk-${list}-list`), fields = Object.entries(schema.fields || {});
+            lkCellList = list;
+            if (!st.rows.length) { box.innerHTML = `<p class="text-sm text-gray-500">${res.success === false ? escapeHtml(res.message) : 'Nothing set up yet. Click Create to add one.'}</p>`; document.getElementById(`lk-${list}-pager`).innerHTML = ''; return; }
+            box.innerHTML = `<div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800"><table class="w-full text-left text-sm">
+                <thead><tr class="text-gray-800 dark:text-slate-100 font-semibold">${fields.map(([, f]) => `<th class="p-3">${escapeHtml(f.label)}</th>`).join('')}<th class="p-3">Status</th><th class="p-3"></th></tr></thead><tbody>` +
+                st.rows.map(r => `<tr class="border-t border-gray-100 dark:border-slate-700 text-gray-700 dark:text-slate-200">${fields.map(([k, f]) => `<td class="p-3">${escapeHtml(lkCell(r, k, f))}</td>`).join('')}<td class="p-3">${r.status === 'active' ? 'Active' : 'Inactive'}</td><td class="p-3 text-right whitespace-nowrap">` +
+                    (r.editable ? `<button type="button" onclick="openLookupModal('${list}', ${r.id})" class="text-primary text-xs font-semibold mr-3">Edit</button><button type="button" onclick="toggleLookup('${list}', ${r.id})" class="text-xs font-semibold ${r.status === 'active' ? 'text-red-600' : 'text-green-600'}">${r.status === 'active' ? 'Deactivate' : 'Activate'}</button>` : '<span class="text-xs text-gray-400">Shared</span>') +
+                    '</td></tr>').join('') + '</tbody></table></div>';
+            let pg = '';
+            for (let i = 1; i <= (res.pages || 1); i++) pg += `<button type="button" onclick="lkState['${list}'].page=${i};loadLookup('${list}')" class="px-3 py-1.5 border text-sm ${i === st.page ? 'bg-primary text-white border-primary' : 'border-gray-300 text-gray-700 dark:text-slate-200'}">${i}</button>`;
+            document.getElementById(`lk-${list}-pager`).innerHTML = (res.pages || 1) > 1 ? pg : '';
+        }
+        function openLookupModal(list, id) {
+            lkSchema(list).then(schema => {
+                lkCurrent = list;
+                const r = id ? lkState[list].rows.find(x => +x.id === +id) : null;
+                const cls = 'w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm';
+                document.getElementById('lkId').value = r ? r.id : '';
+                document.getElementById('lkFields').innerHTML = Object.entries(schema.fields || {}).map(([k, f]) => {
+                    const v = r ? (r[k] ?? '') : '';
+                    const lbl = `<label class="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-1">${f.required ? '<span class="text-red-600">*</span>' : ''}${escapeHtml(f.label)}:</label>`;
+                    let input;
+                    if (f.kind === 'select' || f.kind === 'businesstype' || f.kind === 'state' || f.kind === 'meetingroom') {
+                        input = `<select data-lk="${k}" class="${cls} pr-8">${f.required ? '<option value="">-- Select --</option>' : ''}${lkOptions(f).map(([ov, ol]) => `<option value="${escapeHtml(ov)}" ${String(v) === ov ? 'selected' : ''}>${escapeHtml(ol)}</option>`).join('')}</select>`;
+                    } else if (f.kind === 'textarea') {
+                        input = `<textarea data-lk="${k}" rows="3" maxlength="${f.max || 255}" class="${cls}">${escapeHtml(String(v))}</textarea>`;
+                    } else if (f.kind === 'money') {
+                        input = `<input data-lk="${k}" type="number" min="0" step="0.01" value="${escapeHtml(String(v))}" class="${cls}">`;
+                    } else if (f.kind === 'date') {
+                        input = `<input data-lk="${k}" type="date" value="${escapeHtml(String(v))}" class="${cls}">`;
+                    } else if (f.kind === 'time') {
+                        input = `<input data-lk="${k}" type="time" value="${escapeHtml(String(v))}" class="${cls}">`;
+                    } else {
+                        input = `<input data-lk="${k}" maxlength="${f.max || 255}" value="${escapeHtml(String(v))}" class="${cls}">`;
+                    }
+                    return `<div>${lbl}${input}</div>`;
+                }).join('');
+                document.getElementById('lkModalTitle').textContent = (r ? 'Edit ' : 'Create ') + schema.title;
+                document.getElementById('lkModal').classList.remove('hidden');
+                document.querySelector('#lkFields [data-lk]')?.focus();
+            });
+        }
+        function closeLookupModal() { document.getElementById('lkModal').classList.add('hidden'); }
+        function saveLookup(e) {
+            e.preventDefault();
+            const list = lkCurrent, fd = new FormData();
+            fd.append('id', document.getElementById('lkId').value);
+            document.querySelectorAll('#lkFields [data-lk]').forEach(el => fd.append(el.dataset.lk, el.value));
+            if (lkState[list].client) fd.append('client_id', lkState[list].client);
+            fetch(lkUrl(list, '/save'), { method: 'POST', headers: ctHeaders(), body: fd })
+                .then(r => r.json())
+                .then(res => { showNotification(res.message, res.success ? 'success' : 'error'); if (res.success) { closeLookupModal(); loadLookup(list); } })
+                .catch(() => showNotification('Something went wrong. Please try again.', 'error'));
+        }
+        function toggleLookup(list, id) {
+            const fd = new FormData();
+            if (lkState[list].client) fd.append('client_id', lkState[list].client);
+            fetch(lkUrl(list, `/${id}/toggle`), { method: 'POST', headers: ctHeaders(), body: fd })
+                .then(r => r.json())
+                .then(res => { showNotification(res.message, res.success ? 'success' : 'error'); if (res.success) loadLookup(list); })
+                .catch(() => showNotification('Something went wrong. Please try again.', 'error'));
+        }
+
+        // ---------------- KPK Config > Questionnaire ----------------
+        const vqState = { page: 1, rows: [], videos: {} };
+        const vqUrl = (t = '') => `<?= base_url('config/questionnaire') ?>${t}`;
+        function loadVideoQuestions() {
+            const qs = new URLSearchParams({ page: vqState.page, q: (document.getElementById('vqSearch')?.value || '').trim(),
+                video_id: document.getElementById('vqVideoFilter')?.value || '', per_page: document.getElementById('vqPerPage')?.value || 10 });
+            fetch(vqUrl(`?${qs}`), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(r => r.json())
+                .then(res => {
+                    vqState.rows = res.data || []; vqState.page = res.page || 1; vqState.videos = res.videos || {};
+                    const f = document.getElementById('vqVideoFilter'), cur = f.value;
+                    f.innerHTML = '<option value="">All Training Videos</option>' + Object.entries(vqState.videos).map(([id, n]) => `<option value="${id}" ${String(cur) === id ? 'selected' : ''}>${escapeHtml(n)}</option>`).join('');
+                    const box = document.getElementById('vqList');
+                    if (!vqState.rows.length) { box.innerHTML = `<p class="text-sm text-gray-500">${res.success === false ? escapeHtml(res.message) : 'No question yet. Click Create to add one.'}</p>`; document.getElementById('vqPager').innerHTML = ''; return; }
+                    box.innerHTML = `<div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800"><table class="w-full text-left text-sm">
+                        <thead><tr class="text-gray-800 dark:text-slate-100 font-semibold"><th class="p-3">Name</th><th class="p-3">Corresponding Training Video</th><th class="p-3">Sequence</th><th class="p-3">Answers</th><th class="p-3">Status</th><th class="p-3"></th></tr></thead><tbody>` +
+                        vqState.rows.map(r => `<tr class="border-t border-gray-100 dark:border-slate-700 text-gray-700 dark:text-slate-200"><td class="p-3">${escapeHtml(r.question)}</td><td class="p-3">${escapeHtml(r.video_name)}</td><td class="p-3">${escapeHtml(String(r.sequence))}</td><td class="p-3">${r.answers} (${r.correct} correct)</td><td class="p-3">${r.status === 'active' ? 'Active' : 'Inactive'}</td><td class="p-3 text-right whitespace-nowrap">` +
+                            (r.editable ? `<button type="button" onclick="openVqModal(${r.id})" class="text-primary text-xs font-semibold mr-3">Edit</button><button type="button" onclick="toggleVideoQuestion(${r.id})" class="text-xs font-semibold ${r.status === 'active' ? 'text-red-600' : 'text-green-600'}">${r.status === 'active' ? 'Deactivate' : 'Activate'}</button>` : '<span class="text-xs text-gray-400">Shared</span>') + '</td></tr>').join('') + '</tbody></table></div>';
+                    let pg = '';
+                    for (let i = 1; i <= (res.pages || 1); i++) pg += `<button type="button" onclick="vqState.page=${i};loadVideoQuestions()" class="px-3 py-1.5 border text-sm ${i === vqState.page ? 'bg-primary text-white border-primary' : 'border-gray-300 text-gray-700 dark:text-slate-200'}">${i}</button>`;
+                    document.getElementById('vqPager').innerHTML = (res.pages || 1) > 1 ? pg : '';
+                })
+                .catch(() => { document.getElementById('vqList').innerHTML = '<p class="text-sm text-red-500">Could not load the questions.</p>'; });
+        }
+        function vqAddAnswer(text = '', correct = false) {
+            const box = document.getElementById('vqAnswers');
+            const row = document.createElement('div');
+            row.className = 'flex items-center gap-2 vq-answer';
+            row.innerHTML = `<input type="checkbox" class="vq-correct rounded border-gray-300" ${correct ? 'checked' : ''} title="Correct answer">
+                <input type="text" maxlength="300" class="vq-text flex-1 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm" value="${escapeHtml(text)}">
+                <button type="button" onclick="this.parentElement.remove()" class="text-red-600" title="Remove"><span class="material-symbols-outlined text-base">delete</span></button>`;
+            box.appendChild(row);
+        }
+        function openVqModal(id) {
+            const fill = (d) => {
+                document.getElementById('vqId').value = d.id || '';
+                document.getElementById('vqQuestion').value = d.question || '';
+                document.getElementById('vqSequence').value = d.sequence ?? '';
+                document.getElementById('vqStatus').value = d.status || 'active';
+                document.getElementById('vqVideo').innerHTML = '<option value="">-- Select --</option>' + Object.entries(vqState.videos).map(([vid, n]) => `<option value="${vid}" ${String(d.video_id || '') === vid ? 'selected' : ''}>${escapeHtml(n)}</option>`).join('');
+                document.getElementById('vqAnswers').innerHTML = '';
+                (d.answer_list && d.answer_list.length ? d.answer_list : [{}, {}]).forEach(a => vqAddAnswer(a.answer || '', Number(a.is_correct || 0) === 1));
+                document.getElementById('vqModalTitle').textContent = d.id ? 'Edit Question' : 'Create Question';
+                document.getElementById('vqModal').classList.remove('hidden');
+            };
+            if (!id) { fill({}); return; }
+            fetch(vqUrl(`/${id}`), { headers: { 'X-Requested-With': 'XMLHttpRequest' } }).then(r => r.json()).then(res => res.success ? fill(res.data) : showNotification(res.message, 'error'));
+        }
+        function closeVqModal() { document.getElementById('vqModal').classList.add('hidden'); }
+        function saveVideoQuestion(e) {
+            e.preventDefault();
+            const fd = new FormData();
+            fd.append('id', document.getElementById('vqId').value); fd.append('question', document.getElementById('vqQuestion').value);
+            fd.append('video_id', document.getElementById('vqVideo').value); fd.append('sequence', document.getElementById('vqSequence').value);
+            fd.append('status', document.getElementById('vqStatus').value);
+            document.querySelectorAll('#vqAnswers .vq-answer').forEach((row, i) => {
+                fd.append('answers[]', row.querySelector('.vq-text').value);
+                if (row.querySelector('.vq-correct').checked) fd.append('correct[]', i);
+            });
+            fetch(vqUrl('/save'), { method: 'POST', headers: ctHeaders(), body: fd })
+                .then(r => r.json())
+                .then(res => { showNotification(res.message, res.success ? 'success' : 'error'); if (res.success) { closeVqModal(); loadVideoQuestions(); } })
+                .catch(() => showNotification('Something went wrong. Please try again.', 'error'));
+        }
+        function toggleVideoQuestion(id) {
+            fetch(vqUrl(`/${id}/toggle`), { method: 'POST', headers: ctHeaders(), body: new FormData() })
+                .then(r => r.json()).then(res => { showNotification(res.message, res.success ? 'success' : 'error'); if (res.success) loadVideoQuestions(); });
+        }
+        function openVqThreshold() {
+            fetch(vqUrl('/threshold'), { headers: { 'X-Requested-With': 'XMLHttpRequest' } }).then(r => r.json())
+                .then(res => { document.getElementById('vqThreshold').value = res.threshold ?? 0; document.getElementById('vqThresholdModal').classList.remove('hidden'); });
+        }
+        function saveVqThreshold(e) {
+            e.preventDefault();
+            const fd = new FormData(); fd.append('threshold', document.getElementById('vqThreshold').value);
+            fetch(vqUrl('/threshold'), { method: 'POST', headers: ctHeaders(), body: fd }).then(r => r.json())
+                .then(res => { showNotification(res.message, res.success ? 'success' : 'error'); if (res.success) document.getElementById('vqThresholdModal').classList.add('hidden'); });
+        }
+
+        // ---------------- KPK Config > Dashboard Upload ----------------
+        const duUrl = (t = '') => `<?= base_url('config/dashboard-upload') ?>${t}`;
+        function loadDashboardUploads() {
+            fetch(duUrl(), { headers: { 'X-Requested-With': 'XMLHttpRequest' } }).then(r => r.json()).then(res => {
+                const box = document.getElementById('duList'), rows = res.data || [];
+                if (!rows.length) { box.innerHTML = `<p class="text-sm text-gray-500">${res.success === false ? escapeHtml(res.message) : 'No picture uploaded yet.'}</p>`; return; }
+                box.innerHTML = '<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">' + rows.map(r => `<div class="rounded-lg border ${r.status === 'active' ? 'border-green-500' : 'border-gray-200 dark:border-slate-700'} bg-white dark:bg-slate-800 p-3 space-y-2">
+                    <img src="${escapeHtml(r.url)}" alt="" class="w-full h-40 object-contain bg-gray-50 dark:bg-slate-900 rounded">
+                    <div class="text-xs text-gray-600 dark:text-slate-300">${escapeHtml(r.name)}<br>${escapeHtml(r.uploaded_by)} &middot; ${escapeHtml(r.created_at || '')}</div>
+                    <div class="flex items-center justify-between"><span class="text-xs font-semibold ${r.status === 'active' ? 'text-green-600' : 'text-gray-400'}">${r.status === 'active' ? 'Shown on dashboard' : 'Inactive'}</span>
+                    <span><button type="button" onclick="duPost(${r.id}, 'toggle')" class="text-primary text-xs font-semibold mr-3">${r.status === 'active' ? 'Deactivate' : 'Use this picture'}</button><button type="button" onclick="if (confirm('Delete this picture?')) duPost(${r.id}, 'delete')" class="text-red-600 text-xs font-semibold">Delete</button></span></div></div>`).join('') + '</div>';
+            }).catch(() => { document.getElementById('duList').innerHTML = '<p class="text-sm text-red-500">Could not load the pictures.</p>'; });
+        }
+        function uploadDashboardPicture(e) {
+            e.preventDefault();
+            const f = document.getElementById('duFile').files[0];
+            if (!f) { showNotification('Choose a picture to upload.', 'error'); return; }
+            const fd = new FormData(); fd.append('picture', f);
+            fetch(duUrl('/upload'), { method: 'POST', headers: ctHeaders(), body: fd }).then(r => r.json())
+                .then(res => { showNotification(res.message, res.success ? 'success' : 'error'); if (res.success) { document.getElementById('duFile').value = ''; loadDashboardUploads(); } })
+                .catch(() => showNotification('Something went wrong. Please try again.', 'error'));
+        }
+        function duPost(id, action) {
+            fetch(duUrl(`/${id}/${action}`), { method: 'POST', headers: ctHeaders(), body: new FormData() }).then(r => r.json())
+                .then(res => { showNotification(res.message, res.success ? 'success' : 'error'); if (res.success) loadDashboardUploads(); });
+        }
+
         function openEditCompanyModal(companyId) {
             fetch(`<?= base_url('config/getCompany') ?>/${companyId}`)
                 .then(response => response.json())
@@ -8659,6 +9289,7 @@
                                                 <div id="companyEmailError" class="text-red-500 text-sm mt-1 hidden"></div>
                                             </div>
                                         </div>
+                                        ${companyKpkFields(data.data)}
                                         <div>
                                             <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                                                 Status <span class="text-red-500">*</span>
@@ -8696,6 +9327,30 @@
                 });
         }
 
+        // KPK Config > Company fields: Branch, Ledger Code, Account Type, Haulier Code, Mother Company (ROC No), Gov Agent
+        function companyKpkFields(d) {
+            const cls = 'w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2 focus:ring-primary focus:border-primary';
+            const lbl = t => `<label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">${t}</label>`;
+            const opt = (list, cur) => list.map(([v, l]) => `<option value="${v}" ${String(cur || '') === v ? 'selected' : ''}>${l}</option>`).join('');
+            return `<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>${lbl('Branch')}<select id="companyBranch" class="${cls}">${opt([['', '-'], ['BOTH', 'BOTH'], ['KSB', 'KSB'], ['KPK', 'KPK']], d.branch)}</select></div>
+                <div>${lbl('Ledger Code')}<input id="companyLedger" maxlength="50" value="${escapeHtml(d.ledger_acc_no || '')}" class="${cls}"></div>
+                <div>${lbl('Account Type')}<select id="companyAccountType" class="${cls}">${opt([['', 'N/A'], ['CASH', 'CASH'], ['LEDGER', 'LEDGER'], ['CREDIT', 'CREDIT']], d.account_type)}</select></div>
+                <div>${lbl('Haulier Code')}<input id="companyHaulier" maxlength="50" value="${escapeHtml(d.haulier_code || '')}" class="${cls}"></div>
+                <div>${lbl('Mother Company (ROC No)')}<input id="companyMotherRoc" maxlength="100" value="${escapeHtml(d.mother_company_roc || '')}" class="${cls}"></div>
+                <div>${lbl('Gov Agent')}<select id="companyGovAgent" class="${cls}">${opt([['0', 'No'], ['1', 'Yes']], String(+(d.gov_agent || 0)))}</select></div>
+            </div>`;
+        }
+
+        function exportCompanies() {
+            const qs = new URLSearchParams({
+                search: currentCompanySearch || '', sort: currentCompanySort || '',
+                registered: (document.getElementById('companyRegisteredFilter') || {}).value || '',
+                branch: (document.getElementById('companyBranchFilter') || {}).value || '',
+            });
+            window.location.href = `<?= base_url('config/companies/export') ?>?${qs}`;
+        }
+
         function closeCompanyModal() {
             const modal = document.getElementById('companyModal');
             if (modal) {
@@ -8723,7 +9378,13 @@
                 pass_name: document.getElementById('companyPassName').value,
                 email: document.getElementById('companyEmail').value,
                 status: document.getElementById('companyStatus').value,
-                location_ids: companyLoc.selected.slice()
+                location_ids: companyLoc.selected.slice(),
+                branch: document.getElementById('companyBranch')?.value ?? '',
+                ledger_acc_no: document.getElementById('companyLedger')?.value ?? '',
+                account_type: document.getElementById('companyAccountType')?.value ?? '',
+                haulier_code: document.getElementById('companyHaulier')?.value ?? '',
+                mother_company_roc: document.getElementById('companyMotherRoc')?.value ?? '',
+                gov_agent: document.getElementById('companyGovAgent')?.value ?? '0'
             };
 
             // everything is mandatory except "Company Name In Port Pass"
@@ -8876,7 +9537,7 @@
                     } else {
                         tbody.innerHTML = `
                             <tr>
-                                <td colspan="5" class="px-4 py-8 text-center text-red-500 dark:text-red-400">
+                                <td colspan="6" class="px-4 py-8 text-center text-red-500 dark:text-red-400">
                                     Failed to load sub companies
                                 </td>
                             </tr>
@@ -8887,7 +9548,7 @@
                     console.error('Error loading sub companies:', error);
                     tbody.innerHTML = `
                         <tr>
-                            <td colspan="5" class="px-4 py-8 text-center text-red-500 dark:text-red-400">
+                            <td colspan="6" class="px-4 py-8 text-center text-red-500 dark:text-red-400">
                                 Error loading sub companies
                             </td>
                         </tr>
@@ -8901,7 +9562,7 @@
             if (subCompanies.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="5" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
+                        <td colspan="6" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
                             No sub companies found
                         </td>
                     </tr>
@@ -8913,6 +9574,7 @@
                 <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
                     <td class="px-4 py-3 font-medium">${escapeHtml(subCompany.name)}</td>
                     <td class="px-4 py-3">${escapeHtml(subCompany.company_name || '-')}</td>
+                    <td class="px-4 py-3">${escapeHtml(subCompany.prefix || '-')}</td>
                     <td class="px-4 py-3">${escapeHtml(subCompany.description || '-')}</td>
                     <td class="px-4 py-3">
                         <span class="px-2 py-1 ${subCompany.status === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'} rounded text-xs font-semibold">
@@ -9052,6 +9714,10 @@
                                             <div id="subCompanyNameError" class="text-red-500 text-sm mt-1 hidden"></div>
                                         </div>
                                         <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Prefix</label>
+                                            <input type="text" id="subCompanyPrefix" name="prefix" maxlength="20" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2 focus:ring-primary focus:border-primary">
+                                        </div>
+                                        <div>
                                             <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Description</label>
                                             <textarea id="subCompanyDescription" name="description" rows="3"
                                                 class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2 focus:ring-primary focus:border-primary"></textarea>
@@ -9133,6 +9799,10 @@
                                         <div id="subCompanyNameError" class="text-red-500 text-sm mt-1 hidden"></div>
                                     </div>
                                     <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Prefix</label>
+                                        <input type="text" id="subCompanyPrefix" name="prefix" maxlength="20" value="${escapeHtml(subCompanyData.data.prefix || '')}" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2 focus:ring-primary focus:border-primary">
+                                    </div>
+                                    <div>
                                         <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Description</label>
                                         <textarea id="subCompanyDescription" name="description" rows="3"
                                             class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2 focus:ring-primary focus:border-primary">${escapeHtml(subCompanyData.data.description || '')}</textarea>
@@ -9199,6 +9869,7 @@
                 company_id: parseInt(document.getElementById('subCompanyCompanyId').value),
                 name: document.getElementById('subCompanyName').value,
                 description: document.getElementById('subCompanyDescription').value,
+                prefix: document.getElementById('subCompanyPrefix')?.value ?? '',
                 status: document.getElementById('subCompanyStatus').value
             };
 
@@ -11742,6 +12413,11 @@
             loadLocations(1, search, currentLocationSort);
         }
 
+        function exportLocations() {
+            const qs = new URLSearchParams({ search: currentLocationSearch || '', sort_by: currentLocationSort || '' });
+            window.location.href = `<?= base_url('config/locations/export') ?>?${qs}`;
+        }
+
         function sortLocations() {
             const sortBy = document.getElementById('locationSortSelect').value;
             loadLocations(1, currentLocationSearch, sortBy);
@@ -12227,6 +12903,9 @@
                                 <button onclick="openEditLaneModal(${lane.id})" class="text-primary hover:text-primary/80">
                                     <span class="material-symbols-outlined text-xl">edit</span>
                                 </button>
+                                ${lane.last_logged_in_by ? `<button onclick="forceLaneLogout(${lane.id}, '${escapeHtml(lane.last_logged_in_by)}')" class="text-amber-600 hover:text-amber-500" title="Force Log Out">
+                                    <span class="material-symbols-outlined text-xl">logout</span>
+                                </button>` : ''}
                                 <button onclick="openDeleteLaneModal(${lane.id}, '${escapeHtml(lane.lane)}')" class="text-red-500 hover:text-red-400" title="Deactivate">
                                     <span class="material-symbols-outlined text-xl">block</span>
                                 </button>
@@ -12235,6 +12914,30 @@
                     </tr>
                 `;
             }).join('');
+        }
+
+        // KPK Config > Lane: Threshold (slip printer paper) and Force Log Out
+        function openLaneThresholdModal() {
+            fetch(`<?= base_url('config/lanes/thresholds') ?>`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(r => r.json())
+                .then(res => { (res.data || [0, 0, 0]).forEach((v, i) => { document.getElementById(`laneThreshold${i + 1}`).value = v; }); document.getElementById('laneThresholdModal').classList.remove('hidden'); })
+                .catch(() => showNotification('Could not load the thresholds.', 'error'));
+        }
+        function saveLaneThresholds(e) {
+            e.preventDefault();
+            const fd = new FormData();
+            [1, 2, 3].forEach(i => fd.append(`limit_${i}`, document.getElementById(`laneThreshold${i}`).value));
+            fetch(`<?= base_url('config/lanes/thresholds') ?>`, { method: 'POST', headers: ctHeaders(), body: fd })
+                .then(r => r.json())
+                .then(res => { showNotification(res.message, res.success ? 'success' : 'error'); if (res.success) document.getElementById('laneThresholdModal').classList.add('hidden'); })
+                .catch(() => showNotification('Something went wrong. Please try again.', 'error'));
+        }
+        function forceLaneLogout(id, who) {
+            if (!confirm(`Force ${who} to log out of this lane?`)) return;
+            fetch(`<?= base_url('config/lanes') ?>/${id}/force-logout`, { method: 'POST', headers: ctHeaders(), body: new FormData() })
+                .then(r => r.json())
+                .then(res => { showNotification(res.message, res.success ? 'success' : 'error'); if (res.success) loadLanes(currentLanePage || 1); })
+                .catch(() => showNotification('Something went wrong. Please try again.', 'error'));
         }
 
         function updateLanePagination(pagination) {
@@ -14795,7 +15498,7 @@
 
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="4" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
+                    <td colspan="5" class="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
                         <div class="flex flex-col items-center gap-2">
                             <span class="material-symbols-outlined text-4xl">search_off</span>
                             <p>${escapeHtml(message)}</p>
@@ -14834,10 +15537,11 @@
                     <tr class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
                         <td class="px-4 py-3 font-medium">${pagination.from + index}</td>
                         <td class="px-4 py-3">${escapeHtml(row.name || '')}</td>
+                        <td class="px-4 py-3">${Number(row.meeting_room || 0) === 1 ? 'Yes' : 'No'}</td>
                         <td class="px-4 py-3">${getLocationVisitedStatusBadge(row.status)}</td>
                         <td class="px-4 py-3 w-32">
                             <div class="flex gap-2">
-                                <button onclick="openEditLocationVisitedModal(${row.id}, ${safeName}, ${safeStatus}, ${version})" class="text-primary hover:text-primary/80">
+                                <button onclick="openEditLocationVisitedModal(${row.id}, ${safeName}, ${safeStatus}, ${version}, ${Number(row.meeting_room || 0)})" class="text-primary hover:text-primary/80">
                                     <span class="material-symbols-outlined text-xl">edit</span>
                                 </button>
                                 <button onclick="deleteLocationVisited(${row.id})" class="text-red-500 hover:text-red-400">
@@ -14939,6 +15643,14 @@
                                 <span id="locationVisitedNameError" class="text-red-500 text-xs mt-1 hidden"></span>
                             </div>
                             <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Meeting Room</label>
+                                <select id="locationVisitedMeetingRoom" name="meeting_room" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm">
+                                    <option value="0" >No</option>
+                                    <option value="1" >Yes</option>
+                                </select>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Yes = offered as a room in Config &gt; Meeting Session.</p>
+                            </div>
+                            <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Status <span class="text-red-500">*</span></label>
                                 <select id="locationVisitedStatus" name="status" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none">
                                     <option value="active">Active</option>
@@ -14965,7 +15677,7 @@
             });
         }
 
-        function openEditLocationVisitedModal(id, name, status, version = 1) {
+        function openEditLocationVisitedModal(id, name, status, version = 1, meetingRoom = 0) {
             document.body.insertAdjacentHTML('beforeend', `
                 <div id="locationVisitedModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
                     <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md overflow-hidden">
@@ -14982,6 +15694,14 @@
                                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Location Visited <span class="text-red-500">*</span></label>
                                 <input type="text" id="locationVisitedName" name="name" value="${escapeHtml(name || '')}" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none" placeholder="Enter location visited" required>
                                 <span id="locationVisitedNameError" class="text-red-500 text-xs mt-1 hidden"></span>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Meeting Room</label>
+                                <select id="locationVisitedMeetingRoom" name="meeting_room" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm">
+                                    <option value="0" ${Number(meetingRoom) === 1 ? '' : 'selected'}>No</option>
+                                    <option value="1" ${Number(meetingRoom) === 1 ? 'selected' : ''}>Yes</option>
+                                </select>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Yes = offered as a room in Config &gt; Meeting Session.</p>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Status <span class="text-red-500">*</span></label>
@@ -15014,6 +15734,7 @@
             const formData = new FormData();
             formData.append('name', document.getElementById('locationVisitedName').value.trim());
             formData.append('status', document.getElementById('locationVisitedStatus').value);
+            formData.append('meeting_room', document.getElementById('locationVisitedMeetingRoom')?.value || '0');
 
             fetch('<?= base_url('config/createLocationVisited') ?>', {
                 method: 'POST',
@@ -15051,6 +15772,7 @@
             const formData = new FormData();
             formData.append('name', document.getElementById('locationVisitedName').value.trim());
             formData.append('status', document.getElementById('locationVisitedStatus').value);
+            formData.append('meeting_room', document.getElementById('locationVisitedMeetingRoom')?.value || '0');
             formData.append('version', document.getElementById('locationVisitedVersion').value || '1');
 
             fetch(`<?= base_url('config/updateLocationVisited/') ?>${id}`, {

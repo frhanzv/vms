@@ -235,8 +235,9 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
             </div>
             <?php endif; ?>
 
-            <!-- Temporary Work Pass (KPK TWP) -->
-            <?php if ($canReportTemplates): ?>
+            <!-- Temporary Work Pass (KPK TWP): Role > Temporary Work Pass > Work Pass Request List / Work Pass List -->
+            <?php $twpMenu = array_filter(['twp/requests' => ['Request List', 'request_list'], 'twp/passes' => ['Pass List', 'pass_list']], static fn($m) => has_access('twp', $m[1])); ?>
+            <?php if ($canReportTemplates && $twpMenu): ?>
             <div @side-open.window="if ($event.detail !== 'openTwp') openTwp = false" x-data="{ openTwp: <?= $isTwp ? 'true' : 'false' ?> }">
                 <button type="button" @click="openTwp = !openTwp; if (openTwp) $dispatch('side-open', 'openTwp')"
                     class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= $isTwp ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
@@ -247,7 +248,7 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
                     <span class="material-symbols-outlined text-[18px] transition-transform duration-200" :class="openTwp ? 'rotate-180' : ''">expand_more</span>
                 </button>
                 <div x-show="openTwp" class="ml-4 mt-1 flex flex-col gap-1">
-                    <?php foreach (['twp/requests' => 'Request List', 'twp/passes' => 'Pass List'] as $tPath => $tLabel): $tOn = str_starts_with($current, $tPath); ?>
+                    <?php foreach ($twpMenu as $tPath => [$tLabel]): $tOn = str_starts_with($current, $tPath); ?>
                     <a href="<?= base_url($tPath) ?>"
                         class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $tOn ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
                         <span class="w-1.5 h-1.5 rounded-full <?= $tOn ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
@@ -476,6 +477,8 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
                         <span class="w-1.5 h-1.5 rounded-full <?= str_starts_with($current, 'report/templates') ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
                         Report Templates
                     </a>
+                    <?php endif; ?>
+                    <?php if ($canReportTemplates && has_access('twp', 'report')): ?>
                     <a href="<?= base_url('twp/report') ?>"
                         class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current === 'twp/report' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
                         <span class="w-1.5 h-1.5 rounded-full <?= $current === 'twp/report' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>

@@ -255,6 +255,13 @@
                 <p class="text-slate-500 dark:text-slate-400 text-base">Here's what's happening at your facility today.</p>
             </div>
 
+            <?php $dashPicture = \App\Libraries\DashboardPicture::forCurrentUser(); if ($dashPicture): ?>
+            <!-- KPK Config > Dashboard Upload: the picture set for this client -->
+            <div class="mb-6 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-surface-light dark:bg-surface-dark">
+                <img src="<?= esc($dashPicture) ?>" alt="Dashboard" class="w-full h-auto">
+            </div>
+            <?php endif; ?>
+
             <?php if (!empty($criticalAlerts)): ?>
             <script type="application/json" id="critical-alerts-json"><?= json_encode($criticalAlerts, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?></script>
             <?php endif; ?>
