@@ -2196,20 +2196,293 @@
                     </div>
                 </div>
 
-                <!-- Temporary Work Pass Card (KPK Config > Temporary Work Pass Card) -->
-                <?php if (in_array(session()->get('role'), ['superadmin', 'clientsuperadmin', 'admin', 'officer'], true)): ?>
-                <a href="<?= base_url('twp/cards') ?>" class="block bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 px-6 py-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
-                    <div class="flex items-center justify-between">
+                <!-- TWP Card Management (KPK Config > Temporary Work Pass Card), same look as Visitor Card Management -->
+                <?php if (in_array(session()->get('role'), ['superadmin', 'clientsuperadmin', 'admin', 'officer'], true)):
+                    $twpTpl = \App\Libraries\CardTemplates::resolveAll(\Config\Database::connect(), 'twp', is_platform_superadmin() ? null : ((int) current_client_id() ?: null)); ?>
+                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden" x-data="twpCards()">
+                    <button onclick="toggleSection('twpcard')" @click="if (! loaded) load(1)"
+                        class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                         <div class="flex items-center gap-4">
-                            <div class="p-2 bg-primary/10 rounded-lg"><span class="material-symbols-outlined text-primary text-xl">engineering</span></div>
+                            <div class="p-2 bg-primary/10 rounded-lg">
+                                <span class="material-symbols-outlined text-primary text-xl">engineering</span>
+                            </div>
                             <div class="text-left">
-                                <h3 class="text-base font-bold text-gray-800 dark:text-white">Temporary Work Pass Card</h3>
-                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Register TWP cards, set TWP rates and print the blank card</p>
+                                <h3 class="text-base font-bold text-gray-800 dark:text-white">TWP Card Management</h3>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Manage temporary work pass card inventory</p>
                             </div>
                         </div>
-                        <span class="material-symbols-outlined text-gray-400 dark:text-slate-400">chevron_right</span>
+                        <span id="twpcard-icon" class="material-symbols-outlined text-gray-400 dark:text-slate-400 transition-transform">expand_more</span>
+                    </button>
+                    <div id="twpcard-content" class="hidden border-t border-gray-200 dark:border-slate-700">
+                        <div class="p-6 bg-gray-50 dark:bg-slate-800/50">
+                            <!-- Search, Sort and Create -->
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                                <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                                    <div class="flex shadow-sm w-full sm:w-96">
+                                        <input x-model="search" @keydown.enter.prevent="load(1)"
+                                            class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-l px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none"
+                                            placeholder="Search card ID or TWP no..." type="text" />
+                                        <button type="button" @click="load(1)"
+                                            class="bg-primary hover:bg-blue-600 text-white px-6 py-2.5 rounded-r flex items-center justify-center transition-colors">
+                                            <span class="material-symbols-outlined text-white text-[20px]">search</span>
+                                        </button>
+                                    </div>
+                                    <div class="relative w-full sm:w-48">
+                                        <select x-model="sort" @change="load(1)"
+                                            class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-4 py-2.5 text-sm appearance-none focus:ring-primary focus:border-primary text-gray-700 dark:text-gray-300">
+                                            <option value="">Sort By</option>
+                                            <option value="card_asc">Card ID (A-Z)</option>
+                                            <option value="card_desc">Card ID (Z-A)</option>
+                                            <option value="status">Status</option>
+                                        </select>
+                                        <span class="absolute right-3 top-2.5 pointer-events-none text-gray-400 material-symbols-outlined text-[20px]">expand_more</span>
+                                    </div>
+                                </div>
+                                <div class="flex flex-wrap gap-2 w-full sm:w-auto">
+                                    <button type="button" @click="rateOpen = true"
+                                        class="px-4 py-2.5 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-200 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-base">payments</span> TWP Rates
+                                    </button>
+                                    <button type="button" @click="printBlank()"
+                                        class="px-4 py-2.5 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-200 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-base">print</span> Print Card
+                                    </button>
+                                    <button type="button" @click="openForm(null)"
+                                        class="px-4 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-base">add</span> Create Card
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- TWP Cards Table -->
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-sm">
+                                    <thead class="text-xs text-gray-600 dark:text-slate-400 uppercase border-b border-gray-200 dark:border-slate-700">
+                                        <tr>
+                                            <th class="px-4 py-3">Card ID</th>
+                                            <th class="px-4 py-3">Temporary Work Pass No</th>
+                                            <th class="px-4 py-3">Status</th>
+                                            <th class="px-4 py-3">Issued To</th>
+                                            <th class="px-4 py-3">QR</th>
+                                            <th class="px-4 py-3">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="text-gray-700 dark:text-slate-300">
+                                        <tr x-show="loading"><td colspan="6" class="px-4 py-12 text-center">
+                                            <div class="flex flex-col items-center justify-center">
+                                                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+                                                <p class="text-gray-500 dark:text-slate-400">Loading TWP cards...</p>
+                                            </div></td></tr>
+                                        <tr x-show="! loading && ! rows.length"><td colspan="6" class="px-4 py-12 text-center">
+                                            <div class="flex flex-col items-center justify-center">
+                                                <span class="material-symbols-outlined text-gray-400 text-5xl mb-2">inventory_2</span>
+                                                <p class="text-gray-500 dark:text-slate-400">No TWP cards found</p>
+                                            </div></td></tr>
+                                        <template x-for="c in rows" :key="c.id">
+                                            <tr x-show="! loading" class="border-b border-gray-100 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700/30">
+                                                <td class="px-4 py-3 font-medium" x-text="c.card_id"></td>
+                                                <td class="px-4 py-3" x-text="c.card_no"></td>
+                                                <td class="px-4 py-3"><span class="px-2 py-1 rounded text-xs font-semibold" :class="badge[c.status] || badge.inactive" x-text="label[c.status] || c.status"></span></td>
+                                                <td class="px-4 py-3" x-text="c.holder || '-'"></td>
+                                                <td class="px-4 py-3">
+                                                    <button type="button" @click="qr = c.card_id" :disabled="c.status === 'inactive'"
+                                                        :class="c.status === 'inactive' ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-primary text-white hover:bg-blue-600'"
+                                                        class="px-3 py-1.5 text-xs font-medium rounded transition-colors">Generate</button>
+                                                </td>
+                                                <td class="px-4 py-3 w-32">
+                                                    <div class="flex gap-2">
+                                                        <button type="button" @click="openForm(c)" class="text-primary hover:text-primary/80"><span class="material-symbols-outlined text-xl">edit</span></button>
+                                                        <button type="button" @click="del = c" class="text-red-500 hover:text-red-400"><span class="material-symbols-outlined text-xl">delete</span></button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Pagination -->
+                            <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6">
+                                <p class="text-sm text-gray-600 dark:text-slate-400">
+                                    Showing <span class="font-medium" x-text="p.total ? (p.current_page - 1) * p.per_page + 1 : 0"></span> to
+                                    <span class="font-medium" x-text="Math.min(p.current_page * p.per_page, p.total)"></span> of
+                                    <span class="font-medium" x-text="p.total"></span> cards
+                                </p>
+                                <div class="flex items-center gap-2">
+                                    <button type="button" @click="load(p.current_page - 1)" :disabled="p.current_page <= 1"
+                                        class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                        <span class="material-symbols-outlined text-base">chevron_left</span></button>
+                                    <template x-for="i in pages()" :key="i">
+                                        <span>
+                                            <span x-show="i === '...'" class="px-2 text-gray-400">...</span>
+                                            <button type="button" x-show="i !== '...'" @click="load(i)" x-text="i"
+                                                :class="i === p.current_page ? 'bg-primary text-white' : 'border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700'"
+                                                class="px-3 py-2 rounded-lg transition-colors font-medium text-sm min-w-[40px]"></button>
+                                        </span>
+                                    </template>
+                                    <button type="button" @click="load(p.current_page + 1)" :disabled="p.current_page >= p.total_pages"
+                                        class="px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                        <span class="material-symbols-outlined text-base">chevron_right</span></button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </a>
+
+                    <!-- Create / Edit -->
+                    <div x-show="form" x-cloak class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                        <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" @click.outside="form = null">
+                            <div class="sticky top-0 bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between">
+                                <h3 class="text-lg font-bold text-gray-800 dark:text-white" x-text="form && form.id ? 'Edit TWP Card' : 'Create New TWP Card'"></h3>
+                                <button type="button" @click="form = null" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"><span class="material-symbols-outlined">close</span></button>
+                            </div>
+                            <form class="p-6" @submit.prevent="save()">
+                                <template x-if="form">
+                                <div class="grid grid-cols-1 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Card ID <span class="text-red-500">*</span></label>
+                                        <input type="text" x-model="form.card_id" required placeholder="Tap the card on the reader" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Temporary Work Pass No <span class="text-red-500">*</span></label>
+                                        <input type="text" x-model="form.card_no" required placeholder="Enter temporary work pass no" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Status <span class="text-red-500">*</span></label>
+                                        <select x-model="form.status" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm focus:ring-primary focus:border-primary outline-none">
+                                            <option value="active">Active</option>
+                                            <option value="inactive">Inactive</option>
+                                        </select>
+                                    </div>
+                                    <p x-show="err" x-text="err" class="text-red-500 text-xs"></p>
+                                </div>
+                                </template>
+                                <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200 dark:border-slate-700">
+                                    <button type="button" @click="form = null" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">Cancel</button>
+                                    <button type="submit" :disabled="busy" class="px-4 py-2 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm" x-text="busy ? 'Saving...' : (form && form.id ? 'Update Card' : 'Create Card')"></button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Delete -->
+                    <div x-show="del" x-cloak class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                        <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md p-6" @click.outside="del = null">
+                            <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-2">Delete TWP Card</h3>
+                            <p class="text-sm text-gray-600 dark:text-slate-400">Are you sure you want to delete <b x-text="del && del.card_id"></b>? This cannot be undone.</p>
+                            <div class="flex justify-end gap-3 mt-6">
+                                <button type="button" @click="del = null" class="px-5 py-2.5 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">Cancel</button>
+                                <button type="button" @click="remove()" :disabled="busy" class="px-5 py-2.5 rounded-lg bg-red-500 text-white font-medium hover:bg-red-600 transition-colors text-sm" x-text="busy ? 'Deleting...' : 'Delete Card'"></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- QR -->
+                    <div x-show="qr" x-cloak class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                        <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md" @click.outside="qr = null">
+                            <div class="border-b border-gray-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between">
+                                <h3 class="text-lg font-bold text-gray-800 dark:text-white">TWP Card QR</h3>
+                                <button type="button" @click="qr = null" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 border border-gray-300 dark:border-slate-600 px-2 py-0.5 rounded"><span class="text-sm font-bold">x</span></button>
+                            </div>
+                            <div class="p-6 flex flex-col items-center gap-2">
+                                <img :src="qr ? qrUrl(qr) : ''" alt="QR Code" class="w-64 h-64 object-contain">
+                                <p class="text-sm font-medium text-gray-700 dark:text-slate-300" x-text="qr"></p>
+                            </div>
+                            <div class="px-6 py-4 flex justify-between gap-3">
+                                <button type="button" @click="qr = null" class="px-5 py-2.5 rounded text-white font-medium bg-yellow-500 hover:bg-yellow-600 transition-colors text-sm">Close</button>
+                                <button type="button" @click="printVisitorCardQr(qrUrl(qr))" class="px-5 py-2.5 rounded bg-blue-500 text-white font-medium hover:bg-blue-600 transition-colors text-sm">Print</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TWP Rates -->
+                    <div x-show="rateOpen" x-cloak class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                        <form class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md p-6 space-y-4" @click.outside="rateOpen = false" @submit.prevent="saveRates()">
+                            <h3 class="text-lg font-bold text-gray-800 dark:text-white">TWP Rates</h3>
+                            <div><label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Per worker (RM)</label>
+                                <input type="number" step="0.01" min="0" x-model="rates.worker" :disabled="! superadmin" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm"></div>
+                            <div><label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Per vehicle (RM)</label>
+                                <input type="number" step="0.01" min="0" x-model="rates.vehicle" :disabled="! superadmin" class="w-full rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white px-4 py-2.5 text-sm"></div>
+                            <p x-show="! superadmin" class="text-xs text-gray-500">Rates are set by the superadmin.</p>
+                            <div class="flex justify-end gap-3">
+                                <button type="button" @click="rateOpen = false" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-sm">Close</button>
+                                <button type="submit" x-show="superadmin" :disabled="busy" class="px-4 py-2 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors text-sm">Save Rates</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <script>
+                // TWP Card Management (KPK temporary-work-pass-card): list, create / edit, delete, QR, rates, print the blank card
+                function twpCards() {
+                    const post = (url, data) => {
+                        const fd = new FormData();
+                        Object.entries(data).forEach(([k, v]) => fd.append(k, v ?? ''));
+                        return fetch(url, { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } }).then(r => r.json());
+                    };
+                    return {
+                        loaded: false, loading: false, rows: [], search: '', sort: '', busy: false, err: '',
+                        p: { current_page: 1, per_page: 10, total: 0, total_pages: 1 },
+                        form: null, del: null, qr: null, rateOpen: false, rates: { worker: 0, vehicle: 0 }, superadmin: false,
+                        badge: { active: 'bg-green-500/20 text-green-400', in_use: 'bg-yellow-500/20 text-yellow-400', inactive: 'bg-gray-500/20 text-gray-400' },
+                        label: { active: 'Active', in_use: 'In Use', inactive: 'Inactive' },
+                        load(page) {
+                            if (page < 1 || page > this.p.total_pages && this.loaded) return;
+                            this.loaded = true; this.loading = true;
+                            fetch(`<?= base_url('twp/cards/list') ?>?page=${page}&search=${encodeURIComponent(this.search)}&sort=${this.sort}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                                .then(r => r.json()).then(d => {
+                                    this.rows = d.data || []; this.p = d.pagination; this.superadmin = d.superadmin;
+                                    this.rates = { worker: Number(d.rates.worker).toFixed(2), vehicle: Number(d.rates.vehicle).toFixed(2) };
+                                }).catch(() => showNotification('Failed to load TWP cards', 'error')).finally(() => this.loading = false);
+                        },
+                        pages() {
+                            const out = [], t = this.p.total_pages, c = this.p.current_page;
+                            for (let i = 1; i <= t; i++) {
+                                if (i === 1 || i === t || (i >= c - 1 && i <= c + 1)) out.push(i);
+                                else if (i === c - 2 || i === c + 2) out.push('...');
+                            }
+                            return out;
+                        },
+                        openForm(c) {
+                            this.err = '';
+                            this.form = c ? { id: c.id, card_id: c.card_id, card_no: c.card_no, status: c.status === 'inactive' ? 'inactive' : 'active' } : { id: 0, card_id: '', card_no: '', status: 'active' };
+                        },
+                        save() {
+                            this.busy = true; this.err = '';
+                            post(`<?= base_url('twp/cards/save') ?>`, this.form).then(d => {
+                                if (d.success) { showNotification(d.message, 'success'); this.form = null; this.load(this.p.current_page); }
+                                else this.err = d.message;
+                            }).finally(() => this.busy = false);
+                        },
+                        remove() {
+                            this.busy = true;
+                            post(`<?= base_url('twp/cards') ?>/${this.del.id}/delete`, {}).then(d => {
+                                showNotification(d.message, d.success ? 'success' : 'error');
+                                if (d.success) { this.del = null; this.load(this.p.current_page); }
+                            }).finally(() => this.busy = false);
+                        },
+                        saveRates() {
+                            this.busy = true;
+                            post(`<?= base_url('twp/cards/rates') ?>`, { rate_worker: this.rates.worker, rate_vehicle: this.rates.vehicle }).then(d => {
+                                showNotification(d.message, d.success ? 'success' : 'error');
+                                if (d.success) this.rateOpen = false;
+                            }).finally(() => this.busy = false);
+                        },
+                        qrUrl(id) { return `<?= base_url('config/generateVisitorCardQr') ?>/${encodeURIComponent(id)}`; },
+                        // KPK print-section: blank card, front then back with the signature (Card Template Management artwork)
+                        printBlank() {
+                            const w = window.open('', '_blank');
+                            w.document.write(`<html><head><title>TWP Card</title><style>@page { size: 54mm 86mm; margin: 0; } body { margin: 0; } .c { width: 54mm; height: 86mm; position: relative; page-break-after: always; } .c img { position: absolute; }</style></head><body>
+                                <div class="c"><img src="<?= esc($twpTpl['front'], 'js') ?>" style="width:100%;height:100%;object-fit:cover"></div>
+                                <div class="c"><img src="<?= esc($twpTpl['back'], 'js') ?>" style="width:100%;height:100%"><img src="<?= base_url('assets/images/template/sign.png') ?>" style="width:65%;height:8mm;left:8%;top:68mm"></div>
+                                <script>window.onload = () => { window.print(); window.close(); };<\/script></body></html>`);
+                            w.document.close();
+                        },
+                    };
+                }
+                // twp/cards sends people here with ?section=twpcard
+                document.addEventListener('DOMContentLoaded', () => {
+                    if (new URLSearchParams(location.search).get('section') === 'twpcard') document.querySelector('#twpcard-content')?.previousElementSibling?.click();
+                });
+                </script>
                 <?php endif; ?>
 
                 <!-- Card Template Management -->

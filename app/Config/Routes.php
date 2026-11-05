@@ -699,7 +699,9 @@ $routes->group('twp', ['filter' => $plusAdminOfficer], function($routes) {
     $routes->post('passes/(:num)/issue', 'Twp::issueCard/$1');
     $routes->post('passes/(:num)/return', 'Twp::returnCard/$1');
     $routes->get('cards', 'Twp::cards');
+    $routes->get('cards/list', 'Twp::cardList');
     $routes->post('cards/save', 'Twp::saveCard');
+    $routes->post('cards/(:num)/delete', 'Twp::deleteCard/$1');
     $routes->post('cards/rates', 'Twp::saveRates');
     $routes->get('dashboard', 'Twp::dashboard');
     $routes->get('report', 'Twp::report');

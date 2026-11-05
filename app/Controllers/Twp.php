@@ -448,14 +448,58 @@ class Twp extends BaseController
 
     // ------------------------------------------------------------------ TWP Card config (+ rates)
 
+    /** The cards are managed in Config > TWP Card Management (like Visitor Card Management). */
     public function cards()
     {
-        $c    = $this->clientId();
-        $rows = $this->db()->query("SELECT c.*, (SELECT w.name FROM twp_workers w WHERE w.card_id = c.id AND w.card_status = 'Issued' LIMIT 1) AS holder
-                FROM twp_cards c" . ($c > 0 ? " WHERE c.company_id = {$c} OR c.company_id IS NULL" : '') . ' ORDER BY c.card_no')->getResultArray();
+        return redirect()->to(base_url('config?section=twpcard'));
+    }
 
-        return view('twp/cards', ['pageTitle' => 'Temporary Work Pass Card - SafeG', 'rows' => $rows, 'rates' => $this->rates(), 'superadmin' => $c === 0,
-            'templates' => \App\Libraries\CardTemplates::resolveAll($this->db(), 'twp', $c ?: null)]);
+    /** Config > TWP Card Management table: search, sort, 10 a page. Status in_use = issued to a worker now. */
+    public function cardList()
+    {
+        $c      = $this->clientId();
+        $page   = max(1, (int) $this->request->getGet('page'));
+        $search = trim((string) $this->request->getGet('search'));
+        $where  = [];
+        $args   = [];
+        if ($c > 0) {
+            $where[] = '(c.company_id = ? OR c.company_id IS NULL)';
+            $args[]  = $c;
+        }
+        if ($search !== '') {
+            $where[] = '(c.card_id LIKE ? OR c.card_no LIKE ?)';
+            array_push($args, "%{$search}%", "%{$search}%");
+        }
+        $order = ['card_asc' => 'c.card_id ASC', 'card_desc' => 'c.card_id DESC', 'status' => 'c.status, c.card_no'][$this->request->getGet('sort')] ?? 'c.card_no';
+        $sql   = 'FROM twp_cards c' . ($where ? ' WHERE ' . implode(' AND ', $where) : '');
+        $total = (int) $this->db()->query("SELECT COUNT(*) AS n {$sql}", $args)->getRow()->n;
+        $rows  = $this->db()->query("SELECT c.id, c.card_id, c.card_no, c.status,
+                (SELECT w.name FROM twp_workers w WHERE w.card_id = c.id AND w.card_status = 'Issued' LIMIT 1) AS holder
+                {$sql} ORDER BY {$order} LIMIT 10 OFFSET " . (($page - 1) * 10), $args)->getResultArray();
+        foreach ($rows as &$r) {
+            $r['status'] = $r['holder'] ? 'in_use' : $r['status'];
+        }
+        unset($r);
+
+        return $this->response->setJSON(['success' => true, 'data' => $rows, 'rates' => $this->rates(), 'superadmin' => $c === 0,
+            'pagination' => ['current_page' => $page, 'per_page' => 10, 'total' => $total, 'total_pages' => max(1, (int) ceil($total / 10))]]);
+    }
+
+    public function deleteCard($id)
+    {
+        $db  = $this->db();
+        $c   = $this->clientId();
+        $own = $db->table('twp_cards')->where('id', (int) $id);
+        $c > 0 && $own->where('company_id', $c);
+        if (! $own->get()->getRowArray()) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Card not found.']);
+        }
+        if ($db->table('twp_workers')->where('card_id', (int) $id)->where('card_status', 'Issued')->countAllResults() > 0) {
+            return $this->response->setJSON(['success' => false, 'message' => 'This card is issued to a worker. Return the card first.']);
+        }
+        $db->table('twp_cards')->where('id', (int) $id)->delete();
+
+        return $this->response->setJSON(['success' => true, 'message' => 'TWP card deleted.']);
     }
 
     public function saveCard()
@@ -466,11 +510,11 @@ class Twp extends BaseController
         $db   = $this->db();
         $c    = $this->clientId();
         if ($epc === '' || $no === '') {
-            return $this->back('twp/cards', 'error', 'Card ID and Temporary Work Pass No are required.');
+            return $this->cardReply(false, 'Card ID and Temporary Work Pass No are required.');
         }
         if ($db->table('twp_cards')->where('card_id', $epc)->where('id !=', $id)->countAllResults() > 0
             || ($db->tableExists('visitor_cards') && $db->table('visitor_cards')->where('card_id', $epc)->countAllResults() > 0)) {
-            return $this->back('twp/cards', 'error', 'This Card ID is already registered.');
+            return $this->cardReply(false, 'This Card ID is already registered.');
         }
         $data = ['card_id' => mb_substr($epc, 0, 100), 'card_no' => mb_substr($no, 0, 80), 'status' => $this->request->getPost('status') === 'inactive' ? 'inactive' : 'active', 'updated_at' => date('Y-m-d H:i:s')];
         if ($id) {
@@ -481,14 +525,19 @@ class Twp extends BaseController
             $db->table('twp_cards')->insert($data + ['company_id' => $c > 0 ? $c : null, 'created_by' => (int) session()->get('user_id') ?: null, 'created_at' => $data['updated_at']]);
         }
 
-        return $this->back('twp/cards', 'success', 'TWP card saved.');
+        return $this->cardReply(true, 'TWP card saved.');
+    }
+
+    private function cardReply(bool $ok, string $msg)
+    {
+        return $this->response->setJSON(['success' => $ok, 'message' => $msg]);
     }
 
     /** STAFF / LORRY rates are global (KPK payment type list), so only the platform superadmin sets them. */
     public function saveRates()
     {
         if ($this->clientId() !== 0) {
-            return $this->back('twp/cards', 'error', 'Only the superadmin can change the TWP rates.');
+            return $this->cardReply(false, 'Only the superadmin can change the TWP rates.');
         }
         $db = $this->db();
         foreach (['twp_rate_worker' => 'rate_worker', 'twp_rate_vehicle' => 'rate_vehicle'] as $key => $field) {
@@ -498,7 +547,7 @@ class Twp extends BaseController
                 : $db->table('settings')->insert(['setting_key' => $key, 'setting_value' => $val, 'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s')]);
         }
 
-        return $this->back('twp/cards', 'success', 'TWP rates saved.');
+        return $this->cardReply(true, 'TWP rates saved.');
     }
 
     // ------------------------------------------------------------------ Dashboard + reports
