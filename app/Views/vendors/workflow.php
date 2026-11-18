@@ -153,6 +153,26 @@ HTML;
                     </div>
                 </div>
 
+                <!-- Pass renewal window (VendorRenewal) -->
+                <form method="post" action="<?= base_url('vendor-workflow/renewal') ?>" class="mb-8 flex flex-col gap-4 rounded-xl border border-border-light bg-surface-light p-5 shadow-sm dark:border-[#324d67] dark:bg-surface-dark md:flex-row md:items-center md:justify-between">
+                    <?= csrf_field() ?>
+                    <div class="flex items-start gap-3">
+                        <span class="flex size-10 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30"><span class="material-symbols-outlined">autorenew</span></span>
+                        <div>
+                            <p class="font-bold text-gray-800 dark:text-white">Pass Renewal</p>
+                            <p class="text-sm text-text-secondary-light dark:text-[#92adc9]">The Renew button appears this many months before a vendor pass expires. The current card keeps working until the renewed card is issued.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <select name="renew_months" class="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800" <?= empty($renewReady) ? 'disabled' : '' ?>>
+                            <?php for ($m = 1; $m <= \App\Libraries\VendorRenewal::MAX_MONTHS; $m++): ?>
+                            <option value="<?= $m ?>" <?= (int) ($renewMonths ?? 1) === $m ? 'selected' : '' ?>><?= $m ?> month<?= $m > 1 ? 's' : '' ?> before expiry</option>
+                            <?php endfor; ?>
+                        </select>
+                        <button class="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-white hover:bg-primary-hover" <?= empty($renewReady) ? 'disabled' : '' ?>>Save</button>
+                    </div>
+                </form>
+
                 <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-4">Active Workflows</h2>
                 <div class="flex flex-col bg-surface-light dark:bg-surface-dark rounded-xl border border-border-light dark:border-border-dark shadow-sm overflow-hidden mb-8">
                     <?= $tableHead ?>

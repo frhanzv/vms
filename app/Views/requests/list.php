@@ -80,7 +80,7 @@
                 if (! empty($requestViewClientId)) {
                     $requestUrlParams['view_client_id'] = (int)$requestViewClientId;
                 }
-                $requestUrl = base_url('requests') . '?' . http_build_query($requestUrlParams);
+                $requestUrl = base_url('requests/queue') . '?' . http_build_query($requestUrlParams);
             ?>
             <div onclick="window.location.href='<?= esc($requestUrl) ?>'" class="group flex items-start gap-3 p-3 rounded-lg <?= $isActiveRequest ? 'bg-primary/5 border border-primary/20' : 'hover:bg-gray-50 dark:hover:bg-slate-800 border border-transparent' ?> cursor-pointer relative overflow-hidden transition-colors">
                 <?php if ($isActiveRequest): ?>

@@ -856,7 +856,13 @@
                         QR Code
                     </button>
                     <?php endif; ?>
-                    <button type="button" class="px-4 py-2.5 bg-primary hover:bg-primary-dark text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
+                    <?php if ($cardEnabled): ?>
+                    <button type="button" id="btnFinishWithoutCard" onclick="finishWithoutCard()" class="hidden px-4 py-2.5 border border-primary text-primary hover:bg-primary/10 font-medium rounded-lg transition-colors duration-200 flex items-center gap-2" title="The visitor goes in without a physical card (QR code at the turnstile)">
+                        <span class="material-symbols-outlined text-lg">qr_code_scanner</span>
+                        Finish Without Card
+                    </button>
+                    <?php endif; ?>
+                    <button type="button" id="btnPrintSlip" onclick="printVisitorSlip()" class="px-4 py-2.5 bg-primary hover:bg-primary-dark text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
                         <span class="material-symbols-outlined text-lg">print</span>
                         Print Slip
                     </button>
@@ -1317,6 +1323,16 @@
             const returnBtn = document.getElementById('btnReturnCardFromDetail');
             const normalizedCardStatus = String(visitor.card_status || '').toLowerCase().trim();
             const showReturnButton = raw === 'in_use' || normalizedCardStatus === 'in use' || normalizedCardStatus === 'in_use';
+            // KPK Print Slip (only where the location has Visitor Pass Print on) and Finish Without Card
+            const slipBtn = document.getElementById('btnPrintSlip');
+            if (slipBtn) {
+                slipBtn.disabled = ! visitor.slip_ok;
+                slipBtn.title = visitor.slip_ok ? 'Print the visitor pass slip' : 'Visitor Pass Print is off for this location';
+            }
+            const noCardBtn = document.getElementById('btnFinishWithoutCard');
+            if (noCardBtn) {
+                noCardBtn.classList.toggle('hidden', !! visitor.card_id || !! visitor.check_out_time || !! visitor.no_card);
+            }
             if (returnBtn) {
                 returnBtn.classList.toggle('hidden', !showReturnButton);
                 returnBtn.disabled = false;
@@ -1330,6 +1346,9 @@
             } else if (visitor.card_status === 'In Use') {
                 statusBadge.classList.remove('hidden');
                 statusBadge.innerHTML = '<span class="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-lg text-sm font-semibold border border-blue-200 dark:border-blue-800"><span class="material-symbols-outlined text-base">credit_card</span>IN USE</span>';
+            } else if (visitor.card_status === 'Without Card') {
+                statusBadge.classList.remove('hidden');
+                statusBadge.innerHTML = '<span class="inline-flex items-center gap-2 px-3 py-1.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-lg text-sm font-semibold"><span class="material-symbols-outlined text-base">qr_code_scanner</span>Without Card (QR)</span>';
             } else if (visitor.card_status === 'Inactive') {
                 statusBadge.classList.remove('hidden');
                 statusBadge.innerHTML = '<span class="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded-lg text-sm font-semibold border border-gray-200 dark:border-gray-700"><span class="material-symbols-outlined text-base">credit_card_off</span>Inactive</span>';
@@ -1515,6 +1534,16 @@
             modal.classList.add('hidden');
             modal.classList.remove('flex');
             document.body.style.overflow = 'auto';
+        }
+
+        function printVisitorSlip() {
+            if (currentInvitationVisitorId) window.open('<?= base_url('visitors/slip') ?>/' + currentInvitationVisitorId, '_blank');
+        }
+
+        function finishWithoutCard() {
+            if (! currentInvitationVisitorId || ! confirm('Finish without a card? The visitor will use the QR code at the turnstile.')) return;
+            fetch('<?= base_url('visitors/finishWithoutCard') ?>', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, body: JSON.stringify({ invitation_visitor_id: currentInvitationVisitorId }) })
+                .then(r => r.json()).then(d => { alert(d.message); if (d.success) location.reload(); });
         }
 
         function openCardBindingModal() {

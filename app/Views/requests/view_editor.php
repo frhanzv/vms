@@ -2,7 +2,7 @@
 <div class="px-6 pt-4 flex justify-end items-center gap-3">
     <?php if ($requestViewClients !== []): ?>
     <label class="text-sm" for="requestViewClient">Client</label>
-    <select id="requestViewClient" class="border rounded-lg px-3 py-2 text-sm dark:bg-slate-900" onchange="window.location.href='<?= base_url('requests') ?>?view_client_id='+encodeURIComponent(this.value)">
+    <select id="requestViewClient" class="border rounded-lg px-3 py-2 text-sm dark:bg-slate-900" onchange="window.location.href='<?= base_url('requests/queue') ?>?view_client_id='+encodeURIComponent(this.value)">
         <?php foreach ($requestViewClients as $client): ?>
         <option value="<?= (int)$client['id'] ?>" <?= (int)$client['id'] === $requestViewClientId ? 'selected' : '' ?>><?= esc($client['name']) ?></option>
         <?php endforeach; ?>

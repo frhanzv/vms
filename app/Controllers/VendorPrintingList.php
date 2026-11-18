@@ -42,7 +42,7 @@ class VendorPrintingList extends BaseController
         // Printed cards stay on this list until they are issued (there is no Issuance List)
         $builder = $db->table('vendors')
             ->where('status', 'Approved')
-            ->where("COALESCE(card_status, 'Inactive') <> 'Active'", null, false);
+            ->where(\App\Libraries\VendorRenewal::needsCardSql($db), null, false);
         // Vendor Workflow: Card Processing off -> nothing waits here.
         if (! \App\Libraries\VendorWorkflow::enabled($db, (int) current_company_id(), 'card_processing')) {
             $builder->where('1 = 0', null, false);
@@ -141,6 +141,7 @@ class VendorPrintingList extends BaseController
         if (! $vendor) {
             return $this->response->setJSON(['success' => false, 'message' => 'Record not found.']);
         }
+        $vendor = \App\Libraries\VendorRenewal::working($vendor); // a renewal prints its NEW expiry
         if (empty($vendor['card_type'])) {
             return $this->response->setJSON(['success' => false, 'message' => 'This record has no card type assigned yet — send it through Process List first.']);
         }

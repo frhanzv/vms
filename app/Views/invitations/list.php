@@ -234,7 +234,7 @@
                 <table id="invitationTable" class="w-full min-w-max text-left border-collapse">
                     <thead>
                         <tr class="bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs font-bold uppercase tracking-wide">
-                            <?php foreach (['no'=>'No','date'=>'Date','full_name'=>'Full Name','ic_passport'=>'IC / Passport No','contact'=>'Contact No','company'=>'Company','vehicle_reg'=>'Vehicle Registration','location'=>'Location','invited_by'=>'Invited By','status'=>'Status','reason'=>'Reason'] as $key => $label): ?>
+                            <?php foreach (['no'=>'No','date'=>'Date','full_name'=>'Full Name','ic_passport'=>'IC / Passport No','contact'=>'Contact No','company'=>'Company','vehicle_reg'=>'Vehicle Registration','location'=>'Location','invited_by'=>'Invited By','status'=>'Status','reason'=>'Reason','location_visited'=>'Location Visited','link_expiry'=>'Link Expiry','last_access'=>'Last Access'] as $key => $label): ?>
                             <th data-invitation-column="<?= esc($key) ?>" class="p-4 border-b dark:border-gray-600<?= empty($invitationListColumns[$key]) ? ' hidden' : '' ?>"><?= esc($label) ?></th>
                             <?php endforeach; ?>
                         </tr>
@@ -280,6 +280,9 @@
                                 <?php endif; ?>
                             </td>
                             <td data-invitation-column="reason" class="p-4<?= empty($invitationListColumns['reason']) ? ' hidden' : '' ?>"><?= esc($invitation['reason']) ?></td>
+                            <td data-invitation-column="location_visited" class="p-4<?= empty($invitationListColumns['location_visited']) ? ' hidden' : '' ?>"><?= esc($invitation['location_visited'] ?? '-') ?></td>
+                            <td data-invitation-column="link_expiry" class="p-4 whitespace-nowrap<?= empty($invitationListColumns['link_expiry']) ? ' hidden' : '' ?>"><?= esc($invitation['link_expiry'] ?? '-') ?></td>
+                            <td data-invitation-column="last_access" class="p-4 whitespace-nowrap<?= empty($invitationListColumns['last_access']) ? ' hidden' : '' ?>"><?= esc($invitation['last_access'] ?? '-') ?></td>
                         </tr>
                         <?php endforeach; ?>
                         <?php endif; ?>
@@ -379,7 +382,7 @@
                     <label for="selectAllInvitationColumns" class="text-sm font-bold text-slate-700 dark:text-slate-300 cursor-pointer">Select All Columns</label>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-4">
-                    <?php foreach (['no'=>'No','date'=>'Date','full_name'=>'Full Name','ic_passport'=>'IC / Passport No','contact'=>'Contact No','company'=>'Company','vehicle_reg'=>'Vehicle Registration','location'=>'Location','invited_by'=>'Invited By','status'=>'Status','reason'=>'Reason'] as $key => $label): ?>
+                    <?php foreach (['no'=>'No','date'=>'Date','full_name'=>'Full Name','ic_passport'=>'IC / Passport No','contact'=>'Contact No','company'=>'Company','vehicle_reg'=>'Vehicle Registration','location'=>'Location','invited_by'=>'Invited By','status'=>'Status','reason'=>'Reason','location_visited'=>'Location Visited','link_expiry'=>'Link Expiry','last_access'=>'Last Access'] as $key => $label): ?>
                     <div class="flex items-center gap-2">
                         <input type="checkbox" id="invitation_col_<?= esc($key) ?>" name="invitation_list_columns[<?= esc($key) ?>]" value="true" class="invitation-column-toggle rounded border-slate-300 text-[#535dec] focus:ring-[#535dec] h-4 w-4 cursor-pointer" <?= ! empty($invitationListColumns[$key]) ? 'checked' : '' ?>>
                         <label for="invitation_col_<?= esc($key) ?>" class="text-sm text-slate-600 dark:text-slate-300 uppercase cursor-pointer"><?= esc($label) ?></label>
@@ -936,6 +939,9 @@
                         <td data-invitation-column="invited_by" class="p-4${invitationColumnClass('invited_by')}">${escapeHtml(invitation.invited_by)}</td>
                         <td data-invitation-column="status" class="p-4${invitationColumnClass('status')}">${buildStatusBadge(invitation.status)}</td>
                         <td data-invitation-column="reason" class="p-4${invitationColumnClass('reason')}">${escapeHtml(invitation.reason)}</td>
+                        <td data-invitation-column="location_visited" class="p-4${invitationColumnClass('location_visited')}">${escapeHtml(invitation.location_visited || '-')}</td>
+                        <td data-invitation-column="link_expiry" class="p-4 whitespace-nowrap${invitationColumnClass('link_expiry')}">${escapeHtml(invitation.link_expiry || '-')}</td>
+                        <td data-invitation-column="last_access" class="p-4 whitespace-nowrap${invitationColumnClass('last_access')}">${escapeHtml(invitation.last_access || '-')}</td>
                     </tr>
                 `;
             }).join('');

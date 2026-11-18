@@ -63,9 +63,17 @@
 
             <div class="mb-8 space-y-2">
                 <h1 class="text-3xl sm:text-4xl font-black text-text-main dark:text-white font-brand tracking-tight">
-                    <?= isset($isEdit) ? 'Edit Vendor Pass' : 'Contractor/Vendor Request' ?>
+                    <?= ! empty($isRenew) ? 'Renew Vendor Pass' : (isset($isEdit) ? 'Edit Vendor Pass' : 'Contractor/Vendor Request') ?>
                 </h1>
             </div>
+
+            <?php if (! empty($isRenew)): ?>
+                <div class="mb-6 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
+                    Renewing <strong><?= esc($vendor['full_name'] ?? '') ?></strong> (<?= esc($vendor['app_no'] ?? '') ?>). The current card keeps working at the gate until
+                    <?= ! empty($vendor['pass_expiry']) ? '<strong>' . esc(date('d M Y', strtotime($vendor['pass_expiry']))) . '</strong> or ' : '' ?>the renewed card is issued.
+                    Name and IC / passport stay as they are; the new expiry date is set in the Process List.
+                </div>
+            <?php endif; ?>
 
             <?php if (session()->getFlashdata('error')): ?>
                 <div class="mb-6 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 text-sm">
@@ -555,12 +563,12 @@
                     <a href="<?= base_url('vendors') ?>" class="h-12 px-6 rounded-lg border border-border-color dark:border-gray-700 text-text-main dark:text-gray-200 font-brand font-medium flex items-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                         Cancel
                     </a>
-                    <button type="submit" name="save_as_draft" value="1" formnovalidate class="h-12 px-6 rounded-lg border border-border-color dark:border-gray-700 text-text-main dark:text-gray-200 font-brand font-semibold flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                    <?php if (empty($isRenew)): ?><button type="submit" name="save_as_draft" value="1" formnovalidate class="h-12 px-6 rounded-lg border border-border-color dark:border-gray-700 text-text-main dark:text-gray-200 font-brand font-semibold flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                         Save As Draft
-                    </button>
+                    </button><?php endif; ?>
                     <button type="submit" class="h-12 px-6 rounded-lg bg-primary hover:bg-primary-hover text-white font-brand font-semibold flex items-center gap-2 shadow transition-colors">
                         <span class="material-symbols-outlined text-[20px]">check_circle</span>
-                        <?= isset($isEdit) ? 'Save Changes' : 'Submit' ?>
+                        <?= ! empty($isRenew) ? 'Submit Renewal' : (isset($isEdit) ? 'Save Changes' : 'Submit') ?>
                     </button>
                 </div>
             </form>

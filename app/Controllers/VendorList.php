@@ -108,6 +108,8 @@ class VendorList extends BaseController
         helper(['feature', 'role']);
         $approvalRows = \App\Libraries\VendorClientApprovals::rowsForVendors($db, array_map('intval', array_column($results, 'id')));
         $myClientId   = is_platform_superadmin() ? null : (int) current_company_id();
+        helper('vendor_company');
+        $mayRenew     = has_access('vendor_pass_list', 'edit') || is_vendor_admin(); // the vendor company renews its own passes
 
         foreach ($results as $index => $row) {
             $rowStatus = $row['status'] ?? 'Pending';
@@ -134,6 +136,7 @@ class VendorList extends BaseController
                 'reject_reason'        => $row['reject_reason'] ?? null,
                 'pass_expiry'          => $row['pass_expiry'] ? date('d/m/Y', strtotime($row['pass_expiry'])) : '-',
                 'remark'               => $row['remark'] ?? '-',
+                'renew'                => \App\Libraries\VendorRenewal::rowState($db, $row, $mayRenew),
                 // Per-row: the right branch approver sees the buttons, others don't (KPK enableBtns()).
                 'can_approve'          => $showApproveBtn
                     && in_array($rowStatus, ['Pending', 'Rejected'], true)
@@ -206,6 +209,14 @@ class VendorList extends BaseController
     private function currentStage(array $row, string $rowStatus): array
     {
         $card = (string) ($row['card_status'] ?? '');
+        // A renewal keeps its old card active while it goes through the steps again: show the step it is at.
+        if (! empty($row['renewal_pending'])) {
+            $row['renewal_pending'] = 0;
+            $row['card_status']     = 'Inactive';
+            $stage = $this->currentStage($row, $rowStatus);
+
+            return ['label' => 'Renewal: ' . $stage['label'], 'tone' => $stage['tone']];
+        }
         if ($card === 'Terminated') {
             return ['label' => 'Closed List (Terminated)', 'tone' => 'gray'];
         }
@@ -1206,6 +1217,14 @@ class VendorList extends BaseController
     {
         $db = \Config\Database::connect();
 
+        // Renewal (VendorRenewal): a rejected renewal keeps its old card; an approval that completes the pass
+        // straight away (direct close / no card steps) hands over the renewed pass now.
+        $renewal = ! empty($vendor['renewal_pending']);
+        if ($renewal && ($update['status'] ?? null) === 'Rejected') {
+            $update = array_merge($update, \App\Libraries\VendorRenewal::cancel($db, $vendor));
+        }
+        $finishRenewal = $renewal && ($update['status'] ?? null) === 'Approved' && ($update['card_status'] ?? null) === 'Active';
+
         // If a migration hasn't been run yet, don't 500 on the missing column —
         // just leave that column out (status / next_action always exist).
         $update = array_intersect_key($update, array_flip($db->getFieldNames('vendors')));
@@ -1233,6 +1252,9 @@ class VendorList extends BaseController
                 && $fresh['status'] === $vendor['status']
                 && (($fresh['next_action'] ?? null) ?: null) === (($vendor['next_action'] ?? null) ?: null);
             return $sameStep && ($update['status'] ?? null) === $vendor['status'];
+        }
+        if ($finishRenewal) {
+            \App\Libraries\VendorRenewal::finish($db, (int) $vendor['id']);
         }
 
         return true;

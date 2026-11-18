@@ -39,9 +39,13 @@ class VendorCardIssue extends BaseController
         if (! $vendor) {
             return $this->response->setJSON(['success' => false, 'message' => 'Record not found.']);
         }
-        if (($vendor['status'] ?? '') !== 'Approved' || ($vendor['card_status'] ?? 'Inactive') === 'Active') {
+        $renewal = ! empty($vendor['renewal_pending']);
+        if (($vendor['status'] ?? '') !== 'Approved' || (($vendor['card_status'] ?? 'Inactive') === 'Active' && ! $renewal)) {
             return $this->response->setJSON(['success' => false, 'message' => 'Only an approved pass whose card has not been issued yet can be issued.']);
         }
+
+        // A renewal: the renewed card and expiry replace the old ones now (the old card worked until this hand-over).
+        \App\Libraries\VendorRenewal::finish($db, (int) $id);
 
         $db->table('vendors')->where('id', (int) $id)->update([
             'card_status'           => 'Active',
@@ -51,6 +55,6 @@ class VendorCardIssue extends BaseController
             'issued_at'             => date('Y-m-d H:i:s'),
         ]);
 
-        return $this->response->setJSON(['success' => true, 'message' => 'Card issued to ' . $collectorName . ' — moved to Closed List.']);
+        return $this->response->setJSON(['success' => true, 'message' => ($renewal ? 'Renewed card issued to ' : 'Card issued to ') . $collectorName . ' — moved to Closed List.']);
     }
 }

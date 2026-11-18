@@ -254,6 +254,118 @@ class VendorPassRequest extends BaseController
             ->with('success', $isDraft ? 'Vendor pass request saved as draft.' : 'Vendor pass record updated successfully.');
     }
 
+    // ---------------------------------------------------------------------
+    // Renewal (KPK renew-port-pass, see App\Libraries\VendorRenewal)
+    // ---------------------------------------------------------------------
+
+    /** Staff with Vendor Pass List > Edit, or the vendor company itself (its own passes only, via loadScopedVendor). */
+    private function canRenew(): bool
+    {
+        helper(['access', 'vendor_company']);
+
+        return has_access('vendor_pass_list', 'edit') || is_vendor_admin();
+    }
+
+    /** The pass, or an error message why it cannot be renewed now. */
+    private function renewable(int $id): array|string
+    {
+        if (! $this->canRenew()) {
+            return 'You are not allowed to renew vendor passes.';
+        }
+        $vendor = $this->loadScopedVendor($id);
+        if (! $vendor) {
+            return 'Vendor pass record not found.';
+        }
+
+        return \App\Libraries\VendorRenewal::block(\Config\Database::connect(), $vendor) ?? $vendor;
+    }
+
+    public function renew($id)
+    {
+        $vendor = $this->renewable((int) $id);
+        if (is_string($vendor)) {
+            return redirect()->back()->with('error', $vendor);
+        }
+        $db = \Config\Database::connect();
+        $vendor['type_of_application'] = 'RENEWAL';
+        $vendor['date_of_application'] = date('d/m/Y');
+
+        return view('vendors/vendorpassrequest', [
+            'pageTitle'       => 'Renew Vendor Pass - SafeG',
+            'countries'       => (new \App\Models\CountryModel())->where('status', 'Active')->orderBy('name', 'ASC')->findAll(),
+            'vendor'          => $vendor,
+            'formAction'      => 'vendors/renew/' . (int) $id,
+            'isEdit'          => true,
+            'isRenew'         => true,
+            'fields'          => $this->vendorFieldToggles(),
+            'required'        => $this->vendorFieldRequired(),
+            'licenses'        => $db->table('vendor_driving_licenses')->where('vendor_id', (int) $id)->orderBy('id', 'DESC')->get()->getResultArray(),
+            'locationOptions' => (new VendorLocationModel())->getOptionsForUser(true),
+            'stateOptions'    => self::STATE_OPTIONS,
+            'lockedCompany'   => $this->vendorAccountCompany(),
+            'designations'    => $this->designationOptions(),
+        ]);
+    }
+
+    /**
+     * KPK renewPortPass: the same pass goes back to Pending and through the steps again (approval, process,
+     * printing, issuance). The old card and expiry stay live until the renewed card is issued.
+     */
+    public function renewStore($id)
+    {
+        $vendor = $this->renewable((int) $id);
+        if (is_string($vendor)) {
+            return redirect()->to(base_url('vendors/closed-list'))->with('error', $vendor);
+        }
+        $db = \Config\Database::connect();
+
+        if ($missing = $this->validateRequiredFields()) {
+            return redirect()->back()->withInput()->with('error', 'Please complete the following mandatory field(s): ' . implode(', ', $missing) . '.');
+        }
+        $data = $this->collectFormData((string) $vendor['app_no']);
+
+        // Keep locations of other clients this user cannot see (same as update()).
+        $visible = array_keys((new VendorLocationModel())->getOptionsForUser(true));
+        $kept    = array_values(array_filter(array_map('trim', explode(',', (string) ($vendor['location_access'] ?? ''))), static fn($c) => $c !== '' && ! in_array($c, $visible, true)));
+        if ($kept) {
+            $data['location_access'] = implode(',', array_unique(array_merge(array_filter(explode(',', (string) $data['location_access'])), $kept)));
+        }
+        if (trim((string) $data['location_access']) === '') {
+            return redirect()->back()->withInput()->with('error', 'Please choose at least one Location Access. It decides which client(s) receive this pass for approval.');
+        }
+
+        // KPK keeps the person's identity as it is; the expiry is set again in the Process List.
+        unset($data['full_name'], $data['ic_no'], $data['passport_no'], $data['dob'], $data['resident'], $data['pass_expiry']);
+        $data = [
+            'type_of_application' => 'RENEWAL',
+            'date_of_application' => date('d/m/Y'),
+            'status'              => 'Pending',
+            'next_action'         => null,
+            'reject_reason'       => null,
+            'receipt_no'          => null, // back through the Process List (Pass No is given again)
+            'renewal_pending'     => 1,
+            'renewed_at'          => date('Y-m-d H:i:s'),
+            'renew_card_id'       => null,
+            'renew_expiry'        => null,
+        ] + $data;
+
+        $this->handleUploads($data);
+
+        // Only the first renewal wins (KPK: "already been renewed by someone else").
+        $db->table('vendors')->where('id', (int) $id)->where('status', $vendor['status'])->where('renewal_pending', 0)->update($data);
+        if ($db->affectedRows() === 0) {
+            return redirect()->to(base_url('vendors/closed-list'))->with('error', 'Fail to renew. This pass has already been renewed by someone else. Please refresh.');
+        }
+
+        $this->saveDrivingLicenses((int) $id);
+        \App\Libraries\VendorClientApprovals::sync($db, (int) $id, (string) $data['location_access']);
+        \App\Libraries\VendorClientApprovals::resetAll($db, (int) $id); // a renewal needs every client's approval again
+        $auto = \App\Libraries\VendorWorkflow::autoApprove($db, (int) $id, (int) ($vendor['company_id'] ?? 0) ?: (int) current_company_id());
+
+        return redirect()->to(base_url('vendors'))->with('success', 'Renewal submitted' . ($auto ? ' and approved automatically' : ' — it is now Pending approval')
+            . '. The current card keeps working until the renewed card is issued.');
+    }
+
     /**
      * Pulls every posted field into one array, matching the vendors table columns.
      * Shared by store() and update() so both stay in sync.

@@ -71,8 +71,22 @@ class VendorWorkflowConfig extends BaseController
             'pageTitle' => 'Vendor Workflow Management - SafeG',
             'steps'     => VendorWorkflow::steps($db, $cid),
             'platform'  => $cid === 0,
+            'renewMonths' => \App\Libraries\VendorRenewal::months($db, $cid),
+            'renewReady'  => \App\Libraries\VendorRenewal::ready($db),
             'tableOk'   => $db->tableExists('vendor_workflow_settings') && $db->fieldExists('sort_order', 'vendor_workflow_settings'),
         ]);
+    }
+
+    /** Renewal window: how many months before the pass expires the Renew button appears (VendorRenewal). */
+    public function renewal()
+    {
+        $months = (int) $this->request->getPost('renew_months');
+        if ($months < 1 || $months > \App\Libraries\VendorRenewal::MAX_MONTHS) {
+            return $this->back('error', 'Choose between 1 and ' . \App\Libraries\VendorRenewal::MAX_MONTHS . ' months.');
+        }
+        \App\Libraries\VendorRenewal::saveMonths(\Config\Database::connect(), $this->scope(), $months);
+
+        return $this->back('success', 'Vendor passes can now be renewed ' . $months . ' month' . ($months > 1 ? 's' : '') . ' before they expire.');
     }
 
     /** Edit Sequence page: drag the active steps, add custom steps. */

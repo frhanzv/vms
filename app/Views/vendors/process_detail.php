@@ -26,8 +26,14 @@
                     <h1 class="text-xl font-bold uppercase">Vendor Pass Info<?= $reg ? ' - ' . esc($reg) : '' ?></h1>
                     <p class="text-xs text-gray-500 dark:text-gray-400"><?= esc($vendor['app_no'] ?? 'N/A') ?> &middot; <?= esc($vendor['vendor_company_name'] ?? '') ?></p>
                 </div>
-                <span class="px-3 py-1 rounded-full text-xs font-bold bg-primary/10 text-primary"><?= esc($vendor['status']) ?></span>
+                <span class="px-3 py-1 rounded-full text-xs font-bold bg-primary/10 text-primary"><?= esc($vendor['status']) ?><?= ! empty($isRenewal) ? ' · Renewal' : '' ?></span>
             </div>
+
+            <?php if (! empty($isRenewal)): ?>
+                <div class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
+                    <strong>Renewal.</strong> The expiry date and card set here belong to the renewed pass. The holder's current card keeps working until the renewed card is issued; you can bind the same card again or a new one.
+                </div>
+            <?php endif; ?>
 
             <!-- Application Info -->
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">

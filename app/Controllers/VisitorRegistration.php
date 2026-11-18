@@ -67,6 +67,11 @@ class VisitorRegistration extends BaseController
             $invitationId = base64_decode($token);
             $invitation = $this->invitationModel->find($invitationId);
             
+            // KPK "Last Access": when the visitor last opened the invitation link
+            if ($invitation && \Config\Database::connect()->fieldExists('last_access_at', 'invitations')) {
+                \Config\Database::connect()->table('invitations')->where('id', (int) $invitationId)->update(['last_access_at' => date('Y-m-d H:i:s')]);
+            }
+
             // Load invitation schedules
             if ($invitation) {
                 $schedules = $this->scheduleModel->where('invitation_id', $invitationId)->findAll();

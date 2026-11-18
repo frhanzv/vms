@@ -21,6 +21,7 @@ class InvitationModel extends Model
         'full_name', 'ic_passport', 'contact', 'visitor_email', 'company', 'vehicle_registration',
         'company_id', 'client_id', 'location', 'invited_by', 'reason', 'visitor_type_id', 'other_reason', 'link_expiry', 'status',
         'staff_id', 'company_visited', 'host_contact', 'registration_no',
+        'location_visited', 'meeting_session_id', 'last_access_at',
         'date_of_birth', 'sex', 'resident', 'address', 'postcode', 'city', 'state', 'country',
         'government_id_path', 'invitation_letter_path', 'profile_photo_path',
         'vehicle_category', 'vehicle_type',

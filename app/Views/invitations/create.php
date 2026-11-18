@@ -233,6 +233,40 @@ History
 <?php endif; ?>
 </select>
 </div>
+<?php if (! empty($locationsVisited)): ?>
+<!-- KPK Location Visited, and the Meeting Session it books when it is a meeting room -->
+<div class="flex flex-col gap-2">
+<label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Location Visited</label>
+<select name="location_visited" id="location-visited" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white">
+<option value="" data-room="0">Select location visited...</option>
+<?php foreach ($locationsVisited as $lv): ?>
+    <option value="<?= esc($lv['name'], 'attr') ?>" data-id="<?= (int) $lv['id'] ?>" data-room="<?= (int) ($lv['meeting_room'] ?? 0) ?>" <?= old('location_visited') === $lv['name'] ? 'selected' : '' ?>><?= esc($lv['name']) ?><?= ! empty($lv['meeting_room']) ? ' (Meeting Room)' : '' ?></option>
+<?php endforeach; ?>
+</select>
+</div>
+<div class="flex flex-col gap-2 hidden" id="meeting-session-wrap">
+<label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Meeting Session <span class="text-red-500">*</span></label>
+<select name="meeting_session_id" id="meeting-session" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary dark:text-white"></select>
+<p class="text-xs text-slate-500">Start - End (booked / seats). A full session cannot be picked.</p>
+</div>
+<script>
+(() => {
+    const sessions = <?= json_encode($meetingSessions ?? [], JSON_HEX_TAG | JSON_HEX_AMP) ?>;
+    const room = document.getElementById('location-visited'), wrap = document.getElementById('meeting-session-wrap'), pick = document.getElementById('meeting-session');
+    const old = <?= json_encode((string) old('meeting_session_id')) ?>;
+    const sync = () => {
+        const o = room.selectedOptions[0], isRoom = o && o.dataset.room === '1';
+        wrap.classList.toggle('hidden', ! isRoom);
+        pick.required = isRoom;
+        const list = isRoom ? (sessions[o.dataset.id] || []) : [];
+        pick.innerHTML = '<option value="">' + (list.length ? 'Select session...' : 'No upcoming session') + '</option>'
+            + list.map(s => '<option value="' + s.id + '"' + (s.full ? ' disabled' : '') + (String(s.id) === old ? ' selected' : '') + '>' + s.label + (s.full ? ' - FULL' : '') + '</option>').join('');
+    };
+    room.addEventListener('change', sync);
+    sync();
+})();
+</script>
+<?php endif; ?>
 </div>
 </section>
 
@@ -383,7 +417,7 @@ Search
 <th class="py-3 pr-2">Full name</th>
 <th class="py-3 pr-2">Link expiry</th>
 <th class="py-3 pr-2">Status</th>
-<th class="py-3 pr-2">Company</th>
+<th class="py-3 pr-2">Last Access</th>
 <th class="py-3">Created by</th>
 </tr>
 </thead>
@@ -784,7 +818,7 @@ async function loadHistoryPage() {
                     '<td class="py-2 pr-2">' + escapeHtml(row.full_name) + '</td>' +
                     '<td class="py-2 pr-2 ' + expClass + '">' + escapeHtml(row.link_expiry) + '</td>' +
                     '<td class="py-2 pr-2">' + escapeHtml(row.status) + '</td>' +
-                    '<td class="py-2 pr-2">' + escapeHtml(row.company) + '</td>' +
+                    '<td class="py-2 pr-2">' + escapeHtml(row.last_access) + '</td>' +
                     '<td class="py-2">' + escapeHtml(row.invited_by) + '</td>';
                 tbody.appendChild(tr);
             });

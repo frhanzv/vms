@@ -253,6 +253,13 @@
                                             <span class="material-symbols-outlined text-[20px]">edit</span>
                                         </button>
                                         <?php endif; ?>
+                                        <?php if (($vendor['renew'][0] ?? '') === 'open'): ?>
+                                        <button onclick="event.stopPropagation(); window.location.href='<?= base_url('vendors/renew/' . (int) $vendor['id']) ?>'" class="text-emerald-600 hover:text-emerald-800 transition-colors" title="Renew">
+                                            <span class="material-symbols-outlined text-[20px]">autorenew</span>
+                                        </button>
+                                        <?php elseif (($vendor['renew'][0] ?? '') === 'pending'): ?>
+                                        <span class="text-amber-500" title="Renewal in progress — the current card still works"><span class="material-symbols-outlined text-[20px]">autorenew</span></span>
+                                        <?php endif; ?>
                                         <?php if ($canDelete ?? false): ?>
                                         <button onclick="event.stopPropagation(); confirmDelete(<?= $vendor['id'] ?>)" class="text-red-500 hover:text-red-700 transition-colors" title="Delete">
                                             <span class="material-symbols-outlined text-[20px]">delete</span>

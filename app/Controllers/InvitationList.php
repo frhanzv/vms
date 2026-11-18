@@ -102,7 +102,7 @@ class InvitationList extends BaseController
     {
         $defaults = array_fill_keys([
             'no', 'date', 'full_name', 'ic_passport', 'contact', 'company',
-            'vehicle_reg', 'location', 'invited_by', 'status', 'reason',
+            'vehicle_reg', 'location', 'invited_by', 'status', 'reason', 'location_visited', 'link_expiry', 'last_access',
         ], true);
 
         $clientId = current_client_id();
@@ -257,6 +257,8 @@ class InvitationList extends BaseController
                 'status'            => $row['status'],
                 'reason'            => $row['reason'] === 'OTHER' ? ($row['other_reason'] ?: 'OTHER') : $row['reason'],
                 'link_expiry'       => $linkExpiry ? date('d/m/Y', strtotime((string) $linkExpiry)) : '-',
+                'location_visited'  => ($row['location_visited'] ?? '') ?: '-',
+                'last_access'       => ! empty($row['last_access_at']) ? date('d/m/Y H:i', strtotime((string) $row['last_access_at'])) : '-', // KPK Last Access
                 'visitor_count'     => 1,
                 'registration_link' => base_url('visitor-registration?token=' . base64_encode((string) $row['id'])),
                 'modal_config'      => $modalConfigByClient[$clientId],
@@ -509,7 +511,7 @@ class InvitationList extends BaseController
             'contact_no'   => $currentUser['contact_no'] ?? $currentUser['contact'] ?? $currentUser['phone'] ?? '',
             'formConfig'   => $this->getInvitationFormConfig(),
             'mykadOcrEnabled' => client_feature_enabled('mykad_ocr'),
-        ];
+        ] + $this->locationVisitedOptions();
 
         return view('invitations/create', $data);
     }
@@ -580,6 +582,7 @@ class InvitationList extends BaseController
                 'link_expired' => $leTs !== false && $leTs < $today,
                 'status' => $row['status'] ?? '',
                 'company' => $row['company_visited'] ?: ($row['company'] ?? ''),
+                'last_access' => ! empty($row['last_access_at']) ? date('d/m/Y H:i', strtotime((string) $row['last_access_at'])) : '-',
                 'invited_by' => $row['invited_by'] ?? '',
             ];
         }
@@ -718,6 +721,64 @@ class InvitationList extends BaseController
         return trim((string) ($this->request->getPost('host_contact') ?: $this->request->getPost('contact_person')));
     }
 
+    /** KPK Location Visited list, and the upcoming sessions of each meeting room (KPK getActiveMeetingSessionListByLocationId). */
+    private function locationVisitedOptions(): array
+    {
+        $db = \Config\Database::connect();
+        if (! $db->tableExists('location_visited') || ! $db->fieldExists('location_visited', 'invitations')) {
+            return ['locationsVisited' => [], 'meetingSessions' => []];
+        }
+        $rooms    = $db->table('location_visited')->where('status', 'active')->orderBy('name')->get()->getResultArray();
+        $sessions = [];
+        if ($db->tableExists('meeting_sessions')) {
+            $b = $db->table('meeting_sessions')->where('status', 'active')->where('session_date >=', date('Y-m-d'))->orderBy('session_date')->orderBy('start_time');
+            helper('feature');
+            if (($cid = (int) current_client_id()) > 0) {
+                $b->groupStart()->where('client_id', $cid)->orWhere('client_id IS NULL', null, false)->groupEnd();
+            }
+            foreach ($b->get()->getResultArray() as $s) {
+                $sessions[(int) $s['location_visited_id']][] = [
+                    'id'    => (int) $s['id'],
+                    'label' => date('d/m/Y', strtotime($s['session_date'])) . ' ' . substr($s['start_time'], 0, 5) . ' - ' . substr($s['end_time'], 0, 5)
+                        . ' (' . (int) $s['num_visitor_reserve'] . '/' . (int) $s['num_visitor'] . ')',
+                    'full'  => (int) $s['num_visitor_reserve'] >= (int) $s['num_visitor'],
+                ];
+            }
+        }
+
+        return ['locationsVisited' => $rooms, 'meetingSessions' => $sessions];
+    }
+
+    /** [location visited name, meeting session id, error] from the form; checks the session has seats for every visitor. */
+    private function postedMeetingSession(int $visitors): array
+    {
+        $db   = \Config\Database::connect();
+        $name = trim((string) $this->request->getPost('location_visited'));
+        $sid  = (int) $this->request->getPost('meeting_session_id');
+        if ($name === '' || ! $db->tableExists('location_visited')) {
+            return [null, null, null];
+        }
+        $room = $db->table('location_visited')->where('name', $name)->where('status', 'active')->get()->getRowArray();
+        if (! $room) {
+            return [null, null, 'Please choose a Location Visited from the list.'];
+        }
+        if (empty($room['meeting_room'])) {
+            return [$name, null, null];
+        }
+        if ($sid <= 0) {
+            return [null, null, 'Please choose a Meeting Session for ' . $name . '.'];
+        }
+        $s = $db->table('meeting_sessions')->where('id', $sid)->where('location_visited_id', (int) $room['id'])->where('status', 'active')->get()->getRowArray();
+        if (! $s) {
+            return [null, null, 'That Meeting Session is not available.'];
+        }
+        if ((int) $s['num_visitor_reserve'] + $visitors > (int) $s['num_visitor']) {
+            return [null, null, 'This Meeting Session is full (' . (int) $s['num_visitor_reserve'] . '/' . (int) $s['num_visitor'] . ' booked). Please choose another session.'];
+        }
+
+        return [$name, $sid, null];
+    }
+
     public function store()
     {
         $invConfig  = $this->getInvitationFormConfig();
@@ -842,6 +903,12 @@ class InvitationList extends BaseController
         }
 
         $db = \Config\Database::connect();
+        // KPK New Invitation: Location Visited, and the Meeting Session it books when that place is a meeting room.
+        [$visitedName, $sessionId, $sessionErr] = $this->postedMeetingSession(count($visitors));
+        if ($sessionErr !== null) {
+            return redirect()->back()->withInput()->with('errors', ['meeting_session' => $sessionErr]);
+        }
+
         $db->transStart();
 
         try {
@@ -867,6 +934,9 @@ class InvitationList extends BaseController
                 'host_contact'        => $isEnabled('host_contact')  ? $this->resolveSubmittedHostContact() : '',
                 'allow_sub_invites'   => ($isEnabled('allow_sub_invites') && $this->request->getPost('allow_sub_invites')) ? 1 : 0,
             ];
+            if ($db->fieldExists('location_visited', 'invitations')) {
+                $shared += ['location_visited' => $visitedName, 'meeting_session_id' => $sessionId];
+            }
             if ($this->invitationsSupportVisitorType()) {
                 $shared['visitor_type_id'] = $visitorTypeId;
             }
@@ -908,6 +978,9 @@ class InvitationList extends BaseController
                         ]);
                     }
                 }
+            }
+            if ($sessionId) { // KPK numVisitorReserve: the booked seats
+                $db->query('UPDATE meeting_sessions SET num_visitor_reserve = COALESCE(num_visitor_reserve, 0) + ? WHERE id = ?', [count($visitors), $sessionId]);
             }
 
             $db->transComplete();

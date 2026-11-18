@@ -303,6 +303,7 @@ $routes->group('', ['filter' => ['role:superadmin,clientsuperadmin,admin', 'clie
     $routes->post('vendor-workflow/save', 'VendorWorkflowConfig::saveSequence');
     $routes->post('vendor-workflow/delete/(:segment)', 'VendorWorkflowConfig::delete/$1');
     $routes->post('vendor-workflow/reset', 'VendorWorkflowConfig::reset');
+    $routes->post('vendor-workflow/renewal', 'VendorWorkflowConfig::renewal');
 });
 // Monitoring > Monitoring (KPK monitoring/transaction-list). Access is checked in the controller with Role > Monitoring > Monitoring.
 $routes->group('monitoring', ['filter' => $plusAdminOfficer], function ($routes) {
@@ -464,6 +465,8 @@ $routes->group('', ['filter' => 'permission:visitor_pass_list,visitors_list'], f
 
 $routes->group('', ['filter' => ['permission:visitor_pass_list,visitors_list', 'client_feature:visitor_card']], function($routes) {
     $routes->post('visitors/bindCard', 'VisitorList::bindCard');
+    $routes->post('visitors/finishWithoutCard', 'VisitorList::finishWithoutCard'); // KPK Finish Without Card
+    $routes->get('visitors/slip/(:num)', 'VisitorList::slip/$1');                   // KPK visitor pass slip
     $routes->post('visitors/unbindCard', 'VisitorList::unbindCard');
     $routes->post('visitors/batchUnbindCards', 'VisitorList::batchUnbindCards');
 });
@@ -475,6 +478,9 @@ $routes->group('', ['filter' => ['permission:visitor_pass_list,visitors_list', '
 
 $routes->group('', ['filter' => [$plusAdminHost, 'client_feature:auto_approve_after_workflow,disabled']], function($routes) {
     $routes->get('requests', 'RequestList::index');
+    $routes->get('requests/queue', 'RequestList::queue');
+    $routes->get('requests/view/(:num)', 'RequestList::view/$1');
+    $routes->post('requests/vehicle/(:num)', 'RequestList::updateVehicle/$1');
     $routes->post('requests/pastVisits', 'RequestList::pastVisits');
 });
 
@@ -565,6 +571,9 @@ $routes->group('', ['filter' => [$plusAdminOfficerVendor, 'client_feature:vendor
     $routes->get('vendorpassrequest/view/(:any)', 'VendorPassRequest::view/$1');
     $routes->get('vendorpassrequest/edit/(:num)', 'VendorPassRequest::edit/$1');
     $routes->post('vendorpassrequest/update/(:num)', 'VendorPassRequest::update/$1');
+    // Renew a closed pass (KPK renew-port-pass); the vendor company can renew its own passes too
+    $routes->get('vendors/renew/(:num)', 'VendorPassRequest::renew/$1');
+    $routes->post('vendors/renew/(:num)', 'VendorPassRequest::renewStore/$1');
 });
 
 // ===========================

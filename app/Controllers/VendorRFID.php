@@ -103,11 +103,14 @@ class VendorRFID extends ResourceController
             }
 
             // --- CHECK-IN: is this card currently assigned to an Approved, non-expired vendor? ---
-            $vendor = $db->query(
-                'SELECT v.* FROM vendors v
+            // A pass being renewed (Pending / Rejected again) keeps its old card working until that card's
+            // expiry or until the renewed card is issued (VendorRenewal).
+            $renewing = $db->fieldExists('renewed_at', 'vendors') ? " OR (v.card_status = 'Active' AND v.renewed_at IS NOT NULL)" : '';
+            $vendor   = $db->query(
+                "SELECT v.* FROM vendors v
                  WHERE v.card_id = ?
-                 AND v.status = ?
-                 FOR UPDATE',
+                 AND (v.status = ?{$renewing})
+                 FOR UPDATE",
                 [$card['id'], 'Approved']
             )->getRowArray();
 

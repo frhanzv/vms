@@ -92,9 +92,13 @@ class VendorClosedList extends BaseController
             ->getResultArray();
 
         $rowOffset = ($page - 1) * $perPage;
+        helper('access');
+        $mayRenew   = has_access('vendor_pass_list', 'edit');
         $closedList = [];
         foreach ($rows as $index => $row) {
             $closedList[] = [
+                // Renew: 'pending' while a renewal runs, 'open' when it may start now, else the date it opens
+                'renew'                => \App\Libraries\VendorRenewal::rowState($db, $row, $mayRenew),
                 'id'                   => $row['id'],
                 'no'                   => $rowOffset + $index + 1,
                 'app_no'               => $row['app_no'] ?? 'N/A',

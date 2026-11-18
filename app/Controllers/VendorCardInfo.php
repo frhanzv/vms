@@ -68,6 +68,7 @@ class VendorCardInfo extends BaseController
             'locationOptions'   => (new VendorLocationModel())->getOptionsForUser(true),
             'selectedLocations' => $selectedLocations,
             'canEdit'           => $canEditBase,
+            'renewState'        => \App\Libraries\VendorRenewal::rowState(\Config\Database::connect(), $vendor, (bool) $canEditBase),
             'canAddLicense'     => $canEditBase && $cfg('card_info_add_license_button'),
             'canEditLocation'   => $canEditBase && $cfg('card_info_edit_location_button'),
             'canUploadPhoto'    => $canEditBase && $cfg('card_info_upload_photo_button'),

@@ -145,6 +145,7 @@
                                         <span class="material-symbols-outlined text-[18px] align-middle">qr_code_2</span>
                                     </a>
                                     <?php endif; ?>
+                                    <?= view('vendors/_renew_action', ['state' => $row['renew'], 'id' => $row['id']]) ?>
                                 </div>
                             </td>
                             <?php if (list_col('vendor_closed_list', 'app_no')): ?><td class="p-3"><?= esc($row['app_no']) ?></td><?php endif; ?>

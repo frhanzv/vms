@@ -29,7 +29,175 @@ class RequestList extends BaseController
         $this->approvalService = new InvitationApprovalService();
     }
 
+    /** Vehicle categories / types offered on the visitor form (KPK "Edit Vehicle Info"). */
+    public const VEHICLE_TYPES = [
+        'CAR'             => ['SEDAN' => 'Sedan', 'HATCHBACK' => 'Hatchback', 'SUV' => 'SUV', 'COUPE' => 'Coupe'],
+        'MOTORCYCLE'      => ['SCOOTER' => 'Scooter', 'SPORT_BIKE' => 'Sport bike', 'CRUISER' => 'Cruiser'],
+        'TRUCK'           => ['PICKUP' => 'Pickup', 'LORRY' => 'Lorry', 'TRAILER' => 'Trailer'],
+        'BUS'             => ['MINI_BUS' => 'Mini Bus', 'COACH' => 'Coach', 'SCHOOL_BUS' => 'School Bus'],
+        'VAN'             => ['CARGO_VAN' => 'Cargo Van', 'PASSENGER_VAN' => 'Passenger Van', 'MINIVAN' => 'Minivan'],
+        'HEAVY_MACHINERY' => ['EXCAVATOR' => 'Excavator', 'BULLDOZER' => 'Bulldozer', 'CRANE' => 'Crane', 'FORKLIFT' => 'Forklift'],
+    ];
+
+    /** Platform superadmin picks the client to look at; everyone else sees their own. [clientId, clients]. */
+    private function viewClient(): array
+    {
+        helper(['role', 'feature']);
+        $viewClientId = current_client_id();
+        $viewClients  = [];
+        if (is_platform_superadmin()) {
+            $viewClients  = (new \App\Models\ClientModel())->select('id,name')->orderBy('name')->findAll();
+            $viewClientId = (int) ($this->request->getGet('view_client_id') ?: $viewClientId ?: ($viewClients[0]['id'] ?? 0));
+            if (! in_array($viewClientId, array_map('intval', array_column($viewClients, 'id')), true)) {
+                $viewClientId = (int) ($viewClients[0]['id'] ?? 0);
+            }
+        }
+
+        return [(int) $viewClientId, $viewClients];
+    }
+
+    /** Submitted requests this user may approve: same rules as the queue (client, host, workflow steps, no kiosk walk-ins). */
+    private function submittedQuery(int $viewClientId)
+    {
+        $requiresBriefing = false;
+        $requiresFacial   = false;
+        foreach ($this->flowService->getOrderedSteps(true) as $step) {
+            if ($step['key'] === 'approval') {
+                break;
+            }
+            $requiresBriefing = $requiresBriefing || in_array($step['key'], ['security_briefing', 'video'], true);
+            $requiresFacial   = $requiresFacial || in_array($step['key'], ['facial_verification', 'take_photo'], true);
+        }
+        $query = $this->invitationModel->where('status', 'Submitted');
+        $this->applyClientRequestScope($query, $viewClientId);
+        $this->applyHostRequestScope($query);
+        $this->applyRequestWorkflowFilters($query, $requiresBriefing, $requiresFacial);
+        $this->excludeKioskWalkIns($query);
+
+        return $query;
+    }
+
+    /**
+     * KPK visitor-request-list: a table (No, Date, Full Name, Status, Company Visiting, Reason) with search,
+     * Sort By and items per page. A row opens the details page.
+     */
     public function index()
+    {
+        // Approval e-mails link to requests?request_id=N: open that request's details
+        if ((int) $this->request->getGet('request_id') > 0) {
+            return redirect()->to(base_url('requests/view/' . (int) $this->request->getGet('request_id')));
+        }
+        [$viewClientId, $viewClients] = $this->viewClient();
+        $q       = trim((string) $this->request->getGet('q'));
+        $sort    = $this->request->getGet('sort') === 'dt-a' ? 'ASC' : 'DESC';
+        $perPage = in_array((int) $this->request->getGet('per_page'), [10, 20, 30, 40], true) ? (int) $this->request->getGet('per_page') : 10;
+        $page    = max(1, (int) $this->request->getGet('page'));
+
+        $query = $this->submittedQuery($viewClientId);
+        if ($q !== '') {
+            $query->groupStart()->like('full_name', $q)->orLike('ic_passport', $q)->orLike('contact', $q)->orLike('company', $q)->groupEnd();
+        }
+        $total = $query->countAllResults(false);
+        $rows  = $query->orderBy('created_at', $sort)->findAll($perPage, ($page - 1) * $perPage);
+
+        $list = [];
+        foreach ($rows as $i => $r) {
+            $reason = (string) ($r['reason'] ?? '');
+            $list[] = [
+                'id'       => (int) $r['id'],
+                'no'       => ($page - 1) * $perPage + $i + 1,
+                'date'     => date('d/m/Y', strtotime((string) $r['created_at'])),
+                'name'     => $r['full_name'],
+                'ic'       => $r['ic_passport'] ?? '',
+                'status'   => $r['status'],
+                'visiting' => array_values(array_filter(array_map('trim', explode(',', (string) ($r['location'] ?? ''))))),
+                'reason'   => in_array($reason, ['', 'OTHER'], true) ? (($r['other_reason'] ?? '') ?: 'OTHER') : $reason,
+            ];
+        }
+
+        return view('requests/kpk_list', [
+            'pageTitle'    => 'Visitor Request List - SafeG',
+            'rows'         => $list,
+            'total'        => $total,
+            'page'         => $page,
+            'perPage'      => $perPage,
+            'pages'        => max(1, (int) ceil($total / $perPage)),
+            'q'            => $q,
+            'sort'         => $sort === 'ASC' ? 'dt-a' : 'dt-d',
+            'viewClients'  => $viewClients,
+            'viewClientId' => $viewClientId,
+        ]);
+    }
+
+    /** The invitation if this user may see it here (client + host rules), else null. */
+    private function scopedInvitation(int $id): ?array
+    {
+        [$viewClientId] = $this->viewClient();
+        $query = $this->invitationModel->where('id', $id);
+        $this->applyClientRequestScope($query, $viewClientId);
+        $inv = $query->first();
+
+        return $inv && $this->hostCanAccessInvitation($inv) ? $inv : null;
+    }
+
+    /** KPK request details: Application Info, Date / Details Of Visit, Person, Driving License, Company, Assets, Upload; Approve / Reject. */
+    public function view($id)
+    {
+        $inv = $this->scopedInvitation((int) $id);
+        if (! $inv) {
+            return redirect()->to(base_url('requests'))->with('error', 'Request not found.');
+        }
+        $db   = \Config\Database::connect();
+        $docs = static function ($raw): array {
+            if (! $raw) {
+                return [];
+            }
+            $list = json_decode((string) $raw, true);
+
+            return array_map(static fn($p) => base_url('uploads/' . $p), is_array($list) ? $list : [$raw]);
+        };
+
+        return view('requests/kpk_view', [
+            'pageTitle'    => 'Visitor Request - SafeG',
+            'inv'          => $inv,
+            'schedules'    => (new \App\Models\InvitationScheduleModel())->where('invitation_id', (int) $id)->orderBy('date_from')->findAll(),
+            'equipment'    => $this->equipmentModel->where('invitation_id', (int) $id)->findAll(),
+            'licenses'     => $db->tableExists('visitor_licenses') ? $db->table('visitor_licenses')->where('invitation_id', (int) $id)->get()->getResultArray() : [],
+            'visitorType'  => ! empty($inv['visitor_type_id']) && $db->tableExists('visitor_types') ? (string) ($db->table('visitor_types')->where('id', (int) $inv['visitor_type_id'])->get()->getRow('name') ?? '') : '',
+            'uploads'      => array_filter([
+                'Government ID'     => $docs($inv['government_id_path'] ?? ''),
+                'Invitation Letter' => $docs($inv['invitation_letter_path'] ?? ''),
+                'Profile Photo'     => $docs($inv['profile_photo_path'] ?? ''),
+            ]),
+            'canDecide'    => ($inv['status'] ?? '') === 'Submitted',
+            'vehicleTypes' => self::VEHICLE_TYPES,
+        ]);
+    }
+
+    /** KPK "Edit Vehicle Info" (Category, Type Of Vehicle) before the request is decided. */
+    public function updateVehicle($id)
+    {
+        $inv = $this->scopedInvitation((int) $id);
+        if (! $inv || ($inv['status'] ?? '') !== 'Submitted') {
+            return redirect()->to(base_url('requests'))->with('error', 'Only a submitted request can be changed.');
+        }
+        $cat  = strtoupper(trim((string) $this->request->getPost('vehicle_category')));
+        $type = strtoupper(trim((string) $this->request->getPost('vehicle_type')));
+        if ($cat !== '' && ! isset(self::VEHICLE_TYPES[$cat])) {
+            return redirect()->back()->with('error', 'Please choose a valid vehicle category.');
+        }
+        if ($type !== '' && ($cat === '' || ! isset(self::VEHICLE_TYPES[$cat][$type]))) {
+            return redirect()->back()->with('error', 'Please choose a vehicle type for that category.');
+        }
+        \Config\Database::connect()->table('invitations')->where('id', (int) $id)->update([
+            'vehicle_category' => $cat ?: null, 'vehicle_type' => $type ?: null, 'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        return redirect()->to(base_url('requests/view/' . (int) $id))->with('success', 'Vehicle info updated.');
+    }
+
+    /** The earlier VMS queue view (queue on the left, details on the right), still at requests/queue. */
+    public function queue()
     {
         helper(['role', 'feature']);
         $viewService = new \App\Services\RequestViewService();

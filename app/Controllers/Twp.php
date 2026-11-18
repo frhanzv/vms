@@ -724,7 +724,25 @@ class Twp extends BaseController
             FROM ({$base}) x GROUP BY x.location ORDER BY x.location")->getResultArray();
         $inside = $db->query("SELECT x.* FROM ({$base}) x WHERE x.check_out_time IS NULL ORDER BY x.check_in_time DESC LIMIT 200")->getResultArray();
 
-        return view('twp/dashboard', ['pageTitle' => 'TWP Dashboard - SafeG', 'sum' => $sum, 'byLoc' => $byLoc, 'inside' => $inside, 'from' => $from, 'to' => $to]);
+        // Check-ins over the period: by hour for one day, else by day (at most the last 31 days of the range)
+        $oneDay = $from === $to;
+        $bucket = $oneDay ? 'HOUR(x.check_in_time)' : 'DATE(x.check_in_time)';
+        $counts = array_column($db->query("SELECT {$bucket} AS b, COUNT(*) AS n FROM ({$base}) x WHERE x.check_in_time BETWEEN {$f} AND {$t} GROUP BY b")->getResultArray(), 'n', 'b');
+        $trend  = ['labels' => [], 'values' => []];
+        if ($oneDay) {
+            foreach (range(0, 23) as $h) {
+                $trend['labels'][] = sprintf('%02d', $h);
+                $trend['values'][] = (int) ($counts[$h] ?? 0);
+            }
+        } else {
+            for ($d = max(strtotime($from), strtotime($to . ' -30 days')); $d <= strtotime($to); $d += 86400) {
+                $trend['labels'][] = date('d/m', $d);
+                $trend['values'][] = (int) ($counts[date('Y-m-d', $d)] ?? 0);
+            }
+        }
+
+        return view('twp/dashboard', ['pageTitle' => 'TWP Dashboard - SafeG', 'sum' => $sum, 'byLoc' => $byLoc, 'inside' => $inside, 'from' => $from, 'to' => $to,
+            'trend' => $trend, 'oneDay' => $oneDay]);
     }
 
     /** KPK TWP / TWP In Premise / TWP Out Of Window reports (tab), with CSV export. */

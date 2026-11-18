@@ -34,6 +34,8 @@ class VendorProcessDetail extends BaseController
         if (! $vendor) {
             return redirect()->to(base_url('vendors/process-list'))->with('error', 'Record not found.');
         }
+        $isRenewal = ! empty($vendor['renewal_pending']);
+        $vendor    = \App\Libraries\VendorRenewal::working($vendor); // a renewal works on its new card and expiry
 
         $db = \Config\Database::connect();
 
@@ -68,6 +70,7 @@ class VendorProcessDetail extends BaseController
         return view('vendors/process_detail', [
             'pageTitle'       => 'Vendor Process Detail - SafeG',
             'vendor'          => $vendor,
+            'isRenewal'       => $isRenewal,
             'icPassport'      => mask_ic_passport($vendor['ic_no'] ?: ($vendor['passport_no'] ?? ''), 'N/A'),
             'printLogs'       => $printLogs,
             'boundCard'       => $card,
@@ -135,6 +138,12 @@ class VendorProcessDetail extends BaseController
             unset($update['card_type']);
         }
 
+        // A renewal's new expiry is held aside: the old one stays live until the renewed card is issued.
+        if (! empty($vendor['renewal_pending']) && array_key_exists('pass_expiry', $update)) {
+            $update['renew_expiry'] = $update['pass_expiry'];
+            unset($update['pass_expiry']);
+        }
+
         $dbc = \Config\Database::connect();
         $dbc->table('vendors')->where('id', (int) $id)->update($update);
         if (isset($update['location_access'])) {
@@ -169,12 +178,13 @@ class VendorProcessDetail extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'Please select a reason or enter a remark.']);
         }
 
-        \Config\Database::connect()->table('vendors')->where('id', (int) $id)->update([
+        $dbr = \Config\Database::connect();
+        $dbr->table('vendors')->where('id', (int) $id)->update([
             'status'        => 'Rejected',
             'next_action'   => null,
             'reject_reason' => $reasonText ?: $remark,
             'remark'        => $remark !== '' ? $remark : ($vendor['remark'] ?? null),
-        ]);
+        ] + \App\Libraries\VendorRenewal::cancel($dbr, $vendor)); // a rejected renewal keeps its old card
 
         return $this->response->setJSON(['success' => true, 'message' => 'Vendor pass rejected.']);
     }
@@ -271,6 +281,9 @@ class VendorProcessDetail extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'Record not found.']);
         }
 
+        $renewal = ! empty($vendor['renewal_pending']);
+        $liveCard = (int) ($vendor['card_id'] ?? 0);
+        $vendor  = \App\Libraries\VendorRenewal::working($vendor); // a renewal binds its NEW card; the old one stays live
         $body   = $this->request->getJSON(true) ?? [];
         $epc    = trim((string) ($body['card_epc'] ?? ''));
         $finish = ! empty($body['finish']);
@@ -321,17 +334,18 @@ class VendorProcessDetail extends BaseController
         }
 
         $locked = $db->query('SELECT * FROM visitor_cards WHERE id = ? FOR UPDATE', [$card['id']])->getRowArray();
-        if (! $locked || $locked['status'] !== 'active') {
+        $sameCard = $renewal && $locked && (int) $locked['id'] === $liveCard; // renewing onto the card they already hold
+        if (! $locked || ($locked['status'] !== 'active' && ! $sameCard)) {
             $db->transRollback();
             return $this->response->setJSON(['success' => false, 'message' => 'This card is not available (status: ' . ($locked['status'] ?? 'unknown') . ').']);
         }
 
-        if ($vendor['card_id'] && (int) $vendor['card_id'] !== (int) $locked['id']) {
+        if ($vendor['card_id'] && (int) $vendor['card_id'] !== (int) $locked['id'] && (int) $vendor['card_id'] !== $liveCard) {
             $db->table('visitor_cards')->where('id', (int) $vendor['card_id'])->where('status !=', 'lost')->update(['status' => 'active']);
         }
 
         $db->table('visitor_cards')->where('id', (int) $locked['id'])->update(['status' => 'in_use']);
-        $vendorUpdate = ['card_id' => (int) $locked['id']];
+        $vendorUpdate = [$renewal ? 'renew_card_id' : 'card_id' => (int) $locked['id']];
         if ($finish) {
             $vendorUpdate['receipt_no'] = $passNo;
         }
@@ -341,6 +355,9 @@ class VendorProcessDetail extends BaseController
             $vendorUpdate['card_status'] = 'Active';
         }
         $db->table('vendors')->where('id', (int) $id)->update($vendorUpdate);
+        if ($noIssuance && $renewal) {
+            \App\Libraries\VendorRenewal::finish($db, (int) $id); // no hand-over step: the renewed card takes over now
+        }
 
         $db->transComplete();
         if (! $db->transStatus()) {

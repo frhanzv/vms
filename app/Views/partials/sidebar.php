@@ -15,7 +15,6 @@ $requestListAvailable = is_platform_superadmin() || ! client_feature_enabled('au
 $hasVisitorPassAccess = has_access('visitor_pass_list', 'invitations') || ($requestListAvailable && has_access('visitor_pass_list', 'request_list')) || has_access('visitor_pass_list', 'visitors_list');
 $hasBlacklistAccess   = has_access('blacklist', 'request_list') || has_access('blacklist', 'closed_list') || has_access('blacklist', 'individual_request_list') || has_access('blacklist', 'individual_closed_list') || has_access('blacklist', 'company_request_list') || has_access('blacklist', 'company_closed_list');
 $canReportTemplates   = in_array(session()->get('role'), ['superadmin', 'clientsuperadmin', 'admin', 'officer'], true);
-$hasReportAccess      = $canReportTemplates || has_access('report', 'access_report') || has_access('report', 'visitor_report') || has_access('report', 'visitor_chronology') || has_access('report', 'visitor_info_by_door') || has_access('report', 'gate_in_out') || has_access('report', 'out_window_list') || has_access('report', 'port_pass_monthly') || has_access('report', 'port_pass_summary') || has_access('report', 'company_permit_ageing') || has_access('report', 'company_permit_monthly') || has_access('report', 'vehicle_sticker_summary') || has_access('report', 'blacklist_report') || has_access('report', 'attendance_report') || has_access('report', 'monitoring_report')  || has_access('report', 'vendor_report') || (client_feature_enabled('staff_pass') && has_access('report', 'staff_report'));
 $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'alert_priority') || has_access('config', 'api_management') || has_access('config', 'general_settings') || has_access('config', 'application_settings') || has_access('config', 'role_management') || has_access('config', 'user_management') || has_access('config', 'company') || (is_client_superadmin() && current_client_id() > 0);
 ?>
 <!-- every page has the sidebar: hide x-cloak popups until Alpine starts, so they do not flash on load -->
@@ -455,84 +454,12 @@ $hasConfigAccess      = has_access('config', 'view') || has_access('config', 'al
             </div>
             <?php endif; ?>
 
-            <!-- Report -->
-            <?php if ($hasReportAccess): ?>
-            <div @side-open.window="if ($event.detail !== 'openReport') openReport = false" x-data="{ openReport: <?= str_contains($current, 'report') ? 'true' : 'false' ?> }">
-                <button type="button" @click="openReport = !openReport; if (openReport) $dispatch('side-open', 'openReport')"
-                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg <?= str_contains($current, 'report') ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary' ?> transition-colors group">
-                    <div class="flex items-center gap-3">
-                        <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">description</span>
-                        <p class="text-sm font-medium">Report</p>
-                    </div>
-                    <span class="material-symbols-outlined text-[18px] transition-transform duration-200" :class="openReport ? 'rotate-180' : ''">expand_more</span>
-                </button>
-                <div x-show="openReport"
-                    x-transition:enter="transition ease-out duration-200"
-                    x-transition:enter-start="opacity-0 -translate-y-1"
-                    x-transition:enter-end="opacity-100 translate-y-0"
-                    x-transition:leave="transition ease-in duration-150"
-                    x-transition:leave-start="opacity-100 translate-y-0"
-                    x-transition:leave-end="opacity-0 -translate-y-1"
-                    class="ml-4 mt-1 flex flex-col gap-1">
-                    <?php if ($canReportTemplates): ?>
-                    <a href="<?= base_url('report/templates') ?>"
-                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= str_starts_with($current, 'report/templates') ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
-                        <span class="w-1.5 h-1.5 rounded-full <?= str_starts_with($current, 'report/templates') ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
-                        Report Templates
-                    </a>
-                    <?php endif; ?>
-                    <?php if ($canReportTemplates && has_access('twp', 'report')): ?>
-                    <a href="<?= base_url('twp/report') ?>"
-                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current === 'twp/report' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
-                        <span class="w-1.5 h-1.5 rounded-full <?= $current === 'twp/report' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
-                        Temporary Work Pass Report
-                    </a>
-                    <?php endif; ?>
-                    <?php if (has_access('report', 'access_report')): ?>
-                    <a href="<?= base_url('report/access') ?>"
-                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'report/access' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
-                        <span class="w-1.5 h-1.5 rounded-full <?= $current == 'report/access' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
-                        Access Report
-                    </a>
-                    <?php endif; ?>
-                    <?php if (has_access('report', 'visitor_report')): ?>
-                    <a href="<?= base_url('report/visitor') ?>"
-                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'report/visitor' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
-                        <span class="w-1.5 h-1.5 rounded-full <?= $current == 'report/visitor' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
-                        Visitor Report
-                    </a>
-                    <?php endif; ?>
-                    <?php if (has_access('report', 'visitor_chronology')): ?>
-                    <a href="<?= base_url('report/chronology') ?>"
-                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= str_contains($current, 'report/chronology') ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
-                        <span class="w-1.5 h-1.5 rounded-full <?= str_contains($current, 'report/chronology') ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
-                        Visitor Chronology
-                    </a>
-                    <?php endif; ?>
-                    <?php if (has_access('report', 'visitor_info_by_door')): ?>
-                    <a href="<?= base_url('report/bydoor') ?>"
-                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= str_contains($current, 'report/bydoor') ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
-                        <span class="w-1.5 h-1.5 rounded-full <?= str_contains($current, 'report/bydoor') ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
-                        Visitor Info By Door
-                    </a>
-                    <?php endif; ?>
-
-                    <?php if (has_access('report', 'vendor_report')): ?>
-                    <a href="<?= base_url('report/vendor') ?>"
-                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'report/vendor' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
-                        <span class="w-1.5 h-1.5 rounded-full <?= $current == 'report/vendor' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
-                        Vendor Report
-                    </a>
-                    <?php endif; ?>
-                    <?php if (client_feature_enabled('staff_pass') && has_access('report', 'staff_report')): ?>
-                    <a href="<?= base_url('report/staff') ?>"
-                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm <?= $current == 'report/staff' ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary font-medium' ?>">
-                        <span class="w-1.5 h-1.5 rounded-full <?= $current == 'report/staff' ? 'bg-primary' : 'bg-slate-400' ?> flex-shrink-0"></span>
-                        Staff Report
-                    </a>
-                    <?php endif; ?>
-                </div>
-            </div>
+            <!-- Report: one page, Report Templates (the separate report pages are no longer in the menu) -->
+            <?php if ($canReportTemplates): $isReport = str_starts_with($current, 'report/templates'); ?>
+            <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg <?= $isReport ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-white' ?> transition-colors group" href="<?= base_url('report/templates') ?>">
+                <span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">description</span>
+                <p class="text-sm <?= $isReport ? 'font-semibold' : 'font-medium' ?>">Report</p>
+            </a>
             <?php endif; ?>
 
             <!-- Config -->

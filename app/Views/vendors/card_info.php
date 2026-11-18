@@ -124,6 +124,13 @@
                     <?php if (($vendor['card_status'] ?? '') !== 'Terminated' && ($canTerminate ?? false)): ?>
                     <button onclick="terminateCard()" class="h-9 px-4 rounded-lg bg-red-600 text-white text-sm font-semibold">Card Terminate</button>
                     <?php endif; ?>
+                    <?php if (($renewState[0] ?? '') === 'open'): ?>
+                    <a href="<?= base_url('vendors/renew/' . $vendor['id']) ?>" class="h-9 px-4 rounded-lg bg-emerald-600 text-white text-sm font-semibold flex items-center gap-1"><span class="material-symbols-outlined text-base">autorenew</span> Renew</a>
+                    <?php elseif (($renewState[0] ?? '') === 'pending'): ?>
+                    <span class="h-9 px-4 rounded-lg bg-amber-100 text-amber-700 text-sm font-semibold flex items-center gap-1" title="The current card keeps working until the renewed card is issued"><span class="material-symbols-outlined text-base">autorenew</span> Renewal in progress</span>
+                    <?php elseif (($renewState[0] ?? '') === 'opens'): ?>
+                    <span class="h-9 px-3 text-xs text-gray-500 flex items-center">Renewal opens <?= esc(date('d M Y', strtotime($renewState[1]))) ?></span>
+                    <?php endif; ?>
                     <button onclick="saveCardInfo()" class="h-9 px-4 rounded-lg bg-primary text-white text-sm font-semibold">Update</button>
                 </div>
                 <?php endif; ?>

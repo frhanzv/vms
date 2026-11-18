@@ -2363,15 +2363,11 @@ class Dashboard extends BaseController
                     WHERE DATE(date_from) <= ? AND DATE(date_to) >= ?
                     GROUP BY invitation_id
                 ) slot ON slot.invitation_id = i.id
-                LEFT JOIN (
-                    SELECT s1.invitation_id, s1.date_from, s1.date_to
-                    FROM invitation_schedules s1
-                    INNER JOIN (
-                        SELECT invitation_id, MIN(id) AS pick_id
-                        FROM invitation_schedules
-                        GROUP BY invitation_id
-                    ) sp ON sp.pick_id = s1.id
-                ) fs ON fs.invitation_id = i.id
+                -- first schedule of the invitation, looked up through the invitation_id index
+                -- (the old grouped self-join examined ~9 million rows and took ~20 s per query)
+                LEFT JOIN invitation_schedules fs ON fs.id = (
+                    SELECT MIN(s2.id) FROM invitation_schedules s2 WHERE s2.invitation_id = i.id
+                )
                 LEFT JOIN invitation_visitors iv ON iv.invitation_id = i.id
                 WHERE i.status = 'Approved'
                 AND (

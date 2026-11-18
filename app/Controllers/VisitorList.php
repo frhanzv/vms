@@ -106,6 +106,8 @@ class VisitorList extends BaseController
                 $cardStatusBadge = 'In Use';
             } elseif (! empty($row['check_out_time'])) {
                 $cardStatusBadge = 'Inactive';
+            } elseif (! empty($row['no_card_at'])) {
+                $cardStatusBadge = 'Without Card'; // KPK Finish Without Card (QR at the turnstile)
             } else {
                 $cardStatusBadge = '-';
             }
@@ -153,6 +155,8 @@ class VisitorList extends BaseController
                 'card_id' => $row['visitor_card_id'],
                 'visitor_card_table_id' => $row['visitor_card_table_id'] ?? null,
                 'card_status' => $cardStatusBadge,
+                'no_card'     => ! empty($row['no_card_at']),
+                'slip_ok'     => $this->slipAllowed((string) ($row['location'] ?? '')),
                 'card_status_raw' => $row['card_status'] ?? null,
                 'checked_in' => $row['check_in_time'] ? true : false,
                 'check_in_time' => $row['check_in_time'],
@@ -1242,6 +1246,90 @@ class VisitorList extends BaseController
             'message' => $msg,
             'returned_count' => $returned,
             'failed' => $failed,
+        ]);
+    }
+
+    /** The visitor row + its invitation if this user's client may act on it (platform superadmin: any), else null. */
+    private function scopedVisitorRow(int $ivId): ?array
+    {
+        helper(['role', 'feature']);
+        $row = \Config\Database::connect()->table('invitation_visitors iv')
+            ->select('iv.*, i.full_name AS inv_name, i.ic_passport AS inv_ic, i.reason, i.other_reason, i.location, i.location_visited, i.vehicle_registration AS inv_vehicle, i.vehicle_type, i.client_id AS inv_client_id')
+            ->join('invitations i', 'i.id = iv.invitation_id')->where('iv.id', $ivId)->get()->getRowArray();
+        if (! $row) {
+            return null;
+        }
+        $cid = (int) current_client_id();
+
+        return is_platform_superadmin() || $cid <= 0 || (int) $row['inv_client_id'] === $cid ? $row : null;
+    }
+
+    /** KPK checkLocationAccessDayPassPrint: the slip prints only for a location with Visitor Pass Print on. */
+    private function slipAllowed(string $locationCsv): bool
+    {
+        static $memo = [];
+        if (isset($memo[$locationCsv])) {
+            return $memo[$locationCsv];
+        }
+        $codes = array_filter(array_map('trim', explode(',', $locationCsv)));
+
+        return $memo[$locationCsv] = $codes && \Config\Database::connect()->table('locations')->whereIn('location_access', $codes)->whereIn('visitor_pass_print', ['enabled', '1'])->countAllResults() > 0;
+    }
+
+    /**
+     * KPK "Finish Without Card": the visitor goes in without a physical card (QR at the turnstile).
+     * Only for a visitor who has no card and has not left yet.
+     */
+    public function finishWithoutCard()
+    {
+        $id  = (int) ($this->request->getJSON()->invitation_visitor_id ?? 0);
+        $row = $id ? $this->scopedVisitorRow($id) : null;
+        if (! $row) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Visitor not found.']);
+        }
+        if (! empty($row['visitor_card_id'])) {
+            return $this->response->setJSON(['success' => false, 'message' => 'This visitor already has a card. Return the card first.']);
+        }
+        if (! empty($row['check_out_time'])) {
+            return $this->response->setJSON(['success' => false, 'message' => 'This visit has already ended.']);
+        }
+        \Config\Database::connect()->table('invitation_visitors')->where('id', $id)->update([
+            'no_card_at' => date('Y-m-d H:i:s'),
+            'no_card_by' => (string) (session()->get('full_name') ?: session()->get('username')),
+            'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        return $this->response->setJSON(['success' => true, 'message' => 'Finished without card — the visitor uses the QR code at the turnstile.']);
+    }
+
+    /** KPK VisitorPassSlip: the printed "Permohonan Memasuki Premis" slip for one visitor. */
+    public function slip($ivId)
+    {
+        $row = $this->scopedVisitorRow((int) $ivId);
+        if (! $row) {
+            return redirect()->to(base_url('visitors'))->with('error', 'Visitor not found.');
+        }
+        if (! $this->slipAllowed((string) $row['location'])) {
+            return redirect()->to(base_url('visitors'))->with('error', 'Visitor Pass Print is off for this location, so there is no slip to print.');
+        }
+        $db   = \Config\Database::connect();
+        $card = ! empty($row['visitor_card_id']) ? $db->table('visitor_cards')->where('id', (int) $row['visitor_card_id'])->get()->getRowArray() : null;
+        $ic   = (string) ($row['ic_passport'] ?: $row['inv_ic']);
+        $isIc = (bool) preg_match('/^\d{6}-?\d{2}-?\d{4}$/', $ic);
+
+        return view('visitors/slip', [
+            'location'  => (string) $row['location'],
+            'in'        => $row['check_in_time'] ?: $row['created_at'],
+            'out'       => $row['check_out_time'],
+            'passNo'    => $card['serial_no'] ?? ($card['card_id'] ?? '-'),
+            'appNo'     => 'VR-' . str_pad((string) $row['invitation_id'], 6, '0', STR_PAD_LEFT),
+            'fullName'  => (string) ($row['full_name'] ?: $row['inv_name']),
+            'icNo'      => $isIc ? $ic : '',
+            'passport'  => $isIc ? '' : $ic,
+            'reason'    => in_array((string) $row['reason'], ['', 'OTHER'], true) ? ((string) $row['other_reason'] ?: 'OTHER') : (string) $row['reason'],
+            'place'     => (string) ($row['location_visited'] ?: $row['location']),
+            'vehicleNo' => (string) ($row['vehicle_registration'] ?: $row['inv_vehicle']),
+            'vehicle'   => str_replace('_', ' ', (string) $row['vehicle_type']),
         ]);
     }
 

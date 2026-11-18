@@ -43,7 +43,7 @@ class VendorProcessList extends BaseController
 
         $builder = $db->table('vendors')
             ->where('status', 'Approved')
-            ->where("COALESCE(card_status, 'Inactive') <> 'Active'", null, false) // issued cards are in the Closed List
+            ->where(\App\Libraries\VendorRenewal::needsCardSql($db), null, false) // issued cards are in the Closed List (a renewal stays here until its new card is issued)
             ->groupStart()
                 ->where('receipt_no', null)
                 ->orWhere('receipt_no', '')

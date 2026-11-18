@@ -118,9 +118,13 @@ class VendorWorkflow
         if (self::enabled($db, $clientId, 'pass_approval')) {
             return false;
         }
+        $done = self::approvedUpdate($db, $clientId);
         $db->table('vendors')->where('id', $vendorId)->where('status', 'Pending')
-            ->update(['status' => 'Approved', 'next_action' => null, 'reject_reason' => null] + self::approvedUpdate($db, $clientId));
+            ->update(['status' => 'Approved', 'next_action' => null, 'reject_reason' => null] + $done);
         $db->table('vendor_client_approvals')->where('vendor_id', $vendorId)->update(['status' => 'Approved', 'updated_at' => date('Y-m-d H:i:s')]);
+        if ($done) {
+            VendorRenewal::finish($db, $vendorId); // no card steps: a renewal is complete once approved
+        }
 
         return true;
     }

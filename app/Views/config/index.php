@@ -93,11 +93,22 @@
                 </div>
             </div>
 
-            <!-- Configuration Sections -->
-            <div class="space-y-4">
+            <!-- Configuration Sections (grouped by topic with flex order) -->
+            <div id="cfgSections" class="flex flex-col gap-4">
+                <!-- Group headings (order puts each above its sections; empty groups are hidden by script below) -->
+                <div class="cfg-group flex items-center gap-2 pt-4 first:pt-0" style="order: 100" data-from="100" data-to="199"><span class="material-symbols-outlined text-[20px] text-primary">tune</span><h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 dark:text-slate-200">General</h2><span class="h-px flex-1 bg-gray-200 dark:bg-slate-700"></span></div>
+                <div class="cfg-group flex items-center gap-2 pt-4 first:pt-0" style="order: 200" data-from="200" data-to="299"><span class="material-symbols-outlined text-[20px] text-primary">groups</span><h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 dark:text-slate-200">Users &amp; Organisation</h2><span class="h-px flex-1 bg-gray-200 dark:bg-slate-700"></span></div>
+                <div class="cfg-group flex items-center gap-2 pt-4 first:pt-0" style="order: 300" data-from="300" data-to="399"><span class="material-symbols-outlined text-[20px] text-primary">location_on</span><h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 dark:text-slate-200">Locations</h2><span class="h-px flex-1 bg-gray-200 dark:bg-slate-700"></span></div>
+                <div class="cfg-group flex items-center gap-2 pt-4 first:pt-0" style="order: 400" data-from="400" data-to="499"><span class="material-symbols-outlined text-[20px] text-primary">sensor_door</span><h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 dark:text-slate-200">Gates &amp; Devices</h2><span class="h-px flex-1 bg-gray-200 dark:bg-slate-700"></span></div>
+                <div class="cfg-group flex items-center gap-2 pt-4 first:pt-0" style="order: 500" data-from="500" data-to="599"><span class="material-symbols-outlined text-[20px] text-primary">badge</span><h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 dark:text-slate-200">Visitor</h2><span class="h-px flex-1 bg-gray-200 dark:bg-slate-700"></span></div>
+                <div class="cfg-group flex items-center gap-2 pt-4 first:pt-0" style="order: 600" data-from="600" data-to="699"><span class="material-symbols-outlined text-[20px] text-primary">local_shipping</span><h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 dark:text-slate-200">Vendor &amp; Staff Pass</h2><span class="h-px flex-1 bg-gray-200 dark:bg-slate-700"></span></div>
+                <div class="cfg-group flex items-center gap-2 pt-4 first:pt-0" style="order: 700" data-from="700" data-to="799"><span class="material-symbols-outlined text-[20px] text-primary">engineering</span><h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 dark:text-slate-200">Temporary Work Pass</h2><span class="h-px flex-1 bg-gray-200 dark:bg-slate-700"></span></div>
+                <div class="cfg-group flex items-center gap-2 pt-4 first:pt-0" style="order: 800" data-from="800" data-to="899"><span class="material-symbols-outlined text-[20px] text-primary">directions_car</span><h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 dark:text-slate-200">Vehicle</h2><span class="h-px flex-1 bg-gray-200 dark:bg-slate-700"></span></div>
+                <div class="cfg-group flex items-center gap-2 pt-4 first:pt-0" style="order: 900" data-from="900" data-to="999"><span class="material-symbols-outlined text-[20px] text-primary">block</span><h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 dark:text-slate-200">Blacklist &amp; Reasons</h2><span class="h-px flex-1 bg-gray-200 dark:bg-slate-700"></span></div>
+                <div class="cfg-group flex items-center gap-2 pt-4 first:pt-0" style="order: 1000" data-from="1000" data-to="1099"><span class="material-symbols-outlined text-[20px] text-primary">dashboard</span><h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 dark:text-slate-200">Dashboard</h2><span class="h-px flex-1 bg-gray-200 dark:bg-slate-700"></span></div>
 
                 <!-- Alert Priority -->
-                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                <div style="order: 107" class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('alertpriority')"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                         <div class="flex items-center gap-4">
@@ -153,7 +164,7 @@
                 </div>
 
                 <!-- Card Scanner (temporary) -->
-                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                <div style="order: 404" class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <a href="<?= base_url('scanner') ?>"
                        target="_blank"
                        rel="noopener noreferrer"
@@ -175,7 +186,7 @@
                 </div>
 
                 <!-- Kiosk Settings -->
-                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                <div style="order: 405" class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <a href="<?= base_url('config/kioskSettings') ?>"
                        class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                         <div class="flex items-center gap-4">
@@ -193,7 +204,7 @@
 
                 <?php if (is_platform_superadmin(session()->get('role'))): ?>
                 <!-- Cloud Data Sync -->
-                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                <div style="order: 407" class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('datasync')"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                         <div class="flex items-center gap-4">
@@ -234,7 +245,7 @@
                 <?php endif; ?>
 
                 <!-- Kiosk API Management -->
-                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                <div style="order: 406" class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('apimanagement')"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                         <div class="flex items-center gap-4">
@@ -314,7 +325,7 @@
                 </div>
 
                 <!-- General Settings -->
-                <div
+                <div style="order: 101"
                     class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('general')"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
@@ -536,7 +547,7 @@
                 </div>
 
                 <?php /* App Config -->
-                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                <div style="order: 102" class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('appconfig')" class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                         <div class="flex items-center gap-4">
                             <div class="p-2 bg-primary/10 rounded-lg">
@@ -673,7 +684,7 @@
                 
                 <!-- Email Notification Recipients -->
                 <?php if (in_array(normalize_role_slug((string) session()->get('role')), ['superadmin', 'clientsuperadmin', 'admin'], true)): ?>
-                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                <div style="order: 105" class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('emailrecipients'); if(emailRoles.length === 0) loadEmailRecipients();" class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                         <div class="flex items-center gap-4">
                             <div class="p-2 bg-primary/10 rounded-lg">
@@ -717,7 +728,7 @@
 
                 <?php if (false): ?>
                 <!-- Registration Type -->
-                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                <div style="order: 603" class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('regtype')" class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                         <div class="flex items-center gap-4">
                             <div class="p-2 bg-primary/10 rounded-lg">
@@ -885,7 +896,7 @@
                 </div>
 
                 <!-- Business Type -->
-                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                <div style="order: 604" class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('biztype')" class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                         <div class="flex items-center gap-4">
                             <div class="p-2 bg-primary/10 rounded-lg">
@@ -1134,7 +1145,7 @@
 
 
                 <!-- Blacklist Reason -->                        
-                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                <div style="order: 901" class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('blacklist')" class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                         <div class="flex items-center gap-4">
                             <div class="p-2 bg-primary/10 rounded-lg">
@@ -1309,7 +1320,7 @@
 
 
                 <!-- Role Management -->
-                <div
+                <div style="order: 201"
                     class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('role')"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
@@ -1389,7 +1400,7 @@
                 </div>
 
                 <!-- User Management -->
-                <div
+                <div style="order: 202"
                     class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('user')"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
@@ -1492,7 +1503,7 @@
 
                 <?php if (is_platform_superadmin(session()->get('role'))): ?>
                 <!-- Client Management (VMS tenants) -->
-                <div
+                <div style="order: 203"
                     class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('client')"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
@@ -1576,7 +1587,7 @@
                 <?php endif; ?>
 
                 <!-- Company Management -->
-                <div
+                <div style="order: 204"
                     class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('company')"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
@@ -1707,7 +1718,7 @@
                 </div>
 
                 <!-- Sub Company Management -->
-                <div
+                <div style="order: 205"
                     class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('subcompany')"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
@@ -1803,7 +1814,7 @@
                 </div>
 
                 <!-- Country Management -->
-                <div
+                <div style="order: 301"
                     class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('country')"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
@@ -1901,7 +1912,7 @@
                 </div>
 
                 <!-- State Management -->
-                <div
+                <div style="order: 302"
                     class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('state')"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
@@ -2007,7 +2018,7 @@
                 </div>
 
                 <!-- City Management -->
-                <div
+                <div style="order: 303"
                     class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('city')"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
@@ -2123,7 +2134,7 @@
                 </div>
 
                 <!-- Department Management -->
-                <div
+                <div style="order: 207"
                     class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('department')"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
@@ -2222,7 +2233,7 @@
                 <!-- TWP Card Management (KPK Config > Temporary Work Pass Card), same look as Visitor Card Management -->
                 <?php helper(['access']); if (in_array(session()->get('role'), ['superadmin', 'clientsuperadmin', 'admin', 'officer'], true) && has_access('twp', 'card')):
                     $twpTpl = \App\Libraries\CardTemplates::resolveAll(\Config\Database::connect(), 'twp', is_platform_superadmin() ? null : ((int) current_client_id() ?: null)); ?>
-                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden" x-data="twpCards()">
+                <div style="order: 701" class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden" x-data="twpCards()">
                     <button onclick="toggleSection('twpcard')" @click="if (! loaded) load(1)"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                         <div class="flex items-center gap-4">
@@ -2516,7 +2527,7 @@
                 <?php endif; ?>
 
                 <!-- Card Template Management -->
-                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                <div style="order: 601" class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('cardtemplate')"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                         <div class="flex items-center gap-4">
@@ -2561,7 +2572,7 @@
                 </div>
 
                 <!-- Import Template -->
-                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                <div style="order: 602" class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('importtemplate')"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                         <div class="flex items-center gap-4">
@@ -2597,7 +2608,7 @@
 
                 <!-- Vehicle Types -->
                 <?php helper(['feature', 'access']); if (client_feature_enabled('vehicle_pass') && has_access('config', 'vehicle_type')): ?>
-                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                <div style="order: 801" class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('vehicletype')"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                         <div class="flex items-center gap-4">
@@ -2672,7 +2683,7 @@
                 <?php endif; ?>
                 <!-- License Class -->
                 <?php helper(['access']); if (has_access('config', 'license_class')): ?>
-                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                <div style="order: 802" class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('licenseclass')"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                         <div class="flex items-center gap-4">
@@ -2722,7 +2733,7 @@
                 foreach (\App\Libraries\ConfigLookups::definitions() as $lkKey => $lkDef):
                     if (! has_access('config', $lkDef['access'])) { continue; }
                     $lkAny = true; ?>
-                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                <div style="order: <?= (int) (array ('operating-hours' => 108,'branch-offices' => 206,'meeting-sessions' => 503,'sub-business-types' => 605,'bank-names' => 606,'payment-types' => 702,'release-reasons' => 902,)[$lkKey] ?? 999) ?>" class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('lk-<?= $lkKey ?>')"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                         <div class="flex items-center gap-4">
@@ -2770,7 +2781,7 @@
                 <?php endif; ?>
                 <!-- KPK Config > Questionnaire (questions per training video) and Dashboard Upload -->
                 <?php if (has_access('config', 'questionnaire')): ?>
-                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                <div style="order: 508" class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('questionnaire')"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                         <div class="flex items-center gap-4">
@@ -2801,7 +2812,7 @@
                 </div>
                 <?php endif; ?>
                 <?php if (has_access('config', 'dashboard_upload')): ?>
-                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                <div style="order: 1001" class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('dashboardupload')"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                         <div class="flex items-center gap-4">
@@ -2865,7 +2876,7 @@
                 </div>
                 <?php endif; ?>
                 <!-- Designation Management -->
-                <div
+                <div style="order: 208"
                     class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('designation')"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
@@ -2966,7 +2977,7 @@
                 </div>
 
                 <!-- Location Access Management -->
-                <div
+                <div style="order: 304"
                     class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('location')"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
@@ -3076,7 +3087,7 @@
                 </div>
 
                 <!-- Lane Management -->
-                <div
+                <div style="order: 401"
                     class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('lane')"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
@@ -3206,7 +3217,7 @@
                 </div>
 
                 <!-- Reject Reason Management -->
-                <div
+                <div style="order: 903"
                     class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('reject')"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
@@ -3302,7 +3313,7 @@
 
                 <?php if (client_feature_enabled('visitor_card')): ?>
                 <!-- Visitor Card Management -->
-                <div
+                <div style="order: 504"
                     class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('card')"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
@@ -3435,7 +3446,7 @@
                 <?php endif; ?>
 
                 <!-- Video Management -->
-                <div
+                <div style="order: 507"
                     class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('video')"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
@@ -3540,7 +3551,7 @@
                 </div>
 
                 <!-- Visit Reason Management -->
-                <div
+                <div style="order: 502"
                     class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('reason')"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
@@ -3636,7 +3647,7 @@
                 </div>
 
                 <!-- Location Visited Management -->
-                <div
+                <div style="order: 306"
                     class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('location-visited')"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
@@ -3731,7 +3742,7 @@
                 </div>
 
                 <!-- Visitor Type Management -->
-                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                <div style="order: 501" class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('visitortype')" class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                         <div class="flex items-center gap-4">
                             <div class="p-2 bg-primary/10 rounded-lg">
@@ -3802,7 +3813,7 @@
                 </div>
 
                 <!-- Visitor QR Code Management -->
-                <div
+                <div style="order: 505"
                     class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('qrcode')"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
@@ -4102,7 +4113,7 @@
                 </div>
 
                 <!-- Visitor QR Code -->
-                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                <div style="order: 506" class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('visitorqrcode')" class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                         <div class="flex items-center gap-4">
                             <div class="p-2 bg-primary/10 rounded-lg">
@@ -4125,7 +4136,7 @@
                 </div>
 
                 <!-- Email Template Settings -->
-                <div
+                <div style="order: 106"
                     class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('email-template')"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
@@ -4553,7 +4564,7 @@
                 </div>
 
                 <!-- Security Settings -->
-                <div
+                <div style="order: 103"
                     class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('security')"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
@@ -4601,7 +4612,7 @@
                     </div>
                 </div>
                 <!-- Notification Settings -->
-                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                <div style="order: 104" class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('notification')"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                         <div class="flex items-center gap-4">
@@ -4747,7 +4758,7 @@
                 </div>
                 <?php if (client_feature_enabled('device_management')): ?>
                 <!-- Device Assignments Management -->
-                <div
+                <div style="order: 402"
                     class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('device-assignment')"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
@@ -4857,7 +4868,7 @@
                 </div>
 
                 <!-- Sub Location Access -->
-                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                <div style="order: 305" class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('sublocation')" class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                         <div class="flex items-center gap-4">
                             <div class="p-2 bg-primary/10 rounded-lg">
@@ -4940,7 +4951,7 @@
                 </div>
 
                 <!-- Pathway Management -->
-                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                <div style="order: 307" class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('pathway')" class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                         <div class="flex items-center gap-4">
                             <div class="p-2 bg-primary/10 rounded-lg">
@@ -5153,7 +5164,7 @@
                 </div>
 
                 <!-- System Logs -->
-                <div
+                <div style="order: 112"
                     class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('logs')"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
@@ -5220,7 +5231,7 @@
                 <?php helper(['role', 'access']); ?>
                 <?php if (client_config_section_allowed('client_features')): ?>
                 <!-- Client Features -->
-                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                <div style="order: 109" class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('clientfeatures')"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                         <div class="flex items-center gap-4">
@@ -5276,7 +5287,7 @@
 
                 <?php if (client_config_section_allowed('dynamic_form_fields')): ?>
                 <!-- Dynamic Form Fields -->
-                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                <div style="order: 110" class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('dynformfields')"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                         <div class="flex items-center gap-4">
@@ -5382,7 +5393,7 @@
                 <?php helper(['role', 'list_columns']); $psAllowed = client_config_section_allowed('page_settings'); ?>
                 <?php if ($psAllowed): ?>
                 <!-- Page Settings (columns + buttons per page; Dynamic Form Fields above is for forms only) -->
-                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                <div style="order: 111" class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('pagesettings')"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                         <div class="flex items-center gap-4">
@@ -5462,7 +5473,7 @@
 
 
                 <!-- Scanner Management -->
-                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+                <div style="order: 403" class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                     <button onclick="toggleSection('scanner'); if(!scannerSettingsLoaded) loadScannerSettings();"
                         class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                         <div class="flex items-center gap-4">
@@ -5506,6 +5517,17 @@
             </div>
         </div>
     </main>
+
+<script>
+    // Config groups: hide a heading when the user cannot see any section in its range
+    document.addEventListener('DOMContentLoaded', () => {
+        const kids = [...document.getElementById('cfgSections').children].filter(el => ! el.classList.contains('cfg-group') && getComputedStyle(el).display !== 'none' && getComputedStyle(el).position !== 'fixed');
+        document.querySelectorAll('#cfgSections .cfg-group').forEach(h => {
+            const from = +h.dataset.from, to = +h.dataset.to;
+            h.style.display = kids.some(el => { const o = +el.style.order; return o > from && o <= to; }) ? '' : 'none';
+        });
+    });
+</script>
 
     <!-- Role Create/Edit Modal -->
     <div id="roleModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4 sm:p-6">
